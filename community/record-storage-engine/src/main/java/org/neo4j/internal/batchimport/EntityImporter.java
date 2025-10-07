@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
+import org.eclipse.collections.impl.list.mutable.FastList;
 import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.exceptions.KernelException;
@@ -45,6 +46,8 @@ import org.neo4j.kernel.impl.store.record.PropertyBlock;
 import org.neo4j.kernel.impl.store.record.PropertyRecord;
 import org.neo4j.kernel.impl.store.record.Record;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.PropertyKeyValue;
+import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.token.api.TokenHolder;
 import org.neo4j.token.api.TokenNotFoundException;
@@ -78,6 +81,7 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
     private final DynamicRecordAllocator dynamicStringRecordAllocator;
     private final DynamicRecordAllocator dynamicArrayRecordAllocator;
     protected final CursorContext cursorContext;
+    protected final FastList<StorageProperty> properties = FastList.newList();
 
     EntityImporter(
             BatchingNeoStores stores,
@@ -125,15 +129,16 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
     @Override
     public boolean property(int propertyKeyId, Object value, boolean identifier) {
         assert !hasPropertyId;
+        Value v = value instanceof Value ? (Value) value : Values.of(value);
         try {
-            encodeProperty(nextPropertyBlock(), propertyKeyId, value);
+            encodeProperty(nextPropertyBlock(), propertyKeyId, v);
         } catch (Exception e) {
             // Didn't work, we must decrement the propertyBlocksCursor
             propertyBlocksCursor--;
             throw e;
         }
         entityPropertyCount++;
-        schemaMonitor.property(propertyKeyId, value, identifier);
+        properties.add(new PropertyKeyValue(propertyKeyId, v));
         return true;
     }
 
@@ -151,6 +156,7 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
         hasPropertyId = false;
         propertyCount += entityPropertyCount;
         entityPropertyCount = 0;
+        properties.clear();
     }
 
     private PropertyBlock nextPropertyBlock() {
@@ -163,8 +169,7 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
         return propertyBlocks[propertyBlocksCursor++];
     }
 
-    private void encodeProperty(PropertyBlock block, int key, Object property) {
-        Value value = property instanceof Value ? (Value) property : Values.of(property);
+    private void encodeProperty(PropertyBlock block, int key, Value value) {
         PropertyStore.encodeValue(
                 block,
                 key,

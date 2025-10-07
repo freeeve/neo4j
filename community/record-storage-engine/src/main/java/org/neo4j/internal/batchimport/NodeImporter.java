@@ -20,6 +20,7 @@
 package org.neo4j.internal.batchimport;
 
 import static java.lang.Long.max;
+import static org.neo4j.internal.batchimport.SchemaMonitor.EMPTY_UNIQUENESS_UPDATES_LISTENER;
 import static org.neo4j.kernel.impl.store.StoreType.NODE_LABEL;
 import static org.neo4j.kernel.impl.store.StoreType.PROPERTY_ARRAY;
 import static org.neo4j.kernel.impl.store.StoreType.PROPERTY_STRING;
@@ -30,6 +31,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import org.eclipse.collections.api.factory.primitive.IntSets;
+import org.eclipse.collections.api.set.primitive.IntSet;
+import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.InputChunk;
@@ -175,6 +179,7 @@ public class NodeImporter extends EntityImporter {
         }
 
         // Compose the labels
+        IntSet entityTokens = IntSets.immutable.empty();
         if (!hasLabelField) {
             if (!labels.isEmpty()) {
                 var labelsArray = labels.toArray(new String[0]);
@@ -182,7 +187,7 @@ public class NodeImporter extends EntityImporter {
                 try {
                     labelTokenRepository.getOrCreateIds(labelsArray, labelIdsInts);
                     Arrays.sort(labelIdsInts);
-                    schemaMonitor.entityTokens(labelIdsInts);
+                    entityTokens = IntSets.immutable.of(labelIdsInts);
                 } catch (KernelException e) {
                     throw new RuntimeException(e);
                 }
@@ -200,16 +205,28 @@ public class NodeImporter extends EntityImporter {
 
         // Write data to stores
         try {
-            if (schemaMonitor.endOfEntity(
+            var entity = new SchemaMonitor.Entity(
+                    inputId,
                     nodeRecord.getId(),
+                    properties,
+                    Collections.emptyList(),
+                    null,
+                    false,
+                    IntSets.immutable.empty(),
+                    IntSets.immutable.empty(),
+                    entityTokens,
+                    IntSets.immutable.empty(),
+                    ApplicationMode.CREATE);
+            if (schemaMonitor.handle(
+                    entity,
                     SchemaMonitor.NO_EXISTING_PROPERTY_KEYS_LOOKUP,
-                    (entityId, tokens, properties, constraintDescription) ->
-                            badCollector.collectEntityViolatingConstraint(
-                                    inputId,
-                                    entityId,
-                                    namedProperties(properties),
-                                    constraintDescription,
-                                    EntityType.NODE))) {
+                    (e, constraintDescription) -> badCollector.collectEntityViolatingConstraint(
+                            inputId,
+                            e.entityId,
+                            namedProperties(e.propertiesMap()),
+                            constraintDescription,
+                            EntityType.NODE),
+                    EMPTY_UNIQUENESS_UPDATES_LISTENER)) {
                 if (inputId != null) {
                     idMapperSetter.put(inputId, nodeRecord.getId(), group);
                 }

@@ -30,14 +30,8 @@ import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.eclipse.collections.api.factory.primitive.IntSets;
-import org.eclipse.collections.api.list.primitive.IntList;
-import org.eclipse.collections.api.list.primitive.MutableIntList;
-import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
-import org.eclipse.collections.api.set.primitive.MutableIntSet;
-import org.eclipse.collections.impl.factory.primitive.IntLists;
-import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Collector;
@@ -58,7 +52,6 @@ import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
-import org.neo4j.values.storable.Values;
 
 /**
  * uniqueness constraint index (prepare copies these):
@@ -173,78 +166,34 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
     }
 
     private class OtherAffectedSchemaMonitor implements SchemaMonitor {
-        private final MutableIntList entityTokens = IntLists.mutable.empty();
-        private final MutableIntList existingEntityTokens = IntLists.mutable.empty();
-        private final MutableIntSet removedEntityTokens = IntSets.mutable.empty();
-        private final MutableIntObjectMap<Value> properties = IntObjectMaps.mutable.empty();
-        private final MutableIntSet removedProperties = IntSets.mutable.empty();
-        private final MutableIntSet identifierPropertyKeys = IntSets.mutable.empty();
-        private ApplicationMode mode;
-
         @Override
-        public void applicationMode(ApplicationMode mode) {
-            this.mode = mode;
-        }
-
-        @Override
-        public void property(int propertyKeyId, Object value, boolean identifier) {
-            var propertyValue = value instanceof Value v ? v : Values.of(value);
-            properties.put(propertyKeyId, propertyValue);
-            if (identifier) {
-                identifierPropertyKeys.add(propertyKeyId);
-            }
-        }
-
-        @Override
-        public void removedProperty(int propertyKeyId) {
-            removedProperties.add(propertyKeyId);
-        }
-
-        @Override
-        public void existingEntityTokens(int[] entityTokens) {
-            existingEntityTokens.addAll(entityTokens);
-        }
-
-        @Override
-        public void entityToken(int entityTokenId) {
-            entityTokens.add(entityTokenId);
-        }
-
-        @Override
-        public void entityTokens(int[] entityTokenIds) {
-            entityTokens.addAll(entityTokenIds);
-        }
-
-        @Override
-        public void removedEntityTokens(int[] entityTokens) {
-            removedEntityTokens.addAll(entityTokens);
-        }
-
-        @Override
-        public boolean endOfEntity(
-                long entityId,
+        public boolean handle(
+                Entity entity,
                 ExistingPropertyKeysLookup existingPropertyKeysLookup,
-                ViolationVisitor violationVisitor) {
+                ViolationVisitor violationVisitor,
+                UniquenessIndexUpdatesListener uniquenessIndexUpdatesListener) {
             try {
-                entityTokens.sortThis();
+                var mode = entity.mode;
                 if (mode == null || mode == ApplicationMode.CREATE) {
-                    boolean propertyExistenceOk = checkPropertyExistenceConstraintsOnCreate(entityId, violationVisitor);
-                    boolean propertyTypesOk = checkPropertyTypeConstraints(entityId, violationVisitor);
+
+                    boolean propertyExistenceOk = checkPropertyExistenceConstraintsOnCreate(entity, violationVisitor);
+                    boolean propertyTypesOk = checkPropertyTypeConstraints(entity, violationVisitor);
                     if (propertyExistenceOk && propertyTypesOk && generateNonUniqueIndexUpdates) {
                         // For CREATE all index updates are simply added to each respective index populator
-                        // and uniqueness violations will be sorted out afterwards, where violating entities
+                        // and uniqueness violations will be sorted out afterward, where violating entities
                         // are deleted.
-                        generateIndexUpdatesForCreatedEntity(entityId);
+                        generateIndexUpdatesForCreatedEntity(entity);
                     }
                     return propertyExistenceOk && propertyTypesOk;
                 } else if (mode == ApplicationMode.UPDATE) {
                     boolean propertyExistenceOk = checkPropertyExistenceConstraintsOnUpdate(
-                            entityId, existingPropertyKeysLookup, violationVisitor);
-                    boolean propertyTypesOk = checkPropertyTypeConstraints(entityId, violationVisitor);
+                            entity, existingPropertyKeysLookup, violationVisitor);
+                    boolean propertyTypesOk = checkPropertyTypeConstraints(entity, violationVisitor);
                     if (propertyExistenceOk && propertyTypesOk) {
                         // For UPDATE at least uniqueness index updates needs to be generated so that their
                         // ADD part can be written to the indexes and validated right here.
-                        return generateAndValidateUniquenessIndexUpdates(entityId, violationVisitor);
+                        return generateAndValidateUniquenessIndexUpdates(
+                                entity, violationVisitor, uniquenessIndexUpdatesListener);
                     } else {
                         return false;
                     }
@@ -252,45 +201,46 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
                     return true;
                 }
             } finally {
-                reset();
+                uniquenessIndexUpdatesListener.endEntity();
             }
         }
 
         private boolean checkPropertyExistenceConstraintsOnUpdate(
-                long entityId,
+                Entity entity,
                 ExistingPropertyKeysLookup existingPropertyKeysLookup,
                 ViolationVisitor violationVisitor) {
-            if (!entityTokens.isEmpty()) {
+            if (!entity.entityTokens.isEmpty()) {
                 // Check if all added properties in this input entity satisfies the mandatory properties
                 // if not then we must load the existing property keys for this node and check
-                var mandatoryPropertyKeys = propertyConstraints.mandatoryPropertyKeys(entityTokens.toArray());
+                var mandatoryPropertyKeys = propertyConstraints.mandatoryPropertyKeys(entity.sortedEntityTokens());
                 if (!mandatoryPropertyKeys.isEmpty()) {
                     var mandatoryPropertyKeysLeftToCheck = IntSets.mutable.ofAll(mandatoryPropertyKeys);
-                    properties.keySet().forEach(mandatoryPropertyKeysLeftToCheck::remove);
+                    entity.propertiesMap().keySet().forEach(mandatoryPropertyKeysLeftToCheck::remove);
                     if (!mandatoryPropertyKeysLeftToCheck.isEmpty()) {
                         var existingRemainingKeys = existingPropertyKeysLookup.lookupPropertyKeys(
-                                entityId, mandatoryPropertyKeysLeftToCheck);
+                                entity.entityId, mandatoryPropertyKeysLeftToCheck);
                         existingRemainingKeys.forEach(key -> {
-                            if (!removedProperties.contains(key)) {
+                            if (!entity.removedProperties.contains(key)) {
                                 mandatoryPropertyKeysLeftToCheck.remove(key);
                             }
                         });
                     }
                     if (!mandatoryPropertyKeysLeftToCheck.isEmpty()) {
-                        violationVisitor.accept(entityId, entityTokens, properties, "a property existence constraint");
+                        violationVisitor.accept(entity, "a property existence constraint");
                         return false;
                     }
                 }
             }
 
-            if (!removedProperties.isEmpty()) {
-                var affectedLabels = propertyConstraints.entityTokensRelatedToPropertyKeys(removedProperties.toArray());
+            if (!entity.removedProperties.isEmpty()) {
+                var affectedLabels =
+                        propertyConstraints.entityTokensRelatedToPropertyKeys(entity.removedProperties.toArray());
                 if (!affectedLabels.isEmpty()) {
                     var affectedLabelsLeftToCheck = IntSets.mutable.ofAll(affectedLabels);
-                    affectedLabelsLeftToCheck.removeAll(removedEntityTokens);
-                    if (affectedLabelsLeftToCheck.containsAny(existingEntityTokens)
-                            || affectedLabelsLeftToCheck.containsAny(entityTokens)) {
-                        violationVisitor.accept(entityId, entityTokens, properties, "a property existence constraint");
+                    affectedLabelsLeftToCheck.removeAll(entity.removedEntityTokens);
+                    if (affectedLabelsLeftToCheck.containsAny(entity.existingEntityTokens)
+                            || affectedLabelsLeftToCheck.containsAny(entity.entityTokens)) {
+                        violationVisitor.accept(entity, "a property existence constraint");
                         return false;
                     }
                 }
@@ -302,8 +252,8 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
          * Used for allowing external code, which is applying changes to the store, generate relevant index updates
          * for this entity. Any updates to uniqueness indexes will be converted to removals (of the before-values),
          * making this method essential and interlinked with
-         * {@link #endOfEntity(long, ExistingPropertyKeysLookup, ViolationVisitor)} for updated entities.
-         * @see #generateAndValidateUniquenessIndexUpdates(long, ViolationVisitor)
+         * {@link SchemaMonitor#handle(Entity, ExistingPropertyKeysLookup, ViolationVisitor, UniquenessIndexUpdatesListener)} for updated entities.
+         * @see #generateAndValidateUniquenessIndexUpdates(Entity, ViolationVisitor, UniquenessIndexUpdatesListener)
          */
         @Override
         public void indexUpdate(IndexEntryUpdate indexUpdate) {
@@ -317,14 +267,13 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
         }
 
         @Override
-        public void reset() {
-            entityTokens.clear();
-            properties.clear();
-            removedProperties.clear();
-            existingEntityTokens.clear();
-            removedEntityTokens.clear();
-            mode = null;
-            identifierPropertyKeys.clear();
+        public boolean directIndexUpdate(IndexEntryUpdate indexUpdate) {
+            return indexBuilder.addDirect(indexUpdate);
+        }
+
+        @Override
+        public boolean checkUniqueness(ValueIndexEntryUpdate[] checks) {
+            return indexBuilder.checkUniqueness(checks);
         }
 
         @Override
@@ -332,12 +281,12 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             indexBuilder.flushOnSchemaMonitorClose();
         }
 
-        private void generateIndexUpdatesForCreatedEntity(long entityId) {
-            var propertyKeyTokens = properties.keySet().toSortedArray();
+        private void generateIndexUpdatesForCreatedEntity(Entity entity) {
+            var propertyKeyTokens = entity.propertiesMap().keySet().toSortedArray();
             var indexes = schemaCache.getValueIndexesRelatedTo(
-                    entityTokens.toArray(), EMPTY_INT_ARRAY, propertyKeyTokens, true, entityType);
+                    entity.sortedEntityTokens(), EMPTY_INT_ARRAY, propertyKeyTokens, true, entityType);
             for (var index : indexes) {
-                indexBuilder.add(constructIndexUpdate(entityId, index));
+                indexBuilder.add(constructIndexUpdate(entity, index));
             }
         }
 
@@ -351,28 +300,36 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
          * calls to {@link #indexUpdate(IndexEntryUpdate)}, where such updates will be transformed into
          * only removal of the before-values - thereby completing the updates.
          */
-        private boolean generateAndValidateUniquenessIndexUpdates(long entityId, ViolationVisitor violationVisitor) {
+        private boolean generateAndValidateUniquenessIndexUpdates(
+                Entity entity,
+                ViolationVisitor violationVisitor,
+                UniquenessIndexUpdatesListener uniquenessIndexUpdatesListener) {
+            var properties = entity.propertiesMap();
+            var identifierPropertyKeys = entity.identifierPropertyKeys();
             var propertyKeyTokens = identifierPropertyKeys.isEmpty()
                     ? properties.keySet().toSortedArray()
                     : properties
                             .keySet()
                             .reject(identifierPropertyKeys::contains)
                             .toSortedArray();
-            var allEntityTokens = IntSets.mutable.ofAll(existingEntityTokens);
-            allEntityTokens.addAll(entityTokens);
+            var allEntityTokens = IntSets.mutable.ofAll(entity.existingEntityTokens);
+            allEntityTokens.addAll(entity.entityTokens);
             var indexes = schemaCache.getValueIndexesRelatedTo(
                     allEntityTokens.toSortedArray(), EMPTY_INT_ARRAY, propertyKeyTokens, true, entityType);
             if (!indexes.isEmpty()) {
-                List<IndexEntryUpdate> appliedAdditions = new ArrayList<>();
+                List<ValueIndexEntryUpdate> appliedAdditions = new ArrayList<>();
                 boolean failed = false;
                 for (var index : indexes) {
                     if (index.isUnique()) {
-                        var indexUpdate = constructIndexUpdate(entityId, index);
+                        var indexUpdate = constructIndexUpdate(entity, index);
+                        if (!uniquenessIndexUpdatesListener.shouldApply(indexUpdate)) {
+                            continue;
+                        }
                         if (indexBuilder.addDirect(indexUpdate)) {
                             appliedAdditions.add(indexUpdate);
                         } else {
                             failed = true;
-                            violationVisitor.accept(entityId, entityTokens, properties, index.toString());
+                            violationVisitor.accept(entity, index.toString());
                             break;
                         }
                     }
@@ -383,6 +340,8 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
                         assert removed;
                     }
                     return false;
+                } else {
+                    uniquenessIndexUpdatesListener.updates(appliedAdditions);
                 }
             }
             return true;
@@ -393,24 +352,22 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             return ValueIndexEntryUpdate.remove(update.getEntityId(), update.indexKey(), valueUpdate.beforeValues());
         }
 
-        private IndexEntryUpdate constructIndexUpdate(long entityId, IndexDescriptor index) {
+        private ValueIndexEntryUpdate constructIndexUpdate(Entity entity, IndexDescriptor index) {
             var propertyIds = index.schema().getPropertyIds();
             Value[] values = new Value[propertyIds.length];
             for (int i = 0; i < propertyIds.length; i++) {
-                values[i] = properties.get(propertyIds[i]);
+                values[i] = entity.propertiesMap().get(propertyIds[i]);
             }
-            return ValueIndexEntryUpdate.add(indexedEntityIdConverter.applyAsLong(entityId), index, values);
+            return ValueIndexEntryUpdate.add(indexedEntityIdConverter.applyAsLong(entity.entityId), index, values);
         }
 
-        private boolean checkPropertyExistenceConstraintsOnCreate(long entityId, ViolationVisitor violationVisitor) {
+        private boolean checkPropertyExistenceConstraintsOnCreate(Entity entity, ViolationVisitor violationVisitor) {
             if (propertyConstraints.hasPropertyExistenceConstraints()) {
-                var entityTokensIterator = entityTokens.intIterator();
-                while (entityTokensIterator.hasNext()) {
-                    var mandatoryPropertyKeys = propertyConstraints.mandatoryPropertyKeys(entityTokensIterator.next());
+                for (int entityToken : entity.sortedEntityTokens()) {
+                    var mandatoryPropertyKeys = propertyConstraints.mandatoryPropertyKeys(entityToken);
                     if (mandatoryPropertyKeys != null) {
-                        if (!properties.keySet().containsAll(mandatoryPropertyKeys)) {
-                            violationVisitor.accept(
-                                    entityId, entityTokens, properties, "a property existence constraint");
+                        if (!entity.propertiesMap().keySet().containsAll(mandatoryPropertyKeys)) {
+                            violationVisitor.accept(entity, "a property existence constraint");
                             return false;
                         }
                     }
@@ -419,23 +376,20 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             return true;
         }
 
-        private boolean checkPropertyTypeConstraints(long entityId, ViolationVisitor violationVisitor) {
+        private boolean checkPropertyTypeConstraints(Entity entity, ViolationVisitor violationVisitor) {
             if (propertyConstraints.hasPropertyTypeConstraints()) {
-                return checkPropertyTypeConstraints(entityId, violationVisitor, entityTokens)
-                        && checkPropertyTypeConstraints(entityId, violationVisitor, existingEntityTokens);
+                return checkPropertyTypeConstraints(entity, violationVisitor, entity.sortedEntityTokens())
+                        && checkPropertyTypeConstraints(entity, violationVisitor, entity.sortedExistingEntityTokens());
             }
             return true;
         }
 
-        private boolean checkPropertyTypeConstraints(long entityId, ViolationVisitor violationVisitor, IntList tokens) {
-            var tokenIterator = tokens.intIterator();
-            while (tokenIterator.hasNext()) {
-                int token = tokenIterator.next();
+        private boolean checkPropertyTypeConstraints(Entity entity, ViolationVisitor violationVisitor, int[] tokens) {
+            for (int token : tokens) {
                 for (var typeConstraint : propertyConstraints.propertyTypeConstraints(token)) {
-                    var value = properties.get(typeConstraint.propertyKeyId());
+                    var value = entity.propertiesMap().get(typeConstraint.propertyKeyId());
                     if (TypeRepresentation.disallows(typeConstraint.type(), value)) {
-                        violationVisitor.accept(
-                                entityId, entityTokens, properties, "a property type constraint " + value);
+                        violationVisitor.accept(entity, "a property type constraint " + value);
                         return false;
                     }
                 }

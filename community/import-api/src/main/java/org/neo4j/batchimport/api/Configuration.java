@@ -34,6 +34,7 @@ import org.neo4j.io.pagecache.PageCache;
  */
 public interface Configuration {
     int DEFAULT_BATCH_SIZE = getInteger(Configuration.class, "DEFAULT_BATCH_SIZE", 10_000);
+    int DEFAULT_ENTITY_BATCH_SIZE = 100;
 
     int DEFAULT_MAX_MEMORY_PERCENT = 90;
 
@@ -42,6 +43,16 @@ public interface Configuration {
      */
     default int batchSize() {
         return DEFAULT_BATCH_SIZE;
+    }
+
+    /**
+     * @return size of batches (in number of entities) to pass around in the internal data processing.
+     * This is different from {@link #batchSize()} mostly in the sens of {@link #batchSize()} being used
+     * on a record level (and in aligned etc. format), whereas this method is used when batching full
+     * entities for processing (and in block format).
+     */
+    default int entityBatchSize() {
+        return DEFAULT_ENTITY_BATCH_SIZE;
     }
 
     /**
@@ -238,6 +249,11 @@ public interface Configuration {
         @Override
         public int batchSize() {
             return defaults.batchSize();
+        }
+
+        @Override
+        public int entityBatchSize() {
+            return defaults.entityBatchSize();
         }
 
         @Override

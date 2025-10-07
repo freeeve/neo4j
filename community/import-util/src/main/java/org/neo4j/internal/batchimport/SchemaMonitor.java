@@ -19,44 +19,30 @@
  */
 package org.neo4j.internal.batchimport;
 
+import java.nio.ByteBuffer;
+import java.util.List;
+import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
 import org.eclipse.collections.api.factory.primitive.IntSets;
-import org.eclipse.collections.api.list.primitive.IntList;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.StorageProperty;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 
 public interface SchemaMonitor extends AutoCloseable {
     ExistingPropertyKeysLookup NO_EXISTING_PROPERTY_KEYS_LOOKUP = (entityId, keysToLookup) -> IntSets.immutable.empty();
 
+    ViolationVisitor NO_VIOLATION_VISITOR = (entity, constraintDescription) -> {};
+
     SchemaMonitor NO_MONITOR = new SchemaMonitor() {
         @Override
-        public void applicationMode(ApplicationMode mode) {}
-
-        @Override
-        public void property(int propertyKeyId, Object value, boolean identifier) {}
-
-        @Override
-        public void removedProperty(int propertyKeyId) {}
-
-        @Override
-        public void existingEntityTokens(int[] entityTokens) {}
-
-        @Override
-        public void entityToken(int entityTokenId) {}
-
-        @Override
-        public void entityTokens(int[] entityTokenIds) {}
-
-        @Override
-        public void removedEntityTokens(int[] entityTokens) {}
-
-        @Override
-        public boolean endOfEntity(
-                long entityId,
+        public boolean handle(
+                Entity entity,
                 ExistingPropertyKeysLookup existingPropertyKeysLookup,
-                ViolationVisitor violationVisitor) {
+                ViolationVisitor violationVisitor,
+                UniquenessIndexUpdatesListener uniquenessIndexUpdatesListener) {
             return true;
         }
 
@@ -64,46 +50,266 @@ public interface SchemaMonitor extends AutoCloseable {
         public void indexUpdate(IndexEntryUpdate indexUpdate) {}
 
         @Override
-        public void reset() {}
+        public boolean directIndexUpdate(IndexEntryUpdate indexUpdate) {
+            return true;
+        }
+
+        @Override
+        public boolean checkUniqueness(ValueIndexEntryUpdate[] checks) {
+            return true;
+        }
 
         @Override
         public void close() {}
     };
 
-    void applicationMode(ApplicationMode mode);
+    UniquenessIndexUpdatesListener EMPTY_UNIQUENESS_UPDATES_LISTENER = new UniquenessIndexUpdatesListener() {
+        @Override
+        public boolean shouldApply(ValueIndexEntryUpdate update) {
+            return true;
+        }
 
-    void property(int propertyKeyId, Object value, boolean identifier);
+        @Override
+        public void updates(List<ValueIndexEntryUpdate> updates) {}
 
-    void removedProperty(int propertyKeyId);
+        @Override
+        public void endEntity() {}
+    };
 
-    void existingEntityTokens(int[] entityTokens);
+    boolean handle(
+            Entity entity,
+            ExistingPropertyKeysLookup existingPropertyKeysLookup,
+            ViolationVisitor violationVisitor,
+            UniquenessIndexUpdatesListener uniquenessIndexUpdatesListener);
 
-    void entityToken(int entityTokenId);
-
-    void entityTokens(int[] entityTokenIds);
-
-    void removedEntityTokens(int[] entityTokens);
-
-    boolean endOfEntity(
-            long entityId, ExistingPropertyKeysLookup existingPropertyKeysLookup, ViolationVisitor violationVisitor);
+    default boolean[] handle(
+            Entity[] entities,
+            ExistingPropertyKeysLookup existingPropertyKeysLookup,
+            ViolationVisitor violationVisitor,
+            UniquenessIndexUpdatesListener uniquenessIndexUpdatesListener) {
+        boolean[] result = new boolean[entities.length];
+        for (int i = 0; i < entities.length; i++) {
+            var entity = entities[i];
+            result[i] = entity != null
+                    && handle(entity, existingPropertyKeysLookup, violationVisitor, uniquenessIndexUpdatesListener);
+        }
+        return result;
+    }
 
     /**
      * Used when there's something figuring out relevant index updates for an updated entity,
-     * for updated entities where existing data is also read
+     * for updated entities where existing data is also read. These index updates can be batched and even
+     * deferred to much later.
      * @param indexUpdate index update to apply.
      */
     void indexUpdate(IndexEntryUpdate indexUpdate);
 
-    void reset();
+    /**
+     * Applies an index update, typically used for uniqueness indexes. Returns {@code true} if the index update
+     * could be applied (didn't violate uniqueness), otherwise {@code false}.
+     * @param indexUpdate index update to apply directly.
+     * @return {@code true} if update could be applied w/o violating uniqueness.
+     */
+    boolean directIndexUpdate(IndexEntryUpdate indexUpdate);
+
+    /**
+     * Checks whether applying these updates would potentially violate any uniqueness constraint.
+     * @param checks index updates to check.
+     * @return {@code true} if no checks would violate a uniqueness constraint, otherwise {@code false}.
+     */
+    boolean checkUniqueness(ValueIndexEntryUpdate[] checks);
 
     @Override
     void close();
 
     interface ViolationVisitor {
-        void accept(long entityId, IntList tokens, IntObjectMap<Value> properties, String constraintDescription);
+        void accept(Entity entity, String constraintDescription);
     }
 
     interface ExistingPropertyKeysLookup {
         IntSet lookupPropertyKeys(long entityId, IntSet keysToLookup);
+    }
+
+    class Entity {
+        public final Object inputId;
+        public long entityId;
+        public final List<StorageProperty> properties;
+        public final List<StorageProperty> identifyingProperties;
+        public final ByteBuffer encodedProperties;
+        public final boolean encodedPropertiesOffloaded;
+        public final IntSet removedProperties;
+        public final IntSet existingEntityTokens;
+        public final IntSet entityTokens;
+        public final IntSet removedEntityTokens;
+        public final ApplicationMode mode;
+
+        private IntObjectMap<Value> propertiesMap;
+        private int[] sortedEntityTokens;
+        private int[] sortedExistingEntityTokens;
+        private IntSet identifierPropertyKeys;
+
+        public Entity(
+                Object inputId,
+                long entityId,
+                List<StorageProperty> properties,
+                List<StorageProperty> identifyingProperties,
+                ByteBuffer encodedProperties,
+                boolean encodedPropertiesOffloaded,
+                IntSet removedProperties,
+                IntSet existingEntityTokens,
+                IntSet entityTokens,
+                IntSet removedEntityTokens,
+                ApplicationMode mode) {
+            this.inputId = inputId;
+            this.entityId = entityId;
+            this.properties = properties;
+            this.identifyingProperties = identifyingProperties;
+            this.encodedProperties = encodedProperties;
+            this.encodedPropertiesOffloaded = encodedPropertiesOffloaded;
+            this.removedProperties = removedProperties;
+            this.existingEntityTokens = existingEntityTokens;
+            this.entityTokens = entityTokens;
+            this.removedEntityTokens = removedEntityTokens;
+            this.mode = mode;
+        }
+
+        public IntObjectMap<Value> propertiesMap() {
+            if (propertiesMap == null) {
+                var map = IntObjectMaps.mutable.<Value>ofInitialCapacity(properties.size());
+                for (var property : properties) {
+                    map.put(property.propertyKeyId(), property.value());
+                }
+                propertiesMap = map;
+            }
+            return propertiesMap;
+        }
+
+        int[] sortedEntityTokens() {
+            if (sortedEntityTokens == null) {
+                sortedEntityTokens = entityTokens.toSortedArray();
+            }
+            return sortedEntityTokens;
+        }
+
+        int[] sortedExistingEntityTokens() {
+            if (sortedExistingEntityTokens == null) {
+                sortedExistingEntityTokens = existingEntityTokens.toSortedArray();
+            }
+            return sortedExistingEntityTokens;
+        }
+
+        IntSet identifierPropertyKeys() {
+            if (identifierPropertyKeys == null) {
+                var keys = IntSets.mutable.withInitialCapacity(identifyingProperties.size());
+                for (var identifyingProperty : identifyingProperties) {
+                    keys.add(identifyingProperty.propertyKeyId());
+                }
+                identifierPropertyKeys = keys;
+            }
+            return identifierPropertyKeys;
+        }
+
+        public Entity newWithEntityId(long entityId) {
+            return new Entity(
+                    inputId,
+                    entityId,
+                    properties,
+                    identifyingProperties,
+                    encodedProperties,
+                    encodedPropertiesOffloaded,
+                    removedProperties,
+                    existingEntityTokens,
+                    entityTokens,
+                    removedEntityTokens,
+                    mode);
+        }
+    }
+
+    class Relationship extends Entity {
+        public final long startNodeId;
+        public final long endNodeId;
+        public final Object startId;
+        public final Object endId;
+
+        public Relationship(
+                long entityId,
+                List<StorageProperty> properties,
+                List<StorageProperty> identifyingProperties,
+                ByteBuffer encodedProperties,
+                boolean encodedPropertiesOffloaded,
+                IntSet removedProperties,
+                IntSet existingEntityTokens,
+                IntSet entityTokens,
+                IntSet removedEntityTokens,
+                ApplicationMode mode,
+                long startNodeId,
+                long endNodeId,
+                Object startId,
+                Object endId) {
+            super(
+                    null,
+                    entityId,
+                    properties,
+                    identifyingProperties,
+                    encodedProperties,
+                    encodedPropertiesOffloaded,
+                    removedProperties,
+                    existingEntityTokens,
+                    entityTokens,
+                    removedEntityTokens,
+                    mode);
+            this.startNodeId = startNodeId;
+            this.endNodeId = endNodeId;
+            this.startId = startId;
+            this.endId = endId;
+        }
+
+        public int relationshipType() {
+            return entityTokens.intIterator().next();
+        }
+
+        public Relationship newRelationshipWithId(long relationshipId) {
+            return new Relationship(
+                    relationshipId,
+                    properties,
+                    identifyingProperties,
+                    encodedProperties,
+                    encodedPropertiesOffloaded,
+                    removedProperties,
+                    existingEntityTokens,
+                    entityTokens,
+                    removedEntityTokens,
+                    mode,
+                    startNodeId,
+                    endNodeId,
+                    startId,
+                    endId);
+        }
+
+        public Relationship newWithEntityIds(long relationshipId, long startNodeId, long endNodeId) {
+            return new Relationship(
+                    relationshipId,
+                    properties,
+                    identifyingProperties,
+                    encodedProperties,
+                    encodedPropertiesOffloaded,
+                    removedProperties,
+                    existingEntityTokens,
+                    entityTokens,
+                    removedEntityTokens,
+                    mode,
+                    startNodeId,
+                    endNodeId,
+                    startId,
+                    endId);
+        }
+    }
+
+    interface UniquenessIndexUpdatesListener {
+        boolean shouldApply(ValueIndexEntryUpdate update);
+
+        void updates(List<ValueIndexEntryUpdate> updates);
+
+        void endEntity();
     }
 }

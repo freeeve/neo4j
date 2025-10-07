@@ -22,10 +22,7 @@ package org.neo4j.internal.batchimport;
 import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.neo4j.internal.batchimport.SchemaMonitor.NO_MONITOR;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.NODE_CURSOR;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
@@ -34,8 +31,11 @@ import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
+import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,11 +60,14 @@ import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.RecordLoad;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.token.api.TokenHolder;
+import org.neo4j.values.storable.Values;
 
 @PageCacheExtension
 @Neo4jLayoutExtension
@@ -184,7 +187,7 @@ class NodeImporterTest {
     @Test
     void shouldTrackAffectedSchema() throws KernelException {
         // given
-        var schemaMonitor = mock(SchemaMonitor.class);
+        var schemaMonitor = new CapturingSchemaMonitor();
 
         // when
         try (var importer = new NodeImporter(
@@ -199,10 +202,11 @@ class NodeImporterTest {
         }
 
         // then
-        verify(schemaMonitor).property(keyIds("key2")[0], "value2", false);
-        verify(schemaMonitor).property(keyIds("key3")[0], "value3", false);
-        verify(schemaMonitor).entityTokens(labelIds("label1", "label2"));
-        verify(schemaMonitor).endOfEntity(anyLong(), any(), any());
+        var entity = schemaMonitor.entity;
+        assertThat(entity.propertiesMap())
+                .isEqualTo(IntObjectMaps.mutable.of(
+                        keyIds("key2")[0], Values.of("value2"), keyIds("key3")[0], Values.of("value3")));
+        assertThat(entity.entityTokens).isEqualTo(IntSets.immutable.of(labelIds("label1", "label2")));
     }
 
     private int[] labelIds(String... labels) throws KernelException {
@@ -225,5 +229,46 @@ class NodeImporterTest {
         properties.forEach((key, value) -> importer.property(key, value, false));
         importer.labels(labels);
         importer.endOfEntity();
+    }
+
+    private static class CapturingSchemaMonitor implements SchemaMonitor {
+        private SchemaMonitor.Entity entity;
+
+        @Override
+        public boolean handle(
+                Entity entity,
+                ExistingPropertyKeysLookup existingPropertyKeysLookup,
+                ViolationVisitor violationVisitor,
+                UniquenessIndexUpdatesListener uniquenessIndexUpdatesListener) {
+            this.entity = new Entity(
+                    entity.inputId,
+                    entity.entityId,
+                    new ArrayList<>(entity.properties),
+                    new ArrayList<>(entity.identifyingProperties),
+                    entity.encodedProperties,
+                    entity.encodedPropertiesOffloaded,
+                    entity.removedProperties,
+                    entity.existingEntityTokens,
+                    IntSets.immutable.ofAll(entity.entityTokens),
+                    entity.removedEntityTokens,
+                    entity.mode);
+            return true;
+        }
+
+        @Override
+        public void indexUpdate(IndexEntryUpdate indexUpdate) {}
+
+        @Override
+        public boolean directIndexUpdate(IndexEntryUpdate indexUpdate) {
+            return true;
+        }
+
+        @Override
+        public boolean checkUniqueness(ValueIndexEntryUpdate[] checks) {
+            return true;
+        }
+
+        @Override
+        public void close() {}
     }
 }

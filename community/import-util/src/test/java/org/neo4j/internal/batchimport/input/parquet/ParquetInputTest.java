@@ -385,11 +385,11 @@ class ParquetInputTest {
                     .satisfiesExactlyInAnyOrder(
                             propertyNode1 -> {
                                 assertThat(propertyNode1.asValue()).isEqualTo(Values.stringValue("Mattias Persson"));
-                                assertThat(propertyNode1.key()).isEqualTo("name");
+                                assertThat(propertyNode1.keyName()).isEqualTo("name");
                             },
                             propertyNode2 -> {
                                 assertThat(propertyNode2.asValue()).isEqualTo(Values.stringValue("SomeoneElse"));
-                                assertThat(propertyNode2.key()).isEqualTo("new_name");
+                                assertThat(propertyNode2.keyName()).isEqualTo("new_name");
                             });
         }
     }

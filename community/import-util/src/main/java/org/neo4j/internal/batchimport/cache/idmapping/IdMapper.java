@@ -44,6 +44,13 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
      */
     void remove(Object inputId, long actualId, Group group);
 
+    default void remove(Object[] inputIds, long[] actualIds, Group[] groups) {
+        assert inputIds.length == actualIds.length && actualIds.length == groups.length;
+        for (int i = 0; i < inputIds.length; i++) {
+            remove(inputIds[i], actualIds[i], groups[i]);
+        }
+    }
+
     /**
      * @return whether a call to {@link #prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet)} needs to commence after all calls to
      * {@link Setter#put(Object, long, Group)} and before any call to {@link Getter#get(Object, Group)}. I.e. whether all ids
@@ -107,6 +114,15 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
          */
         long get(Object inputId, Group group);
 
+        default long[] get(Object[] inputIds, Group[] groups) {
+            assert inputIds.length == groups.length;
+            long[] result = new long[groups.length];
+            for (int i = 0; i < groups.length; i++) {
+                result[i] = inputIds[i] == null ? ID_NOT_FOUND : get(inputIds[i], groups[i]);
+            }
+            return result;
+        }
+
         @Override
         void close();
     }
@@ -123,5 +139,19 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
          * input ids for another group.
          */
         void put(Object inputId, long actualId, Group group) throws KeyCollisionException;
+
+        default boolean[] put(Object[] inputIds, long[] actualIds, Group[] groups) {
+            assert inputIds.length == actualIds.length && actualIds.length == groups.length;
+            boolean[] result = new boolean[inputIds.length];
+            for (int i = 0; i < inputIds.length; i++) {
+                try {
+                    put(inputIds[i], actualIds[i], groups[i]);
+                    result[i] = true;
+                } catch (KeyCollisionException e) {
+                    result[i] = false;
+                }
+            }
+            return result;
+        }
     }
 }

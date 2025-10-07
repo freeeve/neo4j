@@ -20,9 +20,13 @@
 package org.neo4j.internal.batchimport;
 
 import static java.lang.String.format;
+import static org.neo4j.internal.batchimport.SchemaMonitor.EMPTY_UNIQUENESS_UPDATES_LISTENER;
 import static org.neo4j.storageengine.util.IdUpdateListener.IGNORE;
 
+import java.util.Collections;
 import java.util.function.LongFunction;
+import org.eclipse.collections.api.factory.primitive.IntSets;
+import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.InputChunk;
@@ -148,7 +152,6 @@ public class RelationshipImporter extends EntityImporter {
     @Override
     public boolean type(int typeId) {
         relationshipRecord.setType(typeId);
-        schemaMonitor.entityToken(typeId);
         return true;
     }
 
@@ -169,18 +172,30 @@ public class RelationshipImporter extends EntityImporter {
                 && relationshipRecord.getSecondNode() != IdMapper.ID_NOT_FOUND
                 && relationshipRecord.getType() != -1) {
             relationshipRecord.setId(relationshipIds.nextId(cursorContext));
-            if (schemaMonitor.endOfEntity(
+            var entity = new SchemaMonitor.Entity(
+                    null,
                     relationshipRecord.getId(),
+                    properties,
+                    Collections.emptyList(),
+                    null,
+                    false,
+                    IntSets.immutable.empty(),
+                    IntSets.immutable.empty(),
+                    IntSets.immutable.of(relationshipRecord.getType()),
+                    IntSets.immutable.empty(),
+                    ApplicationMode.CREATE);
+            if (schemaMonitor.handle(
+                    entity,
                     SchemaMonitor.NO_EXISTING_PROPERTY_KEYS_LOOKUP,
-                    (entityId, tokens, properties, constraintDescription) ->
-                            badCollector.collectRelationshipViolatingConstraint(
-                                    namedProperties(properties),
-                                    constraintDescription,
-                                    startId,
-                                    startIdGroup,
-                                    type,
-                                    endId,
-                                    endIdGroup))) {
+                    (e, constraintDescription) -> badCollector.collectRelationshipViolatingConstraint(
+                            namedProperties(e.propertiesMap()),
+                            constraintDescription,
+                            startId,
+                            startIdGroup,
+                            type,
+                            endId,
+                            endIdGroup),
+                    EMPTY_UNIQUENESS_UPDATES_LISTENER)) {
                 if (doubleRecordUnits) {
                     // simply reserve one id for this relationship to grow during linking stage
                     relationshipIds.nextId(cursorContext);

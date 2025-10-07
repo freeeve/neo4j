@@ -20,6 +20,7 @@
 package org.neo4j.internal.batchimport.input;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_STRING_ARRAY;
+import static org.neo4j.token.api.TokenConstants.NO_TOKEN;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -28,13 +29,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.ToIntFunction;
 import org.eclipse.collections.api.factory.primitive.IntLists;
+import org.eclipse.collections.api.factory.primitive.IntSets;
+import org.eclipse.collections.api.list.primitive.IntList;
 import org.eclipse.collections.api.list.primitive.MutableIntList;
+import org.eclipse.collections.api.set.primitive.IntSet;
+import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
-import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
 import org.neo4j.internal.id.IdSequence;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
@@ -70,6 +75,7 @@ public class InputEntity implements InputEntityVisitor {
 
     public boolean hasLongId;
     public long longId;
+    public IdSequence idSequence;
     public Object objectId;
     public Group idGroup;
 
@@ -118,7 +124,7 @@ public class InputEntity implements InputEntityVisitor {
     public boolean property(String key, Object value, boolean identifier) {
         assert value != Values.NO_VALUE;
         checkClear();
-        properties.add(new Property(key, value, identifier));
+        properties.add(new Property(key, NO_TOKEN, value, identifier));
         return delegate.property(key, value, identifier);
     }
 
@@ -127,7 +133,7 @@ public class InputEntity implements InputEntityVisitor {
         assert value != Values.NO_VALUE;
         checkClear();
         hasIntPropertyKeyIds = true;
-        properties.add(new Property(propertyKeyId, value, identifier));
+        properties.add(new Property(null, propertyKeyId, value, identifier));
         return delegate.property(propertyKeyId, value, identifier);
     }
 
@@ -163,6 +169,7 @@ public class InputEntity implements InputEntityVisitor {
 
     @Override
     public boolean id(Object id, Group group, IdSequence idSequence) {
+        this.idSequence = idSequence;
         checkClear();
         objectId = id;
         idGroup = group;
@@ -278,11 +285,39 @@ public class InputEntity implements InputEntityVisitor {
         return labels.toArray(new String[0]);
     }
 
+    private IntSet tokenIds(IntList ids, List<String> names, ToIntFunction<String> nameToIdLookup) {
+        if (ids.isEmpty() && names.isEmpty()) {
+            return IntSets.immutable.empty();
+        }
+
+        MutableIntSet result = IntSets.mutable.empty();
+        result.addAll(ids);
+        for (String name : names) {
+            int id = nameToIdLookup.applyAsInt(name);
+            if (id != NO_TOKEN) {
+                result.add(id);
+            }
+        }
+        return result;
+    }
+
+    public IntSet labelIds(ToIntFunction<String> nameToIdLookup) {
+        return tokenIds(intLabels, labels, nameToIdLookup);
+    }
+
+    public IntSet removedLabelIds(ToIntFunction<String> nameToIdLookup) {
+        return tokenIds(intRemovedLabels, removedLabels, nameToIdLookup);
+    }
+
+    public IntSet removedPropertyIds(ToIntFunction<String> nameToIdLookup) {
+        return tokenIds(intRemovedProperties, removedProperties, nameToIdLookup);
+    }
+
     public Map<String, Object> propertiesAsMap() {
         Preconditions.checkState(!hasIntPropertyKeyIds, "This instance doesn't have String keys");
         Map<String, Object> map = new HashMap<>();
         for (var p : properties) {
-            map.put((String) p.key, p.value);
+            map.put(p.keyName(), p.value);
         }
         return map;
     }
@@ -291,14 +326,14 @@ public class InputEntity implements InputEntityVisitor {
         Preconditions.checkState(!hasIntPropertyKeyIds, "This instance doesn't have String keys");
         Map<String, Value> map = new HashMap<>();
         for (var p : properties) {
-            map.put((String) p.key, p.asValue());
+            map.put(p.keyName(), p.asValue());
         }
         return map;
     }
 
     public Property getProperty(String key) {
         for (var p : properties) {
-            if (p.key.equals(key)) {
+            if (key.equals(p.keyName())) {
                 return p;
             }
         }
@@ -321,25 +356,6 @@ public class InputEntity implements InputEntityVisitor {
         return stringType != null ? stringType : intType;
     }
 
-    public long longStartId(IdMapper.Getter idLookup) {
-        return extractNodeId(hasLongStartId, longStartId, objectStartId, startIdGroup, idLookup);
-    }
-
-    public long longEndId(IdMapper.Getter idLookup) {
-        return extractNodeId(hasLongEndId, longEndId, objectEndId, endIdGroup, idLookup);
-    }
-
-    private long extractNodeId(
-            boolean hasLongId, long longId, Object objectId, Group idGroup, IdMapper.Getter idLookup) {
-        if (hasLongId) {
-            return longId;
-        }
-        if (objectId != null) {
-            return idLookup.get(objectId, idGroup);
-        }
-        return NULL_ID;
-    }
-
     private void checkClear() {
         if (end) {
             reset();
@@ -359,6 +375,7 @@ public class InputEntity implements InputEntityVisitor {
         propertiesOffloaded = false;
         hasLongId = false;
         longId = NULL_ID;
+        idSequence = null;
         objectId = null;
         idGroup = null;
         labels.clear();
@@ -396,10 +413,10 @@ public class InputEntity implements InputEntityVisitor {
             visitor.propertyId(propertyId);
         } else if (!properties.isEmpty()) {
             for (var p : properties) {
-                if (hasIntPropertyKeyIds) {
-                    visitor.property((Integer) p.key, p.value, p.identifier);
+                if (p.hasKeyId()) {
+                    visitor.property(p.keyId(), p.value, p.identifier);
                 } else {
-                    visitor.property((String) p.key, p.value, p.identifier);
+                    visitor.property(p.keyName(), p.value, p.identifier);
                 }
             }
         }
@@ -464,7 +481,7 @@ public class InputEntity implements InputEntityVisitor {
         // properties
         for (var property : increment.properties) {
             properties.stream()
-                    .filter(p -> p.key.equals(property.key))
+                    .filter(p -> p.keyName().equals(property.keyName()))
                     .findFirst()
                     .ifPresent(properties::remove);
             properties.add(property);
@@ -472,7 +489,7 @@ public class InputEntity implements InputEntityVisitor {
 
         // removed properties
         for (var key : increment.removedProperties) {
-            properties.stream().filter(p -> p.key.equals(key)).findFirst().ifPresent(properties::remove);
+            properties.stream().filter(p -> key.equals(p.keyName())).findFirst().ifPresent(properties::remove);
         }
 
         // labels
@@ -482,9 +499,23 @@ public class InputEntity implements InputEntityVisitor {
         increment.removedLabels.forEach(labels::remove);
     }
 
-    public record Property(Object key, Object value, boolean identifier) {
+    public record Property(String keyName, int keyId, Object value, boolean identifier) {
         public Value asValue() {
             return value instanceof Value v ? v : Values.of(value);
+        }
+
+        public String keyName() {
+            assert keyName != null : "The key name isn't present";
+            return keyName;
+        }
+
+        public int keyId() {
+            assert keyId != NO_TOKEN : "The key id isn't present";
+            return keyId;
+        }
+
+        public boolean hasKeyId() {
+            return keyId != NO_TOKEN;
         }
     }
 }

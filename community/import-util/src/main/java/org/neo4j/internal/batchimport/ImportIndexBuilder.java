@@ -52,8 +52,11 @@ import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
+import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
+import org.neo4j.internal.kernel.api.IndexQueryConstraints;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -76,6 +79,7 @@ import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
@@ -331,7 +335,7 @@ public class ImportIndexBuilder implements Closeable {
      * will exist in the target {@link IndexAccessor} for each index.
      *
      * @param violatingIdMapperEntityIds entity IDs found by the
-     * {@link org.neo4j.internal.batchimport.cache.idmapping.IdMapper} to be duplicates.
+     * {@link IdMapper} to be duplicates.
      * @param otherViolatingEntityIds entity IDs found by other indexes to be duplicates, e.g. from
      * {@link #validate(Collector, ProgressMonitorFactory)}.
      * @param progressMonitorFactory for progress reporting.
@@ -453,6 +457,31 @@ public class ImportIndexBuilder implements Closeable {
         for (var indexBuilder : indexBuilders.values()) {
             indexBuilder.flush();
         }
+    }
+
+    /**
+     * @return {@code true} if there are no updates that would violate uniqueness.
+     */
+    public boolean checkUniqueness(ValueIndexEntryUpdate[] checks) {
+        for (var check : checks) {
+            try (var reader = getIndexBuilder(check.indexKey())
+                            .accessor
+                            .newValueReader(IndexUsageTracking.NO_USAGE_TRACKING);
+                    var client = new SimpleEntityValueClient()) {
+                reader.query(
+                        client,
+                        QueryContext.NULL_CONTEXT,
+                        NULL_CONTEXT,
+                        IndexQueryConstraints.unconstrained(),
+                        PropertyIndexQuery.exact(0, check.values()[0]));
+                if (client.next()) {
+                    return false;
+                }
+            } catch (IndexNotApplicableKernelException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return true;
     }
 
     private record RecordingIndexEntryConflictHandler(
