@@ -69,8 +69,6 @@ object leafPlanOptions extends LeafPlanFinder {
   ): Map[Set[LogicalVariable], BestPlans] = {
     val queryPlannerKit = config.toKit(interestingOrderConfig, context)
     val pickBest = config.pickBestCandidate(context)
-    val extraPropertiesRequirement =
-      context.settings.remoteBatchPropertiesStrategy.interestingPropertiesAsIDPExtraRequirement(queryGraph, context)
     val leafPlanCandidatesWithSelections = queryPlannerKit.select(leafPlanCandidates, queryGraph)
 
     leafPlanCandidatesWithSelections
@@ -86,7 +84,8 @@ object leafPlanOptions extends LeafPlanFinder {
         val bestPlanWithExtraProperties =
           if (context.staticComponents.planContext.databaseMode == DatabaseMode.SHARDED) {
             pickBest(
-              bucket.filter(extraPropertiesRequirement.fulfils),
+              context.settings.remoteBatchPropertiesStrategy
+                .planPrefetchRemoteBatchPropertiesIfRequired(queryGraph, bucket, context),
               leafPlanHeuristic(context),
               s"leaf plan with extra properties for available symbols ${bucket.head.availableSymbols.map(s =>
                   s"'${s.name}'"

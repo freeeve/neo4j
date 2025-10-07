@@ -197,10 +197,9 @@ class PushOperatorsToShardPlanningIntegrationTest
         Seq("count(cacheN[person.age]) AS `count(person.age)`"),
         Seq("cacheN[person.age]")
       )
-      .remoteBatchProperties("cacheNFromStore[person.name]")
       .sort("`person.age` ASC")
       .projection("cacheN[person.age] AS `person.age`")
-      .remoteBatchProperties("cacheNFromStore[person.age]")
+      .remoteBatchProperties("cacheNFromStore[person.age]", "cacheNFromStore[person.name]")
       .allNodeScan("person")
       .build()
   }
@@ -1149,8 +1148,8 @@ class PushOperatorsToShardPlanningIntegrationTest
     plan should equal(
       planner.subPlanBuilder()
         .projection("cacheN[a.name] AS `a.name`", "cacheN[b.firstName] AS `b.firstName`")
-        .remoteBatchProperties("cacheNFromStore[a.name]")
         .cartesianProduct()
+        .|.remoteBatchProperties("cacheNFromStore[a.name]")
         .|.nodeByLabelScan("a", "Person")
         .antiSemiApply()
         .|.expandInto("(b)-[:KNOWS]->(anon_0)")
@@ -1389,7 +1388,7 @@ class PushOperatorsToShardPlanningIntegrationTest
         .build()
   }
 
-  test("should plan sort after/before remoteBatchProperties depending on runtime") {
+  test("should plan sort after remoteBatchProperties") {
     val query =
       """MATCH (subject:Person)
         |RETURN subject.firstName as name,
@@ -1401,10 +1400,9 @@ class PushOperatorsToShardPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("name", "lastName")
         .projection("cacheN[subject.name] AS lastName")
-        .remoteBatchProperties("cacheNFromStore[subject.name]")
         .sort("name ASC")
         .projection("cacheN[subject.firstName] AS name")
-        .remoteBatchProperties("cacheNFromStore[subject.firstName]")
+        .remoteBatchProperties("cacheNFromStore[subject.firstName]", "cacheNFromStore[subject.name]")
         .nodeByLabelScan("subject", "Person")
         .build()
     )
