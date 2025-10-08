@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.neo4j.fabric.bolt.QueryRouterBookmark;
 import org.neo4j.fabric.executor.Location;
+import org.neo4j.util.VisibleForTesting;
 
 public class TransactionBookmarkManagerImpl implements TransactionBookmarkManager {
     private final QueryRouterBookmark submittedBookmark;
@@ -113,7 +114,8 @@ public class TransactionBookmarkManagerImpl implements TransactionBookmarkManage
         return finalBookmark;
     }
 
-    private static QueryRouterBookmark merge(List<QueryRouterBookmark> queryRouterBookmarks) {
+    @VisibleForTesting
+    public static QueryRouterBookmark merge(List<QueryRouterBookmark> queryRouterBookmarks) {
         List<QueryRouterBookmark.InternalGraphState> mergedInternalGraphStates =
                 mergeInternalGraphStates(queryRouterBookmarks);
         List<QueryRouterBookmark.ExternalGraphState> mergedExternalGraphStates =
