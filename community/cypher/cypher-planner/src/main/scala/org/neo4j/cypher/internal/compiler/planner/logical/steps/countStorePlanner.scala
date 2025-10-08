@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.Variable
@@ -140,6 +141,22 @@ case object countStorePlanner {
           // variable is not a node and not a relationship
           false
         }
+      case Predicate(_, HasLabels(v, labelNameList)) =>
+        labelNameList.forall(labelName =>
+          context.staticComponents.graphSchemaOptimizations.isLabelImplied(
+            labelToCheck = labelName.name,
+            outRelTypes =
+              patternRelationships
+                .filter(rel => rel.inOrder._1 == v && rel.dir != BOTH)
+                .map(rel => rel.types.map(typ => typ.name).toSet),
+            inRelTypes =
+              patternRelationships
+                .filter(rel => rel.inOrder._2 == v && rel.dir != BOTH)
+                .map(rel => rel.types.map(typ => typ.name).toSet),
+            undirectedRelTypes = Set.empty
+            // Undirected relationships won't use the count store, so there is no need to try to find if the label is implied by an undirected relationship
+          )
+        )
       case _ => false
     }
   }

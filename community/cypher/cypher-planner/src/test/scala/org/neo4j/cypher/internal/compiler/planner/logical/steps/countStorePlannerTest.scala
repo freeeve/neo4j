@@ -145,7 +145,7 @@ class countStorePlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     countStorePlanner(plannerQuery, context) should notBeCountPlan
   }
 
-  test("should plan a count for rel count with no direction") {
+  test("should not plan a count for rel count with no direction") {
     val context = newMockedLogicalPlanningContextWithFakeAttributes(mock[PlanContext])
     val plannerQuery = producePlannerQuery("MATCH ()-[r]-()", "r")
 

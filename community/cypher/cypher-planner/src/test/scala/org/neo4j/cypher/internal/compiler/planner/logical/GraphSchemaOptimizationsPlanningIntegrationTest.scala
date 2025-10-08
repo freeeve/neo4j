@@ -1487,6 +1487,265 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     )
   }
 
+  test("plan RelationshipCountFromCountStore when possible by end-node constraints") {
+    val planner = undirectedRelationshipPlannerBase
+      .addRelationshipEndpointLabelConstraint("(:Person)-[:WORKS_FOR]->(:Company)")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setLabelCardinality("Company", 5)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->(:Person)", 0)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("(:Company)-[:WORKS_FOR]->()", 0)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("(:Company)-[:WORKS_FOR]->(:Person)", 0)
+      .build()
+
+    val planPWFC_right = planner.plan(
+      """MATCH (:Person)-[:WORKS_FOR]->(:Company)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+    planPWFC_right should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .relationshipCountFromCountStore("COUNT(*)", None, Seq("WORKS_FOR"), None)
+        .build()
+    )
+
+    val planPWFC_left = planner.plan(
+      """MATCH (:Company)<-[:WORKS_FOR]-(:Person)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+    planPWFC_left should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .relationshipCountFromCountStore("COUNT(*)", None, Seq("WORKS_FOR"), None)
+        .build()
+    )
+
+    // Cannot plan a relationshipCountFromCountStore, because Company is not implied on the source node for WORKS_FOR
+    val planCWFP_right = planner.plan(
+      """MATCH (:Company)-[:WORKS_FOR]->(:Person)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+    planCWFP_right should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .aggregation(Seq(), Seq("count(*) AS `COUNT(*)`"))
+        .filter("anon_1:Person")
+        .expandAll("(anon_0)-[:WORKS_FOR]->(anon_1)")
+        .nodeByLabelScan("anon_0", "Company")
+        .build()
+    )
+
+    // Cannot plan a relationshipCountFromCountStore, because Company is not implied on the source node for WORKS_FOR
+    val planCWFP_left = planner.plan(
+      """MATCH (:Person)<-[:WORKS_FOR]-(:Company)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+    planCWFP_left should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .aggregation(Seq(), Seq("count(*) AS `COUNT(*)`"))
+        .filter("anon_0:Person")
+        .expandAll("(anon_1)-[:WORKS_FOR]->(anon_0)")
+        .nodeByLabelScan("anon_1", "Company")
+        .build()
+    )
+  }
+
+  test("plan RelationshipCountFromCountStore in COUNT-subquery when possible by end-node constraints") {
+    val planner = undirectedRelationshipPlannerBase
+      .addRelationshipEndpointLabelConstraint("(:Person)-[:WORKS_FOR]->(:Company)")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setLabelCardinality("Company", 5)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->(:Company)", 100)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (p:Person)
+        |RETURN p, COUNT {(:Person)-[:WORKS_FOR]->(:Company) } AS totalWorksFor
+        |""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("p", "totalWorksFor")
+        .apply()
+        .|.relationshipCountFromCountStore("totalWorksFor", None, Seq("WORKS_FOR"), None)
+        .nodeByLabelScan("p", "Person")
+        .build()
+    )
+  }
+
+  test("plan RelationshipCountFromCountStore when possible by end-node constraints - disjunctive types") {
+    val planner = undirectedRelationshipPlannerBase
+      .addRelationshipEndpointLabelConstraint("(:Person)-[:WORKS_FOR]->(:Company)")
+      .addRelationshipEndpointLabelConstraint("(:Person)-[:WORKED_FOR]->(:Company)")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setLabelCardinality("Company", 5)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("()-[:WORKED_FOR]->()", 250)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKED_FOR]->()", 250)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("()-[:WORKED_FOR]->(:Company)", 250)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKED_FOR]->(:Company)", 250)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (:Person)-[:WORKS_FOR | :WORKED_FOR]->(:Company)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .relationshipCountFromCountStore("COUNT(*)", None, Seq("WORKS_FOR", "WORKED_FOR"), None)
+        .build()
+    )
+  }
+
+  test("should not plan RelationshipCountFromCountStore when one of the types does not imply the labels") {
+    val planner = undirectedRelationshipPlannerBase
+      .addRelationshipEndpointLabelConstraint("(:Person)-[:WORKS_FOR]->(:Company)")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setLabelCardinality("Company", 5)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("()-[:WORKED_FOR]->()", 250)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKED_FOR]->()", 250)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("()-[:WORKED_FOR]->(:Company)", 250)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKED_FOR]->(:Company)", 250)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (:Person)-[:WORKS_FOR | :WORKED_FOR]->(:Company)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .aggregation(Seq(), Seq("count(*) AS `COUNT(*)`"))
+        .filter("anon_0:Person")
+        .expandAll("(anon_1)<-[:WORKS_FOR|WORKED_FOR]-(anon_0)")
+        .nodeByLabelScan("anon_1", "Company")
+        .build()
+    )
+  }
+
+  test(
+    "should plan RelationshipCountFromCountStore (type, destLabel) when the destination label cannot be implied by all types"
+  ) {
+    val planner = undirectedRelationshipPlannerBase
+      .addRelationshipEndpointLabelConstraint("(:Person)-[:WORKS_FOR]->(:Company)")
+      .addRelationshipEndpointLabelConstraint("(:Person)-[:WORKED_FOR]->()")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setLabelCardinality("Company", 5)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("()-[:WORKED_FOR]->()", 250)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKED_FOR]->()", 250)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("()-[:WORKED_FOR]->(:Company)", 250)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKED_FOR]->(:Company)", 250)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (:Person)-[:WORKS_FOR | :WORKED_FOR]->(:Company)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .relationshipCountFromCountStore("COUNT(*)", None, Seq("WORKS_FOR", "WORKED_FOR"), Some("Company"))
+        .build()
+    )
+  }
+
+  test(
+    "should plan RelationshipCountFromCountStore (srcLabel, type) when the source label is not implied by all types"
+  ) {
+    val planner = undirectedRelationshipPlannerBase
+      .addRelationshipEndpointLabelConstraint("(:Person)-[:WORKS_FOR]->(:Company)")
+      .addRelationshipEndpointLabelConstraint("()-[:WORKED_FOR]->(:Company)")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setLabelCardinality("Company", 5)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("()-[:WORKED_FOR]->()", 250)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->()", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKED_FOR]->()", 250)
+      .setRelationshipCardinality("()-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("()-[:WORKED_FOR]->(:Company)", 250)
+      .setRelationshipCardinality("(:Person)-[:WORKS_FOR]->(:Company)", 100)
+      .setRelationshipCardinality("(:Person)-[:WORKED_FOR]->(:Company)", 250)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (:Person)-[:WORKS_FOR | :WORKED_FOR]->(:Company)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .relationshipCountFromCountStore("COUNT(*)", Some("Person"), Seq("WORKS_FOR", "WORKED_FOR"), None)
+        .build()
+    )
+  }
+
+  test(
+    "should not plan RelationshipCountFromCountStore for undirected relationship even if labels are implied by end-point constraints"
+  ) {
+    val planner = undirectedRelationshipPlannerBase
+      .addRelationshipEndpointLabelConstraint("(:Person)-[:LIKES]->(:Person)")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setRelationshipCardinality("()-[:LIKES]->()", 100)
+      .setRelationshipCardinality("(:Person)-[:LIKES]->()", 100)
+      .setRelationshipCardinality("()-[:LIKES]->(:Person)", 100)
+      .setRelationshipCardinality("(:Person)-[:LIKES]->(:Person)", 100)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (:Person)-[:LIKES]-(:Person)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .aggregation(Seq(), Seq("count(*) AS `COUNT(*)`"))
+        .expandAll("(anon_0)-[:LIKES]-()")
+        .nodeByLabelScan("anon_0", "Person")
+        .build()
+    )
+  }
+
   // Cardinality estimation tests
 
   test("should not apply the selectivity of an implied label to estimate cardinality of a label scan") {
