@@ -62,7 +62,6 @@ import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.procedure.CallableProcedure
 import org.neo4j.kernel.api.procedure.CallableUserAggregationFunction
 import org.neo4j.kernel.api.procedure.CallableUserFunction
-import org.neo4j.kernel.database.DatabaseReferenceImpl.PropertyShard
 import org.neo4j.kernel.impl.coreapi.InternalTransaction
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade
 import org.neo4j.kernel.impl.query.NonRecordingQuerySubscriber
@@ -232,26 +231,6 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
 
     val predicate: Predicate[String] = (status: String) => status == "All started"
     await().atMost(60, SECONDS).pollDelay(500, MILLISECONDS).pollInSameThread.until(callable, predicate)
-
-    // Let's create the default indexes that could not be created when the database was created
-    val dbs =
-      dbms.dbms.listDatabases().asScala
-        .filterNot(dbName => dbName.equals(SYSTEM_DATABASE_NAME))
-        .filterNot(dbName => PropertyShard.isPropertyShardName(dbName))
-        .map(dbName => dbms.dbms.database(dbName)).toList
-    dbs.foreach(db => {
-      db.executeTransactionally("CREATE LOOKUP INDEX node_label_lookup_index FOR (n) ON EACH labels(n)")
-      db.executeTransactionally("CREATE LOOKUP INDEX rel_type_lookup_index FOR ()-[r]-() ON EACH type(r)")
-    })
-
-    dbs.foreach(db => {
-      val tx = db.beginTx()
-      try {
-        tx.schema().awaitIndexesOnline(60, SECONDS)
-      } finally {
-        tx.close()
-      }
-    })
   }
 
   protected def createRuntimeTestSupport(): Unit = {

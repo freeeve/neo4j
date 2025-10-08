@@ -19,14 +19,4 @@
  */
 package org.neo4j.storageengine.api;
 
-import java.io.IOException;
-
-public interface StoreGenerator {
-
-    /**
-     * Generate an empty store mean to be distributed to all members within the cluster.
-     *
-     * @return the raw bytes for the generated empty store
-     */
-    GeneratedStore generateStore() throws IOException;
-}
+public record GeneratedStore(StoreId storeId, byte[] store) {}

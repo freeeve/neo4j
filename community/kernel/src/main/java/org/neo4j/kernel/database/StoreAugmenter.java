@@ -17,16 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.storageengine.api;
+package org.neo4j.kernel.database;
 
-import java.io.IOException;
+import org.neo4j.io.layout.DatabaseLayout;
 
-public interface StoreGenerator {
+/**
+ * Before the generated store is serialized {@link #augmentStore(DatabaseLayout)} will be called and allow
+ * additional modifications.
+ */
+public interface StoreAugmenter {
+    StoreAugmenter NO_OP = db -> {};
 
-    /**
-     * Generate an empty store mean to be distributed to all members within the cluster.
-     *
-     * @return the raw bytes for the generated empty store
-     */
-    GeneratedStore generateStore() throws IOException;
+    void augmentStore(DatabaseLayout layout);
 }

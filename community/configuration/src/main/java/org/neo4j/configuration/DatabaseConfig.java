@@ -68,7 +68,10 @@ public class DatabaseConfig extends LocalConfig implements Lifecycle {
         removeAllLocalListeners();
     }
 
-    Config getGlobalConfig() {
-        return globalConfig;
+    Config asFlatternedConfig() {
+        return Config.newBuilder()
+                .fromConfig(globalConfig)
+                .set(databaseSpecificSettings)
+                .build();
     }
 }

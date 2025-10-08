@@ -255,10 +255,11 @@ public class Config implements Configuration {
             if (fromConfig != null) {
                 throw new IllegalArgumentException("Can only build a config from one other config.");
             }
-            while (config instanceof DatabaseConfig) {
-                config = ((DatabaseConfig) config).getGlobalConfig();
+            if (config instanceof DatabaseConfig) {
+                fromConfig = ((DatabaseConfig) config).asFlatternedConfig();
+            } else {
+                fromConfig = config;
             }
-            fromConfig = config;
             return this;
         }
 

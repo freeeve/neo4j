@@ -35,10 +35,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Predicate;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -55,6 +53,7 @@ import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.batchimport.api.input.PropertySizeCalculator;
 import org.neo4j.batchimport.api.input.ReadableGroups;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -62,8 +61,10 @@ import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.ExternallyManagedPageCache;
 import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.io.pagecache.impl.muninn.swapper.SingleFilePageSwapperFactory;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.impl.index.schema.DefaultIndexProvidersAccess;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
@@ -71,6 +72,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogTailMetadataFactoryImpl;
 import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.GeneratedStore;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreGenerator;
 import org.neo4j.storageengine.api.StoreId;
@@ -82,11 +84,14 @@ import org.neo4j.storageengine.api.StoreSeeder;
  * A store can also be created from a seed.
  */
 public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
+    private final StoreAugmenter storeAugmenter;
+    private final Supplier<StorageEngineFactory> storageEngineFactorySupplier;
     private final Config config;
     private final FileSystemAbstraction fs;
     private final DatabaseLayout databaseLayout;
     private final JobScheduler jobScheduler;
     private final int numShards;
+    private final KernelVersion kernelVersionForSeed;
 
     /**
      * Creates the empty database seed, returning the generated contents packaged up as a byte[].
@@ -95,16 +100,60 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
      * @param jobScheduler scheduler to use in the temporarily created {@link PageCache} backing the import.
      */
     public EmptyStoreSeeder(
+            Supplier<StorageEngineFactory> storageEngineFactorySupplier,
             Config config,
             FileSystemAbstraction fs,
             DatabaseLayout databaseLayout,
             JobScheduler jobScheduler,
             int numShards) {
+        this(
+                StoreAugmenter.NO_OP,
+                storageEngineFactorySupplier,
+                config,
+                fs,
+                databaseLayout,
+                jobScheduler,
+                numShards,
+                null);
+    }
+
+    /**
+     * Creates the empty database seed, returning the generated contents packaged up as a byte[].
+     *
+     * @param storeAugmenter               may augment the store before serializing it.
+     * @param storageEngineFactorySupplier which database format to use.
+     * @param config                       for the database to create
+     * @param fs                           the file system in which the empty database gets created.
+     * @param jobScheduler                 scheduler to use in the temporarily created {@link PageCache} backing the import.
+     * @param kernelVersionForSeed         the version used when generating a store seed.
+     */
+    public EmptyStoreSeeder(
+            StoreAugmenter storeAugmenter,
+            Supplier<StorageEngineFactory> storageEngineFactorySupplier,
+            Config config,
+            FileSystemAbstraction fs,
+            DatabaseLayout databaseLayout,
+            JobScheduler jobScheduler,
+            int numShards,
+            KernelVersion kernelVersionForSeed) {
+        this.storeAugmenter = storeAugmenter;
+        this.storageEngineFactorySupplier = storageEngineFactorySupplier;
         this.config = config;
         this.fs = fs;
         this.databaseLayout = databaseLayout;
         this.jobScheduler = jobScheduler;
         this.numShards = numShards;
+        this.kernelVersionForSeed = kernelVersionForSeed;
+    }
+
+    private static Config updateConfigVersion(Config config, KernelVersion kernelVersionForSeed) {
+        if (kernelVersionForSeed == null) {
+            return config;
+        }
+        return Config.newBuilder()
+                .fromConfig(config)
+                .set(GraphDatabaseInternalSettings.latest_kernel_version, kernelVersionForSeed.version())
+                .build();
     }
 
     /**
@@ -112,8 +161,8 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
      * @throws IOException on I/O error.
      */
     @Override
-    public byte[] generateStore() throws IOException {
-        var storageEngineFactory = StorageEngineFactory.selectStorageEngine(config);
+    public GeneratedStore generateStore() throws IOException {
+        var storageEngineFactory = storageEngineFactorySupplier.get();
         var indexProvidersAccess = indexProviders(storageEngineFactory);
         var tempDatabaseLayout = cleanTempDatabaseLayout();
         try (var life = new Lifespan(indexProvidersAccess);
@@ -121,7 +170,11 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
             var batchImporter =
                     batchImporter(storageEngineFactory, tempDatabaseLayout, pageCache, indexProvidersAccess);
             batchImporter.doImport(new NoInput());
-            return zip(fs, tempDatabaseLayout.getNeo4jLayout().homeDirectory());
+            storeAugmenter.augmentStore(tempDatabaseLayout);
+            var storeId =
+                    storageEngineFactory.retrieveStoreId(fs, tempDatabaseLayout, pageCache, CursorContext.NULL_CONTEXT);
+            var zip = zip(fs, tempDatabaseLayout.getNeo4jLayout().homeDirectory());
+            return new GeneratedStore(storeId, zip);
         } finally {
             fs.deleteRecursively(tempDatabaseLayout.getNeo4jLayout().homeDirectory());
         }
@@ -135,40 +188,25 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
      */
     @Override
     public void seedStore(byte[] seed) throws IOException {
-        var filter = pathFilter();
-        Map<Path, byte[]> metaDataFiles = new HashMap<>();
+        var pathResolver = pathResolver();
         try (var stream = new ZipInputStream(new ByteArrayInputStream(seed))) {
             ZipEntry entry;
             while ((entry = stream.getNextEntry()) != null) {
-                if (!entry.isDirectory() && filter.test(entry.getName())) {
-                    var targetPath =
-                            databaseLayout.getNeo4jLayout().homeDirectory().resolve(entry.getName());
-                    if (targetPath.equals(databaseLayout.pathForExistsMarker())) {
-                        // Defer creation of the metadata store file until last, so just keep it in memory for now
-                        try (var bytesOutput = new ByteArrayOutputStream()) {
-                            stream.transferTo(bytesOutput);
-                            bytesOutput.flush();
-                            metaDataFiles.put(targetPath, bytesOutput.toByteArray());
-                        }
-                    } else {
+                if (!entry.isDirectory()) {
+                    var targetPath = pathResolver.apply(entry.getName());
+                    if (targetPath != null) {
                         var directory = targetPath.getParent();
-                        fs.mkdirs(directory);
+                        if (!fs.fileExists(directory)) {
+
+                            fs.mkdirs(directory);
+                        }
+
                         try (var fileOutput = fs.openAsOutputStream(targetPath, false)) {
                             stream.transferTo(fileOutput);
                         }
                     }
                 }
             }
-        }
-
-        // Write the metadata store file(s), thereby completing the seed
-        for (var metaDataStore : metaDataFiles.keySet()) {
-            var tempPath = metaDataStore.resolveSibling(metaDataStore + ".temp");
-            try (var input = new ByteArrayInputStream(metaDataFiles.get(metaDataStore));
-                    var fileOutput = fs.openAsOutputStream(tempPath, false)) {
-                input.transferTo(fileOutput);
-            }
-            fs.renameFile(tempPath, metaDataStore);
         }
     }
 
@@ -217,7 +255,7 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
                 false,
                 EMPTY,
                 new LogTailMetadataFactoryImpl(fs),
-                withoutTxLogPreAllocation(config),
+                withoutTxLogPreAllocation(updateConfigVersion(config, kernelVersionForSeed)),
                 NO_MONITOR,
                 jobScheduler,
                 STRICT,
@@ -242,29 +280,40 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
     }
 
     private DatabaseLayout cleanTempDatabaseLayout() throws IOException {
+        var tempLayout = tempDatabaseLayout();
+        fs.deleteRecursively(tempLayout.getNeo4jLayout().homeDirectory());
+        fs.mkdirs(tempLayout.getNeo4jLayout().homeDirectory());
+        return tempLayout;
+    }
+
+    private DatabaseLayout tempDatabaseLayout() {
         var tempDirectory = databaseLayout.databaseDirectory().resolve("temp-seed");
-        fs.deleteRecursively(tempDirectory);
-        fs.mkdirs(tempDirectory);
         return DatabaseLayout.of(Neo4jLayout.of(tempDirectory), databaseLayout.getDatabaseName());
     }
 
-    private Predicate<String> pathFilter() {
-        Set<Path> prefixFilters = Set.of(
-                databaseLayout.getNeo4jLayout().homeDirectory().relativize(databaseLayout.databaseDirectory()),
-                databaseLayout
-                        .getNeo4jLayout()
-                        .homeDirectory()
-                        .relativize(databaseLayout.getTransactionLogsDirectory()));
+    private Function<String, Path> pathResolver() {
+        var sourceLayout = tempDatabaseLayout();
+        var databaseDirectoryFilter =
+                sourceLayout.getNeo4jLayout().homeDirectory().relativize(sourceLayout.databaseDirectory());
+        var transactionLogsDirectoryFilter =
+                sourceLayout.getNeo4jLayout().homeDirectory().relativize(sourceLayout.getTransactionLogsDirectory());
         return entryName -> {
             Path entryPath = Path.of(entryName);
             while (entryPath.getNameCount() > 1) {
-                if (prefixFilters.contains(entryPath)) {
-                    return true;
+                if (databaseDirectoryFilter.equals(entryPath)) {
+                    return createTargetPath(entryPath, entryName, databaseLayout.databaseDirectory());
+                } else if (transactionLogsDirectoryFilter.equals(entryPath)) {
+                    return createTargetPath(entryPath, entryName, databaseLayout.getTransactionLogsDirectory());
                 }
                 entryPath = entryPath.getParent();
             }
-            return false;
+            return null;
         };
+    }
+
+    private Path createTargetPath(Path entryPath, String entryName, Path databaseLayout) {
+        var relative = entryPath.relativize(Path.of(entryName));
+        return databaseLayout.resolve(relative);
     }
 
     /**
