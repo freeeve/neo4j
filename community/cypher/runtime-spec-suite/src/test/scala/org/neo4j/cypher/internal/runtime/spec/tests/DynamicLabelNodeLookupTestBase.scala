@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.expressions.NullCheckAssert.NullCheckAssertExce
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.All
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
+import org.neo4j.cypher.internal.plandescription.Arguments.UsedIndexes
+import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -40,6 +42,8 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
+
+  val isProfilingDisabled = canFuse // TODO: remove this when profiling works everywhere
 
   test("should throw error on invalid label name") {
 
@@ -524,7 +528,6 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
   // LABEL + PROPERTY SEEKS
 
   test("should filter for a single label and single property") {
-    val indexName = "the_index"
     val expected = givenGraph {
       // not matched
       newNode("B", "prop" -> 1)
@@ -574,7 +577,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     val matchExpectations =
-      if (canFuse) {
+      if (isProfilingDisabled) {
         beColumns("x").withRows(singleColumn(expected))
       } else {
         beColumns("x").withRows(singleColumn(expected)).usingIndexes(2, indexName)
@@ -636,7 +639,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     val matchExpectations =
-      if (canFuse) {
+      if (isProfilingDisabled) {
         beColumns("x").withRows(singleColumn(expected))
       } else {
         beColumns("x").withRows(singleColumn(expected)).usingIndexes(2, indexName)
@@ -674,7 +677,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     val matchExpectations =
-      if (canFuse) {
+      if (isProfilingDisabled) {
         beColumns("x").withRows(singleColumn(expected))
       } else {
         beColumns("x").withRows(singleColumn(expected)).usingAnyIndexes(2, index_a, index_b)
@@ -750,14 +753,26 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     val matchExpectations =
-      if (canFuse) {
+      if (isProfilingDisabled) {
         beColumns("x").withRows(singleColumn(expected))
       } else {
         beColumns("x").withRows(singleColumn(expected))
           .usingAnyIndexes(2, compoundIndex, ageIndex, nameIndex)
       }
 
-    profile(logicalQuery, runtime) should matchExpectations
+    val (res, prof) = executeAndProfile(logicalQuery, runtime, new InputValues(), defaultQueryRuntimeConfig)
+
+    res should matchExpectations
+
+    if (!isProfilingDisabled) {
+      val profiledIndexes = prof.find("DynamicLabelNodeLookup")
+        .head
+        .arguments
+        .collectFirst { case UsedIndexes(indexes) => indexes }
+
+      profiledIndexes shouldBe defined
+      profiledIndexes.get.values.sum shouldBe 1
+    }
   }
 
   test("should not try to use indexes that can't support the intended query") {
@@ -785,13 +800,22 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     val matchExpectations =
-      if (canFuse) {
+      if (isProfilingDisabled) {
         beColumns("x").withRows(singleColumn(expected))
       } else {
         beColumns("x").withRows(singleColumn(expected))
           .notUsingIndexes(2, indexName)
       }
 
-    profile(logicalQuery, runtime) should matchExpectations
+    val (res, prof) = executeAndProfile(logicalQuery, runtime, new InputValues(), defaultQueryRuntimeConfig)
+
+    res should matchExpectations
+
+    val args = prof.find("DynamicLabelNodeLookup")
+      .head
+      .arguments
+
+    all(args) should not be a[UsedIndexes]
   }
+
 }

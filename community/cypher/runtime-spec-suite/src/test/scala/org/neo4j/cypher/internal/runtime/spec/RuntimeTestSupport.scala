@@ -801,6 +801,46 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     (newRecordingRuntimeResult(result, subscriber), executionPlanDescription)
   }
 
+  override def executeAndProfile(
+    logicalQuery: LogicalQuery,
+    runtime: CypherRuntime[CONTEXT],
+    input: InputValues,
+    queryConfig: QueryRuntimeConfig
+  ): (RecordingRuntimeResult, InternalPlanDescription) = {
+    val executionPlan =
+      buildPlan(logicalQuery, runtime, testPlanCombinationRewriterHints = Set(NoRewrites), queryConfig)
+    val result = profileQuery(
+      logicalQuery.copy(doProfile = true),
+      runtime,
+      input.stream(),
+      Map.empty,
+      Set(NoRewrites),
+      queryConfig
+    )
+
+    result.awaitAll()
+
+    val executionPlanDescription = {
+      val planDescriptionBuilder =
+        PlanDescriptionBuilder(
+          executionPlan.rewrittenPlan.getOrElse(logicalQuery.logicalPlan),
+          IDPPlannerName,
+          logicalQuery.readOnly,
+          ImmutablePlanningAttributes.EffectiveCardinalities(logicalQuery.effectiveCardinalities),
+          debugOptions.rawCardinalitiesEnabled,
+          debugOptions.renderDistinctnessEnabled,
+          debugOptions.renderNestedPlanExpressions,
+          ImmutablePlanningAttributes.ProvidedOrders(logicalQuery.providedOrders),
+          executionPlan,
+          renderPlanDescription = false,
+          CypherVersion.Legacy.legacyVersion(),
+          workingScopeOpt = None
+        )
+      planDescriptionBuilder.profile(result.runtimeResult.queryProfile())
+    }
+    (result, executionPlanDescription)
+  }
+
   // PRIVATE EXECUTE HELPER METHODS
 
   private def runLogical[RESULT](

@@ -36,6 +36,8 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.result.OperatorProfile
 import org.neo4j.cypher.result.QueryProfile
 
+import scala.util.chaining.scalaUtilChainingOps
+
 object PlanDescriptionBuilder {
 
   def apply(
@@ -152,6 +154,15 @@ class PlanDescriptionBuilder(
           .addArgument(Arguments.PageCacheMisses, data.pageCacheMisses)
           .addArgument(Time, data.time())
           .addArgument(Arguments.Memory, data.maxAllocatedMemory())
+          .pipe { plan =>
+            val indexes = data.indexesUsed().zip(data.indexUseCount())
+            if (indexes.nonEmpty) {
+              plan.addArgument(
+                Arguments.UsedIndexes,
+                indexes.map { case (idx, count) => idx.getName -> count }.toMap
+              )
+            } else plan
+          }
           .plan
       }
 

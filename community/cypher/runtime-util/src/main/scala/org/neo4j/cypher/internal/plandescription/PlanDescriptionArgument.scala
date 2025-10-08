@@ -99,6 +99,15 @@ object Arguments {
 
   case class PipelineInfo(pipelineId: Int, fused: Boolean, markAsSerial: Boolean) extends Argument
 
+  case class UsedIndexes(indexes: Map[String, Int]) extends Argument {
+
+    def stringify: String = indexes
+      .toSeq
+      .sorted
+      .map { case (name, count) => s"$name: $count" }
+      .mkString("\n")
+  }
+
   // This is the version of cypher
   case class Version(value: String) extends Argument {
 

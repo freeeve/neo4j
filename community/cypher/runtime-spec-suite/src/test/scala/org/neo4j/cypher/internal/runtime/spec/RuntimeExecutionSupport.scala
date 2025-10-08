@@ -177,6 +177,16 @@ trait RuntimeExecutionSupport[CONTEXT <: RuntimeContext] extends InputDataStream
   ): (RecordingRuntimeResult, InternalPlanDescription)
 
   /**
+   * Profile a LogicalQuery with some input. Return the result and the profiled execution plan description
+   */
+  def executeAndProfile(
+    logicalQuery: LogicalQuery,
+    runtime: CypherRuntime[CONTEXT],
+    input: InputValues,
+    queryConfig: QueryRuntimeConfig
+  ): (RecordingRuntimeResult, InternalPlanDescription)
+
+  /**
    * Profile a LogicalQuery with some input stream.
    */
   def profileQuery(

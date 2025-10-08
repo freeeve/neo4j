@@ -426,4 +426,12 @@ trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] extends RuntimeExec
   ): (RecordingRuntimeResult, InternalPlanDescription) = {
     runtimeTestSupport.executeAndExplain(logicalQuery, runtime, input, queryConfig)
   }
+
+  override def executeAndProfile(
+    logicalQuery: LogicalQuery,
+    runtime: CypherRuntime[CONTEXT],
+    input: InputValues,
+    queryConfig: QueryRuntimeConfig
+  ): (RecordingRuntimeResult, InternalPlanDescription) =
+    runtimeTestSupport.executeAndProfile(logicalQuery, runtime, input, queryConfig)
 }

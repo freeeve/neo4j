@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.plandescription.Arguments.PageCacheMisses
 import org.neo4j.cypher.internal.plandescription.Arguments.PipelineInfo
 import org.neo4j.cypher.internal.plandescription.Arguments.Rows
 import org.neo4j.cypher.internal.plandescription.Arguments.Time
+import org.neo4j.cypher.internal.plandescription.Arguments.UsedIndexes
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionArgumentSerializer.serialize
 import org.neo4j.cypher.internal.plandescription.renderAsTreeTable.splitDetails
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -208,9 +209,24 @@ private object Header {
   val ORDER = "Ordered by"
   val DISTINCTNESS = "Distinctness"
   val PIPELINE = "Pipeline"
+  val INDEXES_USED = "Indexes Used"
 
   val ALL: Seq[String] =
-    Seq(OPERATOR, ID, DETAILS, ESTIMATED_ROWS, ROWS, HITS, MEMORY, PAGE_CACHE, TIME, ORDER, DISTINCTNESS, PIPELINE)
+    Seq(
+      OPERATOR,
+      ID,
+      DETAILS,
+      ESTIMATED_ROWS,
+      ROWS,
+      HITS,
+      MEMORY,
+      PAGE_CACHE,
+      TIME,
+      ORDER,
+      DISTINCTNESS,
+      PIPELINE,
+      INDEXES_USED
+    )
 }
 
 /**
@@ -429,6 +445,8 @@ private class TreeTableBuilder private (
       case Details(detailsList) =>
         Header.DETAILS -> Cell.left(splitDetails(detailsList.map(_.prettifiedString).toList): _*)
       case pipeline: PipelineInfo => Header.PIPELINE -> Cell.left(serialize(pipeline).toString)
+      case indexes: UsedIndexes =>
+        Header.INDEXES_USED -> Cell.left(indexes.stringify)
     }
 
     val idString = Option(plan.id)

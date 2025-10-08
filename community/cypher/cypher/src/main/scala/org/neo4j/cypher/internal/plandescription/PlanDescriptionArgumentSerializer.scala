@@ -56,6 +56,7 @@ import org.neo4j.cypher.internal.plandescription.Arguments.RuntimeVersion
 import org.neo4j.cypher.internal.plandescription.Arguments.SourceCode
 import org.neo4j.cypher.internal.plandescription.Arguments.StringRepresentation
 import org.neo4j.cypher.internal.plandescription.Arguments.Time
+import org.neo4j.cypher.internal.plandescription.Arguments.UsedIndexes
 import org.neo4j.cypher.internal.plandescription.Arguments.Version
 import org.neo4j.cypher.internal.plandescription.asPrettyString.PrettyStringMaker
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -93,6 +94,7 @@ object PlanDescriptionArgumentSerializer {
         s"$fusion$serialString Pipeline $pipelineId"
       case StringRepresentation(rep) => rep
       case IdArg(Id(id))             => Int.box(id)
+      case arg: UsedIndexes          => arg.stringify
       // working scope details
       case IncomingConstants(value) => value
       case IncomingPath(value)      => value

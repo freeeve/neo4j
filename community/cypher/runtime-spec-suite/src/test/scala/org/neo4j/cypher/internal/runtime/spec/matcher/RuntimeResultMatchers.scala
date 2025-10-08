@@ -278,11 +278,6 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
               .map(_.apply(left.runtimeResult.queryProfile()))
               .filter(_.matches == false)
           }
-          .orElse {
-            maybeIndexProfilesMatcher
-              .map(_.apply(left.runtimeResult.queryProfile()))
-              .filter(_.matches == false)
-          }
           .getOrElse {
             rowsMatcher.matches(columns, rows) match {
               case RowsMatch          => MatchResult(matches = true, "", "")
