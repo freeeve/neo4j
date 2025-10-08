@@ -150,7 +150,8 @@ record ParquetColumn(
         if (!columnNameValue.contains(":")) {
             return null;
         }
-        return columnNameValue.split(":", 2)[1].trim();
+        var typeSplitPosition = columnNameValue.lastIndexOf(":");
+        return columnNameValue.substring(typeSplitPosition + 1).trim();
     }
 
     private static String extractColumnType(ParquetLogicalColumnType logicalColumnType, String columnNameValue) {
@@ -161,20 +162,25 @@ record ParquetColumn(
                         != org.neo4j.internal.batchimport.input.parquet.ParquetLogicalColumnType.PROPERTY) {
             return null;
         }
-        return columnNameValue.split(":", 2)[1];
+        var typeSplitPosition = columnNameValue.lastIndexOf(":");
+        return columnNameValue.substring(typeSplitPosition + 1).trim();
     }
 
     private static String extractPropertyName(String columnNameValue) {
-        var columnNameParts = columnNameValue.split(":", 2);
+        var typeSplitPosition = columnNameValue.lastIndexOf(":");
+        var columnName = typeSplitPosition > -1
+                ? columnNameValue.substring(0, typeSplitPosition).trim()
+                : columnNameValue;
         // never return empty property name
-        return columnNameParts[0].isBlank() ? null : columnNameParts[0];
+        return columnName.isBlank() ? null : columnName;
     }
 
     private static boolean hasArrayDefinition(String columnName) {
         if (!columnName.contains(":")) {
             return columnName.endsWith("[]");
         }
-        return columnName.split(":")[1].contains("[]");
+        var typeSplitPosition = columnName.lastIndexOf(":");
+        return columnName.substring(typeSplitPosition).contains("[]");
     }
 
     boolean isRaw() {
@@ -265,20 +271,47 @@ record ParquetColumn(
 
     private record EnclosureMatch(char startSymbol, char endSymbol, int startIndex, int endIndex, String parsedMatch) {
 
-        static EnclosureMatch parseEnclosure(char start, char end, String content, boolean includeSymbols) {
-            int startIndex = content.indexOf(start + "");
-            if (startIndex == -1) {
-                return unmatched(start, end);
+        static EnclosureMatch parseEnclosure(
+                char startCharacter, char endCharacter, String content, boolean includeSymbols) {
+            if (!content.contains(":")) {
+                return unmatched(startCharacter, endCharacter);
             }
-            int endIndex = content.lastIndexOf(end + "");
+            var startPos = findLastRegularColon(content);
+            int startIndex = content.indexOf(startCharacter + "", startPos);
+            if (startIndex == -1) {
+                return unmatched(startCharacter, endCharacter);
+            }
+            int endIndex = content.lastIndexOf(endCharacter + "");
             if (endIndex == -1) {
-                return unmatched(start, end);
+                return unmatched(startCharacter, endCharacter);
             }
             String match = content.substring(startIndex + 1, endIndex).trim();
             if (!includeSymbols) {
-                return new EnclosureMatch(start, end, startIndex, endIndex, match);
+                return new EnclosureMatch(startCharacter, endCharacter, startIndex, endIndex, match);
             }
-            return new EnclosureMatch(start, end, startIndex, endIndex, "%c%s%c".formatted(start, match, end));
+            return new EnclosureMatch(
+                    startCharacter,
+                    endCharacter,
+                    startIndex,
+                    endIndex,
+                    "%c%s%c".formatted(startCharacter, match, endCharacter));
+        }
+
+        private static int findLastRegularColon(String content) {
+            var lastColonIndex = content.lastIndexOf(":");
+            int lastCurlyStartIndex = content.lastIndexOf("{");
+            int lastCurlyEndIndex = content.lastIndexOf("}");
+            int lastParenthesisStartIndex = content.lastIndexOf("(");
+            int lastParenthesisEndIndex = content.lastIndexOf(")");
+            if (lastCurlyStartIndex < lastColonIndex && lastCurlyEndIndex > lastColonIndex) {
+                lastColonIndex = content.substring(0, lastCurlyStartIndex).lastIndexOf(":");
+            }
+            if (lastParenthesisStartIndex != -1
+                    && lastParenthesisEndIndex != -1
+                    && lastParenthesisStartIndex < lastColonIndex) {
+                lastColonIndex = content.substring(0, lastParenthesisStartIndex).lastIndexOf(":");
+            }
+            return lastColonIndex;
         }
 
         private static EnclosureMatch unmatched(char start, char end) {

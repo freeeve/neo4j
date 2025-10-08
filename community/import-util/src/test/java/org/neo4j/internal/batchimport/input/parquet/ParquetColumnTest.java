@@ -53,6 +53,7 @@ class ParquetColumnTest {
                 ":ID(id-space){id-type: long},{id-type: long}",
                 "id:ID(id-space){id-type: long},{id-type: long}",
                 "id:ID(id-space){this_is: 'a weird {name}'},{this_is: 'a weird {name}'}",
+                "id:ID(id-space):ID(n@0<p@0_0>){id-type:long},{id-type:long}", // thanks to automated tools
                 // same as before, with whitespace variations
                 ":ID  {  id-type: long     }  ,{id-type: long}",
                 "id:ID  {  id-type: long     }  ,{id-type: long}",

@@ -2720,6 +2720,46 @@ class ParquetInputTest {
         }
     }
 
+    @Test
+    void shouldParseColumnNamesWithArrayDefinition() throws Exception {
+        var commentHeader =
+                Path.of(getClass().getResource("/parquet/complex_header1.csv").toURI());
+        var commentFile = Path.of(
+                getClass().getResource("/parquet/complex_comment.parquet").toURI());
+        var personHeader =
+                Path.of(getClass().getResource("/parquet/complex_header2.csv").toURI());
+        var personFile = Path.of(
+                getClass().getResource("/parquet/complex_person.parquet").toURI());
+        var relationshipHeader =
+                Path.of(getClass().getResource("/parquet/complex_header3.csv").toURI());
+        var relationshipFile = Path.of(getClass()
+                .getResource("/parquet/complex_comment_hasCreator_person.parquet")
+                .toURI());
+        Input input = createParquetInput(
+                Map.of(
+                        Set.of("Comment"), List.<Path[]>of(new Path[] {commentHeader, commentFile}),
+                        Set.of("Person"), List.<Path[]>of(new Path[] {personHeader, personFile})),
+                Map.of("HAS_CREATOR", List.<Path[]>of(new Path[] {relationshipHeader, relationshipFile})),
+                INTEGER,
+                groups,
+                MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            var readNodes = 0;
+            while (readNext(nodes)) {
+                readNodes++;
+            }
+            assertThat(readNodes).isEqualTo(8);
+        }
+        try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
+            var readRelationships = 0;
+            while (readNext(relationships)) {
+                readRelationships++;
+            }
+            assertThat(readRelationships).isEqualTo(4);
+        }
+    }
+
     static Stream<Arguments> shouldImportVectors() {
         return Stream.of(
                 Arguments.of(
