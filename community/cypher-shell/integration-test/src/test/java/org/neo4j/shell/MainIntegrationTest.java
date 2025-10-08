@@ -937,6 +937,22 @@ class MainIntegrationTest extends TestHarness {
     }
 
     @Test
+    void shouldNicelyPrintVectors() throws Exception {
+        buildTest()
+                .addArgs("-u", USER, "-p", PASSWORD, "--format", "plain")
+                .userInputLines(
+                        "CYPHER 25 WITH vector([1, 2, 3], 3, INTEGER) AS vector RETURN vector, valueType(vector) AS vectorType;",
+                        ":exit")
+                .run()
+                .assertSuccessAndConnected(true)
+                .assertThatOutput(
+                        contains(
+                                """
+                        vector([1, 2, 3], 3, INTEGER NOT NULL), "VECTOR<INTEGER NOT NULL>(3) NOT NULL"
+                        """));
+    }
+
+    @Test
     void parametersSupportsAllCypherTypes() throws Exception {
         final var paramExpressions = List.of(
                 entry("int", "1"),
