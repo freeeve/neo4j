@@ -21,10 +21,11 @@ package org.neo4j.genai.ai.text.completion.provider;
 
 import static org.neo4j.genai.util.HttpService.jsonBody;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.collections.api.factory.Maps;
@@ -74,40 +75,15 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
         return response.getFirst();
     }
 
-    /*
-    {
-      "choices": [
-        {
-          "index": 0,
-          "message": {
-            "role": "assistant",
-            "content": "Hello! How can I assist you today?",
-          },
-        }
-      ],
-    }
-        */
     @VisibleForTesting
     private static List<String> parseResponse(InputStream inputStream) throws MalformedGenAIResponseException {
-        final var outputs = JsonUtils.readTree(inputStream).path("output");
-        if (!outputs.isArray() || outputs.isEmpty()) {
-            throw new MalformedGenAIResponseException("`output` is expected to be a non empty array");
-        }
-        final var messages = new ArrayList<String>(outputs.size());
-        for (final var output : outputs) {
-            if ("message".equals(output.path("type").asText())) {
-                final var contents = output.path("content");
-                if (!contents.isArray()) {
-                    throw new MalformedGenAIResponseException("`content` is expected to be an array");
-                }
-                for (final var content : contents) {
-                    if ("output_text".equals(content.path("type").asText())) {
-                        messages.add(content.path("text").asText());
-                    }
-                }
-            }
-        }
-        return messages;
+        final var response = JsonUtils.readValue(inputStream, ResponseModel.Response.class);
+        return response.output().stream()
+                .filter(o -> "message".equals(o.type()))
+                .flatMap(o -> o.content().stream())
+                .filter(c -> "output_text".equals(c.type()))
+                .map(ResponseModel.Content::text)
+                .toList();
     }
 
     private MutableMap<String, Object> payload(List<String> prompts, PARAMS params) {
@@ -120,4 +96,30 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
         extendPayload(payload, params);
         return payload;
     }
+}
+
+/*
+ * {
+ *   "output": [
+ *     {
+ *       "type": "message",
+ *       "content": [
+ *           {
+ *             "type": "output_text",
+ *             "text": "Hello! How can I assist you today?",
+ *           }
+ *       ],
+ *     }
+ *   ],
+ * }
+ */
+interface ResponseModel {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Content(@JsonProperty(required = true) String type, String text) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Output(@JsonProperty(required = true) String type, List<Content> content) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Response(@JsonProperty(required = true) List<Output> output) {}
 }

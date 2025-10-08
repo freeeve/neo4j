@@ -109,6 +109,14 @@ public final class JsonUtils {
         }
     }
 
+    public static <T> T readValue(InputStream inputStream, Class<T> type) {
+        try {
+            return getObjectMapper().readValue(inputStream, type);
+        } catch (IOException e) {
+            throw new MalformedGenAIResponseException("Unexpected error occurred while parsing the API response", e);
+        }
+    }
+
     public static JsonNode getExpectedFrom(String provider, JsonNode json, String property)
             throws MalformedGenAIResponseException {
         try {
