@@ -34,7 +34,8 @@ class EmptyRecoveryFacade implements RecoveryFacade {
             RecoveryCriteria recoveryCriteria,
             RecoveryFacadeMonitor recoveryFacadeMonitor,
             RecoveryMode recoveryMode,
-            boolean rollbackIncompleteTransactions)
+            boolean rollbackIncompleteTransactions,
+            boolean forceFailOnCorruptedLogs)
             throws IOException {
         // noop
     }
@@ -45,7 +46,11 @@ class EmptyRecoveryFacade implements RecoveryFacade {
     }
 
     @Override
-    public void performRecovery(DatabaseLayout databaseLayout, RecoveryFacadeMonitor monitor, RecoveryMode mode)
+    public void performRecovery(
+            DatabaseLayout databaseLayout,
+            RecoveryFacadeMonitor monitor,
+            RecoveryMode mode,
+            boolean forceFailOnCorruptedLogs)
             throws IOException {
         // noop
     }

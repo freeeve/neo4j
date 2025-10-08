@@ -66,20 +66,32 @@ public class DatabaseRecoveryFacade implements RecoveryFacade {
             RecoveryCriteria recoveryCriteria,
             RecoveryFacadeMonitor recoveryFacadeMonitor,
             RecoveryMode recoveryMode,
-            boolean rollbackIncompleteTransactions)
+            boolean rollbackIncompleteTransactions,
+            boolean forceFailOnCorruptedLogs)
             throws IOException {
-        recovery(layout, recoveryCriteria, recoveryFacadeMonitor, recoveryMode, false, rollbackIncompleteTransactions);
+        recovery(
+                layout,
+                recoveryCriteria,
+                recoveryFacadeMonitor,
+                recoveryMode,
+                false,
+                rollbackIncompleteTransactions,
+                forceFailOnCorruptedLogs);
     }
 
     @Override
     public void performRecovery(DatabaseLayout databaseLayout) throws IOException {
-        performRecovery(databaseLayout, EMPTY_MONITOR, RecoveryMode.FULL);
+        performRecovery(databaseLayout, EMPTY_MONITOR, RecoveryMode.FULL, false);
     }
 
     @Override
-    public void performRecovery(DatabaseLayout databaseLayout, RecoveryFacadeMonitor monitor, RecoveryMode mode)
+    public void performRecovery(
+            DatabaseLayout databaseLayout,
+            RecoveryFacadeMonitor monitor,
+            RecoveryMode mode,
+            boolean forceFailOnCorruptedLogs)
             throws IOException {
-        performRecovery(databaseLayout, RecoveryCriteria.ALL, monitor, mode, true);
+        performRecovery(databaseLayout, RecoveryCriteria.ALL, monitor, mode, true, forceFailOnCorruptedLogs);
     }
 
     @Override
@@ -89,7 +101,8 @@ public class DatabaseRecoveryFacade implements RecoveryFacade {
             RecoveryFacadeMonitor monitor,
             boolean rollbackIncompleteTransactions)
             throws IOException {
-        performRecovery(databaseLayout, recoveryCriteria, monitor, RecoveryMode.FULL, rollbackIncompleteTransactions);
+        performRecovery(
+                databaseLayout, recoveryCriteria, monitor, RecoveryMode.FULL, rollbackIncompleteTransactions, false);
     }
 
     @Override
@@ -100,7 +113,13 @@ public class DatabaseRecoveryFacade implements RecoveryFacade {
             boolean rollbackIncompleteTransactions)
             throws IOException {
         recovery(
-                databaseLayout, RecoveryCriteria.ALL, monitor, RecoveryMode.FULL, true, rollbackIncompleteTransactions);
+                databaseLayout,
+                RecoveryCriteria.ALL,
+                monitor,
+                RecoveryMode.FULL,
+                true,
+                rollbackIncompleteTransactions,
+                false);
     }
 
     private void recovery(
@@ -109,7 +128,8 @@ public class DatabaseRecoveryFacade implements RecoveryFacade {
             RecoveryFacadeMonitor monitor,
             RecoveryMode mode,
             boolean force,
-            boolean rollbackIncompleteTransactions)
+            boolean rollbackIncompleteTransactions,
+            boolean forceFailOnCorruptedLogs)
             throws IOException {
         monitor.recoveryStarted();
         var recoveryContext = Recovery.contextWithNoLogTail(
@@ -124,6 +144,11 @@ public class DatabaseRecoveryFacade implements RecoveryFacade {
                 emptyLogsFallbackKernelVersion);
         if (force) {
             recoveryContext.force();
+        }
+        if (forceFailOnCorruptedLogs) {
+            // this forces recovery to fail on corrupted logs, regardless of the configuration. There are
+            // clustering components that may never accept truncating corrupt log tails.
+            recoveryContext.forceFailOnCorruptedLogs();
         }
         Recovery.performRecovery(recoveryContext
                 .recoveryPredicate(recoveryCriteria.toPredicate())

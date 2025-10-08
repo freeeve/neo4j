@@ -316,6 +316,7 @@ public final class Recovery {
         private RecoveryMode mode = RecoveryMode.FULL;
         private long awaitIndexesOnlineMillis;
         private KernelVersionProvider emptyLogsFallbackKernelVersion;
+        private boolean failOnCorruptedLogs;
 
         private Context(
                 FileSystemAbstraction fileSystemAbstraction,
@@ -338,6 +339,7 @@ public final class Recovery {
             this.tracers = tracers;
             this.ioController = ioController;
             this.logProvider = requireNonNull(logProvider);
+            this.failOnCorruptedLogs = config.get(GraphDatabaseInternalSettings.fail_on_corrupted_log_files);
         }
 
         public Context withLogTailInfo(LogTailMetadata logTail) {
@@ -417,6 +419,15 @@ public final class Recovery {
             this.emptyLogsFallbackKernelVersion = kernelVersionProvider;
             return this;
         }
+
+        /**
+         * Is decided by {@link GraphDatabaseInternalSettings#fail_on_corrupted_log_files} by default. This method forces recovery to fail on corrupted log files.
+         * Is needed in some cluster components.
+         */
+        public Context forceFailOnCorruptedLogs() {
+            this.failOnCorruptedLogs = true;
+            return this;
+        }
     }
 
     /**
@@ -455,7 +466,8 @@ public final class Recovery {
                     context.rollbackIncompleteTransactions,
                     context.awaitIndexesOnlineMillis,
                     context.emptyLogsFallbackKernelVersion,
-                    context.mode);
+                    context.mode,
+                    context.failOnCorruptedLogs);
         } finally {
             config.removeAllLocalListeners();
         }
@@ -491,7 +503,8 @@ public final class Recovery {
             boolean rollbackIncompleteTransactions,
             long awaitIndexesOnlineMillis,
             KernelVersionProvider emptyLogsFallbackKernelVersion,
-            RecoveryMode mode)
+            RecoveryMode mode,
+            boolean failOnCorruptedLogs)
             throws IOException {
         InternalLog recoveryLog = logProvider.getLog(Recovery.class);
 
@@ -695,7 +708,6 @@ public final class Recovery {
                 .withMemoryTracker(memoryTracker)
                 .build();
 
-        boolean failOnCorruptedLogFiles = config.get(GraphDatabaseInternalSettings.fail_on_corrupted_log_files);
         validateStoreId(logTailMetadata, storageEngine.retrieveStoreId());
 
         TransactionMetadataCache metadataCache = new TransactionMetadataCache();
@@ -704,7 +716,7 @@ public final class Recovery {
                 metadataCache,
                 storageEngineFactory.commandReaderFactory(),
                 monitors,
-                failOnCorruptedLogFiles,
+                failOnCorruptedLogs,
                 config,
                 memoryTracker);
 
@@ -729,7 +741,7 @@ public final class Recovery {
                 logMetadataProvider,
                 schemaLife,
                 databaseLayout,
-                failOnCorruptedLogFiles,
+                failOnCorruptedLogs,
                 recoveryLog,
                 startupChecker,
                 memoryTracker,

@@ -31,12 +31,17 @@ public interface RecoveryFacade {
             RecoveryCriteria recoveryCriteria,
             RecoveryFacadeMonitor recoveryFacadeMonitor,
             RecoveryMode recoveryMode,
-            boolean rollbackIncompleteTransactions)
+            boolean rollbackIncompleteTransactions,
+            boolean forceFailOnCorruptedLogs)
             throws IOException;
 
     void performRecovery(DatabaseLayout databaseLayout) throws IOException;
 
-    void performRecovery(DatabaseLayout databaseLayout, RecoveryFacadeMonitor monitor, RecoveryMode mode)
+    void performRecovery(
+            DatabaseLayout databaseLayout,
+            RecoveryFacadeMonitor monitor,
+            RecoveryMode mode,
+            boolean forceFailOnCorruptedLogs)
             throws IOException;
 
     void performRecovery(
