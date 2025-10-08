@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.Collections;
@@ -83,6 +82,6 @@ class RequestHandlerTest {
 
         // invoked through mock
         verify(responseHandler).onFailure(any(Error.class));
-        verifyNoInteractions(fsm);
+        verify(fsm).fail();
     }
 }

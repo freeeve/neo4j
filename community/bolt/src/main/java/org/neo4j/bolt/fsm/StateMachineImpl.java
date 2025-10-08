@@ -111,6 +111,11 @@ final class StateMachineImpl implements StateMachine, Context {
     }
 
     @Override
+    public void fail() {
+        this.failed = true;
+    }
+
+    @Override
     public void reset() {
         this.failed = false;
         this.interrupted = false;

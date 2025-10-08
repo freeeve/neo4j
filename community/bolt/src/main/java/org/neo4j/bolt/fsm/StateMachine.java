@@ -90,6 +90,11 @@ public interface StateMachine {
     void interrupt();
 
     /**
+     * Mark this state machine as failed.
+     */
+    void fail();
+
+    /**
      * Reverts this state machine back to its default state and clears any remaining errors.
      */
     void reset();
