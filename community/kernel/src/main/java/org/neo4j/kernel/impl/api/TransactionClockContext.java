@@ -42,12 +42,12 @@ public final class TransactionClockContext implements ClockContext {
         this.timezone = clock.getZone();
     }
 
-    void initializeTransaction(long transactionStartTimeMillis) {
+    public void initializeTransaction(long transactionStartTimeMillis) {
         this.transaction = Clock.fixed(ofEpochMilli(transactionStartTimeMillis), timezone);
         this.statement = null;
     }
 
-    void initializeStatement() {
+    public void initializeStatement() {
         if (this.statement == null) // this is the first statement in the transaction, use the transaction time
         {
             this.statement = this.transaction;
