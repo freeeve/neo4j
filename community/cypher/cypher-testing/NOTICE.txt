@@ -58,6 +58,8 @@ Apache Software License, Version 2.0
   Arrow Format
   Arrow Memory - Core
   Arrow Vectors
+  Byte Buddy (without dependencies)
+  Byte Buddy agent
   Caffeine cache
   Core :: ALPN :: Java Server
   Core :: ALPN :: Server
@@ -225,6 +227,7 @@ MIT License
   jersey-container-servlet-core
   jersey-core-client
   jersey-inject-hk2
+  mockito-core
   SLF4J API Module
 
 MIT No Attribution License

@@ -32,6 +32,8 @@ Apache Software License, Version 2.0
   Apache Log4j API
   Apache Log4j Core
   Apache Log4j JSON Template Layout
+  Byte Buddy (without dependencies)
+  Byte Buddy agent
   Caffeine cache
   IPAddress
   Java Native Access
@@ -64,6 +66,9 @@ Eclipse Public License v2.0
   JUnit Platform Commons
   JUnit Platform Engine API
   JUnit Platform Launcher
+
+MIT License
+  mockito-core
 
 Dependencies with multiple licenses
 -----------------------------------

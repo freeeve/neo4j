@@ -60,6 +60,8 @@ Apache Software License, Version 2.0
   Arrow Vectors
   AssertJ Core
   Awaitility
+  Byte Buddy (without dependencies)
+  Byte Buddy agent
   Caffeine cache
   Core :: ALPN :: Java Server
   Core :: ALPN :: Server
@@ -254,6 +256,7 @@ MIT License
   jersey-core-client
   jersey-inject-hk2
   JUnit XML Formatter
+  mockito-core
   Pretty Formatter
   SLF4J API Module
   sourcecode_2.13

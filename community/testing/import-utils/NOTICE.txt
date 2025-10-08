@@ -37,6 +37,8 @@ Apache Software License, Version 2.0
   Apache Parquet Encodings
   Apache Parquet Format Structures
   Apache Parquet Hadoop
+  Byte Buddy (without dependencies)
+  Byte Buddy agent
   Caffeine cache
   IPAddress
   Java Native Access
@@ -83,6 +85,7 @@ GNU General Public License, version 2 with the Classpath Exception
   javax.annotation API
 
 MIT License
+  mockito-core
   SLF4J API Module
 
 Dependencies with multiple licenses
