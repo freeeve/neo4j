@@ -45,6 +45,7 @@ import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.NoSuchLogEntryException;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
@@ -182,7 +183,14 @@ public class TransactionLogServiceImpl implements TransactionLogService {
             var kernelVersion = getKernelVersion(startPositionAppendIndex, logHeader);
             var readOnlyStoreChannel = new ReadOnlyStoreChannel(logFile, version);
             if (version == minimalVersion) {
-                readOnlyStoreChannel.position(minimalLogPosition.getByteOffset());
+                // For enveloped channels we may have recorded a position before zero padding
+                // We can't START_OFFSET those and need to skip over it, possibly skipping the channel
+                // if we also rotate the file
+                Optional<Long> offset = skipAnyZeroPadding(minimalLogPosition, logHeader, readOnlyStoreChannel);
+                if (offset.isEmpty()) {
+                    continue;
+                }
+                readOnlyStoreChannel.position(offset.get());
             }
             internalChannels.put(version, readOnlyStoreChannel);
             var endOffset =
@@ -202,6 +210,24 @@ public class TransactionLogServiceImpl implements TransactionLogService {
         }
         logFile.registerExternalReaders(internalChannels);
         return channels;
+    }
+
+    private static Optional<Long> skipAnyZeroPadding(
+            LogPosition minimalLogPosition, LogHeader logHeader, ReadOnlyStoreChannel readOnlyStoreChannel)
+            throws IOException {
+        long offset = minimalLogPosition.getByteOffset();
+        int segmentSize = logHeader.getSegmentBlockSize();
+        // check if we are in zero pad region
+        if (logHeader.getLogFormatVersion().usesSegments()
+                && ((offset % segmentSize) >= segmentSize - LogEnvelopeHeader.HEADER_SIZE)) {
+            // jump to next segment boundary
+            offset = ((offset / segmentSize) + 1L) * segmentSize;
+            // if we exhausted the file then signal need to skip
+            if (offset >= readOnlyStoreChannel.size()) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(offset);
     }
 
     private long logFileAppendIndex(long startingAppendIndex, long minimalVersion, long version, LogHeader logHeader) {
