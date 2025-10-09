@@ -185,6 +185,11 @@ public final class CommunityTopologyGraphDbmsModelUtil {
                     ref,
                     TopologyGraphDbmsModel.NAMESPACE_PROPERTY,
                     String.class));
+            var forwardOidcCredentials = getOptionalPropertyOnNode(
+                    TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL_DESCRIPTION,
+                    ref,
+                    TopologyGraphDbmsModel.OIDC_CREDENTIAL_FORWARDING,
+                    Boolean.class);
 
             var uri = URI.create(uriString);
             var host = SocketAddressParser.socketAddress(uri, BoltConnector.DEFAULT_PORT, SocketAddress::new);
@@ -195,7 +200,12 @@ public final class CommunityTopologyGraphDbmsModelUtil {
                     TopologyGraphDbmsModel.VERSION_PROPERTY,
                     String.class);
             return Optional.of(new DatabaseReferenceImpl.External(
-                    targetName, aliasName, namespace, remoteUri, UUID.fromString(uuid)));
+                    targetName,
+                    aliasName,
+                    namespace,
+                    remoteUri,
+                    UUID.fromString(uuid),
+                    forwardOidcCredentials.orElse(false)));
         });
     }
 

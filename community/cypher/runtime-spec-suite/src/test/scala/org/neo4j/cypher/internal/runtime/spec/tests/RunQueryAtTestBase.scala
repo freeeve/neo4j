@@ -123,7 +123,8 @@ abstract class RunQueryAtTestBase[CONTEXT <: RuntimeContext](
       new NormalizedDatabaseName(alias),
       new NormalizedDatabaseName("composite"),
       Mockito.mock(classOf[RemoteUri]),
-      id
+      id,
+      false
     )
 
   test("should forward results from a remote constituent") {

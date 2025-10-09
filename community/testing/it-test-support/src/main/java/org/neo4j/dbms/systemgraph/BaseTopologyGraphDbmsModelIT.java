@@ -82,6 +82,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.LATEST_SUPPORTED
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.MIRROR_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.OIDC_CREDENTIAL_FORWARDING;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTIES_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTY_SHARD_LABEL;
@@ -627,19 +628,21 @@ public abstract class BaseTopologyGraphDbmsModelIT {
     }
 
     protected Node createExternalReferenceForDatabase(
-            Transaction tx, String name, String targetName, RemoteUri uri, UUID uuid) {
+            Transaction tx, String name, String targetName, RemoteUri uri, UUID uuid, boolean forwardOidcTokens) {
         return createExternalReferenceForDatabase(
-                tx, DEFAULT_NAMESPACE, name, targetName, uri, uuid, CypherVersion.Cypher5);
+                tx, DEFAULT_NAMESPACE, name, targetName, uri, uuid, CypherVersion.Cypher5, forwardOidcTokens);
     }
 
     protected Node createExternalReferenceForDatabase(
-            Transaction tx, String name, String targetName, RemoteUri uri, UUID uuid, CypherVersion version) {
-        return createExternalReferenceForDatabase(tx, DEFAULT_NAMESPACE, name, targetName, uri, uuid, version);
-    }
-
-    protected Node createExternalReferenceForDatabase(
-            Transaction tx, String namespace, String name, String targetName, RemoteUri uri, UUID uuid) {
-        return createExternalReferenceForDatabase(tx, namespace, name, targetName, uri, uuid, CypherVersion.Cypher5);
+            Transaction tx,
+            String name,
+            String targetName,
+            RemoteUri uri,
+            UUID uuid,
+            CypherVersion version,
+            boolean forwardOidcTokens) {
+        return createExternalReferenceForDatabase(
+                tx, DEFAULT_NAMESPACE, name, targetName, uri, uuid, version, forwardOidcTokens);
     }
 
     protected Node createExternalReferenceForDatabase(
@@ -649,7 +652,20 @@ public abstract class BaseTopologyGraphDbmsModelIT {
             String targetName,
             RemoteUri uri,
             UUID uuid,
-            CypherVersion version) {
+            boolean forwardOidcTokens) {
+        return createExternalReferenceForDatabase(
+                tx, namespace, name, targetName, uri, uuid, CypherVersion.Cypher5, forwardOidcTokens);
+    }
+
+    protected Node createExternalReferenceForDatabase(
+            Transaction tx,
+            String namespace,
+            String name,
+            String targetName,
+            RemoteUri uri,
+            UUID uuid,
+            CypherVersion version,
+            boolean forwardOidcTokens) {
         var referenceNode = tx.createNode(REMOTE_DATABASE_LABEL, DATABASE_NAME_LABEL);
         referenceNode.setProperty(PRIMARY_PROPERTY, false);
         referenceNode.setProperty(NAMESPACE_PROPERTY, namespace);
@@ -660,9 +676,13 @@ public abstract class BaseTopologyGraphDbmsModelIT {
                 String.format("%s://%s", uri.getScheme(), uri.getAddresses().get(0));
         referenceNode.setProperty(URL_PROPERTY, uriString);
         referenceNode.setProperty(VERSION_PROPERTY, uuid.toString());
-        referenceNode.setProperty(REMOTE_USERNAME_PROPERTY, "username");
-        referenceNode.setProperty(REMOTE_PASSWORD_PROPERTY, "password".getBytes());
-        referenceNode.setProperty(IV_PROPERTY, "i_vector".getBytes());
+        if (forwardOidcTokens) {
+            referenceNode.setProperty(OIDC_CREDENTIAL_FORWARDING, true);
+        } else {
+            referenceNode.setProperty(REMOTE_USERNAME_PROPERTY, "username");
+            referenceNode.setProperty(REMOTE_PASSWORD_PROPERTY, "password".getBytes());
+            referenceNode.setProperty(IV_PROPERTY, "i_vector".getBytes());
+        }
         referenceNode.setProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, version.persistedValue);
         return referenceNode;
     }

@@ -117,7 +117,8 @@ public final class TestDatabaseReferenceRepository {
         var normalizedTarget = new NormalizedDatabaseName(targetDatabaseName);
         var normalizedNamespace = new NormalizedDatabaseName(namespace);
         var uuid = UUID.randomUUID();
-        return new DatabaseReferenceImpl.External(normalizedTarget, normalizedAlias, normalizedNamespace, uri, uuid);
+        return new DatabaseReferenceImpl.External(
+                normalizedTarget, normalizedAlias, normalizedNamespace, uri, uuid, false);
     }
 
     public static DatabaseReferenceImpl.Composite compositeDatabaseReference(

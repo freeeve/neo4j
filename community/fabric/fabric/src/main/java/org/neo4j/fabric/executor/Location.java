@@ -114,6 +114,10 @@ public interface Location {
             public Optional<String> locationNamespace() {
                 return databaseReference.namespace().map(NormalizedDatabaseName::name);
             }
+
+            public boolean forwardCredentials() {
+                return databaseReference.forwardOidcCredentials();
+            }
         }
     }
 }

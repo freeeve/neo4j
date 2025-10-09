@@ -204,6 +204,7 @@ public class GraphFunctionsTest extends CypherFunSuite {
                 new NormalizedDatabaseName(alias),
                 new NormalizedDatabaseName("composite"),
                 Mockito.mock(RemoteUri.class),
-                id);
+                id,
+                false);
     }
 }

@@ -29,16 +29,24 @@ import org.neo4j.token.api.TokenConstants;
 
 /**
  * The LoginContext hold the executing authenticated user (subject).
- * By calling {@link #authorize(IdLookup, String, AbstractSecurityLog)} the user is also authorized, and a full SecurityContext is returned,
+ * By calling {@link #authorize(IdLookup, PrivilegeDatabaseReference, AbstractSecurityLog)} the user is also authorized, and a full SecurityContext is returned,
  * which can be used to assert user permissions during query execution.
  */
 public abstract class LoginContext {
     protected final AuthSubject subject;
     private final ClientConnectionInfo connectionInfo;
+    private final String token;
 
     public LoginContext(AuthSubject subject, ClientConnectionInfo connectionInfo) {
         this.subject = subject;
         this.connectionInfo = connectionInfo;
+        this.token = null;
+    }
+
+    public LoginContext(AuthSubject subject, ClientConnectionInfo connectionInfo, String token) {
+        this.subject = subject;
+        this.connectionInfo = connectionInfo;
+        this.token = token;
     }
 
     /**
@@ -84,6 +92,13 @@ public abstract class LoginContext {
                 return SecurityContext.authDisabled(StaticAccessMode.FULL, connectionInfo(), dbReference.name());
             }
         };
+    }
+
+    /**
+     * The authToken is null if auth forwarding is not allowed
+     */
+    public String oidcToken() {
+        return token;
     }
 
     /**

@@ -80,13 +80,18 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
         private final NormalizedDatabaseName namespace;
         private final RemoteUri externalUri;
         private final UUID uuid;
+        private final boolean forwardOidcCredentials;
 
         /**
          * Creates an external database reference with no namespace (default namespace)
          */
         public External(
-                NormalizedDatabaseName targetAlias, NormalizedDatabaseName alias, RemoteUri externalUri, UUID uuid) {
-            this(targetAlias, alias, null, externalUri, uuid);
+                NormalizedDatabaseName targetAlias,
+                NormalizedDatabaseName alias,
+                RemoteUri externalUri,
+                UUID uuid,
+                boolean forwardOidcCredentials) {
+            this(targetAlias, alias, null, externalUri, uuid, forwardOidcCredentials);
         }
 
         /**
@@ -97,12 +102,14 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
                 NormalizedDatabaseName alias,
                 NormalizedDatabaseName namespace,
                 RemoteUri externalUri,
-                UUID uuid) {
+                UUID uuid,
+                boolean forwardOidcCredentials) {
             this.targetAlias = targetAlias;
             this.alias = alias;
             this.namespace = Objects.equals(namespace, defaultNamespace) ? null : namespace;
             this.externalUri = externalUri;
             this.uuid = uuid;
+            this.forwardOidcCredentials = forwardOidcCredentials;
         }
 
         @Override
@@ -126,6 +133,10 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
 
         public NormalizedDatabaseName targetAlias() {
             return targetAlias;
+        }
+
+        public boolean forwardOidcCredentials() {
+            return forwardOidcCredentials;
         }
 
         @Override
@@ -165,12 +176,13 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
                     && Objects.equals(alias, external.alias)
                     && Objects.equals(namespace, external.namespace)
                     && Objects.equals(externalUri, external.externalUri)
-                    && Objects.equals(uuid, external.uuid);
+                    && Objects.equals(uuid, external.uuid)
+                    && Objects.equals(forwardOidcCredentials, external.forwardOidcCredentials);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(targetAlias, alias, namespace, externalUri, uuid);
+            return Objects.hash(targetAlias, alias, namespace, externalUri, uuid, forwardOidcCredentials);
         }
 
         @Override
@@ -181,6 +193,7 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
                     + ", remoteUri=" + externalUri
                     + ", remoteName=" + targetAlias
                     + ", uuid=" + uuid
+                    + ", forwardOidcCredentials=" + forwardOidcCredentials
                     + '}';
         }
     }

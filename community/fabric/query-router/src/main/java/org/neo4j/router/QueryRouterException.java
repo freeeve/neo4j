@@ -117,6 +117,13 @@ public class QueryRouterException extends GqlRuntimeException implements Status.
                 currentGraph);
     }
 
+    public static QueryRouterException invalidAuthPassThroughToken() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .build();
+        return new QueryRouterException(
+                gql, Status.Security.Unauthorized, "The provided credentials could not be forwarded");
+    }
+
     public static QueryRouterException transactionCommitFailed() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN01)
                 .build();
