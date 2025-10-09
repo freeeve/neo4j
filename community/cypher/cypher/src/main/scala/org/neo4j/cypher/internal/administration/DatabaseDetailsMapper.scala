@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.OPTIONS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.REPLICATION_LAG_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.ROLE_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.SERVER_ID_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.SHARD_TX_LAG_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.STATUS_MSG_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.STORE_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.TYPE_COL
@@ -71,6 +72,7 @@ object DatabaseDetailsMapper {
         STORE_COL,
         LAST_COMMITTED_TX_COL,
         REPLICATION_LAG_COL,
+        SHARD_TX_LAG_COL,
         OPTIONS_COL
       ),
       Array(
@@ -92,7 +94,8 @@ object DatabaseDetailsMapper {
         else Values.longValue(databaseDetails.actualSecondariesCount().intValue()),
         databaseDetails.readableStoreId().map[AnyValue](s => Values.stringValue(s)).orElse(Values.NO_VALUE),
         databaseDetails.lastCommittedTxId().map[AnyValue](s => Values.longValue(s)).orElse(Values.NO_VALUE),
-        databaseDetails.txCommitLag().map[AnyValue](s => Values.longValue(s)).orElse(Values.NO_VALUE), {
+        databaseDetails.txCommitLag().map[AnyValue](s => Values.longValue(s)).orElse(Values.NO_VALUE),
+        databaseDetails.shardCommitLag().map[AnyValue](s => Values.longValue(s)).orElse(Values.NO_VALUE), {
           val valueOptions =
             databaseDetails.options().asScala.view.mapValues(v => Values.stringValue(v)).toMap[String, AnyValue].asJava
           VirtualValues.fromMap(valueOptions, valueOptions.size, 0)

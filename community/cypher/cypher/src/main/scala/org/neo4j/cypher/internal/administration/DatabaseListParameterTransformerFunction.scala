@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.ast.ParameterName
 import org.neo4j.cypher.internal.ast.ShowDatabase.DATABASE_ID_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_COMMITTED_TX_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.REPLICATION_LAG_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.SHARD_TX_LAG_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.STORE_COL
 import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
 import org.neo4j.cypher.internal.ast.Yield
@@ -303,7 +304,8 @@ object DatabaseListParameterTransformerFunction {
 
   private val txCols = Set(
     LAST_COMMITTED_TX_COL,
-    REPLICATION_LAG_COL
+    REPLICATION_LAG_COL,
+    SHARD_TX_LAG_COL
   )
 
   private val storeIdCols = Set(

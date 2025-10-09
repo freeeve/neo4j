@@ -1449,6 +1449,7 @@ object ShowDatabase {
   val STATUS_MSG_COL = "statusMessage"
   val LAST_COMMITTED_TX_COL = "lastCommittedTxn"
   val REPLICATION_LAG_COL = "replicationLag"
+  val SHARD_TX_LAG_COL = "shardTxnLag"
   val SERVER_ID_COL = "serverID"
   val ADDRESS_COL = "address"
 
@@ -1493,6 +1494,7 @@ object ShowDatabase {
       (ShowColumn(STORE_COL)(position), false, true, false),
       (ShowColumn(LAST_COMMITTED_TX_COL, CTInteger)(position), false, true, false),
       (ShowColumn(REPLICATION_LAG_COL, CTInteger)(position), false, true, false),
+      (ShowColumn(SHARD_TX_LAG_COL, CTInteger)(position), false, false, true),
       (ShowColumn(CONSTITUENTS_COL, CTList(CTString))(position), true, true, false),
       (ShowColumn(GRAPH_SHARDS_COL, CTList(CTString))(position), false, false, true),
       (ShowColumn(PROPERTY_SHARDS_COL, CTList(CTString))(position), false, false, true),

@@ -58,6 +58,7 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.REQUESTED_SECONDARIES_COUNT_CO
 import org.neo4j.cypher.internal.ast.ShowDatabase.REQUESTED_STATUS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.ROLE_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.SERVER_ID_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.SHARD_TX_LAG_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.STATUS_MSG_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.STORE_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.WRITER_COL
@@ -122,6 +123,7 @@ case class ShowDatabasesExecutionPlanner(
            |CASE WHEN d:$PROPERTY_SHARD THEN d.$DATABASE_SECONDARIES_PROPERTY ELSE null END as $REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL,
            |props.$LAST_COMMITTED_TX_COL as $LAST_COMMITTED_TX_COL,
            |props.$REPLICATION_LAG_COL as $REPLICATION_LAG_COL,
+           |props.$SHARD_TX_LAG_COL as $SHARD_TX_LAG_COL,
            |d.$DATABASE_CREATED_AT_PROPERTY as $CREATION_TIME_COL,
            |d.$DATABASE_STARTED_AT_PROPERTY as $LAST_START_TIME_COL,
            |d.$DATABASE_STOPPED_AT_PROPERTY as $LAST_STOP_TIME_COL,
@@ -161,7 +163,7 @@ case class ShowDatabasesExecutionPlanner(
       if (verbose) {
         s", $DATABASE_ID_COL, $SERVER_ID_COL, $REQUESTED_PRIMARIES_COUNT_COL, $REQUESTED_SECONDARIES_COUNT_COL, $REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL, $CURRENT_PRIMARIES_COUNT_COL, " +
           s"$CURRENT_SECONDARIES_COUNT_COL, $CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL, $CREATION_TIME_COL, $LAST_START_TIME_COL, $LAST_STOP_TIME_COL, $STORE_COL, $LAST_COMMITTED_TX_COL, $REPLICATION_LAG_COL, " +
-          s"$GRAPH_SHARDS_COL, $PROPERTY_SHARDS_COL, $DEFAULT_LANGUAGE_COL, $OPTIONS_COL"
+          s"$SHARD_TX_LAG_COL, $GRAPH_SHARDS_COL, $PROPERTY_SHARDS_COL, $DEFAULT_LANGUAGE_COL, $OPTIONS_COL"
       } else {
         ""
       }
