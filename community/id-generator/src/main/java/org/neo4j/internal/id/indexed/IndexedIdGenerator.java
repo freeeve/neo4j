@@ -70,7 +70,6 @@ import org.neo4j.internal.id.IdGenerator;
 import org.neo4j.internal.id.IdSlotDistribution;
 import org.neo4j.internal.id.IdType;
 import org.neo4j.internal.id.IdValidator;
-import org.neo4j.internal.id.range.ArrayBasedRange;
 import org.neo4j.internal.id.range.ContinuousIdRange;
 import org.neo4j.internal.id.range.PageIdRange;
 import org.neo4j.io.async.AsyncBlockAccessor;
@@ -537,9 +536,7 @@ public class IndexedIdGenerator implements IdGenerator {
         } while (!highId.weakCompareAndSetRelease(currentHighId, currentHighId + requestSize));
         assertIdWithinMaxCapacity(idType, currentHighId + idsPerPage, maxId);
         monitor.allocatedFromHigh(currentHighId, (int) requestSize);
-        var pageIdRange = hasReservedIdInRange(currentHighId, currentHighId + idsPerPage)
-                ? rangeWithoutReservedId(idsPerPage, currentHighId)
-                : new ContinuousIdRange(currentHighId, (int) requestSize, idsPerPage);
+        var pageIdRange = new ContinuousIdRange(currentHighId, (int) requestSize, idsPerPage);
         lockedPageRanges.add(pageIdRange.pageId());
         return pageIdRange;
     }
@@ -1047,17 +1044,6 @@ public class IndexedIdGenerator implements IdGenerator {
 
     private void assertNotReadOnly() {
         Preconditions.checkState(!readOnly, "ID generator '%s' is read-only", path);
-    }
-
-    private static PageIdRange rangeWithoutReservedId(int idsPerPage, long currentHighId) {
-        long[] ids = new long[idsPerPage - 1];
-        for (int i = 0; i < ids.length; i++) {
-            long value = currentHighId++;
-            if (!IdValidator.isReservedId(value)) {
-                ids[i] = value;
-            }
-        }
-        return new ArrayBasedRange(ids, idsPerPage);
     }
 
     private static boolean isMultiVersioned(ImmutableSet<OpenOption> openOptions) {
