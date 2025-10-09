@@ -361,6 +361,28 @@ case class RelationshipElementType(
   val isJustAnIdentifier: Boolean = sourceNode == EmptyNodeElementTypeReference &&
     targetNode == EmptyNodeElementTypeReference &&
     propertyTypes.isEmpty
+
+  def isEquivalentForDrop(toDrop: RelationshipElementType): Boolean = {
+
+    def compatibleEndNode(
+      existing: NodeElementTypeReferenceForRelationshipElementType,
+      toDrop: NodeElementTypeReferenceForRelationshipElementType
+    ): Boolean = {
+      (existing, toDrop) match {
+        case (NodeElementTypeReferenceByIdentifyingLabel(l1), NodeElementTypeReferenceByIdentifyingLabel(l2)) =>
+          l1 == l2
+        case (NodeElementTypeReferenceByLabel(l1), NodeElementTypeReferenceByLabel(l2))            => l1 == l2
+        case (NodeElementTypeReferenceByIdentifyingLabel(l1), NodeElementTypeReferenceByLabel(l2)) => l1 == l2
+        case (EmptyNodeElementTypeReference, EmptyNodeElementTypeReference)                        => true
+        case _                                                                                     => false
+      }
+    }
+
+    identifyingLabel == toDrop.identifyingLabel &&
+    propertyTypes == toDrop.propertyTypes &&
+    compatibleEndNode(sourceNode, toDrop.sourceNode) &&
+    compatibleEndNode(targetNode, toDrop.targetNode)
+  }
 }
 
 case class PropertyType(name: PropertyKeyName, propertyType: CypherType)
