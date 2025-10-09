@@ -27,6 +27,8 @@ import org.neo4j.cypher.internal.ast.IfExistsInvalidSyntax
 import org.neo4j.cypher.internal.ast.IfExistsReplace
 import org.neo4j.cypher.internal.ast.IfExistsThrowError
 import org.neo4j.cypher.internal.ast.NamespacedName
+import org.neo4j.cypher.internal.ast.OidcCredentialForwarding
+import org.neo4j.cypher.internal.ast.RemoteAliasStoredCredentials
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
@@ -534,6 +536,30 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     )
   }
 
+  test("CREATE ALIAS alias FOR DATABASE target USER user PASSWORD 'password'") {
+    failsParsing[Statements]
+      .withSyntaxError(
+        """Invalid input 'USER': expected a database name, 'AT', 'PROPERTIES' or <EOF> (line 1, column 40 (offset: 39))
+          |"CREATE ALIAS alias FOR DATABASE target USER user PASSWORD 'password'"
+          |                                        ^""".stripMargin
+      ).withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_42I06,
+        "error: syntax error or access rule violation - invalid input. Invalid input 'USER', expected: a database name, 'AT', 'PROPERTIES' or <EOF>."
+      ))
+  }
+
+  test("CREATE ALIAS alias FOR DATABASE target OIDC CREDENTIAL FORWARDING") {
+    failsParsing[Statements]
+      .withSyntaxError(
+        """Invalid input 'OIDC': expected a database name, 'AT', 'PROPERTIES' or <EOF> (line 1, column 40 (offset: 39))
+          |"CREATE ALIAS alias FOR DATABASE target OIDC CREDENTIAL FORWARDING"
+          |                                        ^""".stripMargin
+      ).withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_42I06,
+        "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: a database name, 'AT', 'PROPERTIES' or <EOF>."
+      ))
+  }
+
   // CREATE REMOTE ALIAS
 
   test("""CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'""") {
@@ -542,9 +568,123 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password")
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos)
     )(defaultPos))
+  }
+
+  test("""CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" OIDC CREDENTIAL FORWARDING""") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OIDC': expected 'USER' (line 1, column 65 (offset: 64))
+            |"CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" OIDC CREDENTIAL FORWARDING"
+            |                                                                 ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: 'USER'."
+            )
+          )
+      case _ => _.toAstPositioned(Statements(Seq(
+          CreateRemoteDatabaseAlias(
+            namespacedName("name"),
+            namespacedName("target"),
+            IfExistsThrowError,
+            Left("neo4j://serverA:7687"),
+            OidcCredentialForwarding()(pos)
+          )(defaultPos)
+        )))
+    }
+  }
+
+  test("""CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687"""") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '': expected 'USER' (line 1, column 64 (offset: 63))
+            |"CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687""
+            |                                                                ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input '', expected: 'USER'."
+            )
+          )
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected 'OIDC CREDENTIAL FORWARDING' or 'USER' (line 1, column 64 (offset: 63))
+            |"CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687""
+            |                                                                ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input '', expected: 'OIDC CREDENTIAL FORWARDING' or 'USER'."
+            )
+          )
+    }
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'
+      |OIDC CREDENTIAL FORWARDING""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OIDC': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF> (line 2, column 1 (offset: 94))
+            |"OIDC CREDENTIAL FORWARDING"
+            | ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF>."
+            )
+          )
+      case _ => _.withSyntaxError(
+          """Invalid input 'OIDC': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF> (line 2, column 1 (offset: 94))
+            |"OIDC CREDENTIAL FORWARDING"
+            | ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF>."
+            )
+          )
+    }
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" OIDC CREDENTIAL FORWARDING
+      |USER user PASSWORD 'password'""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OIDC': expected 'USER' (line 1, column 65 (offset: 64))
+            |"CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" OIDC CREDENTIAL FORWARDING"
+            |                                                                 ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: 'USER'."
+            )
+          )
+      case _ => _.withSyntaxError(
+          """Invalid input 'USER': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF> (line 2, column 1 (offset: 91))
+            |"USER user PASSWORD 'password'"
+            | ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input 'USER', expected: 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF>."
+            )
+          )
+    }
   }
 
   test(
@@ -557,8 +697,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
             namespacedName("target"),
             IfExistsThrowError,
             Left("neo4j://serverA:7687"),
-            literalString("user"),
-            sensitiveLiteral("password")
+            RemoteAliasStoredCredentials(
+              literalString("user"),
+              sensitiveLiteral("password")
+            )(pos)
           )(defaultPos)
         )))
       case _ => _.withSyntaxError(
@@ -583,8 +725,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password")
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos)
     )(defaultPos))
   }
 
@@ -594,8 +738,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password")
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos)
     )(defaultPos))
   }
 
@@ -605,8 +751,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left(""),
-      literalString(""),
-      sensitiveLiteral("")
+      RemoteAliasStoredCredentials(
+        literalString(""),
+        sensitiveLiteral("")
+      )(pos)
     )(defaultPos))
   }
 
@@ -616,8 +764,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       stringParamName("target"),
       IfExistsThrowError,
       Right(stringParam("url")),
-      stringParam("user"),
-      pwParam("password")
+      RemoteAliasStoredCredentials(
+        stringParam("user"),
+        pwParam("password")
+      )(pos)
     )(defaultPos))
   }
 
@@ -629,8 +779,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsDoNothing,
       Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password")
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos)
     )(defaultPos))
   }
 
@@ -644,8 +796,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
         namespacedName(fromCypher5, "target"),
         IfExistsDoNothing,
         Left("neo4j://serverA:7687"),
-        literalString("user"),
-        sensitiveLiteral("password"),
+        RemoteAliasStoredCredentials(
+          literalString("user"),
+          sensitiveLiteral("password")
+        )(pos),
         None,
         Some(Left(Map("key" -> literalString("value"), "anotherkey" -> literalString("anotherValue"))))
       )(defaultPos)
@@ -662,8 +816,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
         namespacedName("target"),
         IfExistsThrowError,
         Left("neo4j://serverA:7687"),
-        literalString("user"),
-        sensitiveLiteral("password"),
+        RemoteAliasStoredCredentials(
+          literalString("user"),
+          sensitiveLiteral("password")
+        )(pos),
         None,
         properties =
           Some(Left(Map(
@@ -684,8 +840,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
         namespacedName("target"),
         IfExistsThrowError,
         Left("neo4j://serverA:7687"),
-        literalString("user"),
-        sensitiveLiteral("password"),
+        RemoteAliasStoredCredentials(
+          literalString("user"),
+          sensitiveLiteral("password")
+        )(pos),
         None,
         properties =
           Some(Left(Map()))
@@ -702,13 +860,43 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
         namespacedName("target"),
         IfExistsThrowError,
         Left("neo4j://serverA:7687"),
-        literalString("user"),
-        sensitiveLiteral("password"),
+        RemoteAliasStoredCredentials(
+          literalString("user"),
+          sensitiveLiteral("password")
+        )(pos),
         None,
         properties =
           Some(Right(parameter("props", CTMap)))
       )(defaultPos)
     )
+  }
+
+  test(
+    """CREATE ALIAS alias FOR DATABASE target AT "neo4j://serverA:7687" OIDC CREDENTIAL FORWARDING PROPERTIES $props"""
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OIDC': expected 'USER' (line 1, column 66 (offset: 65))
+            |"CREATE ALIAS alias FOR DATABASE target AT "neo4j://serverA:7687" OIDC CREDENTIAL FORWARDING PROPERTIES $props"
+            |                                                                  ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: 'USER'."
+            )
+          )
+      case _ => _.toAstPositioned(Statements(Seq(CreateRemoteDatabaseAlias(
+          namespacedName("alias"),
+          namespacedName("target"),
+          IfExistsThrowError,
+          Left("neo4j://serverA:7687"),
+          OidcCredentialForwarding()(pos),
+          None,
+          properties =
+            Some(Right(parameter("props", CTMap)))
+        )(defaultPos))))
+    }
   }
 
   test("CREATE OR REPLACE ALIAS name FOR DATABASE target AT 'neo4j://serverA:7687' USER user PASSWORD 'password'") {
@@ -717,8 +905,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsReplace,
       Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password")
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos)
     )(defaultPos))
   }
 
@@ -730,8 +920,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsInvalidSyntax,
       Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password")
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos)
     )(defaultPos))
   }
 
@@ -743,12 +935,42 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       Some(Left(Map(
         "ssl_enforced" -> trueLiteral
       )))
     )(defaultPos))
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" OIDC CREDENTIAL FORWARDING DRIVER { ssl_enforced: true }"""
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OIDC': expected 'USER' (line 1, column 65 (offset: 64))
+            |"CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" OIDC CREDENTIAL FORWARDING DRIVER { ssl_enforced: true }"
+            |                                                                 ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: 'USER'."
+            )
+          )
+      case _ => _.toAstPositioned(Statements(Seq(CreateRemoteDatabaseAlias(
+          namespacedName("name"),
+          namespacedName("target"),
+          IfExistsThrowError,
+          Left("neo4j://serverA:7687"),
+          OidcCredentialForwarding()(pos),
+          Some(Left(Map(
+            "ssl_enforced" -> trueLiteral
+          )))
+        )(defaultPos))))
+    }
   }
 
   test(
@@ -759,8 +981,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsDoNothing,
       Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       Some(Left(Map(
         "ssl_enforced" -> trueLiteral
       )))
@@ -789,8 +1013,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       Some(Left(Map(
         "ssl_enforced" -> trueLiteral,
         "connection_timeout" -> durationExpression,
@@ -809,8 +1035,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("bar"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       Some(Left(Map(
         "foo" -> literalFloat(1.0)
       )))
@@ -825,8 +1053,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("bar"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       Some(Left(Map(
         "foo" -> literalFloat(1.0)
       ))),
@@ -840,8 +1070,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("bar"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       Some(Left(Map.empty))
     )(defaultPos))
   }
@@ -852,8 +1084,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       stringParamName("target"),
       IfExistsThrowError,
       Right(stringParam("url")),
-      stringParam("user"),
-      pwParam("password"),
+      RemoteAliasStoredCredentials(
+        stringParam("user"),
+        pwParam("password")
+      )(pos),
       Some(Right(parameter("driver", CTMap)))
     )(defaultPos))
   }
@@ -864,8 +1098,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("at"),
       IfExistsThrowError,
       Left("driver"),
-      literalString("driver"),
-      sensitiveLiteral("driver"),
+      RemoteAliasStoredCredentials(
+        literalString("driver"),
+        sensitiveLiteral("driver")
+      )(pos),
       Some(Left(Map.empty))
     )(defaultPos))
   }
@@ -876,8 +1112,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("url"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       defaultLanguage = Some(CypherVersion.Cypher5)
     )(defaultPos))
   }
@@ -890,8 +1128,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("url"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       Some(Left(Map.empty)),
       defaultLanguage = Some(CypherVersion.Cypher25)
     )(defaultPos))
@@ -905,8 +1145,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("url"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       properties = Some(Left(Map.empty)),
       defaultLanguage = Some(CypherVersion.Cypher25)
     )(defaultPos))
@@ -920,8 +1162,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       namespacedName("target"),
       IfExistsThrowError,
       Left("url"),
-      literalString("user"),
-      sensitiveLiteral("password"),
+      RemoteAliasStoredCredentials(
+        literalString("user"),
+        sensitiveLiteral("password")
+      )(pos),
       Some(Left(Map.empty)),
       Some(Left(Map.empty)),
       defaultLanguage = Some(CypherVersion.Cypher5)
@@ -951,8 +1195,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
             NamespacedName(List("target"), None)(_),
             ifExistsDo = IfExistsThrowError,
             url = Left("neo4j://serverA:7687"),
-            username = literalString("user"),
-            password = sensitiveLiteral("password")
+            RemoteAliasStoredCredentials(
+              literalString("user"),
+              sensitiveLiteral("password")
+            )(pos)
           )(defaultPos)
         )))
     }
@@ -973,11 +1219,18 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       |USER user PASSWORD 'password'""".stripMargin
   ) {
     val offset = if (testName.contains("\r\n")) "75" else "74" // Windows line endings changes the offset...
-    failsParsing[Statements].withSyntaxError(
-      s"""Invalid input 'PROPERTIES': expected 'USER' (line 2, column 1 (offset: $offset))
-         |"PROPERTIES { key:'value', anotherkey:'anotherValue' }"
-         | ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          s"""Invalid input 'PROPERTIES': expected 'USER' (line 2, column 1 (offset: $offset))
+             |"PROPERTIES { key:'value', anotherkey:'anotherValue' }"
+             | ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          s"""Invalid input 'PROPERTIES': expected 'OIDC CREDENTIAL FORWARDING' or 'USER' (line 2, column 1 (offset: $offset))
+             |"PROPERTIES { key:'value', anotherkey:'anotherValue' }"
+             | ^""".stripMargin
+        )
+    }
   }
 
   test(
@@ -999,11 +1252,18 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("""CREATE ALIAS name FOR DATABASE target AT "bar" OPTIONS { foo: 1.0 }""") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OPTIONS': expected 'USER' (line 1, column 48 (offset: 47))
-        |"CREATE ALIAS name FOR DATABASE target AT "bar" OPTIONS { foo: 1.0 }"
-        |                                                ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OPTIONS': expected 'USER' (line 1, column 48 (offset: 47))
+            |"CREATE ALIAS name FOR DATABASE target AT "bar" OPTIONS { foo: 1.0 }"
+            |                                                ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'OPTIONS': expected 'OIDC CREDENTIAL FORWARDING' or 'USER' (line 1, column 48 (offset: 47))
+            |"CREATE ALIAS name FOR DATABASE target AT "bar" OPTIONS { foo: 1.0 }"
+            |                                                ^""".stripMargin
+        )
+    }
   }
 
   test("""CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD "password" DRIVER""") {
@@ -1033,11 +1293,18 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test(
     """CREATE ALIAS name FOR DATABASE target AT "url" DEFAULT LANGUAGE CYPHER 5 USER user PASSWORD 'password' DRIVER {} PROPERTIES {}"""
   ) {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'DEFAULT': expected 'USER' (line 1, column 48 (offset: 47))
-        |"CREATE ALIAS name FOR DATABASE target AT "url" DEFAULT LANGUAGE CYPHER 5 USER user PASSWORD 'password' DRIVER {} PROPERTIES {}"
-        |                                                ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'DEFAULT': expected 'USER' (line 1, column 48 (offset: 47))
+            |"CREATE ALIAS name FOR DATABASE target AT "url" DEFAULT LANGUAGE CYPHER 5 USER user PASSWORD 'password' DRIVER {} PROPERTIES {}"
+            |                                                ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'DEFAULT': expected 'OIDC CREDENTIAL FORWARDING' or 'USER' (line 1, column 48 (offset: 47))
+            |"CREATE ALIAS name FOR DATABASE target AT "url" DEFAULT LANGUAGE CYPHER 5 USER user PASSWORD 'password' DRIVER {} PROPERTIES {}"
+            |                                                ^""".stripMargin
+        )
+    }
   }
 
   test(

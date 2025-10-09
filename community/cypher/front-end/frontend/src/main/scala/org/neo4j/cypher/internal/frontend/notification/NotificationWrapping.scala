@@ -69,6 +69,7 @@ import org.neo4j.cypher.internal.notification.MissingPropertyNameNotification
 import org.neo4j.cypher.internal.notification.MissingRelTypeNotification
 import org.neo4j.cypher.internal.notification.NoDatabasesReallocated
 import org.neo4j.cypher.internal.notification.NodeIndexLookupUnfulfillableNotification
+import org.neo4j.cypher.internal.notification.OidcCredentialForwardingNotEnabled
 import org.neo4j.cypher.internal.notification.ProcedureWarningNotification
 import org.neo4j.cypher.internal.notification.RedundantOptionalProcedure
 import org.neo4j.cypher.internal.notification.RedundantOptionalSubquery
@@ -429,6 +430,9 @@ object NotificationWrapping {
 
     case _: ExternalAuthNotEnabled =>
       NotificationCodeWithDescription.externalAuthNotEnabled(graphdb.InputPosition.empty)
+
+    case _: OidcCredentialForwardingNotEnabled =>
+      NotificationCodeWithDescription.oidcCredentialForwardingNotEnabled(graphdb.InputPosition.empty)
 
     case AssignPrivilegeCommandHasNoEffectNotification(command) =>
       NotificationCodeWithDescription.commandHasNoEffectAssignPrivilege(

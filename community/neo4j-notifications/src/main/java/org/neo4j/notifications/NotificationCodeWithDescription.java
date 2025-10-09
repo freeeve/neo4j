@@ -320,6 +320,11 @@ public enum NotificationCodeWithDescription {
             GqlStatusInfoCodes.STATUS_01N73,
             "This privilege will severely reduce the performance of queries run on sharded databases. We recommend to exclude sharded databases for now."),
 
+    OIDC_CREDENTIAL_FORWARDING_NOT_ENABLED(
+            Status.Security.OidcCredentialForwardingNotEnabled,
+            GqlStatusInfoCodes.STATUS_01N74,
+            "Use setting `dbms.security.allow_oidc_credential_forwarding_enabled` to enable OIDC credential forwarding."),
+
     SERVER_ALREADY_ENABLED(
             Status.Cluster.ServerAlreadyEnabled,
             GqlStatusInfoCodes.STATUS_00N80,
@@ -785,6 +790,10 @@ public enum NotificationCodeWithDescription {
 
     public static NotificationImplementation externalAuthNotEnabled(InputPosition position) {
         return EXTERNAL_AUTH_NOT_ENABLED.notification(position);
+    }
+
+    public static NotificationImplementation oidcCredentialForwardingNotEnabled(InputPosition position) {
+        return OIDC_CREDENTIAL_FORWARDING_NOT_ENABLED.notification(position);
     }
 
     public static NotificationImplementation commandHasNoEffectAssignPrivilege(

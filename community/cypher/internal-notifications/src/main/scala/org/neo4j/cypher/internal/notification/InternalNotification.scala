@@ -98,6 +98,7 @@ object InternalNotifications {
     "DeprecatedProcedureFieldNotification",
     "AuthProviderNotDefined",
     "ExternalAuthNotEnabled",
+    "OidcCredentialForwardingNotEnabled",
     "AggregationSkippedNull",
     "DeprecatedOptionInOptionMap",
     "DeprecatedIndexProviderOption",
@@ -200,6 +201,8 @@ case class DeprecatedEagerAnalyzerPreParserOption(position: InputPosition) exten
 
 case class AuthProviderNotDefined(provider: String) extends InternalNotification
 case class ExternalAuthNotEnabled() extends InternalNotification
+
+case class OidcCredentialForwardingNotEnabled() extends InternalNotification
 
 case class AssignPrivilegeCommandHasNoEffectNotification(command: String) extends InternalNotification
 case class RevokePrivilegeCommandHasNoEffectNotification(command: String) extends InternalNotification

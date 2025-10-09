@@ -320,6 +320,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.WARNING,
             "sharded privilege performance",
             NotificationClassification.SECURITY),
+    STATUS_01N74(
+            new GqlStatus("01N74"),
+            "Use the setting 'dbms.security.allow_oidc_credential_forwarding_enabled' to enable OIDC credential forwarding.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.WARNING,
+            "OIDC credential forwarding disabled",
+            NotificationClassification.SECURITY),
 
     STATUS_01N80(
             new GqlStatus("01N80"),

@@ -124,6 +124,7 @@ case class FabricFrontEnd(
         CompilationPhases.enabledSemanticFeatures(
           cypherConfig.enableExtraSemanticFeatures ++ cypherConfig.toggledFeatures(Map(
             GraphDatabaseInternalSettings.show_setting -> SemanticFeature.ShowSetting.productPrefix,
+            GraphDatabaseInternalSettings.oidc_credential_forwarding_enabled -> SemanticFeature.OidcCredentialForwarding.productPrefix,
             GraphDatabaseInternalSettings.composable_commands -> SemanticFeature.ComposableCommands.productPrefix,
             GraphDatabaseInternalSettings.graph_type_enabled -> SemanticFeature.GraphTypes.productPrefix,
             GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,

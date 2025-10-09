@@ -1888,8 +1888,13 @@ aliasTargetName
 // Alias commands
 
 createAlias
-   : ALIAS aliasName (IF NOT EXISTS)? FOR DATABASE aliasTargetName (AT stringOrParameter USER commandNameExpression PASSWORD passwordExpression (DRIVER mapOrParameter)? defaultLanguageSpecification?)? (PROPERTIES mapOrParameter)?
+   : ALIAS aliasName (IF NOT EXISTS)? FOR DATABASE aliasTargetName (AT stringOrParameter remoteTargetConnectionCredentials (DRIVER mapOrParameter)? defaultLanguageSpecification?)? (PROPERTIES mapOrParameter)?
    ;
+
+remoteTargetConnectionCredentials
+    : USER commandNameExpression PASSWORD passwordExpression
+    | OIDC CREDENTIAL FORWARDING
+    ;
 
 dropAlias
    : ALIAS aliasName (IF EXISTS)? FOR DATABASE
@@ -2078,6 +2083,7 @@ unescapedSymbolicNameString_
    | COSINE
    | COUNT
    | CREATE
+   | CREDENTIAL
    | CSV
    | CURRENT
    | CYPHER
@@ -2131,6 +2137,7 @@ unescapedSymbolicNameString_
    | FLOAT32
    | FOREACH
    | FOR
+   | FORWARDING
    | FROM
    | FULLTEXT
    | FUNCTION
@@ -2203,6 +2210,7 @@ unescapedSymbolicNameString_
    | NULL
    | OF
    | OFFSET
+   | OIDC
    | ON
    | ONLY
    | OPTIONAL

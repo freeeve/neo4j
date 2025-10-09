@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.ast.IfExistsDo
 import org.neo4j.cypher.internal.ast.NativeAuth
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.PrivilegeQualifier
+import org.neo4j.cypher.internal.ast.RemoteAliasCredentials
 import org.neo4j.cypher.internal.ast.RemoveAuth
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ShardDefinition
@@ -600,8 +601,7 @@ case class CreateRemoteDatabaseAlias(
   targetName: DatabaseName,
   replace: Boolean,
   url: Either[String, Parameter],
-  username: Either[String, Parameter],
-  password: Expression,
+  remoteAliasCredentials: RemoteAliasCredentials,
   driverSettings: Option[Either[Map[String, Expression], Parameter]],
   properties: Option[Either[Map[String, Expression], Parameter]],
   defaultLanguageVersion: Option[CypherVersion]

@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.Password
 import org.neo4j.cypher.internal.ast.PasswordChange
+import org.neo4j.cypher.internal.ast.RemoteAliasStoredCredentials
 import org.neo4j.cypher.internal.ast.Topology
 import org.neo4j.cypher.internal.ast.UserOptions
 import org.neo4j.cypher.internal.ast.WaitUntilComplete
@@ -525,8 +526,10 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
         dbName,
         ifExistsDo(parent.REPLACE() != null, ifNotExists),
         ctx.stringOrParameter().ast[Either[String, Parameter]](),
-        ctx.commandNameExpression().ast[Expression](),
-        ctx.passwordExpression().ast[Expression](),
+        RemoteAliasStoredCredentials(
+          ctx.commandNameExpression().ast[Expression](),
+          ctx.passwordExpression().ast[Expression]()
+        )(pos(ctx)),
         driverSettings,
         properties,
         astOpt[CypherVersion](ctx.defaultLanguageSpecification())

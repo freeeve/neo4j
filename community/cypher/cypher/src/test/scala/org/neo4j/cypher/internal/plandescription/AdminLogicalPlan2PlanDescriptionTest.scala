@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.ast.NativeAuth
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NoResource
 import org.neo4j.cypher.internal.ast.Node
+import org.neo4j.cypher.internal.ast.OidcCredentialForwarding
 import org.neo4j.cypher.internal.ast.Password
 import org.neo4j.cypher.internal.ast.PasswordChange
 import org.neo4j.cypher.internal.ast.PatternQualifier
@@ -54,6 +55,7 @@ import org.neo4j.cypher.internal.ast.ReadOnlyAccess
 import org.neo4j.cypher.internal.ast.ReadWriteAccess
 import org.neo4j.cypher.internal.ast.Relationship
 import org.neo4j.cypher.internal.ast.RelationshipQualifier
+import org.neo4j.cypher.internal.ast.RemoteAliasStoredCredentials
 import org.neo4j.cypher.internal.ast.RemoveAuth
 import org.neo4j.cypher.internal.ast.Restrict
 import org.neo4j.cypher.internal.ast.ShowProceduresClause
@@ -648,8 +650,28 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           NamespacedName("db1")(pos),
           replace = false,
           util.Left("url"),
-          util.Left("user"),
-          varFor("password"),
+          RemoteAliasStoredCredentials(
+            varFor("user"),
+            varFor("password")
+          )(pos),
+          None,
+          None,
+          None
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        CreateRemoteDatabaseAlias(
+          privLhsLP,
+          NamespacedName("alias1")(pos),
+          NamespacedName("db1")(pos),
+          replace = false,
+          util.Left("url"),
+          OidcCredentialForwarding()(pos),
           None,
           None,
           None

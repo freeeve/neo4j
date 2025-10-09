@@ -32,9 +32,12 @@ import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.HomeDatabaseAction
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NoWait
+import org.neo4j.cypher.internal.ast.OidcCredentialForwarding
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.Password
 import org.neo4j.cypher.internal.ast.PasswordChange
+import org.neo4j.cypher.internal.ast.RemoteAliasCredentials
+import org.neo4j.cypher.internal.ast.RemoteAliasStoredCredentials
 import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.Topology
 import org.neo4j.cypher.internal.ast.UserOptions
@@ -508,6 +511,17 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
     )
   }
 
+  def exitRemoteTargetConnectionCredentials(ctx: Cypher25Parser.RemoteTargetConnectionCredentialsContext): Unit = {
+    if (ctx.OIDC() != null) {
+      ctx.ast = OidcCredentialForwarding()(pos(ctx))
+    } else {
+      ctx.ast = RemoteAliasStoredCredentials(
+        ctx.commandNameExpression().ast[Expression](),
+        ctx.passwordExpression().ast[Expression]()
+      )(pos(ctx))
+    }
+  }
+
   final override def exitCreateAlias(
     ctx: Cypher25Parser.CreateAliasContext
   ): Unit = {
@@ -534,8 +548,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
         targetName,
         ifExistsDo(parent.REPLACE() != null, ifNotExists),
         ctx.stringOrParameter().ast[Either[String, Parameter]](),
-        ctx.commandNameExpression().ast[Expression](),
-        ctx.passwordExpression().ast[Expression](),
+        ctx.remoteTargetConnectionCredentials().ast[RemoteAliasCredentials](),
         driverSettings,
         properties,
         astOpt[CypherVersion](ctx.defaultLanguageSpecification())

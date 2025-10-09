@@ -553,6 +553,11 @@ public interface Status {
                 "External auth for user is not enabled.",
                 SeverityLevel.WARNING,
                 NotificationCategory.SECURITY),
+        OidcCredentialForwardingNotEnabled(
+                ClientNotification,
+                "OIDC credential forwarding is not enabled.",
+                SeverityLevel.WARNING,
+                NotificationCategory.SECURITY),
         CommandHasNoEffect(
                 ClientNotification, "`%s` has no effect.", SeverityLevel.INFORMATION, NotificationCategory.SECURITY),
         ImpossibleRevokeCommand(

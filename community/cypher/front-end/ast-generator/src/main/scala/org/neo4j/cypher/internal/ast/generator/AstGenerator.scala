@@ -213,6 +213,7 @@ import org.neo4j.cypher.internal.ast.NodeTypeReferenceByIdentifyingLabel
 import org.neo4j.cypher.internal.ast.NodeTypeReferenceByLabel
 import org.neo4j.cypher.internal.ast.NodeTypeReferenceByVariable
 import org.neo4j.cypher.internal.ast.NodeUniqueConstraints
+import org.neo4j.cypher.internal.ast.OidcCredentialForwarding
 import org.neo4j.cypher.internal.ast.OnCreate
 import org.neo4j.cypher.internal.ast.OnMatch
 import org.neo4j.cypher.internal.ast.Options
@@ -257,6 +258,8 @@ import org.neo4j.cypher.internal.ast.RelUniqueConstraints
 import org.neo4j.cypher.internal.ast.Relationship
 import org.neo4j.cypher.internal.ast.RelationshipAllQualifier
 import org.neo4j.cypher.internal.ast.RelationshipQualifier
+import org.neo4j.cypher.internal.ast.RemoteAliasCredentials
+import org.neo4j.cypher.internal.ast.RemoteAliasStoredCredentials
 import org.neo4j.cypher.internal.ast.Remove
 import org.neo4j.cypher.internal.ast.RemoveAuth
 import org.neo4j.cypher.internal.ast.RemoveHomeDatabaseAction
@@ -3053,6 +3056,20 @@ class AstGenerator(
   def _password: Gen[Expression] =
     oneOf(_sensitiveStringParameter, _sensitiveAutoStringParameter, _sensitiveStringLiteral)
 
+  def _remoteAliasStoredCredentials: Gen[RemoteAliasStoredCredentials] = for {
+    username <- _stringLiteralOrParameter
+    password <- _password
+  } yield RemoteAliasStoredCredentials(username, password)(pos)
+
+  def _oidcCredentialForwarding: Gen[OidcCredentialForwarding] = OidcCredentialForwarding()(pos)
+
+  def _remoteAliasCredentials: Gen[RemoteAliasCredentials] = whenAstDifferUseCypherVersion match {
+    case CypherVersion.Cypher5 =>
+      _remoteAliasStoredCredentials
+    case _ =>
+      oneOf(_remoteAliasStoredCredentials, _oidcCredentialForwarding)
+  }
+
   def _ifExistsDo: Gen[IfExistsDo] =
     oneOf(IfExistsReplace, IfExistsDoNothing, IfExistsThrowError, IfExistsInvalidSyntax)
 
@@ -3799,8 +3816,7 @@ class AstGenerator(
     targetName <- _databaseName
     ifExistsDo <- _ifExistsDo
     url <- _nameAsEither
-    username <- _stringLiteralOrParameter
-    password <- _password
+    remoteAliasCredentials <- _remoteAliasCredentials
     driverSettings <- option(_optionalMapAsEither)
     properties <- option(_optionalMapAsEither)
     defaultLanguageVersion <- option(_defaultLanguage)
@@ -3809,8 +3825,7 @@ class AstGenerator(
     targetName,
     ifExistsDo,
     url,
-    username,
-    password,
+    remoteAliasCredentials,
     driverSettings,
     properties,
     defaultLanguageVersion

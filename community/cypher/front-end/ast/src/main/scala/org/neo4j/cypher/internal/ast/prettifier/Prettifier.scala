@@ -114,6 +114,7 @@ import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.Node
+import org.neo4j.cypher.internal.ast.OidcCredentialForwarding
 import org.neo4j.cypher.internal.ast.OnCreate
 import org.neo4j.cypher.internal.ast.OnMatch
 import org.neo4j.cypher.internal.ast.Options
@@ -144,6 +145,7 @@ import org.neo4j.cypher.internal.ast.ReallocateDatabases
 import org.neo4j.cypher.internal.ast.Relationship
 import org.neo4j.cypher.internal.ast.RelationshipAllQualifier
 import org.neo4j.cypher.internal.ast.RelationshipQualifier
+import org.neo4j.cypher.internal.ast.RemoteAliasStoredCredentials
 import org.neo4j.cypher.internal.ast.Remove
 import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.RemoveHomeDatabaseAction
@@ -815,8 +817,7 @@ case class Prettifier(
           targetName,
           ifExistsDo,
           url,
-          username,
-          password,
+          remoteAliasCredentials,
           driverSettings,
           properties,
           defaultLanguage
@@ -829,16 +830,19 @@ case class Prettifier(
         val driverSettingsString = propertiesMapToString("DRIVER", driverSettings)
         val propertiesString = propertiesMapToString("PROPERTIES", properties)
         val defaultLanguageString = defaultLanguage.map(cv => s" DEFAULT LANGUAGE ${cv.description}").getOrElse("")
+        val credentials = remoteAliasCredentials match {
+          case RemoteAliasStoredCredentials(username, password) =>
+            s"USER ${Prettifier.escapeName(username)} PASSWORD ${expr.escapePassword(password)}"
+          case OidcCredentialForwarding() => "OIDC CREDENTIAL FORWARDING"
+        }
 
         ifExistsDo match {
           case IfExistsDoNothing | IfExistsInvalidSyntax =>
             s"${x.name} ${Prettifier.escapeName(aliasName)} IF NOT EXISTS FOR DATABASE ${Prettifier.escapeName(targetName)} AT $urlString " +
-              s"USER ${Prettifier.escapeName(username)} PASSWORD ${expr.escapePassword(password)}" +
-              driverSettingsString + defaultLanguageString + propertiesString
+              credentials + driverSettingsString + defaultLanguageString + propertiesString
           case _ =>
             s"${x.name} ${Prettifier.escapeName(aliasName)} FOR DATABASE ${Prettifier.escapeName(targetName)} AT $urlString " +
-              s"USER ${Prettifier.escapeName(username)} PASSWORD ${expr.escapePassword(password)}" +
-              driverSettingsString + defaultLanguageString + propertiesString
+              credentials + driverSettingsString + defaultLanguageString + propertiesString
         }
 
       case x @ DropDatabaseAlias(aliasName, ifExists) =>

@@ -156,6 +156,7 @@ org.neo4j.kernel.api.exceptions.Status.Security::ExternalAuthNotEnabled org.neo4
 org.neo4j.kernel.api.exceptions.Status.Security::Forbidden org.neo4j.kernel.api.exceptions.Status.Security public static final
 org.neo4j.kernel.api.exceptions.Status.Security::ImpossibleRevokeCommand org.neo4j.kernel.api.exceptions.Status.Security public static final
 org.neo4j.kernel.api.exceptions.Status.Security::ModifiedConcurrently org.neo4j.kernel.api.exceptions.Status.Security public static final
+org.neo4j.kernel.api.exceptions.Status.Security::OidcCredentialForwardingNotEnabled org.neo4j.kernel.api.exceptions.Status.Security public static final
 org.neo4j.kernel.api.exceptions.Status.Security::ShardedPrivilegePerformance org.neo4j.kernel.api.exceptions.Status.Security public static final
 org.neo4j.kernel.api.exceptions.Status.Security::TokenExpired org.neo4j.kernel.api.exceptions.Status.Security public static final
 org.neo4j.kernel.api.exceptions.Status.Security::Unauthorized org.neo4j.kernel.api.exceptions.Status.Security public static final

@@ -2814,6 +2814,42 @@ class PrettifierIT extends CypherFunSuite {
       """CREATE ALIAS alias FOR DATABASE database AT "url" USER user PASSWORD '******' DEFAULT LANGUAGE CYPHER 5""",
     "create alias $alias if not exists FOR database $database at $url user $user password $password driver { } default LANGUAGE cypher 25 properties { }" ->
       """CREATE ALIAS $alias IF NOT EXISTS FOR DATABASE $database AT $url USER $user PASSWORD $password DRIVER {} DEFAULT LANGUAGE CYPHER 25 PROPERTIES {}""",
+    FailsInCypher5(
+      "create alias alias FOR database database at 'url' oidc credential forwarding",
+      """CREATE ALIAS alias FOR DATABASE database AT "url" OIDC CREDENTIAL FORWARDING"""
+    ),
+    FailsInCypher5(
+      "create alias alias IF NOT EXISTS FOR database database at 'url' oidc credential forwarding",
+      """CREATE ALIAS alias IF NOT EXISTS FOR DATABASE database AT "url" OIDC CREDENTIAL FORWARDING"""
+    ),
+    FailsInCypher5(
+      "create alias composite.alias FOR database database at 'url' oidc credential forwarding",
+      """CREATE ALIAS `composite.alias` FOR DATABASE database AT "url" OIDC CREDENTIAL FORWARDING"""
+    ),
+    FailsInCypher5(
+      "create or replace alias alias FOR database database at 'url' oidc credential forwarding driver { ssl_enforced: $val }",
+      """CREATE OR REPLACE ALIAS alias FOR DATABASE database AT "url" OIDC CREDENTIAL FORWARDING DRIVER {ssl_enforced: $val}"""
+    ),
+    FailsInCypher5(
+      "create alias $alias if not exists FOR database $database at $url oidc credential forwarding driver { }",
+      """CREATE ALIAS $alias IF NOT EXISTS FOR DATABASE $database AT $url OIDC CREDENTIAL FORWARDING DRIVER {}"""
+    ),
+    FailsInCypher5(
+      "create alias $alias if not exists FOR database $database at $url oidc credential forwarding driver { } properties { }",
+      """CREATE ALIAS $alias IF NOT EXISTS FOR DATABASE $database AT $url OIDC CREDENTIAL FORWARDING DRIVER {} PROPERTIES {}"""
+    ),
+    FailsInCypher5(
+      "create alias $alias if not exists FOR database $database at $url oidc credential forwarding properties { foo: 'bar' }",
+      """CREATE ALIAS $alias IF NOT EXISTS FOR DATABASE $database AT $url OIDC CREDENTIAL FORWARDING PROPERTIES {foo: "bar"}"""
+    ),
+    FailsInCypher5(
+      "create alias alias FOR database database at 'url' oidc credential forwarding default language cypher 5",
+      """CREATE ALIAS alias FOR DATABASE database AT "url" OIDC CREDENTIAL FORWARDING DEFAULT LANGUAGE CYPHER 5"""
+    ),
+    FailsInCypher5(
+      "create alias $alias if not exists FOR database $database at $url oidc credential forwarding driver { } default LANGUAGE cypher 25 properties { }",
+      """CREATE ALIAS $alias IF NOT EXISTS FOR DATABASE $database AT $url OIDC CREDENTIAL FORWARDING DRIVER {} DEFAULT LANGUAGE CYPHER 25 PROPERTIES {}"""
+    ),
     "alter alias alias if exists set database target database" ->
       "ALTER ALIAS alias IF EXISTS SET DATABASE TARGET database",
     "alter alias alias set database target database" ->
@@ -4002,6 +4038,14 @@ class PrettifierIT extends CypherFunSuite {
       """CREATE ALIAS $`` FOR DATABASE `` AT "" USER `` PASSWORD $`` DRIVER {``: `` + ``} PROPERTIES {``: $``}""",
     "CREATE ALIAS `` FOR DATABASE $`` AT '' USER $`` PASSWORD $``" ->
       """CREATE ALIAS `` FOR DATABASE $`` AT "" USER $`` PASSWORD $``""",
+    FailsInCypher5(
+      "CREATE ALIAS $`` FOR DATABASE `` AT '' OIDC CREDENTIAL FORWARDING DRIVER {``: `` + ``} PROPERTIES {``: $``}",
+      """CREATE ALIAS $`` FOR DATABASE `` AT "" OIDC CREDENTIAL FORWARDING DRIVER {``: `` + ``} PROPERTIES {``: $``}"""
+    ),
+    FailsInCypher5(
+      "CREATE ALIAS `` FOR DATABASE $`` AT '' OIDC CREDENTIAL FORWARDING",
+      """CREATE ALIAS `` FOR DATABASE $`` AT "" OIDC CREDENTIAL FORWARDING"""
+    ),
     "ALTER ALIAS `` SET DATABASE TARGET ``" -> "ALTER ALIAS `` SET DATABASE TARGET ``",
     "ALTER ALIAS $`` SET DATABASE TARGET $`` PROPERTIES $``" ->
       "ALTER ALIAS $`` SET DATABASE TARGET $`` PROPERTIES $``",

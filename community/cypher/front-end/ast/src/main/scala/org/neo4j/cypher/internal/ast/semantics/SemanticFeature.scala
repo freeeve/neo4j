@@ -33,6 +33,10 @@ object SemanticFeature {
     override def name: String = "show setting"
   }
 
+  case object OidcCredentialForwarding extends SemanticFeature with FeatureToString {
+    override def name: String = "OIDC credential forwarding"
+  }
+
   case object MultipleGraphs extends SemanticFeature with FeatureToString {
     override def name: String = "multiple graphs"
   }
@@ -98,6 +102,7 @@ object SemanticFeature {
     UseAsMultipleGraphsSelector,
     UseAsSingleGraphSelector,
     ShowSetting,
+    OidcCredentialForwarding,
     ComposableCommands,
     GraphTypes,
     ExperimentalCypherVersions,

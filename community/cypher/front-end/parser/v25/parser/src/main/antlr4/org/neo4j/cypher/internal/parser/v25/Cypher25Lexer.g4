@@ -299,6 +299,10 @@ CREATE
    : C R E A T E
    ;
 
+CREDENTIAL
+   : C R E D E N T I A L
+   ;
+
 CSV
    : C S V
    ;
@@ -532,6 +536,10 @@ FOR
 
 FOREACH
    : F O R E A C H
+   ;
+
+FORWARDING
+   : F O R W A R D I N G
    ;
 
 FROM
@@ -867,6 +875,10 @@ OF
 OFFSET
    : O F F S E T
    ;
+
+OIDC
+    : O I D C
+    ;
 
 ON
    : O N

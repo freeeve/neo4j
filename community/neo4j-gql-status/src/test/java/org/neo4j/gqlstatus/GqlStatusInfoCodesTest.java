@@ -113,6 +113,7 @@ class GqlStatusInfoCodesTest {
         whitelist.add(GqlStatusInfoCodes.STATUS_51N09);
         whitelist.add(GqlStatusInfoCodes.STATUS_51N68);
         whitelist.add(GqlStatusInfoCodes.STATUS_42N84);
+        whitelist.add(GqlStatusInfoCodes.STATUS_01N74);
         for (GqlStatusInfoCodes gqlCode : GqlStatusInfoCodes.values()) {
             var subcond = gqlCode.getSubCondition();
             if (!subcond.isEmpty()) {

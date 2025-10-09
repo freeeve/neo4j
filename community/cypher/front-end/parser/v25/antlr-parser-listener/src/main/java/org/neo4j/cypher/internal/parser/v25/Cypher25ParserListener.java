@@ -725,6 +725,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitCreateAlias(Cypher25Parser.CreateAliasContext ctx);
 
+    void exitRemoteTargetConnectionCredentials(Cypher25Parser.RemoteTargetConnectionCredentialsContext ctx);
+
     void exitDropAlias(Cypher25Parser.DropAliasContext ctx);
 
     void exitAlterAlias(Cypher25Parser.AlterAliasContext ctx);

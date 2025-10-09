@@ -1420,8 +1420,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           targetName,
           ifExistsDo,
           url,
-          username,
-          password,
+          remoteAliasCredentials,
           driverSettings,
           properties,
           defaultLanguage
@@ -1451,8 +1450,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           targetName,
           replace,
           url,
-          username,
-          password,
+          remoteAliasCredentials,
           driverSettings,
           properties,
           defaultLanguage

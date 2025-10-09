@@ -1882,13 +1882,19 @@ final case class CreateLocalDatabaseAlias(
   }
 }
 
+sealed trait RemoteAliasCredentials extends ASTNode
+
+case class RemoteAliasStoredCredentials(username: Expression, password: Expression)(val position: InputPosition)
+    extends RemoteAliasCredentials
+
+case class OidcCredentialForwarding()(val position: InputPosition) extends RemoteAliasCredentials
+
 final case class CreateRemoteDatabaseAlias(
   aliasName: DatabaseName,
   targetName: DatabaseName,
   ifExistsDo: IfExistsDo,
   url: Either[String, Parameter],
-  username: Expression,
-  password: Expression,
+  remoteAliasCredentials: RemoteAliasCredentials,
   driverSettings: Option[Either[Map[String, Expression], Parameter]] = None,
   properties: Option[Either[Map[String, Expression], Parameter]] = None,
   defaultLanguage: Option[CypherVersion] = None
@@ -1898,6 +1904,16 @@ final case class CreateRemoteDatabaseAlias(
     case IfExistsReplace | IfExistsInvalidSyntax => "CREATE OR REPLACE ALIAS"
     case _                                       => "CREATE ALIAS"
   }
+
+  def remoteAliasCredentialSemanticCheck(remoteAliasCredentials: RemoteAliasCredentials): SemanticCheck =
+    remoteAliasCredentials match {
+      case RemoteAliasStoredCredentials(username, _) => checkIsStringLiteralOrParameter("username", username)
+      case OidcCredentialForwarding() => requireFeatureSupport(
+          "`OIDC CREDENTIAL FORWARDING`",
+          SemanticFeature.OidcCredentialForwarding,
+          position
+        )
+    }
 
   override def semanticCheck: SemanticCheck = ifExistsDo match {
     case IfExistsInvalidSyntax =>
@@ -1920,7 +1936,7 @@ final case class CreateRemoteDatabaseAlias(
         case Some(expr) =>
           SemanticCheck.error(SemanticError.genericDriverSettingsFail(expr.position))
         case _ => super.semanticCheck chain
-            checkIsStringLiteralOrParameter("username", username) chain
+            remoteAliasCredentialSemanticCheck(remoteAliasCredentials) chain
             defaultLanguageVersionCheck(defaultLanguage, name) chain
             checkDefaultLanguageAndComposite(aliasName, defaultLanguage) chain
             SemanticState.recordCurrentScope(this)
