@@ -20,6 +20,7 @@
 package org.neo4j.cypher.cucumber.synthesise.generator
 
 import io.cucumber.datatable.DataTable
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.synthesise.CucumberSalad
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertResults
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.Execute
@@ -65,7 +66,7 @@ class Paginate(val args: CucumberSalad.Ingredients) extends ScenarioGenerator wi
   def generateScenarios(filteredScenarios: View[RecordedScenario]): IterableOnce[GeneratedScenario] = {
     filteredScenarios.flatMap { scenario =>
       val stepReplacements = scenario.steps.sliding(2).flatMap {
-        case Seq(e: Execute, a: AssertResults) if a.rowCount > 1 && a.order.orderedRows =>
+        case Seq(e: Execute, a: AssertResults) if a.rowCount > 1 && a.resultBuilder.wouldOrderResults() == InOrder =>
           transformAssertion(e, a) match {
             case Some(newSteps) => Seq(Ref(e) -> newSteps, Ref(a) -> Seq.empty[RecordedStep])
             case None           => Seq.empty

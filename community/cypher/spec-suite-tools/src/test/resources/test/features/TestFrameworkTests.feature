@@ -655,3 +655,34 @@ Feature: TestFrameworkTests
       """
       warn: feature deprecated with replacement.
       """
+
+    Scenario Outline: [042] Floating point precision can be specified
+      Given an empty graph
+      When executing query:
+        """
+        RETURN <value> AS result
+        """
+      Then the result should be, in order, to within 0.0001:
+        | result   |
+        | 1.0      |
+      Examples:
+        | value    |
+        | 0.99999  |
+        | 0.999995 |
+        | 1.0      |
+        | 1.00001  |
+
+    Scenario Outline: [043] Floating point precision is exact by default
+      Given an empty graph
+      When executing query:
+        """
+        RETURN <value> AS result
+        """
+      Then the result should be, in order:
+        | result   |
+        | 1.0      |
+      Examples:
+        | value    |
+        | 0.99999  |
+        | 0.999995 |
+        | 1.00001  |

@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.cucumber.value
 
+import org.assertj.core.util.DoubleComparator
+import org.assertj.core.util.FloatComparator
 import org.eclipse.collections.impl.factory.Bags
 import org.eclipse.collections.impl.factory.Maps
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.Connection
@@ -43,6 +45,7 @@ import org.neo4j.graphdb.Relationship
 import org.neo4j.values.storable.DurationValue.duration
 import org.neo4j.values.storable.Values
 
+import java.lang
 import java.time.temporal.Temporal
 import java.time.temporal.TemporalAmount
 import java.util
@@ -197,10 +200,64 @@ final object ResultValueMapper extends ValueMapper {
     }
   }
 
+  object RowMapper {
+
+    def mapRows(
+      rows: util.List[util.List[AnyRef]],
+      mapper: java.util.function.Function[_ >: AnyRef, _ <: AnyRef]
+    ): util.List[util.List[AnyRef]] = {
+      rows.stream().map[java.util.List[AnyRef]](row => row.stream().map[AnyRef](mapper).toList).toList
+    }
+  }
+
+  object CloseEnoughNumbersList {
+
+    def rowsWithCloseEnoughNumbers(epsilon: Double)(
+      rows: util.List[util.List[AnyRef]]
+    ): util.List[util.List[AnyRef]] = {
+      RowMapper.mapRows(
+        rows,
+        {
+          case double: lang.Double =>
+            new CloseEnoughDouble(double, epsilon)
+          case float: lang.Float =>
+            new CloseEnoughFloat(float, epsilon.toFloat)
+          case v => v
+        }
+      )
+    }
+
+    private class CloseEnoughDouble(val value: lang.Double, epsilon: Double) {
+      private val comparator = new DoubleComparator(epsilon)
+
+      override def equals(obj: Any): Boolean = obj match {
+        case otherNumber: CloseEnoughDouble =>
+          comparator.compare(value, otherNumber.value) == 0
+        case _ => false
+      }
+
+      override def hashCode(): Int = value.hashCode()
+      override def toString: String = value.toString
+    }
+
+    private class CloseEnoughFloat(val value: lang.Float, epsilon: Float) {
+      private val comparator = new FloatComparator(epsilon)
+
+      override def equals(obj: Any): Boolean = obj match {
+        case otherNumber: CloseEnoughFloat =>
+          comparator.compare(value, otherNumber.value) == 0
+        case _ => false
+      }
+
+      override def hashCode(): Int = value.hashCode()
+      override def toString: String = value.toString
+    }
+  }
+
   object UnorderedList {
 
     def rowsWithUnorderedLists(rows: util.List[util.List[AnyRef]]): util.List[util.List[AnyRef]] = {
-      rows.stream().map[java.util.List[AnyRef]](row => row.stream().map[AnyRef](withUnorderedLists).toList).toList
+      RowMapper.mapRows(rows, withUnorderedLists)
     }
 
     private def withUnorderedLists(value: AnyRef): AnyRef = value match {

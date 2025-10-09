@@ -34,6 +34,7 @@ import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
+import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
 
 import java.net.URI
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -45,7 +46,8 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 /** These steps are not safe to use with parallel execution. */
 final class ScenarioRecordingSteps @Inject() (
   recorder: ScenarioRecorder,
-  expectations: Expectations
+  expectations: Expectations,
+  conf: TestConf
 ) extends CypherCucumberSteps {
 
   private var steps: ArrayBuffer[RecordedStep] = _
@@ -71,12 +73,10 @@ final class ScenarioRecordingSteps @Inject() (
   override def havingExecuted(cypher: String): Unit = add(HavingExecuted(cypher))
   override def executingQuery(cypher: String): Unit = add(Execute(cypher))
   override def executingControlQuery(cypher: String): Unit = add(ExecuteControl(cypher))
-  override def resultShouldBeInAnyOrder(expected: DataTable): Unit = add(AssertResults(expected, AnyOrder))
-  override def resultShouldBeInOrder(expected: DataTable): Unit = add(AssertResults(expected, Order))
-  override def resultShouldBeInOrderUnlessParallel(expected: DataTable): Unit = {}
-  override def resultShouldBeInOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {}
-  override def resultShouldBeInOrderUnlessParallelIgnoringListOrder(expected: DataTable): Unit = {}
-  override def resultShouldBeInAnyOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {}
+
+  override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit = {
+    add(AssertResults(expected, in(new ResultAssertionBuilder(conf.isParallelRuntime))))
+  }
   override def sideEffectsShouldBe(expected: DataTable): Unit = add(SideEffects(expected))
   override def errorShouldBeRaised(expected: ExpectedError): Unit = add(AssertError(expected))
   override def errorShouldBeRaised(expected: ExpectedGqlError): Unit = add(AssertGqlError(expected))
@@ -91,12 +91,6 @@ final class ScenarioRecordingSteps @Inject() (
 
   override def registerProcedure(signature: String, results: DataTable): Unit =
     add(RegisterProcedure(signature, results))
-
-  override def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit =
-    add(AssertResults(expected, OrderUnorderedLists))
-
-  override def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit =
-    add(AssertResults(expected, AnyOrderUnorderedLists))
 }
 
 object ScenarioRecordingSteps {
@@ -155,7 +149,7 @@ sealed trait ControlExecution extends TestExecution
 case class ExecuteControl(override val cypher: String) extends ControlExecution
 case class ExecuteControlInOpenTx(override val cypher: String) extends ControlExecution
 
-case class AssertResults(expected: DataTable, order: ResultOrder) extends RecordedStep {
+case class AssertResults(expected: DataTable, resultBuilder: ResultAssertionBuilder) extends RecordedStep {
   def rowCount: Int = expected.height() - 1
 }
 sealed trait ExpectError extends RecordedStep
@@ -164,23 +158,3 @@ case class AssertGqlError(expected: ExpectedGqlError) extends ExpectError
 case class AssertGqlWarning(expected: ExpectedGqlWarning) extends ExpectError
 case class SideEffects(expected: DataTable) extends RecordedStep
 case class Comment(comment: String) extends RecordedStep
-
-sealed trait ResultOrder {
-  def orderedRows: Boolean
-}
-
-case object Order extends ResultOrder {
-  override def orderedRows: Boolean = true
-}
-
-case object AnyOrder extends ResultOrder {
-  override def orderedRows: Boolean = false
-}
-
-case object OrderUnorderedLists extends ResultOrder {
-  override def orderedRows: Boolean = true
-}
-
-case object AnyOrderUnorderedLists extends ResultOrder {
-  override def orderedRows: Boolean = false
-}

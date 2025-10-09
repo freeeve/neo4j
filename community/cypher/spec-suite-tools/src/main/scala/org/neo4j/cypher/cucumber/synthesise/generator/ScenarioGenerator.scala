@@ -24,6 +24,9 @@ import io.cucumber.datatable.DataTable
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.cucumber.glue.regular.DynamicExpectations
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultDoublePrecision.Within
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InAnyOrder
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
@@ -33,8 +36,6 @@ import org.neo4j.cypher.cucumber.synthesise.generator.Filter.ScenarioFilter
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.excludeTags
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.isCompatible
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.isReadQuery
-import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AnyOrder
-import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AnyOrderUnorderedLists
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertError
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlError
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlWarning
@@ -50,8 +51,6 @@ import org.neo4j.cypher.cucumber.synthesise.glue.scenario.ExpectError
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.HavingExecuted
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.HavingExecutedInOpenTx
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.OpenTransaction
-import org.neo4j.cypher.cucumber.synthesise.glue.scenario.Order
-import org.neo4j.cypher.cucumber.synthesise.glue.scenario.OrderUnorderedLists
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.QueryExecution
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RecordedScenario
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RecordedStep
@@ -242,14 +241,18 @@ trait ScenarioRenderer {
     case SetParams(params) =>
       render("And parameters are:", DataTable.create(params.toSeq.map(t => java.util.List.of(t._1, t._2)).asJava))
     case AssertResults(expected, _) if expected.isEmpty => "Then the result should be empty"
-    case AssertResults(expected, order) =>
-      val orderString = order match {
-        case Order                  => ", in order"
-        case AnyOrder               => ", in any order"
-        case OrderUnorderedLists    => ", in order (ignoring element order for lists)"
-        case AnyOrderUnorderedLists => " (ignoring element order for lists)"
+    case AssertResults(expected, builder) =>
+      val orderString = (builder.getResultOrdering, builder.getSublistOrdering) match {
+        case (InOrder, InOrder)       => ", in order"
+        case (InAnyOrder, InOrder)    => ", in any order"
+        case (InOrder, InAnyOrder)    => ", in order (ignoring element order for lists)"
+        case (InAnyOrder, InAnyOrder) => " (ignoring element order for lists)"
       }
-      render(s"Then the result should be$orderString:", expected)
+      val precisionString = builder.getPrecision match {
+        case Within(epsilon) => s", to within $epsilon"
+        case _               => ""
+      }
+      render(s"Then the result should be$orderString$precisionString:", expected)
     case error: ExpectError => error match {
         case AssertError(ExpectedError(error, description, phase)) =>
           s"a $error should be raised at $phase: $description"

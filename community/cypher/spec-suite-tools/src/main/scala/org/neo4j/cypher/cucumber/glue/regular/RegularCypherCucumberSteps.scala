@@ -30,6 +30,10 @@ import org.junit.jupiter.api.Assumptions.assumeFalse
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryExecution
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryResults
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultDoublePrecision.Exact
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultDoublePrecision.Within
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InAnyOrder
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeConf
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeGqlStatusObject
@@ -45,11 +49,13 @@ import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
+import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
 import org.neo4j.cypher.cucumber.user.function.SeededRandFunction
 import org.neo4j.cypher.cucumber.user.function.TestFailNTimesFunction
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser.parse
 import org.neo4j.cypher.cucumber.value.ResultValueMapper
+import org.neo4j.cypher.cucumber.value.ResultValueMapper.CloseEnoughNumbersList.rowsWithCloseEnoughNumbers
 import org.neo4j.cypher.cucumber.value.ResultValueMapper.UnorderedList.rowsWithUnorderedLists
 import org.neo4j.cypher.testing.api.ConsumedResult
 import org.neo4j.cypher.testing.api.CypherExecutorException
@@ -191,91 +197,19 @@ final class RegularCypherCucumberSteps @Inject() (
     if (explainSucceeds || !rollbackSucceeds) Phase.runtime else Phase.compile
   }
 
-  override def resultShouldBeInOrder(expected: DataTable): Unit = lastResult match {
-    case actual: QueryResults =>
-      val actualRows = actual.results.rows
-      val expectedRows = toResultRows(expected)
-
-      if (actualRows != expectedRows) {
-        // The assertion is more expensive so only run it if the equality check fails.
-        assertThat(actualRows).as(describeResults(actual, expected, "in order")).containsExactlyElementsOf(expectedRows)
-      }
-      assertEqualHeaders(actual, expected)
-    case failure: QueryFailure => unexpectedFailure(failure, conf)
-  }
-
-  override def resultShouldBeInOrderUnlessParallel(expected: DataTable): Unit = {
-    if (conf.preparserOptions.getOrElse("runtime", "") == "parallel") {
-      resultShouldBeInAnyOrder(expected)
-    } else {
-      resultShouldBeInOrder(expected)
+  override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit =
+    lastResult match {
+      case failure: QueryFailure =>
+        unexpectedFailure(failure, conf)
+      case actual: QueryResults =>
+        val builder: RegularResultAssertionBuilder =
+          in(new RegularResultAssertionBuilder(
+            actual,
+            expected,
+            conf.isParallelRuntime
+          )).asInstanceOf[RegularResultAssertionBuilder]
+        builder.assert()
     }
-  }
-
-  override def resultShouldBeInOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {
-    if (conf.preparserOptions.getOrElse("runtime", "") == "parallel") {
-      resultShouldBeInOrderIgnoringListOrder(expected)
-    } else {
-      resultShouldBeInOrder(expected)
-    }
-  }
-
-  override def resultShouldBeInOrderUnlessParallelIgnoringListOrder(expected: DataTable): Unit = {
-    if (conf.preparserOptions.getOrElse("runtime", "") == "parallel") {
-      resultShouldBeInAnyOrderIgnoringListOrder(expected)
-    } else {
-      resultShouldBeInOrderIgnoringListOrder(expected)
-    }
-  }
-
-  override def resultShouldBeInAnyOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {
-    if (conf.preparserOptions.getOrElse("runtime", "") == "parallel") {
-      resultShouldBeInAnyOrderIgnoringListOrder(expected)
-    } else {
-      resultShouldBeInAnyOrder(expected)
-    }
-  }
-
-  override def resultShouldBeInAnyOrder(expected: DataTable): Unit = lastResult match {
-    case actual: QueryResults =>
-      val actualRows = actual.results.rows
-      val expectedRows = toResultRows(expected)
-      if (actualRows != expectedRows) {
-        assertThat(actualRows)
-          .as(describeResults(actual, expected, "in any order"))
-          .containsExactlyInAnyOrderElementsOf(expectedRows)
-      }
-      assertEqualHeaders(actual, expected)
-    case failure: QueryFailure => unexpectedFailure(failure, conf)
-  }
-
-  override def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit = lastResult match {
-    case actual: QueryResults =>
-      val actualRows = actual.results.rows
-      val expectedRows = toResultRows(expected)
-      if (actualRows != expectedRows) {
-        // The assertion is more expensive so only run it if the equality check fails.
-        assertThat(rowsWithUnorderedLists(actualRows))
-          .as(describeResults(actual, expected, "rows in order, ignoring element order of lists"))
-          .containsExactlyElementsOf(rowsWithUnorderedLists(expectedRows))
-      }
-      assertEqualHeaders(actual, expected)
-    case failure: QueryFailure => unexpectedFailure(failure, conf)
-  }
-
-  override def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit = lastResult match {
-    case actual: QueryResults =>
-      val actualRows = actual.results.rows
-      val expectedRows = toResultRows(expected)
-      if (actualRows != expectedRows) {
-        // The assertion is more expensive so only run it if the equality check fails.
-        assertThat(rowsWithUnorderedLists(actualRows))
-          .as(describeResults(actual, expected, "rows in any order, ignoring element order of lists"))
-          .containsExactlyInAnyOrderElementsOf(rowsWithUnorderedLists(expectedRows))
-      }
-      assertEqualHeaders(actual, expected)
-    case failure: QueryFailure => unexpectedFailure(failure, conf)
-  }
 
   override def sideEffectsShouldBe(expectedTable: DataTable): Unit = {
     val actual = lastGraphState match {
@@ -382,16 +316,22 @@ final class RegularCypherCucumberSteps @Inject() (
     actual: QueryResults,
     expected: DataTable,
     order: String,
+    epsilon: Option[Double] = None,
     header: String = "Incorrect query result."
   ): Supplier[String] = () => {
     val expectedHeaders = if (expected.height() > 0) expected.row(0) else java.util.List.of[String]()
-
+    val expectedSuffix = (order, epsilon) match {
+      case ("", None)             => ""
+      case ("", Some(epsilon))    => s" (to within $epsilon)"
+      case (order, None)          => s" ($order)"
+      case (order, Some(epsilon)) => s" ($order, to within $epsilon)"
+    }
     s"""
        >$header
        >
        >Actual results:
        >${renderAsTable(actual.results)}
-       >Expected results${Some(order).filter(_.nonEmpty).map(o => s" ($o)").getOrElse("")}:
+       >Expected results$expectedSuffix:
        >${renderAsTable(ConsumedResult(expectedHeaders, toResultRows(expected), null))}
        >Query:
        >${actual.query}
@@ -418,12 +358,50 @@ final class RegularCypherCucumberSteps @Inject() (
     val expectedHeaders = if (expected.isEmpty) java.util.List.of() else expected.row(0)
     if (actualHeaders != expectedHeaders) {
       assertThat(actualHeaders)
-        .as(describeResults(actual, expected, "", "Result has correct headers"))
+        .as(describeResults(actual, expected, "", header = "Result has correct headers"))
         .containsExactlyElementsOf(expectedHeaders)
     }
   }
 
   def getDbmsAccessor: DbAccessor = dbmsAccessor
+
+  class RegularResultAssertionBuilder(actual: QueryResults, expected: DataTable, isParallelRuntime: Boolean)
+      extends ResultAssertionBuilder(isParallelRuntime) {
+
+    def assert(): Unit = {
+      val rowsMapper: util.List[util.List[AnyRef]] => util.List[util.List[AnyRef]] =
+        (wouldOrderSublists(), doublePrecision) match {
+          case (InOrder, Exact) =>
+            identity[util.List[util.List[AnyRef]]]
+          case (InAnyOrder, Exact) =>
+            rowsWithUnorderedLists
+          case (InOrder, Within(epsilon)) =>
+            rowsWithCloseEnoughNumbers(epsilon)
+          case (InAnyOrder, Within(epsilon)) =>
+            rowsWithUnorderedLists _ andThen rowsWithCloseEnoughNumbers(epsilon)
+        }
+
+      val actualRows = rowsMapper(actual.results.rows)
+      val expectedRows = rowsMapper(toResultRows(expected))
+
+      wouldOrderResults() match {
+        case InOrder =>
+          assertThat(actualRows).as(describeResults(
+            actual,
+            expected,
+            this.toString()
+          )).containsExactlyElementsOf(expectedRows)
+        case InAnyOrder =>
+          assertThat(actualRows).as(describeResults(
+            actual,
+            expected,
+            this.toString()
+          )).containsExactlyInAnyOrderElementsOf(expectedRows)
+      }
+
+      assertEqualHeaders(actual, expected)
+    }
+  }
 }
 
 object RegularCypherCucumberSteps {
@@ -539,5 +517,19 @@ object RegularCypherCucumberSteps {
        |
        |Message: ${gqlStatusObject.statusDescription()}
        |""".stripMargin
+  }
+
+  sealed trait ResultOrderOption
+
+  object ResultOrderOption {
+    case object InOrder extends ResultOrderOption
+    case object InAnyOrder extends ResultOrderOption
+  }
+
+  sealed trait ResultDoublePrecision
+
+  object ResultDoublePrecision {
+    case object Exact extends ResultDoublePrecision
+    case class Within(epsilon: Double) extends ResultDoublePrecision
   }
 }
