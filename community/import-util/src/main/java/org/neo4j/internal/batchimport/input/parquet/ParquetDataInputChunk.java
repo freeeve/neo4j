@@ -154,7 +154,8 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             // relationship
             if (parquetColumn.isStartId()) {
                 if (idType == IdType.STRING
-                        && (parquetColumn.columnIdType() == IdType.STRING || parquetColumn.columnIdType() == null)) {
+                        && (parquetColumn.relationshipColumnIdType(groups) == IdType.STRING
+                                || parquetColumn.relationshipColumnIdType(groups) == null)) {
                     if (!startIdValue.isEmpty()) {
                         startIdValue.append(ParquetInput.DELIMITER);
                     }
@@ -168,7 +169,8 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             }
             if (parquetColumn.isEndId()) {
                 if (idType == IdType.STRING
-                        && (parquetColumn.columnIdType() == IdType.STRING || parquetColumn.columnIdType() == null)) {
+                        && (parquetColumn.relationshipColumnIdType(groups) == IdType.STRING
+                                || parquetColumn.relationshipColumnIdType(groups) == null)) {
                     if (!endIdValue.isEmpty()) {
                         endIdValue.append(ParquetInput.DELIMITER);
                     }

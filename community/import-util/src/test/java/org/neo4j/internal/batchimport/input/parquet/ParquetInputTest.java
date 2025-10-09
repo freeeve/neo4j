@@ -62,6 +62,7 @@ import org.apache.parquet.schema.Types;
 import org.assertj.core.api.Assertions;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -79,7 +80,6 @@ import org.neo4j.internal.batchimport.input.InputEntity;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.internal.helpers.collection.MapUtil;
 import org.neo4j.internal.schema.SchemaDescriptors;
-import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -105,14 +105,10 @@ import org.opentest4j.AssertionFailedError;
 class ParquetInputTest {
 
     @Inject
-    private RandomSupport random;
-
-    @Inject
     private TestDirectory directory;
 
     private final InputEntity visitor = new InputEntity();
-    private final Groups groups = new Groups();
-    private final Group globalGroup = groups.getOrCreate(null);
+    private Groups groups = new Groups();
     private InputChunk chunk;
     private InputIterator referenceData;
     private AtomicInteger parquetCounter = new AtomicInteger();
@@ -125,6 +121,12 @@ class ParquetInputTest {
         parquetCounter.set(0);
         headerCounter.set(0);
         directory.cleanup();
+    }
+
+    @BeforeEach
+    void resetGroups() {
+        groups = new Groups();
+        groups.getOrCreate(null);
     }
 
     @ParameterizedTest
@@ -551,7 +553,7 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("notprop")),
                 List.<Object[]>of(new Object[] {123, "val"}));
-        Path headerFile = createHeaderFile(List.of("id:ID{id-type:int}", "prop"), List.of());
+        Path headerFile = createHeaderFile(List.of("id:ID(new-group){id-type:int}", "prop"), List.of());
         try (var input = createParquetInput(
                         Map.of(Set.of(""), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
                         Map.of(),
@@ -560,7 +562,7 @@ class ParquetInputTest {
                         new ParquetMonitor(System.out));
                 var nodes = input.nodes(EMPTY).iterator()) {
             // then
-            assertNextNode(nodes, 123, properties("id", 123, "prop", "val"), labels());
+            assertNextNode(nodes, groups.get("new-group"), 123, properties("id", 123, "prop", "val"), labels());
             assertFalse(readNext(nodes));
         }
     }
@@ -3605,7 +3607,7 @@ class ParquetInputTest {
         // when using string id-type in the input
         Path nodeFile = createParquetFile(
                 List.of(
-                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("id:ID{id-type:int}"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("id:ID(new-group){id-type:int}"),
                         Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("prop")),
@@ -3618,7 +3620,7 @@ class ParquetInputTest {
                         new ParquetMonitor(System.out));
                 var nodes = input.nodes(EMPTY).iterator()) {
             // then
-            assertNextNode(nodes, 123, properties("id", 123, "prop", "val"), labels());
+            assertNextNode(nodes, groups.get("new-group"), 123, properties("id", 123, "prop", "val"), labels());
             assertFalse(readNext(nodes));
         }
     }
@@ -3819,7 +3821,7 @@ class ParquetInputTest {
     private void assertNextRelationship(
             InputIterator relationship, Object startNode, Object endNode, String type, Map<String, Object> properties)
             throws IOException {
-        assertRelationship(relationship, globalGroup, startNode, globalGroup, endNode, type, properties);
+        assertRelationship(relationship, groups.get(null), startNode, groups.get(null), endNode, type, properties);
     }
 
     // testing arbitrary order of relationships
@@ -3839,9 +3841,9 @@ class ParquetInputTest {
             var type = types.get(i);
             var properties = propertiess.get(i);
             try {
-                assertEquals(globalGroup, visitor.startIdGroup);
+                assertEquals(groups.get(null), visitor.startIdGroup);
                 assertEquals(startNode, visitor.startId());
-                assertEquals(globalGroup, visitor.endIdGroup);
+                assertEquals(groups.get(null), visitor.endIdGroup);
                 assertEquals(endNode, visitor.endId());
                 assertEquals(type, visitor.stringType);
                 assertPropertiesEquals(properties, visitor.propertiesAsMap());
@@ -3893,7 +3895,7 @@ class ParquetInputTest {
 
     private void assertNextNode(InputIterator data, Object id, Map<String, Object> properties, Set<String> labels)
             throws IOException {
-        assertNextNode(data, globalGroup, id, properties, labels);
+        assertNextNode(data, groups.get(null), id, properties, labels);
     }
 
     private void assertNextNode(

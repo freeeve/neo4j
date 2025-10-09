@@ -356,7 +356,12 @@ public class ParquetInput implements Input {
                             propertyNames.add(propertyName);
 
                             if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.ID) {
-                                groups.getOrCreate(parquetColumn.groupName());
+                                var columnIdType = parquetColumn.columnIdType();
+                                if (columnIdType != null) {
+                                    groups.getOrCreate(parquetColumn.groupName(), columnIdType.name());
+                                } else {
+                                    groups.getOrCreate(parquetColumn.groupName());
+                                }
                             }
                             if (parquetColumn.columnType().needsConversion()) {
                                 monitor.typeNormalized(

@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 import org.apache.parquet.schema.PrimitiveType;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.Input;
+import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.values.storable.Value;
 
 /**
@@ -143,6 +144,16 @@ record ParquetColumn(
             case "ACTUAL" -> IdType.ACTUAL;
             default -> IdType.ACTUAL;
         };
+    }
+
+    IdType relationshipColumnIdType(Groups groups) {
+        IdType columnIdType = columnIdType();
+        if (columnIdType != null) {
+            return columnIdType;
+        }
+        var groupType = groups.get(groupName()).specificIdType();
+
+        return groupType != null ? IdType.valueOf(groupType) : null;
     }
 
     // todo this and the following method should get merged
