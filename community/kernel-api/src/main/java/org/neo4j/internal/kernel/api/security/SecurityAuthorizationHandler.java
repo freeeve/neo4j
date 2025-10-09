@@ -246,15 +246,16 @@ public class SecurityAuthorizationHandler {
         }
     }
 
+    // TODO merge these with SecurityExceptionLogger / inline these calls
     public AuthorizationViolationException logAndGetAuthorizationException(
             SecurityContext securityContext, String message) {
-        securityLog.error(securityContext, message);
-        return AuthorizationViolationException.authorizationViolation(message);
+        return new SecurityExceptionLogger(securityLog)
+                .logAndGet(securityContext, message, AuthorizationViolationException.authorizationViolation(message));
     }
 
     public AuthorizationViolationException logAndGetCredentialExpiredException(
             SecurityContext securityContext, String message) {
-        securityLog.error(securityContext, message);
-        return AuthorizationViolationException.credentialsExpired(message);
+        return new SecurityExceptionLogger(securityLog)
+                .logAndGet(securityContext, message, AuthorizationViolationException.credentialsExpired(message));
     }
 }

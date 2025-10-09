@@ -42,7 +42,9 @@ import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.Neo4jException
+import org.neo4j.internal.kernel.api.security.AbstractSecurityLog
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
+import org.neo4j.internal.kernel.api.security.SecurityExceptionLogger
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
 import org.neo4j.server.security.SecureHasher
@@ -58,7 +60,8 @@ import org.neo4j.values.virtual.VirtualValues
 case class SetOwnPasswordExecutionPlanner(
   normalExecutionEngine: ExecutionEngine,
   securityAuthorizationHandler: SecurityAuthorizationHandler,
-  config: Config
+  config: Config,
+  securityLog: AbstractSecurityLog
 ) {
   private val secureHasher = new SecureHasher
 
@@ -78,6 +81,7 @@ case class SetOwnPasswordExecutionPlanner(
          |SET user.$USER_CREDENTIALS_EXPIRED_PROPERTY = false
          |RETURN oldCredentials""".stripMargin
 
+    val exceptionLogger = new SecurityExceptionLogger(securityLog)
     NonTransactionalUpdatingSystemCommandExecutionPlan(
       "AlterCurrentUserSetPassword",
       normalExecutionEngine,
@@ -97,20 +101,27 @@ case class SetOwnPasswordExecutionPlanner(
             )
           case (error: Neo4jException, _) => error
           case (error, p) =>
-            CypherExecutionException.alterOwnPassword(currentUser(p), error)
+            exceptionLogger.logAndGet(CypherExecutionException.alterOwnPassword(currentUser(p), error))
         }
         .handleResult((_, value, p) => {
           if (value.isInstanceOf[NoValue]) {
-            ThrowException(InvalidArgumentException.invalidCredentialsDuringAlterPassword(currentUser(p)))
+            ThrowException(
+              exceptionLogger.logAndGet(InvalidArgumentException.invalidCredentialsDuringAlterPassword(currentUser(p)))
+            )
           }
           val oldCredentials =
             SystemGraphCredential.deserialize(value.asInstanceOf[TextValue].stringValue(), secureHasher)
           val newValue = p.get(newPw.bytesKey).asInstanceOf[ByteArray].asObject()
           val currentValue = p.get(currentKeyBytes).asInstanceOf[ByteArray].asObject()
           if (!oldCredentials.matchesPassword(currentValue)) {
-            ThrowException(InvalidArgumentException.invalidCredentialsDuringAlterPassword(currentUser(p)))
+            ThrowException(
+              exceptionLogger.logAndGet(InvalidArgumentException.invalidCredentialsDuringAlterPassword(currentUser(p)))
+            )
           } else if (oldCredentials.matchesPassword(newValue))
-            ThrowException(InvalidArgumentException.oldPasswordEqualsNew(currentUser(p), true))
+            ThrowException(exceptionLogger.logAndGet(InvalidArgumentException.oldPasswordEqualsNew(
+              currentUser(p),
+              true
+            )))
           else
             Continue
         })

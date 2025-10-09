@@ -185,6 +185,8 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.security.AuthorizationViolationException
+import org.neo4j.internal.kernel.api.security.AbstractSecurityLog
+import org.neo4j.internal.kernel.api.security.SecurityExceptionLogger
 
 /**
  * This planner takes on queries that run at the DBMS level for multi-database administration.
@@ -226,11 +228,14 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
     def getSourceForCreateRole(
       roleName: Either[String, Parameter],
       createImmutable: Boolean,
-      ifExistsDo: IfExistsDo
+      ifExistsDo: IfExistsDo,
+      securityLog: AbstractSecurityLog
     ): plans.SecurityAdministrationLogicalPlan = {
       val canCreateImmutableCheck =
         if (createImmutable)
-          Some(plans.AssertSecurityDisabled(() => AuthorizationViolationException.creatingImmutableRoles()))
+          Some(plans.AssertSecurityDisabled(() =>
+            new SecurityExceptionLogger(securityLog).logAndGet(AuthorizationViolationException.creatingImmutableRoles())
+          ))
         else None
       ifExistsDo match {
         case IfExistsReplace =>
@@ -451,12 +456,12 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
 
       // CREATE [OR REPLACE] ROLE foo [IF NOT EXISTS]
       case c @ CreateRole(roleName, immutable, None, ifExistsDo) =>
-        val source = getSourceForCreateRole(roleName, immutable, ifExistsDo)
+        val source = getSourceForCreateRole(roleName, immutable, ifExistsDo, context.securityLog)
         Some(plans.LogSystemCommand(plans.CreateRole(source, roleName, immutable), prettifier.asString(c)))
 
       // CREATE [OR REPLACE] ROLE foo [IF NOT EXISTS] AS COPY OF bar
       case c @ CreateRole(roleName, immutable, Some(fromName), ifExistsDo) =>
-        val source = getSourceForCreateRole(roleName, immutable, ifExistsDo)
+        val source = getSourceForCreateRole(roleName, immutable, ifExistsDo, context.securityLog)
         Some(plans.LogSystemCommand(
           plans.CopyRolePrivileges(
             plans.CopyRolePrivileges(

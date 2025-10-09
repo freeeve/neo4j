@@ -27,7 +27,7 @@ import org.neo4j.exceptions.NotSystemDatabaseException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 abstract class CommunityAdministrationCommandAcceptanceTestBase extends ExecutionEngineFunSuite
-    with GraphDatabaseTestSupport {
+    with GraphDatabaseTestSupport with LoggingTestSupport {
 
   val param: String = s"$$param"
   val paramName: String = "param"

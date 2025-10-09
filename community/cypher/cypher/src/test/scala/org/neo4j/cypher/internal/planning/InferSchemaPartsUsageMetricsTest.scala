@@ -56,6 +56,7 @@ import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Selectivity
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.internal.kernel.api.security.CommunitySecurityLog
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.logging.NullLog
 import org.neo4j.logging.NullLogProvider
@@ -295,6 +296,7 @@ class InferSchemaPartsUsageMetricsTest extends CypherFunSuite with CypherVersion
       Clock.systemUTC(),
       monitors,
       NullLog.getInstance(),
+      CommunitySecurityLog.NULL_LOG,
       caches,
       CypherPlannerOption.default,
       null,
