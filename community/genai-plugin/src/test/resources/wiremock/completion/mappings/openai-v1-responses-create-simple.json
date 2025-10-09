@@ -12,38 +12,15 @@
     },
     "bodyPatterns": [
       {
-        "or": [
-          {
-            "equalToJson": {
-              "model": "gpt-5",
-              "input": [
-                {
-                  "role": "user",
-                  "content": "Hello!"
-                }
-              ]
+        "equalToJson": {
+          "model": "gpt-5",
+          "input": [
+            {
+              "role": "user",
+              "content": "Hello!"
             }
-          },
-          {
-            "equalToJson": {
-              "model": "gpt-5",
-              "input": [
-                {
-                  "role": "user",
-                  "content": "Hello!"
-                }
-              ],
-              "store": false,
-              "max_output_tokens": 1024
-            }
-          },
-          {
-            "equalToJson": {
-              "model": "gpt-5",
-              "input": "Hello!"
-            }
-          }
-        ]
+          ]
+        }
       }
     ]
   },

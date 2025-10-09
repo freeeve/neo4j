@@ -20,8 +20,7 @@
 package org.neo4j.genai.ai.text.completion.provider;
 
 import java.net.URI;
-import java.util.Optional;
-import java.util.OptionalLong;
+import java.util.Map;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
@@ -46,8 +45,7 @@ public class OpenAi implements TextCompletion.Provider {
     public static class Parameters {
         public String token;
         public String model;
-        public OptionalLong maxOutputTokens;
-        public Optional<Boolean> store;
+        public Map<String, Object> vendorOptions = Map.of();
     }
 
     @Override
@@ -74,9 +72,8 @@ public class OpenAi implements TextCompletion.Provider {
 
         @Override
         public void extendPayload(MutableMap<String, Object> payload, Parameters params) {
+            payload.putAll(params.vendorOptions); // Needs to be first to not override model
             payload.put("model", params.model);
-            params.maxOutputTokens.ifPresent(m -> payload.put("max_output_tokens", m));
-            params.store.ifPresent(s -> payload.put("store", s));
         }
     }
 }

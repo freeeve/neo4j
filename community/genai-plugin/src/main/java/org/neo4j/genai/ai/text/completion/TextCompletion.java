@@ -43,7 +43,7 @@ import org.neo4j.values.virtual.MapValue;
 
 public class TextCompletion {
     private static final String CONF_DESC =
-            "Provider specific configuration, use `CALL ai.text.completion.providers()` to find the configuration needed for each provider.";
+            "Provider specific configuration, use `CALL ai.text.completion.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the vendor request.";
 
     @Context
     public Providers providers;

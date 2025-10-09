@@ -82,9 +82,9 @@ public class TextCompletionTest implements GenAITestExtension {
             "requiredConfigType",
             "{ token :: STRING NOT NULL, model :: STRING NOT NULL }",
             "optionalConfigType",
-            "{ maxOutputTokens :: INTEGER, store :: BOOLEAN }",
+            "{ vendorOptions :: MAP NOT NULL }",
             "defaultConfig",
-            Map.of()));
+            Map.of("vendorOptions", Map.of())));
 
     @Test
     void listProviders() {
@@ -108,7 +108,19 @@ public class TextCompletionTest implements GenAITestExtension {
     void completionWithAllArgs() {
         final var query =
                 """
-                with { token: 'dummy-openai-token', model: 'gpt-5', maxOutputTokens: 1024, store: false } as conf
+                with { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { max_output_tokens: 1024, store: false } } as conf
+                return ai.text.completion('Hello!', 'openai', conf) as result
+                """;
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .singleElement(resultMap())
+                .containsEntry("result", "Yo");
+    }
+
+    @Test
+    void completionWithDefaultArgsInVendorConf() {
+        final var query =
+                """
+                with { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { model: 'evil', input: 'evil' } } as conf
                 return ai.text.completion('Hello!', 'openai', conf) as result
                 """;
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
@@ -155,11 +167,11 @@ public class TextCompletionTest implements GenAITestExtension {
                 call ai.text.completion(
                   ['Hello!'],
                   'openai',
-                  { token: 'dummy-openai-token', model: 'gpt-5', maxOutputTokens: 1024, store: false }
+                  { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { max_output_tokens: 1024, store: false } }
                 )
                 """;
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
-                .containsExactly(Map.of("completion", "Bla bla bla...", "index", 0L));
+                .containsExactly(Map.of("completion", "Yo", "index", 0L));
     }
 
     @Test
@@ -169,7 +181,7 @@ public class TextCompletionTest implements GenAITestExtension {
                 call ai.text.completion(
                   [null, 'Hello!'],
                   'openai',
-                  { token: 'dummy-openai-token', model: 'gpt-5', maxOutputTokens: 1024, store: false }
+                  { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { max_output_tokens: 1024, store: false } }
                 )
                 """;
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
@@ -177,7 +189,21 @@ public class TextCompletionTest implements GenAITestExtension {
                         Maps.immutable
                                 .of("completion", null, "index", (Object) 0L)
                                 .castToMap(),
-                        Map.of("completion", "Bla bla bla...", "index", 1L));
+                        Map.of("completion", "Yo", "index", 1L));
+    }
+
+    @Test
+    void batchCompletionWithDefaultArgsInVendorConf() {
+        final var query =
+                """
+                call ai.text.completion(
+                  ['Hello!'],
+                  'openai',
+                  { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { model: 'evil', input: 'evil' } }
+                )
+                """;
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .containsExactly(Map.of("completion", "Bla bla bla...", "index", 0L));
     }
 
     @Disabled // Enable when procedures are not internal

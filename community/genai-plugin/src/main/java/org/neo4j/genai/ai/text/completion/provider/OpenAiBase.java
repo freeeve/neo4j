@@ -87,13 +87,14 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
     }
 
     private MutableMap<String, Object> payload(List<String> prompts, PARAMS params) {
+        final var payload = Maps.mutable.<String, Object>empty();
+        extendPayload(payload, params);
+
         final var messages = prompts.stream()
                 .map(prompt -> Map.of("role", "user", "content", prompt))
                 .toList();
-
-        final var payload = Maps.mutable.<String, Object>empty();
         payload.put("input", messages);
-        extendPayload(payload, params);
+
         return payload;
     }
 }

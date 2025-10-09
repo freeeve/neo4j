@@ -1,0 +1,107 @@
+{
+  "request": {
+    "urlPath": "/v1/responses",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-openai-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "model": "gpt-5",
+          "input": [
+            {
+              "role": "user",
+              "content": "Hello!"
+            }
+          ],
+          "store": false,
+          "max_output_tokens": 1024
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": "resp_05af55102e4023a60068e29ea91b648190aabcbc4acd1f85ca",
+      "object": "response",
+      "created_at": 1759682217,
+      "status": "completed",
+      "background": false,
+      "billing": {
+        "payer": "developer"
+      },
+      "error": null,
+      "incomplete_details": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "max_tool_calls": null,
+      "model": "gpt-5-2025-08-07",
+      "output": [
+        {
+          "id": "rs_05af55102e4023a60068e29ea9b18c81909f43ea8312dca426",
+          "type": "reasoning",
+          "summary": []
+        },
+        {
+          "id": "msg_05af55102e4023a60068e29ea9f6dc819092c113c132643bf2",
+          "type": "message",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "annotations": [],
+              "logprobs": [],
+              "text": "Yo"
+            }
+          ],
+          "role": "assistant"
+        }
+      ],
+      "parallel_tool_calls": true,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "reasoning": {
+        "effort": "medium",
+        "summary": null
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "store": true,
+      "temperature": 1.0,
+      "text": {
+        "format": {
+          "type": "text"
+        },
+        "verbosity": "medium"
+      },
+      "tool_choice": "auto",
+      "tools": [],
+      "top_logprobs": 0,
+      "top_p": 1.0,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 8,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 16,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 24
+      },
+      "user": null,
+      "metadata": {}
+    }
+  }
+}
