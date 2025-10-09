@@ -37,6 +37,7 @@ import static org.neo4j.values.storable.Values.int8Vector;
 import org.junit.jupiter.api.Test;
 import org.neo4j.exceptions.ArithmeticException;
 import org.neo4j.exceptions.CypherTypeException;
+import org.neo4j.exceptions.InvalidArgumentException;
 
 class CypherRuntimeParserTest {
 
@@ -95,9 +96,9 @@ class CypherRuntimeParserTest {
         assertThatThrownBy(() -> parseFloat32Vector("NULL")).isInstanceOf(CypherTypeException.class);
 
         assertThatThrownBy(() -> parseFloat32Vector("[1.7976931348623157E308]"))
-                .isInstanceOf(ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> parseFloat32Vector("[-1.7976931348623157E308]"))
-                .isInstanceOf(ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
     }
 
     @Test
@@ -110,8 +111,8 @@ class CypherRuntimeParserTest {
         assertThatThrownBy(() -> parseFloat64Vector("NULL")).isInstanceOf(CypherTypeException.class);
 
         assertThatThrownBy(() -> parseFloat32Vector("[10.7976931348623157E308]"))
-                .isInstanceOf(ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> parseFloat32Vector("[-10.7976931348623157E308]"))
-                .isInstanceOf(ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
     }
 }

@@ -88,4 +88,20 @@ public abstract sealed class VectorValue extends HashMemoizingScalarValue implem
                     VectorValue.MIN_VECTOR_DIMENSIONS, VectorValue.MAX_VECTOR_DIMENSIONS, dimensions);
         }
     }
+
+    public static void ensureFiniteCoordinates(float[] coordinates) {
+        for (var c : coordinates) {
+            if (!Float.isFinite(c)) {
+                throw InvalidArgumentException.invalidVectorCoordinate(coordinates);
+            }
+        }
+    }
+
+    public static void ensureFiniteCoordinates(double[] coordinates) {
+        for (var c : coordinates) {
+            if (!Double.isFinite(c)) {
+                throw InvalidArgumentException.invalidVectorCoordinate(coordinates);
+            }
+        }
+    }
 }

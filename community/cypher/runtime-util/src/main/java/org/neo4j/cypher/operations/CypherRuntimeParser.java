@@ -20,8 +20,6 @@
 package org.neo4j.cypher.operations;
 
 import static org.neo4j.cypher.operations.VectorUtils.safeCastToByte;
-import static org.neo4j.cypher.operations.VectorUtils.safeCastToDouble;
-import static org.neo4j.cypher.operations.VectorUtils.safeCastToFloat;
 import static org.neo4j.cypher.operations.VectorUtils.safeCastToInt;
 import static org.neo4j.cypher.operations.VectorUtils.safeCastToLong;
 import static org.neo4j.cypher.operations.VectorUtils.safeCastToShort;
@@ -124,7 +122,7 @@ abstract class CypherRuntimeParser {
         var iterator = expressions.iterator();
         int i = 0;
         while (iterator.hasNext()) {
-            floats[i++] = safeCastToFloat(asNumber(iterator.next()).floatValue());
+            floats[i++] = asNumber(iterator.next()).floatValue();
         }
         return Values.float32Vector(floats);
     }
@@ -136,7 +134,7 @@ abstract class CypherRuntimeParser {
         var iterator = expressions.iterator();
         int i = 0;
         while (iterator.hasNext()) {
-            doubles[i++] = safeCastToDouble(asNumber(iterator.next()).doubleValue());
+            doubles[i++] = asNumber(iterator.next()).doubleValue();
         }
         return Values.float64Vector(doubles);
     }

@@ -19,7 +19,6 @@
  */
 package org.neo4j.bolt.protocol.io.reader;
 
-import static org.neo4j.packstream.error.struct.IllegalStructArgumentException.floatOverflow;
 import static org.neo4j.packstream.io.TypeMarker.FLOAT32;
 import static org.neo4j.packstream.io.TypeMarker.FLOAT64;
 
@@ -130,31 +129,25 @@ public final class VectorReader<CTX> implements StructReader<CTX, VectorValue> {
         return Values.int64Vector(coordinates);
     }
 
-    private Float32Vector readFloat32Vector(PackstreamBuf buffer, int length) throws IllegalStructArgumentException {
+    private Float32Vector readFloat32Vector(PackstreamBuf buffer, int length) {
         var actualLength = length >>> 2;
 
         var coordinates = new float[actualLength];
+        var raw = buffer.raw();
         for (var i = 0; i < actualLength; i++) {
-            float value = buffer.raw().readFloat();
-            if (!Float.isFinite(value)) {
-                throw floatOverflow(Float.toString(value), "Coercing to a 32 bit Float", FLOAT32.name());
-            }
-            coordinates[i] = value;
+            coordinates[i] = raw.readFloat();
         }
 
         return Values.float32Vector(coordinates);
     }
 
-    private Float64Vector readFloat64Vector(PackstreamBuf buffer, int length) throws IllegalStructArgumentException {
+    private Float64Vector readFloat64Vector(PackstreamBuf buffer, int length) {
         var actualLength = length >>> 3;
 
         var coordinates = new double[actualLength];
+        var raw = buffer.raw();
         for (var i = 0; i < actualLength; i++) {
-            double value = buffer.raw().readDouble();
-            if (!Double.isFinite(value)) {
-                throw floatOverflow(Double.toString(value), "Coercing to a 32 bit Float", FLOAT64.name());
-            }
-            coordinates[i] = value;
+            coordinates[i] = raw.readDouble();
         }
 
         return Values.float64Vector(coordinates);

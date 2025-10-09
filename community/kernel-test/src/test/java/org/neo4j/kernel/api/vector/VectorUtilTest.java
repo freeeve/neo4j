@@ -333,8 +333,8 @@ class VectorUtilTest {
                 Named.of("null", null),
                 Named.of("dimensionless", vectorCandidate()),
                 Named.of("negative dimensions", negative),
-                Named.of("NaN element", vector(1.f, Float.NaN, 3.f)),
-                Named.of("-Inf element", vector(1.f, Float.NEGATIVE_INFINITY, 3.f)),
-                Named.of("+Inf element", vector(1.f, Float.POSITIVE_INFINITY, 3.f)));
+                Named.of("NaN element", vectorCandidate(1.f, Float.NaN, 3.f)),
+                Named.of("-Inf element", vectorCandidate(1.f, Float.NEGATIVE_INFINITY, 3.f)),
+                Named.of("+Inf element", vectorCandidate(1.f, Float.POSITIVE_INFINITY, 3.f)));
     }
 }

@@ -31,6 +31,7 @@ import static org.neo4j.packstream.io.TypeMarker.INT8;
 
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Test;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.io.TypeMarker;
@@ -94,13 +95,13 @@ public class VectorReaderTest {
     }
 
     @Test
-    void shouldFailIfFloat32VectorContainsNonFiniteValues() throws PackstreamReaderException {
+    void shouldFailIfFloat32VectorContainsNonFiniteValues() {
         assertThatThrownBy(() -> read(bufferFor(FLOAT32).writeBytes(buffer().writeFloat(Float.NEGATIVE_INFINITY))))
-                .isInstanceOf(PackstreamReaderException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> read(bufferFor(FLOAT32).writeBytes(buffer().writeFloat(Float.POSITIVE_INFINITY))))
-                .isInstanceOf(PackstreamReaderException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> read(bufferFor(FLOAT32).writeBytes(buffer().writeFloat(Float.NaN))))
-                .isInstanceOf(PackstreamReaderException.class);
+                .isInstanceOf(InvalidArgumentException.class);
     }
 
     @Test
@@ -112,12 +113,12 @@ public class VectorReaderTest {
     }
 
     @Test
-    void shouldFailIfFloat64VectorContainsNonFiniteValues() throws PackstreamReaderException {
+    void shouldFailIfFloat64VectorContainsNonFiniteValues() {
         assertThatThrownBy(() -> read(bufferFor(FLOAT64).writeBytes(buffer().writeDouble(Double.NEGATIVE_INFINITY))))
-                .isInstanceOf(PackstreamReaderException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> read(bufferFor(FLOAT64).writeBytes(buffer().writeDouble(Double.POSITIVE_INFINITY))))
-                .isInstanceOf(PackstreamReaderException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> read(bufferFor(FLOAT64).writeBytes(buffer().writeDouble(Double.NaN))))
-                .isInstanceOf(PackstreamReaderException.class);
+                .isInstanceOf(InvalidArgumentException.class);
     }
 }

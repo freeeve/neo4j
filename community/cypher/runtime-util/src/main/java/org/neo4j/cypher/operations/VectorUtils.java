@@ -20,7 +20,6 @@
 package org.neo4j.cypher.operations;
 
 import static java.lang.String.format;
-import static org.neo4j.exceptions.ArithmeticException.floatOverflow;
 import static org.neo4j.exceptions.ArithmeticException.numericValueOutOfRange;
 import static org.neo4j.values.storable.VectorValue.MAX_VECTOR_DIMENSIONS;
 import static org.neo4j.values.storable.VectorValue.MIN_VECTOR_DIMENSIONS;
@@ -129,7 +128,7 @@ final class VectorUtils {
         float[] values = new float[length];
         for (AnyValue value : vectorSequence) {
             if (value instanceof NumberValue numberValue) {
-                values[index++] = safeCastToFloat(numberValue.floatValue());
+                values[index++] = numberValue.floatValue();
             } else {
                 throw invalidVectorType(value);
             }
@@ -146,7 +145,7 @@ final class VectorUtils {
         double[] values = new double[length];
         for (AnyValue value : vectorSequence) {
             if (value instanceof NumberValue numberValue) {
-                values[index++] = safeCastToDouble(numberValue.doubleValue());
+                values[index++] = numberValue.doubleValue();
             } else {
                 throw invalidVectorType(value);
             }
@@ -180,20 +179,6 @@ final class VectorUtils {
             throw numericValueOutOfRange(String.valueOf(value), "vector()");
         }
         return (long) value;
-    }
-
-    static float safeCastToFloat(float value) {
-        if (!Float.isFinite(value)) {
-            throw floatOverflow(Float.toString(value), "Coercing to a 32 bit Float");
-        }
-        return value;
-    }
-
-    static double safeCastToDouble(double value) {
-        if (!Double.isFinite(value)) {
-            throw floatOverflow(Double.toString(value), "Coercing to a 64 bit Float");
-        }
-        return value;
     }
 
     static Value assertDimension(VectorValue vectorValue, AnyValue dimension) {

@@ -388,11 +388,21 @@ public final class Values {
 
     public static Float64Vector float64Vector(double... coordinates) {
         VectorValue.ensureValidDimensions(coordinates.length);
+        VectorValue.ensureFiniteCoordinates(coordinates);
+        return uncheckedFloat64Vector(coordinates);
+    }
+
+    public static Float64Vector uncheckedFloat64Vector(double[] coordinates) {
         return new Float64Vector(coordinates);
     }
 
     public static Float32Vector float32Vector(float... coordinates) {
         VectorValue.ensureValidDimensions(coordinates.length);
+        VectorValue.ensureFiniteCoordinates(coordinates);
+        return uncheckedFloat32Vector(coordinates);
+    }
+
+    public static Float32Vector uncheckedFloat32Vector(float[] coordinates) {
         return new Float32Vector(coordinates);
     }
 

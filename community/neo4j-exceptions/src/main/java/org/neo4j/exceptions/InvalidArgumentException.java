@@ -27,6 +27,7 @@ import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.entityNotFound;
 
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -1369,6 +1370,20 @@ public class InvalidArgumentException extends Neo4jException {
                 .withParam(GqlParams.StringParam.typeDescription, typeDescription)
                 .withParam(GqlParams.NumberParam.bytes, maxBytes)
                 .withParam(GqlParams.StringParam.value, propertyValue)
+                .build();
+        return new InvalidArgumentException(gql, gql.getMessage());
+    }
+
+    public static InvalidArgumentException invalidVectorCoordinate(float[] coordinates) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBG)
+                .withParam(GqlParams.StringParam.value, Arrays.toString(coordinates))
+                .build();
+        return new InvalidArgumentException(gql, gql.getMessage());
+    }
+
+    public static InvalidArgumentException invalidVectorCoordinate(double[] coordinates) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBG)
+                .withParam(GqlParams.StringParam.value, Arrays.toString(coordinates))
                 .build();
         return new InvalidArgumentException(gql, gql.getMessage());
     }

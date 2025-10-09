@@ -37,6 +37,7 @@ import static org.neo4j.values.storable.Values.shortArray;
 import org.junit.jupiter.api.Test;
 import org.neo4j.exceptions.ArithmeticException;
 import org.neo4j.exceptions.CypherTypeException;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.kernel.impl.util.ValueUtils;
 import org.neo4j.values.SequenceValue;
 import org.neo4j.values.virtual.ListValueBuilder;
@@ -117,15 +118,15 @@ class VectorUtilsTest {
                 .isInstanceOf(CypherTypeException.class);
 
         assertThatThrownBy(() -> VectorUtils.float32Vector(sequenceVector(Float.POSITIVE_INFINITY)))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> VectorUtils.float32Vector(sequenceVector(Float.NEGATIVE_INFINITY)))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> VectorUtils.float32Vector(floatArray(new float[] {Float.POSITIVE_INFINITY})))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> VectorUtils.float32Vector(floatArray(new float[] {Float.NEGATIVE_INFINITY})))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> VectorUtils.float32Vector(floatArray(new float[] {Float.NaN})))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
     }
 
     @Test
@@ -139,15 +140,15 @@ class VectorUtilsTest {
         assertThatThrownBy(() -> VectorUtils.float64Vector(sequenceVector(1, 2, "three", 4)))
                 .isInstanceOf(CypherTypeException.class);
         assertThatThrownBy(() -> VectorUtils.float64Vector(sequenceVector(Double.POSITIVE_INFINITY)))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> VectorUtils.float64Vector(sequenceVector(Double.NEGATIVE_INFINITY)))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> VectorUtils.float64Vector(doubleArray(new double[] {Double.POSITIVE_INFINITY})))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> VectorUtils.float64Vector(doubleArray(new double[] {Double.NEGATIVE_INFINITY})))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
         assertThatThrownBy(() -> VectorUtils.float64Vector(doubleArray(new double[] {Double.NaN})))
-                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class);
+                .isInstanceOf(InvalidArgumentException.class);
     }
 
     private SequenceValue sequenceVector(Object... values) {

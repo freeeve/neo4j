@@ -445,13 +445,22 @@ public class VectorTestUtils {
     }
 
     private static VectorValue toVectorValue(Object vector) {
+        // TODO: Vector - Since the codomain of the vector is finite, we could remove
+        //  consider to remove tests of these values. But most likely, these tests are still
+        //  needed e.g. float lists.
         return switch (vector) {
             case byte[] array -> Values.int8Vector(array);
             case short[] array -> Values.int16Vector(array);
             case int[] array -> Values.int32Vector(array);
             case long[] array -> Values.int64Vector(array);
-            case float[] array -> Values.float32Vector(array);
-            case double[] array -> Values.float64Vector(array);
+            case float[] array -> {
+                VectorValue.ensureValidDimensions(array.length);
+                yield Values.uncheckedFloat32Vector(array);
+            }
+            case double[] array -> {
+                VectorValue.ensureValidDimensions(array.length);
+                yield Values.uncheckedFloat64Vector(array);
+            }
             default -> null;
         };
     }
