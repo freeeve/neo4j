@@ -24,7 +24,7 @@ import org.neo4j.internal.kernel.api.ReferenceCursor
 import org.neo4j.lang.CloseListener
 
 class DelegatingReferenceCursor(
-  inner: ReferenceCursor
+  val inner: ReferenceCursor
 ) extends ReferenceCursor {
   def reference(): Long = inner.reference()
   def next(): Boolean = inner.next()

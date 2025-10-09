@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicLabelNodeLookupBase
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicLabelNodeLookupIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
@@ -40,7 +41,8 @@ case class DynamicLabelNodeLookupSlottedPipe(
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val context = state.newRowWithArgument(rowFactory)
-    DynamicLabelNodeLookupIterator(context, state, labelExpr, propertyExpressions, operator)
+    val propertyLookups = DynamicLabelNodeLookupBase.mapPropertyLookups(propertyExpressions, context, state)
+    DynamicLabelNodeLookupIterator(state, labelExpr.apply(context, state), propertyLookups, operator)
       .toIterator(n => state.newRowWithArgument(rowFactory).tap(_.setLongAt(nodeOffset, n)))
   }
 }

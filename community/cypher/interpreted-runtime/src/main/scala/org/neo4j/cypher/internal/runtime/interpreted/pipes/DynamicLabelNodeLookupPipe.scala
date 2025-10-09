@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.runtime.ReadableRow
+import org.neo4j.cypher.internal.runtime.ReadWriteRow
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.PrimitiveCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.ReferenceCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
@@ -45,6 +45,7 @@ import org.neo4j.internal.kernel.api.Read
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.kernel.impl.newapi.CursorPredicates
 import org.neo4j.token.api.TokenConstants.NO_TOKEN
+import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.VirtualValues
 
 import java.util.Comparator
@@ -60,13 +61,14 @@ case class DynamicLabelNodeLookupPipe(
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
-    val baseContext = state.newRowWithArgument(rowFactory)
-    DynamicLabelNodeLookupIterator(baseContext, state, labelExpr, propertyExpressions, operator)
-      .toIterator(n => rowFactory.copyWith(baseContext, ident, VirtualValues.node(n)))
+    val context = state.newRowWithArgument(rowFactory)
+    val propertyLookups = DynamicLabelNodeLookupBase.mapPropertyLookups(propertyExpressions, context, state)
+    DynamicLabelNodeLookupIterator(state, labelExpr.apply(context, state), propertyLookups, operator)
+      .toIterator(n => rowFactory.copyWith(context, ident, VirtualValues.node(n)))
   }
 }
 
-abstract class DynamicLabelNodeLookupBase[A](context: ReadableRow, state: QueryState) {
+abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
   protected def propertyFilter(iterator: A, propertyExprs: Array[PropertyIndexQuery]): A
   protected def labelFilter(iterator: A, labels: Array[Int]): A
   protected def seek(index: IndexDescriptor, properties: Seq[PropertyIndexQuery.ExactPredicate]): A
@@ -97,11 +99,6 @@ abstract class DynamicLabelNodeLookupBase[A](context: ReadableRow, state: QueryS
   private def getIndexComparator: Comparator[IndexDescriptor] =
     state.indexComparatorFactory.createComparator()
 
-  private def predicate(propertyKey: PropertyKeyToken, expression: Expression): PropertyIndexQuery.ExactPredicate = {
-    val value = expression.apply(context, state)
-    PropertyIndexQuery.exact(propertyKey.nameId.id, makeValueNeoSafe(value))
-  }
-
   private def labelScan(labels: Array[Int], operator: DynamicElement.SetOperator): A = {
     operator match {
       case All if labels.isEmpty => allNodes
@@ -112,26 +109,26 @@ abstract class DynamicLabelNodeLookupBase[A](context: ReadableRow, state: QueryS
   }
 
   def getNodes(
-    labelExpr: Expression,
+    labelExpr: AnyValue,
     operator: DynamicElement.SetOperator,
-    propertyExprs: Map[PropertyKeyToken, Expression]
+    propertyConstraints: Array[PropertyIndexQuery.ExactPredicate]
   ): A = {
     val labels =
-      CypherFunctions.getDynamicLabels(labelExpr.apply(context, state))
+      CypherFunctions.getDynamicLabels(labelExpr)
         .map(state.query.nodeLabel)
 
-    val iter = (labels, propertyExprs, operator) match {
-      case (Array(), _, _) =>
+    val iter = (labels, operator) match {
+      case (Array(), _) =>
         None
-      case (_, _, _) if propertyExprs.isEmpty =>
+      case _ if propertyConstraints.isEmpty =>
         Some(labelScan(labels, operator))
-      case (labels, _, All) if labels.contains(NO_TOKEN) =>
+      case (labels, All) if labels.contains(NO_TOKEN) =>
         None
-      case (labels, _, Any) if labels.forall(_ == NO_TOKEN) =>
+      case (labels, Any) if labels.forall(_ == NO_TOKEN) =>
         None
 
-      case (labels, propertyExprs, All) =>
-        val propPredicates = propertyExprs.map((predicate _).tupled).toSeq
+      case (labels, All) =>
+        val propPredicates = propertyConstraints.toSeq
         findIndicesForLabels(labels, propPredicates).maxOption(comparatorToOrdering(getIndexComparator))
           .map { index =>
             val otherLabels = labels.filterNot(_ == index.schema().getLabelId)
@@ -155,9 +152,9 @@ abstract class DynamicLabelNodeLookupBase[A](context: ReadableRow, state: QueryS
 
       // for Any we can't union results of index value seeks because they don't have guaranteed order, so only support
       // single label
-      case (Array(label), _, Any) =>
+      case (Array(label), Any) =>
         val comparator = getIndexComparator
-        val propPredicates = propertyExprs.map((predicate _).tupled).toSeq
+        val propPredicates = propertyConstraints.toSeq
         findIndicesForLabel(label, propPredicates).maxOption(comparatorToOrdering(comparator))
           .map { index =>
             val (indexProps, otherProps) =
@@ -175,8 +172,8 @@ abstract class DynamicLabelNodeLookupBase[A](context: ReadableRow, state: QueryS
     }
 
     iter.getOrElse {
-      if (propertyExprs.nonEmpty) {
-        propertyFilter(labelScan(labels, operator), propertyExprs.map((predicate _).tupled).toArray)
+      if (propertyConstraints.nonEmpty) {
+        propertyFilter(labelScan(labels, operator), propertyConstraints.asInstanceOf[Array[PropertyIndexQuery]])
       } else {
         labelScan(labels, operator)
       }
@@ -184,15 +181,29 @@ abstract class DynamicLabelNodeLookupBase[A](context: ReadableRow, state: QueryS
   }
 }
 
-case class DynamicLabelNodeLookupIterator(
-  context: CypherRow,
-  state: QueryState,
-  labelExpression: Expression,
-  propertyExpressions: Map[PropertyKeyToken, Expression],
-  operator: DynamicElement.SetOperator
-) extends DynamicLabelNodeLookupBase[ClosingLongIterator](context, state) {
+object DynamicLabelNodeLookupBase {
 
-  private lazy val nodeIterator = getNodes(labelExpression, operator, propertyExpressions)
+  def mapPropertyLookups(
+    propExpressions: Map[PropertyKeyToken, Expression],
+    context: ReadWriteRow,
+    state: QueryState
+  ): Array[PropertyIndexQuery.ExactPredicate] = {
+    propExpressions.view
+      .map { case (prop, expr) =>
+        PropertyIndexQuery.exact(prop.nameId.id, makeValueNeoSafe(expr(context, state)))
+      }
+      .toArray
+  }
+}
+
+case class DynamicLabelNodeLookupIterator(
+  state: QueryState,
+  labelExpression: AnyValue,
+  propertyConstraints: Array[PropertyIndexQuery.ExactPredicate],
+  operator: DynamicElement.SetOperator
+) extends DynamicLabelNodeLookupBase[ClosingLongIterator](state) {
+
+  private lazy val nodeIterator = getNodes(labelExpression, operator, propertyConstraints)
 
   override protected def propertyFilter(
     iterator: ClosingLongIterator,

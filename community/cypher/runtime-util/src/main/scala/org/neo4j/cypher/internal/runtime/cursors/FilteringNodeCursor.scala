@@ -24,7 +24,7 @@ import org.neo4j.internal.kernel.api.Read
 import org.neo4j.internal.kernel.api.ReferenceCursor
 
 abstract class FilteringNodeCursor(
-  val inner: ReferenceCursor,
+  inner: ReferenceCursor,
   read: Read,
   nodeCursor: NodeCursor
 ) extends DelegatingReferenceCursor(inner) {
@@ -32,6 +32,7 @@ abstract class FilteringNodeCursor(
 
   override def next(): Boolean = {
     while (inner.next()) {
+      // TODO: Can we just use inner here instead
       val nodeId = inner.reference()
 
       // Position the node cursor on the current node
