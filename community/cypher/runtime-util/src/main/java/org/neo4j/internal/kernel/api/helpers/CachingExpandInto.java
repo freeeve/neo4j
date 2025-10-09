@@ -181,14 +181,12 @@ public class CachingExpandInto extends DefaultCloseListenable {
                 secondCursor.relationshipsTo(traversalCursor, selection(types, reverseDirection), firstNode);
             }
             return traversalCursor;
-        } else if (firstSupportsFastRelationshipsTo || secondSupportsFastRelationshipsTo) {
-            Iterator<Relationship> connections = relationshipCache.get(firstNode, secondNode, direction);
-            if (connections != null) {
-                return new FromCachedSelectionCursor(connections, read, firstNode, secondNode);
-            } else {
-                return expandFromNodeWithLesserDegree(
-                        firstCursor, secondCursor, traversalCursor, types, secondSupportsFastRelationshipsTo);
-            }
+        } else if (firstSupportsFastRelationshipsTo) {
+            firstCursor.relationshipsTo(traversalCursor, selection(types, direction), secondNode);
+            return traversalCursor;
+        } else if (secondSupportsFastRelationshipsTo) {
+            secondCursor.relationshipsTo(traversalCursor, selection(types, reverseDirection), firstNode);
+            return traversalCursor;
         } else {
             // Check if we've already done this before for these two nodes in this query
             Iterator<Relationship> connections = relationshipCache.get(firstNode, secondNode, direction);
