@@ -318,7 +318,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
       .triadicSelection(positivePredicate = false, "a", "b", "c")
       .|.expandAll("(b)-[r2]->(c)")
       .|.argument("b", "r1")
-      .filterExpression(andsReorderable("b:Y", "b:Z"))
+      .filter(andsReorderable("b:Y", "b:Z"))
       .expandAll("(a)-[r1]->(b)")
       .nodeByLabelScan("a", "X")
       .build())

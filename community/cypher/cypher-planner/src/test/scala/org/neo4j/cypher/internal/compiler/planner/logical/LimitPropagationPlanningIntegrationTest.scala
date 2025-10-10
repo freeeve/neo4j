@@ -126,13 +126,13 @@ class LimitPropagationPlanningIntegrationTest
         .produceResults(column("a", "cacheN[a.id]"), column("c"))
         .limit(1)
         .nodeHashJoin("b")
-        .|.filterExpression(hasLabels("c", "C"))
+        .|.filter(hasLabels("c", "C"))
         .|.relationshipIndexOperator(
           "(c)-[:REL_CB(id)]->(b)",
           indexOrder = IndexOrderAscending,
           indexType = IndexType.RANGE
         )
-        .filterExpression(hasLabels("b", "B"))
+        .filter(hasLabels("b", "B"))
         .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
@@ -152,13 +152,13 @@ class LimitPropagationPlanningIntegrationTest
         .produceResults(column("a", "cacheN[a.id]"), column("c"))
         .limit(1)
         .nodeHashJoin("b")
-        .|.filterExpression(hasLabels("c", "C"))
+        .|.filter(hasLabels("c", "C"))
         .|.relationshipIndexOperator(
           "(c)-[:REL_CB(id > 123)]->(b)",
           indexOrder = IndexOrderAscending,
           indexType = IndexType.RANGE
         )
-        .filterExpression(hasLabels("b", "B"))
+        .filter(hasLabels("b", "B"))
         .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
@@ -374,12 +374,12 @@ class LimitPropagationPlanningIntegrationTest
         .skip(100000)
         .top(Seq(Ascending(v"cb.id")), add(literalInt(1), literalInt(100000)))
         .projection("cacheR[cb.id] AS `cb.id`")
-        .filterExpression(
+        .filter(
           hasLabels("c", "C"),
           isNotNull(cachedRelPropFromStore("cb", "id"))
         )
         .expandAll("(b)<-[cb:REL_CB]-(c)")
-        .filterExpression(hasLabels("b", "B"))
+        .filter(hasLabels("b", "B"))
         .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()

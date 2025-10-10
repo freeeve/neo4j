@@ -406,7 +406,7 @@ class PushOperatorsToShardPlanningIntegrationTest
       .produceResults("name")
       .projection("cacheN[x.name] AS name")
       .remoteBatchProperties("cacheNFromStore[x.name]")
-      .filterExpression(assertIsNode("x"))
+      .filter(assertIsNode("x"))
       .unwind("[NULL, n] AS x")
       .allNodeScan("n")
       .build()
@@ -434,7 +434,7 @@ class PushOperatorsToShardPlanningIntegrationTest
       .produceResults("expandIntoProp", "standaloneProp")
       .projection("cacheN[a.prop] AS expandIntoProp", "cacheN[n0.prop] AS standaloneProp")
       .expandInto("(a)-[]->(n1)")
-      .filterExpression(assertIsNode("n0"))
+      .filter(assertIsNode("n0"))
       .apply()
       .|.nodeIndexOperator(
         "a:L0(prop = 42)",
@@ -697,10 +697,10 @@ class PushOperatorsToShardPlanningIntegrationTest
         ),
         "friendLastName" -> cachedNodeProp(variable = "friend", propKey = "lastName", currentVarName = "friend")
       ))
-      .remoteBatchPropertiesByExpr(Set(
+      .remoteBatchProperties(
         cachedNodeProp("person", "lastName", "earlyAdopter", knownToAccessStore = true),
         cachedNodeProp("friend", "lastName", "friend", knownToAccessStore = true)
-      ))
+      )
       .filter("friend:Person")
       .expandAll("(earlyAdopter)-[:KNOWS]->(friend)")
       .projection("person AS earlyAdopter")
@@ -1277,7 +1277,7 @@ class PushOperatorsToShardPlanningIntegrationTest
         "b.firstName" -> cachedNodeProp("b", "firstName")
       ))
       .remoteBatchProperties("cacheNFromStore[a.lastName]")
-      .filterExpression(greaterThan(
+      .filter(greaterThan(
         length(varLengthPathExpression(v"a", v"anon_3", v"b")),
         literalInt(5)
       ))
@@ -2047,7 +2047,7 @@ class PushOperatorsToShardPlanningIntegrationTest
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), date()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), date()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()
@@ -2101,7 +2101,7 @@ class PushOperatorsToShardPlanningIntegrationTest
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), datetime()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), datetime()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()
@@ -2155,7 +2155,7 @@ class PushOperatorsToShardPlanningIntegrationTest
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), localdatetime()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), localdatetime()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()
@@ -2209,7 +2209,7 @@ class PushOperatorsToShardPlanningIntegrationTest
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), localtime()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), localtime()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()
@@ -2263,7 +2263,7 @@ class PushOperatorsToShardPlanningIntegrationTest
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), time()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), time()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()

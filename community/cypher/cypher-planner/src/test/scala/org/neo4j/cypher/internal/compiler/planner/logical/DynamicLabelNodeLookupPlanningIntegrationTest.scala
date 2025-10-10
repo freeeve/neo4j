@@ -78,7 +78,7 @@ class DynamicLabelNodeLookupPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(hasDynamicLabels(varFor("a"), literalString("B")))
+        .filter(hasDynamicLabels(varFor("a"), literalString("B")))
         .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All)
         .build()
   }
@@ -121,7 +121,7 @@ class DynamicLabelNodeLookupPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(hasDynamicLabels(varFor("a"), literalString("C")))
+        .filter(hasDynamicLabels(varFor("a"), literalString("C")))
         .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.All)
         .build()
   }
@@ -137,7 +137,7 @@ class DynamicLabelNodeLookupPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(not(hasDynamicLabels(varFor("a"), varFor("labels"))))
+        .filter(not(hasDynamicLabels(varFor("a"), varFor("labels"))))
         .apply()
         .|.dynamicLabelNodeLookup("a", varFor("labels"), DynamicElement.Any, "labels")
         .projection("['A', 'B'] AS labels")
@@ -193,7 +193,7 @@ class DynamicLabelNodeLookupPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(hasDynamicLabels(varFor("a"), literalString("A")), assertIsNode("a"))
+        .filter(hasDynamicLabels(varFor("a"), literalString("A")), assertIsNode("a"))
         .skip(0)
         .allNodeScan("a")
         .build()
@@ -213,7 +213,7 @@ class DynamicLabelNodeLookupPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(hasDynamicLabels(varFor("a"), literalString("A")))
+        .filter(hasDynamicLabels(varFor("a"), literalString("A")))
         .allNodeScan("a")
         .build()
   }
@@ -232,7 +232,7 @@ class DynamicLabelNodeLookupPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(hasDynamicLabels(varFor("a"), literalString("A")))
+        .filter(hasDynamicLabels(varFor("a"), literalString("A")))
         .allNodeScan("a")
         .build()
   }

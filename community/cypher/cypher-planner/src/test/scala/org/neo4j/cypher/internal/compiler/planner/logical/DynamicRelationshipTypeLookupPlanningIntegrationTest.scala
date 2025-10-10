@@ -219,7 +219,7 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a", "r", "b")
-        .filterExpression(hasDynamicType(varFor("r"), literalString("R")))
+        .filter(hasDynamicType(varFor("r"), literalString("R")))
         .allRelationshipsScan("(a)-[r]->(b)")
         .build()
   }
@@ -239,7 +239,7 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a", "r", "b")
-        .filterExpression(hasDynamicType(varFor("r"), literalString("R")))
+        .filter(hasDynamicType(varFor("r"), literalString("R")))
         .allRelationshipsScan("(a)-[r]->(b)")
         .build()
   }

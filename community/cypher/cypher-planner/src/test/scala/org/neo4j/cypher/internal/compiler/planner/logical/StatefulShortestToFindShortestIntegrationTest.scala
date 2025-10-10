@@ -200,7 +200,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
         relationshipPredicates = Seq(),
         sameNodeMode = AllowSameNode
       )
-      .filterExpression(andsReorderableAst(hasLabels("a", "User"), hasLabels("b", "User")))
+      .filter(andsReorderableAst(hasLabels("a", "User"), hasLabels("b", "User")))
       .skip(1)
       .cartesianProduct()
       .|.allNodeScan("b")
@@ -229,7 +229,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
         relationshipPredicates = Seq(),
         sameNodeMode = AllowSameNode
       )
-      .filterExpression(andsReorderableAst(hasLabels("a", "User"), hasLabels("b", "User")))
+      .filter(andsReorderableAst(hasLabels("a", "User"), hasLabels("b", "User")))
       .skip(1)
       .cartesianProduct()
       .|.allNodeScan("b")

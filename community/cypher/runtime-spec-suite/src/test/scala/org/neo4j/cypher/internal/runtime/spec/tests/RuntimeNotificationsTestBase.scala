@@ -155,7 +155,7 @@ abstract class RuntimeNotificationsTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("i")
-      .filterExpression(coerceToPredicate("[]"))
+      .filter(coerceToPredicate("[]"))
       .unwind("[1, 2, 3, 4, 5] AS i")
       .argument()
       .build()
@@ -176,7 +176,7 @@ abstract class RuntimeNotificationsTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .filterExpression(hasDynamicType(varFor("r"), literal(Seq("A", "B", "C"))))
+      .filter(hasDynamicType(varFor("r"), literal(Seq("A", "B", "C"))))
       .allRelationshipsScan("()-[r]-()")
       .build()
 

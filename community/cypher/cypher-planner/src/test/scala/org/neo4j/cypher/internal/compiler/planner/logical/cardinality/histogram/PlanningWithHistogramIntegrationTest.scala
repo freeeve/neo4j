@@ -84,7 +84,7 @@ class PlanningWithHistogramIntegrationTest extends CypherFunSuite
     plannerWithHistogram.plan(query) should be(
       plannerWithHistogram.planBuilder()
         .produceResults("many", "middle", "few")
-        .filterExpressionOrString(
+        .filter(
           "NOT anon_0 = manyFollows",
           andsReorderableAst(propLessThanEqual("many", "bYear", 1963), propLessThan("manyFollows", "since", 2025)),
           "many:Person"
@@ -147,7 +147,7 @@ class PlanningWithHistogramIntegrationTest extends CypherFunSuite
     plannerWithHistogram.plan(query) should be(
       plannerWithHistogram.planBuilder()
         .produceResults("many", "middle", "few")
-        .filterExpressionOrString(
+        .filter(
           "NOT anon_0 = manyFollows",
           andsReorderableAst(propLessThanEqual("many", "bYear", 1963), propLessThan("manyFollows", "since", 2025)),
           "many:Person"

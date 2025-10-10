@@ -528,7 +528,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .expandAll("(m)-[]-(o)")
-      .filterExpression(lessThan(cachedNodeProp("n", "prop1", "m"), literalInt(50)))
+      .filter(lessThan(cachedNodeProp("n", "prop1", "m"), literalInt(50)))
       .projection("n AS m")
       .nodeIndexOperator("n:Awesome(prop1 > 42)", _ => GetValue)
       .build())

@@ -1117,7 +1117,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "remoteBatchPropertiesWithFilterExpression",
     new TestPlanBuilder()
       .produceResults("x", "y")
-      .remoteBatchPropertiesWithFilterExpression("n.prop", "m.prop", "r.prop")(
+      .remoteBatchPropertiesWithFilter("n.prop", "m.prop", "r.prop")(
         equals(prop("n", "prop"), literalInt(5)),
         equals(prop("r", "prop"), literalInt(5))
       )
@@ -1631,7 +1631,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "setPropertiesExpression",
     new TestPlanBuilder()
       .produceResults("x", "y")
-      .setPropertiesExpression(varFor("x"), ("p1", varFor("42")), ("p1", varFor("42")))
+      .setProperties(varFor("x"), ("p1", varFor("42")), ("p1", varFor("42")))
       .argument()
       .build()
   )
@@ -1649,7 +1649,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "setNodePropertiesExpression",
     new TestPlanBuilder()
       .produceResults("x", "y")
-      .setNodePropertiesExpression("x", ("p1", varFor("42")), ("p1", varFor("42")))
+      .setNodeProperties("x", ("p1", varFor("42")), ("p1", varFor("42")))
       .argument()
       .build()
   )
@@ -1667,7 +1667,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "setRelationshipPropertiesExpression",
     new TestPlanBuilder()
       .produceResults("x", "y")
-      .setRelationshipPropertiesExpression("x", ("p1", varFor("42")), ("p1", varFor("42")))
+      .setRelationshipProperties("x", ("p1", varFor("42")), ("p1", varFor("42")))
       .argument()
       .build()
   )
@@ -2957,7 +2957,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "setDynamicLabelsWithExpression",
     new TestPlanBuilder()
       .produceResults("n")
-      .setDynamicLabelsWithExpression("n", Set(literalString("OtherLabel")))
+      .setDynamicLabels("n", literalString("OtherLabel"))
       .argument("n")
       .build()
   )

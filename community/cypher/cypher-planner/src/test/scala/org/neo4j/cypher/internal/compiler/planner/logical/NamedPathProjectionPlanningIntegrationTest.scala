@@ -65,7 +65,7 @@ class NamedPathProjectionPlanningIntegrationTest extends CypherFunSuite with Log
     val cfg = plannerConfig()
     val plan = cfg.plan("MATCH p = (a:X)-[r]->(b) WHERE head(nodes(p)) = a RETURN b").stripProduceResults
     plan shouldEqual cfg.subPlanBuilder()
-      .filterExpression(
+      .filter(
         equals(
           function("head", function("nodes", pathExpr)),
           v"a"
@@ -81,7 +81,7 @@ class NamedPathProjectionPlanningIntegrationTest extends CypherFunSuite with Log
     val plan =
       cfg.plan("MATCH p = (a:X)-[r]->(b) WHERE head(nodes(p)) = a AND length(p) > 10 RETURN b").stripProduceResults
     plan shouldEqual cfg.subPlanBuilder()
-      .filterExpression(
+      .filter(
         equals(
           function("head", function("nodes", pathExpr)),
           v"a"

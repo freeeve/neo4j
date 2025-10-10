@@ -884,7 +884,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("result")
       .aggregation(Seq.empty, Seq("count(*) AS result"))
-      .filterExpressionOrString(andsReorderable("n.prop > 25", "n.prop < 75"), "n.prop <> 42")
+      .filter(andsReorderable("n.prop > 25", "n.prop < 75"), "n.prop <> 42")
       .allNodeScan("n")
       .build()
 
@@ -971,7 +971,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("n")
-      .filterExpression(hasAnyLabel(varFor("n"), "C", "B"))
+      .filter(hasAnyLabel(varFor("n"), "C", "B"))
       .allNodeScan("n")
       .build()
 
@@ -1000,7 +1000,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("n")
-      .filterExpression(hasAnyLabel(varFor("n"), "C", "B"))
+      .filter(hasAnyLabel(varFor("n"), "C", "B"))
       .input(nodes = Seq("n"))
       .build()
 
@@ -1030,7 +1030,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("n")
-      .filterExpression(hasDynamicLabels(varFor("n"), prop("n", "foo")))
+      .filter(hasDynamicLabels(varFor("n"), prop("n", "foo")))
       .input(nodes = Seq("n"))
       .build()
 
@@ -1058,7 +1058,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("n")
-      .filterExpression(hasAnyDynamicLabel(varFor("n"), prop("n", "prop")))
+      .filter(hasAnyDynamicLabel(varFor("n"), prop("n", "prop")))
       .input(nodes = Seq("n"))
       .build()
 
@@ -1076,7 +1076,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("n")
-      .filterExpression(hasDynamicLabels(varFor("n"), varFor("label")))
+      .filter(hasDynamicLabels(varFor("n"), varFor("label")))
       .input(nodes = Array("n"), variables = Array("label"))
       .build()
 
@@ -1110,7 +1110,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("n")
-      .filterExpression(hasAnyDynamicLabel(varFor("n"), varFor("label")))
+      .filter(hasAnyDynamicLabel(varFor("n"), varFor("label")))
       .input(nodes = Array("n"), variables = Array("label"))
       .build()
 
@@ -1147,7 +1147,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("n")
-      .filterExpression(hasAnyLabel("n", "Label"))
+      .filter(hasAnyLabel("n", "Label"))
       .input(nodes = Seq("n"))
       .build()
 
@@ -1175,7 +1175,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .filterExpression(hasAnyDynamicType(varFor("r"), prop("s", "prop")))
+      .filter(hasAnyDynamicType(varFor("r"), prop("s", "prop")))
       .expand("(s)-[r]->(t)")
       .nodeByLabelScan("s", "S")
       .build()
@@ -1203,7 +1203,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .filterExpression(hasDynamicType(varFor("r"), prop("s", "prop")))
+      .filter(hasDynamicType(varFor("r"), prop("s", "prop")))
       .expand("(s)-[r]->(t)")
       .nodeByLabelScan("s", "S")
       .build()
@@ -1223,7 +1223,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .filterExpression(hasDynamicType(varFor("r"), varFor("type")))
+      .filter(hasDynamicType(varFor("r"), varFor("type")))
       .input(relationships = Seq("r"), variables = Seq("type"))
       .build()
 
@@ -1263,7 +1263,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .filterExpression(hasAnyDynamicType(varFor("r"), varFor("type")))
+      .filter(hasAnyDynamicType(varFor("r"), varFor("type")))
       .input(relationships = Seq("r"), variables = Seq("type"))
       .build()
 
@@ -1758,7 +1758,7 @@ trait ExpressionWithTxStateChangesTests[CONTEXT <: RuntimeContext] {
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .filterExpression(and(
+      .filter(and(
         allInList(varFor("a1"), listOf(varFor("x")), trueLiteral),
         RuntimeConstant(varFor("foo"), trueLiteral)
       ))

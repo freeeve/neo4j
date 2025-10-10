@@ -465,12 +465,12 @@ class IndexPlanningIntegrationTest
       .projection("cacheN[p.location] AS point")
       .filter("point.distance(cacheN[p.location], point({x: 0, y: 0, crs: 'cartesian'})) <= maxDistance")
       .apply()
-      .|.pointDistanceNodeIndexSeekExpr(
+      .|.pointDistanceNodeIndexSeek(
         "p",
         "Place",
         "location",
         "{x: 0, y: 0, crs: 'cartesian'}",
-        distanceExpr = v"maxDistance",
+        distance = v"maxDistance",
         argumentIds = Set("maxDistance"),
         inclusive = true,
         getValue = GetValue,
@@ -495,12 +495,12 @@ class IndexPlanningIntegrationTest
       .projection("cacheN[p.location] AS point")
       .filter("x.maxDistance >= point.distance(cacheN[p.location], point({x: 0, y: 0, crs: 'cartesian'}))")
       .apply()
-      .|.pointDistanceNodeIndexSeekExpr(
+      .|.pointDistanceNodeIndexSeek(
         "p",
         "Place",
         "location",
         "{x: 0, y: 0, crs: 'cartesian'}",
-        distanceExpr = prop("x", "maxDistance"),
+        distance = prop("x", "maxDistance"),
         argumentIds = Set("x"),
         inclusive = true,
         getValue = GetValue,
@@ -2658,7 +2658,7 @@ class IndexPlanningIntegrationTest
 
     val expectedPlanBuilder = planner.planBuilder()
       .produceResults(column("n", "cacheN[n.c]", "cacheN[n.d]")).withCardinality(abCardinality)
-      .filterExpression(andsReorderable("n.a = 1", "n.b = 2")).withCardinality(abCardinality)
+      .filter(andsReorderable("n.a = 1", "n.b = 2")).withCardinality(abCardinality)
       .nodeIndexOperator("n:A(c = 3, d = 4)", _ => GetValue, supportPartitionedScan = false).withCardinality(
         cdCardinality
       )
@@ -2699,7 +2699,7 @@ class IndexPlanningIntegrationTest
 
     val expectedPlanBuilder = planner.planBuilder()
       .produceResults(column("n", "cacheN[n.c]", "cacheN[n.d]")).withCardinality(abcCardinality)
-      .filterExpression(andsReorderable("n.a = 1", "n.b = 2")).withCardinality(abcCardinality)
+      .filter(andsReorderable("n.a = 1", "n.b = 2")).withCardinality(abcCardinality)
       .nodeIndexOperator("n:A(c = 3, d = 4)", _ => GetValue, supportPartitionedScan = false).withCardinality(
         cdCardinality
       )

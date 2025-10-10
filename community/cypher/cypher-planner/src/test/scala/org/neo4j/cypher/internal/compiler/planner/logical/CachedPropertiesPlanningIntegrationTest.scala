@@ -111,7 +111,7 @@ class CachedPropertiesPlanningIntegrationTest extends CypherFunSuite with Logica
     val cfg = plannerBuilder().setAllNodesCardinality(100).build()
     val plan = cfg.plan("MATCH (n) WHERE n.prop1 > 42 WITH n AS x WHERE x.prop1 > 42 RETURN x").stripProduceResults
     plan shouldEqual cfg.subPlanBuilder()
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop1", "x"), literalInt(42)))
+      .filter(greaterThan(cachedNodeProp("n", "prop1", "x"), literalInt(42)))
       .projection("n AS x")
       .filter("cacheNFromStore[n.prop1] > 42")
       .allNodeScan("n")

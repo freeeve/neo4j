@@ -1163,7 +1163,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .expandAll("(p)-:READ]->(b)")
       .sort("`u.name` ASC")
       .projection("cacheN[u.name] AS `u.name`")
-      .filterExpression(
+      .filter(
         Parser.Latest.parseExpression("cacheNFromStore[u.name] STARTS WITH 'Joe'"),
         andsReorderable(
           "u:Person",

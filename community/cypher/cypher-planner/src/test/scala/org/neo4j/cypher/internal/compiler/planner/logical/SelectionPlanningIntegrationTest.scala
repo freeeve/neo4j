@@ -269,7 +269,7 @@ class SelectionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         .|.filter("b:C")
         .|.expandAll("(a)-[]->(b)")
         .|.argument("a")
-        .filterExpression(andsReorderable("a:A", " a:B"))
+        .filter(andsReorderable("a:A", " a:B"))
         .allNodeScan("a")
         .build()
     )
@@ -297,7 +297,7 @@ class SelectionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
 
     planner.plan(query).stripProduceResults should equal(
       planner.subPlanBuilder()
-        .filterExpressionOrString(
+        .filter(
           andsReorderable(
             "cacheNFromStore[txn.date] >= $from",
             "cacheNFromStore[txn.date] <= $to",

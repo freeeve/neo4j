@@ -565,7 +565,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("x")
       .projection("n.foo AS x")
-      .filterExpression(nestedPlanExpression)
+      .filter(nestedPlanExpression)
       .setNodeProperty("n", "prop", "5")
       .allNodeScan("n")
     val plan = planBuilder.build()
@@ -575,7 +575,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
       new LogicalPlanBuilder()
         .produceResults("x")
         .projection("n.foo AS x")
-        .filterExpression(nestedPlanExpression)
+        .filter(nestedPlanExpression)
         .eager(ListSet(PropertyReadSetConflict(propName("prop")).withConflict(Conflict(Id(3), Id(2)))))
         .setNodeProperty("n", "prop", "5")
         .allNodeScan("n")
@@ -919,7 +919,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("x")
       .projection("n.foo AS x")
-      .filterExpression(nestedPlanExpression)
+      .filter(nestedPlanExpression)
       .setLabels("n", "N")
       .allNodeScan("n")
     val plan = planBuilder.build()
@@ -929,7 +929,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
       new LogicalPlanBuilder()
         .produceResults("x")
         .projection("n.foo AS x")
-        .filterExpression(nestedPlanExpression)
+        .filter(nestedPlanExpression)
         .eager(ListSet(LabelReadSetConflict(labelName("N")).withConflict(Conflict(Id(3), Id(2)))))
         .setLabels("n", "N")
         .allNodeScan("n")
@@ -2467,7 +2467,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("x")
       .projection("n.foo AS x")
-      .filterExpression(nestedPlanExpression)
+      .filter(nestedPlanExpression)
       .create(createNode("n", "N"))
       .unwind("[1,2] AS x")
       .argument()
@@ -2478,7 +2478,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
       new LogicalPlanBuilder()
         .produceResults("x")
         .projection("n.foo AS x")
-        .filterExpression(nestedPlanExpression)
+        .filter(nestedPlanExpression)
         .eager(ListSet(LabelReadSetConflict(labelName("N")).withConflict(Conflict(Id(3), Id(2)))))
         .create(createNode("n", "N"))
         .unwind("[1,2] AS x")
@@ -5012,7 +5012,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
       .produceResults("count")
       .aggregation(Seq.empty, Seq("count(*) AS count"))
       .deleteNode("n")
-      .filterExpression(nestedPlanExpression)
+      .filter(nestedPlanExpression)
       .allNodeScan("n")
     val plan = planBuilder.build()
     val result = eagerizePlan(planBuilder, plan)
@@ -5023,7 +5023,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         .aggregation(Seq.empty, Seq("count(*) AS count"))
         .deleteNode("n")
         .eager(ListSet(ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(3)))))
-        .filterExpression(nestedPlanExpression)
+        .filter(nestedPlanExpression)
         .allNodeScan("n")
         .build()
     )
@@ -6372,7 +6372,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("n")
       .create(createRelationship("r", "n", "R1", "m"))
-      .filterExpression(getDegree(v"n", SemanticDirection.OUTGOING))
+      .filter(getDegree(v"n", SemanticDirection.OUTGOING))
       .allNodeScan("n")
     val plan = planBuilder.build()
     val result = eagerizePlan(planBuilder, plan)
@@ -6382,7 +6382,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         .produceResults("n")
         .create(createRelationship("r", "n", "R1", "m"))
         .eager(ListSet(TypeReadSetConflict(relTypeName("R1")).withConflict(Conflict(Id(1), Id(2)))))
-        .filterExpression(getDegree(v"n", SemanticDirection.OUTGOING))
+        .filter(getDegree(v"n", SemanticDirection.OUTGOING))
         .allNodeScan("n")
         .build()
     )
@@ -6392,7 +6392,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("n")
       .create(createRelationship("r", "n", "R1", "m"))
-      .filterExpression(
+      .filter(
         HasDegree(v"n", Some(relTypeName("R1")), SemanticDirection.OUTGOING, literalInt(10L))(InputPosition.NONE)
       )
       .relationshipTypeScan("(n)-[r:R1]-(m)")
@@ -6404,7 +6404,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         .produceResults("n")
         .create(createRelationship("r", "n", "R1", "m"))
         .eager(ListSet(TypeReadSetConflict(relTypeName("R1")).withConflict(Conflict(Id(1), Id(2)))))
-        .filterExpression(HasDegree(v"n", Some(relTypeName("R1")), SemanticDirection.OUTGOING, literalInt(10L))(
+        .filter(HasDegree(v"n", Some(relTypeName("R1")), SemanticDirection.OUTGOING, literalInt(10L))(
           InputPosition.NONE
         ))
         .relationshipTypeScan("(n)-[r:R1]-(m)")
@@ -6416,7 +6416,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("n")
       .create(createRelationship("r", "n", "R1", "m"))
-      .filterExpression(HasDegreeGreaterThan(
+      .filter(HasDegreeGreaterThan(
         v"n",
         Some(relTypeName("R1")),
         SemanticDirection.OUTGOING,
@@ -6431,7 +6431,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         .produceResults("n")
         .create(createRelationship("r", "n", "R1", "m"))
         .eager(ListSet(TypeReadSetConflict(relTypeName("R1")).withConflict(Conflict(Id(1), Id(2)))))
-        .filterExpression(HasDegreeGreaterThan(
+        .filter(HasDegreeGreaterThan(
           v"n",
           Some(relTypeName("R1")),
           SemanticDirection.OUTGOING,
@@ -6446,7 +6446,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("n")
       .create(createRelationship("r", "n", "R1", "m"))
-      .filterExpression(HasDegreeGreaterThanOrEqual(
+      .filter(HasDegreeGreaterThanOrEqual(
         v"n",
         Some(relTypeName("R1")),
         SemanticDirection.OUTGOING,
@@ -6461,7 +6461,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         .produceResults("n")
         .create(createRelationship("r", "n", "R1", "m"))
         .eager(ListSet(TypeReadSetConflict(relTypeName("R1")).withConflict(Conflict(Id(1), Id(2)))))
-        .filterExpression(HasDegreeGreaterThanOrEqual(
+        .filter(HasDegreeGreaterThanOrEqual(
           v"n",
           Some(relTypeName("R1")),
           SemanticDirection.OUTGOING,
@@ -6476,7 +6476,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("n")
       .create(createRelationship("r", "n", "R1", "m"))
-      .filterExpression(HasDegreeLessThan(
+      .filter(HasDegreeLessThan(
         v"n",
         Some(relTypeName("R1")),
         SemanticDirection.OUTGOING,
@@ -6491,7 +6491,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         .produceResults("n")
         .create(createRelationship("r", "n", "R1", "m"))
         .eager(ListSet(TypeReadSetConflict(relTypeName("R1")).withConflict(Conflict(Id(1), Id(2)))))
-        .filterExpression(HasDegreeLessThan(
+        .filter(HasDegreeLessThan(
           v"n",
           Some(relTypeName("R1")),
           SemanticDirection.OUTGOING,
@@ -6506,7 +6506,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("n")
       .create(createRelationship("r", "n", "R1", "m"))
-      .filterExpression(HasDegreeLessThanOrEqual(
+      .filter(HasDegreeLessThanOrEqual(
         v"n",
         Some(relTypeName("R1")),
         SemanticDirection.OUTGOING,
@@ -6521,7 +6521,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         .produceResults("n")
         .create(createRelationship("r", "n", "R1", "m"))
         .eager(ListSet(TypeReadSetConflict(relTypeName("R1")).withConflict(Conflict(Id(1), Id(2)))))
-        .filterExpression(HasDegreeLessThanOrEqual(
+        .filter(HasDegreeLessThanOrEqual(
           v"n",
           Some(relTypeName("R1")),
           SemanticDirection.OUTGOING,

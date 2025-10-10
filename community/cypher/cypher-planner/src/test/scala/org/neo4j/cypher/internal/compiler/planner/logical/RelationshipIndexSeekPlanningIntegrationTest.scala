@@ -164,7 +164,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
       planner.plan(s"MATCH (a:A)-[r:REL]-(b) USING INDEX r:REL(prop) WHERE $pred RETURN r") should equal(
         planner.planBuilder()
           .produceResults(column("r", "cacheR[r.prop]"))
-          .filterExpression(hasLabels("a", "A"))
+          .filter(hasLabels("a", "A"))
           .relationshipIndexOperator(
             s"(a)-[r:REL($indexStr)]-()",
             _ => GetValue,

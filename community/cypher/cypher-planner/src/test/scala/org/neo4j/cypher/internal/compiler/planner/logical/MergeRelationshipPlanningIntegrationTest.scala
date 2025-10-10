@@ -374,7 +374,7 @@ class MergeRelationshipPlanningIntegrationTest
         relationships = Seq(createRelationship("copy_of", "copy", "COPY_OF", "n", OUTGOING)),
         lockNodes = Set("n")
       )
-      .|.filterExpression(
+      .|.filter(
         hasDynamicLabels(varFor("copy"), function("labels", varFor("n"))),
         hasLabels(varFor("copy"), "Copy")
       )
@@ -411,7 +411,7 @@ class MergeRelationshipPlanningIntegrationTest
     plan shouldEqual planner
       .planBuilder()
       .produceResults("r")
-      .filterExpression(not(hasTypes("r", "Foo")), hasLabels("anon_4", "B"))
+      .filter(not(hasTypes("r", "Foo")), hasLabels("anon_4", "B"))
       .expandAll("(anon_3)-[r]->(anon_4)")
       .apply()
       .|.nodeByLabelScan("anon_3", "B", IndexOrderNone, "anon_0", "anon_2", "anon_1")
@@ -420,7 +420,7 @@ class MergeRelationshipPlanningIntegrationTest
         nodes = Seq(createNodeFull("anon_0", labels = Seq("A")), createNodeFull("anon_2", labels = Seq("A"))),
         relationships = Seq(createRelationshipWithDynamicType("anon_1", "anon_0", "'Foo'", "anon_2", OUTGOING))
       )
-      .filterExpression(
+      .filter(
         hasDynamicType(varFor("anon_1"), literal("Foo")),
         hasLabels("anon_2", "A")
       )

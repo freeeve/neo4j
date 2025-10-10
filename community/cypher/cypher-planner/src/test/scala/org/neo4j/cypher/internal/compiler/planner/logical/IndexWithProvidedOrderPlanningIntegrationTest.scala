@@ -2813,7 +2813,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
                 .projection(returnProjections)
 
           planBuilderWithSort
-            .filterExpression(selectionExpression.exprs.toSeq: _*)
+            .filter(selectionExpression.exprs.toSeq: _*)
             .nodeIndexOperator(
               "n:Label(prop1 >= 42, prop2 <= 3, prop3 > '')",
               indexOrder = indexOrder,
@@ -2882,7 +2882,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
                   .projection(returnProjections)
 
             planBuilderWithSort
-              .filterExpression(selectionExpression.exprs.toSeq: _*)
+              .filter(selectionExpression.exprs.toSeq: _*)
               .relationshipIndexOperator(
                 "()-[r:REL(prop1 >= 42, prop2 <= 3, prop3 > '')]->()",
                 getValue = getValue,

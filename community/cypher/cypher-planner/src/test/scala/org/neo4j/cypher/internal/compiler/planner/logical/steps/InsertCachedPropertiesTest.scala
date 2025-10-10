@@ -769,9 +769,9 @@ class InsertCachedPropertiesTest extends CypherFunSuite with PlanMatchHelp with 
     val cpFromStore = cachedNProp1.copy(knownToAccessStore = true)(cachedNProp1.position)
 
     val builder = new LogicalPlanBuilder(wholePlan = false)
-      .filterExpression(greaterThan(xProp, literalInt(42)))
+      .filter(greaterThan(xProp, literalInt(42)))
       .projection("n AS x")
-      .filterExpression(greaterThan(nProp1, literalInt(42)))
+      .filter(greaterThan(nProp1, literalInt(42)))
       .allNodeScan("n")
 
     builder.newNode(v"x")
@@ -786,9 +786,9 @@ class InsertCachedPropertiesTest extends CypherFunSuite with PlanMatchHelp with 
     val (newPlan, newTable) = replace(builder.build(), initialTable)
     newPlan should be(
       new LogicalPlanBuilder(wholePlan = false)
-        .filterExpression(greaterThan(cpASx, literalInt(42)))
+        .filter(greaterThan(cpASx, literalInt(42)))
         .projection("n AS x")
-        .filterExpression(greaterThan(cpFromStore, literalInt(42)))
+        .filter(greaterThan(cpFromStore, literalInt(42)))
         .allNodeScan("n")
         .build()
     )
@@ -2275,7 +2275,7 @@ class InsertCachedPropertiesTest extends CypherFunSuite with PlanMatchHelp with 
     newPlan shouldEqual new LogicalPlanBuilder()
       .produceResults("n", "c")
       .aggregation(Seq("n AS n"), Seq("count(*) AS c"))
-      .filterExpression(ors(
+      .filter(ors(
         greaterThan(cachedNpropAsXprop, literalInt(123)),
         contains(cachedNpropAsXprop, literalString("hello"))
       ))
@@ -2301,7 +2301,7 @@ class InsertCachedPropertiesTest extends CypherFunSuite with PlanMatchHelp with 
       .produceResults("result", "c")
       .projection("properties(n) AS result")
       .aggregation(Seq("n AS n"), Seq("count(*) AS c"))
-      .filterExpression(ors(
+      .filter(ors(
         greaterThan(cachedNpropAsXprop, literalInt(123)),
         contains(cachedNpropAsXprop, literalString("hello"))
       ))
@@ -2996,12 +2996,12 @@ class InsertCachedPropertiesTest extends CypherFunSuite with PlanMatchHelp with 
     val expectedPlan = new LogicalPlanBuilder()
       .produceResults("n")
       .subqueryForeach()
-      .|.foreachWithExpression(
+      .|.foreach(
         "`  ignoreMe@3`",
         expression2,
         Seq(createPattern(Seq(createNode("`  UNNAMED1`")), Seq()))
       )
-      .|.foreachWithExpression(
+      .|.foreach(
         "`  ignoreMe@2`",
         expression1,
         Seq(createPattern(Seq(createNode("`  UNNAMED0`")), Seq()))
@@ -3061,12 +3061,12 @@ class InsertCachedPropertiesTest extends CypherFunSuite with PlanMatchHelp with 
     val expectedPlan = new LogicalPlanBuilder()
       .produceResults("n")
       .transactionForeach()
-      .|.foreachWithExpression(
+      .|.foreach(
         "`  ignoreMe@3`",
         expression2,
         Seq(createPattern(Seq(createNode("`  UNNAMED1`")), Seq()))
       )
-      .|.foreachWithExpression(
+      .|.foreach(
         "`  ignoreMe@2`",
         expression1,
         Seq(createPattern(Seq(createNode("`  UNNAMED0`")), Seq()))

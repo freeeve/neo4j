@@ -1292,7 +1292,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       .shouldEqual(
         planner.planBuilder()
           .produceResults("a")
-          .filterExpression(hasLabels("b", "B"), isTyped(cachedRelProp("r", "prop"), CTStringNotNull))
+          .filter(hasLabels("b", "B"), isTyped(cachedRelProp("r", "prop"), CTStringNotNull))
           .relationshipIndexOperator("(a)-[r:R(prop)]->(b)", _ => GetValue, indexType = IndexType.RANGE)
           .build()
       )
@@ -2017,7 +2017,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
     plan should equal(
       cfg.planBuilder()
         .produceResults("end")
-        .filterExpression(andsReorderable("end:B", "end:C"))
+        .filter(andsReorderable("end:B", "end:C"))
         .expandAll("(start)-[]->(end)")
         .nodeByLabelScan("start", "A")
         .build()

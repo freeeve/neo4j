@@ -528,7 +528,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`count(*)`")
         .aggregation(Seq(), Seq("count(*) AS `count(*)`"))
-        .filterExpression(
+        .filter(
           HasDegreeGreaterThan(v"c", Some(relTypeName("BAR")), OUTGOING, literalInt(0))(InputPosition.NONE),
           assertIsNode("c")
         )
@@ -574,7 +574,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`count(*)`")
         .aggregation(Seq(), Seq("count(*) AS `count(*)`"))
-        .filterExpression(
+        .filter(
           HasDegreeGreaterThan(v"c", None, OUTGOING, literalInt(0))(InputPosition.NONE),
           assertIsNode("c")
         )
@@ -1252,7 +1252,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .eager(ListSet(
           ReadDeleteConflict("anon_3").withConflict(Conflict(Id(2), Id(4)))
         ))
-        .filterExpression(existsPredicate)
+        .filter(existsPredicate)
         .nodeByLabelScan("resource", "Resource", IndexOrderNone)
         .build()
     )
@@ -1280,7 +1280,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .produceResults()
         .emptyResult()
         .deleteNode("resource")
-        .filterExpression(existsPredicate)
+        .filter(existsPredicate)
         .nodeByLabelScan("resource", "Resource", IndexOrderNone)
         .build()
     )
@@ -1619,7 +1619,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("p")
         .eager(ListSet(UnknownLabelReadSetConflict.withConflict(Conflict(Id(2), Id(0)))))
-        .setDynamicLabelsWithExpression("p", Set(collectExpr))
+        .setDynamicLabels("p", collectExpr)
         .eager(ListSet(UnknownLabelReadSetConflict.withConflict(Conflict(Id(2), Id(7)))))
         .cartesianProduct()
         .|.nodeByLabelScan("n", "Person", IndexOrderNone)
@@ -1787,7 +1787,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .produceResults("n")
         .create(createNode("anon_0", "Z"))
         .eager(ListSet(LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(1), Id(6)))))
-        .filterExpressionOrString("n:$any(labels)", assertIsNode("n"))
+        .filter("n:$any(labels)", assertIsNode("n"))
         .projection("['A', 'B'] AS labels")
         .apply()
         .|.allNodeScan("n", "i")
@@ -1891,7 +1891,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .|.cartesianProduct()
         .|.|.filter("NOT m:%") // Id(6)
         .|.|.allNodeScan("m", "i", "n") // Id(7)
-        .|.filterExpressionOrString("n:$all([])", assertIsNode("n")) // Id(8)
+        .|.filter("n:$all([])", assertIsNode("n")) // Id(8)
         .|.argument("n", "i")
         .skip(0)
         .apply()
@@ -1968,7 +1968,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           LabelReadSetConflict(labelName("C")).withConflict(Conflict(Id(1), Id(5))),
           LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(1), Id(5)))
         ))
-        .filterExpression(notExpr, andsExpr)
+        .filter(notExpr, andsExpr)
         .apply()
         .|.relationshipTypeScan("(n)-[r1:Z]->(m)", "types")
         .projection("['A', 'B'] AS types")
@@ -2050,7 +2050,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual planner
       .planBuilder()
       .produceResults("r")
-      .filterExpression(
+      .filter(
         not(hasTypes("r", "Foo")),
         andsReorderableAst(not(hasLabels("anon_3", "A")), not(hasLabels("anon_4", "A")))
       )
@@ -2088,7 +2088,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .emptyResult()
       .apply()
       .|.merge(Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label"))))
-      .|.filterExpression(hasDynamicLabels(varFor("anon_0"), parameter("label", CTAny)))
+      .|.filter(hasDynamicLabels(varFor("anon_0"), parameter("label", CTAny)))
       .|.allNodeScan("anon_0")
       .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(8)))))
       .apply()
@@ -2154,7 +2154,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual planner
       .planBuilder()
       .produceResults("r")
-      .filterExpression(not(hasTypes("r", "Foo")), hasLabels("anon_4", "B"))
+      .filter(not(hasTypes("r", "Foo")), hasLabels("anon_4", "B"))
       .expandAll("(anon_3)-[r]->(anon_4)")
       .apply()
       .|.nodeByLabelScan("anon_3", "B", IndexOrderNone, "anon_0", "anon_2", "anon_1")
@@ -2163,7 +2163,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         nodes = Seq(createNodeFull("anon_0", labels = Seq("A")), createNodeFull("anon_2", labels = Seq("A"))),
         relationships = Seq(createRelationshipWithDynamicType("anon_1", "anon_0", "'Foo'", "anon_2", OUTGOING))
       )
-      .filterExpression(
+      .filter(
         hasDynamicType(varFor("anon_1"), literal("Foo")),
         hasLabels("anon_2", "A")
       )
@@ -2477,7 +2477,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           EagernessReason.TypeReadSetConflict(RelTypeName("A")(InputPosition.NONE))
             .withConflict(EagernessReason.Conflict(Id(1), Id(5)))
         ))
-        .filterExpression(hasAnyDynamicType(varFor("r"), varFor("types")))
+        .filter(hasAnyDynamicType(varFor("r"), varFor("types")))
         .apply()
         .|.allRelationshipsScan("(a)-[r]->(b)", "types")
         .projection("['A', 'B'] AS types")
@@ -2540,7 +2540,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           onCreate = Seq(),
           lockNodes = Set("b", "a")
         )
-        .|.filterExpression(hasDynamicType(varFor("s"), function("type", varFor("r"))))
+        .|.filter(hasDynamicType(varFor("s"), function("type", varFor("r"))))
         .|.expandInto("(b)-[s]->(a)")
         .|.argument("a", "b", "r")
         .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(10)))))
@@ -2579,7 +2579,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           onCreate = Seq(),
           lockNodes = Set("b", "a")
         )
-        .|.filterExpression(hasDynamicType(varFor("s"), function("type", varFor("r"))))
+        .|.filter(hasDynamicType(varFor("s"), function("type", varFor("r"))))
         .|.expandInto("(b)-[s]-(a)")
         .|.argument("a", "b", "r")
         .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(10)))))
@@ -2621,7 +2621,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .filter("NOT r = s")
         .apply()
         .|.cartesianProduct()
-        .|.|.filterExpression(hasAnyDynamicType(varFor("r"), varFor("types")))
+        .|.|.filter(hasAnyDynamicType(varFor("r"), varFor("types")))
         .|.|.allRelationshipsScan("()-[r]-()", "types")
         .|.filter("NOT s:A")
         .|.allRelationshipsScan("()-[s]->()", "types")
@@ -2905,7 +2905,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
               properties = Some("{prop2: 1}")
             )
           )
-          .filterExpression(andsReorderable("n:B", "m:B"))
+          .filter(andsReorderable("n:B", "m:B"))
           .apply()
           .|.dynamicRelationshipTypeLookup(
             pattern = s"(n)-[]-$dirStr(m)",

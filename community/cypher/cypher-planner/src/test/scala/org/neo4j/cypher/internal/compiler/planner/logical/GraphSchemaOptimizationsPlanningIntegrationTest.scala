@@ -924,7 +924,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual planner.subPlanBuilder()
       .projection("1 AS result")
       .filter("point.distance(cacheN[n.loc], point({x: 123, y: 456})) < 123.0", "n:Actor")
-      .pointDistanceNodeIndexSeek("n", "Person", "loc", "{x: 123, y: 456}", 123, getValue = GetValue)
+      .pointDistanceNodeIndexSeek("n", "Person", "loc", "{x: 123, y: 456}", 123.0, getValue = GetValue)
       .build()
   }
 
@@ -1086,7 +1086,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .projection("n.name AS result")
-      .filterExpression(
+      .filter(
         hasLabels("n", "Actor"),
         andsReorderable(
           hasLabels("m", "X"),
@@ -1152,7 +1152,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .projection("n.name AS result")
-      .filterExpression(
+      .filter(
         hasLabels("m", "Y"),
         propEquality("n", "birthYear", prop("m", "birthYear"))
       ) // n:X does NOT imply m:Y
@@ -1481,7 +1481,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("n", "m")
         // we do not know which way the returned relationship goes, so we need to filter on both nodes
-        .filterExpression(andsReorderable("n:Person", "m:Person"))
+        .filter(andsReorderable("n:Person", "m:Person"))
         .relationshipIndexOperator("(n)-[:KNOWS(since > 2000)]-(m)")
         .build()
     )

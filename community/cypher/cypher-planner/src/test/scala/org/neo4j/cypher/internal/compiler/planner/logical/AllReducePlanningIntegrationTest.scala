@@ -100,7 +100,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         nextAnonymousVariable = v"anon_0"
       )))
       .repeatTrail(trailParameters)
-      .|.filterExpression(isRepeatTrailUnique("r"))
+      .|.filter(isRepeatTrailUnique("r"))
       .|.expandAll("(is)-[r]->(ie)")
       .|.argument("is")
       .allNodeScan("os")
@@ -170,7 +170,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       //   ELSE [anon_0 IN [acc.accumulator * r.x] | {accumulator: anon_0, result: acc.result AND anon_0 < 12}][0]
       // END).result
       .projection("1 AS 1")
-      .filterExpression(allReduceFallBack(
+      .filter(allReduceFallBack(
         accumulator = v"acc",
         init = literalInt(1),
         stepVariable = v"rel",
@@ -274,7 +274,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
 
     plan should equal(
       planner.subPlanBuilder()
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"acc",
             init = allReduceFallBack(
@@ -335,7 +335,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         .produceResults("`  rel@3`")
         .filter("b:NN")
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
-        .|.filterExpressionOrString(isRepeatTrailUnique("  rel@1"), "`  sum@4` < 99")
+        .|.filter(isRepeatTrailUnique("  rel@1"), "`  sum@4` < 99")
         .|.projection("sum + `  rel@1`.prop AS `  sum@4`")
         .|.expandAll("(`  left@0`)-[`  rel@1`]->(`  right@2`)")
         .|.argument("  left@0", "sum")
@@ -381,7 +381,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       planner.planBuilder()
         .produceResults("rel")
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
-        .|.filterExpressionOrString("sum < 99", isRepeatTrailUnique("rel"))
+        .|.filter("sum < 99", isRepeatTrailUnique("rel"))
         .|.projection("sum + rel.prop AS sum")
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left", "sum")
@@ -410,7 +410,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.planBuilder()
         .produceResults("rel")
-        .filterExpression(
+        .filter(
           isNull(
             allReduceFallBack(
               accumulator = v"sum",
@@ -469,9 +469,9 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       planner.planBuilder()
         .produceResults("rel")
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
-        .|.filterExpressionOrString("NOT rel2 = rel", isRepeatTrailUnique("rel2"))
+        .|.filter("NOT rel2 = rel", isRepeatTrailUnique("rel2"))
         .|.expandAll("(middle)-[rel2]->(right)")
-        .|.filterExpressionOrString("sum < 99", isRepeatTrailUnique("rel"))
+        .|.filter("sum < 99", isRepeatTrailUnique("rel"))
         .|.projection("sum + rel.prop AS sum")
         .|.expandAll("(left)-[rel]->(middle)")
         .|.argument("left", "sum")
@@ -520,7 +520,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       planner.subPlanBuilder()
         .filter("b:NN")
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0 AND span = {}`)
-        .|.filterExpressionOrString(
+        .|.filter(
           "`  sum@4` < 99",
           "coalesce(`  span@5`.previous < `  span@5`.current, true)",
           isRepeatTrailUnique("  rel@1")
@@ -573,7 +573,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       planner.subPlanBuilder()
         .filter("b:NN")
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0 AND people = []`)
-        .|.filterExpressionOrString(isRepeatTrailUnique("  rel@1"), "`  sum@4` < 99", "size(`  people@5`) < 10")
+        .|.filter(isRepeatTrailUnique("  rel@1"), "`  sum@4` < 99", "size(`  people@5`) < 10")
         .|.projection(
           "sum + `  rel@1`.prop AS `  sum@4`",
           "people + CASE WHEN `  right@2`:Person THEN [`  right@2`] ELSE [] END AS `  people@5`"
@@ -621,7 +621,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       planner.subPlanBuilder()
         .filter("b:NN")
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
-        .|.filterExpressionOrString(
+        .|.filter(
           "0 < `  acc@7` < 1",
           "`  acc@6` < 99",
           isRepeatTrailUnique("  rel@1")
@@ -689,13 +689,13 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       planner.subPlanBuilder()
         .filter("b:NN")
         .repeatTrail(`((l2)-[rel2]->(r2))+ WITH product = 1`)
-        .|.filterExpressionOrString("0 < `  product@8` < 1", isRepeatTrailUnique("  rel2@5"))
+        .|.filter("0 < `  product@8` < 1", isRepeatTrailUnique("  rel2@5"))
         .|.projection("product * `  rel2@5`.prop AS `  product@8`")
         .|.expandAll("(`  l2@4`)-[`  rel2@5`]->(`  r2@6`)")
         .|.argument("  l2@4", "product")
         .filter("x:NN")
         .repeatTrail(`((l1)-[rel1]->(r1)){,10} WITH sum = 0`)
-        .|.filterExpressionOrString("`  sum@9` < 99", isRepeatTrailUnique("  rel1@1"))
+        .|.filter("`  sum@9` < 99", isRepeatTrailUnique("  rel1@1"))
         .|.projection("sum + `  rel1@1`.prop AS `  sum@9`")
         .|.expandAll("(`  l1@0`)-[`  rel1@1`]->(`  r1@2`)")
         .|.argument("  l1@0", "sum")
@@ -725,7 +725,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
 
     plan should equal(
       planner.subPlanBuilder()
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"acc",
             init = literalBoolean(true),
@@ -766,7 +766,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
 
     plan should equal(
       planner.subPlanBuilder()
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"acc",
             init = literalInt(0),
@@ -815,7 +815,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.planBuilder()
         .produceResults("rel")
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"sum",
             init = literalInt(0),
@@ -868,7 +868,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       planner.planBuilder()
         .produceResults("rel")
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
-        .|.filterExpressionOrString("a.prop > sum", isRepeatTrailUnique("rel"))
+        .|.filter("a.prop > sum", isRepeatTrailUnique("rel"))
         .|.projection("sum + rel.prop AS sum")
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left", "sum", "a")
@@ -906,7 +906,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       planner.planBuilder()
         .produceResults("`  rel@3`")
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
-        .|.filterExpressionOrString("`  sum@4` < 99", isRepeatTrailUnique("  rel@1"))
+        .|.filter("`  sum@4` < 99", isRepeatTrailUnique("  rel@1"))
         .|.projection("sum + `  rel@1`.prop AS `  sum@4`")
         .|.expandAll("(`  left@0`)-[`  rel@1`]->(`  right@2`)")
         .|.argument("  left@0", "sum")
@@ -926,7 +926,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.planBuilder()
         .produceResults("rel")
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"sum",
             init = prop("b", "prop"),
@@ -971,7 +971,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.planBuilder()
         .produceResults("rel")
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"sum",
             init = size(v"left"),
@@ -983,7 +983,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
           )
         )
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
-        .|.filterExpressionOrString(isRepeatTrailUnique("rel"))
+        .|.filter(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left")
         .nodeByLabelScan("a", "N")
@@ -1019,7 +1019,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.planBuilder()
         .produceResults("rel")
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"sum",
             init = literalInt(99),
@@ -1031,7 +1031,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
           )
         )
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
-        .|.filterExpressionOrString(isRepeatTrailUnique("rel"))
+        .|.filter(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left")
         .nodeByLabelScan("a", "N")
@@ -1067,7 +1067,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.planBuilder()
         .produceResults("r")
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"sum",
             init = literalInt(99),
@@ -1079,7 +1079,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
           )
         )
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
-        .|.filterExpressionOrString(isRepeatTrailUnique("r"))
+        .|.filter(isRepeatTrailUnique("r"))
         .|.expandAll("(left)-[r]->(right)")
         .|.argument("left")
         .nodeByLabelScan("a", "N")
@@ -1115,7 +1115,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.subPlanBuilder()
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
-        .|.filterExpressionOrString("sum < 99", isRepeatTrailUnique("rel"))
+        .|.filter("sum < 99", isRepeatTrailUnique("rel"))
         .|.projection("sum + rel.prop + size(avail) AS sum")
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left", "sum", "avail")
@@ -1137,7 +1137,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.subPlanBuilder()
         .expand("(a)-[rel*1..]->()")
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"sum",
             init = literalInt(0),
@@ -1167,7 +1167,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
 
     plan should equal(
       planner.subPlanBuilder()
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"sum",
             init = literalInt(0),
@@ -1198,7 +1198,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
 
     plan should equal(
       planner.subPlanBuilder()
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"sum",
             init = literalInt(0),
@@ -1246,7 +1246,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.subPlanBuilder()
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
-        .|.filterExpressionOrString("sum < 99", isRepeatTrailUnique("rel"))
+        .|.filter("sum < 99", isRepeatTrailUnique("rel"))
         .|.projection("sum + rel.prop AS sum")
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left", "sum")
@@ -1282,7 +1282,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
 
     plan should equal(
       planner.subPlanBuilder()
-        .filterExpression(
+        .filter(
           allReduceFallBack(
             accumulator = v"sum",
             init = literalInt(0),
@@ -1294,7 +1294,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
           )
         )
         .repeatTrail(`((left)-[rel]->(right))+`)
-        .|.filterExpressionOrString(isRepeatTrailUnique("rel"))
+        .|.filter(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left")
         .nodeByLabelScan("a", "N", IndexOrderNone)
@@ -1330,7 +1330,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan should equal(
       planner.subPlanBuilder()
         .repeatTrail(`((left)-[rel]->(right))+ WITH left = 0`)
-        .|.filterExpressionOrString("left < 99", isRepeatTrailUnique("rel"))
+        .|.filter("left < 99", isRepeatTrailUnique("rel"))
         .|.projection("left + rel.prop AS left")
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left")

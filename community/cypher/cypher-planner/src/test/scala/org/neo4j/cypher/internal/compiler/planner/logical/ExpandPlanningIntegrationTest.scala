@@ -275,7 +275,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
     plan shouldEqual planner.planBuilder()
       .produceResults("p")
       .projection(Map("p" -> path))
-      .filterExpression(
+      .filter(
         allInList(
           v"x",
           nodes(path),
@@ -858,7 +858,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
 
     val plan = planner.plan(q).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .filterExpressionOrString("a:A", andsReorderable("a.x = 1", "a.y = 2", "a.z = 3"))
+      .filter("a:A", andsReorderable("a.x = 1", "a.y = 2", "a.z = 3"))
       .expandAll("(b)<-[]-(a)")
       .nodeIndexOperator("b:B(x = 4, y = 5, z = 6)", _ => GetValue, supportPartitionedScan = false)
       .build()

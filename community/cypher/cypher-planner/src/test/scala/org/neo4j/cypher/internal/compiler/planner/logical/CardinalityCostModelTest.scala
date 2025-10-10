@@ -594,7 +594,7 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
     val cardinality = 100.0
     val builder = new LogicalPlanBuilder(wholePlan = false)
     val plan = builder
-      .filterExpression(hasLabels("n", "N"), hasTypes("r", "R"), hasLabelsOrTypes("x", "X"))
+      .filter(hasLabels("n", "N"), hasTypes("r", "R"), hasLabelsOrTypes("x", "X"))
       .argument("n", "r", "x").withCardinality(cardinality)
       .build()
 
@@ -790,7 +790,7 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
 
       val plan =
         builder
-          .filterExpression(predicate).withCardinality(36)
+          .filter(predicate).withCardinality(36)
           .nodeByLabelScan("a", "Foo").withCardinality(120)
           .build()
 

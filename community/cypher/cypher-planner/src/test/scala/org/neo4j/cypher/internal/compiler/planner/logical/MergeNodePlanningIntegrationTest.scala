@@ -385,7 +385,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .planBuilder()
       .produceResults("account")
       .merge(nodes = Seq(createNodeFull("account", labels = Seq("Account"), dynamicLabels = Seq("$roles"))))
-      .filterExpression(hasDynamicLabels(varFor("account"), parameter("roles", CTAny)))
+      .filter(hasDynamicLabels(varFor("account"), parameter("roles", CTAny)))
       .nodeByLabelScan("account", "Account")
       .build()
 
@@ -415,7 +415,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .|.nodeByLabelScan("n", "Account", IndexOrderNone, "anon_0") // Id(2)
       .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(4), Id(2)))))
       .merge(nodes = Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label")))) // Id(4)
-      .filterExpression(hasDynamicLabels(varFor("anon_0"), parameter("label", CTAny)))
+      .filter(hasDynamicLabels(varFor("anon_0"), parameter("label", CTAny)))
       .allNodeScan("anon_0")
       .build()
   }
@@ -467,7 +467,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .emptyResult()
       .apply()
       .|.merge(Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label")))) // Id(3)
-      .|.filterExpression(hasDynamicLabels(varFor("anon_0"), parameter("label", CTAny)))
+      .|.filter(hasDynamicLabels(varFor("anon_0"), parameter("label", CTAny)))
       .|.allNodeScan("anon_0")
       .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(3), Id(8)))))
       .apply()

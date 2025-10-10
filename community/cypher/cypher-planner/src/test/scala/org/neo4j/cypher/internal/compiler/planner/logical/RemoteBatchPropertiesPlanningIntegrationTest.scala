@@ -470,7 +470,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .produceResults("name")
       .projection("cacheN[x.name] AS name")
       .remoteBatchProperties("cacheNFromStore[x.name]")
-      .filterExpression(assertIsNode("x"))
+      .filter(assertIsNode("x"))
       .unwind("[NULL, n] AS x")
       .allNodeScan("n")
       .build()
@@ -498,7 +498,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .produceResults("expandIntoProp", "standaloneProp")
       .projection("cacheN[a.prop] AS expandIntoProp", "cacheN[n0.prop] AS standaloneProp")
       .expandInto("(a)-[]->(n1)")
-      .filterExpression(assertIsNode("n0"))
+      .filter(assertIsNode("n0"))
       .apply()
       .|.nodeIndexOperator(
         "a:L0(prop = 42)",
@@ -754,10 +754,10 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         ),
         "friendLastName" -> cachedNodeProp(variable = "friend", propKey = "lastName", currentVarName = "friend")
       ))
-      .remoteBatchPropertiesByExpr(Set(
+      .remoteBatchProperties(
         cachedNodeProp("person", "lastName", "earlyAdopter", knownToAccessStore = true),
         cachedNodeProp("friend", "lastName", "friend", knownToAccessStore = true)
-      ))
+      )
       .filter("friend:Person")
       .expandAll("(earlyAdopter)-[:KNOWS]->(friend)")
       .projection("person AS earlyAdopter")
@@ -1315,7 +1315,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "b.firstName" -> cachedNodeProp("b", "firstName")
       ))
       .remoteBatchProperties("cacheNFromStore[a.lastName]")
-      .filterExpression(greaterThan(
+      .filter(greaterThan(
         length(varLengthPathExpression(v"a", v"anon_3", v"b")),
         literalInt(5)
       ))
@@ -2018,7 +2018,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.birthDate] AS `bDate`")
-      .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[n.birthDate]")(greaterThan(
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[n.birthDate]")(greaterThan(
         prop("n", "birthDate"),
         date("1995-09-14")
       ))
@@ -2045,7 +2045,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), date()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), date()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()
@@ -2071,7 +2071,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.birthDate] AS `bDate`")
-      .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[n.birthDate]")(greaterThan(
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[n.birthDate]")(greaterThan(
         prop("n", "birthDate"),
         datetime("2010-01-01")
       ))
@@ -2098,7 +2098,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), datetime()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), datetime()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()
@@ -2124,7 +2124,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.birthDate] AS `bDate`")
-      .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[n.birthDate]")(greaterThan(
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[n.birthDate]")(greaterThan(
         prop("n", "birthDate"),
         localdatetime("2010-01-01")
       ))
@@ -2151,7 +2151,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), localdatetime()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), localdatetime()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()
@@ -2177,7 +2177,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.birthTime] AS `bTime`")
-      .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[n.birthTime]")(greaterThan(
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[n.birthTime]")(greaterThan(
         prop("n", "birthTime"),
         localtime("04:10")
       ))
@@ -2204,7 +2204,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), localtime()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), localtime()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()
@@ -2230,7 +2230,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.birthTime] AS `bTime`")
-      .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[n.birthTime]")(greaterThan(
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[n.birthTime]")(greaterThan(
         prop("n", "birthTime"),
         time("21:40:32+01:00")
       ))
@@ -2257,7 +2257,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.prop] AS nProp")
-      .filterExpression(greaterThan(cachedNodeProp("n", "prop"), time()))
+      .filter(greaterThan(cachedNodeProp("n", "prop"), time()))
       .remoteBatchProperties("cacheNFromStore[n.prop]")
       .allNodeScan("n")
       .build()
@@ -2283,7 +2283,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan shouldEqual spdPlannerTemporal.subPlanBuilder()
       .projection("cacheN[n.executionDuration] AS `execDur`")
-      .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[n.executionDuration]")(greaterThan(
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[n.executionDuration]")(greaterThan(
         prop("n", "executionDuration"),
         duration("PT1M")
       ))
@@ -2450,7 +2450,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .projection("cacheN[a.prop] AS `prop`")
         .repeatTrail(`(a) ((left) ... (right))+ (b)`)
         .|.remoteBatchPropertiesWithFilter("cacheRFromStore[rel.prop]")("rel.prop = cacheN[a.prop]")
-        .|.filterExpression(isRepeatTrailUnique("rel"))
+        .|.filter(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left", "a")
         .remoteBatchProperties("cacheNFromStore[a.prop]")
@@ -2498,7 +2498,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
           "cacheN[start.min] < rel.prop",
           "rel.prop < cacheR[x.max]"
         )
-        .|.filterExpression(isRepeatTrailUnique("rel"))
+        .|.filter(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left", "start", "x")
         .remoteBatchProperties("cacheRFromStore[x.max]")
@@ -2552,7 +2552,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .|.filter("cacheN[a.prop] > sum")
         .|.projection("sum + cacheR[rel.prop] AS sum")
         .|.remoteBatchProperties("cacheRFromStore[rel.prop]")
-        .|.filterExpression(isRepeatTrailUnique("rel"))
+        .|.filter(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left", "a", "sum")
         .remoteBatchProperties("cacheNFromStore[a.prop]")
@@ -2744,7 +2744,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "m.firstName" -> cachedNodeProp("n", "firstName", "m"),
         "m.lastName" -> cachedNodeProp("n", "lastName", "m")
       ))
-      .remoteBatchPropertiesByExpr(Set(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true)))
+      .remoteBatchProperties(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true))
       .projection("n AS m")
       .nodeIndexOperator("n:Person(firstName = 'Me')", getValue = Map("firstName" -> GetValue))
       .build()
@@ -2831,8 +2831,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     plan shouldEqual planner.subPlanBuilder()
       .produceResults("`m.lastName`")
       .projection(Map("m.lastName" -> cachedNodeProp("n", "lastName", "m")))
-      .remoteBatchPropertiesByExpr(Set(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true)))
-      .filterExpression(not(equals(cachedNodeProp("n", "firstName", "m"), literalString("me"))))
+      .remoteBatchProperties(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true))
+      .filter(not(equals(cachedNodeProp("n", "firstName", "m"), literalString("me"))))
       .projection("n AS m")
       .nodeIndexOperator(
         "n:Person(firstName = ???)",
@@ -2939,9 +2939,9 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "k.firstName" -> cachedNodeProp("n", "firstName", "k"),
         "k.lastName" -> cachedNodeProp("n", "lastName", "k")
       ))
-      .remoteBatchPropertiesByExpr(Set(cachedNodeProp("n", "lastName", "k", knownToAccessStore = true)))
+      .remoteBatchProperties(cachedNodeProp("n", "lastName", "k", knownToAccessStore = true))
       .projection("m AS k")
-      .filterExpression(not(equals(cachedNodeProp("n", "firstName", "m"), literalString("Adam"))))
+      .filter(not(equals(cachedNodeProp("n", "firstName", "m"), literalString("Adam"))))
       .projection("n AS m")
       .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> GetValue))
       .build()
@@ -2973,18 +2973,18 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.union()
       .|.|.projection("k AS k")
       .|.|.projection("m AS k")
-      .|.|.remoteBatchPropertiesWithFilter(
-        expressions = Set(greaterThan(prop("m", "age"), literalInt(25))),
-        properties = Set(cachedNodeProp("n", "age", "m", knownToAccessStore = true))
-      )
+      .|.|.remoteBatchPropertiesWithFilter(cachedNodeProp("n", "age", "m", knownToAccessStore = true))(greaterThan(
+        prop("m", "age"),
+        literalInt(25)
+      ))
       .|.|.projection("n AS m")
       .|.|.argument("n")
       .|.projection("k AS k")
       .|.projection("m AS k")
-      .|.remoteBatchPropertiesWithFilter(
-        expressions = Set(not(equals(prop("m", "lastName"), literal("Smith")))),
-        properties = Set(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true))
-      )
+      .|.remoteBatchPropertiesWithFilter(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true))(not(equals(
+        prop("m", "lastName"),
+        literal("Smith")
+      )))
       .|.projection("n AS m")
       .|.argument("n")
       .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> GetValue))
@@ -3020,18 +3020,18 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.union()
       .|.|.projection("k AS k")
       .|.|.projection("m AS k")
-      .|.|.remoteBatchPropertiesWithFilter(
-        expressions = Set(greaterThan(prop("m", "age"), literalInt(25))),
-        properties = Set(cachedNodeProp("m", "age", "m", knownToAccessStore = true))
-      )
+      .|.|.remoteBatchPropertiesWithFilter(cachedNodeProp("m", "age", "m", knownToAccessStore = true))(greaterThan(
+        prop("m", "age"),
+        literalInt(25)
+      ))
       .|.|.projection("n AS m")
       .|.|.argument("n")
       .|.projection("k AS k")
       .|.projection("m AS k")
-      .|.remoteBatchPropertiesWithFilter(
-        expressions = Set(not(equals(prop("m", "lastName"), literal("Smith")))),
-        properties = Set(cachedNodeProp("m", "lastName", "m", knownToAccessStore = true))
-      )
+      .|.remoteBatchPropertiesWithFilter(cachedNodeProp("m", "lastName", "m", knownToAccessStore = true))(not(equals(
+        prop("m", "lastName"),
+        literal("Smith")
+      )))
       .|.nodeByLabelScan("m", "Person", IndexOrderNone, "n")
       .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> DoNotGetValue))
       .build()
@@ -3114,7 +3114,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.|.argument("n", "p")
       .|.projection("k AS k")
       .|.projection("m AS k")
-      .|.filterExpression(not(equals(cachedNodeProp("n", "firstName", "m"), literalString("Adam"))))
+      .|.filter(not(equals(cachedNodeProp("n", "firstName", "m"), literalString("Adam"))))
       .|.projection("n AS m")
       .|.argument("n", "p")
       .filter("p:Person")

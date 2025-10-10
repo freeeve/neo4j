@@ -2753,7 +2753,7 @@ class SubqueryCallPlanningIntegrationTest
         .|.apply()
         .|.|.cartesianProduct()
         .|.|.|.allNodeScan("y", "c", "x")
-        .|.|.filterExpression(assertIsNode("x"))
+        .|.|.filter(assertIsNode("x"))
         .|.|.argument("x", "c")
         .|.aggregation(Seq.empty, Seq("count(*) AS c"))
         .|.argument("x")

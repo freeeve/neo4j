@@ -228,7 +228,7 @@ class ConflictFinderTest extends CypherFunSuite with AstConstructionTestSupport 
 
   test("containsNestedPlanExpression for Selection with a nested plan") {
     val plan = new LogicalPlanBuilder(wholePlan = false)
-      .filterExpression(makeNestedPlanExpression)
+      .filter(makeNestedPlanExpression)
       .allNodeScan("a")
       .build()
 

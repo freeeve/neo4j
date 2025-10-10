@@ -487,7 +487,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(HasDegreeGreaterThan(
+        .filter(HasDegreeGreaterThan(
           v"a",
           Some(RelTypeName("X")(pos)),
           SemanticDirection.OUTGOING,
@@ -503,7 +503,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(not(HasDegreeGreaterThan(
+        .filter(not(HasDegreeGreaterThan(
           v"a",
           Some(RelTypeName("X")(pos)),
           SemanticDirection.OUTGOING,
@@ -519,7 +519,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(HasDegreeGreaterThan(
+        .filter(HasDegreeGreaterThan(
           v"a",
           Some(RelTypeName("X")(pos)),
           SemanticDirection.OUTGOING,
@@ -535,7 +535,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       planner.planBuilder()
         .produceResults("b")
-        .filterExpression(HasDegreeGreaterThan(
+        .filter(HasDegreeGreaterThan(
           v"b",
           Some(RelTypeName("X")(pos)),
           SemanticDirection.OUTGOING,
@@ -552,7 +552,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       planner.planBuilder()
         .produceResults("a")
-        .filterExpression(not(HasDegreeGreaterThan(
+        .filter(not(HasDegreeGreaterThan(
           v"a",
           Some(RelTypeName("X")(pos)),
           SemanticDirection.OUTGOING,
@@ -568,7 +568,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       planner.planBuilder()
         .produceResults("b")
-        .filterExpression(not(HasDegreeGreaterThan(
+        .filter(not(HasDegreeGreaterThan(
           v"b",
           Some(RelTypeName("X")(pos)),
           SemanticDirection.OUTGOING,
@@ -585,7 +585,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       new LogicalPlanBuilder()
         .produceResults("a")
-        .filterExpression(HasDegreeGreaterThan(
+        .filter(HasDegreeGreaterThan(
           v"a",
           Some(RelTypeName("X")(pos)),
           SemanticDirection.OUTGOING,
@@ -601,7 +601,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       new LogicalPlanBuilder()
         .produceResults("a")
-        .filterExpression(not(hasDegreeGreater(
+        .filter(not(hasDegreeGreater(
           "a",
           "X",
           SemanticDirection.OUTGOING,
@@ -620,7 +620,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     ) should equal(
       planner.planBuilder()
         .produceResults("n")
-        .filterExpression(hasDegreeGreater("n", "X", OUTGOING, prop("n", "prop")))
+        .filter(hasDegreeGreater("n", "X", OUTGOING, prop("n", "prop")))
         .allNodeScan("n")
         .build()
     )
@@ -648,7 +648,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
         .limit(5)
         .filter("r.combinedScore > 0.8")
         .expandAll("(c)-[r:SIMILAR_TO]->(c2)")
-        .filterExpression(hasDegreeLess("c", "ASSOC_EMAIL", OUTGOING, prop("params", "degreeCutoff")))
+        .filter(hasDegreeLess("c", "ASSOC_EMAIL", OUTGOING, prop("params", "degreeCutoff")))
         .apply()
         .|.nodeByLabelScan("c", "Customer", IndexOrderNone, "params")
         .projection("{degreeCutoff: 10} AS params")
@@ -760,7 +760,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       new LogicalPlanBuilder()
         .produceResults("a")
-        .filterExpression(HasDegreeGreaterThan(
+        .filter(HasDegreeGreaterThan(
           v"a",
           Some(RelTypeName("X")(pos)),
           SemanticDirection.OUTGOING,
@@ -777,7 +777,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     logicalPlan should equal(
       new LogicalPlanBuilder()
         .produceResults("a")
-        .filterExpression(not(HasDegreeGreaterThan(
+        .filter(not(HasDegreeGreaterThan(
           v"a",
           Some(RelTypeName("X")(pos)),
           SemanticDirection.OUTGOING,
@@ -942,7 +942,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
 
     logicalPlan should equal(
       planner.subPlanBuilder()
-        .filterExpression(ors(
+        .filter(ors(
           not(HasDegreeGreaterThan(
             v"a",
             Some(RelTypeName("Y")(pos)),
@@ -2489,7 +2489,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     val plan = planner.plan(q).stripProduceResults
 
     val expectedNestedPlan = planner.subPlanBuilder()
-      .filterExpression(hasAnyLabel("anon_0", "B", "C"))
+      .filter(hasAnyLabel("anon_0", "B", "C"))
       .expand("(n)-[]->(anon_0)")
       .argument("n")
       .build()
@@ -3061,7 +3061,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     val plan25 = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
     withClue("Cypher25") {
       plan25 should equal(planner.subPlanBuilder()
-        .filterExpression(
+        .filter(
           HasDegreeGreaterThan(
             varFor("a"),
             Some(relTypeName("KNOWS")),
@@ -3640,7 +3640,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
         .produceResults("`person.name`")
         .projection("cacheN[person.name] AS `person.name`")
         .semiApply()
-        .|.filterExpressionOrString("dog:Dog", andsReorderable("dog.name = 'Bosse'", "dog.lastname = 'Bosse'"))
+        .|.filter("dog:Dog", andsReorderable("dog.name = 'Bosse'", "dog.lastname = 'Bosse'"))
         .|.expandAll("(person)-[:HAS_DOG]->(dog)")
         .|.filter("cacheNFromStore[person.name] = 'Bosse'")
         .|.argument("person")
@@ -3788,7 +3788,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       .filter("single(x IN anon_5 WHERE true)")
       .rollUpApply("anon_5", "anon_1")
       .|.projection("1 AS anon_1")
-      .|.filterExpressionOrString(
+      .|.filter(
         andsReorderable("anon_3.title = 'V for Vendetta'", "anon_3.released = 2006"),
         "anon_3:Movie"
       )
@@ -3850,7 +3850,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       planner.planBuilder()
         .produceResults()
         .emptyResult()
-        .setPropertiesExpression(caseExp, ("prop", falseLiteral), ("prop2", trueLiteral))
+        .setProperties(caseExp, ("prop", falseLiteral), ("prop2", trueLiteral))
         .argument()
         .build()
     )
@@ -4134,7 +4134,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     plan should equal(planner.subPlanBuilder()
       .produceResults("theProps")
       .aggregation(Seq(), Seq("collect(prop) AS theProps"))
-      .filterExpression(CoerceToPredicate(nestedPlanExpression))
+      .filter(CoerceToPredicate(nestedPlanExpression))
       .sort("prop ASC")
       .projection("a.prop AS prop")
       .nodeByLabelScan("a", "A", IndexOrderNone)

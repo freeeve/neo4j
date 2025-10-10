@@ -207,7 +207,7 @@ class CreateRelationshipPlanningIntegrationTest extends CypherFunSuite with Logi
     plan shouldEqual planner
       .planBuilder()
       .produceResults("r")
-      .filterExpression(
+      .filter(
         not(hasTypes("r", "Foo")),
         andsReorderableAst(not(hasLabels("anon_3", "A")), not(hasLabels("anon_4", "A")))
       )

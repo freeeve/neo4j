@@ -531,9 +531,9 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     ) should equal(
       planner.planBuilder()
         .produceResults(column("r", "cacheR[r.prop]"), column("r2"))
-        .filterExpression(hasLabels("c", "C"), isNotNull(prop("r2", "prop")))
+        .filter(hasLabels("c", "C"), isNotNull(prop("r2", "prop")))
         .expandAll("(b)<-[r2:REL2]-(c)")
-        .filterExpression(andsReorderableAst(hasLabels("b", "B"), hasLabels("a", "A")))
+        .filter(andsReorderableAst(hasLabels("b", "B"), hasLabels("a", "A")))
         .relationshipIndexOperator(
           "(a)-[r:REL(prop)]->(b)",
           indexOrder = IndexOrderNone,
@@ -576,7 +576,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults(column("r", "cacheR[r.prop]"), column("r2", "cacheR[r2.prop]"))
         .nodeHashJoin("b")
-        .|.filterExpression(hasLabels("c", "C"))
+        .|.filter(hasLabels("c", "C"))
         .|.relationshipIndexOperator(
           "(c)-[r2:REL2(prop)]->(b)",
           indexOrder = IndexOrderNone,
@@ -584,7 +584,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
           getValue = _ => GetValue,
           indexType = IndexType.RANGE
         )
-        .filterExpression(andsReorderableAst(hasLabels("b", "B"), hasLabels("a", "A")))
+        .filter(andsReorderableAst(hasLabels("b", "B"), hasLabels("a", "A")))
         .relationshipIndexOperator(
           "(a)-[r:REL(prop)]->(b)",
           indexOrder = IndexOrderNone,

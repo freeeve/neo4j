@@ -214,7 +214,7 @@ class WithPlanningIntegrationTest extends CypherFunSuite
     plan should equal(
       planner.planBuilder()
         .produceResults("n")
-        .filterExpression(
+        .filter(
           not(HasDegreeGreaterThan(
             v"n2",
             None,

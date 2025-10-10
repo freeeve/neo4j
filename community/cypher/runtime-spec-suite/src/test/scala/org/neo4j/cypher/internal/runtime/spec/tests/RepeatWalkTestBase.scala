@@ -359,7 +359,7 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
       .produceResults("me", "you", "a", "b", "r", "path")
       .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
       .repeatWalk(`(me) [(a)-[r]->(b)]{0,2} (you)`)
-      .|.filterExpressionOrString("b_inner.prop = me.prop")
+      .|.filter("b_inner.prop = me.prop")
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
       .allNodeScan("me")
@@ -522,7 +522,7 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")
       .repeatWalk(`() ((a)->[r]->(b)->[s]->(c))+ ()`)
-      .|.filterExpressionOrString("not s_inner = r_inner")
+      .|.filter("not s_inner = r_inner")
       .|.expandAll("(b_inner)-[s_inner]->(c_inner)")
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("a", "anon_start")
@@ -756,7 +756,7 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
       .produceResults("me", "you", "a", "b", "r")
       .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
       .repeatWalk(`(me) [(a)-[r]->(b)]{0,2} (you)`)
-      .|.filterExpressionOrString(s"id(b_inner)<>${n3.getId}")
+      .|.filter(s"id(b_inner)<>${n3.getId}")
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
       .nodeByLabelScan("me", "START", IndexOrderNone)
@@ -784,7 +784,7 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
       .repeatWalk(`(me) [(a)-[r]->(b)]{0,2} (you)`)
       .|.unwind("[1] AS ignore") // pipelined specific: does not need a filtering morsel
       .|.nonFuseable() // pipelined specific: force break to test where RHS output receives normal Morsel but RHS leaf requires FilteringMorsel
-      .|.filterExpressionOrString(s"id(b_inner)<>${n3.getId}")
+      .|.filter(s"id(b_inner)<>${n3.getId}")
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
       .nodeByLabelScan("me", "START", IndexOrderNone)
@@ -1101,7 +1101,7 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("me", "you", "a", "b", "c", "r", "rr")
       .repeatWalk(RepeatWalkTestBase.`(me) [(a)-[r]->(b)<-[rr]-(c)]{0,1} (you)`)
-      .|.filterExpressionOrString("not rr_inner = r_inner")
+      .|.filter("not rr_inner = r_inner")
       .|.expandAll("(b_inner)<-[rr_inner]-(c_inner)")
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
@@ -1133,12 +1133,12 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("me", "you", "a", "b", "c", "d", "r", "rr", "rrr")
       .repeatWalk(RepeatWalkTestBase.`(me) [(a)-[r]->(b)-[rr]->(c)<-[rrr]-(d)]{0,1} (you)`)
-      .|.filterExpressionOrString(
+      .|.filter(
         "not rrr_inner = r_inner",
         "not rrr_inner = rr_inner"
       )
       .|.expandAll("(c_inner)<-[rrr_inner]-(d_inner)")
-      .|.filterExpressionOrString("not rr_inner = r_inner")
+      .|.filter("not rr_inner = r_inner")
       .|.expandAll("(b_inner)-[rr_inner]->(c_inner)")
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
@@ -2885,7 +2885,7 @@ trait OrderedWalkTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("me", "you", "a", "b", "c", "d", "r", "rr", "rrr")
       .repeatWalk(RepeatWalkTestBase.`(me) [(a)-[r]->(b)-[rr]->(c)<-[rrr]-(d)]{0,1} (you)`).withLeveragedOrder()
-      .|.filterExpressionOrString(
+      .|.filter(
         "not rrr_inner = rr_inner",
         "not rrr_inner = r_inner"
       )
