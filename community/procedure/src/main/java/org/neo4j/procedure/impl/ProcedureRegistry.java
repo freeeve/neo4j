@@ -160,7 +160,7 @@ public class ProcedureRegistry {
         return new ProcedureHandle(proc.signature(), procedures.idOfKey(name, scope));
     }
 
-    ProcedureSignature signatureFromId(int id) throws ProcedureException {
+    ProcedureSignature procedureSignatureFromId(int id) throws ProcedureException {
         try {
             CallableProcedure byId = procedures.getById(id);
             if (byId == null) {
@@ -169,6 +169,18 @@ public class ProcedureRegistry {
             return byId.signature();
         } catch (IndexOutOfBoundsException e) {
             throw ProcedureException.noSuchProcedure(id);
+        }
+    }
+
+    UserFunctionSignature functionSignatureFromId(int id) throws ProcedureException {
+        try {
+            CallableUserFunction byId = functions.getById(id);
+            if (byId == null) {
+                throw ProcedureException.noSuchFunction(id);
+            }
+            return byId.signature();
+        } catch (IndexOutOfBoundsException e) {
+            throw ProcedureException.noSuchFunction(id);
         }
     }
 
