@@ -1366,7 +1366,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
 
     plan shouldEqual planner.subPlanBuilder()
       .repeatTrail(`((left)-[rel]->(right))+ WITH acc = 0`)
-      .|.filterExpressionOrString("rel.otherProp > acc", isRepeatTrailUnique("rel"))
+      .|.filter("rel.otherProp > acc", isRepeatTrailUnique("rel"))
       .|.projection("acc + rel.prop AS acc")
       .|.expandAll("(left)-[rel]->(right)")
       .|.argument("left", "acc")
