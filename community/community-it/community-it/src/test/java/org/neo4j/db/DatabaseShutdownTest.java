@@ -78,7 +78,7 @@ class DatabaseShutdownTest {
                         databaseLayout.databaseDirectory(), fs);
         DatabaseManagementService managementService = factory.build();
         GraphDatabaseAPI databaseService = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-        DatabaseStateService dbStateService =
+        DatabaseStateService<?> dbStateService =
                 databaseService.getDependencyResolver().resolveDependency(DatabaseStateService.class);
         factory.setFailFlush(true);
 

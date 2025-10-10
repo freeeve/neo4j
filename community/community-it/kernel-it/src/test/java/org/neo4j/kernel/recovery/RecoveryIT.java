@@ -1559,7 +1559,7 @@ class RecoveryIT {
 
         GraphDatabaseAPI restartedDb = createDatabase();
         try {
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     restartedDb.getDependencyResolver().resolveDependency(DatabaseStateService.class);
 
             var failure = dbStateService.causeOfFailure(restartedDb.databaseId());
@@ -1791,7 +1791,7 @@ class RecoveryIT {
 
         GraphDatabaseAPI restartedDb = createDatabase();
         try {
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     restartedDb.getDependencyResolver().resolveDependency(DatabaseStateService.class);
 
             var failure = dbStateService.causeOfFailure(restartedDb.databaseId());
@@ -1820,7 +1820,7 @@ class RecoveryIT {
         GraphDatabaseAPI restartedDb = createDatabase();
 
         try {
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     restartedDb.getDependencyResolver().resolveDependency(DatabaseStateService.class);
 
             var failure = dbStateService.causeOfFailure(restartedDb.databaseId());

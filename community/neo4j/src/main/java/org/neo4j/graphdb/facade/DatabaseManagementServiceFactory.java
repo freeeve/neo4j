@@ -281,7 +281,7 @@ public class DatabaseManagementServiceFactory {
         try {
             globalLife.start();
 
-            DatabaseStateService databaseStateService =
+            DatabaseStateService<?> databaseStateService =
                     globalModule.getGlobalDependencies().resolveDependency(DatabaseStateService.class);
 
             verifySystemDatabaseStart(databaseContextProvider, databaseStateService);
@@ -307,7 +307,7 @@ public class DatabaseManagementServiceFactory {
     }
 
     private static void verifySystemDatabaseStart(
-            DatabaseContextProvider<?> databaseContextProvider, DatabaseStateService dbStateService) {
+            DatabaseContextProvider<?> databaseContextProvider, DatabaseStateService<?> dbStateService) {
         Optional<? extends DatabaseContext> databaseContext =
                 databaseContextProvider.getDatabaseContext(NAMED_SYSTEM_DATABASE_ID);
         if (databaseContext.isEmpty()) {

@@ -78,7 +78,7 @@ class MissingStoreFilesRecoveryIT {
         createSomeData(databaseApi);
         databaseLayout = databaseApi.databaseLayout();
 
-        defaultNamedDatabaseId = getDatabaseManager()
+        defaultNamedDatabaseId = getDatabaseContextProvider()
                 .databaseIdRepository()
                 .getByName(DEFAULT_DATABASE_NAME)
                 .orElseThrow();
@@ -148,13 +148,13 @@ class MissingStoreFilesRecoveryIT {
         return logFiles;
     }
 
-    private DatabaseContextProvider getDatabaseManager() {
+    private DatabaseContextProvider<?> getDatabaseContextProvider() {
         return defaultDatabase(managementService)
                 .getDependencyResolver()
                 .resolveDependency(DatabaseContextProvider.class);
     }
 
-    private DatabaseStateService getDatabaseStateService() {
+    private DatabaseStateService<?> getDatabaseStateService() {
         return defaultDatabase(managementService).getDependencyResolver().resolveDependency(DatabaseStateService.class);
     }
 

@@ -31,6 +31,7 @@ import org.neo4j.collection.Dependencies;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.dbms.CommunityDatabaseState;
 import org.neo4j.dbms.CommunityDatabaseStateService;
 import org.neo4j.dbms.CommunityKernelPanicListener;
 import org.neo4j.dbms.DatabaseStateService;
@@ -115,7 +116,7 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
     private final InternalLogProvider logProvider;
     private final CommunitySecurityLog securityLog;
 
-    protected DatabaseStateService databaseStateService;
+    protected DatabaseStateService<CommunityDatabaseState> databaseStateService;
     private MapCachingDatabaseReferenceRepository databaseReferenceRepo;
     private Lifecycle defaultDatabaseInitializer = new LifecycleAdapter();
     private SystemGraphComponents systemGraphComponents;

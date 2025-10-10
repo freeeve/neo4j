@@ -511,7 +511,7 @@ class RecoveryCorruptedTransactionLogIT {
         DatabaseManagementService managementService = databaseFactory.build();
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         try {
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             assertTrue(dbStateService.causeOfFailure(db.databaseId()).isPresent());
             assertThat(dbStateService.causeOfFailure(db.databaseId()).get())
@@ -865,7 +865,7 @@ class RecoveryCorruptedTransactionLogIT {
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         try {
 
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             assertTrue(dbStateService.causeOfFailure(db.databaseId()).isPresent());
             assertThat(dbStateService.causeOfFailure(db.databaseId()).get())
@@ -883,7 +883,7 @@ class RecoveryCorruptedTransactionLogIT {
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         try {
 
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             assertTrue(dbStateService.causeOfFailure(db.databaseId()).isPresent());
             assertThat(dbStateService.causeOfFailure(db.databaseId()).get())
@@ -1139,7 +1139,7 @@ class RecoveryCorruptedTransactionLogIT {
         managementService = databaseFactory.build();
         try {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             assertTrue(dbStateService.causeOfFailure(db.databaseId()).isPresent());
             assertThat(dbStateService

@@ -25,20 +25,13 @@ import java.util.Optional;
 import java.util.function.Function;
 import org.neo4j.kernel.database.NamedDatabaseId;
 
-public class StubDatabaseStateService implements DatabaseStateService {
+public class StubDatabaseStateService implements DatabaseStateService<DatabaseState> {
     private final Map<NamedDatabaseId, DatabaseState> databaseStates;
     private final Function<NamedDatabaseId, DatabaseState> unknownFactory;
 
     public StubDatabaseStateService(Function<NamedDatabaseId, DatabaseState> unknownFactory) {
         this.unknownFactory = unknownFactory;
         this.databaseStates = Collections.emptyMap();
-    }
-
-    public StubDatabaseStateService(
-            Map<NamedDatabaseId, DatabaseState> databaseStates,
-            Function<NamedDatabaseId, DatabaseState> unknownFactory) {
-        this.databaseStates = databaseStates;
-        this.unknownFactory = unknownFactory;
     }
 
     @Override

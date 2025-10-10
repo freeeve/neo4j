@@ -101,7 +101,7 @@ class DatabaseStartupTest {
         try {
 
             assertThrows(DatabaseShutdownException.class, databaseService::beginTx);
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     databaseService.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             assertTrue(
                     dbStateService.causeOfFailure(databaseService.databaseId()).isPresent());
@@ -148,7 +148,7 @@ class DatabaseStartupTest {
             db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             assertFalse(db.isAvailable(10));
 
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             Optional<Throwable> cause = dbStateService.causeOfFailure(db.databaseId());
             assertTrue(cause.isPresent());
@@ -179,7 +179,7 @@ class DatabaseStartupTest {
             db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             assertFalse(db.isAvailable(10));
 
-            DatabaseStateService dbStateService =
+            DatabaseStateService<?> dbStateService =
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             Optional<Throwable> cause = dbStateService.causeOfFailure(db.databaseId());
             assertTrue(cause.isPresent());

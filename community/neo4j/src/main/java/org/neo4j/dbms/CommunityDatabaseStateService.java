@@ -29,7 +29,7 @@ import org.neo4j.kernel.database.NamedDatabaseId;
 /**
  * Database State Service for the community edition of the dbms
  */
-public final class CommunityDatabaseStateService implements DatabaseStateService {
+public final class CommunityDatabaseStateService implements DatabaseStateService<CommunityDatabaseState> {
     private final DatabaseContextProvider<StandaloneDatabaseContext> databaseContextProvider;
 
     public CommunityDatabaseStateService(DatabaseContextProvider<StandaloneDatabaseContext> databaseContextProvider) {
@@ -37,13 +37,13 @@ public final class CommunityDatabaseStateService implements DatabaseStateService
     }
 
     @Override
-    public Map<NamedDatabaseId, DatabaseState> stateOfAllDatabases() {
+    public Map<NamedDatabaseId, CommunityDatabaseState> stateOfAllDatabases() {
         return databaseContextProvider.registeredDatabases().entrySet().stream()
                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> getState(entry.getValue())));
     }
 
     @Override
-    public DatabaseState stateOfDatabase(NamedDatabaseId namedDatabaseId) {
+    public CommunityDatabaseState stateOfDatabase(NamedDatabaseId namedDatabaseId) {
         return databaseContextProvider
                 .getDatabaseContext(namedDatabaseId)
                 .map(CommunityDatabaseStateService::getState)
@@ -55,7 +55,7 @@ public final class CommunityDatabaseStateService implements DatabaseStateService
         return databaseContextProvider.getDatabaseContext(namedDatabaseId).map(StandaloneDatabaseContext::failureCause);
     }
 
-    private static DatabaseState getState(StandaloneDatabaseContext ctx) {
+    private static CommunityDatabaseState getState(StandaloneDatabaseContext ctx) {
         return new CommunityDatabaseState(
                 ctx.database().getNamedDatabaseId(), ctx.database().isStarted(), ctx.isFailed(), ctx.failureCause());
     }

@@ -29,7 +29,7 @@ import org.neo4j.kernel.database.NamedDatabaseId;
  * Also provides the ability to check whether a database is in a failed state.
  * A failed database has usually failed to undergo some state transition (i.e. START -> STOP)
  */
-public interface DatabaseStateService {
+public interface DatabaseStateService<T extends DatabaseState> {
 
     /**
      * Return a snapshot of states for all known databases.
@@ -38,7 +38,7 @@ public interface DatabaseStateService {
      *
      * @return map of named database Ids to operator states
      */
-    Map<NamedDatabaseId, DatabaseState> stateOfAllDatabases();
+    Map<NamedDatabaseId, T> stateOfAllDatabases();
 
     /**
      * Note that if a database with the given name exists in the database manager but not in the reconciler,
@@ -47,7 +47,7 @@ public interface DatabaseStateService {
      * @param namedDatabaseId the database whose state to return
      * @return state of database with name
      */
-    DatabaseState stateOfDatabase(NamedDatabaseId namedDatabaseId);
+    T stateOfDatabase(NamedDatabaseId namedDatabaseId);
 
     /**
      * Note that if a database with the given name does not exist, {@code Optional.empty()}

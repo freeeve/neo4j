@@ -72,7 +72,7 @@ class DatabaseFailureIT {
         FileUtils.deleteDirectory(databaseLayout.getTransactionLogsDirectory());
 
         database = startDatabase();
-        DatabaseStateService databaseStateService =
+        DatabaseStateService<?> databaseStateService =
                 database.getDependencyResolver().resolveDependency(DatabaseStateService.class);
         assertTrue(databaseStateService.causeOfFailure(database.databaseId()).isPresent());
         assertFalse(

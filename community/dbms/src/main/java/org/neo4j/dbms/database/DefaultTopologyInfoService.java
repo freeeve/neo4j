@@ -48,14 +48,14 @@ public class DefaultTopologyInfoService implements TopologyInfoService {
     private final ReadOnlyDatabases readOnlyDatabases;
     private final ServerId serverId;
     private final Config config;
-    private final DatabaseStateService stateService;
+    private final DatabaseStateService<?> stateService;
     private final DefaultDatabaseDetailsExtrasProvider databaseDetailsExtrasProvider;
     private final SocketAddress fixBoltAddress;
 
     public DefaultTopologyInfoService(
             ServerId serverId,
             Config config,
-            DatabaseStateService stateService,
+            DatabaseStateService<?> stateService,
             ReadOnlyDatabases readOnlyDatabases,
             DefaultDatabaseDetailsExtrasProvider databaseDetailsExtrasProvider) {
         this.serverId = serverId;
