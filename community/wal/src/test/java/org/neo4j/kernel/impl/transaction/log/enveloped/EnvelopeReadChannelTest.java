@@ -140,7 +140,7 @@ class EnvelopeReadChannelTest {
         assertThatThrownBy(() -> {
                     try (var buffer = new NativeScopedBuffer(bufferSize, LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
                             var ignored = new EnvelopeReadChannel(
-                                    logChannel(), segmentSize, -1, NO_MORE_CHANNELS, false, buffer)) {}
+                                    logChannel(), segmentSize, NO_MORE_CHANNELS, false, buffer)) {}
                 })
                 .isInstanceOf(IOException.class);
     }
@@ -849,7 +849,7 @@ class EnvelopeReadChannelTest {
         final var logChannel = logChannel();
         try (var buffer = new NativeScopedBuffer(bufferSize, LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
                 var channel = new EnvelopeReadChannel(
-                        logChannel, segmentSize, -1, new TwoFileLogVersionBridge(path2), false, buffer)) {
+                        logChannel, segmentSize, new TwoFileLogVersionBridge(path2), false, buffer)) {
             // THEN
             byte[] result = new byte[dataLength];
             channel.get(result, dataLength);

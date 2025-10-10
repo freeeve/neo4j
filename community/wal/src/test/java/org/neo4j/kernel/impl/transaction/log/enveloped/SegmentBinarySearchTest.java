@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -58,7 +60,6 @@ class SegmentBinarySearchTest {
     private EnvelopedLogFiles envelopedLogFiles;
 
     private static void writeData(EnvelopeWriteChannel writeChannel, byte[] data, int index) throws IOException {
-        data[0] = (byte) index;
         writeData(writeChannel, data, -1L);
     }
 
@@ -100,7 +101,7 @@ class SegmentBinarySearchTest {
                 writeBufferedBlocks,
                 totalSegments,
                 EmptyMemoryTracker.INSTANCE,
-                pruneStrategy::newConstraint,
+                pruneStrategy,
                 new LogFilesPreAllocator(NullLogProvider.getInstance()));
     }
 
@@ -330,6 +331,63 @@ class SegmentBinarySearchTest {
         try (var readChannel = envelopedLogFiles.openReadChannel()) {
             var entryWhichDoesNotExist = 14;
             assertThrows(ReadPastEndException.class, () -> readChannel.goToEntry(entryWhichDoesNotExist));
+        }
+    }
+
+    @Test
+    void shouldHandlePreAllocatedFile() throws IOException {
+        var baseData = "this is an entry".getBytes(StandardCharsets.UTF_8);
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        for (int i = 0; i < 14; i++) {
+            writeData(writeChannel, baseData, i);
+        }
+        writeChannel.prepareForFlush().flush();
+
+        int bytesLeft = Math.toIntExact(totalSegments * segmentBlockSize - writeChannel.position());
+        var zeroes = ByteBuffer.wrap(new byte[bytesLeft]);
+        writeChannel.directPutAll(zeroes, writeChannel.position());
+
+        for (var i = 4; i < 14; i++) {
+
+            try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+                envelopeReadChannel.goToEntry(i);
+                var readEntry = new byte[baseData.length];
+                var entry = ByteBuffer.wrap(readEntry);
+                envelopeReadChannel.read(entry);
+                assertThat(readEntry).isEqualTo(baseData);
+            }
+        }
+    }
+
+    @Test
+    void shouldHandleFileWithOffset() throws IOException {
+        var baseData = "the entry".getBytes(StandardCharsets.UTF_8);
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        writeChannel.insertStartOffset(87);
+
+        for (int i = 0; i < 14; i++) {
+            writeData(writeChannel, baseData, i);
+        }
+        writeChannel.prepareForFlush().flush();
+
+        for (var i = 4; i < 14; i++) {
+
+            try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+                envelopeReadChannel.goToEntry(i);
+                assertThat(envelopeReadChannel.getAppendIndex()).isEqualTo(i);
+                var readEntry = new byte[baseData.length];
+                var entry = ByteBuffer.wrap(readEntry);
+                envelopeReadChannel.read(entry);
+                assertThat(readEntry).isEqualTo(baseData);
+            }
         }
     }
 

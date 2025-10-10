@@ -355,12 +355,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             throws IOException {
         var logVersionedChannel = logVersionedChannel(logChannelCtx, version);
         return new EnvelopeReadChannel(
-                logVersionedChannel,
-                segmentBlockSize,
-                totalSegments,
-                new EnvelopedLogVersionBridge(this),
-                memoryTracker,
-                false);
+                logVersionedChannel, segmentBlockSize, new EnvelopedLogVersionBridge(this), memoryTracker, false);
     }
 
     private PhysicalLogVersionedStoreChannel logVersionedChannel(

@@ -100,7 +100,6 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     private final boolean raw;
     protected final ByteBuffer buffer;
     private final int segmentBlockSize;
-    private final int totalSegments;
     private final ByteBuffer checksumView;
     private final int segmentShift;
     private final int segmentMask;
@@ -132,7 +131,6 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         this(
                 startingChannel,
                 segmentBlockSize,
-                -1,
                 bridge,
                 raw,
                 new NativeScopedBuffer(segmentBlockSize, LITTLE_ENDIAN, memoryTracker));
@@ -141,24 +139,6 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     public EnvelopeReadChannel(
             LogVersionedStoreChannel startingChannel,
             int segmentBlockSize,
-            int totalSegments,
-            LogVersionBridge bridge,
-            MemoryTracker memoryTracker,
-            boolean raw)
-            throws IOException {
-        this(
-                startingChannel,
-                segmentBlockSize,
-                totalSegments,
-                bridge,
-                raw,
-                new NativeScopedBuffer(segmentBlockSize, LITTLE_ENDIAN, memoryTracker));
-    }
-
-    public EnvelopeReadChannel(
-            LogVersionedStoreChannel startingChannel,
-            int segmentBlockSize,
-            int totalSegments,
             LogVersionBridge bridge,
             boolean raw,
             ScopedBuffer scopedBuffer)
@@ -166,7 +146,6 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         this.channel = requireNonNull(startingChannel);
         requirePowerOfTwo(segmentBlockSize);
         this.segmentBlockSize = segmentBlockSize;
-        this.totalSegments = totalSegments;
         this.segmentShift = 31 - Integer.numberOfLeadingZeros(segmentBlockSize);
         this.segmentMask = segmentBlockSize - 1;
         this.bridge = requireNonNull(bridge);
@@ -381,6 +360,12 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         if (entryIndex < logHeader.getLastAppendIndex()) {
             throw new IllegalArgumentException("Invalid entry index " + entryIndex + " is in a previous log file");
         }
+        if (channel.size() <= segmentBlockSize) {
+            // nothing except the header in this file
+            throw ReadPastEndException.INSTANCE;
+        }
+
+        int totalSegments = Math.toIntExact(Math.ceilDiv(channel.size(), segmentBlockSize));
 
         var segmentBinarySearch = new SegmentBinarySearch(this, totalSegments, segmentBlockSize);
         var segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, entryIndex);
