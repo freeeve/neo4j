@@ -31,8 +31,9 @@ import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant.STRINGIFIER
  * Examples:
  * - `datetime({year: $param})`
  * - `duration($AUTOSTRING)`
- * @param variable
- * @param inner
+ *
+ * @param variable the variable that will hold the value of the inner expression
+ * @param inner the expression that will be evaluated once per query and assigned to the variable
  */
 case class RuntimeConstant(variable: LogicalVariable, inner: Expression) extends RuntimeExpression {
   self =>

@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.CoerceTo
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.StringLiteral
@@ -63,16 +64,12 @@ import org.neo4j.cypher.internal.util.symbols.CTDateTime
 import org.neo4j.cypher.internal.util.symbols.CTDuration
 import org.neo4j.cypher.internal.util.symbols.CTLocalDateTime
 import org.neo4j.cypher.internal.util.symbols.CTLocalTime
+import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.CTZonedDateTime
+import org.neo4j.cypher.internal.util.symbols.CTZonedTime
 import org.neo4j.cypher.internal.util.symbols.CypherType
-import org.neo4j.cypher.internal.util.symbols.DateType
-import org.neo4j.cypher.internal.util.symbols.DurationType
-import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType
-import org.neo4j.cypher.internal.util.symbols.LocalTimeType
-import org.neo4j.cypher.internal.util.symbols.StringType
-import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
-import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.ArraySeq
@@ -1949,7 +1946,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         |  friend.lastName""".stripMargin
     planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
       .projection("cacheN[friend.lastName] AS `friend.lastName`")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[friend.lastName]")("friend.firstName = friends_name")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[friend.lastName]")("friend.firstName = 'Patrick'")
       .expandAll("(person)-[:KNOWS]->(friend)")
       .projection("'Patrick' AS friends_name")
       .nodeIndexOperator("person:Person(id = 'ID')", unique = true)
@@ -3143,6 +3140,196 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .build()
   }
 
+  test("should not replace expressions in remoteBatchPropertiesWithFilter that are aggregations") {
+    val planner =
+      spdPlanner
+        .setAllNodesCardinality(100)
+        .build()
+
+    val plan =
+      planner.plan(
+        """WITH count(*) - 5 AS count
+          |MATCH (a)
+          |WHERE a.prop < count
+          |return a""".stripMargin
+      )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("a")
+        .remoteBatchPropertiesWithFilter("cacheNFromStore[a.prop]")("a.prop < count")
+        .apply()
+        .|.allNodeScan("a", "count")
+        .projection("anon_0 - 5 AS count")
+        .aggregation(Seq(), Seq("count(*) AS anon_0"))
+        .argument()
+        .build()
+    )
+  }
+
+  test("should push down parameters or constants to shard") {
+    val durationSignature =
+      functionSignature("duration")
+        .withInputField("value", CTMap)
+        .withOutputType(CTDuration)
+        .build()
+
+    val planner =
+      spdPlanner
+        .setAllNodesCardinality(1000)
+        .addFunction(durationSignature)
+        .build()
+
+    val query =
+      """MATCH (txn1)
+        |WHERE txn1.transactionDate <= $date AND txn1.duration <= duration({days:35})
+        |RETURN txn1.duration""".stripMargin
+
+    val plan = planner.plan(query)
+
+    val durationConstant = RuntimeConstant(
+      v"anon_0",
+      function(
+        durationSignature,
+        coerceTo(
+          mapOf("days" -> literalInt(35)),
+          CTMap
+        )
+      )
+    )
+
+    plan should equal(
+      planner.planBuilder().produceResults("`txn1.duration`")
+        .projection("cacheN[txn1.duration] AS `txn1.duration`")
+        // as we only use txn1.duration, we only need to fetch that property
+        .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[txn1.duration]")(
+          lessThanOrEqual(prop("txn1", "duration"), durationConstant),
+          lessThanOrEqual(prop("txn1", "transactionDate"), parameter("date", CTAny))
+        )
+        .allNodeScan("txn1")
+        .build()
+    )
+  }
+
+  test("should push down variables of parameters or constants to shard") {
+    val durationSignature =
+      functionSignature("duration")
+        .withInputField("value", CTMap)
+        .withOutputType(CTDuration)
+        .build()
+
+    val planner =
+      spdPlanner
+        .setAllNodesCardinality(1000)
+        .addFunction(durationSignature)
+        .build()
+
+    val query =
+      """WITH $date AS date, duration({days:35}) AS duration
+        |MATCH (txn1)
+        |WHERE txn1.transactionDate <= date AND txn1.duration <= duration
+        |RETURN txn1""".stripMargin
+
+    val plan = planner.plan(query)
+
+    val durationConstant = RuntimeConstant(
+      v"anon_0",
+      function(
+        durationSignature,
+        coerceTo(
+          mapOf("days" -> literalInt(35)),
+          CTMap
+        )
+      )
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("txn1")
+        .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[txn1.duration]")(
+          lessThanOrEqual(prop("txn1", "duration"), durationConstant),
+          lessThanOrEqual(prop("txn1", "transactionDate"), parameter("date", CTAny))
+        )
+        .apply()
+        .|.allNodeScan("txn1")
+        .projection(Map("date" -> parameter("date", CTAny), "duration" -> durationConstant))
+        .argument()
+        .build()
+    )
+  }
+
+  test("should push down nested variables of parameters or constants to shard") {
+    val durationSignature =
+      functionSignature("duration")
+        .withInputField("value", CTMap)
+        .withOutputType(CTDuration)
+        .build()
+
+    val planner =
+      spdPlanner
+        .setAllNodesCardinality(1000)
+        .addFunction(durationSignature)
+        .build()
+
+    val query =
+      """WITH $date AS curDate
+        |WITH curDate, curDate-duration({days:35}) AS curDate35
+        |MATCH (txn1)
+        |WHERE txn1.transactionDate <= curDate35
+        |RETURN txn1""".stripMargin
+
+    val plan = planner.plan(query)
+
+    val subtractionConstant = RuntimeConstant(
+      v"anon_0",
+      subtract(
+        parameter("date", CTAny),
+        function(
+          durationSignature,
+          coerceTo(
+            mapOf("days" -> literalInt(35)),
+            CTMap
+          )
+        )
+      )
+    )
+
+    val durationConstant = RuntimeConstant(
+      v"anon_1",
+      function(
+        durationSignature,
+        coerceTo(
+          mapOf("days" -> literalInt(35)),
+          CTMap
+        )
+      )
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("txn1")
+        .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[txn1.transactionDate]")(
+          lessThanOrEqual(
+            prop("txn1", "transactionDate"),
+            subtractionConstant
+          )
+        )
+        .apply()
+        .|.allNodeScan("txn1")
+        .projection(Map("curDate35" -> subtract(v"curDate", durationConstant)))
+        .projection("$date AS curDate")
+        .argument()
+        .build()
+    )
+  }
+
+  def function(signature: UserFunctionSignature, arguments: Expression*): ResolvedFunctionInvocation =
+    ResolvedFunctionInvocation(
+      signature.name,
+      Some(signature),
+      arguments.toIndexedSeq
+    )(pos)
+
   def temporalRuntimeConstant(functionName: String, temporalType: CypherType, dateString: String): RuntimeConstant = {
     RuntimeConstant(
       varFor("anon_0"),
@@ -3150,7 +3337,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         QualifiedName(Seq.empty, functionName),
         Some(UserFunctionSignature(
           QualifiedName(Seq.empty, functionName),
-          ArraySeq(FieldSignature("value", StringType(true)(InputPosition.NONE))),
+          ArraySeq(FieldSignature("value", CTString)),
           temporalType,
           Some(DeprecationInfo(false, None)),
           None,
@@ -3159,35 +3346,35 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
           true
         )),
         ArraySeq(CoerceTo(
-          StringLiteral(dateString)(InputPosition.Range(0, 0, 0, 0)),
-          StringType(true)(InputPosition.NONE)
+          StringLiteral(dateString)(pos),
+          CTString
         ))
-      )(InputPosition.NONE)
+      )(pos)
     )
   }
 
   def date(date: String): RuntimeConstant = {
-    temporalRuntimeConstant("date", DateType(true)(InputPosition.NONE), date)
+    temporalRuntimeConstant("date", CTDate, date)
   }
 
   def datetime(datetime: String): RuntimeConstant = {
-    temporalRuntimeConstant("datetime", ZonedDateTimeType(true)(InputPosition.NONE), datetime)
+    temporalRuntimeConstant("datetime", CTZonedDateTime, datetime)
   }
 
   def localdatetime(localdatetime: String): RuntimeConstant = {
-    temporalRuntimeConstant("localdatetime", LocalDateTimeType(true)(InputPosition.NONE), localdatetime)
+    temporalRuntimeConstant("localdatetime", CTLocalDateTime, localdatetime)
   }
 
   def localtime(localtime: String): RuntimeConstant = {
-    temporalRuntimeConstant("localtime", LocalTimeType(true)(InputPosition.NONE), localtime)
+    temporalRuntimeConstant("localtime", CTLocalTime, localtime)
   }
 
   def time(time: String): RuntimeConstant = {
-    temporalRuntimeConstant("time", ZonedTimeType(true)(InputPosition.NONE), time)
+    temporalRuntimeConstant("time", CTZonedTime, time)
   }
 
   def duration(duration: String): RuntimeConstant = {
-    temporalRuntimeConstant("duration", DurationType(true)(InputPosition.NONE), duration)
+    temporalRuntimeConstant("duration", CTDuration, duration)
   }
 
   def temporalFunction(functionName: String, temporalType: CypherType): ResolvedFunctionInvocation = {
@@ -3208,22 +3395,22 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
   }
 
   def date(): ResolvedFunctionInvocation = {
-    temporalFunction("date", DateType(true)(InputPosition.NONE))
+    temporalFunction("date", CTDate)
   }
 
   def datetime(): ResolvedFunctionInvocation = {
-    temporalFunction("datetime", ZonedDateTimeType(true)(InputPosition.NONE))
+    temporalFunction("datetime", CTZonedDateTime)
   }
 
   def localdatetime(): ResolvedFunctionInvocation = {
-    temporalFunction("localdatetime", LocalDateTimeType(true)(InputPosition.NONE))
+    temporalFunction("localdatetime", CTLocalDateTime)
   }
 
   def localtime(): ResolvedFunctionInvocation = {
-    temporalFunction("localtime", LocalTimeType(true)(InputPosition.NONE))
+    temporalFunction("localtime", CTLocalTime)
   }
 
   def time(): ResolvedFunctionInvocation = {
-    temporalFunction("time", ZonedTimeType(true)(InputPosition.NONE))
+    temporalFunction("time", CTZonedTime)
   }
 }

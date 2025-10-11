@@ -38,6 +38,8 @@ package object symbols {
   val CTPointNotNull: PointType = CTPoint.withIsNullable(false)
   val CTDateTime: ZonedDateTimeType = ZonedDateTimeType(isNullable = true)(InputPosition.NONE)
   val CTLocalDateTime: LocalDateTimeType = LocalDateTimeType(isNullable = true)(InputPosition.NONE)
+  val CTZonedDateTime: ZonedDateTimeType = ZonedDateTimeType(isNullable = true)(InputPosition.NONE)
+  val CTZonedTime: ZonedTimeType = ZonedTimeType(isNullable = true)(InputPosition.NONE)
   val CTDate: DateType = DateType(isNullable = true)(InputPosition.NONE)
   val CTTime: ZonedTimeType = ZonedTimeType(isNullable = true)(InputPosition.NONE)
   val CTLocalTime: LocalTimeType = LocalTimeType(isNullable = true)(InputPosition.NONE)

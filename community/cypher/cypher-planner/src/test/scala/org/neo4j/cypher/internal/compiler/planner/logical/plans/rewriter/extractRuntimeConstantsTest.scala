@@ -437,8 +437,8 @@ class extractRuntimeConstantsTest extends CypherFunSuite with LogicalPlanningTes
   test("should handle multiple constants") {
     val expr = datetime(mapOf(("date", date(mapOf(("year", literalInt(1980)))))))
     rewrite(expr) shouldBe RuntimeConstant(
-      v"  UNNAMED1",
-      datetime(mapOf(("date", RuntimeConstant(v"  UNNAMED0", date(mapOf(("year", literalInt(1980))))))))
+      v"  UNNAMED0",
+      datetime(mapOf(("date", date(mapOf(("year", literalInt(1980)))))))
     )
   }
 

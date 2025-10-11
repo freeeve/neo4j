@@ -158,7 +158,10 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
       Some(truncateDatabaseDeeagerizer),
       Some(UniquenessRewriter(anonymousVariableNameGenerator)),
       Some(VarLengthRewriter),
-      Some(extractRuntimeConstants(anonymousVariableNameGenerator)),
+      Some(extractRuntimeConstants(
+        anonymousVariableNameGenerator,
+        context.cancellationChecker
+      )),
       Some(groupPercentileFunctions(
         anonymousVariableNameGenerator,
         otherAttributes.withAlso(solveds, cardinalities, effectiveCardinalities, providedOrders)

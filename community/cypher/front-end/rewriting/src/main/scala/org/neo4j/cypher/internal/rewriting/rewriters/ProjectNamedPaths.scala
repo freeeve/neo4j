@@ -104,6 +104,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
 
     def withProtectedVariable(ident: Ref[LogicalVariable]): Projectibles =
       copy(protectedVariables = protectedVariables + ident)
+
     def withNamedPath(entry: (Variable, PathExpression)): Projectibles = copy(paths = paths + entry)
 
     def withRewrittenVariable(entry: (Ref[LogicalVariable], PathExpression)): Projectibles = {
