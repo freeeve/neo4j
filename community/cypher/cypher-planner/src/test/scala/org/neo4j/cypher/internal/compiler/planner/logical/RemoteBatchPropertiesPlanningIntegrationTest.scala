@@ -3202,7 +3202,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       planner.planBuilder().produceResults("`txn1.duration`")
         .projection("cacheN[txn1.duration] AS `txn1.duration`")
         // as we only use txn1.duration, we only need to fetch that property
-        .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[txn1.duration]")(
+        .remoteBatchPropertiesWithFilter("cacheNFromStore[txn1.duration]")(
           lessThanOrEqual(prop("txn1", "duration"), durationConstant),
           lessThanOrEqual(prop("txn1", "transactionDate"), parameter("date", CTAny))
         )
@@ -3246,7 +3246,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     plan should equal(
       planner.planBuilder()
         .produceResults("txn1")
-        .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[txn1.duration]")(
+        .remoteBatchPropertiesWithFilter("cacheNFromStore[txn1.duration]")(
           lessThanOrEqual(prop("txn1", "duration"), durationConstant),
           lessThanOrEqual(prop("txn1", "transactionDate"), parameter("date", CTAny))
         )
@@ -3308,7 +3308,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     plan should equal(
       planner.planBuilder()
         .produceResults("txn1")
-        .remoteBatchPropertiesWithFilterExpression("cacheNFromStore[txn1.transactionDate]")(
+        .remoteBatchPropertiesWithFilter("cacheNFromStore[txn1.transactionDate]")(
           lessThanOrEqual(
             prop("txn1", "transactionDate"),
             subtractionConstant
