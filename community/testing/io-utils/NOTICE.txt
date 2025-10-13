@@ -33,6 +33,7 @@ Apache Software License, Version 2.0
   Byte Buddy agent
   Caffeine cache
   Java Native Access
+  JSpecify annotations
   Netty/Common
   org.apiguardian:apiguardian-api
   org.opentest4j:opentest4j
