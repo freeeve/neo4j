@@ -19,7 +19,9 @@
               "role": "user",
               "content": "Hello!"
             }
-          ]
+          ],
+          "store": false,
+          "max_output_tokens": 1024
         }
       }
     ]
@@ -32,7 +34,7 @@
     "bodyFileName": "openai-v1-responses-create-response.json",
     "transformers": ["response-template"],
     "transformerParameters": {
-      "answer": "Bla bla bla... (openai)"
+      "answer": "Jag tog korven! (openai)"
     }
   }
 }

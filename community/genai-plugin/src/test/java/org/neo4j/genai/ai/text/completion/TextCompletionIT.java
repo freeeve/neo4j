@@ -22,9 +22,10 @@ package org.neo4j.genai.ai.text.completion;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -36,13 +37,55 @@ import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.utils.TestDirectory;
 
-@ImpermanentDbmsExtension(configurationCallback = "configure")
-@EnabledIfEnvironmentVariable(named = TextCompletionIT.OPEN_AI_TOKEN_ENV, matches = ".*")
-public class TextCompletionIT implements GenAITestExtension {
-    static final String OPEN_AI_TOKEN_ENV = "OPEN_AI_TOKEN";
+class TextCompletionIT {
 
-    final String openAiToken = System.getenv(OPEN_AI_TOKEN_ENV);
-    final Map<String, Object> tokenParam = Collections.singletonMap("token", openAiToken);
+    @Nested
+    @EnabledIfEnvironmentVariable(named = OpenAi.TOKEN_ENV, matches = ".*")
+    class OpenAi extends TextCompletionITBase {
+        static final String TOKEN_ENV = "OPEN_AI_TOKEN";
+
+        @Override
+        Map<String, Object> params() {
+            return Map.of("token", System.getenv(TOKEN_ENV));
+        }
+
+        @Override
+        String confRequired() {
+            return "{ token: $token, model: 'gpt-5-nano' }";
+        }
+
+        @Override
+        String confWithVendorOptions() {
+            return "{ token: $token, model: 'gpt-5-nano', vendorOptions: { store: false, instructions: 'Always answer with a single emoji.' } }";
+        }
+    }
+
+    @Nested
+    @EnabledIfEnvironmentVariable(named = VertexAi.TOKEN_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = VertexAi.PROJECT_ENV, matches = ".*")
+    class VertexAi extends TextCompletionITBase {
+        static final String TOKEN_ENV = "VERTEX_AI_TOKEN";
+        static final String PROJECT_ENV = "VERTEX_AI_PROJECT";
+
+        @Override
+        Map<String, Object> params() {
+            return Map.of("token", System.getenv(TOKEN_ENV), "project", System.getenv(PROJECT_ENV));
+        }
+
+        @Override
+        String confRequired() {
+            return "{ token: $token, model: 'gemini-2.5-flash-lite', region: 'europe-west2', project: $project }";
+        }
+
+        @Override
+        String confWithVendorOptions() {
+            return "{ token: $token, model: 'gemini-2.5-flash-lite', region: 'europe-west2', project: $project, vendorOptions: { systemInstructions: 'Always answer with a single emoji.' } }";
+        }
+    }
+}
+
+@ImpermanentDbmsExtension(configurationCallback = "configure")
+abstract class TextCompletionITBase implements GenAITestExtension {
 
     @Inject
     GraphDatabaseAPI db;
@@ -50,38 +93,42 @@ public class TextCompletionIT implements GenAITestExtension {
     @Inject
     TestDirectory testDirectory;
 
+    abstract Map<String, Object> params();
+
+    abstract String confRequired();
+
+    abstract String confWithVendorOptions();
+
+    String provider() {
+        return getClass().getSimpleName().toLowerCase(Locale.ROOT);
+    }
+
     @ExtensionCallback
     public void configure(TestDatabaseManagementServiceBuilder builder) throws IOException {
         installPlugin(testDirectory);
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
+        // Avoid logging the tokens
+        builder.setConfig(GraphDatabaseSettings.log_queries_parameter_logging_enabled, false);
     }
 
     @Test
     void completionWithRequiredArgs() {
-        final var query =
+        assertNonBlankResult(
                 """
-                with { token: $token, model: 'gpt-5' } as conf
-                return ai.text.completion('Hello!', 'openai', conf) as result
-                """;
-        assertThat(db.executeTransactionally(query, tokenParam, consume()))
-                .singleElement(resultMap())
-                .extracting("result")
-                .asString()
-                .isNotBlank();
+                with %s as conf
+                with ai.text.completion('Hello!', '%s', conf) as result
+                return result"""
+                        .formatted(confRequired(), provider()));
     }
 
     @Test
     void completionWithAllArgs() {
-        final var query =
+        assertNonBlankResult(
                 """
-                with { token: $token, model: 'gpt-5', maxOutputTokens: 1024, store: false } as conf
-                return ai.text.completion('Hello!', 'openai', conf) as result
-                """;
-        assertThat(db.executeTransactionally(query, tokenParam, consume()))
-                .singleElement(resultMap())
-                .extracting("result")
-                .asString()
-                .isNotBlank();
+                with %s as conf
+                with ai.text.completion('Hello!', '%s', conf) as result
+                return result"""
+                        .formatted(confWithVendorOptions(), provider()));
     }
 
     @Test
@@ -90,11 +137,13 @@ public class TextCompletionIT implements GenAITestExtension {
                 """
                 call ai.text.completion(
                   ['Testing', null, 'Hello!'],
-                  'openai',
-                  { token: $token, model: 'gpt-5' }
+                  '%s',
+                  %s
                 )
-                """;
-        assertThat(db.executeTransactionally(query, tokenParam, consume()))
+                """
+                        .formatted(provider(), confRequired());
+        assertThat(db.executeTransactionally(query, params(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
                 .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
     }
 
@@ -104,12 +153,24 @@ public class TextCompletionIT implements GenAITestExtension {
                 """
                 call ai.text.completion(
                   ['Testing', null, 'Hello!'],
-                  'openai',
-                  { token: $token, model: 'gpt-5', maxOutputTokens: 1024, store: false }
+                  '%s',
+                  %s
                 )
-                """;
-        assertThat(db.executeTransactionally(query, tokenParam, consume()))
+                """
+                        .formatted(provider(), confWithVendorOptions());
+        assertThat(db.executeTransactionally(query, params(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
                 .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
+    }
+
+    private void assertNonBlankResult(String query) {
+        final var result = db.executeTransactionally(query, params(), consume());
+        assertThat(result)
+                .as("Query:%n```%n%s%n```%n", query)
+                .singleElement(resultMap())
+                .extracting("result")
+                .asString()
+                .isNotBlank();
     }
 
     private Consumer<Map<String, Object>> batchedNullRow(long index) {

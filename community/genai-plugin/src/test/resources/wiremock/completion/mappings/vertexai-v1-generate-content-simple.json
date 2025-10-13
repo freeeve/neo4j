@@ -1,23 +1,26 @@
 {
   "request": {
-    "urlPath": "/v1/responses",
+    "urlPath": "/v1/projects/astrid/locations/smaland/publishers/google/models/gemini-3:generateContent",
     "method": "POST",
     "headers": {
       "Content-Type": {
         "equalTo": "application/json; charset=UTF-8"
       },
       "Authorization": {
-        "equalTo": "Bearer dummy-openai-token"
+        "equalTo": "Bearer dummy-vertex-token"
       }
     },
     "bodyPatterns": [
       {
         "equalToJson": {
-          "model": "gpt-5",
-          "input": [
+          "contents": [
             {
               "role": "user",
-              "content": "Hello!"
+              "parts": [
+                {
+                  "text": "Hello!"
+                }
+              ]
             }
           ]
         }
@@ -29,10 +32,10 @@
     "headers": {
       "Content-Type": "application/json"
     },
-    "bodyFileName": "openai-v1-responses-create-response.json",
+    "bodyFileName": "vertexai-v1-generate-content-response.json",
     "transformers": ["response-template"],
     "transformerParameters": {
-      "answer": "Bla bla bla... (openai)"
+      "answer": "Bla bla bla... (vertexai)"
     }
   }
 }

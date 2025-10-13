@@ -25,18 +25,27 @@ import static org.assertj.core.api.InstanceOfAssertFactories.map;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.text.completion.provider.OpenAi;
+import org.neo4j.genai.ai.text.completion.provider.VertexAi;
 import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -67,7 +76,7 @@ public class TextCompletionTest implements GenAITestExtension {
                 .http2PlainDisabled(true));
         this.wireMock.start();
         final var baseUrl = this.wireMock.baseUrl();
-        builder.addExtension(new GenAiPluginExtension(new OpenAi(baseUrl)));
+        builder.addExtension(new GenAiPluginExtension(new OpenAi(baseUrl), new VertexAi(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
     }
 
@@ -76,15 +85,25 @@ public class TextCompletionTest implements GenAITestExtension {
         if (this.wireMock != null) this.wireMock.stop();
     }
 
-    private final List<Map<String, Object>> EXPECTED_PROVIDERS = List.of(Map.of(
-            "name",
-            "OpenAI",
-            "requiredConfigType",
-            "{ token :: STRING NOT NULL, model :: STRING NOT NULL }",
-            "optionalConfigType",
-            "{ vendorOptions :: MAP NOT NULL }",
-            "defaultConfig",
-            Map.of("vendorOptions", Map.of())));
+    private final List<Map<String, Object>> EXPECTED_PROVIDERS = List.of(
+            Map.of(
+                    "name",
+                    "OpenAI",
+                    "requiredConfigType",
+                    "{ token :: STRING NOT NULL, model :: STRING NOT NULL }",
+                    "optionalConfigType",
+                    "{ vendorOptions :: MAP NOT NULL }",
+                    "defaultConfig",
+                    Map.of("vendorOptions", Map.of())),
+            Map.of(
+                    "name",
+                    "VertexAI",
+                    "requiredConfigType",
+                    "{ token :: STRING NOT NULL, model :: STRING NOT NULL, project :: STRING NOT NULL, region :: STRING NOT NULL }",
+                    "optionalConfigType",
+                    "{ publisher :: STRING NOT NULL, vendorOptions :: MAP NOT NULL }",
+                    "defaultConfig",
+                    Map.of("publisher", "google", "vendorOptions", Map.of())));
 
     @Test
     void listProviders() {
@@ -92,118 +111,109 @@ public class TextCompletionTest implements GenAITestExtension {
                 .containsExactlyElementsOf(EXPECTED_PROVIDERS);
     }
 
-    @Test
-    void completionWithRequiredArgs() {
+    @ParameterizedTest
+    @ArgumentsSource(RequiredConfArguments.class)
+    void completionWithRequiredArgs(ProviderArgs args) {
         final var query =
                 """
-                with { token: 'dummy-openai-token', model: 'gpt-5' } as conf
-                return ai.text.completion('Hello!', 'openai', conf) as result
-                """;
+                with %s as conf
+                return ai.text.completion('Hello!', '%s', conf) as result"""
+                        .formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
-                .containsEntry("result", "Bla bla bla...");
+                .containsEntry("result", "Bla bla bla... (%s)".formatted(args.provider()));
     }
 
-    @Test
-    void completionWithAllArgs() {
+    @ParameterizedTest
+    @ArgumentsSource(AllOptionsArguments.class)
+    void completionWithAllArgs(ProviderArgs args) {
         final var query =
                 """
-                with { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { max_output_tokens: 1024, store: false } } as conf
-                return ai.text.completion('Hello!', 'openai', conf) as result
-                """;
-        assertThat(db.executeTransactionally(query, Map.of(), consume()))
-                .singleElement(resultMap())
-                .containsEntry("result", "Yo");
-    }
-
-    @Test
-    void completionWithDefaultArgsInVendorConf() {
-        final var query =
+                with %s as conf
+                return ai.text.completion('Hello!', '%s', conf) as result
                 """
-                with { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { model: 'evil', input: 'evil' } } as conf
-                return ai.text.completion('Hello!', 'openai', conf) as result
-                """;
+                        .formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
-                .containsEntry("result", "Bla bla bla...");
+                .containsEntry("result", "Jag tog korven! (%s)".formatted(args.provider()));
     }
 
-    @Test
-    void batchCompletionWithRequiredArgs1() {
+    @ParameterizedTest
+    @ArgumentsSource(RequiredConfArguments.class)
+    void batchCompletionWithRequiredArgs1(ProviderArgs args) {
         final var query =
                 """
                 call ai.text.completion(
                   ['Hello!'],
-                  'openai',
-                  { token: 'dummy-openai-token', model: 'gpt-5' }
+                  '%s',
+                  %s
                 )
-                """;
+                """
+                        .formatted(args.provider(), args.conf());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
-                .containsExactly(Map.of("completion", "Bla bla bla...", "index", 0L));
+                .as("Query:%n```%n%s%n```%n", query)
+                .containsExactly(Map.of("completion", "Bla bla bla... (%s)".formatted(args.provider()), "index", 0L));
     }
 
-    @Test
-    void batchCompletionWithRequiredArgs2() {
+    @ParameterizedTest
+    @ArgumentsSource(RequiredConfArguments.class)
+    void batchCompletionWithRequiredArgs2(ProviderArgs args) {
         final var query =
                 """
                 call ai.text.completion(
                   [null, 'Hello!'],
-                  'openai',
-                  { token: 'dummy-openai-token', model: 'gpt-5' }
+                  '%s',
+                  %s
                 )
-                """;
+                """
+                        .formatted(args.provider(), args.conf());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
                 .containsExactly(
                         Maps.immutable
                                 .of("completion", null, "index", (Object) 0L)
                                 .castToMap(),
-                        Map.of("completion", "Bla bla bla...", "index", 1L));
+                        Map.of("completion", "Bla bla bla... (%s)".formatted(args.provider()), "index", 1L));
     }
 
-    @Test
-    void batchCompletionWithAllArgs1() {
+    @ParameterizedTest
+    @ArgumentsSource(AllOptionsArguments.class)
+    void batchCompletionWithAllArgs1(ProviderArgs args) {
         final var query =
                 """
                 call ai.text.completion(
                   ['Hello!'],
-                  'openai',
-                  { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { max_output_tokens: 1024, store: false } }
+                  '%s',
+                  %s
                 )
-                """;
+                """
+                        .formatted(args.provider(), args.conf());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
-                .containsExactly(Map.of("completion", "Yo", "index", 0L));
+                .as("Query:%n```%n%s%n```%n", query)
+                .containsExactly(Map.of("completion", "Jag tog korven! (%s)".formatted(args.provider()), "index", 0L));
     }
 
-    @Test
-    void batchCompletionWithAllArgs2() {
+    @ParameterizedTest
+    @ArgumentsSource(AllOptionsArguments.class)
+    void batchCompletionWithAllArgs2(ProviderArgs args) {
         final var query =
                 """
                 call ai.text.completion(
                   [null, 'Hello!'],
-                  'openai',
-                  { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { max_output_tokens: 1024, store: false } }
+                  '%s',
+                  %s
                 )
-                """;
+                """
+                        .formatted(args.provider(), args.conf());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
                 .containsExactly(
                         Maps.immutable
                                 .of("completion", null, "index", (Object) 0L)
                                 .castToMap(),
-                        Map.of("completion", "Yo", "index", 1L));
-    }
-
-    @Test
-    void batchCompletionWithDefaultArgsInVendorConf() {
-        final var query =
-                """
-                call ai.text.completion(
-                  ['Hello!'],
-                  'openai',
-                  { token: 'dummy-openai-token', model: 'gpt-5', vendorOptions: { model: 'evil', input: 'evil' } }
-                )
-                """;
-        assertThat(db.executeTransactionally(query, Map.of(), consume()))
-                .containsExactly(Map.of("completion", "Bla bla bla...", "index", 0L));
+                        Map.of("completion", "Jag tog korven! (%s)".formatted(args.provider()), "index", 1L));
     }
 
     @Disabled // Enable when procedures are not internal
@@ -237,5 +247,60 @@ public class TextCompletionTest implements GenAITestExtension {
                 .filteredOn(d -> d instanceof Map map && "provider".equals(map.get("name")))
                 .singleElement(map(String.class, Object.class))
                 .containsEntry("description", "The identifier of the provider: " + expectedProviders);
+    }
+}
+
+record ProviderArgs(String provider, String conf) {}
+
+interface ProviderArguments extends ArgumentsProvider {
+    Stream<ProviderArgs> providers();
+
+    @Override
+    default Stream<? extends Arguments> provideArguments(ParameterDeclarations parameters, ExtensionContext context)
+            throws Exception {
+        return providers().map(p -> Arguments.argumentSet(p.provider(), p));
+    }
+}
+
+class RequiredConfArguments implements ProviderArguments {
+    @Override
+    public Stream<ProviderArgs> providers() {
+        return Stream.of(
+                new ProviderArgs("openai", "{ token: 'dummy-openai-token', model: 'gpt-5' }"),
+                new ProviderArgs(
+                        "vertexai",
+                        "{ token: 'dummy-vertex-token', model: 'gemini-3', region: 'smaland', project: 'astrid', publisher: 'google' }"));
+    }
+}
+
+class AllOptionsArguments implements ProviderArguments {
+    @Override
+    public Stream<ProviderArgs> providers() {
+        return Stream.of(
+                new ProviderArgs(
+                        "openai",
+                        """
+                        {
+                          token: 'dummy-openai-token',
+                          model: 'gpt-5',
+                          vendorOptions: {
+                            max_output_tokens: 1024,
+                            store: false
+                          }
+                        }"""),
+                new ProviderArgs(
+                        "vertexai",
+                        """
+                        {
+                          token: 'dummy-vertex-token',
+                          model: 'gemini-3',
+                          region: 'smaland',
+                          project: 'astrid',
+                          publisher: 'google',
+                          vendorOptions: {
+                            systemInstruction: 'You are Kommendoran',
+                            labels: { labelA: 'x' }
+                          }
+                        }"""));
     }
 }

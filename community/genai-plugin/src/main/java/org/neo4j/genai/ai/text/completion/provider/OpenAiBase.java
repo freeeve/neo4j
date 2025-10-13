@@ -97,30 +97,30 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
 
         return payload;
     }
-}
 
-/*
- * {
- *   "output": [
- *     {
- *       "type": "message",
- *       "content": [
- *           {
- *             "type": "output_text",
- *             "text": "Hello! How can I assist you today?",
- *           }
- *       ],
- *     }
- *   ],
- * }
- */
-interface ResponseModel {
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    record Content(@JsonProperty(required = true) String type, String text) {}
+    /*
+     * {
+     *   "output": [
+     *     {
+     *       "type": "message",
+     *       "content": [
+     *           {
+     *             "type": "output_text",
+     *             "text": "Hello! How can I assist you today?",
+     *           }
+     *       ],
+     *     }
+     *   ],
+     * }
+     */
+    interface ResponseModel {
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        record Content(@JsonProperty(required = true) String type, String text) {}
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    record Output(@JsonProperty(required = true) String type, List<Content> content) {}
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        record Output(@JsonProperty(required = true) String type, List<Content> content) {}
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    record Response(@JsonProperty(required = true) List<Output> output) {}
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        record Response(@JsonProperty(required = true) List<Output> output) {}
+    }
 }

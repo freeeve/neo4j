@@ -1,0 +1,182 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.genai.ai.text.completion.provider;
+
+import static org.neo4j.genai.ai.text.completion.provider.VertexAi.DEFAULT_BASE_URL_TEMPLATE;
+import static org.neo4j.genai.ai.text.completion.provider.VertexAi.pathSafe;
+import static org.neo4j.genai.util.HttpService.jsonBody;
+import static org.neo4j.genai.util.Parameters.parse;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import org.eclipse.collections.api.factory.Lists;
+import org.eclipse.collections.api.factory.Maps;
+import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.genai.ai.text.completion.TextCompletion;
+import org.neo4j.genai.util.HttpService;
+import org.neo4j.genai.util.JsonUtils;
+import org.neo4j.genai.util.MalformedGenAIResponseException;
+import org.neo4j.values.virtual.MapValue;
+
+@ServiceProvider
+public class VertexAi implements TextCompletion.Provider {
+    protected static final String DEFAULT_BASE_URL_TEMPLATE = "https://%s-aiplatform.googleapis.com";
+    private static final String DEFAULT_API_PATH_TEMPLATE =
+            "v1/projects/%s/locations/%s/publishers/%s/models/%s:generateContent";
+    private static final Predicate<String> URI_SAFE =
+            Pattern.compile("^[a-zA-Z0-9-_.]+$").asMatchPredicate();
+
+    private final Function<Parameters, URI> baseUriResolver;
+
+    public VertexAi() {
+        this.baseUriResolver = new DefaultBaseUriResolver();
+    }
+
+    public VertexAi(Function<Parameters, URI> baseUriResolver) {
+        this.baseUriResolver = baseUriResolver;
+    }
+
+    public static class Parameters {
+        public String token;
+        public String model;
+        public String project;
+        public String region;
+        public String publisher = "google";
+        public Map<String, Object> vendorOptions = Map.of();
+    }
+
+    @Override
+    public String name() {
+        return "VertexAI";
+    }
+
+    @Override
+    public Class<?> paramType() {
+        return Parameters.class;
+    }
+
+    @Override
+    public Implementation implementation(HttpService httpService) {
+        return new Implementation(name(), baseUriResolver, httpService);
+    }
+
+    private record Implementation(String name, Function<Parameters, URI> baseUriResolver, HttpService httpService)
+            implements TextCompletion.Provider.Implementation {
+
+        @Override
+        public String complete(String prompt, MapValue configMap) {
+            final var configuration = parse(VertexAi.Parameters.class, configMap);
+            final Object payload = buildPayload(List.of(prompt), configuration);
+            final var response = httpService()
+                    .request(
+                            endpoint(configuration),
+                            builder -> builder.header(
+                                            "Content-Type", "application/json; charset=" + StandardCharsets.UTF_8)
+                                    .header("Accept", "application/json")
+                                    .header("Authorization", "Bearer " + configuration.token)
+                                    .POST(jsonBody(payload))
+                                    .build(),
+                            Implementation::parseResponse);
+            if (response.size() != 1) {
+                throw new MalformedGenAIResponseException("Expected exactly one message, but found " + response.size());
+            }
+            return response.getFirst();
+        }
+
+        private URI endpoint(Parameters conf) {
+            return baseUriResolver
+                    .apply(conf)
+                    .resolve(DEFAULT_API_PATH_TEMPLATE.formatted(
+                            pathSafe(conf.project, "project"),
+                            pathSafe(conf.region, "region"),
+                            pathSafe(conf.publisher, "publisher"),
+                            pathSafe(conf.model, "model")));
+        }
+
+        private static List<String> parseResponse(InputStream inputStream) {
+            final var response = JsonUtils.readValue(inputStream, ResponseModel.Response.class);
+            return response.candidates().stream()
+                    .filter(c -> "model".equals(c.content().role()))
+                    .flatMap(c -> c.content().parts().stream())
+                    .map(ResponseModel.Part::text)
+                    .toList();
+        }
+
+        private static Map<String, Object> buildPayload(List<String> prompts, Parameters conf) {
+            final var payload = Maps.mutable.ofMap(conf.vendorOptions);
+            final var contents = prompts.stream()
+                    .map(p -> Maps.immutable.of(
+                            "role", "user", "parts", Lists.immutable.of(Maps.immutable.of("text", p))))
+                    .toList();
+            payload.put("contents", contents);
+            return payload;
+        }
+    }
+
+    protected static String pathSafe(String pathPart, String name) {
+        if (URI_SAFE.test(pathPart)) {
+            return pathPart;
+        }
+        throw new IllegalArgumentException("Not a valid '%s': %s".formatted(name, pathPart));
+    }
+
+    /*
+     * {
+     *   "candidates": [
+     *     {
+     *       "content": {
+     *         "role": "assistant",
+     *         "parts": [
+     *           "text": "Bla bla..."
+     *         ]
+     *       }
+     *     }
+     *   ]
+     * }
+     */
+    interface ResponseModel {
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        record Part(String text) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        record Content(String role, List<Part> parts) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        record Candidate(Content content) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        record Response(List<Candidate> candidates) {}
+    }
+}
+
+class DefaultBaseUriResolver implements Function<VertexAi.Parameters, URI> {
+    @Override
+    public URI apply(VertexAi.Parameters parameters) {
+        final var region = pathSafe(parameters.region, "region");
+        return URI.create(DEFAULT_BASE_URL_TEMPLATE.formatted(region));
+    }
+}
