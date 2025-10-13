@@ -29,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.neo4j.batchimport.api.input.Input.knownEstimates;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
-import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 import static org.neo4j.internal.batchimport.DefaultAdditionalIds.EMPTY;
 import static org.neo4j.internal.helpers.collection.Iterables.count;
 import static org.neo4j.internal.helpers.collection.Iterables.stream;
@@ -107,7 +106,6 @@ import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.values.storable.RandomValues;
-import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Values;
 
 @Neo4jLayoutExtension
@@ -183,7 +181,9 @@ public class ParallelBatchImporterTest {
         Config dbConfig = Config.defaults(GraphDatabaseSettings.dense_node_threshold, RELATIONSHIPS_PER_NODE * 2);
         augmentConfig(dbConfig);
 
-        var randomConfig = RandomValuesUtils.selectStorageEngineDependentConfiguration(dbConfig.get(db_format));
+        // This is a record storage engine importer, thus it does not support vectors
+        var randomConfig =
+                RandomValues.newConfigurationBuilder().includeVectorTypes(false).build();
         random.withConfiguration(randomConfig).reset();
         var nodeRandomsState = new RandomsStates(random.nextLong(), randomConfig);
         var relationshipRandomsStates = new RandomsStates(random.nextLong(), randomConfig);
