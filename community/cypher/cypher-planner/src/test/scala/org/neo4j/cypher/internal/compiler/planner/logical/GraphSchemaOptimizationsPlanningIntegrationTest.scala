@@ -1746,6 +1746,83 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     )
   }
 
+  test(
+    "should plan nodeCountFromCountStore for COUNT(*) over a single node with multiple labels when all labels are implied by a single label"
+  ) {
+    val planner = undirectedRelationshipPlannerBase
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setLabelCardinality("Actor", 5)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (:Person&Actor)
+        |RETURN COUNT(*)
+        |""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(*)`")
+        .nodeCountFromCountStore("COUNT(*)", Seq(Some("Actor")))
+        .build()
+    )
+  }
+
+  test(
+    "should plan nodeCountFromCountStore for COUNT on props implied by an implied label"
+  ) {
+    val planner = undirectedRelationshipPlannerBase
+      .addNodeLabelConstraint(constrainedLabel = "Developer", impliedLabel = "Person")
+      .addNodeExistenceConstraint(label = "Person", property = "name")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setLabelCardinality("Developer", 5)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (m:Person&Developer)
+        |WHERE m.name IS NOT NULL
+        |RETURN COUNT(m.name)
+        |""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(m.name)`")
+        .nodeCountFromCountStore("COUNT(m.name)", Seq(Some("Developer")))
+        .build()
+    )
+  }
+
+  test(
+    "should plan nodeCountFromCountStore for COUNT on props when labels and properties are implied"
+  ) {
+    val planner = undirectedRelationshipPlannerBase
+      .addNodeLabelConstraint(constrainedLabel = "Developer", impliedLabel = "Person")
+      .addNodeExistenceConstraint(label = "Person", property = "name")
+      .addNodeExistenceConstraint(label = "Developer", property = "repositoryId")
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 80)
+      .setLabelCardinality("Developer", 5)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (m:Person&Developer)
+        |WHERE m.repositoryId IS NOT NULL
+        |RETURN COUNT(m.repositoryId)
+        |""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("`COUNT(m.repositoryId)`")
+        .nodeCountFromCountStore("COUNT(m.repositoryId)", Seq(Some("Developer")))
+        .build()
+    )
+  }
+
   // Cardinality estimation tests
 
   test("should not apply the selectivity of an implied label to estimate cardinality of a label scan") {

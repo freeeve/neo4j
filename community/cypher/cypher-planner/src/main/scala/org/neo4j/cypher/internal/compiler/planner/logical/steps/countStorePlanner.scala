@@ -125,12 +125,14 @@ case object countStorePlanner {
     patternRelationships: Set[PatternRelationship],
     context: LogicalPlanningContext
   ): Set[Predicate] = {
+    val hasLabelsExprs = groupHasLabels(selections.predicates)
+
     selections.predicates.filter {
       // variable.propertyKey IS NOT NULL
       case Predicate(_, IsNotNull(Property(variable: LogicalVariable, propertyKey: PropertyKeyName))) =>
         if (isNode(variable, context)) {
           // Check if the variable has a label that puts a constraint on having the property
-          findLabel(variable, selections).exists(labelImpliesProperty(_, Some(propertyKey), context))
+          hasLabelsExprs.getOrElse(variable, Set.empty).exists(labelImpliesProperty(_, Some(propertyKey), context))
         } else if (isRel(variable, context)) {
           // Check if the variable has a type that puts a constraint on having the property
           findTypes(variable, patternRelationships) match {
@@ -141,7 +143,8 @@ case object countStorePlanner {
           // variable is not a node and not a relationship
           false
         }
-      case Predicate(_, HasLabels(v, labelNameList)) =>
+      case Predicate(_, HasLabels(v: LogicalVariable, labelNameList)) =>
+        val allHasLabelExpressions = hasLabelsExprs.getOrElse(v, Set.empty)
         labelNameList.forall(labelName =>
           context.staticComponents.graphSchemaOptimizations.isLabelImplied(
             labelToCheck = labelName.name,
@@ -155,6 +158,9 @@ case object countStorePlanner {
                 .map(rel => rel.types.map(typ => typ.name).toSet),
             undirectedRelTypes = Set.empty
             // Undirected relationships won't use the count store, so there is no need to try to find if the label is implied by an undirected relationship
+          ) || context.staticComponents.graphSchemaOptimizations.isLabelImplied(
+            labelName,
+            allHasLabelExpressions
           )
         )
       case _ => false
@@ -205,6 +211,7 @@ case object countStorePlanner {
       case // COUNT(n.prop)
         func @ FunctionInvocation(_, false, IndexedSeq(Property(v: Variable, propKeyName)), _, _)
         if func.function == functions.Count =>
+        val impliedLabels = groupHasLabels(impliedPredicates)
         trySolveNodeOrRelationshipAggregation(
           query,
           columnName,
@@ -214,7 +221,8 @@ case object countStorePlanner {
           argumentIds,
           selectionsWithoutImpliedPredicates,
           context,
-          Some(propKeyName)
+          Some(propKeyName),
+          impliedLabels
         )
 
       case _ => None
@@ -233,7 +241,8 @@ case object countStorePlanner {
     argumentIds: Set[LogicalVariable],
     selections: Selections,
     context: LogicalPlanningContext,
-    propertyKeyName: Option[PropertyKeyName]
+    propertyKeyName: Option[PropertyKeyName],
+    impliedLabels: Map[LogicalVariable, Set[LabelName]] = Map.empty
   ): Option[LogicalPlan] = {
     if (
       patternRelationships.isEmpty &&
@@ -242,7 +251,7 @@ case object countStorePlanner {
       noWrongPredicates(patternNodes, selections)
     ) { // MATCH (n), MATCH (n:A)
 
-      if (couldPlanCountStoreLookupOnAllLabels(variableName, selections, propertyKeyName, context)) {
+      if (couldPlanCountStoreLookupOnAllLabels(variableName, selections, propertyKeyName, context, impliedLabels)) {
         // this is the case where the count can be answered using the counts of the provided labels
 
         val allLabels = patternNodes.toList.map(n => findLabel(n, selections))
@@ -285,14 +294,17 @@ case object countStorePlanner {
     variableName: Option[LogicalVariable],
     selections: Selections,
     propertyKeyName: Option[PropertyKeyName],
-    context: LogicalPlanningContext
+    context: LogicalPlanningContext,
+    impliedLabels: Map[LogicalVariable, Set[LabelName]]
   ): Boolean = {
     // variableName == None => count(*)
     variableName.isEmpty ||
     // propertyKeyName == None => count(n)
     propertyKeyName.isEmpty ||
     // count(n.prop) => there should be a label for n which implies prop.
-    findLabel(variableName.get, selections).exists(labelImpliesProperty(_, propertyKeyName, context))
+    findLabel(variableName.get, selections).exists(labelImpliesProperty(_, propertyKeyName, context)) ||
+    // count(n.prop) => there should be an implied label for n which implies prop.
+    impliedLabels.getOrElse(variableName.get, Set.empty).exists(labelImpliesProperty(_, propertyKeyName, context))
   }
 
   private def relTypeImpliesProperty(
@@ -387,6 +399,16 @@ case object countStorePlanner {
   private def findLabel(nodeId: LogicalVariable, selections: Selections): Option[LabelName] =
     selections.predicates.collectFirst {
       case Predicate(nIds, h: HasLabels) if nIds == Set(nodeId) && h.labels.size == 1 => h.labels.head
+    }
+
+  private def groupHasLabels(predicates: Set[Predicate]): Map[LogicalVariable, Set[LabelName]] =
+    predicates.foldLeft(Map.empty[LogicalVariable, Set[LabelName]]) {
+      case (acc, Predicate(nIds, h: HasLabels)) if nIds.size == 1 =>
+        acc.updatedWith(nIds.head) {
+          case Some(existing) => Some(existing ++ h.labels)
+          case None           => Some(h.labels.toSet)
+        }
+      case (acc, _) => acc
     }
 
   private def findTypes(relId: LogicalVariable, patternRelationships: Set[PatternRelationship]): Set[RelTypeName] =
