@@ -41,6 +41,7 @@ object ListSetSupport {
      *  @tparam K    the type of keys returned by the discriminator function.
      *  @return      A `ListSet` of tuples each containing a key `k = f(x)` and all the elements `x` of the sequence where `f(x)` is equal to `k`.
      */
-    def sequentiallyGroupBy[K](f: A => K): ListSet[(K, ListSet[A])] = IterableHelper.sequentiallyGroupBy(listSet)(f)
+    def sequentiallyGroupBy[K](f: A => K): ListSet[(K, ListSet[A])] =
+      IterableHelper.sequentiallyGroupBy[A, K, ListSet, ListSet](listSet)(f)
   }
 }

@@ -76,7 +76,8 @@ object SeqSupport {
      * @tparam K the type of keys returned by the discriminator function.
      * @return A sequence of tuples each containing a key `k = f(x)` and all the elements `x` of the sequence where `f(x)` is equal to `k`.
      */
-    def sequentiallyGroupBy[K](f: T => K): Seq[(K, Seq[T])] = IterableHelper.sequentiallyGroupBy(inner)(f)
+    def sequentiallyGroupBy[K](f: T => K): Seq[(K, Seq[T])] =
+      IterableHelper.sequentiallyGroupBy[T, K, Seq, Seq](inner)(f)
 
     /**
      * Analogous to `Seq.forall` but for `TailRec[Boolean]`.

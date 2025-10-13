@@ -30,7 +30,9 @@ trait CompareAsPrettyStrings {
 
     def compareAsPrettyStrings(rhs: Any): Assertion = {
       // wrap to prevent Scalatest from minimizing the String diff
-      Wrapper(lhs.asPrettyString) shouldEqual Wrapper(rhs.asPrettyString)
+      val lhsPrettyString = pprint.PPrinter.BlackWhite(lhs).render
+      val rhsPrettyString = pprint.PPrinter.BlackWhite(rhs).render
+      Wrapper(lhsPrettyString) shouldEqual Wrapper(rhsPrettyString)
 
       fail("compareAsPrettyStrings is only for debugging and should not be committed")
     }

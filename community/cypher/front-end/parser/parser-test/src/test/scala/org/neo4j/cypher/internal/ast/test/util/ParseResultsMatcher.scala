@@ -116,7 +116,7 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   def in(f: ParserInTest => Self => Self): Self = ParserInTest.AllParsers.foldLeft(self) {
     case (acc, p) => acc.addAll(f(p)(acc.createForParser(p)).matchers)
   }
-  def withoutErrors: Self = and(beSuccess)
+  def withoutErrors: Self = and(successMatcher)
   def withAstLike(assertion: T => Unit): Self = and(haveAstLike(assertion))
   def withPositionOf[S <: ASTNode : ClassTag](expected: InputPosition*): Self = and(haveAstPositions[S](expected: _*))
 
@@ -150,7 +150,7 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   def throws[E <: Throwable](implicit ct: ClassTag[E]): Self = and(AstMatchers.beFailure[E])
   def throws(expected: Class[_ <: Throwable]): Self = and(AstMatchers.beFailure(expected))
   def similarTo(expected: Throwable): Self = throws(expected.getClass).withMessage(expected.getMessage)
-  def withAnyFailure: Self = and(beFailure)
+  def withAnyFailure: Self = and(failureMatcher)
   def withEqualPositions: Self = addIfMultiParsers(haveEqualPositions(supportedParsers))
   def withSyntaxError(message: String): Self = throws[SyntaxException].withMessage(message)
   def withSyntaxErrorContaining(message: String): Self = throws[SyntaxException].withMessageContaining(message)
@@ -254,8 +254,8 @@ object FluentMatchers {
  */
 trait AstMatchers {
 
-  val beSuccess: Matcher[ParseResult] = be.a(Symbol("success")).compose(_.toTry)
-  val beFailure: Matcher[ParseResult] = be.a(Symbol("failure")).compose(_.toTry)
+  val successMatcher: Matcher[ParseResult] = be.a(Symbol("success")).compose(_.toTry)
+  val failureMatcher: Matcher[ParseResult] = be.a(Symbol("failure")).compose(_.toTry)
 
   def beIgnored: Matcher[ParseResult] = new Matcher[ParseResult] {
     override def apply(left: ParseResult): MatchResult = left match {

@@ -78,7 +78,7 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
               predicate = lessThan(v"acc", v"nestedAcc"),
               pos = pos
             ),
-            pos = pos
+            pos
           )
         )
     }

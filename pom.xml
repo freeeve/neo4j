@@ -173,7 +173,7 @@
     <bouncycastle.version>1.82</bouncycastle.version>
     <jetty.version>12.0.25</jetty.version>
     <scala-maven-plugin.version>4.9.6</scala-maven-plugin.version>
-    <scala.version>2.13.16</scala.version>
+    <scala.version>2.13.17</scala.version>
     <scala.binary.version>2.13</scala.binary.version>
     <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
     <scala.test.version>3.2.13</scala.test.version>
