@@ -88,6 +88,11 @@ public class AcrossEngineVersionCheck implements MigrationStoreVersionCheck {
                     MigrationOutcome.UNSUPPORTED_TARGET_VERSION, currentVersion, targetVersion, null);
         }
 
+        if (srcStorageEngineFactory.name().equals("block") && "standard".equals(formatToMigrateTo)) {
+            return new MigrationCheckResult(
+                    MigrationOutcome.UNSUPPORTED_MIGRATION_PATH, currentVersion, targetVersion, null);
+        }
+
         StoreFormatLimits srcFormatLimits = srcStorageEngineFactory.limitsForFormat(currentVersion.getFormatName());
         StoreFormatLimits targetFormatLimits = targetStorageEngineFactory.limitsForFormat(formatToMigrateTo);
 
