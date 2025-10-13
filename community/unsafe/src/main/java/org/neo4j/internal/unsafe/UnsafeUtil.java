@@ -199,16 +199,6 @@ public final class UnsafeUtil {
     }
 
     /**
-     * Atomically add the given delta to the long field, and return its previous value.
-     * <p>
-     * This has the memory visibility semantics of a volatile read followed by a volatile write.
-     */
-    public static long getAndAddLong(Object obj, long offset, long delta) {
-        checkAccess(obj, offset, Long.BYTES);
-        return unsafe.getAndAddLong(obj, offset, delta);
-    }
-
-    /**
      * Atomically compare the current value of the given long field with the expected value, and if they are the equal, set the field to the updated value and
      * return true. Otherwise return false.
      * <p>
@@ -217,17 +207,6 @@ public final class UnsafeUtil {
     public static boolean compareAndSwapLong(Object obj, long offset, long expected, long update) {
         checkAccess(obj, offset, Long.BYTES);
         return unsafe.compareAndSwapLong(obj, offset, expected, update);
-    }
-
-    /**
-     * Atomically compare the current value of the given int field with the expected value, and if they are the equal, set the field to the updated value and
-     * return true. Otherwise return false.
-     * <p>
-     * If this method returns true, then it has the memory visibility semantics of a volatile read followed by a volatile write.
-     */
-    public static boolean compareAndSwapInt(Object obj, long offset, int expected, int update) {
-        checkAccess(obj, offset, Integer.BYTES);
-        return unsafe.compareAndSwapInt(obj, offset, expected, update);
     }
 
     /**
@@ -767,22 +746,6 @@ public final class UnsafeUtil {
 
     public static ByteBuffer newUnsafeDirectByteBuffer(long addr, long cap) throws Throwable {
         return (ByteBuffer) DIRECT_BYTE_BUFFER_CONSTRUCTOR.invoke(addr, cap);
-    }
-
-    /**
-     * Initialize (simulate calling the constructor of) the given DirectByteBuffer.
-     */
-    @SuppressWarnings("UnnecessaryLocalVariable")
-    public static void initDirectByteBuffer(ByteBuffer dbb, long addr, int cap) {
-        assertUnsafeByteBufferAccess();
-        checkAccess(addr, cap);
-        dbb.order(ByteOrder.LITTLE_ENDIAN);
-        Buffer bb = dbb;
-        BYTE_BUFFER_MARK.set(bb, -1);
-        BYTE_BUFFER_POSITION.set(bb, 0);
-        BYTE_BUFFER_LIMIT.set(bb, cap);
-        BYTE_BUFFER_CAPACITY.set(bb, cap);
-        BYTE_BUFFER_ADDRESS.set(bb, addr);
     }
 
     /**
