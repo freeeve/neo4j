@@ -88,7 +88,6 @@ Apache Software License, Version 2.0
   Guava InternalFutureFailureAccess and InternalFutures
   Guava ListenableFuture only
   Guava: Google Core Libraries for Java
-  Internet Time Utility
   io.grpc:grpc-api
   io.grpc:grpc-context
   io.grpc:grpc-core
@@ -102,7 +101,6 @@ Apache Software License, Version 2.0
   Jackson-annotations
   Jackson-core
   jackson-databind
-  Jackson-dataformat-YAML
   Jackson-JAXRS: base
   Jackson-JAXRS: JSON
   Jakarta Bean Validation API
@@ -123,7 +121,6 @@ Apache Software License, Version 2.0
   json4s-ast
   json4s-core
   json4s-scalap
-  JsonSchemaValidator
   magnolia
   Neo4j Java Driver
   Netty/Buffer
@@ -145,7 +142,6 @@ Apache Software License, Version 2.0
   proto-google-common-protos
   Scala Reflect
   scala-collection-contrib
-  SnakeYAML
   snappy-java
   Strategic Blue Parquet Floor
   WMI4Java
@@ -260,6 +256,7 @@ MIT License
   Pretty Formatter
   SLF4J API Module
   sourcecode_2.13
+  TeamCity Formatter
   TestNG XML Formatter
 
 MIT No Attribution License

@@ -169,34 +169,34 @@
 
     <jamm.version>0.4.0</jamm.version>
     <lucene9.version>9.12.2</lucene9.version>
-    <lucene.version>10.3.0</lucene.version>
-    <bouncycastle.version>1.81</bouncycastle.version>
+    <lucene.version>10.3.1</lucene.version>
+    <bouncycastle.version>1.82</bouncycastle.version>
     <jetty.version>12.0.25</jetty.version>
     <scala-maven-plugin.version>4.9.6</scala-maven-plugin.version>
     <scala.version>2.13.16</scala.version>
     <scala.binary.version>2.13</scala.binary.version>
     <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
     <scala.test.version>3.2.13</scala.test.version>
-    <asm.version>9.8</asm.version>
-    <metrics.version>4.2.36</metrics.version>
+    <asm.version>9.9</asm.version>
+    <metrics.version>4.2.37</metrics.version>
     <scala.target.vm>${vm.target.version}</scala.target.vm>
     <jersey.version>2.43</jersey.version>
     <junit.version>5.13.4</junit.version>
     <junit.platform.version>1.13.4</junit.platform.version>
-    <mockito.version>5.19.0</mockito.version>
+    <mockito.version>5.20.0</mockito.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
-    <cucumber.version>7.28.2</cucumber.version>
+    <cucumber.version>7.30.0</cucumber.version>
     <cucumber.scala.version>8.26.1</cucumber.scala.version>
     <caffeine.version>3.2.2</caffeine.version>
     <required.maven.version>3.8.2</required.maven.version>
     <jackson.version>2.20.0</jackson.version>
     <jackson-databind.version>2.20.0</jackson-databind.version>
     <amazon-sdk.version>1.12.791</amazon-sdk.version>
-    <awssdk.version>2.33.7</awssdk.version>
-    <awssdk-crt.version>0.38.12</awssdk-crt.version>
+    <awssdk.version>2.35.5</awssdk.version>
+    <awssdk-crt.version>0.39.0</awssdk-crt.version>
     <guava.version>33.4.8-jre</guava.version>
     <awaitility.version>4.3.0</awaitility.version>
-    <log4j.version>2.24.3</log4j.version>
+    <log4j.version>2.25.2</log4j.version>
     <slf4j.version>2.0.17</slf4j.version>
     <neo4j-java-driver.version>6.0.1</neo4j-java-driver.version>
     <!-- there is a non-standard behaviour of map merge in the 13.0 version can't upgrade for now-->
@@ -207,16 +207,16 @@
     <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
     <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
     <antlr.version>4.13.2</antlr.version> <!-- You MUST re-generate the parsers after changing this value! -->
-    <error_prone.version>2.41.0</error_prone.version>
+    <error_prone.version>2.42.0</error_prone.version>
     <protobuf.version>4.32.1</protobuf.version>
     <teavm.version>0.12.3</teavm.version>
     <javapoet.version>1.13.0</javapoet.version>
-    <grpc.version>1.75.0</grpc.version>
+    <grpc.version>1.76.0</grpc.version>
     <testcontainers.version>1.21.3</testcontainers.version>
     <build-resources.version>2024-12.1</build-resources.version>
-    <s3mock.version>4.7.0</s3mock.version>
+    <s3mock.version>4.9.1</s3mock.version>
     <shiro.version>2.0.5</shiro.version>
-    <cypherdsl.version>2025.0.1</cypherdsl.version>
+    <cypherdsl.version>2025.0.3</cypherdsl.version>
     <jsr305.version>3.0.2</jsr305.version>
     <json4s.version>3.6.11</json4s.version>
     <dependency.analyze.failOnWarning>false</dependency.analyze.failOnWarning>
@@ -1309,7 +1309,7 @@
       <dependency>
         <groupId>net.java.dev.jna</groupId>
         <artifactId>jna</artifactId>
-        <version>5.17.0</version>
+        <version>5.18.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.lucene</groupId>
@@ -1529,7 +1529,7 @@
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
-        <version>3.27.4</version>
+        <version>3.27.6</version>
         <scope>test</scope>
         <exclusions>
           <exclusion>
@@ -1597,7 +1597,7 @@
       <dependency>
         <groupId>org.netbeans.modules</groupId>
         <artifactId>org-netbeans-lib-profiler</artifactId>
-        <version>RELEASE230</version>
+        <version>RELEASE270</version>
         <scope>test</scope>
       </dependency>
 
@@ -1822,7 +1822,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.18.0</version>
+        <version>3.19.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -1837,7 +1837,7 @@
       <dependency>
         <groupId>com.github.luben</groupId>
         <artifactId>zstd-jni</artifactId>
-        <version>1.5.7-4</version>
+        <version>1.5.7-5</version>
       </dependency>
 
       <!--
@@ -2126,7 +2126,7 @@
       <dependency>
         <groupId>net.bytebuddy</groupId>
         <artifactId>byte-buddy</artifactId>
-        <version>1.17.7</version>
+        <version>1.17.8</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
