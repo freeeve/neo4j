@@ -62,9 +62,9 @@ public class TextCompletion {
                     MapValue configuration) {
         requireNonNull(providerName, "'provider' must not be null");
         requireNonNull(configuration, "'configuration' must not be null");
-        final var provider = providers.byName(providerName);
+        final var provider = providers.configure(providerName, configuration);
         monitors.textCompletion().textCompletionFunctionCalled(provider.name());
-        return prompt == null ? null : provider.complete(prompt, configuration);
+        return prompt == null ? null : provider.complete(prompt);
     }
 
     @Internal // Internal until the final name and signature is decided. Update completionDocsAreUpToDate when removing.
@@ -79,13 +79,13 @@ public class TextCompletion {
         requireNonNull(prompts, "'prompts' must not be null");
         requireNonNull(providerName, "'provider' must not be null");
         requireNonNull(configuration, "'configuration' must not be null");
-        final var provider = providers.byName(providerName);
+        final var provider = providers.configure(providerName, configuration);
         monitors.textCompletion().textCompletionProcedureCalled(provider.name());
 
         // TODO Optimise to be a single network call, if possible. Remember to handle nulls.
         return IntStream.range(0, prompts.size()).mapToObj(i -> {
             final var prompt = prompts.get(i);
-            final var completion = prompt == null ? null : provider.complete(prompt, configuration);
+            final var completion = prompt == null ? null : provider.complete(prompt);
             return new BatchRow(i, completion);
         });
     }
@@ -99,18 +99,20 @@ public class TextCompletion {
     }
 
     public interface Provider extends NamedProvider {
-        Implementation implementation(HttpService httpService);
+        Implementation configure(HttpService httpService, MapValue configuration);
 
         interface Implementation extends NamedProvider.Implementation {
-            String complete(String prompt, MapValue parameters);
+            String complete(String prompt);
         }
     }
 
-    public interface Providers extends NamedProvider.Lookup<Provider, Provider.Implementation> {
+    public interface Providers extends NamedProvider.Lookup<Provider> {
+        Provider.Implementation configure(String name, MapValue configuration);
+
         record Impl(ImmutableList<Provider> providers, HttpService httpService) implements Providers {
             @Override
-            public Provider.Implementation implementation(Provider provider) {
-                return provider.implementation(httpService);
+            public Provider.Implementation configure(String name, MapValue configuration) {
+                return byName(name).configure(httpService, configuration);
             }
         }
     }

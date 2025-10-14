@@ -34,9 +34,7 @@ import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
-import org.neo4j.genai.util.Parameters;
 import org.neo4j.util.VisibleForTesting;
-import org.neo4j.values.virtual.MapValue;
 
 public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementation {
 
@@ -44,19 +42,15 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
 
     HttpService httpService();
 
-    Class<PARAMS> paramType();
+    PARAMS params();
 
-    String[] authHeader(PARAMS params);
+    String[] authHeader();
 
-    void extendPayload(MutableMap<String, Object> payload, PARAMS params);
+    void extendPayload(MutableMap<String, Object> payload);
 
     @Override
-    default String complete(String prompt, MapValue paramMap) {
-        return complete(prompt, Parameters.parse(paramType(), paramMap));
-    }
-
-    private String complete(String prompt, PARAMS params) {
-        final var payload = payload(List.of(prompt), params);
+    default String complete(String prompt) {
+        final var payload = payload(List.of(prompt));
         final var response = httpService()
                 .request(
                         endpoint(),
@@ -65,7 +59,7 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
                                         "application/json; charset=" + StandardCharsets.UTF_8,
                                         "Accept",
                                         "application/json")
-                                .headers(authHeader(params))
+                                .headers(authHeader())
                                 .POST(jsonBody(payload))
                                 .build(),
                         OpenAiBase::parseResponse);
@@ -86,9 +80,9 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
                 .toList();
     }
 
-    private MutableMap<String, Object> payload(List<String> prompts, PARAMS params) {
+    private MutableMap<String, Object> payload(List<String> prompts) {
         final var payload = Maps.mutable.<String, Object>empty();
-        extendPayload(payload, params);
+        extendPayload(payload);
 
         final var messages = prompts.stream()
                 .map(prompt -> Map.of("role", "user", "content", prompt))

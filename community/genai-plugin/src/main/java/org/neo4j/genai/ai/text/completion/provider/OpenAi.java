@@ -19,13 +19,17 @@
  */
 package org.neo4j.genai.ai.text.completion.provider;
 
+import static org.neo4j.genai.util.Parameters.parse;
+
 import java.net.URI;
 import java.util.Map;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.util.HttpService;
+import org.neo4j.genai.util.Parameters;
 import org.neo4j.util.VisibleForTesting;
+import org.neo4j.values.virtual.MapValue;
 
 @ServiceProvider
 public class OpenAi implements TextCompletion.Provider {
@@ -59,19 +63,19 @@ public class OpenAi implements TextCompletion.Provider {
     }
 
     @Override
-    public TextCompletion.Provider.Implementation implementation(HttpService httpService) {
-        return new Implementation(name(), endpoint, httpService, paramType());
+    public TextCompletion.Provider.Implementation configure(HttpService httpService, MapValue conf) {
+        return new Implementation(name(), endpoint, httpService, parse(Parameters.class, conf));
     }
 
-    record Implementation(String name, URI endpoint, HttpService httpService, Class<Parameters> paramType)
+    record Implementation(String name, URI endpoint, HttpService httpService, Parameters params)
             implements OpenAiBase<Parameters> {
         @Override
-        public String[] authHeader(Parameters params) {
+        public String[] authHeader() {
             return new String[] {"Authorization", "Bearer " + params.token};
         }
 
         @Override
-        public void extendPayload(MutableMap<String, Object> payload, Parameters params) {
+        public void extendPayload(MutableMap<String, Object> payload) {
             payload.putAll(params.vendorOptions); // Needs to be first to not override model
             payload.put("model", params.model);
         }

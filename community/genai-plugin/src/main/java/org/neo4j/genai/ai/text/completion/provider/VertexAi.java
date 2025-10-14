@@ -80,24 +80,24 @@ public class VertexAi implements TextCompletion.Provider {
     }
 
     @Override
-    public Implementation implementation(HttpService httpService) {
-        return new Implementation(name(), baseUriResolver, httpService);
+    public Implementation configure(HttpService httpService, MapValue conf) {
+        final var params = parse(Parameters.class, conf);
+        return new Implementation(name(), endpoint(params), httpService, params);
     }
 
-    private record Implementation(String name, Function<Parameters, URI> baseUriResolver, HttpService httpService)
+    private record Implementation(String name, URI endpoint, HttpService httpService, Parameters params)
             implements TextCompletion.Provider.Implementation {
 
         @Override
-        public String complete(String prompt, MapValue configMap) {
-            final var configuration = parse(VertexAi.Parameters.class, configMap);
-            final Object payload = buildPayload(List.of(prompt), configuration);
+        public String complete(String prompt) {
+            final Object payload = buildPayload(List.of(prompt));
             final var response = httpService()
                     .request(
-                            endpoint(configuration),
+                            endpoint,
                             builder -> builder.header(
                                             "Content-Type", "application/json; charset=" + StandardCharsets.UTF_8)
                                     .header("Accept", "application/json")
-                                    .header("Authorization", "Bearer " + configuration.token)
+                                    .header("Authorization", "Bearer " + params.token)
                                     .POST(jsonBody(payload))
                                     .build(),
                             Implementation::parseResponse);
@@ -105,16 +105,6 @@ public class VertexAi implements TextCompletion.Provider {
                 throw new MalformedGenAIResponseException("Expected exactly one message, but found " + response.size());
             }
             return response.getFirst();
-        }
-
-        private URI endpoint(Parameters conf) {
-            return baseUriResolver
-                    .apply(conf)
-                    .resolve(DEFAULT_API_PATH_TEMPLATE.formatted(
-                            pathSafe(conf.project, "project"),
-                            pathSafe(conf.region, "region"),
-                            pathSafe(conf.publisher, "publisher"),
-                            pathSafe(conf.model, "model")));
         }
 
         private static List<String> parseResponse(InputStream inputStream) {
@@ -126,8 +116,8 @@ public class VertexAi implements TextCompletion.Provider {
                     .toList();
         }
 
-        private static Map<String, Object> buildPayload(List<String> prompts, Parameters conf) {
-            final var payload = Maps.mutable.ofMap(conf.vendorOptions);
+        private Map<String, Object> buildPayload(List<String> prompts) {
+            final var payload = Maps.mutable.ofMap(params.vendorOptions);
             final var contents = prompts.stream()
                     .map(p -> Maps.immutable.of(
                             "role", "user", "parts", Lists.immutable.of(Maps.immutable.of("text", p))))
@@ -135,6 +125,16 @@ public class VertexAi implements TextCompletion.Provider {
             payload.put("contents", contents);
             return payload;
         }
+    }
+
+    private URI endpoint(Parameters params) {
+        return baseUriResolver
+                .apply(params)
+                .resolve(DEFAULT_API_PATH_TEMPLATE.formatted(
+                        pathSafe(params.project, "project"),
+                        pathSafe(params.region, "region"),
+                        pathSafe(params.publisher, "publisher"),
+                        pathSafe(params.model, "model")));
     }
 
     protected static String pathSafe(String pathPart, String name) {
@@ -171,12 +171,12 @@ public class VertexAi implements TextCompletion.Provider {
         @JsonIgnoreProperties(ignoreUnknown = true)
         record Response(List<Candidate> candidates) {}
     }
-}
 
-class DefaultBaseUriResolver implements Function<VertexAi.Parameters, URI> {
-    @Override
-    public URI apply(VertexAi.Parameters parameters) {
-        final var region = pathSafe(parameters.region, "region");
-        return URI.create(DEFAULT_BASE_URL_TEMPLATE.formatted(region));
+    private static class DefaultBaseUriResolver implements Function<VertexAi.Parameters, URI> {
+        @Override
+        public URI apply(VertexAi.Parameters parameters) {
+            final var region = pathSafe(parameters.region, "region");
+            return URI.create(DEFAULT_BASE_URL_TEMPLATE.formatted(region));
+        }
     }
 }

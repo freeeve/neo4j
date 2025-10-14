@@ -39,15 +39,13 @@ public interface NamedProvider {
     }
 
     /** Lookup providers and instantiate their implementation. */
-    interface Lookup<PROVIDER extends NamedProvider, IMPLEMENTATION extends Implementation> {
+    interface Lookup<PROVIDER extends NamedProvider> {
         ImmutableList<PROVIDER> providers();
 
-        IMPLEMENTATION implementation(PROVIDER provider);
-
-        default IMPLEMENTATION byName(String name) {
+        default PROVIDER byName(String name) {
             for (final var provider : providers()) {
                 if (CASE_INSENSITIVE_ORDER.compare(provider.name(), name) == 0) {
-                    return implementation(provider);
+                    return provider;
                 }
             }
 
