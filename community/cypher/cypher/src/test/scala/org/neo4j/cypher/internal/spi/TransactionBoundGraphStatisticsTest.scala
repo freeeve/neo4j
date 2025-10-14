@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.Selectivity
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.internal.kernel.api.InternalIndexState
 import org.neo4j.internal.kernel.api.Read
 import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
@@ -106,7 +107,10 @@ class TransactionBoundGraphStatisticsTest extends CypherFunSuite {
   }
 
   test("indexPropertyExistsSelectivity should not log if index was not found") {
-    when(schemaRead.index(any[SchemaDescriptor], any[schema.IndexType])).thenReturn(schema.IndexDescriptor.NO_INDEX)
+    when(schemaRead.indexForSchemaAndIndexTypeNonTransactional(
+      any[SchemaDescriptor],
+      any[schema.IndexType]
+    )).thenReturn(schema.IndexDescriptor.NO_INDEX)
     when(read.estimateCountsForNode(labelId)).thenReturn(20L)
     val exception = IndexNotFoundKernelException.indexNotFound()
     when(schemaRead.indexSize(any[org.neo4j.internal.schema.IndexDescriptor])).thenThrow(exception)
@@ -185,7 +189,10 @@ class TransactionBoundGraphStatisticsTest extends CypherFunSuite {
 
   test("uniqueValueSelectivity should not log if index was not found") {
     // given
-    when(schemaRead.index(any[SchemaDescriptor], any[schema.IndexType])).thenReturn(schema.IndexDescriptor.NO_INDEX)
+    when(schemaRead.indexForSchemaAndIndexTypeNonTransactional(
+      any[SchemaDescriptor],
+      any[schema.IndexType]
+    )).thenReturn(schema.IndexDescriptor.NO_INDEX)
     when(schemaRead.indexUniqueValuesSelectivity(descriptor)).thenReturn(0.0)
     val exception = IndexNotFoundKernelException.indexNotFound()
     when(schemaRead.indexSize(any[org.neo4j.internal.schema.IndexDescriptor])).thenThrow(exception)
@@ -202,6 +209,10 @@ class TransactionBoundGraphStatisticsTest extends CypherFunSuite {
   override protected def beforeEach(): Unit = {
     read = mock[Read]
     schemaRead = mock[SchemaRead]
-    when(schemaRead.index(any[SchemaDescriptor], any[schema.IndexType])).thenReturn(descriptor)
+    when(schemaRead.indexForSchemaAndIndexTypeNonTransactional(
+      any[SchemaDescriptor],
+      any[schema.IndexType]
+    )).thenReturn(descriptor)
+    when(schemaRead.indexGetStateNonLocking(descriptor)).thenReturn(InternalIndexState.ONLINE)
   }
 }

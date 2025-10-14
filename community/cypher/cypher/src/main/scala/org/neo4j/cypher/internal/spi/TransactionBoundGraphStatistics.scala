@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Selectivity
+import org.neo4j.internal.kernel.api.InternalIndexState
 import org.neo4j.internal.kernel.api.Read
 import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
@@ -148,8 +149,12 @@ object TransactionBoundGraphStatistics {
       Cardinality(read.estimateCountsForRelationships(fromLabel, relTypeId, toLabel))
 
     private def maybeKernelIndexDescriptor(indexDescriptor: IndexDescriptor): Option[schema.IndexDescriptor] = {
-      Option(schemaRead.index(cypherToKernelSchema(indexDescriptor), cypherToKernel(indexDescriptor.indexType)))
+      Option(schemaRead.indexForSchemaAndIndexTypeNonTransactional(
+        cypherToKernelSchema(indexDescriptor),
+        cypherToKernel(indexDescriptor.indexType)
+      ))
         .filter(_ != schema.IndexDescriptor.NO_INDEX)
+        .filter(kernelDescriptor => schemaRead.indexGetStateNonLocking(kernelDescriptor) == InternalIndexState.ONLINE)
     }
   }
 }
