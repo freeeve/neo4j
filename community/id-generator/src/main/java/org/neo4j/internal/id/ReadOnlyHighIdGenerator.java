@@ -143,7 +143,7 @@ class ReadOnlyHighIdGenerator implements IdGenerator {
     }
 
     @Override
-    public PageIdRange nextEmptyPageRange(int idsPerPage) {
+    public PageIdRange nextContinuousPageRange(int idsPerPage) {
         throw new UnsupportedOperationException("Should not be required");
     }
 

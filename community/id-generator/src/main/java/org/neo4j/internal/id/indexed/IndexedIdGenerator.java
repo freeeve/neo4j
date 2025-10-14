@@ -502,7 +502,7 @@ public class IndexedIdGenerator implements IdGenerator {
         }
 
         // There was no usable range from cache, so we take an empty one
-        return nextEmptyPageRange(idsPerPage);
+        return nextContinuousPageRange(idsPerPage);
     }
 
     private PageIdRange getPageIdRangeFromCache(CursorContext cursorContext, int idsPerPage) {
@@ -527,7 +527,7 @@ public class IndexedIdGenerator implements IdGenerator {
     }
 
     @Override
-    public PageIdRange nextEmptyPageRange(int idsPerPage) {
+    public PageIdRange nextContinuousPageRange(int idsPerPage) {
         long currentHighId;
         long requestSize;
         do {

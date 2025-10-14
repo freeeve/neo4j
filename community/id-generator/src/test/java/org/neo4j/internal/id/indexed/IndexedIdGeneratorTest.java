@@ -1464,8 +1464,8 @@ class IndexedIdGeneratorTest {
         }
 
         @Override
-        public PageIdRange nextEmptyPageRange(int idsPerPage) {
-            return withReadLock(() -> leader().nextEmptyPageRange(idsPerPage));
+        public PageIdRange nextContinuousPageRange(int idsPerPage) {
+            return withReadLock(() -> leader().nextContinuousPageRange(idsPerPage));
         }
 
         @Override

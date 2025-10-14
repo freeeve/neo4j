@@ -76,7 +76,7 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
      * @param idsPerPage    - number of ids per page in store that this generator is responsible for
      * @return range of reserved ids from empty page
      */
-    PageIdRange nextEmptyPageRange(int idsPerPage);
+    PageIdRange nextContinuousPageRange(int idsPerPage);
 
     /**
      * Release back id leftovers from previously reserved range.
@@ -355,8 +355,8 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         }
 
         @Override
-        public PageIdRange nextEmptyPageRange(int idsPerPage) {
-            return delegate.nextEmptyPageRange(idsPerPage);
+        public PageIdRange nextContinuousPageRange(int idsPerPage) {
+            return delegate.nextContinuousPageRange(idsPerPage);
         }
 
         @Override

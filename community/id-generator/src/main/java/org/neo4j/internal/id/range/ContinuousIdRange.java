@@ -43,7 +43,7 @@ public class ContinuousIdRange implements PageIdRange {
     }
 
     @Override
-    public long nextConsecutiveIdRange(int numberOfIds) {
+    public long consecutiveIds(int numberOfIds) {
         if (cursor + numberOfIds <= rangeSize) {
             long result = rangeStart + cursor;
             cursor += numberOfIds;

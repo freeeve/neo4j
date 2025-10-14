@@ -44,7 +44,7 @@ public class ArrayBasedRange implements PageIdRange {
     }
 
     @Override
-    public long nextConsecutiveIdRange(int numberOfIds) {
+    public long consecutiveIds(int numberOfIds) {
         assert numberOfIds > 0;
         if (cursor + numberOfIds > ids.length) {
             return NO_ID;

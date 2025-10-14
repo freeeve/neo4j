@@ -226,7 +226,7 @@ public class EmptyIdGeneratorFactory implements IdGeneratorFactory {
         }
 
         @Override
-        public PageIdRange nextEmptyPageRange(int idsPerPage) {
+        public PageIdRange nextContinuousPageRange(int idsPerPage) {
             return PageIdRange.EMPTY;
         }
 

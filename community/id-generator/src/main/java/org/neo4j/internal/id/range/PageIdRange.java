@@ -38,7 +38,7 @@ public interface PageIdRange {
         }
 
         @Override
-        public long nextConsecutiveIdRange(int numberOfIds) {
+        public long consecutiveIds(int numberOfIds) {
             return NO_ID;
         }
 
@@ -83,7 +83,7 @@ public interface PageIdRange {
     /*
      * Ids from this reserved range of numberOfIds amount of consectutive ids.
      */
-    long nextConsecutiveIdRange(int numberOfIds);
+    long consecutiveIds(int numberOfIds);
 
     /**
      * Check if there still any ids available in this range.
