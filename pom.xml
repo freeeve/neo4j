@@ -813,7 +813,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>3.8.1</version>
+          <version>3.9.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -1062,7 +1062,6 @@
           <jdk>25</jdk>
       </activation>
         <properties>
-            <dependency.analyze.skip>true</dependency.analyze.skip>
             <jdk25.custom.options>-XX:+UseCompactObjectHeaders --sun-misc-unsafe-memory-access=allow</jdk25.custom.options>
         </properties>
     </profile>
