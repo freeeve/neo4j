@@ -119,16 +119,6 @@ object GraphType {
     if (elementTypes.isEmpty && constraints.isEmpty) "{}"
     else {
       // Turn into ast graph type representation to reuse it's stringifier
-      def getEndNodeRef(endNode: NodeElementTypeReferenceForRelationshipElementType): ast.NodeTypeReference =
-        endNode match {
-          case EmptyNodeElementTypeReference =>
-            ast.EmptyNodeTypeReference()(InputPosition.NONE)
-          case ref: NodeElementTypeReferenceByLabel =>
-            ast.NodeTypeReferenceByLabel(ref.labelName)(InputPosition.NONE)
-          case ref: NodeElementTypeReferenceByIdentifyingLabel =>
-            ast.NodeTypeReferenceByIdentifyingLabel(ref.labelName)(InputPosition.NONE)
-        }
-
       val nodeVariable = Variable("n")(InputPosition.NONE, isIsolated = false)
       val relVariable = Variable("r")(InputPosition.NONE, isIsolated = false)
       def getConstraintRef(ref: GraphElementTypeReferenceForConstraint): (ast.GraphTypeElementReference, Variable) =
@@ -150,27 +140,8 @@ object GraphType {
         }
 
       val astElemTypes: Set[ast.GraphTypeEntry] = elementTypes.map {
-        case NodeElementType(identifyingLabel, additionalLabels, propertyTypes) =>
-          ast.NodeType(
-            None,
-            identifyingLabel,
-            additionalLabels,
-            propertyTypes.map(pt =>
-              ast.PropertyType(pt.name, pt.propertyType, None)(InputPosition.NONE)
-            ),
-            Set.empty
-          )(InputPosition.NONE)
-        case RelationshipElementType(identifyingLabel, sourceNode, targetNode, propertyTypes) =>
-          ast.EdgeType(
-            getEndNodeRef(sourceNode),
-            None,
-            identifyingLabel,
-            propertyTypes.map(pt =>
-              ast.PropertyType(pt.name, pt.propertyType, None)(InputPosition.NONE)
-            ),
-            getEndNodeRef(targetNode),
-            Set.empty
-          )(InputPosition.NONE)
+        case net: NodeElementType         => net.toAstObject
+        case ret: RelationshipElementType => ret.toAstObject
       }
 
       val astConstraints: Set[ast.GraphTypeConstraint] = constraints.map(constraint => {
@@ -349,6 +320,18 @@ case class NodeElementType(
 ) extends GraphTypeEntry {
 
   val isJustAnIdentifier: Boolean = additionalLabels.isEmpty && propertyTypes.isEmpty
+
+  def toAstObject: ast.NodeType = {
+    ast.NodeType(
+      None,
+      identifyingLabel,
+      additionalLabels,
+      propertyTypes.map(pt =>
+        ast.PropertyType(pt.name, pt.propertyType, None)(InputPosition.NONE)
+      ),
+      Set.empty
+    )(InputPosition.NONE)
+  }
 }
 
 case class RelationshipElementType(
@@ -382,6 +365,29 @@ case class RelationshipElementType(
     propertyTypes == toDrop.propertyTypes &&
     compatibleEndNode(sourceNode, toDrop.sourceNode) &&
     compatibleEndNode(targetNode, toDrop.targetNode)
+  }
+
+  def toAstObject: ast.EdgeType = {
+    def getEndNodeRef(endNode: NodeElementTypeReferenceForRelationshipElementType): ast.NodeTypeReference =
+      endNode match {
+        case EmptyNodeElementTypeReference =>
+          ast.EmptyNodeTypeReference()(InputPosition.NONE)
+        case ref: NodeElementTypeReferenceByLabel =>
+          ast.NodeTypeReferenceByLabel(ref.labelName)(InputPosition.NONE)
+        case ref: NodeElementTypeReferenceByIdentifyingLabel =>
+          ast.NodeTypeReferenceByIdentifyingLabel(ref.labelName)(InputPosition.NONE)
+      }
+
+    ast.EdgeType(
+      getEndNodeRef(sourceNode),
+      None,
+      identifyingLabel,
+      propertyTypes.map(pt =>
+        ast.PropertyType(pt.name, pt.propertyType, None)(InputPosition.NONE)
+      ),
+      getEndNodeRef(targetNode),
+      Set.empty
+    )(InputPosition.NONE)
   }
 }
 

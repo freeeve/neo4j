@@ -145,7 +145,7 @@ object GraphTypeStringifier {
     case edgeType: EdgeType => stringifyEdgeType(edgeType)
   }
 
-  private def stringifyNodeType(nodeType: NodeType): String = {
+  def stringifyNodeType(nodeType: NodeType): String = {
     val propTypes = nodeType.propertyTypes.toList.sorted.map(apply) match {
       case props if props.isEmpty => ""
       case props                  => props.mkString(" {", ", ", "}")
@@ -163,7 +163,7 @@ object GraphTypeStringifier {
     s"(${variable(nodeType.variable)}:${es.apply(nodeType.identifyingLabel)} =>$secondaryLabels$propTypes)$constraintsStr"
   }
 
-  private def stringifyEdgeType(
+  def stringifyEdgeType(
     edgeType: EdgeType
   ): String = {
     val propTypes = edgeType.propertyTypes.toList.sorted.map(apply) match {

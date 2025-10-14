@@ -81,6 +81,8 @@ public class GqlParams {
         graph(new IDENT()), // Graph name | myGrap
         graphTypeDependence1(new VERBATIM()), // GraphTypeDependence | independent
         graphTypeDependence2(new VERBATIM()),
+        graphTypeElement1(new VERBATIM()),
+        graphTypeElement2(new VERBATIM()),
         graphTypeReference(new STRLIT()), // Graph type reference
         graphTypeOperation(new VERBATIM()), // One of SET, ADD, DROP, ALTER
         hint(new VERBATIM()), // Freeform description of some "hint"

@@ -2134,16 +2134,24 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NCC(
             new GqlStatus("22NCC"),
-            "The node element type identified by the label { %s } is different to the one specified in the query.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.label},
+            "The node element type { %s } identified by the label { %s } is different to the one specified in the query { %s }.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.graphTypeElement1,
+                GqlParams.StringParam.label,
+                GqlParams.StringParam.graphTypeElement2
+            },
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "node element type specified incorrectly",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NCD(
             new GqlStatus("22NCD"),
-            "The relationship element type identified by the relationship type { %s } is different to the one specified in the query.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.relType},
+            "The relationship element type { %s } identified by the relationship type { %s } is different to the one specified in the query { %s }.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.graphTypeElement1,
+                GqlParams.StringParam.relType,
+                GqlParams.StringParam.graphTypeElement2
+            },
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "relationship element type specified incorrectly",
