@@ -36,7 +36,7 @@ import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
-import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.EnvelopeType;
@@ -84,7 +84,7 @@ class EnvelopedLogFilesTest {
         if (term >= 0) {
             writeChannel.putTerm(term);
         }
-        writeChannel.putVersion(KernelVersion.GLORIOUS_FUTURE.version());
+        writeChannel.putVersion(DatabaseVersion.V1.identifier());
         writeChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         writeChannel.put(data, data.length);
         writeChannel.endCurrentEntry();
@@ -104,16 +104,16 @@ class EnvelopedLogFilesTest {
                 fs,
                 baseFolder,
                 baseFileName,
-                (fileVersion, preFileIndex, preFileChecksum, segmentSize) -> LogFormat.fromKernelVersion(
-                                KernelVersion.GLORIOUS_FUTURE)
-                        .newHeader(
+                (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromByteVersion(
+                                DatabaseVersion.V1.getLogFormatHeader())
+                        .newRaftHeader(
                                 fileVersion,
                                 preFileIndex,
-                                LogHeader.UNKNOWN_TERM,
+                                lastTerm,
                                 StoreId.UNKNOWN,
                                 segmentSize,
                                 preFileChecksum,
-                                KernelVersion.GLORIOUS_FUTURE),
+                                DatabaseVersion.V1),
                 segmentBlockSize,
                 writeBufferedBlocks,
                 totalSegments,
@@ -435,6 +435,34 @@ class EnvelopedLogFilesTest {
                 envelopeReadChannel.get(readData, readData.length);
                 assertThat(data).isEqualTo(readData);
             }
+        }
+    }
+
+    @Test
+    void shouldRotateWithCorrectHeaderState() throws IOException {
+        envelopedLogFiles.initialise();
+
+        int dataSize = segmentBlockSize - LogEnvelopeHeader.HEADER_SIZE - 4;
+        var data = new byte[dataSize];
+        writeData(envelopedLogFiles.currentWriteChannel(), data, 0); // file 1
+        writeData(envelopedLogFiles.currentWriteChannel(), data, 1); // file 1
+        writeData(envelopedLogFiles.currentWriteChannel(), data, 2); // file 2
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+
+        try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+            envelopeReadChannel.alignWithStartEntry();
+            var firstHeader = envelopeReadChannel.logHeader();
+            envelopeReadChannel.goToNextEntry();
+            assertThat(firstHeader.getLogVersion()).isEqualTo(envelopeReadChannel.getLogVersion());
+            assertThat(envelopeReadChannel.entryIndex()).isEqualTo(1);
+
+            envelopeReadChannel.goToNextEntry();
+            var secondHeader = envelopeReadChannel.logHeader();
+            assertThat(envelopeReadChannel.entryIndex()).isEqualTo(2);
+            assertThat(secondHeader.getLogVersion()).isEqualTo(firstHeader.getLogVersion() + 1);
+
+            assertThat(secondHeader.getLastAppendIndex()).isEqualTo(1);
+            assertThat(secondHeader.getLastTerm()).isEqualTo(1);
         }
     }
 
@@ -1006,7 +1034,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
 
         // simulated a joining member by skipping and writing the same entry
-        envelopedLogFiles.skip(1, entryChecksums[1], offset);
+        envelopedLogFiles.skip(1, entryChecksums[1], offset, -1);
         writeChannel = envelopedLogFiles.currentWriteChannel();
         writeData(writeChannel, messageThree);
         writeChannel.prepareForFlush().flush();

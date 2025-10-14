@@ -234,13 +234,16 @@ class TransactionLogAppendAndRotateIT {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void rotateCommandHasCorrectPositionFromNewFile(boolean useQueueAppender) throws Throwable {
-        KernelVersionProvider startVersionProvider = fixed(V5_11);
+        var fromVersion = V5_11;
+        var toVersion = V5_12;
+
+        KernelVersionProvider startVersionProvider = fixed(fromVersion);
 
         Setup setup = setupLogAppender(startVersionProvider, useQueueAppender);
 
         setup.appender.append(
                 new CompleteTransaction(
-                        txWithVersion(V5_11), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
+                        txWithVersion(fromVersion), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                 TEST_LOG_APPEND_EVENT);
 
         // position of append is in the initial file
@@ -248,11 +251,12 @@ class TransactionLogAppendAndRotateIT {
                 .getTransactionMetadata(setup.appendIndexProvider.getLastAppendIndex())
                 .startPosition();
         assertEquals(LogVersionRepository.INITIAL_LOG_VERSION, noRotationStartPosition1.getLogVersion());
-        assertEquals(LogFormat.BIGGEST_HEADER, noRotationStartPosition1.getByteOffset());
+        assertEquals(
+                LogFormat.fromKernelVersion(fromVersion).getHeaderSize(), noRotationStartPosition1.getByteOffset());
 
         setup.appender.append(
                 new CompleteTransaction(
-                        txWithVersion(V5_11), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
+                        txWithVersion(fromVersion), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                 TEST_LOG_APPEND_EVENT);
 
         // position of second append is still in the initial file
@@ -267,7 +271,7 @@ class TransactionLogAppendAndRotateIT {
 
         setup.appender.append(
                 new CompleteTransaction(
-                        txWithVersion(V5_12), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
+                        txWithVersion(toVersion), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                 TEST_LOG_APPEND_EVENT);
 
         // now we did rotation
@@ -278,7 +282,7 @@ class TransactionLogAppendAndRotateIT {
                 .getTransactionMetadata(setup.appendIndexProvider.getLastAppendIndex())
                 .startPosition();
         assertEquals(LogVersionRepository.INITIAL_LOG_VERSION + 1, postRotationStartPosition.getLogVersion());
-        assertEquals(LogFormat.BIGGEST_HEADER, postRotationStartPosition.getByteOffset());
+        assertEquals(LogFormat.fromKernelVersion(toVersion).getHeaderSize(), postRotationStartPosition.getByteOffset());
     }
 
     @ParameterizedTest

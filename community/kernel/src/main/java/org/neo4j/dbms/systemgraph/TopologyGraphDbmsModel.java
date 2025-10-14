@@ -205,6 +205,7 @@ public interface TopologyGraphDbmsModel {
     String DELETED_DATABASE_KEEP_DATA_PROPERTY = "keep_data";
     String DATABASE_LOG_ENRICHMENT_PROPERTY = "txLogEnrichment";
     String DATABASE_BOOTSTRAP_KERNEL_VERSION_PROPERTY = "bootstrapKernelVersion";
+    String DATABASE_BOOTSTRAP_VERSION = "bootstrapDatabaseVersion";
     String DATABASE_DEFAULT_LANGUAGE_PROPERTY = "defaultLanguage";
     String DATABASE_BACKPRESSURE_ENABLED_PROPERTY = "backpressureEnabled";
     String DATABASE_MIRROR_URI_PROPERTY = "mirrorURI";

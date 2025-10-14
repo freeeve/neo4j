@@ -238,11 +238,13 @@ class EnvelopeFuzzerTest {
 
             @Override
             public void rotateLogFile(LogRotateEvents logRotateEvents) throws IOException {
-                rotateLogFile(logRotateEvents, BASE_APPEND_INDEX, writeChannel.currentChecksum());
+                rotateLogFile(
+                        logRotateEvents, BASE_APPEND_INDEX, writeChannel.currentChecksum(), writeChannel.currentTerm());
             }
 
             @Override
-            public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum)
+            public void rotateLogFile(
+                    LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
                     throws IOException {
                 try (var event = logRotateEvents.beginLogRotate()) {
                     final var logChannel = storeChannel(currentVersion.incrementAndGet(), preAllocate, maxFileSize);

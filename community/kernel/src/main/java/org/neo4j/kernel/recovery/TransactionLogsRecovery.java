@@ -432,7 +432,8 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         }
 
         @Override
-        public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum)
+        public void rotateLogFile(
+                LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
                 throws IOException {
             long newLogVersion = channel.getLogVersion() + 1;
             writer.prepareForFlush().flush();

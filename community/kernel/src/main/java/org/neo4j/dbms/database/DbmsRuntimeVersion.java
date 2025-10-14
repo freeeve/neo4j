@@ -22,6 +22,8 @@ package org.neo4j.dbms.database;
 import java.util.List;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.dbms.database.SystemGraphComponent.Name;
+import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 
@@ -29,75 +31,80 @@ public enum DbmsRuntimeVersion implements ComponentVersion, KernelVersionProvide
     /**
      * Introduced new transaction log version
      */
-    V4_2(2, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_42, KernelVersion.V4_2),
+    V4_2(2, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_42, KernelVersion.V4_2, DatabaseVersion.V0),
 
     /**
      * Switch to use the Version node
      */
-    V4_3(3, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_43D2, KernelVersion.V4_2),
+    V4_3(3, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_43D2, KernelVersion.V4_2, DatabaseVersion.V0),
 
     /**
      * Dense node locking changes, token indexes and relationship property indexes.
      */
-    V4_3_D4(4, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_43D4, KernelVersion.V4_3_D4),
+    V4_3_D4(4, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_43D4, KernelVersion.V4_3_D4, DatabaseVersion.V0),
 
     /**
      * Range, Point and Text index types.
      */
-    V4_4(5, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_44, KernelVersion.V4_4),
+    V4_4(5, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_44, KernelVersion.V4_4, DatabaseVersion.V0),
 
     /**
      * Introduced new transaction log version
      */
-    V5_0(6, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_50, KernelVersion.V5_0),
+    V5_0(6, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_50, KernelVersion.V5_0, DatabaseVersion.V0),
 
     /**
      * Relationship uniqueness constraints
      */
-    V5_7(7, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_57, KernelVersion.V5_7),
+    V5_7(7, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_57, KernelVersion.V5_7, DatabaseVersion.V0),
 
     /**
      * Index usage statistics and enrichment command
      */
-    V5_8(8, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_58, KernelVersion.V5_8),
+    V5_8(8, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_58, KernelVersion.V5_8, DatabaseVersion.V0),
 
     /**
      * Property type constraints for single scalar types.
      */
-    V5_9(9, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_59, KernelVersion.V5_9),
-    V5_10(10, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_510, KernelVersion.V5_10),
+    V5_9(9, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_59, KernelVersion.V5_9, DatabaseVersion.V0),
+    V5_10(10, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_510, KernelVersion.V5_10, DatabaseVersion.V0),
 
     /**
      * Specific add/delete commands for entities and properties
      */
-    V5_11(11, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_511, KernelVersion.V5_11),
+    V5_11(11, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_511, KernelVersion.V5_11, DatabaseVersion.V0),
 
     /**
      * User metadata being tracked for CDC
      */
-    V5_12(12, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_512, KernelVersion.V5_12),
+    V5_12(12, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_512, KernelVersion.V5_12, DatabaseVersion.V0),
 
-    V5_13(13, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_513, KernelVersion.V5_13),
+    V5_13(13, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_513, KernelVersion.V5_13, DatabaseVersion.V0),
 
-    V5_14(14, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_514, KernelVersion.V5_14),
-    V5_15(15, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_515, KernelVersion.V5_15),
-    V5_18(16, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_518, KernelVersion.V5_18),
-    V5_19(17, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_519, KernelVersion.V5_19),
-    V5_20(18, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_520, KernelVersion.V5_20),
-    V5_22(19, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_522, KernelVersion.V5_22),
-    V5_23(20, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_523, KernelVersion.V5_23),
-    V5_25(21, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_525, KernelVersion.V5_25),
-    V2025_04(22, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202504, KernelVersion.V2025_04),
-    V2025_05(23, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202505, KernelVersion.V2025_05),
-    V2025_07(24, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202507, KernelVersion.V2025_07),
-    V2025_08(25, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202508, KernelVersion.V2025_08),
-    V2025_09(26, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202509, KernelVersion.V2025_09),
-    V2025_10(27, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202510, KernelVersion.V2025_10),
+    V5_14(14, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_514, KernelVersion.V5_14, DatabaseVersion.V0),
+    V5_15(15, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_515, KernelVersion.V5_15, DatabaseVersion.V0),
+    V5_18(16, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_518, KernelVersion.V5_18, DatabaseVersion.V0),
+    V5_19(17, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_519, KernelVersion.V5_19, DatabaseVersion.V0),
+    V5_20(18, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_520, KernelVersion.V5_20, DatabaseVersion.V0),
+    V5_22(19, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_522, KernelVersion.V5_22, DatabaseVersion.V0),
+    V5_23(20, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_523, KernelVersion.V5_23, DatabaseVersion.V0),
+    V5_25(21, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_525, KernelVersion.V5_25, DatabaseVersion.V0),
+    V2025_04(22, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202504, KernelVersion.V2025_04, DatabaseVersion.V0),
+    V2025_05(23, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202505, KernelVersion.V2025_05, DatabaseVersion.V0),
+    V2025_07(24, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202507, KernelVersion.V2025_07, DatabaseVersion.V0),
+    V2025_08(25, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202508, KernelVersion.V2025_08, DatabaseVersion.V0),
+    V2025_09(26, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202509, KernelVersion.V2025_09, DatabaseVersion.V0),
+    V2025_10(27, DBMS_RUNTIME_COMPONENT, Neo4jVersions.VERSION_202510, KernelVersion.V2025_10, DatabaseVersion.V0),
 
     /**
      * Glorious future version to be used for testing coming versions.
      */
-    GLORIOUS_FUTURE(Integer.MAX_VALUE, DBMS_RUNTIME_COMPONENT, "Future version", KernelVersion.GLORIOUS_FUTURE);
+    GLORIOUS_FUTURE(
+            Integer.MAX_VALUE,
+            DBMS_RUNTIME_COMPONENT,
+            "Future version",
+            KernelVersion.GLORIOUS_FUTURE,
+            DatabaseVersion.V1);
 
     public static final List<DbmsRuntimeVersion> VERSIONS = List.of(values());
 
@@ -112,16 +119,22 @@ public enum DbmsRuntimeVersion implements ComponentVersion, KernelVersionProvide
     }
 
     DbmsRuntimeVersion(
-            int version, SystemGraphComponent.Name componentName, String description, KernelVersion kernelVersion) {
+            int version,
+            Name componentName,
+            String description,
+            KernelVersion kernelVersion,
+            DatabaseVersion databaseVersion) {
         this.version = version;
         this.componentName = componentName;
         this.description = description;
         this.kernelVersion = kernelVersion;
+        this.databaseVersion = databaseVersion;
     }
 
     private final SystemGraphComponent.Name componentName;
     private final String description;
     private final KernelVersion kernelVersion;
+    private final DatabaseVersion databaseVersion;
     private final int version;
 
     @Override
@@ -183,5 +196,9 @@ public enum DbmsRuntimeVersion implements ComponentVersion, KernelVersionProvide
     @Override
     public KernelVersion kernelVersion() {
         return kernelVersion;
+    }
+
+    public DatabaseVersion databaseVersion() {
+        return databaseVersion;
     }
 }

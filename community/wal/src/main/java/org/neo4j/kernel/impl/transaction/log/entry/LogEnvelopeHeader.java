@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry;
 
-import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidLogEnvelopeReadException;
 
 /**
@@ -32,28 +31,8 @@ import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidLogEnvelopeReadExc
  * When there is not enough room for even a {@link LogEnvelopeHeader} to be written into a segment, that array of bytes
  * would be padded out with zeroes.
  */
-public record LogEnvelopeHeader(
-        // The type of the envelope
-        EnvelopeType type,
-        // The index of the entry that this envelope belongs to. An entry can be composed of a single FULL
-        // or a combination of BEGIN, MIDDLE and END envelopes, in which case all of them will have the same
-        // index.
-        long index,
-        // The length of the data payload within the envelope
-        int payLoadLength,
-        /*
-         * The kernel version when the envelope was written. This value may be null in the case of MIDDLE and END
-         * envelope types. If the internal structure of the envelope is written at the beginning of a segment/file,
-         * then the version may be set, for example when a LogEntryCommit is written at such a boundary.
-         */
-        KernelVersion version,
-        // The checksum of the previous envelope
-        int previousChecksum,
-        /*
-         * The checksum of this envelope. Note that the checksum will include the values for the envelope type, the
-         * payload length, the kernel version and the previous envelope's checksum.
-         */
-        int payloadChecksum) {
+public class LogEnvelopeHeader {
+    private LogEnvelopeHeader() {}
 
     public static final int HEADER_SIZE = Integer.BYTES // payload checksum
             + Byte.BYTES // envelope type
@@ -66,7 +45,7 @@ public record LogEnvelopeHeader(
 
     public static final int MAX_ZERO_PADDING_SIZE = Long.BYTES + LogEnvelopeHeader.HEADER_SIZE;
 
-    public static final byte IGNORE_KERNEL_VERSION = -1;
+    public static final byte IGNORE_CONTENT_VERSION = -1;
     public static final byte UNSPECIFIED_CONTENT_TYPE = -1;
     public static final byte UNSPECIFIED_INDEX = -1;
     public static final byte UNSPECIFIED_TERM = -1;

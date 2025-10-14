@@ -176,7 +176,7 @@ class TransactionLogFileIT {
         long testAppendIndex = metadataProvider.getLastAppendIndex() + 101;
         int testCRC = 789;
         // rotate with explicit appendIndex should respect passed in value
-        logRotation.rotateLogFile(LogAppendEvent.NULL, testAppendIndex, testCRC);
+        logRotation.rotateLogFile(LogAppendEvent.NULL, testAppendIndex, testCRC, -1);
         var header2 = logFiles.getLogFile().extractHeader(logFiles.getLogFile().getCurrentLogVersion());
         assertEquals(testAppendIndex, header2.getLastAppendIndex());
         if (header2.getLogFormatVersion().usesSegments()) { // no checksum before envelopes

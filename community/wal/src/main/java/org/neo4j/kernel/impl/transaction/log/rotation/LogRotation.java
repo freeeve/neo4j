@@ -61,7 +61,8 @@ public interface LogRotation {
         public void rotateLogFile(LogRotateEvents logRotateEvents) {}
 
         @Override
-        public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum) {}
+        public void rotateLogFile(
+                LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm) {}
 
         @Override
         public void locklessRotateLogFile(
@@ -126,12 +127,14 @@ public interface LogRotation {
     /**
      * Force a log rotation with provided parameters in new header.
      *
-     * @param logRotateEvents - A trace event for the current log append operation.
-     * @param lastAppendIndex - Append index of last entry in previous log file to include in fle header if supported in LogFormat
+     * @param logRotateEvents  - A trace event for the current log append operation.
+     * @param lastAppendIndex  - Append index of last entry in previous log file to include in file header if supported in LogFormat
      * @param previousChecksum - Checksum of last entry in previous log file to include in fle header if supported in LogFormat
+     * @param lastTerm      - Term of last entry in previous log file to include in file header
      * @throws IOException - Thrown on file system errors during rotation
      */
-    void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum) throws IOException;
+    void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
+            throws IOException;
     /**
      * Force a log rotation without taking any additional locks.
      * Only use this if the logFile lock is already taken, or there can be no other concurrent operations.

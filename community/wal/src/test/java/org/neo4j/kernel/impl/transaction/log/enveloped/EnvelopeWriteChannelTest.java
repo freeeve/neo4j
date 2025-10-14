@@ -2462,7 +2462,8 @@ class EnvelopeWriteChannelTest {
             }
 
             @Override
-            public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum)
+            public void rotateLogFile(
+                    LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
                     throws IOException {
                 // fine to ignore parameters as header is just test bytes
                 rotateLogFile(logRotateEvents);
@@ -2743,7 +2744,7 @@ class EnvelopeWriteChannelTest {
                 FIRST_INDEX,
                 expectedStartOffsetChecksum(length),
                 new byte[length],
-                LogEnvelopeHeader.IGNORE_KERNEL_VERSION,
+                LogEnvelopeHeader.IGNORE_CONTENT_VERSION,
                 UNSPECIFIED_TERM,
                 UNSPECIFIED_CONTENT_TYPE);
     }
@@ -2762,7 +2763,7 @@ class EnvelopeWriteChannelTest {
                 .put(EnvelopeType.START_OFFSET.typeValue)
                 .putInt(length)
                 .putLong(0)
-                .put(LogEnvelopeHeader.IGNORE_KERNEL_VERSION)
+                .put(LogEnvelopeHeader.IGNORE_CONTENT_VERSION)
                 .putInt(0) // Previous checksum is 0, as start offset does not participate in checksum chain.
                 .putLong(UNSPECIFIED_TERM)
                 .put(UNSPECIFIED_CONTENT_TYPE);

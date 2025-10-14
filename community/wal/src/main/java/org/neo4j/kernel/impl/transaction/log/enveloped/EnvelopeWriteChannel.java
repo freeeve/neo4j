@@ -22,7 +22,7 @@ package org.neo4j.kernel.impl.transaction.log.enveloped;
 import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_KERNEL_VERSION;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_CONTENT_VERSION;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
@@ -117,11 +117,12 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
 
     private StoreChannel channel;
     private int currentEnvelopeStart;
-    private byte currentVersion = IGNORE_KERNEL_VERSION;
+    private byte currentVersion = IGNORE_CONTENT_VERSION;
     private byte currentContentType = UNSPECIFIED_CONTENT_TYPE;
     // The index of the current entry. See LogEnvelopeHeader.index.
     private long currentIndex;
     private long currentTerm = UNSPECIFIED_TERM;
+    private long nextTerm = UNSPECIFIED_TERM;
 
     private int lastWrittenPosition;
     private boolean begin = true;
@@ -422,7 +423,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
                         + "last appended term, terms must be monotonically increasing. [lastTermAppended=%d, entryTerm=%d]",
                 currentTerm,
                 term);
-        this.currentTerm = term;
+        this.nextTerm = term;
     }
 
     @Override
@@ -539,6 +540,10 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
 
         if (begin && type != EnvelopeType.START_OFFSET) {
             currentIndex++;
+            if (nextTerm != UNSPECIFIED_TERM) {
+                currentTerm = nextTerm;
+                nextTerm = UNSPECIFIED_TERM;
+            }
         }
 
         // Fill in the header
@@ -550,7 +555,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
                     .putInt(payloadLength)
                     // START_OFFSET envelopes do not have an index, as they are skipped automatically when reading
                     .putLong(0)
-                    .put(IGNORE_KERNEL_VERSION)
+                    .put(IGNORE_CONTENT_VERSION)
                     // START_OFFSET do not participate in checksum chain.
                     .putInt(0)
                     .putLong(UNSPECIFIED_TERM)
@@ -561,7 +566,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
             buffer.putInt(currentEnvelopeStart, thisEnvelopeChecksum);
             // START_OFFSET do not set previousChecksum as they do not participate in checksum chain
         } else {
-            assert currentVersion != IGNORE_KERNEL_VERSION;
+            assert currentVersion != IGNORE_CONTENT_VERSION;
             assert currentContentType != UNSPECIFIED_CONTENT_TYPE;
             buffer.put(type.typeValue)
                     .putInt(payloadLength)
@@ -642,7 +647,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     private void rotateLogFile() throws IOException {
         try (var logAppendEvent = logTracers.logAppend()) {
             // use our definition of appendIndex as appendIndexProvider may be pre-incremented
-            logRotation.rotateLogFile(logAppendEvent, currentIndex, previousChecksum);
+            logRotation.rotateLogFile(logAppendEvent, currentIndex, previousChecksum, currentTerm);
             // and notify the event tracer
             logAppendEvent.setLogRotated(true);
         }

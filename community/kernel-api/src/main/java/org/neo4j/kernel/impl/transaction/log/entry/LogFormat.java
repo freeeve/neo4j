@@ -35,11 +35,11 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.NativeScopedBuffer;
+import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdSerialization;
-import org.neo4j.util.VisibleForTesting;
 
 public enum LogFormat {
     /**
@@ -60,6 +60,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
+                    null,
                     null);
         }
 
@@ -77,6 +78,18 @@ public enum LogFormat {
                 int segmentBlockSize,
                 int previousLogFileChecksum,
                 KernelVersion kernelVersion) {
+            throw new UnsupportedOperationException("Cannot write log format V6");
+        }
+
+        @Override
+        public LogHeader newRaftHeader(
+                long logVersion,
+                long lastAppendIndex,
+                long lastTerm,
+                StoreId storeId,
+                int segmentBlockSize,
+                int previousLogFileChecksum,
+                DatabaseVersion databaseVersion) {
             throw new UnsupportedOperationException("Cannot write log format V6");
         }
     },
@@ -113,6 +126,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
+                    null,
                     null);
         }
 
@@ -130,6 +144,18 @@ public enum LogFormat {
                 int segmentBlockSize,
                 int previousLogFileChecksum,
                 KernelVersion kernelVersion) {
+            throw new UnsupportedOperationException("Cannot write log format V7");
+        }
+
+        @Override
+        public LogHeader newRaftHeader(
+                long logVersion,
+                long lastAppendIndex,
+                long lastTerm,
+                StoreId storeId,
+                int segmentBlockSize,
+                int previousLogFileChecksum,
+                DatabaseVersion databaseVersion) {
             throw new UnsupportedOperationException("Cannot write log format V7");
         }
     },
@@ -162,6 +188,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
+                    null,
                     null);
         }
 
@@ -203,7 +230,20 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
+                    null,
                     null);
+        }
+
+        @Override
+        public LogHeader newRaftHeader(
+                long logVersion,
+                long lastAppendIndex,
+                long lastTerm,
+                StoreId storeId,
+                int segmentBlockSize,
+                int previousLogFileChecksum,
+                DatabaseVersion databaseVersion) {
+            throw new UnsupportedOperationException("Cannot write raft log format V8");
         }
     },
 
@@ -229,6 +269,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
+                    null,
                     null);
         }
 
@@ -271,7 +312,20 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
+                    null,
                     null);
+        }
+
+        @Override
+        public LogHeader newRaftHeader(
+                long logVersion,
+                long lastAppendIndex,
+                long lastTerm,
+                StoreId storeId,
+                int segmentBlockSize,
+                int previousLogFileChecksum,
+                DatabaseVersion databaseVersion) {
+            throw new UnsupportedOperationException("Cannot write raft log format V9");
         }
     },
 
@@ -297,7 +351,7 @@ public enum LogFormat {
             128,
             KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM,
             KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED,
-            KernelVersion.GLORIOUS_FUTURE,
+            KernelVersion.getLatestVersion(Config.defaults()),
             LogSegments.DEFAULT_LOG_SEGMENT_SIZE) {
         @Override
         public LogHeader deserializeHeader(long logVersion, ByteBuffer buffer) throws IOException {
@@ -317,7 +371,8 @@ public enum LogFormat {
                     getHeaderSize(),
                     segmentBlockSize,
                     previousChecksum,
-                    KernelVersion.getForVersion(kernelVersion));
+                    KernelVersion.getForVersion(kernelVersion),
+                    null);
         }
 
         @Override
@@ -363,7 +418,139 @@ public enum LogFormat {
                     getHeaderSize(),
                     segmentBlockSize,
                     previousLogFileChecksum,
-                    kernelVersion);
+                    kernelVersion,
+                    null);
+        }
+
+        @Override
+        public LogHeader newRaftHeader(
+                long logVersion,
+                long lastAppendIndex,
+                long lastTerm,
+                StoreId storeId,
+                int segmentBlockSize,
+                int previousLogFileChecksum,
+                DatabaseVersion databaseVersion) {
+            throw new UnsupportedOperationException("Cannot write raft log format V10");
+        }
+    },
+    /**
+     * Total 128 bytes
+     * - 8 bytes version
+     * - 8 bytes append index
+     * - 64 bytes Store ID
+     * - 4 bytes segment block size
+     * - 4 bytes previous checksum, i.e. last checksum in the previous file
+     * - 8 bytes last term
+     * - 1 byte database version
+     * - 1 byte kernel version
+     * - 30 bytes reserved
+     * <pre>
+     *   |<-                      LOG_HEADER_SIZE                                                   ->|
+     *   |<-LOG_HEADER_VERSION_SIZE->|                                                                |
+     *   |--------------------------------------------------------------------------------------------|
+     *   |          version          | append index | store id | block size | previous checksum | reserved |
+     *  </pre>
+     */
+    V11(
+            (byte) 11,
+            128,
+            KernelVersion.GLORIOUS_FUTURE,
+            KernelVersion.GLORIOUS_FUTURE,
+            KernelVersion.GLORIOUS_FUTURE,
+            LogSegments.DEFAULT_LOG_SEGMENT_SIZE) {
+        @Override
+        public LogHeader deserializeHeader(long logVersion, ByteBuffer buffer) throws IOException {
+            long lastAppendIndex = buffer.getLong();
+            StoreId storeId = StoreIdSerialization.deserializeWithFixedSize(buffer);
+            int segmentBlockSize = buffer.getInt();
+            int previousChecksum = buffer.getInt();
+            long lastTerm = buffer.getLong();
+            byte databaseVersionByte = buffer.get();
+            byte kernelVersionByte = buffer.get();
+            buffer.position(getHeaderSize()); // rest is reserved
+            var databaseVersion = DatabaseVersion.fromVersionNumber(databaseVersionByte);
+            return new LogHeader(
+                    getVersionByte(),
+                    logVersion,
+                    lastAppendIndex,
+                    lastTerm,
+                    storeId,
+                    getHeaderSize(),
+                    segmentBlockSize,
+                    previousChecksum,
+                    KernelVersion.getForVersion(kernelVersionByte),
+                    databaseVersion);
+        }
+
+        @Override
+        public void serializeHeader(ByteBuffer buffer, LogHeader logHeader) throws IOException {
+            ByteOrder originalOrder = buffer.order();
+            try {
+                buffer.order(ByteOrder.BIG_ENDIAN);
+                buffer.putLong(encodeLogVersion(
+                        logHeader.getLogVersion(),
+                        logHeader.getLogFormatVersion().getVersionByte()));
+                buffer.putLong(logHeader.getLastAppendIndex());
+                StoreIdSerialization.serializeWithFixedSize(logHeader.getStoreId(), buffer);
+                buffer.putInt(logHeader.getSegmentBlockSize());
+                buffer.putInt(logHeader.getPreviousLogFileChecksum());
+                buffer.putLong(logHeader.getLastTerm());
+                buffer.put(logHeader.getDatabaseVersion().identifier());
+                buffer.put(logHeader.getKernelVersion().version());
+
+                // Pad rest with zeroes
+                while (buffer.hasRemaining()
+                        && buffer.position() < logHeader.getStartPosition().getByteOffset()) {
+                    buffer.put((byte) 0);
+                }
+            } finally {
+                buffer.order(originalOrder);
+            }
+        }
+
+        @Override
+        public LogHeader newHeader(
+                long logVersion,
+                long appendIndex,
+                long lastTerm,
+                StoreId storeId,
+                int segmentBlockSize,
+                int previousLogFileChecksum,
+                KernelVersion kernelVersion) {
+            return new LogHeader(
+                    getVersionByte(),
+                    logVersion,
+                    appendIndex,
+                    lastTerm,
+                    storeId,
+                    getHeaderSize(),
+                    segmentBlockSize,
+                    previousLogFileChecksum,
+                    kernelVersion, // for now allow overriding the kernel version
+                    DatabaseVersion.V1);
+        }
+
+        @Override
+        public LogHeader newRaftHeader(
+                long logVersion,
+                long lastAppendIndex,
+                long lastTerm,
+                StoreId storeId,
+                int segmentBlockSize,
+                int previousLogFileChecksum,
+                DatabaseVersion databaseVersion) {
+            return new LogHeader(
+                    getVersionByte(),
+                    logVersion,
+                    lastAppendIndex,
+                    lastTerm,
+                    storeId,
+                    getHeaderSize(),
+                    segmentBlockSize,
+                    previousLogFileChecksum,
+                    null,
+                    databaseVersion);
         }
     };
 
@@ -425,6 +612,15 @@ public enum LogFormat {
             int previousLogFileChecksum,
             KernelVersion kernelVersion);
 
+    public abstract LogHeader newRaftHeader(
+            long logVersion,
+            long lastAppendIndex,
+            long lastTerm,
+            StoreId storeId,
+            int segmentBlockSize,
+            int previousLogFileChecksum,
+            DatabaseVersion databaseVersion);
+
     public byte getVersionByte() {
         return versionByte;
     }
@@ -435,11 +631,6 @@ public enum LogFormat {
 
     public KernelVersion getFromKernelVersion() {
         return fromKernelVersion;
-    }
-
-    @VisibleForTesting
-    public KernelVersion getToKernelVersion() {
-        return toKernelVersion;
     }
 
     public int getDefaultSegmentBlockSize() {
@@ -550,17 +741,18 @@ public enum LogFormat {
         // VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED
         // (that in the future will control the version enveloped logs are guaranteed from) needs the
         // additional test only envelope_log_format_on_future setting on to actually turn on envelopes.
+        var logFormat = fromKernelVersion(kernelVersion);
         if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)) {
             if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)
                     && config.get(GraphDatabaseInternalSettings.envelope_log_format_on_future)) {
-                return V10;
+                return logFormat.getVersionByte() < V10.getVersionByte() ? V10 : logFormat;
             }
             if (config.get(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create)) {
-                return V10;
+                return logFormat.getVersionByte() < V10.getVersionByte() ? V10 : logFormat;
             }
             return V9;
         }
-        return fromKernelVersion(kernelVersion);
+        return logFormat;
     }
 
     // The serialization of the upgrade command with log format doesn't exist before 2025.05

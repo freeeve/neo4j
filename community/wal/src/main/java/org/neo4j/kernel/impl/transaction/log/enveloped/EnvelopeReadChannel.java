@@ -24,7 +24,7 @@ import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.io.fs.ChecksumWriter.CHECKSUM_FACTORY;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_KERNEL_VERSION;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_CONTENT_VERSION;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_INDEX;
@@ -400,7 +400,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         getCurrentLogPosition(marker);
 
         byte versionByte = getVersion();
-        checkState(versionByte != IGNORE_KERNEL_VERSION, "Could not find a valid envelope header.");
+        checkState(versionByte != IGNORE_CONTENT_VERSION, "Could not find a valid envelope header.");
 
         if (!marker.isMarkerInLog(channel.getLogVersion())) {
             // reading the header forced the channel to move to the next log - let's re-mark at the correct location
@@ -540,7 +540,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         payloadType = null;
         // We need to skip the first checksum chain check as we don't know the previous checksum.
         enforceChecksumChain = false;
-        payloadVersion = IGNORE_KERNEL_VERSION;
+        payloadVersion = IGNORE_CONTENT_VERSION;
         buffer.position(0);
         payloadStartOffset = 0;
         payloadEndOffset = 0;
@@ -943,7 +943,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         checkState(segmentBlockSize == logHeader.getSegmentBlockSize(), "Changing segmentBlockSize not supported");
         checkState(
                 LogFormat.V10.getVersionByte()
-                        >= logHeader.getLogFormatVersion().getVersionByte(),
+                        <= logHeader.getLogFormatVersion().getVersionByte(),
                 "Envelopes are not supported in old versions");
         checkState(
                 currentChecksum == logHeader.getPreviousLogFileChecksum(),

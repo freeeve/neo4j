@@ -174,7 +174,8 @@ public class FileLogRotation implements LogRotation {
     }
 
     @Override
-    public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum)
+    public void rotateLogFile(
+            LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
             throws IOException {
         synchronized (rotatableFile) {
             doRotate(

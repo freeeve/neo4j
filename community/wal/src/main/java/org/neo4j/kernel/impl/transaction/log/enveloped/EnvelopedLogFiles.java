@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
+
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
@@ -146,7 +148,8 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         // no existing data found, either no log files or only pre-allocated logs
         var logChannelCtx = createNewStoreChannel(
                 LogsRepository.BASE_VERSION,
-                logHeaderFactory.createLogHeader(LogsRepository.BASE_VERSION, -1, INITIAL_CHECKSUM, segmentBlockSize));
+                logHeaderFactory.createLogHeader(
+                        LogsRepository.BASE_VERSION, -1, INITIAL_CHECKSUM, segmentBlockSize, UNSPECIFIED_TERM));
         updateState(logChannelCtx, INITIAL_CHECKSUM, BASE_INDEX - 1);
         return -1;
     }
@@ -229,14 +232,16 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
      * @param index    the index to skip to. This will be the log header index and the next written entry will be index+1
      * @param checksum the checksum for the provided index.
      * @param offset   the offset for the provided index.
+     * @param term     the term for the provided index
      */
-    public void skip(long index, int checksum, int offset) throws IOException {
+    public void skip(long index, int checksum, int offset, long term) throws IOException {
         if (index > appendingChannel.currentIndex()) {
             var prunedVersion = logsRepository.logVersionsRange().to();
             logsRepository.deleteLogFilesTo(prunedVersion);
             long nextVersion = prunedVersion + 1;
             var newStoreChannel = createNewStoreChannel(
-                    nextVersion, logHeaderFactory.createLogHeader(nextVersion, index, checksum, segmentBlockSize));
+                    nextVersion,
+                    logHeaderFactory.createLogHeader(nextVersion, index, checksum, segmentBlockSize, term));
             updateState(newStoreChannel, checksum, index);
             if (offset > 0) {
                 currentWriteChannel().insertStartOffset(offset);
@@ -278,14 +283,15 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         return logFilesMetadata.get().logHeader().getLastAppendIndex();
     }
 
-    private void rotateCurrentFile(long lastAppendIndex, int checksum) throws IOException {
+    private void rotateCurrentFile(long lastAppendIndex, int checksum, long lastTerm) throws IOException {
         if (appendingChannel == null) {
             throw new IllegalStateException("Cannot rotate if not initialised");
         } else {
             var nextVersion = currentWriteChannel.version() + 1;
             var newStoreChannel = createNewStoreChannel(
                     nextVersion,
-                    logHeaderFactory.createLogHeader(nextVersion, lastAppendIndex, checksum, segmentBlockSize));
+                    logHeaderFactory.createLogHeader(
+                            nextVersion, lastAppendIndex, checksum, segmentBlockSize, lastTerm));
             appendingChannel.prepareForFlush().flush();
             currentWriteChannel.channel().truncate(currentWriteChannel.channel().position());
             updateState(newStoreChannel, checksum, lastAppendIndex);
@@ -431,10 +437,11 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         }
 
         @Override
-        public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum)
+        public void rotateLogFile(
+                LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
                 throws IOException {
             try (var event = logRotateEvents.beginLogRotate()) {
-                envelopedLogFiles.rotateCurrentFile(lastAppendIndex, previousChecksum);
+                envelopedLogFiles.rotateCurrentFile(lastAppendIndex, previousChecksum, lastTerm);
                 event.rotationCompleted(0); // TODO add clock
             }
         }

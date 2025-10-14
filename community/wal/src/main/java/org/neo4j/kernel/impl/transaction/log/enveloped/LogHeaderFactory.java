@@ -24,9 +24,10 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 public interface LogHeaderFactory {
 
     // intended for cases when only reading the log
-    LogHeaderFactory THROWING_FACTORY = (fileVersion, preFileIndex, preFileChecksum, segmentSize) -> {
+    LogHeaderFactory THROWING_FACTORY = (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> {
         throw new IllegalStateException("Cannot create log header");
     };
 
-    LogHeader createLogHeader(long fileVersion, long preFileIndex, int preFileChecksum, int segmentSize);
+    LogHeader createLogHeader(
+            long fileVersion, long preFileIndex, int preFileChecksum, int segmentSize, long preFileTerm);
 }

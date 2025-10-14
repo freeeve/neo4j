@@ -32,6 +32,7 @@ import static org.neo4j.internal.helpers.collection.MapUtil.store;
 import static org.neo4j.kernel.recovery.RecoveryHelpers.getLatestCheckpoint;
 import static org.neo4j.kernel.recovery.RecoveryHelpers.removeLastCheckpointRecordFromLogFile;
 import static org.neo4j.storemigration.StoreMigrationTestUtils.runStoreMigrationCommandFromSameJvm;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 import static org.neo4j.test.UpgradeTestUtil.assertKernelVersion;
 
@@ -165,7 +166,7 @@ class LogFormatSelectionIT {
     void formatOnNewDb(String dbName, boolean allowFormatSwitchOnUpgrade) throws IOException {
         // Should only allow to use the new format if setting says okay
         LogFormat expectedFormat = allowFormatSwitchOnUpgrade
-                ? LogFormat.V10
+                ? LogFormat.V11
                 : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
 
         createBuilder();
@@ -215,7 +216,8 @@ class LogFormatSelectionIT {
 
         if (!SYSTEM_DATABASE_NAME.equals(dbName)) { // System takes latest version on startup without logs
             assertKernelVersion(db, LatestVersions.LATEST_KERNEL_VERSION);
-            assertLogFormat(db, expectedFormat);
+            var config = db.getDependencyResolver().resolveDependency(Config.class);
+            assertLogFormat(db, LogFormat.fromConfigAndKernelVersion(config, LATEST_KERNEL_VERSION));
 
             UpgradeTestUtil.upgradeDatabase(
                     managementService, db, LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
@@ -306,7 +308,7 @@ class LogFormatSelectionIT {
     void importSelectsLogFormatBasedOnSetting(boolean allowNewFormat) throws Exception {
         // Should only allow to use the new format if setting says okay
         LogFormat expectedFormat =
-                allowNewFormat ? LogFormat.V10 : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
+                allowNewFormat ? LogFormat.V11 : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
 
         // GIVEN
         Path dbConfig = testDirectory.file("neo4j.properties");

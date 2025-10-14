@@ -26,10 +26,9 @@ import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
-import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
@@ -70,7 +69,7 @@ class LogFileBinarySearchTest {
         if (term >= 0) {
             writeChannel.putTerm(term);
         }
-        writeChannel.putVersion(KernelVersion.GLORIOUS_FUTURE.version());
+        writeChannel.putVersion(DatabaseVersion.V1.identifier());
         writeChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         writeChannel.put(data, data.length);
         writeChannel.endCurrentEntry();
@@ -89,16 +88,16 @@ class LogFileBinarySearchTest {
                 fs,
                 baseFolder,
                 baseFileName,
-                (fileVersion, preFileIndex, preFileChecksum, segmentSize) -> LogFormat.fromKernelVersion(
-                                KernelVersion.GLORIOUS_FUTURE)
-                        .newHeader(
+                (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromByteVersion(
+                                DatabaseVersion.V1.getLogFormatHeader())
+                        .newRaftHeader(
                                 fileVersion,
                                 preFileIndex,
-                                LogHeader.UNKNOWN_TERM,
+                                lastTerm,
                                 StoreId.UNKNOWN,
                                 segmentSize,
                                 preFileChecksum,
-                                KernelVersion.GLORIOUS_FUTURE),
+                                DatabaseVersion.V1),
                 segmentBlockSize,
                 writeBufferedBlocks,
                 totalSegments,
