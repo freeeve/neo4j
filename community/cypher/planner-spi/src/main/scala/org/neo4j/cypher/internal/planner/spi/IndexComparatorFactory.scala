@@ -19,24 +19,26 @@
  */
 package org.neo4j.cypher.internal.planner.spi
 
+import org.neo4j.internal.kernel.api.Read
+import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.internal.schema
 
 import java.util.Comparator
 
 trait IndexComparatorFactory {
-  def createComparator(): Comparator[schema.IndexDescriptor]
+  def createComparator(read: Read, schemaRead: SchemaRead): Comparator[schema.IndexDescriptor]
 }
 
 object NoPreferenceIndexComparatorFactory extends IndexComparatorFactory {
 
-  override def createComparator(): Comparator[schema.IndexDescriptor] = {
+  override def createComparator(read: Read, schemaRead: SchemaRead): Comparator[schema.IndexDescriptor] = {
     (a: schema.IndexDescriptor, b: schema.IndexDescriptor) => a.hashCode().compareTo(b.hashCode())
   }
 }
 
 object ThrowingIndexComparatorFactory extends IndexComparatorFactory {
 
-  override def createComparator(): Comparator[schema.IndexDescriptor] = {
+  override def createComparator(read: Read, schemaRead: SchemaRead): Comparator[schema.IndexDescriptor] = {
     throw new NotImplementedError(
       "Index comparator for dynamic lookups is not supported here; supply a real comparator to make it work."
     )

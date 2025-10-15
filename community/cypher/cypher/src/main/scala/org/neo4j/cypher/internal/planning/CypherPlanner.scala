@@ -562,10 +562,7 @@ case class CypherPlanner(
       (notificationLogger.notifications ++ cacheableLogicalPlan.notifications).toIndexedSeq,
       cacheableLogicalPlan.shouldBeCached,
       obfuscator,
-      new TransactionBoundIndexComparatorFactory(
-        transactionalContextWrapper.dataRead,
-        transactionalContextWrapper.schemaRead
-      )
+      TransactionBoundIndexComparatorFactory
     )
   }
 

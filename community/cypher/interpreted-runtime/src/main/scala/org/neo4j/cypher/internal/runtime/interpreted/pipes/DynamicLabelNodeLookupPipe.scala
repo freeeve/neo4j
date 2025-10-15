@@ -76,6 +76,7 @@ abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
   protected def empty: A
   protected def allLabels(labels: Array[Int]): A
   protected def anyLabel(labels: Array[Int]): A
+  protected def getIndexComparator: Comparator[IndexDescriptor]
 
   private def findIndicesForLabel(
     labelId: Int,
@@ -95,9 +96,6 @@ abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
   ): Iterator[IndexDescriptor] = {
     labelIds.iterator.flatMap(findIndicesForLabel(_, predicates))
   }
-
-  private def getIndexComparator: Comparator[IndexDescriptor] =
-    state.indexComparatorFactory.createComparator()
 
   private def labelScan(labels: Array[Int], operator: DynamicElement.SetOperator): A = {
     operator match {
@@ -153,9 +151,8 @@ abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
       // for Any we can't union results of index value seeks because they don't have guaranteed order, so only support
       // single label
       case (Array(label), Any) =>
-        val comparator = getIndexComparator
         val propPredicates = propertyConstraints.toSeq
-        findIndicesForLabel(label, propPredicates).maxOption(comparatorToOrdering(comparator))
+        findIndicesForLabel(label, propPredicates).maxOption(comparatorToOrdering(getIndexComparator))
           .map { index =>
             val (indexProps, otherProps) =
               propPredicates.partition(p => index.schema().getPropertyIds.contains(p.propertyKeyId()))
@@ -204,6 +201,9 @@ case class DynamicLabelNodeLookupIterator(
 ) extends DynamicLabelNodeLookupBase[ClosingLongIterator](state) {
 
   private lazy val nodeIterator = getNodes(labelExpression, operator, propertyConstraints)
+
+  override protected def getIndexComparator: Comparator[IndexDescriptor] =
+    state.indexComparatorFactory.createComparator(state.query.dataRead, state.query.transactionalContext.schemaRead)
 
   override protected def propertyFilter(
     iterator: ClosingLongIterator,

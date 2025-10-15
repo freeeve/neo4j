@@ -60,8 +60,7 @@ class TransactionBoundIndexComparatorFactoryTest extends CypherFunSuite {
       }
     }
 
-    val factory = new TransactionBoundIndexComparatorFactory(read, schemaRead)
-    val cmp = factory.createComparator()
+    val cmp = TransactionBoundIndexComparatorFactory.createComparator(read, schemaRead)
 
     val indexes = Seq(brokenIndex, smallIndex, mediumIndex, largeIndex)
     val expectedSorted = Seq(brokenIndex, largeIndex, mediumIndex, smallIndex)
@@ -95,8 +94,7 @@ class TransactionBoundIndexComparatorFactoryTest extends CypherFunSuite {
       }
     }
 
-    val factory = new TransactionBoundIndexComparatorFactory(read, schemaRead)
-    val cmp = factory.createComparator()
+    val cmp = TransactionBoundIndexComparatorFactory.createComparator(read, schemaRead)
 
     val indexes = Seq(sameValues, fewDistinctValues, manyDistinctValues)
     val expectedSorted = Seq(sameValues, fewDistinctValues, manyDistinctValues)

@@ -29,27 +29,31 @@ import org.neo4j.internal.schema
 
 import java.util.Comparator
 
-class TransactionBoundIndexComparatorFactory(read: Read, schemaRead: SchemaRead) extends IndexComparatorFactory {
+object TransactionBoundIndexComparatorFactory extends IndexComparatorFactory {
 
-  private def selectivity(indexDescriptor: schema.IndexDescriptor): Option[Selectivity] = {
-    ExpressionSelectivityCalculator.selectivityForPropertyEquality(
-      propertySelectivity =
-        TransactionBoundGraphStatistics.indexPropertyIsNotNullSelectivity(indexDescriptor, read, schemaRead),
-      uniqueValueSelectivity =
-        TransactionBoundGraphStatistics.uniqueValueSelectivity(indexDescriptor, schemaRead),
-      size = 1,
-      combiner = IndependenceCombiner
-    )
-  }
+  override def createComparator(read: Read, schemaRead: SchemaRead): Comparator[schema.IndexDescriptor] =
+    new ComparatorImpl(read, schemaRead)
 
-  private def rank(indexDescriptor: schema.IndexDescriptor): Double = {
-    selectivity(indexDescriptor)
-      .getOrElse(Selectivity.ONE)
-      .negate // low selectivity => high rank
-      .factor
-  }
+  private class ComparatorImpl(read: Read, schemaRead: SchemaRead) extends Comparator[schema.IndexDescriptor] {
 
-  override def createComparator(): Comparator[schema.IndexDescriptor] = {
-    (a: schema.IndexDescriptor, b: schema.IndexDescriptor) => rank(a).compareTo(rank(b))
+    private def selectivity(indexDescriptor: schema.IndexDescriptor): Option[Selectivity] = {
+      ExpressionSelectivityCalculator.selectivityForPropertyEquality(
+        propertySelectivity =
+          TransactionBoundGraphStatistics.indexPropertyIsNotNullSelectivity(indexDescriptor, read, schemaRead),
+        uniqueValueSelectivity =
+          TransactionBoundGraphStatistics.uniqueValueSelectivity(indexDescriptor, schemaRead),
+        size = 1,
+        combiner = IndependenceCombiner
+      )
+    }
+
+    private def rank(indexDescriptor: schema.IndexDescriptor): Double = {
+      selectivity(indexDescriptor)
+        .getOrElse(Selectivity.ONE)
+        .negate // low selectivity => high rank
+        .factor
+    }
+
+    override def compare(a: schema.IndexDescriptor, b: schema.IndexDescriptor): Int = rank(a).compareTo(rank(b))
   }
 }
