@@ -94,7 +94,7 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
         this.originNodeReference = nodeCursor.nodeReference();
         this.selection = selection;
         this.neighbourNodeReference = LongReference.NULL;
-        if (!nodeCursor.currentNodeIsAddedInTx()) {
+        if (!nodeCursor.currentNodeIsAddedInChunk()) {
             nodeCursor.storeCursor.relationships(storeCursor, selection);
         } else {
             storeCursor.reset();
@@ -130,7 +130,7 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
         this.originNodeReference = nodeCursor.nodeReference();
         this.selection = selection;
         this.neighbourNodeReference = neighbourNodeReference;
-        if (!nodeCursor.currentNodeIsAddedInTx()) {
+        if (!nodeCursor.currentNodeIsAddedInChunk()) {
             nodeCursor.storeCursor.relationshipsTo(storeCursor, selection, neighbourNodeReference);
         } else {
             storeCursor.reset();

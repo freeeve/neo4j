@@ -46,7 +46,7 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
     private EntityState propertiesState;
     private Iterator<StorageProperty> txStateChangedProperties;
     private StorageProperty txStateValue;
-    private boolean addedInTx;
+    private boolean addedInChunk;
     private PropertySelection selection;
 
     private IntPredicate securityPredicate;
@@ -98,9 +98,9 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
         assert nodeReference != LongReference.NULL;
 
         init(selection, read);
-        this.addedInTx = nodeCursor.currentNodeIsAddedInTx();
+        this.addedInChunk = nodeCursor.currentNodeIsAddedInChunk();
         initializeNodeTransactionState(nodeReference, txStateHolder);
-        if (!addedInTx || applyAccessModeToTxState) {
+        if (!addedInChunk) {
             if (initStoreCursor) {
                 storeCursor.initNodeProperties(nodeCursor.storeCursor, filterSelectionForTxState(selection));
             }
@@ -108,8 +108,11 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
             storeCursor.reset();
         }
 
-        securityPropertyInitializer = (propertyCursor, propertySelection) ->
+        securityPropertyInitializer = (propertyCursor, propertySelection) -> {
+            if (nodeCursor.storeCursor.entityReference() != LongReference.NULL) {
                 propertyCursor.initNodeProperties(nodeCursor.storeCursor, propertySelection);
+            }
+        };
         securityPredicate = accessModeProvider
                 .getAccessMode()
                 .allowedToReadNodeProperties(
@@ -170,14 +173,14 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
             TxStateHolder txStateHolder,
             AccessModeProvider accessModeProvider,
             StorageRelationshipCursor storageRelationshipCursor,
-            boolean addedInTransaction,
+            boolean addedInChunk,
             long relationshipReference) {
         assert relationshipReference != LongReference.NULL;
 
         init(selection, read);
         initializeRelationshipTransactionState(relationshipReference, txStateHolder);
-        this.addedInTx = addedInTransaction;
-        if (!addedInTx || applyAccessModeToTxState) {
+        this.addedInChunk = addedInChunk;
+        if (!this.addedInChunk) {
             storeCursor.initRelationshipProperties(storageRelationshipCursor, filterSelectionForTxState(selection));
         } else {
             storeCursor.reset();

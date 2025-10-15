@@ -29,6 +29,7 @@ import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.txstate.TransactionState;
+import org.neo4j.storageengine.api.LongReference;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageProperty;
 
@@ -94,8 +95,11 @@ public class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<D
     private AccessControlDataProvider getAccessControlDataProvider() {
         if (accessControlDataProvider == null) {
             accessControlDataProvider = new AccessControlDataProvider(
-                    () -> (propertyCursor, selection) ->
-                            propertyCursor.initNodeProperties(securityNodeCursor.storeCursor, selection),
+                    () -> (propertyCursor, selection) -> {
+                        if (securityNodeCursor.storeCursor.entityReference() != LongReference.NULL) {
+                            propertyCursor.initNodeProperties(securityNodeCursor.storeCursor, selection);
+                        }
+                    },
                     internalCursors,
                     applyAccessModeToTxState,
                     this::txStateProperties,

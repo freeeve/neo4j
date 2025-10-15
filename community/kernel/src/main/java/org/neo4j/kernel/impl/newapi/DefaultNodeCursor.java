@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
+import static org.neo4j.storageengine.api.LongReference.NULL;
 import static org.neo4j.storageengine.api.LongReference.NULL_REFERENCE;
 
 import org.eclipse.collections.api.iterator.LongIterator;
@@ -39,7 +40,6 @@ import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.storageengine.api.AllNodeScan;
 import org.neo4j.storageengine.api.Degrees;
-import org.neo4j.storageengine.api.LongReference;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.Reference;
 import org.neo4j.storageengine.api.RelationshipSelection;
@@ -58,7 +58,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
     boolean checkHasChanges;
     boolean hasChanges;
     private LongIterator addedNodes;
-    private long currentAddedInTx = LongReference.NULL;
+    private long currentAddedInChunk = NULL;
     private long single;
     private boolean isSingle;
 
@@ -86,7 +86,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         this.accessModeProvider = accessModeProvider;
         this.accessMode = accessModeProvider.getAccessMode();
         this.isSingle = false;
-        this.currentAddedInTx = LongReference.NULL;
+        this.currentAddedInChunk = NULL;
         this.checkHasChanges = true;
         this.addedNodes = ImmutableEmptyLongIterator.INSTANCE;
         if (tracer != null) {
@@ -105,7 +105,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         this.accessModeProvider = accessModeProvider;
         this.accessMode = accessModeProvider.getAccessMode();
         this.isSingle = false;
-        this.currentAddedInTx = LongReference.NULL;
+        this.currentAddedInChunk = NULL;
         this.checkHasChanges = false;
         this.hasChanges = false;
         this.addedNodes = ImmutableEmptyLongIterator.INSTANCE;
@@ -120,21 +120,21 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         this.accessMode = accessModeProvider.getAccessMode();
         this.single = reference;
         this.isSingle = true;
-        this.currentAddedInTx = LongReference.NULL;
+        this.currentAddedInChunk = NULL;
         this.checkHasChanges = true;
         this.addedNodes = ImmutableEmptyLongIterator.INSTANCE;
     }
 
-    protected boolean currentNodeIsAddedInTx() {
-        return currentAddedInTx != LongReference.NULL;
+    protected boolean currentNodeIsAddedInChunk() {
+        return currentAddedInChunk != NULL;
     }
 
     @Override
     public long nodeReference() {
-        if (currentAddedInTx != LongReference.NULL) {
+        if (currentAddedInChunk != NULL) {
             // Special case where the most recent next() call selected a node that exists only in tx-state.
             // Internal methods getting data about this node will also check tx-state and get the data from there.
-            return currentAddedInTx;
+            return currentAddedInChunk;
         }
         return storeCursor.entityReference();
     }
@@ -146,11 +146,12 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
 
     @Override
     public TokenSet labelsAndProperties(PropertyCursor propertyCursor, PropertySelection selection) {
-        if (currentAddedInTx != LongReference.NULL) {
+        if (currentAddedInChunk != NULL) {
             // Node added in tx-state, no reason to go down to store and check
             TransactionState txState = txStateHolder.txState();
             properties(propertyCursor, selection);
-            return Labels.from(txState.nodeStateLabelDiffSets(currentAddedInTx).getAdded());
+            return Labels.from(
+                    txState.nodeStateLabelDiffSets(currentAddedInChunk).getAdded());
         } else if (hasChanges()) {
             TransactionState txState = txStateHolder.txState();
             final MutableIntSet labels = new IntHashSet(storeCursor.labels());
@@ -176,10 +177,11 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
      */
     @Override
     public TokenSet labelsIgnoringTxStateSetRemove() {
-        if (currentAddedInTx != LongReference.NULL) {
+        if (currentAddedInChunk != NULL) {
             // Node added in tx-state, no reason to go down to store and check
             TransactionState txState = txStateHolder.txState();
-            return Labels.from(txState.nodeStateLabelDiffSets(currentAddedInTx).getAdded());
+            return Labels.from(
+                    txState.nodeStateLabelDiffSets(currentAddedInChunk).getAdded());
         } else {
             // Nothing in tx state, just read the data.
             return Labels.from(storeCursor.labels());
@@ -198,7 +200,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
             if (diffSets.isAdded(label)) {
                 return true;
             }
-            if (currentNodeIsAddedInTx() || diffSets.isRemoved(label)) {
+            if (currentNodeIsAddedInChunk() || diffSets.isRemoved(label)) {
                 return false;
             }
         }
@@ -217,7 +219,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
             if (diffSets.getAdded().notEmpty()) {
                 return true;
             }
-            if (currentNodeIsAddedInTx()) {
+            if (currentNodeIsAddedInChunk()) {
                 return false;
             }
             // If we remove labels in the transaction we need to do a full check so that we don't remove all of the
@@ -237,7 +239,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
 
     @Override
     public boolean supportsFastRelationshipsTo() {
-        return currentAddedInTx == LongReference.NULL && storeCursor.supportsFastRelationshipsTo();
+        return currentAddedInChunk == NULL && storeCursor.supportsFastRelationshipsTo();
     }
 
     @Override
@@ -254,25 +256,24 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
 
     @Override
     public long relationshipsReference() {
-        return currentAddedInTx != LongReference.NULL ? LongReference.NULL : storeCursor.relationshipsReference();
+        return currentAddedInChunk != NULL ? NULL : storeCursor.relationshipsReference();
     }
 
     @Override
     public Reference propertiesReference() {
-        return currentAddedInTx != LongReference.NULL ? NULL_REFERENCE : storeCursor.propertiesReference();
+        return currentAddedInChunk != NULL ? NULL_REFERENCE : storeCursor.propertiesReference();
     }
 
     @Override
     public boolean supportsFastDegreeLookup() {
-        return (currentAddedInTx != LongReference.NULL || storeCursor.supportsFastDegreeLookup())
-                && allowsTraverseAll();
+        return (currentAddedInChunk != NULL || storeCursor.supportsFastDegreeLookup()) && allowsTraverseAll();
     }
 
     @Override
     public int[] relationshipTypes() {
         boolean hasChanges = hasChanges();
         NodeState nodeTxState = hasChanges ? txStateHolder.txState().getNodeState(nodeReference()) : null;
-        int[] storedTypes = currentAddedInTx == LongReference.NULL ? storeCursor.relationshipTypes() : null;
+        int[] storedTypes = currentAddedInChunk == NULL ? storeCursor.relationshipTypes() : null;
         MutableIntSet types = storedTypes != null ? IntSets.mutable.of(storedTypes) : IntSets.mutable.empty();
         if (nodeTxState != null) {
             types.addAll(nodeTxState.getAddedRelationshipTypes());
@@ -312,7 +313,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
                 return;
             }
         }
-        if (currentNodeIsAddedInTx()) {
+        if (currentNodeIsAddedInChunk()) {
             return;
         }
         storeCursor.degrees(selection, degrees);
@@ -345,7 +346,11 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
     private AccessControlDataProvider getSelectedPropertiesProvider() {
         if (accessControlDataProvider == null) {
             accessControlDataProvider = new AccessControlDataProvider(
-                    () -> storeCursor::properties,
+                    () -> (propertyCursor, selection) -> {
+                        if (storeCursor.entityReference() != NULL) {
+                            storeCursor.properties(propertyCursor, selection);
+                        }
+                    },
                     internalCursors,
                     applyAccessModeToTxState,
                     this::txStateProperties,
@@ -359,10 +364,11 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
     }
 
     private TokenSet labels(StorageNodeCursor nodeCursor) {
-        if (currentAddedInTx != LongReference.NULL) {
+        if (currentAddedInChunk != NULL) {
             // Node added in tx-state, no reason to go down to store and check
             TransactionState txState = txStateHolder.txState();
-            return Labels.from(txState.nodeStateLabelDiffSets(currentAddedInTx).getAdded());
+            return Labels.from(
+                    txState.nodeStateLabelDiffSets(currentAddedInChunk).getAdded());
         } else if (hasChanges()) {
             TransactionState txState = txStateHolder.txState();
             final MutableIntSet labels = new IntHashSet(nodeCursor.labels());
@@ -381,13 +387,13 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
 
         if (hasChanges) {
             while (addedNodes.hasNext()) {
-                currentAddedInTx = addedNodes.next();
+                currentAddedInChunk = addedNodes.next();
                 if (!applyAccessModeToTxState || allowsTraverse()) {
                     traceNode();
                     return true;
                 }
             }
-            currentAddedInTx = LongReference.NULL;
+            currentAddedInChunk = NULL;
         }
 
         while (storeCursor.next()) {
@@ -456,14 +462,14 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         if (checkHasChanges) {
             hasChanges = txStateHolder.hasTxStateWithChanges();
             if (hasChanges) {
-                addedNodes = collextTxStateChanges(txStateHolder);
+                addedNodes = collectTxStateChanges(txStateHolder);
             }
             checkHasChanges = false;
         }
         return hasChanges;
     }
 
-    private LongIterator collextTxStateChanges(TxStateHolder stateHolder) {
+    private LongIterator collectTxStateChanges(TxStateHolder stateHolder) {
         if (this.isSingle) {
             return stateHolder.txState().nodeIsAddedInThisBatch(single)
                     ? PrimitiveLongCollections.single(single)
