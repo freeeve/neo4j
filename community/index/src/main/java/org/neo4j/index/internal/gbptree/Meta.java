@@ -260,7 +260,7 @@ public class Meta {
                 || dataFormatByLayout.formatVersion() != dataFormatVersion) {
             throw new MetadataMismatchException(format(
                     "Tried to open using data layout not compatible with what tree was created with. "
-                            + "Created with formatIdentifier:%d,formatVersion:%d. Opened with formatIdentifier:%d,formatVersion%d",
+                            + "Created with formatIdentifier:%d,formatVersion:%d. Opened with formatIdentifier:%d,formatVersion:%d",
                     dataFormatIdentifier,
                     dataFormatVersion,
                     dataFormatByLayout.formatIdentifier(),
