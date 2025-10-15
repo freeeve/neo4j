@@ -45,6 +45,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.queryapi.QueryApiTestUtil;
 import org.neo4j.queryapi.testclient.QueryAPITestClient;
+import org.neo4j.queryapi.testclient.QueryApiTestClientException;
 import org.neo4j.queryapi.testclient.QueryRequest;
 import org.neo4j.server.configuration.ConfigurableServerModules;
 import org.neo4j.server.configuration.ServerSettings;
@@ -92,7 +93,8 @@ public class QueryResourceTxTimeoutIT {
     }
 
     @Test
-    void shouldTimeoutTransactionAtAPILevelAfterCommit() throws IOException, InterruptedException {
+    void shouldTimeoutTransactionAtAPILevelAfterCommit()
+            throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         assertThat(res).wasSuccessful();
         assertThat(res).hasTransaction();
@@ -106,7 +108,8 @@ public class QueryResourceTxTimeoutIT {
     }
 
     @Test
-    void shouldTimeoutTransactionAtAPILevelAfterContinue() throws IOException, InterruptedException {
+    void shouldTimeoutTransactionAtAPILevelAfterContinue()
+            throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         assertThat(res).wasSuccessful();
         assertThat(res).hasTransaction();
@@ -122,7 +125,7 @@ public class QueryResourceTxTimeoutIT {
     }
 
     @Test
-    void shouldIncreaseTimeoutAfterEachRequest() throws IOException, InterruptedException {
+    void shouldIncreaseTimeoutAfterEachRequest() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
 
         Thread.sleep(ofSeconds(1));
@@ -137,7 +140,8 @@ public class QueryResourceTxTimeoutIT {
     }
 
     @Test
-    void shouldIncreaseTimeoutAfterBlankContinue() throws IOException, InterruptedException {
+    void shouldIncreaseTimeoutAfterBlankContinue()
+            throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
 
         Thread.sleep(ofSeconds(1));
@@ -151,7 +155,8 @@ public class QueryResourceTxTimeoutIT {
     }
 
     @Test
-    void shouldTimeoutTxAtKernelLevelOnContinue() throws IOException, InterruptedException {
+    void shouldTimeoutTxAtKernelLevelOnContinue()
+            throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
 
         var longRunning = testClient.runInTx(
@@ -174,7 +179,7 @@ public class QueryResourceTxTimeoutIT {
     }
 
     @Test
-    void shouldTimeoutTxAtKernelLevelOnCommit() throws IOException, InterruptedException {
+    void shouldTimeoutTxAtKernelLevelOnCommit() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         var longRunning = testClient.commitTx(
                 QueryRequest.newBuilder()

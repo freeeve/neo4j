@@ -50,6 +50,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.queryapi.QueryApiTestUtil;
 import org.neo4j.queryapi.testclient.QueryAPITestClient;
+import org.neo4j.queryapi.testclient.QueryApiTestClientException;
 import org.neo4j.queryapi.testclient.QueryContentType;
 import org.neo4j.queryapi.testclient.QueryRequest;
 import org.neo4j.server.configuration.ConfigurableServerModules;
@@ -95,7 +96,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldStartTx() throws IOException, InterruptedException {
+    void shouldStartTx() throws IOException, InterruptedException, QueryApiTestClientException {
         var startTx = testClient.beginTx(
                 QueryRequest.newBuilder().statement("RETURN 1").build());
 
@@ -106,7 +107,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldStartTxWithoutStatement() throws IOException, InterruptedException {
+    void shouldStartTxWithoutStatement() throws IOException, InterruptedException, QueryApiTestClientException {
         var startTx = testClient.beginTx(QueryRequest.newBuilder().build());
 
         assertThat(startTx).wasSuccessful();
@@ -115,7 +116,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldStartTxWithParams() throws IOException, InterruptedException {
+    void shouldStartTxWithParams() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx(QueryRequest.newBuilder()
                 .statement("RETURN 1")
                 .parameters(Map.of("i", "0"))
@@ -147,7 +148,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldContinueTx() throws IOException, InterruptedException {
+    void shouldContinueTx() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         var continueTx = testClient.runInTx(
                 QueryRequest.newBuilder().statement("RETURN 1").build(),
@@ -160,7 +161,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldContinueTxWithCreateNode() throws IOException, InterruptedException {
+    void shouldContinueTxWithCreateNode() throws IOException, InterruptedException, QueryApiTestClientException {
         var nodeCount = currentNodeCount("ContinueNode");
         var res = testClient.beginTx();
         var continueTx = testClient.runInTx(
@@ -175,7 +176,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldContinueWithoutStatement() throws IOException, InterruptedException {
+    void shouldContinueWithoutStatement() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         var continueTx =
                 testClient.runInTx(QueryRequest.newBuilder().build(), res.body().txId());
@@ -186,7 +187,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldHandleContinueWithRuntimeError() throws IOException, InterruptedException {
+    void shouldHandleContinueWithRuntimeError() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         var cont = testClient.runInTx(
                 QueryRequest.newBuilder()
@@ -199,7 +200,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldHandleContinueWithSyntaxError() throws IOException, InterruptedException {
+    void shouldHandleContinueWithSyntaxError() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
 
         var cont = testClient.runInTx(
@@ -211,7 +212,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldCommitTx() throws IOException, InterruptedException {
+    void shouldCommitTx() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         var commit = testClient.commitTx(
                 QueryRequest.newBuilder().statement("CREATE (n:QueryAPINode)").build(),
@@ -229,7 +230,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldCommitWithoutStatement() throws IOException, InterruptedException {
+    void shouldCommitWithoutStatement() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx(
                 QueryRequest.newBuilder().statement("CREATE (n:CommitBlank)").build());
         var commitRes = testClient.commitTx(res.body().txId());
@@ -246,7 +247,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldHandleCommitWithRuntimeError() throws IOException, InterruptedException {
+    void shouldHandleCommitWithRuntimeError() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx(QueryRequest.newBuilder()
                 .statement("CREATE (n:CommitRuntimeError)")
                 .build());
@@ -267,7 +268,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldHandleCommitWithSyntaxError() throws IOException, InterruptedException {
+    void shouldHandleCommitWithSyntaxError() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx(QueryRequest.newBuilder()
                 .statement("CREATE (n:CommitSyntaxError)")
                 .build());
@@ -286,7 +287,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldRollbackTx() throws IOException, InterruptedException {
+    void shouldRollbackTx() throws IOException, InterruptedException, QueryApiTestClientException {
         var nodeCount = currentNodeCount("QueryAPIRollbackNode");
 
         var res = testClient.beginTx(QueryRequest.newBuilder()
@@ -310,7 +311,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldNotAllowContinueAfterError() throws IOException, InterruptedException {
+    void shouldNotAllowContinueAfterError() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         var failure = testClient.runInTx(
                 QueryRequest.newBuilder().statement("Garbage").build(),
@@ -326,7 +327,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldNotAllowCommitAfterError() throws IOException, InterruptedException {
+    void shouldNotAllowCommitAfterError() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         var failure = testClient.runInTx(
                 QueryRequest.newBuilder().statement("Garbage").build(),
@@ -343,7 +344,8 @@ public class QueryResourceTxIT {
 
     @ParameterizedTest
     @MethodSource("typedMimes")
-    void shouldRespondWithTypedFormat(QueryContentType format) throws IOException, InterruptedException {
+    void shouldRespondWithTypedFormat(QueryContentType format)
+            throws IOException, InterruptedException, QueryApiTestClientException {
         var typedClient = new QueryAPITestClient(queryEndpoint, format);
 
         var param = new LinkedHashMap<String, Object>();
@@ -368,7 +370,8 @@ public class QueryResourceTxIT {
 
     @ParameterizedTest
     @MethodSource("typedMimes")
-    void shouldHandleBlankTypedTx(QueryContentType format) throws IOException, InterruptedException {
+    void shouldHandleBlankTypedTx(QueryContentType format)
+            throws IOException, InterruptedException, QueryApiTestClientException {
         var typedClient = new QueryAPITestClient(queryEndpoint, format);
 
         var res = typedClient.beginTx();
@@ -384,7 +387,7 @@ public class QueryResourceTxIT {
     }
 
     @Test
-    void shouldHaveExpectedTransactionIdLength() throws IOException, InterruptedException {
+    void shouldHaveExpectedTransactionIdLength() throws IOException, InterruptedException, QueryApiTestClientException {
         var res = testClient.beginTx();
         assertThat(res).hasTransaction();
         Assertions.assertThat(res.body().txId()).hasSize(4);
