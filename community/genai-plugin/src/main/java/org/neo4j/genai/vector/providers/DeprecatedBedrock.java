@@ -45,10 +45,10 @@ import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
 import org.neo4j.genai.util.aws.AwsSignatureV4HeaderGenerator;
-import org.neo4j.genai.vector.VectorEncoding.Provider;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.Provider;
 
 @ServiceProvider
-public final class Bedrock implements Provider<Bedrock.Parameters> {
+public final class DeprecatedBedrock implements Provider<DeprecatedBedrock.Parameters> {
     public static final String NAME = "Bedrock";
     private static final String ENDPOINT_TEMPLATE =
             "https://bedrock-runtime.${region}.amazonaws.com/model/${model}/invoke";

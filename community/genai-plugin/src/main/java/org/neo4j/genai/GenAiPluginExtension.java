@@ -24,6 +24,7 @@ import org.eclipse.collections.api.list.ImmutableList;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.function.ThrowingFunction;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
+import org.neo4j.genai.ai.vector.encode.VectorEncoding;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.provider.GlobalProviders;
 import org.neo4j.genai.util.provider.NamedProvider;
@@ -66,6 +67,7 @@ public class GenAiPluginExtension extends ExtensionFactory<GenAiPluginExtension.
 
                 registerSafe(HttpService.class, httpService);
                 registerSafe(TextCompletion.Providers.class, TxtCompProv.from(httpService, providers));
+                registerSafe(VectorEncoding.Providers.class, VectorEncodingCompProv.from(httpService, providers));
 
                 // This component is used by metrics, can't use context.
                 // It is registered without a context, so it can be accessed by the metrics module.
@@ -106,5 +108,16 @@ record TxtCompProv(HttpServiceProvider httpService, ImmutableList<TextCompletion
 
     public static TxtCompProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
         return new TxtCompProv(httpService, globalProviders.providers(TextCompletion.Provider.class));
+    }
+}
+
+record VectorEncodingCompProv(HttpServiceProvider httpService, ImmutableList<VectorEncoding.Provider> providers)
+        implements ProcedureProvider<VectorEncoding.Providers> {
+    public VectorEncoding.Providers apply(Context context) throws ProcedureException {
+        return new VectorEncoding.Providers.Impl(providers, httpService.apply(context));
+    }
+
+    public static VectorEncodingCompProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
+        return new VectorEncodingCompProv(httpService, globalProviders.providers(VectorEncoding.Provider.class));
     }
 }

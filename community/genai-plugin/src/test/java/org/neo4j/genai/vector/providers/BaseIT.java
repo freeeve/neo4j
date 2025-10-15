@@ -52,8 +52,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.function.Suppliers;
 import org.neo4j.genai.util.ParametersTest;
-import org.neo4j.genai.vector.VectorEncoding;
-import org.neo4j.genai.vector.VectorEncoding.InternalBatchRow;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.InternalBatchRow;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.values.VectorCandidate;
@@ -63,7 +63,7 @@ import org.neo4j.values.storable.Values;
 
 @TestInstance(Lifecycle.PER_CLASS)
 abstract class BaseIT {
-    private static final VectorEncoding VECTOR_ENCODING = new VectorEncoding();
+    private static final DeprecatedVectorEncoding VECTOR_ENCODING = new DeprecatedVectorEncoding();
     private static final List<String> RESOURCES = Arrays.asList(
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
             null,

@@ -31,14 +31,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.neo4j.genai.vector.VectorEncoding.BatchRow;
-import org.neo4j.genai.vector.providers.Bedrock.Encoder;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.BatchRow;
+import org.neo4j.genai.vector.providers.DeprecatedBedrock.Encoder;
 
-class BedrockTest {
-    private static final Bedrock PROVIDER = new Bedrock();
+class DeprecatedBedrockTest {
+    private static final DeprecatedBedrock PROVIDER = new DeprecatedBedrock();
 
     @Nested
-    class Configuration extends ConfigurationTestBase<Bedrock.Parameters> {
+    class Configuration extends ConfigurationTestBase<DeprecatedBedrock.Parameters> {
         // note: may need to updated these as models are deprecated
         private static final Set<String> CURRENT_STABLE_MODELS =
                 Set.of("amazon.titan-embed-text-v1", "amazon.titan-embed-text-v2:0");
@@ -55,16 +55,16 @@ class BedrockTest {
                                     "region",
                                     String.class,
                                     "STRING",
-                                    Bedrock.DEFAULT_REGION,
+                                    DeprecatedBedrock.DEFAULT_REGION,
                                     123,
-                                    Optional.of(Bedrock.DEFAULT_REGION)),
+                                    Optional.of(DeprecatedBedrock.DEFAULT_REGION)),
                             new OptionalSetting(
                                     "model",
                                     String.class,
                                     "STRING",
-                                    Bedrock.DEFAULT_MODEL,
+                                    DeprecatedBedrock.DEFAULT_MODEL,
                                     123,
-                                    Optional.of(Bedrock.DEFAULT_MODEL))),
+                                    Optional.of(DeprecatedBedrock.DEFAULT_MODEL))),
                     new Models("model", String.class, CURRENT_STABLE_MODELS, List.of()));
         }
 
@@ -76,7 +76,7 @@ class BedrockTest {
         }
 
         private Stream<String> supportedRegions() {
-            return Bedrock.SUPPORTED_REGIONS.stream();
+            return DeprecatedBedrock.SUPPORTED_REGIONS.stream();
         }
 
         @ParameterizedTest(name = "{0}")

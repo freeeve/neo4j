@@ -45,6 +45,8 @@ import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.Parameters;
 import org.neo4j.genai.util.Parameters.Parameter;
 import org.neo4j.genai.util.monitor.Monitors;
+import org.neo4j.kernel.api.QueryLanguage;
+import org.neo4j.kernel.api.procedure.QueryLanguageScope;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
@@ -58,8 +60,7 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.MapValue;
 
-public class VectorEncoding {
-    public static final String VERSION = "1.2.0";
+public class DeprecatedVectorEncoding {
 
     @SuppressWarnings("rawtypes")
     private static final ImmutableList<Provider> PROVIDERS = Lists.immutable.withAllSorted(
@@ -72,8 +73,10 @@ public class VectorEncoding {
     @Context
     public HttpService httpService;
 
-    @Procedure(name = "genai.vector.listEncodingProviders")
+    @Deprecated
+    @Procedure(name = "genai.vector.listEncodingProviders", deprecatedBy = "ai.vector.listEncodingProviders")
     @Description("Lists the available vector embedding providers.")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5, QueryLanguage.CYPHER_25})
     public Stream<ProviderRow> listEncodingProviders() {
         return PROVIDERS.stream().map(ProviderRow::from);
     }
@@ -131,8 +134,10 @@ public class VectorEncoding {
         }
     }
 
-    @UserFunction(name = "genai.vector.encode")
+    @Deprecated
+    @UserFunction(name = "genai.vector.encode", deprecatedBy = "ai.vector.encode")
     @Description("Encode a given resource as a vector using the named provider.")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5, QueryLanguage.CYPHER_25})
     public Value encode(
             @Name(value = "resource", description = "The object to transform into an embedding.") String resource,
             @Name(
@@ -157,7 +162,7 @@ public class VectorEncoding {
         requireNonNull(providerName, "'provider' must not be null");
         final var configurationMap = requireNonNullMap(configuration);
         final var provider = getProvider(providerName);
-        monitors.vectorEnc().encodeFunctionCalled(provider.name());
+        monitors.deprecatedVectorEnc().deprecatedEncodeFunctionCalled(provider.name());
         if (resource == null) {
             return NO_VALUE;
         } else {
@@ -165,7 +170,8 @@ public class VectorEncoding {
         }
     }
 
-    @Procedure(name = "genai.vector.encodeBatch")
+    @Deprecated
+    @Procedure(name = "genai.vector.encodeBatch", deprecatedBy = "ai.vector.encodeBatch")
     @Description(
             """
             Encode a given batch of resources as vectors using the named provider.
@@ -174,6 +180,7 @@ public class VectorEncoding {
                 * the original 'resource' element itself,
                 * and the encoded 'vector'.
             """)
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5, QueryLanguage.CYPHER_25})
     public Stream<InternalBatchRow> encode(
             @Name(value = "resources", description = "The object to transform into an embedding.")
                     List<String> resources,
@@ -186,7 +193,7 @@ public class VectorEncoding {
         requireNonNull(providerName, "'provider' must not be null");
         final var configurationMap = requireNonNullMap(configuration);
         final var provider = getProvider(providerName);
-        monitors.vectorEnc().encodeBatchProcedureCalled(provider.name());
+        monitors.deprecatedVectorEnc().deprecatedEncodeBatchProcedureCalled(provider.name());
         // Remember all the places where we had nulls and remove them from the requested resources
         final var removedIndexes = IntLists.mutable.empty();
         // We need to make a copy as the List interface doesn't guarantee mutability
@@ -209,7 +216,7 @@ public class VectorEncoding {
     }
 
     private static MapValue requireNonNullMap(AnyValue configuration) {
-        if (configuration == NO_VALUE || configuration == null) {
+        if (configuration == NO_VALUE) {
             throw new IllegalArgumentException("'configuration' must not be null");
         }
 

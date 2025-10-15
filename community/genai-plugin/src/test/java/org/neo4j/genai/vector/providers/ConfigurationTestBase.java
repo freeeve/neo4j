@@ -42,8 +42,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.genai.util.Parameters;
 import org.neo4j.genai.util.ParametersTest;
-import org.neo4j.genai.vector.VectorEncoding;
-import org.neo4j.genai.vector.VectorEncoding.Provider;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.Provider;
 
 @TestInstance(Lifecycle.PER_CLASS)
 abstract class ConfigurationTestBase<PARAMETERS> {
@@ -279,14 +279,14 @@ abstract class ConfigurationTestBase<PARAMETERS> {
     }
 
     private static String requiredConfigType(Provider<?> provider) {
-        return VectorEncoding.ProviderRow.from(provider).requiredConfigType();
+        return DeprecatedVectorEncoding.ProviderRow.from(provider).requiredConfigType();
     }
 
     private static String optionalConfigType(Provider<?> provider) {
-        return VectorEncoding.ProviderRow.from(provider).optionalConfigType();
+        return DeprecatedVectorEncoding.ProviderRow.from(provider).optionalConfigType();
     }
 
     private static Map<String, Object> defaultConfig(Provider<?> provider) {
-        return VectorEncoding.ProviderRow.from(provider).defaultConfig();
+        return DeprecatedVectorEncoding.ProviderRow.from(provider).defaultConfig();
     }
 }

@@ -26,6 +26,7 @@ import java.util.List;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.ImmutableList;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
+import org.neo4j.genai.ai.vector.encode.VectorEncoding;
 import org.neo4j.util.CalledFromGeneratedCode;
 import org.neo4j.util.Preconditions;
 
@@ -39,8 +40,15 @@ public interface GlobalProviders {
     }
 
     static GlobalProviders from(final NamedProvider... providers) {
-        Preconditions.checkArgument(namesAreUnique(providers), "Provider names are not unique");
         final var providersByType = Lists.immutable.of(providers).groupBy(GlobalProviders::findType);
+
+        providersByType.keysView().forEach(type -> {
+            final var typeProviders = providersByType.get(type);
+
+            Preconditions.checkArgument(
+                    namesAreUnique(typeProviders.toArray(new NamedProvider[0])),
+                    "Provider names are not unique within type: " + type.getSimpleName());
+        });
         return new GlobalProviders() {
             @Override
             public <T extends NamedProvider> ImmutableList<T> providers(Class<T> type) {
@@ -52,6 +60,7 @@ public interface GlobalProviders {
     @SuppressWarnings("rawtypes")
     private static Class findType(NamedProvider provider) {
         if (provider instanceof TextCompletion.Provider) return TextCompletion.Provider.class;
+        if (provider instanceof VectorEncoding.Provider) return VectorEncoding.Provider.class;
         throw new IllegalArgumentException("Unknown provider type: " + provider.getClass());
     }
 

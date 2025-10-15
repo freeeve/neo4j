@@ -24,15 +24,15 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.provider.Arguments;
-import org.neo4j.genai.vector.providers.OpenAI.Encoder;
+import org.neo4j.genai.vector.providers.DeprecatedOpenAI.EncoderDeprecated;
 
-class OpenAITest {
-    private static final OpenAI PROVIDER = new OpenAI();
+class DeprecatedOpenAITest {
+    private static final DeprecatedOpenAI PROVIDER = new DeprecatedOpenAI();
     private static final List<String> CURRENT_STABLE_MODELS =
             List.of("text-embedding-ada-002", "text-embedding-3-small", "text-embedding-3-large");
 
     @Nested
-    class Configuration extends ConfigurationTestBase<OpenAI.Parameters> {
+    class Configuration extends ConfigurationTestBase<DeprecatedOpenAI.Parameters> {
         protected Configuration() {
             super(
                     PROVIDER,
@@ -43,9 +43,9 @@ class OpenAITest {
                                     "model",
                                     String.class,
                                     "STRING",
-                                    OpenAI.DEFAULT_MODEL,
+                                    DeprecatedOpenAI.DEFAULT_MODEL,
                                     123,
-                                    Optional.of(OpenAI.DEFAULT_MODEL)),
+                                    Optional.of(DeprecatedOpenAI.DEFAULT_MODEL)),
                             new OptionalSetting("dimensions", Long.class, "INTEGER", 1024, "1024", Optional.empty())),
                     new Models("model", String.class, CURRENT_STABLE_MODELS, List.of()));
         }
@@ -55,7 +55,7 @@ class OpenAITest {
     class Parsing extends ParsingTestBase {
         protected Parsing() {
             super((resources, inputStream, nullIndexes) ->
-                    Encoder.parseResponse(OpenAI.NAME, resources, inputStream, nullIndexes));
+                    EncoderDeprecated.parseResponse(DeprecatedOpenAI.NAME, resources, inputStream, nullIndexes));
         }
 
         @Override

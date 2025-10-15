@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 @EnabledIf(value = "authIsSet", disabledReason = "token needs to be set in the config map")
-class AzureOpenAIIT {
+class DeprecatedAzureDeprecatedOpenAIIT {
     private static final String AZURE_OPEN_AI_TOKEN_ENV = "AZURE_OPEN_AI_TOKEN";
     private static final String AZURE_OPEN_AI_RESOURCE_ENV = "AZURE_OPEN_AI_RESOURCE";
 
@@ -67,7 +67,7 @@ class AzureOpenAIIT {
     class Ada extends BaseIT {
         Ada() {
             super(
-                    AzureOpenAI.NAME,
+                    DeprecatedAzureOpenAI.NAME,
                     "openai/text-embedding-ada-002.txt",
                     BASE_CONFIG,
                     Map.of("deployment", DEPLOYMENT_ADA));
@@ -78,7 +78,7 @@ class AzureOpenAIIT {
     class LargeWithDefaultDimensions extends BaseIT {
         LargeWithDefaultDimensions() {
             super(
-                    AzureOpenAI.NAME,
+                    DeprecatedAzureOpenAI.NAME,
                     "openai/text-embedding-3-large.txt",
                     BASE_CONFIG,
                     Map.of("deployment", DEPLOYMENT_LARGE));
@@ -89,7 +89,7 @@ class AzureOpenAIIT {
     class LargeWith1024Dimensions extends BaseIT {
         LargeWith1024Dimensions() {
             super(
-                    AzureOpenAI.NAME,
+                    DeprecatedAzureOpenAI.NAME,
                     "openai/text-embedding-3-large-1024.txt",
                     BASE_CONFIG,
                     Map.of("deployment", DEPLOYMENT_LARGE, "dimensions", 1024));
@@ -100,7 +100,7 @@ class AzureOpenAIIT {
     class SmallWithDefaultDimensions extends BaseIT {
         SmallWithDefaultDimensions() {
             super(
-                    AzureOpenAI.NAME,
+                    DeprecatedAzureOpenAI.NAME,
                     "openai/text-embedding-3-small.txt",
                     BASE_CONFIG,
                     Map.of("deployment", DEPLOYMENT_SMALL));
@@ -111,7 +111,7 @@ class AzureOpenAIIT {
     class SmallWith512Dimensions extends BaseIT {
         SmallWith512Dimensions() {
             super(
-                    AzureOpenAI.NAME,
+                    DeprecatedAzureOpenAI.NAME,
                     "openai/text-embedding-3-small-512.txt",
                     BASE_CONFIG,
                     Map.of("deployment", DEPLOYMENT_SMALL, "dimensions", 512));

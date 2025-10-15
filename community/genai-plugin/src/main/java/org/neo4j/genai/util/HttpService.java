@@ -47,7 +47,7 @@ import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.set.primitive.ImmutableIntSet;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.function.ThrowingConsumer;
-import org.neo4j.genai.vector.VectorEncoding;
+import org.neo4j.genai.ai.vector.encode.VectorEncoding;
 import org.neo4j.graphdb.security.URLAccessChecker;
 import org.neo4j.graphdb.security.URLAccessValidationError;
 

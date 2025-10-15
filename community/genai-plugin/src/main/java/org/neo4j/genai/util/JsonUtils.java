@@ -30,7 +30,9 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.neo4j.genai.vector.VectorEncoding.BatchRow;
+import org.neo4j.genai.ai.vector.encode.VectorEncoding;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.BatchRow;
+import org.neo4j.values.storable.Values;
 
 public final class JsonUtils {
 
@@ -40,7 +42,52 @@ public final class JsonUtils {
     public static final TypeReference<Map<String, Object>> TYPE_REF_MAP_STRING_OBJECT = new TypeReference<>() {};
     public static final TypeReference<Map<String, Map<?, ?>>> TYPE_REF_MAP_STRING_MAP = new TypeReference<>() {};
 
-    public static Stream<BatchRow> parseResponse(
+    public static Stream<VectorEncoding.InternalBatchRow> parseResponse(
+            String name,
+            String topLevelKey,
+            String[] properties,
+            List<String> resources,
+            InputStream inputStream,
+            int[] nullIndexes)
+            throws MalformedGenAIResponseException {
+        final JsonNode tree = readTree(inputStream);
+
+        final var predictions = getExpectedFrom(name, tree, topLevelKey);
+        if (!predictions.isArray()) {
+            throw new MalformedGenAIResponseException("Expected response to contain an array of embeddings");
+        } else if (predictions.size() != resources.size()) {
+            throw new MalformedGenAIResponseException("Expected to receive %d embeddings; however got %d"
+                    .formatted(resources.size(), predictions.size()));
+        }
+
+        final var offset = new MutableInt();
+        return IntStream.range(0, resources.size() + nullIndexes.length).mapToObj(index -> {
+            try {
+                if (Arrays.binarySearch(nullIndexes, index) >= 0) {
+                    offset.increment();
+                    return new VectorEncoding.InternalBatchRow(index, null, null);
+                }
+                final int offsetIndex = index - offset.intValue();
+                final var embedding = getExpectedFrom(name, predictions.get(offsetIndex), properties);
+                if (!embedding.isArray()) {
+                    throw new MalformedGenAIResponseException("Expected embedding to be an array");
+                }
+                try (final var parser = embedding.traverse(getObjectMapper())) {
+                    return new VectorEncoding.InternalBatchRow(
+                            index,
+                            resources.get(offsetIndex),
+                            Values.float32Vector(parser.readValueAs(TYPE_REF_FLOAT_VECTOR)));
+                } catch (IOException e) {
+                    throw new MalformedGenAIResponseException(
+                            "Unexpected error occurred while parsing the embedding", e);
+                }
+            } catch (Throwable throwable) {
+                throw new RuntimeException(throwable);
+            }
+        });
+    }
+
+    public static Stream<BatchRow> deprecatedParseResponse(
             String name,
             String topLevelKey,
             String[] properties,

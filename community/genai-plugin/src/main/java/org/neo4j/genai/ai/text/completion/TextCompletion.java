@@ -29,7 +29,6 @@ import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.monitor.Monitors;
 import org.neo4j.genai.util.provider.NamedProvider;
 import org.neo4j.genai.util.provider.ProviderRow;
-import org.neo4j.genai.vector.VectorEncoding;
 import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.procedure.QueryLanguageScope;
 import org.neo4j.procedure.Context;
@@ -94,7 +93,7 @@ public class TextCompletion {
     @Procedure(name = "ai.text.completion.providers")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     @Description("Lists the available text completion providers.")
-    public Stream<VectorEncoding.ProviderRow> listCompletionProviders() {
+    public Stream<ProviderRow> listCompletionProviders() {
         return providers.providers().stream().map(ProviderRow::from);
     }
 

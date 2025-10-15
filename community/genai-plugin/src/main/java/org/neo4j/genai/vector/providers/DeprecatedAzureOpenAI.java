@@ -26,11 +26,11 @@ import java.util.OptionalLong;
 import java.util.regex.Pattern;
 import org.apache.commons.text.StringSubstitutor;
 import org.neo4j.annotations.service.ServiceProvider;
-import org.neo4j.genai.vector.VectorEncoding.Provider;
-import org.neo4j.genai.vector.providers.openai.OpenAIBasedEncoder;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.Provider;
+import org.neo4j.genai.vector.providers.openai.DeprecatedOpenAIBasedEncoder;
 
 @ServiceProvider
-public final class AzureOpenAI implements Provider<AzureOpenAI.Parameters> {
+public final class DeprecatedAzureOpenAI implements Provider<DeprecatedAzureOpenAI.Parameters> {
     public static final String NAME = "AzureOpenAI";
     public static final String ENDPOINT_TEMPLATE =
             "https://${resource}.openai.azure.com/openai/deployments/${deployment}/embeddings?api-version=2023-05-15";
@@ -61,7 +61,7 @@ public final class AzureOpenAI implements Provider<AzureOpenAI.Parameters> {
     @Override
     public Provider.Encoder configure(Parameters configuration) {
         final var endpoint = configureEndpoint(configuration);
-        return new Encoder(endpoint, configuration);
+        return new EncoderDeprecated(endpoint, configuration);
     }
 
     private static URI configureEndpoint(Parameters config) {
@@ -89,10 +89,10 @@ public final class AzureOpenAI implements Provider<AzureOpenAI.Parameters> {
         }
     }
 
-    static class Encoder extends OpenAIBasedEncoder {
+    static class EncoderDeprecated extends DeprecatedOpenAIBasedEncoder {
         private final Parameters configuration;
 
-        Encoder(URI endpoint, Parameters configuration) {
+        EncoderDeprecated(URI endpoint, Parameters configuration) {
             super(NAME, endpoint, configuration.dimensions);
             this.configuration = configuration;
         }

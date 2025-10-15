@@ -36,11 +36,11 @@ import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
-import org.neo4j.genai.vector.VectorEncoding.BatchRow;
-import org.neo4j.genai.vector.VectorEncoding.Provider;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.BatchRow;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.Provider;
 import org.neo4j.util.VisibleForTesting;
 
-public abstract class OpenAIBasedEncoder implements Provider.Encoder {
+public abstract class DeprecatedOpenAIBasedEncoder implements Provider.Encoder {
     private static final String ENCODING_FORMAT = "float";
 
     private final URI endpoint;
@@ -62,7 +62,7 @@ public abstract class OpenAIBasedEncoder implements Provider.Encoder {
      */
     protected void extendPayload(MutableMap<String, Object> payload) {}
 
-    protected OpenAIBasedEncoder(String providerName, URI endpoint, OptionalLong dimensions) {
+    protected DeprecatedOpenAIBasedEncoder(String providerName, URI endpoint, OptionalLong dimensions) {
         // TODO: OptionalLong when it's supported by parameter thingy
         this.providerName = providerName;
         this.endpoint = endpoint;
@@ -112,7 +112,7 @@ public abstract class OpenAIBasedEncoder implements Provider.Encoder {
             String providerName, List<String> resources, InputStream inputStream, int[] nullIndexes)
             throws MalformedGenAIResponseException {
         final String[] properties = {"embedding"};
-        return JsonUtils.parseResponse(providerName, "data", properties, resources, inputStream, nullIndexes);
+        return JsonUtils.deprecatedParseResponse(providerName, "data", properties, resources, inputStream, nullIndexes);
     }
 
     /*

@@ -27,8 +27,9 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.InstanceOfAssertFactory;
 import org.assertj.core.api.MapAssert;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
+import org.neo4j.genai.ai.vector.encode.VectorEncoding;
 import org.neo4j.genai.dbs.VectorDatabases;
-import org.neo4j.genai.vector.VectorEncoding;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.ResultTransformer;
 import org.neo4j.test.jar.JarBuilder;
@@ -39,7 +40,12 @@ public interface GenAITestExtension {
     default void installPlugin(TestDirectory testDirectory) throws IOException {
         final var path = testDirectory.directory("plugins").resolve("genai.jar");
         Files.createDirectories(path.getParent());
-        JarBuilder.createJarFor(path, VectorEncoding.class, VectorDatabases.class, TextCompletion.class);
+        JarBuilder.createJarFor(
+                path,
+                DeprecatedVectorEncoding.class,
+                VectorDatabases.class,
+                TextCompletion.class,
+                VectorEncoding.class);
     }
 
     default ResultTransformer<List<Map<String, Object>>> consume() {

@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.genai.util.Parameters;
-import org.neo4j.genai.vector.VectorEncoding;
 import org.neo4j.procedure.Description;
 
 public record ProviderRow(
@@ -37,10 +36,10 @@ public record ProviderRow(
         @Description("The signature of the required config map.") String requiredConfigType,
         @Description("The signature of the optional config map.") String optionalConfigType,
         @Description("The default values for the GenAI provider.") Map<String, Object> defaultConfig) {
-    public static VectorEncoding.ProviderRow from(NamedProvider provider) {
+    public static ProviderRow from(NamedProvider provider) {
         final var parameters = Parameters.getParameters(provider.paramType());
 
-        return new VectorEncoding.ProviderRow(
+        return new ProviderRow(
                 provider.name(),
                 requiredConfigType(parameters),
                 optionalConfigType(parameters),

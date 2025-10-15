@@ -22,7 +22,7 @@ package org.neo4j.genai.vector.providers;
 import java.util.Map;
 import java.util.Optional;
 import org.neo4j.annotations.service.ServiceProvider;
-import org.neo4j.genai.vector.VectorEncoding.Provider;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.Provider;
 import org.neo4j.values.storable.FloatArray;
 import org.neo4j.values.storable.Values;
 

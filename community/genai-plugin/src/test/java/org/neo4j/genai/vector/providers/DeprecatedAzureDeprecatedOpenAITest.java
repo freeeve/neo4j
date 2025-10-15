@@ -30,13 +30,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.neo4j.genai.vector.providers.AzureOpenAI.Encoder;
+import org.neo4j.genai.vector.providers.DeprecatedAzureOpenAI.EncoderDeprecated;
 
-class AzureOpenAITest {
-    private static final AzureOpenAI PROVIDER = new AzureOpenAI();
+class DeprecatedAzureDeprecatedOpenAITest {
+    private static final DeprecatedAzureOpenAI PROVIDER = new DeprecatedAzureOpenAI();
 
     @Nested
-    class Configuration extends ConfigurationTestBase<AzureOpenAI.Parameters> {
+    class Configuration extends ConfigurationTestBase<DeprecatedAzureOpenAI.Parameters> {
         protected Configuration() {
             super(
                     PROVIDER,
@@ -143,7 +143,7 @@ class AzureOpenAITest {
     class Parsing extends ParsingTestBase {
         protected Parsing() {
             super((resources, inputStream, nullIndexes) ->
-                    Encoder.parseResponse(AzureOpenAI.NAME, resources, inputStream, nullIndexes));
+                    EncoderDeprecated.parseResponse(DeprecatedAzureOpenAI.NAME, resources, inputStream, nullIndexes));
         }
 
         @Override

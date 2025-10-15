@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 @EnabledIf(value = "authIsSet", disabledReason = "token needs to be set in the config map")
-class OpenAIIT {
+class DeprecatedOpenAIIT {
     private static final String OPEN_AI_TOKEN_ENV = "OPEN_AI_TOKEN";
     private static final Map<String, ?> BASE_CONFIG;
 
@@ -47,7 +47,7 @@ class OpenAIIT {
     class Ada extends BaseIT {
         Ada() {
             super(
-                    OpenAI.NAME,
+                    DeprecatedOpenAI.NAME,
                     "openai/text-embedding-ada-002.txt",
                     BASE_CONFIG,
                     Map.of("model", "text-embedding-ada-002"));
@@ -58,7 +58,7 @@ class OpenAIIT {
     class LargeWithDefaultDimensions extends BaseIT {
         LargeWithDefaultDimensions() {
             super(
-                    OpenAI.NAME,
+                    DeprecatedOpenAI.NAME,
                     "openai/text-embedding-3-large.txt",
                     BASE_CONFIG,
                     Map.of("model", "text-embedding-3-large"));
@@ -69,7 +69,7 @@ class OpenAIIT {
     class LargeWith1024Dimensions extends BaseIT {
         LargeWith1024Dimensions() {
             super(
-                    OpenAI.NAME,
+                    DeprecatedOpenAI.NAME,
                     "openai/text-embedding-3-large-1024.txt",
                     BASE_CONFIG,
                     Map.of("model", "text-embedding-3-large", "dimensions", 1024));
@@ -80,7 +80,7 @@ class OpenAIIT {
     class SmallWithDefaultDimensions extends BaseIT {
         SmallWithDefaultDimensions() {
             super(
-                    OpenAI.NAME,
+                    DeprecatedOpenAI.NAME,
                     "openai/text-embedding-3-small.txt",
                     BASE_CONFIG,
                     Map.of("model", "text-embedding-3-small"));
@@ -91,7 +91,7 @@ class OpenAIIT {
     class SmallWith512Dimensions extends BaseIT {
         SmallWith512Dimensions() {
             super(
-                    OpenAI.NAME,
+                    DeprecatedOpenAI.NAME,
                     "openai/text-embedding-3-small-512.txt",
                     BASE_CONFIG,
                     Map.of("model", "text-embedding-3-small", "dimensions", 512));
@@ -101,7 +101,7 @@ class OpenAIIT {
     @Nested
     class LargeBatchedInput extends BaseIT {
         LargeBatchedInput() {
-            super(OpenAI.NAME, BASE_CONFIG, Map.of("model", "text-embedding-3-large", "dimensions", 3072));
+            super(DeprecatedOpenAI.NAME, BASE_CONFIG, Map.of("model", "text-embedding-3-large", "dimensions", 3072));
         }
     }
 }

@@ -34,22 +34,22 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.neo4j.genai.util.ParametersTest;
 import org.neo4j.genai.util.monitor.Monitors;
-import org.neo4j.genai.vector.VectorEncoding.InternalBatchRow;
-import org.neo4j.genai.vector.VectorEncoding.Provider;
-import org.neo4j.genai.vector.providers.AzureOpenAI;
-import org.neo4j.genai.vector.providers.Bedrock;
-import org.neo4j.genai.vector.providers.OpenAI;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.InternalBatchRow;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.Provider;
+import org.neo4j.genai.vector.providers.DeprecatedAzureOpenAI;
+import org.neo4j.genai.vector.providers.DeprecatedBedrock;
+import org.neo4j.genai.vector.providers.DeprecatedOpenAI;
+import org.neo4j.genai.vector.providers.DeprecatedVertexAI;
 import org.neo4j.genai.vector.providers.TestProvider;
-import org.neo4j.genai.vector.providers.VertexAI;
 import org.neo4j.values.storable.Value;
 
 class VectorEncodingTest {
-    private static final VectorEncoding VECTOR_ENCODING = new VectorEncoding();
+    private static final DeprecatedVectorEncoding VECTOR_ENCODING = new DeprecatedVectorEncoding();
 
     static {
         VECTOR_ENCODING.monitors = Mockito.mock(Monitors.class);
-        final var monitor = Mockito.mock(VectorEncodingCallCountersMonitor.class);
-        when(VECTOR_ENCODING.monitors.vectorEnc()).thenReturn(monitor);
+        final var monitor = Mockito.mock(DeprecatedVectorEncodingCallCountersMonitor.class);
+        when(VECTOR_ENCODING.monitors.deprecatedVectorEnc()).thenReturn(monitor);
     }
 
     @Nested
@@ -57,7 +57,7 @@ class VectorEncodingTest {
         @ParameterizedTest(name = "{0} --> {1}")
         @MethodSource
         void expectedProviders(ExpectedProvider expectedProvider) {
-            final var provider = VectorEncoding.getProvider(expectedProvider.name());
+            final var provider = DeprecatedVectorEncoding.getProvider(expectedProvider.name());
             assertThat(provider).isExactlyInstanceOf(expectedProvider.cls());
         }
 
@@ -65,7 +65,7 @@ class VectorEncodingTest {
         void listProvidersListsExpectedProviders() {
             final var actual = VECTOR_ENCODING
                     .listEncodingProviders()
-                    .map(VectorEncoding.ProviderRow::name)
+                    .map(DeprecatedVectorEncoding.ProviderRow::name)
                     .toList();
             final var expected = expectedProviders().map(ExpectedProvider::name).toList();
             assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
@@ -74,10 +74,10 @@ class VectorEncodingTest {
         static Stream<ExpectedProvider> expectedProviders() {
             return Stream.of(
                     new ExpectedProvider(TestProvider.NAME, TestProvider.class),
-                    new ExpectedProvider(AzureOpenAI.NAME, AzureOpenAI.class),
-                    new ExpectedProvider(Bedrock.NAME, Bedrock.class),
-                    new ExpectedProvider(OpenAI.NAME, OpenAI.class),
-                    new ExpectedProvider(VertexAI.NAME, VertexAI.class));
+                    new ExpectedProvider(DeprecatedAzureOpenAI.NAME, DeprecatedAzureOpenAI.class),
+                    new ExpectedProvider(DeprecatedBedrock.NAME, DeprecatedBedrock.class),
+                    new ExpectedProvider(DeprecatedOpenAI.NAME, DeprecatedOpenAI.class),
+                    new ExpectedProvider(DeprecatedVertexAI.NAME, DeprecatedVertexAI.class));
         }
 
         record ExpectedProvider(String name, Class<? extends Provider> cls) {}
@@ -85,7 +85,7 @@ class VectorEncodingTest {
         @Test
         void shouldThrowOnUnsupportedProvider() {
             final var unsupported = "unsupported";
-            assertThatThrownBy(() -> VectorEncoding.getProvider(unsupported))
+            assertThatThrownBy(() -> DeprecatedVectorEncoding.getProvider(unsupported))
                     .isExactlyInstanceOf(RuntimeException.class)
                     .hasMessageContainingAll("Vector encoding provider not supported", unsupported);
         }

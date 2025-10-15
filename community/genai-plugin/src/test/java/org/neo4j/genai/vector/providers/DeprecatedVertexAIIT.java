@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 @EnabledIf(value = "authIsSet", disabledReason = "token needs to be set in the config map")
-public class VertexAIIT {
+public class DeprecatedVertexAIIT {
     private static final String VERTEX_AI_TOKEN_ENV = "VERTEX_AI_TOKEN";
     private static final String VERTEX_AI_PROJECT_ID_ENV = "VERTEX_AI_PROJECT_ID";
     private static final Map<String, ?> BASE_CONFIG;
@@ -52,7 +52,7 @@ public class VertexAIIT {
     class GeminiEmbedding001 extends BaseIT {
         GeminiEmbedding001() {
             super(
-                    VertexAI.NAME,
+                    DeprecatedVertexAI.NAME,
                     "vertexai/gemini-embedding-001.txt",
                     BASE_CONFIG,
                     Map.of("model", "gemini-embedding-001"));
@@ -62,7 +62,11 @@ public class VertexAIIT {
     @Nested
     class TextEmbedding005 extends BaseIT {
         TextEmbedding005() {
-            super(VertexAI.NAME, "vertexai/text-embedding-005.txt", BASE_CONFIG, Map.of("model", "text-embedding-005"));
+            super(
+                    DeprecatedVertexAI.NAME,
+                    "vertexai/text-embedding-005.txt",
+                    BASE_CONFIG,
+                    Map.of("model", "text-embedding-005"));
         }
     }
 
@@ -70,7 +74,7 @@ public class VertexAIIT {
     class TextMultiLingualEmbedding002 extends BaseIT {
         TextMultiLingualEmbedding002() {
             super(
-                    VertexAI.NAME,
+                    DeprecatedVertexAI.NAME,
                     "vertexai/text-multilingual-embedding-002.txt",
                     BASE_CONFIG,
                     Map.of("model", "text-multilingual-embedding-002"));
@@ -81,11 +85,13 @@ public class VertexAIIT {
     class LargeBatchedInput extends BaseIT {
         LargeBatchedInput() {
             super(
-                    VertexAI.NAME,
+                    DeprecatedVertexAI.NAME,
                     BASE_CONFIG,
                     Map.of(
                             "model",
-                            VertexAI.KNOWN_BATCH_SUPPORTED_MODELS.iterator().next()));
+                            DeprecatedVertexAI.KNOWN_BATCH_SUPPORTED_MODELS
+                                    .iterator()
+                                    .next()));
         }
     }
 }

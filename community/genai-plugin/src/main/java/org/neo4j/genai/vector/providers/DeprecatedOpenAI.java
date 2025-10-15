@@ -24,11 +24,11 @@ import java.net.http.HttpRequest;
 import java.util.OptionalLong;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
-import org.neo4j.genai.vector.VectorEncoding.Provider;
-import org.neo4j.genai.vector.providers.openai.OpenAIBasedEncoder;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.Provider;
+import org.neo4j.genai.vector.providers.openai.DeprecatedOpenAIBasedEncoder;
 
 @ServiceProvider
-public final class OpenAI implements Provider<OpenAI.Parameters> {
+public final class DeprecatedOpenAI implements Provider<DeprecatedOpenAI.Parameters> {
     public static final String NAME = "OpenAI";
     private static final URI ENDPOINT = URI.create("https://api.openai.com/v1/embeddings");
     static final String DEFAULT_MODEL = "text-embedding-ada-002";
@@ -51,13 +51,13 @@ public final class OpenAI implements Provider<OpenAI.Parameters> {
 
     @Override
     public Provider.Encoder configure(Parameters configuration) {
-        return new Encoder(ENDPOINT, configuration);
+        return new EncoderDeprecated(ENDPOINT, configuration);
     }
 
-    static class Encoder extends OpenAIBasedEncoder {
+    static class EncoderDeprecated extends DeprecatedOpenAIBasedEncoder {
         private final Parameters configuration;
 
-        Encoder(URI endpoint, Parameters configuration) {
+        EncoderDeprecated(URI endpoint, Parameters configuration) {
             super(NAME, endpoint, configuration.dimensions);
             this.configuration = configuration;
         }

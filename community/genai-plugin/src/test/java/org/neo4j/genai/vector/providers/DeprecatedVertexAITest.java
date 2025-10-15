@@ -31,13 +31,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.neo4j.genai.vector.providers.VertexAI.Encoder;
+import org.neo4j.genai.vector.providers.DeprecatedVertexAI.Encoder;
 
-class VertexAITest {
-    private static final VertexAI PROVIDER = new VertexAI();
+class DeprecatedVertexAITest {
+    private static final DeprecatedVertexAI PROVIDER = new DeprecatedVertexAI();
 
     @Nested
-    class Configuration extends ConfigurationTestBase<VertexAI.Parameters> {
+    class Configuration extends ConfigurationTestBase<DeprecatedVertexAI.Parameters> {
         // note: may need to updated these as models are deprecated
         private static final Set<String> CURRENT_STABLE_MODELS =
                 Set.of("gemini-embedding-001", "text-embedding-005", "text-multilingual-embedding-002");
@@ -54,15 +54,15 @@ class VertexAITest {
                             "STRING",
                             CURRENT_STABLE_MODELS.iterator().next(),
                             123,
-                            VertexAI.DEFAULT_BUT_RETIRED_MODEL)),
+                            DeprecatedVertexAI.DEFAULT_BUT_RETIRED_MODEL)),
                     List.of(
                             new OptionalSetting(
                                     "region",
                                     String.class,
                                     "STRING",
-                                    VertexAI.DEFAULT_REGION,
+                                    DeprecatedVertexAI.DEFAULT_REGION,
                                     123,
-                                    Optional.of(VertexAI.DEFAULT_REGION)),
+                                    Optional.of(DeprecatedVertexAI.DEFAULT_REGION)),
                             new OptionalSetting(
                                     "taskType", String.class, "STRING", "RETRIEVAL_DOCUMENT", 123, Optional.empty()),
                             new OptionalSetting("title", String.class, "STRING", "A Short Tale", 123, Optional.empty()),
@@ -70,7 +70,10 @@ class VertexAITest {
                                     "autoTruncate", Boolean.class, "BOOLEAN", true, "true", Optional.empty()),
                             new OptionalSetting("dimensions", Long.class, "INTEGER", 1024, "1024", Optional.empty())),
                     new Models(
-                            "model", String.class, CURRENT_STABLE_MODELS, List.of(VertexAI.DEFAULT_BUT_RETIRED_MODEL)));
+                            "model",
+                            String.class,
+                            CURRENT_STABLE_MODELS,
+                            List.of(DeprecatedVertexAI.DEFAULT_BUT_RETIRED_MODEL)));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -81,7 +84,7 @@ class VertexAITest {
         }
 
         private Stream<String> supportedRegions() {
-            return VertexAI.SUPPORTED_REGIONS.stream();
+            return DeprecatedVertexAI.SUPPORTED_REGIONS.stream();
         }
 
         @ParameterizedTest(name = "{0}")

@@ -41,11 +41,11 @@ import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
-import org.neo4j.genai.vector.VectorEncoding.BatchRow;
-import org.neo4j.genai.vector.VectorEncoding.Provider;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.BatchRow;
+import org.neo4j.genai.vector.DeprecatedVectorEncoding.Provider;
 
 @ServiceProvider
-public final class VertexAI implements Provider<VertexAI.Parameters> {
+public final class DeprecatedVertexAI implements Provider<DeprecatedVertexAI.Parameters> {
     public static final String NAME = "VertexAI";
     private static final String ENDPOINT_TEMPLATE = "https://${region}-aiplatform.googleapis.com/v1"
             + "/projects/${projectId}/locations/${region}/publishers/google/models/${model}:predict";
@@ -211,7 +211,8 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
         static Stream<BatchRow> parseResponse(List<String> resources, InputStream inputStream, int[] nullIndexes)
                 throws MalformedGenAIResponseException {
             final String[] properties = {"embeddings", "values"};
-            return JsonUtils.parseResponse(NAME, "predictions", properties, resources, inputStream, nullIndexes);
+            return JsonUtils.deprecatedParseResponse(
+                    NAME, "predictions", properties, resources, inputStream, nullIndexes);
         }
 
         /*
