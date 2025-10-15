@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.neo4j.bolt.protocol.common.connector.connection.authentication.AuthenticationFlag;
+import org.neo4j.bolt.protocol.common.connector.notification.NotificationManager;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
@@ -107,4 +108,6 @@ public interface ConnectionHandle extends Connection {
     Optional<Transaction> transaction();
 
     void closeTransaction() throws TransactionException;
+
+    NotificationManager notificationManager();
 }

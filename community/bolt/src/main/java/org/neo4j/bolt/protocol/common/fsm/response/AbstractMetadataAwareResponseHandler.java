@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.common.fsm.response;
 
 import java.util.List;
+import org.neo4j.bolt.protocol.common.connector.notification.NotificationManager;
 import org.neo4j.bolt.protocol.common.fsm.response.metadata.MetadataHandler;
 import org.neo4j.bolt.tx.TransactionType;
 import org.neo4j.graphdb.ExecutionPlanDescription;
@@ -27,14 +28,23 @@ import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.Notification;
 import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.graphdb.QueryStatistics;
+import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.values.virtual.MapValue;
 
 public abstract class AbstractMetadataAwareResponseHandler implements ResponseHandler {
     protected final MetadataHandler metadataHandler;
+    protected final NotificationManager notificationManager;
+
+    public AbstractMetadataAwareResponseHandler(
+            MetadataHandler metadataHandler, NotificationManager notificationManager) {
+        this.metadataHandler = metadataHandler;
+        this.notificationManager = notificationManager;
+    }
 
     public AbstractMetadataAwareResponseHandler(MetadataHandler metadataHandler) {
         this.metadataHandler = metadataHandler;
+        this.notificationManager = NotificationManager.NOOP;
     }
 
     @Override
@@ -71,7 +81,11 @@ public abstract class AbstractMetadataAwareResponseHandler implements ResponseHa
         this.metadataHandler.onExecutionType(this, executionType);
         this.metadataHandler.onDatabase(this, database);
         this.metadataHandler.onQueryStatistics(this, statistics);
-        this.metadataHandler.onNotifications(this, notifications, statuses);
+
+        var combinedNotifications =
+                Iterables.concat(notificationManager.retrieveAndClearNotifications(), notifications);
+        var combinedStatuses = Iterables.concat(notificationManager.retrieveAndClearGqlStatusObjects(), statuses);
+        this.metadataHandler.onNotifications(this, combinedNotifications, combinedStatuses);
     }
 
     @Override

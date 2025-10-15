@@ -181,6 +181,16 @@ public final class BoltConnectionAssertions
     }
 
     public BoltConnectionAssertions receivesSuccessWithNotification(
+            String code, String title, String description, SeverityLevel severity) {
+        return receivesSuccessWithNotification(notification -> assertSoftly(soft -> soft.assertThat(notification)
+                .as("contains notification")
+                .containsEntry("code", code)
+                .containsEntry("title", title)
+                .containsEntry("description", description)
+                .containsEntry("severity", severity.toString())));
+    }
+
+    public BoltConnectionAssertions receivesSuccessWithNotification(
             String code,
             String title,
             String description,
@@ -269,6 +279,14 @@ public final class BoltConnectionAssertions
                 .containsEntry("_classification", classification.name())
                 // .containsEntry("_status_parameters", statusParameters)
                 .containsEntry("_position", position);
+    }
+
+    public static Consumer<Map<String, Object>> assertDiagnosticRecord(
+            SeverityLevel severityLevel, NotificationCategory classification) {
+        return diagnosticRecord -> Assertions.assertThat(diagnosticRecord)
+                .containsOnlyKeys("_severity", "_classification")
+                .containsEntry("_severity", severityLevel.name())
+                .containsEntry("_classification", classification.name());
     }
 
     public static Map<String, Long> diagnosticRecordPosition(long column, long line, long offset) {

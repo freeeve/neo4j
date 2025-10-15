@@ -355,6 +355,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.WARNING,
             "server is not available",
             NotificationClassification.TOPOLOGY),
+    STATUS_01N83(
+            new GqlStatus("01N83"),
+            "Client does not support type `{ %s }`. Please upgrade your client.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType},
+            emptyMap(),
+            Condition.WARNING,
+            "client does not support type",
+            NotificationClassification.UNSUPPORTED),
 
     STATUS_02000(
             new GqlStatus("02000"),

@@ -44,6 +44,7 @@ import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.protocol.common.connector.Connector;
 import org.neo4j.bolt.protocol.common.connector.connection.authentication.AuthenticationFlag;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
+import org.neo4j.bolt.protocol.common.connector.notification.NotificationManager;
 import org.neo4j.bolt.protocol.common.fsm.response.NetworkResponseHandler;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
@@ -68,6 +69,7 @@ import org.neo4j.values.storable.Value;
  */
 public abstract class AbstractConnection implements ConnectionHandle {
     private final Connector connector;
+    private final NotificationManager notificationManager;
 
     protected final String id;
     protected final Channel channel;
@@ -108,12 +110,14 @@ public abstract class AbstractConnection implements ConnectionHandle {
             Channel channel,
             long connectedAt,
             MemoryTracker memoryTracker,
+            NotificationManager notificationManager,
             LogService logService) {
         this.connector = connector;
         this.id = id;
         this.channel = channel;
         this.connectedAt = connectedAt;
         this.memoryTracker = memoryTracker;
+        this.notificationManager = notificationManager;
 
         this.logService = logService;
         this.log = logService.getInternalLog(this.getClass());
@@ -585,6 +589,11 @@ public abstract class AbstractConnection implements ConnectionHandle {
         if (!Objects.equals(previousDatabase, db)) {
             this.notifyListeners(listener -> listener.onDefaultDatabaseSelected(db));
         }
+    }
+
+    @Override
+    public NotificationManager notificationManager() {
+        return notificationManager;
     }
 
     @Override

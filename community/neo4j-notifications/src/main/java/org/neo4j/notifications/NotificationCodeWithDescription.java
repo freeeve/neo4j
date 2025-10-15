@@ -397,7 +397,13 @@ public enum NotificationCodeWithDescription {
     WAIT_SERVER_CAUGHT_UP(
             Status.Cluster.ServerCaughtUp,
             GqlStatusInfoCodes.STATUS_03N85,
-            "Server `%s` at address `%s` has caught up.");
+            "Server `%s` at address `%s` has caught up."),
+
+    UNSUPPORTED_TYPE(
+            Status.Request.UnsupportedType,
+            GqlStatusInfoCodes.STATUS_01N83,
+            "One or more values returned could not be handled by this version of the client "
+                    + "and were replaced with placeholder map values. Please upgrade your client.");
 
     private final Status status;
     private final GqlStatusInfoCodes gqlStatusInfo;
@@ -916,6 +922,11 @@ public enum NotificationCodeWithDescription {
                 InputPosition.empty,
                 new String[] {serverName, boltAddress, message},
                 new String[] {serverName, boltAddress, message});
+    }
+
+    public static NotificationImplementation clientDoesNotSupportType(String type) {
+        return UNSUPPORTED_TYPE.notificationWithParameters(
+                InputPosition.empty, new String[] {type}, new String[] {type});
     }
 
     public static NotificationImplementation waitServerCaughtUp(String serverName, String boltAddress) {

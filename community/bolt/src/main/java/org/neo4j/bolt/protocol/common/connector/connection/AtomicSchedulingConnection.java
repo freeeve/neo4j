@@ -44,6 +44,8 @@ import org.neo4j.bolt.protocol.common.connector.Connector;
 import org.neo4j.bolt.protocol.common.connector.admissioncontrol.ConnectionAdmissionControlTracker;
 import org.neo4j.bolt.protocol.common.connector.admissioncontrol.ConnectionAdmissionControlTrackerFactory;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
+import org.neo4j.bolt.protocol.common.connector.notification.NotificationManager;
+import org.neo4j.bolt.protocol.common.connector.notification.NotificationManagerImpl;
 import org.neo4j.bolt.protocol.common.fsm.error.AuthenticationStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
@@ -101,8 +103,9 @@ public class AtomicSchedulingConnection extends AbstractConnection {
             LogService logService,
             ExecutorService executor,
             Clock clock,
-            ConnectionAdmissionControlTracker admissionControlTracker) {
-        super(connector, id, channel, connectedAt, memoryTracker, logService);
+            ConnectionAdmissionControlTracker admissionControlTracker,
+            NotificationManager notificationManager) {
+        super(connector, id, channel, connectedAt, memoryTracker, notificationManager, logService);
         this.executor = executor;
         this.clock = clock;
         this.admissionControlTracker = admissionControlTracker;
@@ -665,6 +668,7 @@ public class AtomicSchedulingConnection extends AbstractConnection {
         public AtomicSchedulingConnection create(Connector connector, String id, Channel channel) {
             // TODO: Configurable chunk size for tuning?
             var memoryTracker = ConnectionMemoryTracker.createForPool(connector.memoryPool());
+            var notificationManager = new NotificationManagerImpl();
             memoryTracker.allocateHeap(SHALLOW_SIZE);
 
             return new AtomicSchedulingConnection(
@@ -676,7 +680,8 @@ public class AtomicSchedulingConnection extends AbstractConnection {
                     this.logService,
                     this.executor,
                     this.clock,
-                    this.connectionAdmissionControlTrackerFactory.createNewTracker());
+                    this.connectionAdmissionControlTrackerFactory.createNewTracker(),
+                    notificationManager);
         }
     }
 }

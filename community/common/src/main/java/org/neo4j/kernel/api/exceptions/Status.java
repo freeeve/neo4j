@@ -93,6 +93,11 @@ public interface Status {
                 "The client made a request for a format which has been deprecated.",
                 SeverityLevel.WARNING,
                 NotificationCategory.DEPRECATION),
+        UnsupportedType(
+                ClientNotification,
+                "Client does not support this type.",
+                SeverityLevel.WARNING,
+                NotificationCategory.UNSUPPORTED),
         NoThreadsAvailable(
                 TransientError, // TODO: see above
                 "There are no available threads to serve this request at the moment. You can retry at a later time "

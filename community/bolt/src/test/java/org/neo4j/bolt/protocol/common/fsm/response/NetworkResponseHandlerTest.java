@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.neo4j.bolt.fsm.error.BoltException;
-import org.neo4j.bolt.protocol.common.connector.connection.Connection;
+import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
 import org.neo4j.bolt.protocol.common.fsm.response.metadata.MetadataHandler;
 import org.neo4j.bolt.protocol.common.message.Error;
 import org.neo4j.bolt.protocol.common.message.response.FailureMessage;
@@ -53,7 +53,7 @@ class NetworkResponseHandlerTest {
 
     private EmbeddedChannel channel;
 
-    private Connection connection;
+    private ConnectionHandle connection;
     private MetadataHandler metadataHandler;
 
     private AssertableLogProvider internalLog;

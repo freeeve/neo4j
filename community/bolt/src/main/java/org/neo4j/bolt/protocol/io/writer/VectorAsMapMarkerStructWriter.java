@@ -21,6 +21,7 @@ package org.neo4j.bolt.protocol.io.writer;
 
 import java.util.Map;
 import org.neo4j.bolt.protocol.io.pipeline.WriterContext;
+import org.neo4j.notifications.NotificationCodeWithDescription;
 import org.neo4j.values.storable.Float32Vector;
 import org.neo4j.values.storable.Float64Vector;
 import org.neo4j.values.storable.Int16Vector;
@@ -69,6 +70,9 @@ public final class VectorAsMapMarkerStructWriter implements StructWriter {
     }
 
     private void handleVector(WriterContext ctx, Map<String, Object> unknownVectorMap) {
+        var notificationManager = ctx.connection().fsm().connection().notificationManager();
+        notificationManager.addNotification(NotificationCodeWithDescription.clientDoesNotSupportType("VECTOR"));
+        notificationManager.addGqlStatus(NotificationCodeWithDescription.clientDoesNotSupportType("VECTOR"));
         ctx.buffer().writeMap(unknownVectorMap);
     }
 

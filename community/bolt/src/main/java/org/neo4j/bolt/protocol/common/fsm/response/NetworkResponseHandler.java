@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
+import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
 import org.neo4j.bolt.protocol.common.fsm.response.metadata.MetadataHandler;
 import org.neo4j.bolt.protocol.common.message.Error;
@@ -50,12 +51,12 @@ public class NetworkResponseHandler extends AbstractMetadataAwareResponseHandler
     private NetworkRecordHandler recordHandler;
 
     public NetworkResponseHandler(
-            Connection connection,
+            ConnectionHandle connection,
             MetadataHandler metadataHandler,
             int bufferSize,
             int flushThreshold,
             LogService logging) {
-        super(metadataHandler);
+        super(metadataHandler, connection.notificationManager());
 
         this.connection = connection;
         this.bufferSize = bufferSize;

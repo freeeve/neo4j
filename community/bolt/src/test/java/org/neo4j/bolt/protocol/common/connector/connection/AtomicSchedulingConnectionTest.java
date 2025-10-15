@@ -50,6 +50,7 @@ import org.neo4j.bolt.protocol.common.connector.accounting.error.ErrorAccountant
 import org.neo4j.bolt.protocol.common.connector.admissioncontrol.ConnectionAdmissionControlTracker;
 import org.neo4j.bolt.protocol.common.connector.connection.authentication.AuthenticationFlag;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
+import org.neo4j.bolt.protocol.common.connector.notification.NotificationManager;
 import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.protocol.common.message.request.transaction.RunMessage;
@@ -91,6 +92,7 @@ class AtomicSchedulingConnectionTest {
     private Connector connector;
     private Channel channel;
     private MemoryTracker memoryTracker;
+    private NotificationManager notificationManager;
     private LogService logService;
     private AssertableLogProvider userLogProvider;
     private AssertableLogProvider internalLogProvider;
@@ -119,6 +121,7 @@ class AtomicSchedulingConnectionTest {
         this.connector = Mockito.mock(Connector.class, Mockito.RETURNS_MOCKS);
         this.channel = Mockito.mock(Channel.class, Mockito.RETURNS_MOCKS);
         this.memoryTracker = Mockito.mock(MemoryTracker.class, Mockito.RETURNS_MOCKS);
+        this.notificationManager = Mockito.mock(NotificationManager.class);
         this.userLogProvider = new AssertableLogProvider();
         this.internalLogProvider = new AssertableLogProvider();
         this.logService = new SimpleLogService(this.userLogProvider, this.internalLogProvider);
@@ -173,7 +176,8 @@ class AtomicSchedulingConnectionTest {
                 this.logService,
                 this.executorService,
                 this.clock,
-                this.admissionControlTracker);
+                this.admissionControlTracker,
+                this.notificationManager);
 
         // this is to set user agent & bolt agent
         this.connection.negotiate(

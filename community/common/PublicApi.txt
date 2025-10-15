@@ -101,6 +101,7 @@ org.neo4j.kernel.api.exceptions.Status.Request::InvalidFormat org.neo4j.kernel.a
 org.neo4j.kernel.api.exceptions.Status.Request::InvalidUsage org.neo4j.kernel.api.exceptions.Status.Request public static final
 org.neo4j.kernel.api.exceptions.Status.Request::NoThreadsAvailable org.neo4j.kernel.api.exceptions.Status.Request public static final
 org.neo4j.kernel.api.exceptions.Status.Request::ResourceExhaustion org.neo4j.kernel.api.exceptions.Status.Request public static final
+org.neo4j.kernel.api.exceptions.Status.Request::UnsupportedType org.neo4j.kernel.api.exceptions.Status.Request public static final
 org.neo4j.kernel.api.exceptions.Status.Request::code() org.neo4j.kernel.api.exceptions.Status.Code public
 org.neo4j.kernel.api.exceptions.Status.Request::valueOf(java.lang.String) org.neo4j.kernel.api.exceptions.Status.Request public static
 org.neo4j.kernel.api.exceptions.Status.Request::values() org.neo4j.kernel.api.exceptions.Status.Request[] public static
