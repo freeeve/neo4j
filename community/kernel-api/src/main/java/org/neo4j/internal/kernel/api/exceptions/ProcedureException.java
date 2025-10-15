@@ -939,6 +939,18 @@ public class ProcedureException extends KernelException {
         return new ProcedureException(gql, ProcedureCallFailed, msg + ".");
     }
 
+    public static ProcedureException invalidEmptyStringFunctionArgument(
+            String argumentName, String signature, String legacyMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_53N33)
+                .withParam(GqlParams.StringParam.sig, signature)
+                .withParam(GqlParams.StringParam.msg, argumentName + " is not allowed to be an empty string")
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+                        .withParam(GqlParams.StringParam.item, argumentName)
+                        .build())
+                .build();
+        return new ProcedureException(gql, Status.Procedure.ProcedureCallFailed, legacyMessage);
+    }
+
     public static ProcedureException graphPropertiesNotFound(String graphName) {
         var gql = GqlHelper.getGql42001_42N00(graphName);
 

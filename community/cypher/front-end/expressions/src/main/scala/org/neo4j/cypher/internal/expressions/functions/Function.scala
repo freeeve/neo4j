@@ -41,6 +41,7 @@ object Category extends Enumeration {
   val SPATIAL = "Spatial"
   val GRAPH = "Graph"
   val VECTOR = "Vector"
+  val SECURITY = "Security"
 }
 
 object Function {
