@@ -231,12 +231,17 @@ class LiteralsParserTest extends AstParsingTestBase
 
     // Arbitrary unicode escape codes
     forAll(genCodepoint, minSuccessful(100)) { codepoint =>
-      whenever(codepoint != 0 && codepoint != '\'') {
+      whenever(codepoint != 0 && codepoint != '\'' && codepoint != '\\') {
         s"'${toCypherHex(codepoint)}'" should parseTo[Literal](literalString(Character.toString(codepoint)))
       }
     }
 
-    s"RETURN '${toCypherHex('\\')}'" should notParse[Statements]
+    s"RETURN '${toCypherHex('\\')}'" should notParse[Statements].withSyntaxErrorContaining(
+      """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 8 (offset: 7))""",
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      position = Some(InputPosition(7, 1, 8))
+    )
     s"RETURN '${toCypherHex('\'')}'" should notParse[Statements].withSyntaxErrorContaining(
       """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 15 (offset: 14))""",
       GqlStatusInfoCodes.STATUS_42I19,
