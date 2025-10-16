@@ -328,7 +328,8 @@ public class GBPTreeWithUndefinedValuesTest {
                         int pageSize,
                         Layout<KEY, VALUE> layout,
                         OffloadStore<KEY, VALUE> offloadStore,
-                        DependencyResolver dependencyResolver) {
+                        DependencyResolver dependencyResolver,
+                        boolean rootLayer) {
                     return new LeafNodeFixedSize<>(pageSize, layout) {
                         @Override
                         public void keyValueAt(

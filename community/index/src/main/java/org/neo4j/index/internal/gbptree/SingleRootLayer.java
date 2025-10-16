@@ -51,7 +51,8 @@ class SingleRootLayer<KEY, VALUE> extends RootLayer<SingleRoot, KEY, VALUE> {
 
         var format = treeNodeSelector.selectByLayout(layout);
         OffloadStoreImpl<KEY, VALUE> offloadStore = support.buildOffload(layout);
-        this.leafNode = format.createLeafBehaviour(support.payloadSize(), layout, offloadStore, dependencyResolver);
+        this.leafNode =
+                format.createLeafBehaviour(support.payloadSize(), layout, offloadStore, dependencyResolver, false);
         this.internalNode =
                 format.createInternalBehaviour(support.payloadSize(), layout, offloadStore, dependencyResolver);
         this.singleRootAccess = new SingleDataTree();
