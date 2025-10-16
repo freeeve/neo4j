@@ -39,7 +39,15 @@ class IndicatorTest {
         PrintWriter out = new PrintWriter(bout);
         FakeClock clock = new FakeClock();
         TextualIndicator indicator = new TextualIndicator(
-                "Test", out, true, clock, 'D', DEFAULT_DOTS_PER_GROUP, DEFAULT_GROUPS_PER_LINE, DEFAULT_NUM_LINES);
+                "Test",
+                out,
+                true,
+                clock,
+                'D',
+                DEFAULT_DOTS_PER_GROUP,
+                DEFAULT_GROUPS_PER_LINE,
+                DEFAULT_NUM_LINES,
+                ProgressMonitorFactory.NO_INDICATOR_LISTENER);
 
         // when
         int line = 0;
@@ -78,8 +86,16 @@ class IndicatorTest {
         PrintWriter out = new PrintWriter(bout);
         int dotsPerGroup = 5;
         int lines = 4;
-        TextualIndicator indicator =
-                new TextualIndicator("Test", out, false, Clocks.nanoClock(), ' ', dotsPerGroup, 1, lines);
+        TextualIndicator indicator = new TextualIndicator(
+                "Test",
+                out,
+                false,
+                Clocks.nanoClock(),
+                ' ',
+                dotsPerGroup,
+                1,
+                lines,
+                ProgressMonitorFactory.NO_INDICATOR_LISTENER);
 
         // when
         indicator.progress(0, dotsPerGroup * lines);
@@ -101,8 +117,16 @@ class IndicatorTest {
         int dotsPerGroup = 5;
         int groupsPerLine = 3;
         int lines = 5;
-        TextualIndicator indicator =
-                new TextualIndicator("Test", out, false, Clocks.nanoClock(), ' ', dotsPerGroup, groupsPerLine, lines);
+        TextualIndicator indicator = new TextualIndicator(
+                "Test",
+                out,
+                false,
+                Clocks.nanoClock(),
+                ' ',
+                dotsPerGroup,
+                groupsPerLine,
+                lines,
+                ProgressMonitorFactory.NO_INDICATOR_LISTENER);
 
         // when
         indicator.progress(0, groupsPerLine * dotsPerGroup * lines);
@@ -122,7 +146,8 @@ class IndicatorTest {
         // given
         var bout = new ByteArrayOutputStream();
         var out = new PrintWriter(bout);
-        var indicator = new TextualIndicator("Test", out, false, Clocks.nanoClock(), ' ', 10, 1, 2);
+        var indicator = new TextualIndicator(
+                "Test", out, false, Clocks.nanoClock(), ' ', 10, 1, 2, ProgressMonitorFactory.NO_INDICATOR_LISTENER);
 
         // when
         indicator.progress(0, 5);

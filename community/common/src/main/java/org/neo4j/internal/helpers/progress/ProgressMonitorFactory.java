@@ -32,7 +32,7 @@ import org.neo4j.util.Preconditions;
 public abstract class ProgressMonitorFactory {
     public static final ProgressMonitorFactory NONE = new ProgressMonitorFactory() {
         @Override
-        protected Indicator newIndicator(String process) {
+        protected Indicator newIndicator(String process, IndicatorListener listener) {
             return Indicator.NONE;
         }
     };
@@ -154,7 +154,7 @@ public abstract class ProgressMonitorFactory {
             final Writer out, boolean deltaTimes, int dotsPerGroup, int groupsPerLine, int numLines) {
         return new ProgressMonitorFactory() {
             @Override
-            protected Indicator newIndicator(String process) {
+            protected Indicator newIndicator(String process, IndicatorListener listener) {
                 return new TextualIndicator(
                         process,
                         writer(),
@@ -163,7 +163,8 @@ public abstract class ProgressMonitorFactory {
                         TextualIndicator.DEFAULT_DELTA_CHARACTER,
                         dotsPerGroup,
                         groupsPerLine,
-                        numLines);
+                        numLines,
+                        listener);
             }
 
             private PrintWriter writer() {
@@ -175,7 +176,7 @@ public abstract class ProgressMonitorFactory {
     public static ProgressMonitorFactory basicTextual(final Writer out, int resolution, int step, String displayText) {
         return new ProgressMonitorFactory() {
             @Override
-            protected Indicator newIndicator(String process) {
+            protected Indicator newIndicator(String process, IndicatorListener listener) {
                 return new BasicTextualIndicator(writer(), resolution, step, displayText);
             }
 
@@ -196,7 +197,7 @@ public abstract class ProgressMonitorFactory {
     public static ProgressMonitorFactory mapped(ProgressListener target, int resolution) {
         return new ProgressMonitorFactory() {
             @Override
-            protected Indicator newIndicator(String process) {
+            protected Indicator newIndicator(String process, IndicatorListener listener) {
                 return new Indicator(resolution) {
                     @Override
                     protected void progress(int from, int to) {
@@ -238,7 +239,7 @@ public abstract class ProgressMonitorFactory {
      * @return the created progress listener.
      */
     public MultiPartBuilder multipleParts(String process, IndicatorListener listener) {
-        return new MultiPartBuilder(newIndicator(process), listener);
+        return new MultiPartBuilder(newIndicator(process, listener), listener);
     }
 
     public final MultiPartBuilder multipleParts(String process) {
@@ -253,14 +254,14 @@ public abstract class ProgressMonitorFactory {
      * @return the created progress listener.
      */
     public final ProgressListener singlePart(String process, long totalCount, IndicatorListener listener) {
-        return new ProgressListener.SinglePartProgressListener(newIndicator(process), totalCount, listener);
+        return new ProgressListener.SinglePartProgressListener(newIndicator(process, listener), totalCount, listener);
     }
 
     public ProgressListener singlePart(String process, long totalCount) {
         return singlePart(process, totalCount, NO_INDICATOR_LISTENER);
     }
 
-    protected abstract Indicator newIndicator(String process);
+    protected abstract Indicator newIndicator(String process, IndicatorListener listener);
 
     public static class MultiPartBuilder {
         private Aggregator aggregator;
@@ -318,6 +319,10 @@ public abstract class ProgressMonitorFactory {
 
     public interface IndicatorListener {
         void update(long progress, long total);
+
+        default String extraInfo() {
+            return "";
+        }
     }
 
     public abstract static class PercentageIndicatorListener implements IndicatorListener {

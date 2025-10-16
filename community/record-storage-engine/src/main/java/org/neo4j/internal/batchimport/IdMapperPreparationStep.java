@@ -67,7 +67,7 @@ public class IdMapperPreparationStep extends LonelyProcessingStep {
                     private long totalCount;
 
                     @Override
-                    protected Indicator newIndicator(String process) {
+                    protected Indicator newIndicator(String process, IndicatorListener listener) {
                         int reportResolution = 100;
                         return new Indicator(reportResolution) {
                             @Override

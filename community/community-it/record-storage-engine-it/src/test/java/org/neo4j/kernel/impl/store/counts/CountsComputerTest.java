@@ -659,7 +659,7 @@ class CountsComputerTest {
         }
 
         @Override
-        protected Indicator newIndicator(String process) {
+        protected Indicator newIndicator(String process, IndicatorListener listener) {
             return new Indicator(100) {
                 @Override
                 public void startProcess(long totalCount) {

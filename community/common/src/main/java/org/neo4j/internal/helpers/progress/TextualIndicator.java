@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.neo4j.internal.helpers.Format.duration;
 
 import java.io.PrintWriter;
+import org.neo4j.internal.helpers.progress.ProgressMonitorFactory.IndicatorListener;
 import org.neo4j.time.SystemNanoClock;
 
 class TextualIndicator extends Indicator {
@@ -38,6 +39,7 @@ class TextualIndicator extends Indicator {
     private final char deltaCharacter;
     private final int dotsPerGroup;
     private final int groupsPerLine;
+    private final IndicatorListener listener;
     private final int dotsPerLine;
     private long lastReportTime;
     private long startTime;
@@ -51,7 +53,8 @@ class TextualIndicator extends Indicator {
             char deltaCharacter,
             int dotsPerGroup,
             int groupsPerLine,
-            int numLines) {
+            int numLines,
+            IndicatorListener listener) {
         super(dotsPerGroup * groupsPerLine * numLines);
         this.process = process;
         this.out = out;
@@ -60,6 +63,7 @@ class TextualIndicator extends Indicator {
         this.deltaCharacter = deltaCharacter;
         this.dotsPerGroup = dotsPerGroup;
         this.groupsPerLine = groupsPerLine;
+        this.listener = listener;
         this.dotsPerLine = dotsPerGroup * groupsPerLine;
     }
 
@@ -104,10 +108,11 @@ class TextualIndicator extends Indicator {
                 long time = currentTime - lastReportTime;
                 long totalTime = currentTime - startTime;
                 out.printf(
-                        " %c%s [%s]",
+                        " %c%s [%s] %s",
                         deltaCharacter,
                         duration(NANOSECONDS.toMillis(time)),
-                        duration(NANOSECONDS.toMillis(totalTime)));
+                        duration(NANOSECONDS.toMillis(totalTime)),
+                        listener.extraInfo());
             }
             out.printf("%n");
             lastReportTime = currentTime;

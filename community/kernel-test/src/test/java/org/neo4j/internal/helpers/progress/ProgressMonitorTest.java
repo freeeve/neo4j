@@ -54,7 +54,7 @@ class ProgressMonitorTest {
         when(indicator.reportResolution()).thenReturn(10);
         factory = new ProgressMonitorFactory() {
             @Override
-            protected Indicator newIndicator(String process) {
+            protected Indicator newIndicator(String process, IndicatorListener listener) {
                 return indicator;
             }
         };

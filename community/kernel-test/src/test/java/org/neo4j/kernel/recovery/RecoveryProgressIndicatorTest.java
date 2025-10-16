@@ -117,7 +117,7 @@ class RecoveryProgressIndicatorTest {
         }
 
         @Override
-        protected Indicator newIndicator(String process) {
+        protected Indicator newIndicator(String process, IndicatorListener listener) {
             return new Indicator(expectedMax) {
                 @Override
                 public void startProcess(long totalCount) {

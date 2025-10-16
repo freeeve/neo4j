@@ -32,7 +32,7 @@ public class MovingAverage {
     private final AtomicLong total = new AtomicLong();
     private final AtomicLong valueCursor = new AtomicLong();
 
-    MovingAverage(int numberOfTrackedValues) {
+    public MovingAverage(int numberOfTrackedValues) {
         this.values = new AtomicLongArray(numberOfTrackedValues);
     }
 
@@ -42,7 +42,7 @@ public class MovingAverage {
         total.addAndGet(value - prevValue);
     }
 
-    private int numberOfCurrentlyTrackedValues() {
+    public int numberOfCurrentlyTrackedValues() {
         return (int) min(valueCursor.get(), values.length());
     }
 
