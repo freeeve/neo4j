@@ -2681,7 +2681,6 @@ case class ShowCurrentGraphTypeClause(
 }
 
 object ShowCurrentGraphTypeClause {
-  val typeColumn = "type"
   val specificationColumn = "specification"
 
   def apply(
@@ -2690,11 +2689,8 @@ object ShowCurrentGraphTypeClause {
     yieldAll: Boolean,
     yieldWith: Option[With]
   )(position: InputPosition): ShowCurrentGraphTypeClause = {
-    // All columns are currently default
-    val columns = List(
-      ShowAndTerminateColumn(typeColumn),
-      ShowAndTerminateColumn(specificationColumn)
-    )
+    // There are currently only one column, which is returned by default
+    val columns = List(ShowAndTerminateColumn(specificationColumn))
 
     ShowCurrentGraphTypeClause(columns, where, yieldItems, yieldAll, yieldWith)(position)
   }
