@@ -62,7 +62,7 @@ public class TextCompletion {
         requireNonNull(providerName, "'provider' must not be null");
         requireNonNull(configuration, "'configuration' must not be null");
         final var provider = providers.configure(providerName, configuration);
-        monitors.textCompletion().textCompletionFunctionCalled(provider.name());
+        monitors.textCompletion().textCompletionFunctionCalled(provider.metricsName());
         return prompt == null ? null : provider.complete(prompt);
     }
 
@@ -79,7 +79,7 @@ public class TextCompletion {
         requireNonNull(providerName, "'provider' must not be null");
         requireNonNull(configuration, "'configuration' must not be null");
         final var provider = providers.configure(providerName, configuration);
-        monitors.textCompletion().textCompletionProcedureCalled(provider.name());
+        monitors.textCompletion().textCompletionProcedureCalled(provider.metricsName());
 
         // TODO Optimise to be a single network call, if possible. Remember to handle nulls.
         return IntStream.range(0, prompts.size()).mapToObj(i -> {

@@ -30,12 +30,21 @@ public interface NamedProvider {
     /** Returns the provider name. */
     String name();
 
+    /** Returns the provider name used by metrics. */
+    default String metricsName() {
+        return name();
+    }
+
     /* Returns the type of configuration options for this provder. */
     Class<?> paramType();
 
     /** Provider implementation. */
     interface Implementation {
         String name();
+
+        default String metricsName() {
+            return name();
+        }
     }
 
     /** Lookup providers and instantiate their implementation. */

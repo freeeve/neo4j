@@ -22,6 +22,7 @@ package org.neo4j.genai.ai.text.completion;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -50,13 +51,14 @@ class TextCompletionIT {
         }
 
         @Override
-        String confRequired() {
-            return "{ token: $token, model: 'gpt-5-nano' }";
+        List<String> confRequired() {
+            return List.of("{ token: $token, model: 'gpt-5-nano' }");
         }
 
         @Override
-        String confWithVendorOptions() {
-            return "{ token: $token, model: 'gpt-5-nano', vendorOptions: { store: false, instructions: 'Always answer with a single emoji.' } }";
+        List<String> confWithVendorOptions() {
+            return List.of(
+                    "{ token: $token, model: 'gpt-5-nano', vendorOptions: { store: false, instructions: 'Always answer with a single emoji.' } }");
         }
     }
 
@@ -73,13 +75,47 @@ class TextCompletionIT {
         }
 
         @Override
-        String confRequired() {
-            return "{ token: $token, model: 'gemini-2.5-flash-lite', region: 'europe-west2', project: $project }";
+        List<String> confRequired() {
+            return List.of(
+                    "{ token: $token, model: 'gemini-2.5-flash-lite', region: 'europe-west2', project: $project }");
         }
 
         @Override
-        String confWithVendorOptions() {
-            return "{ token: $token, model: 'gemini-2.5-flash-lite', region: 'europe-west2', project: $project, vendorOptions: { systemInstructions: 'Always answer with a single emoji.' } }";
+        List<String> confWithVendorOptions() {
+            return List.of(
+                    "{ token: $token, model: 'gemini-2.5-flash-lite', region: 'europe-west2', project: $project, vendorOptions: { systemInstructions: 'Always answer with a single emoji.' } }");
+        }
+    }
+
+    @Nested
+    @EnabledIfEnvironmentVariable(named = BedrockNova.KEY, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = BedrockNova.SECRET, matches = ".*")
+    class BedrockNova extends TextCompletionITBase {
+        static final String KEY = "BEDROCK_KEY";
+        static final String SECRET = "BEDROCK_SECRET_KEY";
+
+        @Override
+        String provider() {
+            return "bedrock-nova";
+        }
+
+        @Override
+        Map<String, Object> params() {
+            return Map.of("key", System.getenv(KEY), "secret", System.getenv(SECRET));
+        }
+
+        @Override
+        List<String> confRequired() {
+            return List.of(
+                    "{ model: 'amazon.nova-micro-v1:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret }",
+                    "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.nova-micro-v1:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret }");
+        }
+
+        @Override
+        List<String> confWithVendorOptions() {
+            return List.of(
+                    "{ model: 'amazon.nova-micro-v1:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }",
+                    "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.nova-micro-v1:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }");
         }
     }
 }
@@ -95,9 +131,9 @@ abstract class TextCompletionITBase implements GenAITestExtension {
 
     abstract Map<String, Object> params();
 
-    abstract String confRequired();
+    abstract List<String> confRequired();
 
-    abstract String confWithVendorOptions();
+    abstract List<String> confWithVendorOptions();
 
     String provider() {
         return getClass().getSimpleName().toLowerCase(Locale.ROOT);
@@ -113,64 +149,78 @@ abstract class TextCompletionITBase implements GenAITestExtension {
 
     @Test
     void completionWithRequiredArgs() {
-        assertNonBlankResult(
-                """
-                with %s as conf
-                with ai.text.completion('Hello!', '%s', conf) as result
-                return result"""
-                        .formatted(confRequired(), provider()));
+        for (final var conf : confRequired()) {
+            assertNonBlankResult(
+                    """
+                    with %s as conf
+                    with ai.text.completion('Hello!', '%s', conf) as result
+                    return result"""
+                            .formatted(conf, provider()));
+        }
     }
 
     @Test
     void completionWithAllArgs() {
-        assertNonBlankResult(
-                """
-                with %s as conf
-                with ai.text.completion('Hello!', '%s', conf) as result
-                return result"""
-                        .formatted(confWithVendorOptions(), provider()));
+        for (final var conf : confWithVendorOptions()) {
+            assertNonBlankResult(
+                    """
+                    with %s as conf
+                    with ai.text.completion('Hello!', '%s', conf) as result
+                    return result"""
+                            .formatted(conf, provider()));
+        }
     }
 
     @Test
     void batchCompletionWithRequiredArgs() {
-        final var query =
-                """
-                call ai.text.completion(
-                  ['Testing', null, 'Hello!'],
-                  '%s',
-                  %s
-                )
-                """
-                        .formatted(provider(), confRequired());
-        assertThat(db.executeTransactionally(query, params(), consume()))
-                .as("Query:%n```%n%s%n```%n", query)
-                .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
+        for (final var conf : confRequired()) {
+            final var query =
+                    """
+                    call ai.text.completion(
+                      ['Testing', null, 'Hello!'],
+                      '%s',
+                      %s
+                    )
+                    """
+                            .formatted(provider(), conf);
+            assertThat(execute(query))
+                    .as("Query:%n```%n%s%n```%n", query)
+                    .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
+        }
     }
 
     @Test
     void batchCompletionWithAllArgs() {
-        final var query =
-                """
-                call ai.text.completion(
-                  ['Testing', null, 'Hello!'],
-                  '%s',
-                  %s
-                )
-                """
-                        .formatted(provider(), confWithVendorOptions());
-        assertThat(db.executeTransactionally(query, params(), consume()))
-                .as("Query:%n```%n%s%n```%n", query)
-                .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
+        for (final var conf : confWithVendorOptions()) {
+            final var query =
+                    """
+                    call ai.text.completion(
+                      ['Testing', null, 'Hello!'],
+                      '%s',
+                      %s
+                    )
+                    """
+                            .formatted(provider(), conf);
+            assertThat(execute(query))
+                    .as("Query:%n```%n%s%n```%n", query)
+                    .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
+        }
     }
 
     private void assertNonBlankResult(String query) {
-        final var result = db.executeTransactionally(query, params(), consume());
-        assertThat(result)
-                .as("Query:%n```%n%s%n```%n", query)
+        assertThat(execute(query))
                 .singleElement(resultMap())
                 .extracting("result")
                 .asString()
                 .isNotBlank();
+    }
+
+    private List<Map<String, Object>> execute(String query) {
+        try {
+            return db.executeTransactionally(query, params(), consume());
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to execute query:\n" + query, t);
+        }
     }
 
     private Consumer<Map<String, Object>> batchedNullRow(long index) {

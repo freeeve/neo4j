@@ -65,7 +65,7 @@ public class URLUtils {
     }
 
     private static String reencodedPathFrom(URI uri) {
-        final var path = uri.normalize().getPath();
+        final var path = uri.normalize().getRawPath();
         return (path != null && !path.isEmpty()) ? URLEncoder.encodePath(path) : "/";
     }
 
@@ -107,13 +107,13 @@ public class URLUtils {
         return URLEncoder.encode(URLDecoder.decode(param));
     }
 
-    static class URLEncoder {
+    public static class URLEncoder {
         private static final Pattern ENCODED_CHARACTERS = Pattern.compile(
                 Stream.of("+", "*", "%7E", "%2F").map(Pattern::quote).collect(Collectors.joining("|")));
 
         private URLEncoder() {}
 
-        static String encode(String value) {
+        public static String encode(String value) {
             return encode(value, false);
         }
 

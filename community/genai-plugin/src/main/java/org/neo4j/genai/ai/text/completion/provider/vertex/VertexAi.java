@@ -17,10 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.text.completion.provider;
+package org.neo4j.genai.ai.text.completion.provider.vertex;
 
-import static org.neo4j.genai.ai.text.completion.provider.VertexAi.DEFAULT_BASE_URL_TEMPLATE;
-import static org.neo4j.genai.ai.text.completion.provider.VertexAi.pathSafe;
 import static org.neo4j.genai.util.HttpService.jsonBody;
 import static org.neo4j.genai.util.Parameters.parse;
 

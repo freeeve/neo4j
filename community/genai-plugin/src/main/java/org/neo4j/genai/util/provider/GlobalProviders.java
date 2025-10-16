@@ -35,8 +35,11 @@ public interface GlobalProviders {
     <T extends NamedProvider> ImmutableList<T> providers(Class<T> type);
 
     @CalledFromGeneratedCode // Called through reflection from metrics
-    default <T extends NamedProvider> List<String> providerNames(Class<T> type) {
-        return providers(type).stream().map(NamedProvider::name).toList();
+    default <T extends NamedProvider> List<String> providerMetricsNames(Class<T> type) {
+        return providers(type).stream()
+                .map(NamedProvider::metricsName)
+                .distinct()
+                .toList();
     }
 
     static GlobalProviders from(final NamedProvider... providers) {

@@ -205,7 +205,8 @@ class URLUtilsTest {
                     Arguments.of("//", "/"),
                     Arguments.of("/path", "/path"),
                     Arguments.of("/longer/path", "/longer/path"),
-                    Arguments.of("/path/with spaces", "/path/with%20spaces"),
+                    // Note, encoded twice, that's the only way I got arns to work as path segments
+                    Arguments.of("/path/with spaces", "/path/with%2520spaces"),
                     Arguments.of("/path/with-dashes", "/path/with-dashes"),
                     Arguments.of("/path/with_underscores", "/path/with_underscores"),
                     Arguments.of("/path/should/./be/normalized", "/path/should/be/normalized"),

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.text.completion.provider;
+package org.neo4j.genai.ai.text.completion.provider.openai;
 
 import static org.neo4j.genai.util.Parameters.parse;
 
@@ -27,7 +27,6 @@ import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.util.HttpService;
-import org.neo4j.genai.util.Parameters;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.virtual.MapValue;
 

@@ -44,8 +44,9 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.support.ParameterDeclarations;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.genai.GenAiPluginExtension;
-import org.neo4j.genai.ai.text.completion.provider.OpenAi;
-import org.neo4j.genai.ai.text.completion.provider.VertexAi;
+import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockNova;
+import org.neo4j.genai.ai.text.completion.provider.openai.OpenAi;
+import org.neo4j.genai.ai.text.completion.provider.vertex.VertexAi;
 import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -76,7 +77,10 @@ public class TextCompletionTest implements GenAITestExtension {
                 .http2PlainDisabled(true));
         this.wireMock.start();
         final var baseUrl = this.wireMock.baseUrl();
-        builder.addExtension(new GenAiPluginExtension(new OpenAi(baseUrl), new VertexAi(p -> URI.create(baseUrl))));
+        builder.addExtension(new GenAiPluginExtension(
+                new OpenAi(baseUrl),
+                new VertexAi(p -> URI.create(baseUrl)),
+                new BedrockNova(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
     }
 
@@ -103,7 +107,16 @@ public class TextCompletionTest implements GenAITestExtension {
                     "optionalConfigType",
                     "{ publisher :: STRING NOT NULL, vendorOptions :: MAP NOT NULL }",
                     "defaultConfig",
-                    Map.of("publisher", "google", "vendorOptions", Map.of())));
+                    Map.of("publisher", "google", "vendorOptions", Map.of())),
+            Map.of(
+                    "name",
+                    "Bedrock-Nova",
+                    "requiredConfigType",
+                    "{ accessKeyId :: STRING NOT NULL, secretAccessKey :: STRING NOT NULL, region :: STRING NOT NULL, model :: STRING NOT NULL }",
+                    "optionalConfigType",
+                    "{ vendorOptions :: MAP NOT NULL }",
+                    "defaultConfig",
+                    Map.of("vendorOptions", Map.of())));
 
     @Test
     void listProviders() {
@@ -250,7 +263,11 @@ public class TextCompletionTest implements GenAITestExtension {
     }
 }
 
-record ProviderArgs(String provider, String conf) {}
+record ProviderArgs(String name, String conf) {
+    String provider() {
+        return name.split(":")[0];
+    }
+}
 
 interface ProviderArguments extends ArgumentsProvider {
     Stream<ProviderArgs> providers();
@@ -258,7 +275,7 @@ interface ProviderArguments extends ArgumentsProvider {
     @Override
     default Stream<? extends Arguments> provideArguments(ParameterDeclarations parameters, ExtensionContext context)
             throws Exception {
-        return providers().map(p -> Arguments.argumentSet(p.provider(), p));
+        return providers().map(p -> Arguments.argumentSet(p.name(), p));
     }
 }
 
@@ -269,7 +286,16 @@ class RequiredConfArguments implements ProviderArguments {
                 new ProviderArgs("openai", "{ token: 'dummy-openai-token', model: 'gpt-5' }"),
                 new ProviderArgs(
                         "vertexai",
-                        "{ token: 'dummy-vertex-token', model: 'gemini-3', region: 'smaland', project: 'astrid', publisher: 'google' }"));
+                        "{ token: 'dummy-vertex-token', model: 'gemini-3', region: 'smaland', project: 'astrid', publisher: 'google' }"),
+                new ProviderArgs(
+                        "bedrock-nova:model by name",
+                        "{ model: 'eu.amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
+                new ProviderArgs(
+                        "bedrock-nova:custom nova type model",
+                        "{ model: 'arn:aws:bedrock:xxx:001:custom-model/custom.nova', modelType: 'amazon.nova', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
+                new ProviderArgs(
+                        "bedrock-nova:foundation model by arn",
+                        "{ model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"));
     }
 }
 
@@ -301,6 +327,49 @@ class AllOptionsArguments implements ProviderArguments {
                             systemInstruction: 'You are Kommendoran',
                             labels: { labelA: 'x' }
                           }
-                        }"""));
+                        }"""),
+                new ProviderArgs(
+                        "bedrock-nova:model by name",
+                        """
+                        {
+                          model: 'eu.amazon.nova-micro-v1:0',
+                          region: 'eu-north-1',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            system: [{ text: 'You are Kommendoran' }],
+                            inferenceConfig: { maxTokens: 1024 }
+                          }
+                        }
+                        """),
+                new ProviderArgs(
+                        "bedrock-nova:custom nova type model",
+                        """
+                        {
+                          model: 'arn:aws:bedrock:xxx:001:custom-model/custom.nova',
+                          modelType: 'amazon.nova',
+                          region: 'eu-north-1',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            system: [{ text: 'You are Kommendoran' }],
+                            inferenceConfig: { maxTokens: 1024 }
+                          }
+                        }
+                        """),
+                new ProviderArgs(
+                        "bedrock-nova:foundation model by arn",
+                        """
+                        {
+                          model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-micro-v1:0',
+                          region: 'eu-north-1',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            system: [{ text: 'You are Kommendoran' }],
+                            inferenceConfig: { maxTokens: 1024 }
+                          }
+                        }
+                        """));
     }
 }
