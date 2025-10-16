@@ -29,7 +29,6 @@ import org.neo4j.cypher.cucumber.synthesise.glue.scenario.HavingExecuted
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.QueryExecution
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RecordedScenario
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RecordedStep
-import org.neo4j.cypher.cucumber.synthesise.glue.scenario.SetParams
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.SetupExecution
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.SideEffects
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.TestExecution
@@ -48,8 +47,8 @@ class CombineUncommitted(val args: CucumberSalad.Ingredients) extends ScenarioGe
 
   override def filter: Filter = super.filter
     .steps[RecordedStep](_.forall {
-      case _: SideEffects | _: QueryExecution | _: SetParams | _: AssertResults | _: CreateCsvFile => true
-      case _                                                                                       => false
+      case _: SideEffects | _: QueryExecution | _: AssertResults | _: CreateCsvFile => true
+      case _                                                                        => false
     })
     .steps[RecordedStep](_.dropWhile(s => !s.isInstanceOf[TestExecution]).forall(s => !s.isInstanceOf[SetupExecution]))
     .testQueries(_.exists(containsAst[PatternPart]))
