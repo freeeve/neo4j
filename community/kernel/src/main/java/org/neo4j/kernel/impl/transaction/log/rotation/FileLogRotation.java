@@ -174,17 +174,14 @@ public class FileLogRotation implements LogRotation {
     }
 
     @Override
-    public void rotateLogFile(
+    public void locklessRotateLogFile(
             LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
             throws IOException {
-        synchronized (rotatableFile) {
-            doRotate(
-                    logRotateEvents,
-                    lastAppendIndex,
-                    currentFileVersionSupplier,
-                    () -> rotatableFile.rotate(
-                            kernelVersionProvider.kernelVersion(), lastAppendIndex, previousChecksum));
-        }
+        doRotate(
+                logRotateEvents,
+                lastAppendIndex,
+                currentFileVersionSupplier,
+                () -> rotatableFile.rotate(kernelVersionProvider.kernelVersion(), lastAppendIndex, previousChecksum));
     }
 
     @Override

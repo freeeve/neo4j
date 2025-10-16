@@ -437,7 +437,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         }
 
         @Override
-        public void rotateLogFile(
+        public void locklessRotateLogFile(
                 LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
                 throws IOException {
             try (var event = logRotateEvents.beginLogRotate()) {

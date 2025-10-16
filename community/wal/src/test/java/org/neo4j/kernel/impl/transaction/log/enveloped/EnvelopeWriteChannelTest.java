@@ -2462,7 +2462,7 @@ class EnvelopeWriteChannelTest {
             }
 
             @Override
-            public void rotateLogFile(
+            public void locklessRotateLogFile(
                     LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
                     throws IOException {
                 // fine to ignore parameters as header is just test bytes

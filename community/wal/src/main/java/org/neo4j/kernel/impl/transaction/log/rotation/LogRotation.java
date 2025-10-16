@@ -61,7 +61,7 @@ public interface LogRotation {
         public void rotateLogFile(LogRotateEvents logRotateEvents) {}
 
         @Override
-        public void rotateLogFile(
+        public void locklessRotateLogFile(
                 LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm) {}
 
         @Override
@@ -133,7 +133,8 @@ public interface LogRotation {
      * @param lastTerm      - Term of last entry in previous log file to include in file header
      * @throws IOException - Thrown on file system errors during rotation
      */
-    void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
+    void locklessRotateLogFile(
+            LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum, long lastTerm)
             throws IOException;
     /**
      * Force a log rotation without taking any additional locks.
