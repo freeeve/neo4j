@@ -22,6 +22,7 @@ package org.neo4j.storageengine.api;
 import static org.neo4j.token.api.TokenConstants.NO_TOKEN;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.function.IntPredicate;
 
 /**
@@ -202,6 +203,18 @@ public abstract class PropertySelection {
         public String toString() {
             return super.toString() + "[" + key + "]";
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof SingleKey singleKey)) return false;
+            return key == singleKey.key;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(key);
+        }
     }
 
     private static class MultipleKeys extends PropertySelection {
@@ -285,6 +298,18 @@ public abstract class PropertySelection {
         public String toString() {
             return super.toString() + "[" + Arrays.toString(keys) + "]";
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MultipleKeys that)) return false;
+            return Objects.deepEquals(keys, that.keys);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(keys);
+        }
     }
 
     private static class AllExcept extends PropertySelection {
@@ -328,6 +353,18 @@ public abstract class PropertySelection {
         @Override
         public PropertySelection excluding(IntPredicate filter) {
             return new AllExcept(isKeysOnly(), excluded.or(filter));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof AllExcept allExcept)) return false;
+            return Objects.equals(excluded, allExcept.excluded);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(excluded);
         }
     }
 
