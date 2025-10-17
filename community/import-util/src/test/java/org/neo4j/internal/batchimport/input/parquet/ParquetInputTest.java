@@ -3738,6 +3738,117 @@ class ParquetInputTest {
                 .hasMessageContaining("Could not read parquet file %s".formatted(nodeFile));
     }
 
+    @Test
+    void shouldProvideRelationshipReusingSameDataFileAsNode() throws Exception {
+        Path nodeHeaderFile1 =
+                createHeaderFile(List.of("id:ID(n@3<p@3_3>){id-type:long}", "name", ":IGNORE"), List.of());
+        var personId = 42L;
+        var bandId = 76L;
+        Path commonFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("band_id")),
+                List.<Object[]>of(new Object[] {personId, "Jane Doe", bandId}));
+        Path nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name")),
+                List.<Object[]>of(new Object[] {bandId, "the band wagon"}));
+        Path nodeHeaderFile2 = createHeaderFile(List.of("id:ID(n@2<p@2_2>){id-type:long}", "name"), List.of());
+        Path relHeaderFile1 = createHeaderFile(
+                List.of("id:START_ID(n@3<p@3_3>)", ":IGNORE", "band_id:END_ID(n@2<p@2_2>)"), List.of());
+
+        try (ParquetInput input = createParquetInput(
+                        Map.of(
+                                Set.of("Person"), List.<Path[]>of(new Path[] {nodeHeaderFile1, commonFile}),
+                                Set.of("Band"), List.<Path[]>of(new Path[] {nodeHeaderFile2, nodeFile2})),
+                        Map.of("MEMBER_OF", List.<Path[]>of(new Path[] {relHeaderFile1, commonFile})),
+                        STRING,
+                        groups,
+                        new ParquetMonitor(System.out));
+                var rels = input.relationships(EMPTY).iterator()) {
+
+            assertRelationship(
+                    rels,
+                    groups.get("n@3<p@3_3>"),
+                    personId,
+                    groups.get("n@2<p@2_2>"),
+                    bandId,
+                    "MEMBER_OF",
+                    properties());
+            assertFalse(readNext(rels));
+        }
+    }
+
+    @Test
+    void shouldProvideTwoRelationshipsWithSameTypeReusingSameDataFileAsNode() throws Exception {
+        Path nodeHeaderFile1 =
+                createHeaderFile(List.of("id:ID(n@3<p@3_3>){id-type:long}", "name", ":IGNORE", ":IGNORE"), List.of());
+        var personId = 42L;
+        var bandId = 76L;
+        long groupId = 123L;
+        Path commonFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("band_id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("group_id")),
+                List.<Object[]>of(new Object[] {personId, "Jane Doe", bandId, groupId}));
+        Path nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name")),
+                List.<Object[]>of(new Object[] {bandId, "the band wagon"}));
+        Path nodeHeaderFile2 = createHeaderFile(List.of("id:ID(n@2<p@2_2>){id-type:long}", "name"), List.of());
+        Path nodeHeaderFile3 = createHeaderFile(
+                List.of(":IGNORE", ":IGNORE", ":IGNORE", "id:ID(n@1<p@1_1>){id-type:long}"), List.of());
+        Path relHeaderFile1 = createHeaderFile(
+                List.of("id:START_ID(n@3<p@3_3>)", ":IGNORE", "band_id:END_ID(n@2<p@2_2>)", ":IGNORE"), List.of());
+        Path relHeaderFile2 = createHeaderFile(
+                List.of("id:START_ID(n@3<p@3_3>)", ":IGNORE", ":IGNORE", "group_id:END_ID(n@1<p@1_1>)"), List.of());
+
+        try (ParquetInput input = createParquetInput(
+                        Map.of(
+                                Set.of("Person"), List.<Path[]>of(new Path[] {nodeHeaderFile1, commonFile}),
+                                Set.of("Band"), List.<Path[]>of(new Path[] {nodeHeaderFile2, nodeFile2}),
+                                Set.of("Group"), List.<Path[]>of(new Path[] {nodeHeaderFile3, commonFile})),
+                        Map.of(
+                                "MEMBER_OF",
+                                List.<Path[]>of(new Path[] {relHeaderFile1, commonFile, relHeaderFile2, commonFile})),
+                        STRING,
+                        groups,
+                        new ParquetMonitor(System.out));
+                var rels = input.relationships(EMPTY).iterator()) {
+
+            assertRelationship(
+                    rels,
+                    groups.get("n@3<p@3_3>"),
+                    personId,
+                    groups.get("n@2<p@2_2>"),
+                    bandId,
+                    "MEMBER_OF",
+                    properties());
+            assertRelationship(
+                    rels,
+                    groups.get("n@3<p@3_3>"),
+                    personId,
+                    groups.get("n@1<p@1_1>"),
+                    groupId,
+                    "MEMBER_OF",
+                    properties());
+            assertFalse(readNext(rels));
+        }
+    }
+
     private static ParquetInput createParquetInput(
             Map<Set<String>, List<Path[]>> nodeFiles,
             Map<String, List<Path[]>> relationshipFiles,
@@ -3799,6 +3910,12 @@ class ParquetInputTest {
     private Path createHeaderFile(List<String> columnNames, List<String> originalColumnNames, String delimiter)
             throws Exception {
         Path path = directory.file("header" + headerCounter.getAndIncrement() + ".csv");
+        createHeaderFile(path, columnNames, originalColumnNames, delimiter);
+        return path;
+    }
+
+    private static void createHeaderFile(
+            Path path, List<String> columnNames, List<String> originalColumnNames, String delimiter) throws Exception {
         try (var writer = new BufferedWriter(new FileWriter(path.toFile()))) {
             writer.write(String.join(delimiter, columnNames));
             writer.newLine();
@@ -3807,7 +3924,6 @@ class ParquetInputTest {
                 writer.newLine();
             }
         }
-        return path;
     }
 
     private TokenHolder tokenHolder(Map<String, Integer> tokens) {
@@ -3857,7 +3973,7 @@ class ParquetInputTest {
         }
     }
 
-    private void assertRelationship(
+    void assertRelationship(
             InputIterator data,
             Group startNodeGroup,
             Object startNode,

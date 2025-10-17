@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,7 +87,7 @@ public class ParquetInput implements Input {
     private final ParquetMonitor monitor;
     private final Map<Set<String>, List<Path[]>> nodeFiles;
     private final Map<String, List<Path[]>> relationshipFiles;
-    private final Map<Path, List<ParquetColumn>> verifiedColumns;
+    private final List<ParquetColumnMetadata> verifiedColumns;
     private final String arrayDelimiter;
     private final String vectorDelimiter;
     private final String csvDelimiter;
@@ -147,33 +148,47 @@ public class ParquetInput implements Input {
     }
 
     private static List<ParquetData> nodeData(
-            Map<Path, List<ParquetColumn>> verifiedColumns, Map<Set<String>, List<Path[]>> nodeFiles) {
-        return parquetData(verifiedColumns, nodeFiles, Function.identity());
+            List<ParquetColumnMetadata> verifiedColumns, Map<Set<String>, List<Path[]>> nodeFiles) {
+        return parquetData(verifiedColumns, EntityType.NODE, nodeFiles, ParquetInput::extractExternalLabels);
     }
 
     private static List<ParquetData> relationshipData(
-            Map<Path, List<ParquetColumn>> verifiedColumns, Map<String, List<Path[]>> relationshipFiles) {
+            List<ParquetColumnMetadata> verifiedColumns, Map<String, List<Path[]>> relationshipFiles) {
         return parquetData(
-                verifiedColumns,
-                relationshipFiles,
-                typeGroupOrNull -> typeGroupOrNull == null ? Set.of() : Set.of(typeGroupOrNull));
+                verifiedColumns, EntityType.RELATIONSHIP, relationshipFiles, ParquetInput::extractExternalRelType);
     }
 
     private static <KEY> List<ParquetData> parquetData(
-            Map<Path, List<ParquetColumn>> verifiedColumns,
+            List<ParquetColumnMetadata> verifiedColumns,
+            EntityType entityType,
             Map<KEY, List<Path[]>> files,
             Function<KEY, Set<String>> keyExtractor) {
-        final var columnData = Lists.mutable.<ParquetData>empty();
-        files.forEach((key, allPaths) -> {
+
+        var indexedMetadata = verifiedColumns.stream()
+                .filter(verifiedColumn -> verifiedColumn.entityType == entityType)
+                // **not** using toMap (which rejects key duplicates)
+                // labels (or reltypes) can reuse the same data files with different mappings
+                // this also means we need to deduplicate parquet data in such cases
+                .collect(Collectors.groupingBy(ParquetColumnMetadata::key));
+
+        var deduplicatedColumnData = new LinkedHashSet<ParquetData>();
+        files.forEach((rawLabelsOrType, allPaths) -> {
             for (var paths : allPaths) {
                 for (var path : paths) {
                     if (!isHeaderFile(path)) {
-                        columnData.add(new ParquetData(
-                                keyExtractor.apply(key), path, verifiedColumns.get(path), defaultTimezoneSupplier));
+                        var labelsOrType = keyExtractor.apply(rawLabelsOrType);
+                        var metadataKey = new ParquetColumnMetadataKey(path, labelsOrType);
+                        var allMetadata = indexedMetadata.get(metadataKey);
+                        for (ParquetColumnMetadata metadata : allMetadata) {
+                            deduplicatedColumnData.add(
+                                    new ParquetData(labelsOrType, path, metadata.columns(), defaultTimezoneSupplier));
+                        }
                     }
                 }
             }
         });
+        final var columnData = Lists.mutable.<ParquetData>empty();
+        columnData.addAll(deduplicatedColumnData);
         return columnData;
     }
 
@@ -261,23 +276,23 @@ public class ParquetInput implements Input {
         }
     }
 
-    private Map<Path, List<ParquetColumn>> verifyColumns(
+    private List<ParquetColumnMetadata> verifyColumns(
             Map<Set<String>, List<Path[]>> labelsAndNodeFiles, Map<String, List<Path[]>> typeAndRelationshipFiles) {
 
         var headerContext = new HeaderContext();
 
-        Map<Path, List<ParquetColumn>> columnInfo = new HashMap<>();
+        List<ParquetColumnMetadata> columnInfo = new ArrayList<>();
         try {
             for (Map.Entry<Set<String>, List<Path[]>> labelsAndNodeFilesEntry : labelsAndNodeFiles.entrySet()) {
-                var hasLabelColumn = !labelsAndNodeFilesEntry.getKey().isEmpty()
-                        && labelsAndNodeFilesEntry.getKey().stream().anyMatch(label -> !label.isBlank());
+                var labels = labelsAndNodeFilesEntry.getKey();
+                var hasLabelColumn = !labels.isEmpty() && labels.stream().anyMatch(label -> !label.isBlank());
                 var nodeFiles = labelsAndNodeFilesEntry.getValue().stream()
                         .flatMap(Arrays::stream)
                         .collect(Collectors.toList());
 
                 for (Path nodeFile : nodeFiles) {
                     if (processPotentialHeaderFile(nodeFile, nodeFiles, headerContext)) {
-                        headerContext.setHeaderFileExistsFor(labelsAndNodeFilesEntry.getKey());
+                        headerContext.setHeaderFileExistsFor(labels);
                         continue;
                     }
                     ParquetMetadata metadata;
@@ -291,7 +306,7 @@ public class ParquetInput implements Input {
                     var propertyNames = new HashSet<String>();
                     String previousGroupName = null;
                     var columns = metadata.getFileMetaData().getSchema().getColumns();
-                    if (headerContext.hasHeader(labelsAndNodeFilesEntry.getKey())) {
+                    if (headerContext.hasHeader(labels)) {
                         headerContext.ensureAllColumnsExist(
                                 nodeFile,
                                 columns.stream().map(cd -> cd.getPath()[0]).collect(Collectors.toSet()));
@@ -310,8 +325,7 @@ public class ParquetInput implements Input {
                         }
                         try {
                             // ignore missing column in header definition
-                            if (headerContext.columnShouldBeSkipped(
-                                    labelsAndNodeFilesEntry.getKey(), nodeFiles, i, columnName)) {
+                            if (headerContext.columnShouldBeSkipped(labels, nodeFiles, i, columnName)) {
                                 continue;
                             }
                             var parquetColumn = ParquetColumn.from(
@@ -396,11 +410,13 @@ public class ParquetInput implements Input {
                     if (!hasLabelColumn) {
                         monitor.noNodeLabelsSpecified(fileName);
                     }
-                    columnInfo.put(nodeFile, currentColumnInfo);
+                    var metadataKey = new ParquetColumnMetadataKey(nodeFile, extractExternalLabels(labels));
+                    columnInfo.add(new ParquetColumnMetadata(metadataKey, EntityType.NODE, currentColumnInfo));
                 }
             }
             for (Map.Entry<String, List<Path[]>> typeAndRelationshipFilesEntry : typeAndRelationshipFiles.entrySet()) {
-
+                var relType = typeAndRelationshipFilesEntry.getKey();
+                var hasTypeColumn = relType != null && !relType.isBlank();
                 // parse all relationship headers and verify all ID spaces
                 var relationshipFileList = typeAndRelationshipFilesEntry.getValue().stream()
                         .flatMap(Arrays::stream)
@@ -409,7 +425,7 @@ public class ParquetInput implements Input {
                 Set<String> structColumns = new HashSet<>();
                 for (Path relationshipFile : relationshipFileList) {
                     if (processPotentialHeaderFile(relationshipFile, relationshipFileList, headerContext)) {
-                        headerContext.setHeaderFileExistsFor(typeAndRelationshipFilesEntry.getKey());
+                        headerContext.setHeaderFileExistsFor(relType);
                         continue;
                     }
                     ParquetMetadata metadata;
@@ -422,16 +438,13 @@ public class ParquetInput implements Input {
                     var currentColumnInfo = new ArrayList<ParquetColumn>();
                     var propertyNames = new HashSet<String>();
                     var columns = metadata.getFileMetaData().getSchema().getColumns();
-                    var hasTypeColumn = typeAndRelationshipFilesEntry.getKey() != null
-                            && !typeAndRelationshipFilesEntry.getKey().isBlank();
                     String fileName = relationshipFile.getFileName().toString();
                     for (int i = 0; i < columns.size(); i++) {
                         ColumnDescriptor columnDescriptor = columns.get(i);
                         String[] namePath = columnDescriptor.getPath();
                         var columnName = namePath[0];
                         try {
-                            if (headerContext.columnShouldBeSkipped(
-                                    typeAndRelationshipFilesEntry.getKey(), relationshipFileList, i, columnName)) {
+                            if (headerContext.columnShouldBeSkipped(relType, relationshipFileList, i, columnName)) {
                                 continue;
                             }
                             var parquetColumn = ParquetColumn.from(
@@ -488,7 +501,8 @@ public class ParquetInput implements Input {
                                     + ParquetColumn.getReservedColumns(EntityType.RELATIONSHIP));
                         }
                     }
-                    columnInfo.put(relationshipFile, currentColumnInfo);
+                    var metadataKey = new ParquetColumnMetadataKey(relationshipFile, extractExternalRelType(relType));
+                    columnInfo.add(new ParquetColumnMetadata(metadataKey, EntityType.RELATIONSHIP, currentColumnInfo));
 
                     if (!hasTypeColumn) {
                         monitor.noRelationshipTypeSpecified(fileName);
@@ -502,17 +516,24 @@ public class ParquetInput implements Input {
         return columnInfo;
     }
 
-    private static boolean containsVectorData(Map<Path, List<ParquetColumn>> verifiedColumns) {
-        for (List<ParquetColumn> columns : verifiedColumns.values()) {
-            for (ParquetColumn column : columns) {
-                if (column.logicalColumnType() == ParquetLogicalColumnType.PROPERTY
-                        && column.columnType() == ParquetColumnType.VECTOR) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    private static Set<String> extractExternalLabels(Set<String> labels) {
+        return labels;
     }
+
+    private static Set<String> extractExternalRelType(String typeGroupOrNull) {
+        return typeGroupOrNull == null ? Set.of() : Set.of(typeGroupOrNull);
+    }
+
+    private static boolean containsVectorData(List<ParquetColumnMetadata> verifiedColumns) {
+        return verifiedColumns.stream()
+                .flatMap(metadata -> metadata.columns().stream())
+                .anyMatch(column -> column.logicalColumnType() == ParquetLogicalColumnType.PROPERTY
+                        && column.columnType() == ParquetColumnType.VECTOR);
+    }
+
+    record ParquetColumnMetadata(ParquetColumnMetadataKey key, EntityType entityType, List<ParquetColumn> columns) {}
+
+    record ParquetColumnMetadataKey(Path path, Collection<String> labelsOrType) {}
 
     private boolean processPotentialHeaderFile(Path path, List<Path> paths, ParquetInput.HeaderContext headerContext)
             throws IOException {
@@ -564,8 +585,8 @@ public class ParquetInput implements Input {
 
     @Override
     public Map<String, SchemaDescriptor> referencedNodeSchema(TokenHolders tokenHolders) {
-        List<ParquetColumn> idColumns = verifiedColumns.values().stream()
-                .flatMap(Collection::stream)
+        List<ParquetColumn> idColumns = verifiedColumns.stream()
+                .flatMap(metadata -> metadata.columns().stream())
                 .filter(ParquetColumn::isIdColumn)
                 .toList();
         HashMap<String, SchemaDescriptor> result = new HashMap<>();
