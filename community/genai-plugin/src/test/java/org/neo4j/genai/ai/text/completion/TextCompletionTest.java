@@ -94,27 +94,53 @@ public class TextCompletionTest implements GenAITestExtension {
                     "name",
                     "OpenAI",
                     "requiredConfigType",
-                    "{ token :: STRING NOT NULL, model :: STRING NOT NULL }",
+                    """
+                    {
+                      token :: STRING NOT NULL,
+                      model :: STRING NOT NULL
+                    }""",
                     "optionalConfigType",
-                    "{ vendorOptions :: MAP NOT NULL }",
+                    """
+                    {
+                      vendorOptions :: MAP NOT NULL
+                    }""",
                     "defaultConfig",
                     Map.of("vendorOptions", Map.of())),
             Map.of(
                     "name",
                     "VertexAI",
                     "requiredConfigType",
-                    "{ token :: STRING NOT NULL, model :: STRING NOT NULL, project :: STRING NOT NULL, region :: STRING NOT NULL }",
+                    """
+                    {
+                      token :: STRING NOT NULL,
+                      model :: STRING NOT NULL,
+                      project :: STRING NOT NULL,
+                      region :: STRING NOT NULL
+                    }""",
                     "optionalConfigType",
-                    "{ publisher :: STRING NOT NULL, vendorOptions :: MAP NOT NULL }",
+                    """
+                    {
+                      publisher :: STRING NOT NULL,
+                      vendorOptions :: MAP NOT NULL
+                    }""",
                     "defaultConfig",
                     Map.of("publisher", "google", "vendorOptions", Map.of())),
             Map.of(
                     "name",
                     "Bedrock-Nova",
                     "requiredConfigType",
-                    "{ accessKeyId :: STRING NOT NULL, secretAccessKey :: STRING NOT NULL, region :: STRING NOT NULL, model :: STRING NOT NULL }",
+                    """
+                    {
+                      accessKeyId :: STRING NOT NULL,
+                      secretAccessKey :: STRING NOT NULL,
+                      region :: STRING NOT NULL,
+                      model :: STRING NOT NULL
+                    }""",
                     "optionalConfigType",
-                    "{ vendorOptions :: MAP NOT NULL }",
+                    """
+                    {
+                      vendorOptions :: MAP NOT NULL
+                    }""",
                     "defaultConfig",
                     Map.of("vendorOptions", Map.of())));
 

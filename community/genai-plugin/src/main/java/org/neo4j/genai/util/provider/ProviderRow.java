@@ -57,7 +57,7 @@ public record ProviderRow(
     private static String cypherMapType(Stream<Parameters.Parameter> parameters) {
         return parameters
                 .map(p -> "%s :: %s".formatted(p.name(), p.type().cypherName()))
-                .collect(Collectors.joining(", ", "{ ", " }"));
+                .collect(Collectors.joining(",\n  ", "{\n  ", "\n}"));
     }
 
     private static Map<String, Object> defaultConfig(List<Parameters.Parameter> parameters) {

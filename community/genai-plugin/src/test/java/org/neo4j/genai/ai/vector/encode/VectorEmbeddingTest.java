@@ -80,9 +80,16 @@ public class VectorEmbeddingTest implements GenAITestExtension {
             "name",
             "OpenAI",
             "requiredConfigType",
-            "{ token :: STRING NOT NULL, model :: STRING NOT NULL }",
+            """
+            {
+              token :: STRING NOT NULL,
+              model :: STRING NOT NULL
+            }""",
             "optionalConfigType",
-            "{ dimensions :: INTEGER }",
+            """
+            {
+              dimensions :: INTEGER
+            }""",
             "defaultConfig",
             Map.of()));
 
