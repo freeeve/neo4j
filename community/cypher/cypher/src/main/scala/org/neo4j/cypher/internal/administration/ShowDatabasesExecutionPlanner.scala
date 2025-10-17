@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.administration.ShowDatabaseExecutionPlanner.accessibleDbsKey
+import org.neo4j.cypher.internal.administration.topology.ShowDatabaseService
 import org.neo4j.cypher.internal.ast.DatabaseScope
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ShowDatabase.ACCESS_COL
@@ -100,6 +101,12 @@ case class ShowDatabasesExecutionPlanner(
   private val defaultDatabaseResolver = resolver.resolveDependency(classOf[DefaultDatabaseResolver])
   private val infoService = resolver.resolveDependency(classOf[TopologyInfoService])
   private val referenceResolver = resolver.resolveDependency(classOf[DatabaseReferenceRepository])
+
+  private val showDatabaseService = new ShowDatabaseService(
+    referenceResolver,
+    defaultDatabaseResolver,
+    infoService
+  )
 
   def planShowDatabases(
     scope: DatabaseScope,
@@ -180,11 +187,9 @@ case class ShowDatabasesExecutionPlanner(
            |WITH d, dn, props
            |OPTIONAL MATCH (d)<-[:$TARGETS]-(a:$DATABASE_NAME)
            |WITH a, d, dn, props ORDER BY a.$DISPLAY_NAME_PROPERTY
-           |OPTIONAL MATCH (constituent:$DATABASE_NAME {$NAMESPACE_PROPERTY: dn.$NAME_PROPERTY})
-           |WHERE d:$COMPOSITE_DATABASE AND constituent <> dn
            |WITH dn.$DISPLAY_NAME_PROPERTY as name,
            |collect(a) as aliases,
-           |collect(constituent.$DISPLAY_NAME_PROPERTY) as constituents,
+           |props.$CONSTITUENTS_COL as $CONSTITUENTS_COL,
            |props.$ACCESS_COL as $ACCESS_COL,
            |props.$ADDRESS_COL as $ADDRESS_COL,
            |CASE WHEN d:$PROPERTY_SHARD THEN '$PROPERTY_SHARD_REPLICA_ROLE' ELSE props.$ROLE_COL END as $ROLE_COL,
@@ -224,9 +229,8 @@ case class ShowDatabasesExecutionPlanner(
       query,
       VirtualValues.EMPTY_MAP,
       parameterTransformer = new DatabaseListParameterTransformerFunction(
-        referenceResolver,
+        showDatabaseService,
         defaultDatabaseResolver,
-        infoService,
         yields,
         verbose,
         scope,

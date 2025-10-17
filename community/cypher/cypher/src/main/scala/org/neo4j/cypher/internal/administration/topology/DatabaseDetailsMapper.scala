@@ -17,10 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.administration
+package org.neo4j.cypher.internal.administration.topology
 
 import org.neo4j.cypher.internal.ast.ShowDatabase.ACCESS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.ADDRESS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.CONSTITUENTS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_PRIMARIES_COUNT_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_SECONDARIES_COUNT_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_STATUS_COL
@@ -38,9 +39,9 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.STATUS_MSG_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.STORE_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.TYPE_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.WRITER_COL
-import org.neo4j.dbms.database.DatabaseDetails
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
+import org.neo4j.values.virtual.ListValueBuilder
 import org.neo4j.values.virtual.VirtualValues
 
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -49,10 +50,15 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 object DatabaseDetailsMapper {
 
   def toMapValue(
-    databaseDetails: DatabaseDetails,
+    showDatabaseResult: ShowDatabaseResult,
     defaultDatabase: String,
     homeDatabase: String
   ): AnyValue = {
+    val databaseDetails = showDatabaseResult.details
+    val lvb = ListValueBuilder.newListBuilder()
+    showDatabaseResult.constituents.foreach(const => lvb.add(Values.stringValue(const)))
+    val constituentValue = lvb.build()
+
     VirtualValues.map(
       Array(
         NAME_COL,
@@ -73,7 +79,8 @@ object DatabaseDetailsMapper {
         LAST_COMMITTED_TX_COL,
         REPLICATION_LAG_COL,
         SHARD_TX_LAG_COL,
-        OPTIONS_COL
+        OPTIONS_COL,
+        CONSTITUENTS_COL
       ),
       Array(
         Values.stringValue(databaseDetails.namedDatabaseId().name()),
@@ -99,7 +106,8 @@ object DatabaseDetailsMapper {
           val valueOptions =
             databaseDetails.options().asScala.view.mapValues(v => Values.stringValue(v)).toMap[String, AnyValue].asJava
           VirtualValues.fromMap(valueOptions, valueOptions.size, 0)
-        }
+        },
+        constituentValue
       )
     )
   }
