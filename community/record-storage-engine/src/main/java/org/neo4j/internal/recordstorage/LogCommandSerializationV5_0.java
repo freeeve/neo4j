@@ -58,6 +58,7 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueWriter;
 
 class LogCommandSerializationV5_0 extends LogCommandSerializationV4_3_D3 {
+    public static final int MAX_PREALLOCATION_SIZE = 2048;
     static final LogCommandSerializationV5_0 INSTANCE = new LogCommandSerializationV5_0(KernelVersion.V5_0);
     static final LogCommandSerializationV5_0 V5_7_INSTANCE = new LogCommandSerializationV5_0(KernelVersion.V5_7);
 
@@ -962,7 +963,8 @@ class LogCommandSerializationV5_0 extends LogCommandSerializationV4_3_D3 {
         int numberOfRecords = channel.getInt();
         assert numberOfRecords >= 0;
         if (numberOfRecords > 0) {
-            var records = new ArrayList<DynamicRecord>(numberOfRecords);
+            int preallocationSize = Math.min(numberOfRecords, MAX_PREALLOCATION_SIZE);
+            var records = new ArrayList<DynamicRecord>(preallocationSize);
             while (numberOfRecords > 0) {
                 records.add(readDynamicRecord(channel));
                 numberOfRecords--;

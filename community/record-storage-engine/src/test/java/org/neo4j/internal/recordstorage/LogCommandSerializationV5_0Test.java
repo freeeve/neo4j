@@ -27,6 +27,7 @@ import java.io.IOException;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.recordstorage.Command.RecordEnrichmentCommand;
+import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
@@ -103,6 +104,19 @@ public class LogCommandSerializationV5_0Test extends LogCommandSerializationV5Ba
             assertThatThrownBy(() -> writer.writeEnrichmentCommand(channel, command))
                     .isInstanceOf(IOException.class)
                     .hasMessageContaining("Unsupported in this version");
+        }
+    }
+
+    @Test
+    void shouldHandleReadingAnIncorrectNumberOfRecords() {
+        try (var channel = new InMemoryClosableChannel()) {
+            // given a wrong large number of records
+            channel.put((byte) 0); // flags
+            channel.putInt(Integer.MAX_VALUE); // numberOfRecords
+
+            // when/then throw ReadPastEndException and don't OOM
+            assertThatThrownBy(() -> LogCommandSerializationV5_0.readNodeRecord(1, channel))
+                    .isInstanceOf(ReadPastEndException.class);
         }
     }
 
