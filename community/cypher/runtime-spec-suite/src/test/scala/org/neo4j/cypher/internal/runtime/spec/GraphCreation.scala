@@ -833,6 +833,16 @@ trait GraphCreation[CONTEXT <: RuntimeContext] {
     runtimeTestSupport.tx.schema().awaitIndexesOnline(10, TimeUnit.MINUTES)
   }
 
+  def relationshipIndex(relType: String)(f: IndexCreator => IndexCreator): Unit = {
+    runtimeTestSupport.restartTx()
+    try {
+      f(runtimeTestSupport.tx.schema().indexFor(RelationshipType.withName(relType))).create()
+    } finally {
+      runtimeTestSupport.restartTx()
+    }
+    runtimeTestSupport.tx.schema().awaitIndexesOnline(10, TimeUnit.MINUTES)
+  }
+
   /**
    * Creates a  b-tree index and restarts the transaction. This should be called before any data creation operation.
    */

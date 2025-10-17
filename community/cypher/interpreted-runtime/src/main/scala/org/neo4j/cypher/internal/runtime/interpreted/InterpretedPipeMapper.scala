@@ -552,7 +552,7 @@ case class InterpretedPipeMapper(
           indexOrder
         )(id = id)
 
-      case DynamicDirectedRelationshipTypeLookup(ident, fromNode, typeExpr, toNode, _, indexOrder, _) =>
+      case DynamicDirectedRelationshipTypeLookup(ident, fromNode, typeExpr, toNode, _, _, propertyPredicates) =>
         indexRegistrator.registerTypeScan()
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
@@ -562,7 +562,7 @@ case class InterpretedPipeMapper(
               expressionConverters.toCommandExpression(id, expr),
               toNode.map(_.name),
               operator,
-              indexOrder
+              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v))
             )(id = id)
         }
 
@@ -576,7 +576,7 @@ case class InterpretedPipeMapper(
           indexOrder
         )(id = id)
 
-      case DynamicUndirectedRelationshipTypeLookup(ident, fromNode, typeExpr, toNode, _, indexOrder, _) =>
+      case DynamicUndirectedRelationshipTypeLookup(ident, fromNode, typeExpr, toNode, _, _, propertyPredicates) =>
         indexRegistrator.registerTypeScan()
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
@@ -586,7 +586,7 @@ case class InterpretedPipeMapper(
               expressionConverters.toCommandExpression(id, expr),
               toNode.map(_.name),
               operator,
-              indexOrder
+              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v))
             )(id = id)
         }
 

@@ -28,8 +28,8 @@ import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.QueryContext
-import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.PrimitiveCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.UnionNodeByLabelsScanPipe.unionIterator
+import org.neo4j.cypher.internal.runtime.iterators.PrimitiveCursorIterator
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.internal.kernel.api.TokenReadSession
 import org.neo4j.internal.kernel.api.helpers.UnionNodeLabelIndexCursor.ascendingUnionNodeLabelIndexCursor

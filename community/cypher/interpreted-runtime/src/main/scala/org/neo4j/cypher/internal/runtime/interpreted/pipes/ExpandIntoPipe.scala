@@ -28,10 +28,10 @@ import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.ResourceManager
-import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.RelationshipCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.DirectionConverter.toGraphDb
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.getRowNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.traceRelationshipSelectionCursor
+import org.neo4j.cypher.internal.runtime.iterators.RelationshipCursorIterator
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.InternalException

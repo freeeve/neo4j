@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.runtime.spec.tests
 
-import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.expressions.NullCheckAssert
@@ -29,8 +28,8 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationshipWithDynamicType
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
-import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
+import org.neo4j.cypher.internal.logical.plans.DynamicElement.All
+import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.notification.RuntimeUnsatisfiableRelationshipTypeExpression
 import org.neo4j.cypher.internal.runtime.spec.Edition
@@ -38,12 +37,11 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RecordingRuntimeResult
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.exceptions.CypherTypeException
+import org.neo4j.graphdb.Entity
+import org.neo4j.graphdb.Label
+import org.neo4j.graphdb.Relationship
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException
-import org.neo4j.internal.schema.IndexType
-import org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl
-
-import scala.util.Using
 
 object DynamicRelationshipTypeLookupTestBase
 
@@ -53,10 +51,19 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
 
-  test("should support directed relationship scan") {
+  def outgoing(rel: Relationship): Array[Entity] = Array(rel, rel.getStartNode, rel.getEndNode)
+
+  def incoming(rel: Relationship): Array[Entity] = Array(rel, rel.getEndNode, rel.getStartNode)
+
+  def expectDirected(rels: Seq[Relationship]): Seq[Array[Entity]] = rels.map(outgoing)
+
+  def expectUndirected(rels: Seq[Relationship]): Seq[Array[Entity]] =
+    rels.flatMap(rel => Seq(outgoing(rel), incoming(rel)))
+
+  test("directed scan") {
     // given
     val nNodes = Math.sqrt(sizeHint).ceil.toInt
-    val (_, _, relationships, _) = givenGraph {
+    val (_, _, rels, _) = givenGraph {
       bidirectionalBipartiteGraph(nNodes, "A", "B", "R", "S")
     }
 
@@ -69,15 +76,13 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    runtimeResult should beColumns("r", "x", "y").withRows(relationships.map(r =>
-      Array(r, r.getStartNode, r.getEndNode)
-    ))
+    runtimeResult should beColumns("r", "x", "y").withRows(expectDirected(rels))
   }
 
-  test("should support directed INCOMING relationship scan") {
+  test("directed scan (incoming)") {
     // given
     val nNodes = Math.sqrt(sizeHint).ceil.toInt
-    val (_, _, relationships, _) = givenGraph {
+    val (_, _, rels, _) = givenGraph {
       bidirectionalBipartiteGraph(nNodes, "A", "B", "R", "S")
     }
 
@@ -90,31 +95,10 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    runtimeResult should beColumns("r", "x", "y").withRows(relationships.map(r =>
-      Array(r, r.getEndNode, r.getStartNode)
-    ))
+    runtimeResult should beColumns("r", "x", "y").withRows(rels.map(incoming))
   }
 
-  test("should handle directed relationship scan for non-existing type") {
-    // given
-    val nNodes = Math.sqrt(sizeHint).ceil.toInt
-    givenGraph {
-      bidirectionalBipartiteGraph(nNodes, "A", "B", "R", "S")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r", "x", "y")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$('X')")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r", "x", "y").withNoRows()
-  }
-
-  test("should combine directed type scan and filter") {
+  test("directed scan + filter") {
     // given
     val nNodes = Math.sqrt(sizeHint).ceil.toInt
     givenGraph {
@@ -134,7 +118,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("r", "x", "y").withNoRows()
   }
 
-  test("should handle multiple directed scans") {
+  test("multiple directed scans") {
     // given
     val (_, relationships) = givenGraph { circleGraph(10, "L") }
 
@@ -155,7 +139,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("r1", "r2", "r3").withRows(expected)
   }
 
-  test("should handle an argument in a directed scan") {
+  test("directed scan with an argument") {
     // given
     val (_, relationships) = givenGraph { circleGraph(10, "L") }
 
@@ -173,7 +157,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("b", "r").withRows(expected)
   }
 
-  test("should support undirected relationship scan") {
+  test("undirected scan") {
     // given
     val nNodes = Math.sqrt(sizeHint).ceil.toInt
     val (_, _, relationships, _) = givenGraph {
@@ -189,31 +173,10 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    runtimeResult should beColumns("r", "x", "y").withRows(relationships.flatMap(r =>
-      Seq(Array(r, r.getStartNode, r.getEndNode), Array(r, r.getEndNode, r.getStartNode))
-    ))
+    runtimeResult should beColumns("r", "x", "y").withRows(expectUndirected(relationships))
   }
 
-  test("should handle undirected relationship scan for non-existent type") {
-    // given
-    val nNodes = Math.sqrt(sizeHint).ceil.toInt
-    givenGraph {
-      bidirectionalBipartiteGraph(nNodes, "A", "B", "R", "S")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r", "x", "y")
-      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$('X')")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r", "x", "y").withNoRows()
-  }
-
-  test("should combine undirected type scan and filter") {
+  test("undirected scan + filter") {
     // given
     val nNodes = Math.sqrt(sizeHint).ceil.toInt
     givenGraph {
@@ -233,7 +196,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("r", "x", "y").withNoRows()
   }
 
-  test("should handle multiple undirected scans") {
+  test("multiple undirected scans") {
     // given
     val (_, relationships) = givenGraph { circleGraph(10, "L") }
 
@@ -256,7 +219,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("r1", "r2", "r3").withRows(expected.flatten)
   }
 
-  test("should handle an argument in an undirected scan") {
+  test("undirected scan with an argument") {
     // given
     val (_, relationships) = givenGraph { circleGraph(10, "L") }
 
@@ -274,112 +237,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("b", "r").withRows(expected)
   }
 
-  test("directed relationship scan should use ascending index order when provided") {
-    assume(relationshipTypeIndexIsOrdered && !isParallel)
-    // given
-    val nNodes = Math.sqrt(sizeHint).ceil.toInt
-    val (_, _, relationships, _) = givenGraph {
-      bidirectionalBipartiteGraph(nNodes, "A", "B", "R", "S")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r", "x", "y")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$('R')", IndexOrderAscending)
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r", "x", "y").withRows(
-      inOrder(
-        relationships
-          .map(r => Array(r, r.getStartNode, r.getEndNode))
-          .sortBy(_.head.getId)
-      )
-    )
-  }
-
-  test("directed relationship scan should use descending index order when provided") {
-    // parallel does not maintain order
-    assume(relationshipTypeIndexIsOrdered && !isParallel)
-    // given
-    val nNodes = Math.sqrt(sizeHint).ceil.toInt
-    val (_, _, relationships, _) = givenGraph {
-      bidirectionalBipartiteGraph(nNodes, "A", "B", "R", "S")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r", "x", "y")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$('R')", IndexOrderDescending)
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r", "x", "y").withRows(
-      inOrder(
-        relationships
-          .map(r => Array(r, r.getStartNode, r.getEndNode))
-          .sortBy(_.head.getId * -1)
-      )
-    )
-  }
-
-  test("undirected relationship scan should use ascending index order when provided") {
-    assume(relationshipTypeIndexIsOrdered && !isParallel)
-    // given
-    val nNodes = Math.sqrt(sizeHint).ceil.toInt
-    val (_, _, relationships, _) = givenGraph {
-      bidirectionalBipartiteGraph(nNodes, "A", "B", "R", "S")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r", "x", "y")
-      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$('R')", IndexOrderAscending)
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r", "x", "y").withRows(
-      inOrder(
-        relationships
-          .flatMap(r => Seq(Array(r, r.getStartNode, r.getEndNode), Array(r, r.getEndNode, r.getStartNode)))
-          .sortBy(_.head.getId)
-      )
-    )
-  }
-
-  test("undirected relationship scan should use descending index order when provided") {
-    assume(relationshipTypeIndexIsOrdered && !isParallel)
-    // given
-    val nNodes = Math.sqrt(sizeHint).ceil.toInt
-    val (_, _, relationships, _) = givenGraph {
-      bidirectionalBipartiteGraph(nNodes, "A", "B", "R", "S")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r", "x", "y")
-      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$('R')", IndexOrderDescending)
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r", "x", "y").withRows(
-      inOrder(
-        relationships
-          .flatMap(r => Seq(Array(r, r.getStartNode, r.getEndNode), Array(r, r.getEndNode, r.getStartNode)))
-          .sortBy(_.head.getId * -1)
-      )
-    )
-  }
-
-  test("should handle undirected and continuation") {
+  test("undirected scan with a continuation") {
     val size = 100
     val (_, rels) = givenGraph {
       circleGraph(size)
@@ -399,7 +257,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
       .withRows(singleColumn(rels.flatMap(r => Seq.fill(2 * 10)(r))))
   }
 
-  test("undirected scans only find loop once") {
+  test("undirected scans for all given types only find loop once") {
     val rel = givenGraph {
       val a = tx.createNode()
       a.createRelationshipTo(a, RelationshipType.withName("R"))
@@ -407,14 +265,29 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(n)-[r]-(m)", "$('R')")
+      .produceResults("r", "x", "y")
+      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$all(['R','R'])")
       .build()
 
-    execute(logicalQuery, runtime) should beColumns("r").withSingleRow(rel)
+    execute(logicalQuery, runtime) should beColumns("r", "x", "y").withSingleRow(outgoing(rel): _*)
   }
 
-  test("should do dynamic directed scan of all relationships") {
+  test("undirected scans for any given types only find loop once") {
+    val rel = givenGraph {
+      val a = tx.createNode()
+      a.createRelationshipTo(a, RelationshipType.withName("R"))
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r", "x", "y")
+      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['R','S','T'])")
+      .build()
+
+    execute(logicalQuery, runtime) should beColumns("r", "x", "y").withSingleRow(outgoing(rel): _*)
+  }
+
+  test("directed scan for any types") {
     // given
     val rels = givenGraph {
       val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
@@ -427,17 +300,40 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
+      .produceResults("r", "x", "y")
       .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])")
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    runtimeResult should beColumns("r").withRows(singleColumn(rels))
+    runtimeResult should beColumns("r", "x", "y").withRows(expectDirected(rels))
   }
 
-  test("should do dynamic directed scan of all relationships using input parameters") {
+  test("undirected scan for any types") {
+    // given
+    val rels = givenGraph {
+      val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
+      val (_, bRels) = circleGraph(sizeHint / 3, "B", 1)
+      val (_, cRels) = circleGraph(sizeHint / 3, "C", 1)
+      val (_, _) = circleGraph(sizeHint / 3, "D", 1)
+      val (_, _) = circleGraph(sizeHint / 3, "E", 1)
+      aRels ++ bRels ++ cRels
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r", "x", "y")
+      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("r", "x", "y").withRows(expectUndirected(rels))
+  }
+
+  test("directed scan for any types derived from parameters") {
     // given
     val rels = givenGraph {
       val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
@@ -464,7 +360,307 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("r").withRows(singleColumn(rels))
   }
 
-  test("should fail with a helpful error message when the input is not a single string (all)") {
+  test("undirected scan for any types derived from parameters") {
+    // given
+    val rels = givenGraph {
+      val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
+      val (_, bRels) = circleGraph(sizeHint / 3, "B", 1)
+      val (_, cRels) = circleGraph(sizeHint / 3, "C", 1)
+      val (_, _) = circleGraph(sizeHint / 3, "D", 1)
+      val (_, _) = circleGraph(sizeHint / 3, "E", 1)
+      aRels ++ bRels ++ cRels
+    }
+
+    val inputStream = inputValues(Array("A"), Array(Array("B", "C")))
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r", "x", "y")
+      .apply()
+      .|.dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(relType)", argumentIds = Set("relType"))
+      .input(variables = Seq("relType"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime, inputStream)
+
+    // then
+    runtimeResult should beColumns("r", "x", "y").withRows(expectUndirected(rels))
+  }
+
+  test("multiple directed scans for any types") {
+    // given
+    val (_, rels) = givenGraph { circleGraph(10, "A", 1) }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r1", "r2", "r3")
+      .apply()
+      .|.dynamicRelationshipTypeLookup("(x3)-[r3]->(y3)", "$any(['A','B','C'])")
+      .apply()
+      .|.dynamicRelationshipTypeLookup("(x2)-[r2]->(y2)", "$any(['A','B','C'])")
+      .dynamicRelationshipTypeLookup("(x1)-[r1]->(y1)", "$any(['A','B','C'])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = for { r1 <- rels; r2 <- rels; r3 <- rels } yield Array(r1, r2, r3)
+    runtimeResult should beColumns("r1", "r2", "r3").withRows(expected)
+  }
+
+  test("multiple undirected scans for any types") {
+    // given
+    val (_, rels) = givenGraph { circleGraph(10, "A", 1) }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r1", "r2", "r3")
+      .apply()
+      .|.dynamicRelationshipTypeLookup("(x3)-[r3]-(y3)", "$any(['A','B','C'])")
+      .apply()
+      .|.dynamicRelationshipTypeLookup("(x2)-[r2]-(y2)", "$any(['A','B','C'])")
+      .dynamicRelationshipTypeLookup("(x1)-[r1]-(y1)", "$any(['A','B','C'])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = for {
+      r1 <- rels.flatMap(r => Seq(r, r)); r2 <- rels.flatMap(r => Seq(r, r)); r3 <- rels.flatMap(r => Seq(r, r))
+    } yield Array(r1, r2, r3)
+    runtimeResult should beColumns("r1", "r2", "r3").withRows(expected)
+  }
+
+  test("should handle non-existing types, directed") {
+    // given
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r", "x", "y")
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])")
+      .build()
+
+    // empty db
+    val executablePlan = buildPlan(logicalQuery, runtime)
+    execute(executablePlan) should beColumns("r", "x", "y").withNoRows()
+
+    // CREATE A
+    val (_, as) = givenGraph(circleGraph(sizeHint, "A", 1))
+    val directedAs = expectDirected(as)
+    execute(executablePlan) should beColumns("r", "x", "y").withRows(directedAs)
+
+    // CREATE B
+    val (_, bs) = givenGraph(circleGraph(sizeHint, "B", 1))
+    val directedBs = expectDirected(bs)
+    execute(executablePlan) should beColumns("r", "x", "y").withRows(directedAs ++ directedBs)
+
+    // CREATE C
+    val (_, cs) = givenGraph(circleGraph(sizeHint, "C", 1))
+    val directedCs = expectDirected(cs)
+    execute(executablePlan) should beColumns("r", "x", "y").withRows(directedAs ++ directedBs ++ directedCs)
+  }
+
+  test("should handle non-existing types, undirected") {
+    // given
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r", "x", "y")
+      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])")
+      .build()
+
+    // empty db
+    val executablePlan = buildPlan(logicalQuery, runtime)
+    execute(executablePlan) should beColumns("r", "x", "y").withNoRows()
+
+    // CREATE A
+    val (_, as) = givenGraph(circleGraph(sizeHint, "A", 1))
+    val directedAs = expectUndirected(as)
+    execute(executablePlan) should beColumns("r", "x", "y").withRows(directedAs)
+
+    // CREATE B
+    val (_, bs) = givenGraph(circleGraph(sizeHint, "B", 1))
+    val directedBs = expectUndirected(bs)
+    execute(executablePlan) should beColumns("r", "x", "y").withRows(directedAs ++ directedBs)
+
+    // CREATE C
+    val (_, cs) = givenGraph(circleGraph(sizeHint, "C", 1))
+    val directedCs = expectUndirected(cs)
+    execute(executablePlan) should beColumns("r", "x", "y").withRows(directedAs ++ directedBs ++ directedCs)
+  }
+
+  test("directed scan for any types on the RHS of an apply") {
+    // given
+    val (aRels, bRels, cRels, dRels) = givenGraph {
+      val (_, aRels) = circleGraph(10, "A", 1)
+      val (_, bRels) = circleGraph(10, "B", 1)
+      val (_, cRels) = circleGraph(10, "C", 1)
+      val (_, dRels) = circleGraph(10, "C", 1)
+
+      (aRels, bRels, cRels, dRels)
+    }
+
+    val columns = Seq("r1", "x1", "y1", "r2", "x2", "y2")
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults(columns: _*)
+      .apply()
+      .|.dynamicRelationshipTypeLookup("(x2)-[r2]->(y2)", "$any(['C','D'])", argumentIds = Set("x1", "r1", "y1"))
+      .dynamicRelationshipTypeLookup("(x1)-[r1]->(y1)", "$any(['A','B'])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = for {
+      r1 <- expectDirected(aRels) ++ expectDirected(bRels);
+      r2 <- expectDirected(cRels) ++ expectDirected(dRels)
+    } yield Array(r1, r2).flatten
+    runtimeResult should beColumns(columns: _*).withRows(expected)
+  }
+
+  test("undirected scan for any types on the RHS of an apply") {
+    // given
+    val (aRels, bRels, cRels, dRels) = givenGraph {
+      val (_, aRels) = circleGraph(10, "A", 1)
+      val (_, bRels) = circleGraph(10, "B", 1)
+      val (_, cRels) = circleGraph(10, "C", 1)
+      val (_, dRels) = circleGraph(10, "C", 1)
+
+      (aRels, bRels, cRels, dRels)
+    }
+
+    val columns = Seq("r1", "x1", "y1", "r2", "x2", "y2")
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults(columns: _*)
+      .apply()
+      .|.dynamicRelationshipTypeLookup("(x2)-[r2]-(y2)", "$any(['C','D'])", argumentIds = Set("x1", "r1", "y1"))
+      .dynamicRelationshipTypeLookup("(x1)-[r1]-(y1)", "$any(['A','B'])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = for {
+      r1 <- expectUndirected(aRels) ++ expectUndirected(bRels)
+      r2 <- expectUndirected(cRels) ++ expectUndirected(dRels)
+    } yield Array(r1, r2).flatten
+    runtimeResult should beColumns(columns: _*).withRows(expected)
+  }
+
+  test("scan should get source, target and type") {
+    // given
+    val rels = givenGraph {
+      val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
+      val (_, bRels) = circleGraph(sizeHint / 3, "B", 1)
+      val (_, cRels) = circleGraph(sizeHint / 3, "C", 1)
+      aRels ++ bRels ++ cRels
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x", "y", "t")
+      .projection("x AS x", "y AS y", "type(r) AS t")
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = rels.map(r => Array[Any](r.getStartNode, r.getEndNode, r.getType.name()))
+    runtimeResult should beColumns("x", "y", "t").withRows(expected)
+  }
+
+  test("work with merge and a nonexistent rel type") {
+    assume(!isParallel)
+    assume(!isPipelined || canFuse)
+
+    givenGraph {
+      circleGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults()
+      .emptyResult()
+      .merge(
+        Seq(createNodeFull("a"), createNodeFull("b")),
+        Seq(createRelationshipWithDynamicType("r", "a", "'Foo'", "b", OUTGOING))
+      )
+      .dynamicRelationshipTypeLookup("(a)-[r]->(b)", "$all('Foo')")
+      .build(readOnly = false)
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns().withStatistics(nodesCreated = 2, relationshipsCreated = 1)
+  }
+
+  test("directed scan for any types from an empty array") {
+    /* equivalent to the empty result set */
+    givenGraph {
+      circleGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any([])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("r").withNoRows()
+  }
+
+  test("directed scan for all types from an empty array") {
+    /* equivalent to the super set of all relationships */
+    val (_, rels) = givenGraph {
+      circleGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r", "x", "y")
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$all([])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("r", "x", "y").withRows(expectDirected(rels))
+  }
+
+  test("directed scan for any of the partially non-existent given types") {
+    val (_, rels) = givenGraph {
+      circleGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r", "x", "y")
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['NONEXISTENT_LABEL_1', 'R'])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("r", "x", "y").withRows(expectDirected(rels))
+  }
+
+  test("directed scan for all of the partially non-existent given types") {
+    givenGraph {
+      circleGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r", "x", "y")
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$all(['NONEXISTENT_LABEL_1', 'R'])")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("r", "x", "y").withNoRows()
+  }
+
+  test("fail with a helpful error message when the input is not a single string (all)") {
     // given
     givenGraph {
       val a = tx.createNode()
@@ -475,7 +671,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .apply()
-      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$(relType)", argumentIds = Set("relType"))
+      .|.dynamicRelationshipTypeLookup("()-[r]->()", "$(relType)", argumentIds = Set("relType"))
       .input(variables = Seq("relType"))
       .build()
 
@@ -506,36 +702,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("", "C")))
   }
 
-  test("when conflicting types are encountered the next row should be processed") {
-    // given
-    val rel = givenGraph {
-      val a = tx.createNode()
-      tx.createNode().createRelationshipTo(a, RelationshipType.withName("R"))
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .apply()
-      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$all(relType)", argumentIds = Set("relType"))
-      .input(variables = Seq("relType"))
-      .build()
-
-    val res = execute(
-      logicalQuery,
-      runtime,
-      inputValues(
-        Array(Array[String]("A", "B")),
-        Array("R")
-      )
-    )
-
-    res should beColumns("r")
-      .withRows(singleColumn(Seq(rel)))
-      .withNotifications(RuntimeUnsatisfiableRelationshipTypeExpression(List("A", "B")))
-  }
-
-  test("should fail with a helpful error message when the input is not a string or list of strings (any)") {
+  test("fail with a helpful error message when the input is not a string or list of strings (any)") {
     // given
     givenGraph {
       val a = tx.createNode()
@@ -546,7 +713,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .apply()
-      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(relType)", IndexOrderNone, argumentIds = Set("relType"))
+      .|.dynamicRelationshipTypeLookup("()-[r]->()", "$any(relType)", argumentIds = Set("relType"))
       .input(variables = Seq("relType"))
       .build()
 
@@ -575,421 +742,36 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("", "C")))
   }
 
-  test("should do undirected scan of all relationships with types") {
+  test("when conflicting types are encountered the next row should be processed") {
     // given
-    val rels = givenGraph {
-      val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
-      val (_, bRels) = circleGraph(sizeHint / 3, "B", 1)
-      val (_, cRels) = circleGraph(sizeHint / 3, "C", 1)
-      aRels ++ bRels ++ cRels
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])", IndexOrderNone)
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withRows(singleColumn(rels.flatMap(r => Seq(r, r))))
-  }
-
-  test("should do directed scan of all relationships of a label in ascending order") {
-
-    // given
-    val rels = givenGraph {
-      val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
-      val (_, bRels) = circleGraph(sizeHint / 3, "B", 1)
-      val (_, cRels) = circleGraph(sizeHint / 3, "C", 1)
-      aRels ++ bRels ++ cRels
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])", IndexOrderAscending).withLeveragedOrder()
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withRows(singleColumnInOrder(rels.sortBy(_.getId)))
-  }
-
-  test("should do undirected scan of all relationships of a label in ascending order") {
-
-    // given
-    val rels = givenGraph {
-      val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
-      val (_, bRels) = circleGraph(sizeHint / 3, "B", 1)
-      val (_, cRels) = circleGraph(sizeHint / 3, "C", 1)
-      aRels ++ bRels ++ cRels
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])", IndexOrderAscending).withLeveragedOrder()
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withRows(singleColumnInOrder(rels.sortBy(_.getId).flatMap(r => Seq(r, r))))
-  }
-
-  test("should do directed scan of all relationships of a label in descending order") {
-    // given
-    val rels = givenGraph {
-      val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
-      val (_, bRels) = circleGraph(sizeHint / 3, "B", 1)
-      val (_, cRels) = circleGraph(sizeHint / 3, "C", 1)
-      aRels ++ bRels ++ cRels
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])", IndexOrderDescending).withLeveragedOrder()
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withRows(singleColumnInOrder(rels.sortBy(_.getId * -1)))
-  }
-
-  test("should do undirected scan of all relationships of a label in descending order") {
-
-    // given
-    val rels = givenGraph {
-      val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
-      val (_, bRels) = circleGraph(sizeHint / 3, "B", 1)
-      val (_, cRels) = circleGraph(sizeHint / 3, "C", 1)
-      aRels ++ bRels ++ cRels
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])", IndexOrderDescending).withLeveragedOrder()
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withRows(singleColumnInOrder(rels.sortBy(_.getId * -1).flatMap(r => Seq(r, r))))
-  }
-
-  test("should handle multiple directed ANY (union) scans") {
-    // given
-    val (_, rels) = givenGraph { circleGraph(10, "A", 1) }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r1", "r2", "r3")
-      .apply()
-      .|.dynamicRelationshipTypeLookup("(x3)-[r3]->(y3)", "$any(['A','B','C'])")
-      .apply()
-      .|.dynamicRelationshipTypeLookup("(x2)-[r2]->(y2)", "$any(['A','B','C'])")
-      .dynamicRelationshipTypeLookup("(x1)-[r1]->(y1)", "$any(['A','B','C'])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    val expected = for { r1 <- rels; r2 <- rels; r3 <- rels } yield Array(r1, r2, r3)
-    runtimeResult should beColumns("r1", "r2", "r3").withRows(expected)
-  }
-
-  test("should handle multiple undirected ANY (union) scans") {
-    // given
-    val (_, rels) = givenGraph { circleGraph(10, "A", 1) }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r1", "r2", "r3")
-      .apply()
-      .|.dynamicRelationshipTypeLookup("(x3)-[r3]-(y3)", "$any(['A','B','C'])")
-      .apply()
-      .|.dynamicRelationshipTypeLookup("(x2)-[r2]-(y2)", "$any(['A','B','C'])")
-      .dynamicRelationshipTypeLookup("(x1)-[r1]-(y1)", "$any(['A','B','C'])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    val expected = for {
-      r1 <- rels.flatMap(r => Seq(r, r)); r2 <- rels.flatMap(r => Seq(r, r)); r3 <- rels.flatMap(r => Seq(r, r))
-    } yield Array(r1, r2, r3)
-    runtimeResult should beColumns("r1", "r2", "r3").withRows(expected)
-  }
-
-  test("should handle non-existing types, directed") {
-    // given
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("x")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])")
-      .build()
-
-    // empty db
-    val executablePlan = buildPlan(logicalQuery, runtime)
-    execute(executablePlan) should beColumns("x").withNoRows()
-
-    // CREATE A
-    givenGraph(circleGraph(sizeHint, "A", 1))
-    execute(executablePlan) should beColumns("x").withRows(rowCount(sizeHint))
-
-    // CREATE B
-    givenGraph(circleGraph(sizeHint, "B", 1))
-    execute(executablePlan) should beColumns("x").withRows(rowCount(2 * sizeHint))
-
-    // CREATE C
-    givenGraph(circleGraph(sizeHint, "C", 1))
-    execute(executablePlan) should beColumns("x").withRows(rowCount(3 * sizeHint))
-  }
-
-  test("should handle non-existing types, undirected") {
-    // given
-    val batchSize = sizeHint / 10
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("x")
-      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])")
-      .build()
-
-    // empty db
-    val executablePlan = buildPlan(logicalQuery, runtime)
-    execute(executablePlan) should beColumns("x").withNoRows()
-
-    // CREATE A
-    givenGraph(circleGraph(batchSize, "A", 1))
-    execute(executablePlan) should beColumns("x").withRows(rowCount(2 * batchSize))
-
-    // CREATE B
-    givenGraph(circleGraph(batchSize, "B", 1))
-    execute(executablePlan) should beColumns("x").withRows(rowCount(4 * batchSize))
-
-    // CREATE C
-    givenGraph(circleGraph(batchSize, "C", 1))
-    execute(executablePlan) should beColumns("x").withRows(rowCount(6 * batchSize))
-  }
-
-  test("directed scan on the RHS of apply") {
-    // given
-    val (aRels, bRels, cRels, dRels) = givenGraph {
-      val (_, aRels) = circleGraph(10, "A", 1)
-      val (_, bRels) = circleGraph(10, "B", 1)
-      val (_, cRels) = circleGraph(10, "C", 1)
-      val (_, dRels) = circleGraph(10, "C", 1)
-
-      (aRels, bRels, cRels, dRels)
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r1", "r2")
-      .apply()
-      .|.dynamicRelationshipTypeLookup("(x2)-[r2]->(y2)", "$any(['C','D'])", argumentIds = Set("x1", "r1", "y1"))
-      .dynamicRelationshipTypeLookup("(x1)-[r1]->(y1)", "$any(['A','B'])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    val expected = for { r1 <- aRels ++ bRels; r2 <- cRels ++ dRels } yield Array(r1, r2)
-    runtimeResult should beColumns("r1", "r2").withRows(expected)
-  }
-
-  test("undirected scan on the RHS of apply") {
-    // given
-    val (aRels, bRels, cRels, dRels) = givenGraph {
-      val (_, aRels) = circleGraph(10, "A", 1)
-      val (_, bRels) = circleGraph(10, "B", 1)
-      val (_, cRels) = circleGraph(10, "C", 1)
-      val (_, dRels) = circleGraph(10, "C", 1)
-
-      (aRels, bRels, cRels, dRels)
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r1", "r2")
-      .apply()
-      .|.dynamicRelationshipTypeLookup("(x2)-[r2]-(y2)", "$any(['C','D'])", argumentIds = Set("x1", "r1", "y1"))
-      .dynamicRelationshipTypeLookup("(x1)-[r1]-(y1)", "$any(['A','B'])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    val expected = for {
-      r1 <- aRels.flatMap(r => Seq(r, r)) ++ bRels.flatMap(r => Seq(r, r))
-      r2 <- cRels.flatMap(r => Seq(r, r)) ++ dRels.flatMap(r => Seq(r, r))
-    } yield Array(r1, r2)
-    runtimeResult should beColumns("r1", "r2").withRows(expected)
-  }
-
-  test("scan should get source, target and type") {
-    // given
-    val rels = givenGraph {
-      val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
-      val (_, bRels) = circleGraph(sizeHint / 3, "B", 1)
-      val (_, cRels) = circleGraph(sizeHint / 3, "C", 1)
-      aRels ++ bRels ++ cRels
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("x", "y", "t")
-      .projection("x AS x", "y AS y", "type(r) AS t")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    val expected = rels.map(r => Array[Any](r.getStartNode, r.getEndNode, r.getType.name()))
-    runtimeResult should beColumns("x", "y", "t").withRows(expected)
-  }
-
-  test("undirected Any (union) scans only find loop once") {
     val rel = givenGraph {
       val a = tx.createNode()
-      a.createRelationshipTo(a, RelationshipType.withName("R"))
+      tx.createNode().createRelationshipTo(a, RelationshipType.withName("R"))
     }
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(n)-[r]-(m)", "$any(['R','S','T'])")
+      .produceResults("r", "x", "y")
+      .apply()
+      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$all(relType)", argumentIds = Set("relType"))
+      .input(variables = Seq("relType"))
       .build()
 
-    execute(logicalQuery, runtime) should beColumns("r").withSingleRow(rel)
-  }
-
-  test("should handle empty array with Any") {
-    givenGraph {
-      circleGraph(sizeHint)
-    }
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any([])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withNoRows()
-  }
-
-  test("should handle empty array with All") {
-    val (_, rels) = givenGraph {
-      circleGraph(sizeHint)
-    }
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$all([])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withRows(singleColumn(rels))
-  }
-
-  test("should work with merge and a nonexistent rel type") {
-    assume(!isParallel)
-    assume(!isPipelined || canFuse)
-
-    givenGraph {
-      circleGraph(sizeHint)
-    }
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults()
-      .emptyResult()
-      .merge(
-        Seq(createNodeFull("a"), createNodeFull("b")),
-        Seq(createRelationshipWithDynamicType("r", "a", "'Foo'", "b", OUTGOING))
+    val res = execute(
+      logicalQuery,
+      runtime,
+      inputValues(
+        Array(Array[String]("A", "B")),
+        Array("R")
       )
-      .dynamicRelationshipTypeLookup("(a)-[r]->(b)", "$all('Foo')", IndexOrderNone)
-      .build(readOnly = false)
+    )
 
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns().withStatistics(nodesCreated = 2, relationshipsCreated = 1)
+    res should beColumns("r", "x", "y")
+      .withRows(expectDirected(Seq(rel)))
+      .withNotifications(RuntimeUnsatisfiableRelationshipTypeExpression(List("A", "B")))
   }
 
-  test("should handle nonexistent type array with Any") {
-    givenGraph {
-      circleGraph(sizeHint)
-    }
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['NONEXISTENT_LABEL_1', 'NONEXISTENT_LABEL_2'])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withNoRows()
-  }
-
-  test("should handle nonexistent type array with All") {
-    givenGraph {
-      circleGraph(sizeHint)
-    }
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$all(['NONEXISTENT_LABEL_1', 'NONEXISTENT_LABEL_2'])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withNoRows()
-  }
-
-  test("should handle partially nonexistent type array with Any") {
-    val (_, rels) = givenGraph {
-      circleGraph(sizeHint)
-    }
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['NONEXISTENT_LABEL_1', 'R'])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withRows(singleColumn(rels))
-  }
-
-  test("should handle partially nonexistent type array with All") {
-    givenGraph {
-      circleGraph(sizeHint)
-    }
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$all(['NONEXISTENT_LABEL_1', 'R'])")
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("r").withNoRows()
-  }
-
-  test("should check for null input in dynamic type expression") {
+  test("check for null input in dynamic type expression") {
     givenGraph {
       val n = tx.createNode()
       n.createRelationshipTo(tx.createNode(), RelationshipType.withName("R"))
@@ -1015,21 +797,453 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     }
   }
 
-  private def relationshipTypeIndexIsOrdered: Boolean = {
-    Using(graphDb.beginTx) { tx =>
-      {
-        tx.schema.getIndexes.forEach({ id =>
-          {
-            val index = id.asInstanceOf[IndexDefinitionImpl].getIndexReference
-            if (
-              index.schema.isAnyTokenSchemaDescriptor && (index.schema.entityType eq EntityType.RELATIONSHIP) && (index.getIndexType eq IndexType.LOOKUP)
-            ) {
-              return index.getCapability.supportsOrdering()
-            }
-          }
-        })
+  // TYPE + PROPERTY SEEKS
+
+  test("directed seek for a single type and single property") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val expected = givenGraph {
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode()
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$('R')"
+        case Any => "$any('R')"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .dynamicRelationshipTypeLookup(
+          "(x)-[r]->(y)",
+          dynamicType,
+          propertyPredicates = Map("prop" -> "1")
+        )
+        .build()
+
+      val runtimeResult = execute(logicalQuery, runtime)
+      runtimeResult should beColumns("r", "x", "y").withRows(expectDirected(expected))
+    }
+  }
+
+  test("undirected seek for a single type and single property") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val expected = givenGraph {
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode()
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$('R')"
+        case Any => "$any('R')"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .dynamicRelationshipTypeLookup(
+          "(x)-[r]-(y)",
+          dynamicType,
+          propertyPredicates = Map("prop" -> "1")
+        )
+        .build()
+
+      val runtimeResult = execute(logicalQuery, runtime)
+      runtimeResult should beColumns("r", "x", "y").withRows(expectUndirected(expected))
+    }
+  }
+
+  test("directed seek for an empty type list and single property") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val expected = givenGraph {
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode(Label.label("N"))
+      n.setProperty("types", Array[String]())
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$(x.types)"
+        case Any => "$any(x.types)"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .apply()
+        .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", dynamicType, propertyPredicates = Map("prop" -> "1"))
+        .nodeByLabelScan("x", "N")
+        .build()
+
+      val runtimeResult = execute(logicalQuery, runtime)
+
+      operator match {
+        case All =>
+          runtimeResult should beColumns("r", "x", "y").withRows(expectDirected(expected))
+        case Any =>
+          runtimeResult should beColumns("r", "x", "y").withNoRows()
       }
     }
-    fail("Didn't find the relationship type token index")
+  }
+
+  test("undirected seek for an empty type list and single property") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val expected = givenGraph {
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode(Label.label("N"))
+      n.setProperty("types", Array[String]())
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$(x.types)"
+        case Any => "$any(x.types)"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .apply()
+        .|.dynamicRelationshipTypeLookup("(x)-[r]-(y)", dynamicType, propertyPredicates = Map("prop" -> "1"))
+        .nodeByLabelScan("x", "N")
+        .build()
+
+      val runtimeResult = execute(logicalQuery, runtime)
+
+      operator match {
+        case All =>
+          runtimeResult should beColumns("r", "x", "y").withRows(expectUndirected(expected))
+        case Any =>
+          runtimeResult should beColumns("r", "x", "y").withNoRows()
+      }
+    }
+  }
+
+  test("directed seek for a single type and single property using an index") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val indexName = "R_on_prop"
+    val expected = givenGraph {
+      relationshipIndex("R")(_.on("prop").withName(indexName))
+
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode()
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$('R')"
+        case Any => "$any('R')"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .dynamicRelationshipTypeLookup(
+          "(x)-[r]->(y)",
+          dynamicType,
+          propertyPredicates = Map("prop" -> "1")
+        )
+        .build()
+
+      val matchExpectations = beColumns("r", "x", "y").withRows(expectDirected(expected))
+        .usingIndexes(2, indexName)
+
+      profile(logicalQuery, runtime) should matchExpectations
+    }
+  }
+
+  test("undirected seek for a single type and single property using an index") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val indexName = "R_on_prop"
+    val expected = givenGraph {
+      relationshipIndex("R")(_.on("prop").withName(indexName))
+
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode()
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$('R')"
+        case Any => "$any('R')"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .dynamicRelationshipTypeLookup(
+          "(x)-[r]-(y)",
+          dynamicType,
+          propertyPredicates = Map("prop" -> "1")
+        )
+        .build()
+
+      val matchExpectations = beColumns("r", "x", "y").withRows(expectUndirected(expected))
+        .usingIndexes(2, indexName)
+
+      profile(logicalQuery, runtime) should matchExpectations
+    }
+  }
+
+  test("directed seek for a single type and multiple properties using an index and filter") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val indexName = "R_on_prop"
+    val expected = givenGraph {
+      relationshipIndex("R")(_.on("prop").withName(indexName))
+
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode()
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+      r.setProperty("prop2", 2)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("R")).setProperty("prop", 1)
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$('R')"
+        case Any => "$any('R')"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .dynamicRelationshipTypeLookup(
+          "(x)-[r]->(y)",
+          dynamicType,
+          propertyPredicates = Map("prop" -> "1", "prop2" -> "2")
+        )
+        .build()
+
+      val matchExpectations = beColumns("r", "x", "y").withRows(expectDirected(expected))
+        .usingIndexes(2, indexName)
+
+      profile(logicalQuery, runtime) should matchExpectations
+    }
+  }
+
+  test("undirected seek for a single type and multiple properties using an index and filter") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val indexName = "R_on_prop"
+    val expected = givenGraph {
+      relationshipIndex("R")(_.on("prop").withName(indexName))
+
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode()
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+      r.setProperty("prop2", 2)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("R")).setProperty("prop", 1)
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$('R')"
+        case Any => "$any('R')"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .dynamicRelationshipTypeLookup(
+          "(x)-[r]-(y)",
+          dynamicType,
+          propertyPredicates = Map("prop" -> "1", "prop2" -> "2")
+        )
+        .build()
+
+      val matchExpectations = beColumns("r", "x", "y").withRows(expectUndirected(expected))
+        .usingIndexes(2, indexName)
+
+      profile(logicalQuery, runtime) should matchExpectations
+    }
+  }
+
+  test("directed seek for a single type and multiple properties using a compound index") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val indexName = "R_on_prop_and_prop2"
+    val expected = givenGraph {
+      relationshipIndex("R")(_.on("prop").on("prop2").withName(indexName))
+
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode()
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+      r.setProperty("prop2", 2)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("R")).setProperty("prop2", 1)
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$('R')"
+        case Any => "$any('R')"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .dynamicRelationshipTypeLookup(
+          "(x)-[r]->(y)",
+          dynamicType,
+          propertyPredicates = Map("prop" -> "1", "prop2" -> "2")
+        )
+        .build()
+
+      val matchExpectations = beColumns("r", "x", "y").withRows(expectDirected(expected))
+        .usingIndexes(2, indexName)
+
+      profile(logicalQuery, runtime) should matchExpectations
+    }
+  }
+
+  test("undirected seek for a single type and multiple properties using a compound index") {
+    // TODO: implement
+    assume(!isParallel && !isPipelined)
+
+    val indexName = "R_on_prop_and_prop2"
+    val expected = givenGraph {
+      relationshipIndex("R")(_.on("prop").on("prop2").withName(indexName))
+
+      val relType = RelationshipType.withName("R")
+
+      // MATCHED
+      val n = tx.createNode()
+      val r = n.createRelationshipTo(tx.createNode(), relType)
+      r.setProperty("prop", 1)
+      r.setProperty("prop2", 2)
+
+      // NOT MATCHED
+      tx.createNode().createRelationshipTo(tx.createNode(), relType)
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("S"))
+      tx.createNode().createRelationshipTo(tx.createNode(), RelationshipType.withName("R")).setProperty("prop2", 1)
+
+      Seq(r)
+    }
+
+    Seq(All, Any).foreach { operator =>
+      val dynamicType = operator match {
+        case All => "$('R')"
+        case Any => "$any('R')"
+      }
+
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r", "x", "y")
+        .filter("true")
+        .dynamicRelationshipTypeLookup(
+          "(x)-[r]-(y)",
+          dynamicType,
+          propertyPredicates = Map("prop" -> "1", "prop2" -> "2")
+        )
+        .build()
+
+      val matchExpectations = beColumns("r", "x", "y").withRows(expectUndirected(expected))
+        .usingIndexes(2, indexName)
+
+      profile(logicalQuery, runtime) should matchExpectations
+    }
   }
 }

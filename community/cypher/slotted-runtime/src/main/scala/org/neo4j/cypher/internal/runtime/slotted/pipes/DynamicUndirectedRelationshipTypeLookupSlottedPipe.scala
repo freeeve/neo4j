@@ -19,11 +19,12 @@
  */
 package org.neo4j.cypher.internal.runtime.slotted.pipes
 
+import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicDirectedRelationshipTypeLookupPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicDirectedRelationshipTypeLookupPipe.getIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
@@ -36,12 +37,14 @@ case class DynamicUndirectedRelationshipTypeLookupSlottedPipe(
   typeExpr: Expression,
   toOffset: Option[Int],
   operator: DynamicElement.SetOperator,
-  indexOrder: IndexOrder
+  propertyExpressions: Map[PropertyKeyToken, Expression]
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
-    val baseContext = state.newRowWithArgument(rowFactory)
-    val relIterator = getIterator(state, baseContext, typeExpr, operator, indexOrder)
+    val ctx = state.newRowWithArgument(rowFactory)
+    val propertyQueries =
+      DynamicDirectedRelationshipTypeLookupPipe.mapPropertyLookups(propertyExpressions, _(ctx, state))
+    val relIterator = getIterator(state, operator, typeExpr(ctx, state), propertyQueries)
     new UndirectedIterator(relIterator, relOffset, fromOffset, toOffset, rowFactory, state)
   }
 }

@@ -29,21 +29,18 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.ReadWriteRow
-import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.PrimitiveCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.ReferenceCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.IntersectionNodeByLabelsScanPipe.intersectionIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.UnionNodeByLabelsScanPipe.unionIterator
+import org.neo4j.cypher.internal.runtime.iterators.LabelFilteringNodeIterator
+import org.neo4j.cypher.internal.runtime.iterators.PropertyFilteringNodeIterator
 import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherFunctions
-import org.neo4j.internal.kernel.api.NodeCursor
-import org.neo4j.internal.kernel.api.PropertyCursor
 import org.neo4j.internal.kernel.api.PropertyIndexQuery
-import org.neo4j.internal.kernel.api.Read
 import org.neo4j.internal.schema.IndexDescriptor
-import org.neo4j.kernel.impl.newapi.CursorPredicates
 import org.neo4j.token.api.TokenConstants.NO_TOKEN
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.VirtualValues
@@ -148,8 +145,11 @@ abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
             }
           }
 
-      // for Any we can't union results of index value seeks because they don't have guaranteed order, so only support
-      // single label
+      /**
+       * Conspicuously absent: Index seeks for any multiple labels, because we can't (currently) union the
+       * seeks from multiple property indexes; the index can only return properties in value order, not ID
+       * order, which makes deduplication of results much more difficult. So we uh, don't do it.
+       */
       case (Array(label), Any) =>
         val propPredicates = propertyConstraints.toSeq
         findIndicesForLabel(label, propPredicates).maxOption(comparatorToOrdering(getIndexComparator))
@@ -250,55 +250,4 @@ case class DynamicLabelNodeLookupIterator(
   override protected def empty: ClosingLongIterator = ClosingLongIterator.empty
 
   def toIterator(rowMapper: Long => CypherRow): ClosingIterator[CypherRow] = nodeIterator.mapToObj(rowMapper)
-}
-
-abstract class FilteringNodeIterator(
-  nodeIdIterator: ClosingLongIterator,
-  read: Read,
-  nodeCursor: NodeCursor
-) extends PrimitiveCursorIterator {
-
-  protected def test(nodeCursor: NodeCursor): Boolean
-
-  protected def fetchNext(): Long = {
-    while (nodeIdIterator.hasNext) {
-      val id = nodeIdIterator.next()
-      read.singleNode(id, nodeCursor)
-
-      // The node may have been deleted in this transaction, so check that it has not been
-      if (nodeCursor.next() && test(nodeCursor)) {
-        return id
-      }
-    }
-
-    -1L
-  }
-
-  def close(): Unit = nodeIdIterator.close()
-}
-
-class PropertyFilteringNodeIterator(
-  scan: ClosingLongIterator,
-  read: Read,
-  nodeCursor: NodeCursor,
-  propCursor: PropertyCursor,
-  indexQueries: Array[PropertyIndexQuery]
-) extends FilteringNodeIterator(scan, read, nodeCursor) {
-
-  protected def test(nodeCursor: NodeCursor): Boolean = {
-    nodeCursor.properties(propCursor)
-    CursorPredicates.propertiesMatch(propCursor, indexQueries)
-  }
-}
-
-class LabelFilteringNodeIterator(
-  scan: ClosingLongIterator,
-  read: Read,
-  nodeCursor: NodeCursor,
-  labels: Seq[Int]
-) extends FilteringNodeIterator(scan, read, nodeCursor) {
-
-  protected def test(nodeCursor: NodeCursor): Boolean = {
-    labels.forall(nodeCursor.hasLabel)
-  }
 }

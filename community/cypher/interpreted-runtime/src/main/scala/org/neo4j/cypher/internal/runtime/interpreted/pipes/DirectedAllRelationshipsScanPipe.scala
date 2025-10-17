@@ -23,8 +23,8 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.QueryContext
-import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.BaseRelationshipCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedAllRelationshipsScanPipe.allRelationshipsIterator
+import org.neo4j.cypher.internal.runtime.iterators.BaseRelationshipCursorIterator
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.values.virtual.VirtualValues
 

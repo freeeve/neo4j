@@ -788,7 +788,7 @@ class SlottedPipeMapper(
           indexOrder
         )(id)
 
-      case DynamicDirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, indexOrder, _) =>
+      case DynamicDirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, _, propertyPredicates) =>
         indexRegistrator.registerTypeScan()
 
         relTypeLabel match {
@@ -799,7 +799,7 @@ class SlottedPipeMapper(
               expressionConverters.toCommandExpression(id, expr),
               end.map(n => slots.longOffset(n)),
               operator,
-              indexOrder
+              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v))
             )(id)
         }
 
@@ -813,7 +813,7 @@ class SlottedPipeMapper(
           indexOrder
         )(id)
 
-      case DynamicUndirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, indexOrder, _) =>
+      case DynamicUndirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, _, propertyPredicates) =>
         indexRegistrator.registerTypeScan()
 
         relTypeLabel match {
@@ -824,7 +824,7 @@ class SlottedPipeMapper(
               expressionConverters.toCommandExpression(id, expr),
               end.map(n => slots.longOffset(n)),
               operator,
-              indexOrder
+              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v))
             )(id)
         }
 

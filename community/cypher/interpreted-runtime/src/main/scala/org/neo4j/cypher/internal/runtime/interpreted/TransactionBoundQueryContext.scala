@@ -57,8 +57,9 @@ import org.neo4j.cypher.internal.runtime.cursors.ValuedNodeIndexCursor
 import org.neo4j.cypher.internal.runtime.cursors.ValuedRelationshipIndexCursor
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.ReferenceCursorIterator
-import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.RelationshipCursorIterator
-import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.RelationshipTypeCursorIterator
+import org.neo4j.cypher.internal.runtime.iterators.PrimitiveCursorIterator
+import org.neo4j.cypher.internal.runtime.iterators.RelationshipCursorIterator
+import org.neo4j.cypher.internal.runtime.iterators.RelationshipIndexCursorIterator
 import org.neo4j.cypher.operations.CursorUtils
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.dbms.database.DatabaseContext
@@ -129,7 +130,6 @@ import org.neo4j.logging.InternalLogProvider
 import org.neo4j.logging.internal.LogService
 import org.neo4j.scheduler.JobScheduler
 import org.neo4j.storageengine.api.PropertySelection
-import org.neo4j.storageengine.api.RelationshipVisitor
 import org.neo4j.token.api.TokenConstants
 import org.neo4j.values.AnyValue
 import org.neo4j.values.ValueMapper
@@ -800,7 +800,7 @@ private[internal] class TransactionBoundReadQueryContext(
       transactionalContext.cursorContext
     )
     resources.trace(typeCursor.getResource)
-    new RelationshipTypeCursorIterator(typeCursor)
+    new RelationshipIndexCursorIterator(typeCursor)
   }
 
   override def nodeCursor(): NodeCursor =
@@ -1967,153 +1967,9 @@ private[internal] class TransactionBoundReadQueryContext(
 
 object TransactionBoundQueryContext {
 
-  abstract class PrimitiveCursorIterator extends ClosingLongIterator {
-    private var _next: Long = fetchNext()
-
-    protected def fetchNext(): Long
-
-    override def innerHasNext: Boolean = _next >= 0
-
-    override def next(): Long = {
-      if (!hasNext) {
-        Iterator.empty.next()
-      }
-
-      val current = _next
-      _next = fetchNext()
-      current
-    }
-  }
-
   class ReferenceCursorIterator(refCursor: ReferenceCursor) extends PrimitiveCursorIterator {
     override protected def fetchNext(): Long = if (refCursor.next()) refCursor.reference() else -1L
     override def close(): Unit = refCursor.close()
-  }
-
-  abstract class BaseRelationshipCursorIterator extends ClosingLongIterator with RelationshipIterator {
-
-    import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.BaseRelationshipCursorIterator.NOT_INITIALIZED
-    import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.BaseRelationshipCursorIterator.NO_ID
-
-    private var _next = NOT_INITIALIZED
-    protected var relTypeId: Int = NO_ID
-    protected var source: Long = NO_ID
-    protected var target: Long = NO_ID
-
-    override def relationshipVisit[EXCEPTION <: Exception](
-      relationshipId: Long,
-      visitor: RelationshipVisitor[EXCEPTION]
-    ): Boolean = {
-      visitor.visit(relationshipId, relTypeId, source, target)
-      true
-    }
-
-    protected def fetchNext(): Long
-
-    override def innerHasNext: Boolean = {
-      if (_next == NOT_INITIALIZED) {
-        _next = fetchNext()
-      }
-
-      _next >= 0
-    }
-
-    override def startNodeId(): Long = source
-
-    override def endNodeId(): Long = target
-
-    override def typeId(): Int = relTypeId
-
-    /**
-     * Store the current state in case the underlying cursor is closed when calling next.
-     */
-    protected def storeState(): Unit
-
-    override def next(): Long = {
-      if (!hasNext) {
-        close()
-        Iterator.empty.next()
-      }
-
-      val current = _next
-      storeState()
-      // Note that if no more elements are found cursors
-      // will be closed so no need to do an extra check after fetching
-      _next = fetchNext()
-
-      current
-    }
-
-    override def close(): Unit
-  }
-
-  class RelationshipCursorIterator(
-    selectionCursor: RelationshipTraversalCursor,
-    traversalCursor: RelationshipTraversalCursor = null
-  ) extends BaseRelationshipCursorIterator {
-
-    override protected def fetchNext(): Long =
-      if (selectionCursor.next()) selectionCursor.relationshipReference()
-      else {
-        -1L
-      }
-
-    override protected def storeState(): Unit = {
-      relTypeId = selectionCursor.`type`()
-      source = selectionCursor.sourceNodeReference()
-      target = selectionCursor.targetNodeReference()
-    }
-
-    override def close(): Unit = {
-      if (traversalCursor != null && !(traversalCursor eq selectionCursor)) {
-        traversalCursor.close()
-      }
-      selectionCursor.close()
-    }
-  }
-
-  class RelationshipTypeCursorIterator(
-    typeIndexCursor: RelationshipTypeIndexCursor
-  ) extends BaseRelationshipCursorIterator {
-
-    override def relationshipVisit[EXCEPTION <: Exception](
-      relationshipId: Long,
-      visitor: RelationshipVisitor[EXCEPTION]
-    ): Boolean = {
-      visitor.visit(relationshipId, relTypeId, source, target)
-      true
-    }
-
-    override protected def fetchNext(): Long = {
-      while (typeIndexCursor.next()) {
-        // check that relationship was successfully retrieved from store (protect against concurrent deletes)
-        if (typeIndexCursor.readFromStore()) {
-          return typeIndexCursor.relationshipReference()
-        }
-      }
-      -1L
-    }
-
-    override protected def storeState(): Unit = {
-      relTypeId = typeIndexCursor.`type`()
-      source = typeIndexCursor.sourceNodeReference()
-      target = typeIndexCursor.targetNodeReference()
-    }
-
-    override def close(): Unit = {
-      typeIndexCursor.close()
-    }
-  }
-
-  object BaseRelationshipCursorIterator {
-    private val NOT_INITIALIZED = -2L
-    private val NO_ID = -1
-
-    val EMPTY = new BaseRelationshipCursorIterator {
-      override protected def fetchNext(): Long = -1L
-      override protected def storeState(): Unit = ()
-      override def close(): Unit = ()
-    }
   }
 
   trait IndexSearchMonitor {
