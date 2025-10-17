@@ -113,7 +113,7 @@ object DynamicDirectedRelationshipTypeLookupPipe {
     }
 
     def getIndexComparator: Comparator[IndexDescriptor] =
-      state.indexComparatorFactory.createComparator()
+      state.indexComparatorFactory.createComparator(state.query.dataRead, state.query.transactionalContext.schemaRead)
 
     def findIndicesForType(
       typeId: Int,
