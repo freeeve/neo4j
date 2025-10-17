@@ -120,7 +120,7 @@ public class DefaultDatabaseContextFactory
                     ModularDatabaseCreationContext.defaultFileWatcherFilter(),
                     AccessCapabilityFactory.configDependent(),
                     ExternalIdReuseConditionProvider.NONE,
-                    idContextFactory.createIdContext(namedDatabaseId, contextFactory, databaseConfig, true),
+                    idContextFactory.createIdContext(namedDatabaseId, contextFactory, databaseConfig, true, true),
                     commitProcessFactory,
                     createTokenHolderProvider(this::kernel),
                     new IsolatedTransactionVectorStoreCreator(this::kernel),

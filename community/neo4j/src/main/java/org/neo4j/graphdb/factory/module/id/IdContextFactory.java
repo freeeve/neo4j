@@ -29,10 +29,14 @@ public interface IdContextFactory {
             NamedDatabaseId namedDatabaseId,
             CursorContextFactory contextFactory,
             DatabaseConfig databaseConfig,
-            boolean allocationInitiallyEnabled);
+            boolean allocationInitiallyEnabled,
+            boolean directToCache);
 
     interface IdGeneratorFactoryCreator {
         IdGeneratorFactory apply(
-                DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId, boolean allocationInitiallyEnabled);
+                DatabaseConfig databaseConfig,
+                NamedDatabaseId namedDatabaseId,
+                boolean allocationInitiallyEnabled,
+                boolean directToCache);
     }
 }

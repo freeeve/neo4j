@@ -810,6 +810,10 @@ public class IndexedIdGenerator implements IdGenerator {
         return scanner.allocationEnabled();
     }
 
+    public boolean directToCache() {
+        return useDirectToCache;
+    }
+
     @Override
     public IdType idType() {
         return idType;

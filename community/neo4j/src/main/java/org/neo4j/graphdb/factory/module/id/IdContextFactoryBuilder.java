@@ -84,7 +84,7 @@ public final class IdContextFactoryBuilder {
 
     public static IdGeneratorFactoryCreator defaultIdGeneratorFactoryProvider(
             FileSystemAbstraction fs, PageCacheTracer pageCacheTracer) {
-        return (databaseConfig, databaseId, allocationEnabled) -> {
+        return (databaseConfig, databaseId, allocationEnabled, directToCache) -> {
             // There's no point allocating large ID caches for the system database because it generally sees very low
             // activity.
             // Also take into consideration if user has explicitly overridden the behaviour to always force small
@@ -98,7 +98,7 @@ public final class IdContextFactoryBuilder {
                     pageCacheTracer,
                     databaseId.name(),
                     allocationEnabled,
-                    !isMultiVersion);
+                    directToCache && !isMultiVersion);
         };
     }
 }

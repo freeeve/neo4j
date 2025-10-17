@@ -60,14 +60,16 @@ public class DefaultIdContextFactory implements IdContextFactory {
             NamedDatabaseId namedDatabaseId,
             CursorContextFactory contextFactory,
             DatabaseConfig databaseConfig,
-            boolean allocationInitiallyEnabled) {
+            boolean allocationInitiallyEnabled,
+            boolean directToCache) {
         return createBufferingIdContext(
                 idFactoryProvider,
                 jobScheduler,
                 contextFactory,
                 namedDatabaseId,
                 databaseConfig,
-                allocationInitiallyEnabled);
+                allocationInitiallyEnabled,
+                directToCache);
     }
 
     private DatabaseIdContext createBufferingIdContext(
@@ -76,9 +78,10 @@ public class DefaultIdContextFactory implements IdContextFactory {
             CursorContextFactory contextFactory,
             NamedDatabaseId namedDatabaseId,
             DatabaseConfig databaseConfig,
-            boolean allocationInitiallyEnabled) {
-        var idGeneratorFactory =
-                idGeneratorFactoryProvider.apply(databaseConfig, namedDatabaseId, allocationInitiallyEnabled);
+            boolean allocationInitiallyEnabled,
+            boolean directToCache) {
+        var idGeneratorFactory = idGeneratorFactoryProvider.apply(
+                databaseConfig, namedDatabaseId, allocationInitiallyEnabled, directToCache);
         var bufferingIdGeneratorFactory = wrapWithBufferingFactory(idGeneratorFactory, databaseConfig);
         var bufferingController = createBufferedIdController(
                 bufferingIdGeneratorFactory,

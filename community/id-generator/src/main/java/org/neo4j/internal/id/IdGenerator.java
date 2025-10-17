@@ -479,6 +479,10 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
                 ProgressMonitorFactory progressMonitorFactory) {
             return delegate.consistencyCheck(reporterFactory, contextFactory, numThreads, progressMonitorFactory);
         }
+
+        public IdGenerator delegate() {
+            return delegate;
+        }
     }
 
     class NoOpMarker implements TransactionalMarker, ContextualMarker {

@@ -94,10 +94,10 @@ class IdContextFactoryBuilderTest {
         IdGeneratorFactory idGeneratorFactory = mock(IdGeneratorFactory.class);
         Config config = defaults();
         IdContextFactory contextFactory = IdContextFactoryBuilder.of(fs, jobScheduler, PageCacheTracer.NULL)
-                .withIdGenerationFactoryProvider((dbConfig, i1, i2) -> idGeneratorFactory)
+                .withIdGenerationFactoryProvider((dbConfig, i1, i2, directToCache) -> idGeneratorFactory)
                 .build();
         DatabaseIdContext idContext = contextFactory.createIdContext(
-                from("database", UUID.randomUUID()), CONTEXT_FACTORY, new DatabaseConfig(config), true);
+                from("database", UUID.randomUUID()), CONTEXT_FACTORY, new DatabaseConfig(config), true, true);
 
         IdGeneratorFactory bufferedGeneratorFactory = idContext.getIdGeneratorFactory();
         assertThat(idContext.getIdController()).isInstanceOf(BufferedIdController.class);
@@ -154,7 +154,7 @@ class IdContextFactoryBuilderTest {
                 .build();
 
         DatabaseIdContext idContext = contextFactory.createIdContext(
-                from("database", UUID.randomUUID()), CONTEXT_FACTORY, new DatabaseConfig(defaults()), true);
+                from("database", UUID.randomUUID()), CONTEXT_FACTORY, new DatabaseConfig(defaults()), true, true);
 
         assertSame(idGeneratorFactory, idContext.getIdGeneratorFactory());
     }
@@ -167,7 +167,7 @@ class IdContextFactoryBuilderTest {
         var idContextFactory =
                 IdContextFactoryBuilder.of(fs, jobScheduler, cacheTracer).build();
         var idContext = idContextFactory.createIdContext(
-                from("test", UUID.randomUUID()), contextFactory, new DatabaseConfig(config), true);
+                from("test", UUID.randomUUID()), contextFactory, new DatabaseConfig(config), true, true);
         var idGeneratorFactory = idContext.getIdGeneratorFactory();
         var idController = idContext.getIdController();
         idController.initialize(
