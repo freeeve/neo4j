@@ -115,6 +115,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.OptionalExpandAllTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.OptionalExpandIntoTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.OptionalFailureTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.OptionalTestBase
+import org.neo4j.cypher.internal.runtime.spec.tests.OrderedAcyclicTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.OrderedAggregationTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.OrderedConditionalApplyTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.OrderedDistinctTestBase
@@ -146,6 +147,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.RelationshipLockingUniqueInd
 import org.neo4j.cypher.internal.runtime.spec.tests.RelationshipTypeScanTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.RemoveDynamicLabelsTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.RemoveLabelsTestBase
+import org.neo4j.cypher.internal.runtime.spec.tests.RepeatAcyclicTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatTrailTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.RightOuterHashJoinTestBase
@@ -538,6 +540,10 @@ class InterpretedDynamicRelationshipTypeLookupTest
 
 class InterpretedUnionRelationshipTypeTest
     extends UnionRelationshipTypeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedRepeatAcyclicTest
+    extends RepeatAcyclicTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+    with OrderedAcyclicTestBase[CommunityRuntimeContext]
 
 class InterpretedRepeatTrailTest
     extends RepeatTrailTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)

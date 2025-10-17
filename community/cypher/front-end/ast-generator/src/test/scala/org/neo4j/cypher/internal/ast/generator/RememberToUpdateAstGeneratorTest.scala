@@ -121,6 +121,7 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.expressions.HasDegreeLessThanOrEqual",
     "org.neo4j.cypher.internal.expressions.ImplicitProcedureArgument",
     "org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique",
+    "org.neo4j.cypher.internal.expressions.IsRepeatAcyclic",
     "org.neo4j.cypher.internal.expressions.MatchMode.DifferentRelationships",
     "org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements",
     "org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep",

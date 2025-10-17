@@ -843,6 +843,44 @@ object LogicalPlanToPlanBuilderString {
           expansionMode,
           accumulators
         )
+      case RepeatAcyclic(
+          _,
+          _,
+          repetition,
+          start,
+          end,
+          innerStart,
+          innerEnd,
+          groupNodes,
+          previouslyBoundNodes,
+          previouslyBoundNodeGroups,
+          innerNodes,
+          groupRelationships,
+          previouslyBoundRelationships,
+          previouslyBoundRelationshipGroups,
+          innerRelationships,
+          reverseGroupVariableProjections,
+          expansionMode,
+          accumulators
+        ) =>
+        acyclicParameterString(
+          repetition,
+          start,
+          end,
+          innerStart,
+          innerEnd,
+          groupNodes,
+          innerNodes,
+          previouslyBoundNodes,
+          previouslyBoundNodeGroups,
+          groupRelationships,
+          innerRelationships,
+          previouslyBoundRelationships,
+          previouslyBoundRelationshipGroups,
+          reverseGroupVariableProjections,
+          expansionMode,
+          accumulators
+        )
       case BidirectionalRepeatTrail(
           _,
           _,
@@ -1800,6 +1838,45 @@ object LogicalPlanToPlanBuilderString {
     val compoundString = maybeCompoundPredicate.map(cp => s", compoundPredicate = $cp").getOrElse("")
     s"$indent$indent.addTransition(${from.id}, ${transition.endId}, $patternString$compoundString)"
   }
+
+  private def acyclicParameterString(
+    repetition: Repetition,
+    start: LogicalVariable,
+    end: LogicalVariable,
+    innerStart: LogicalVariable,
+    innerEnd: LogicalVariable,
+    groupNodes: Set[VariableGrouping],
+    innerNodes: Set[LogicalVariable],
+    previouslyBoundNodes: Set[LogicalVariable],
+    previouslyBoundNodeGroups: Set[LogicalVariable],
+    groupRelationships: Set[VariableGrouping],
+    innerRelationships: Set[LogicalVariable],
+    previouslyBoundRelationships: Set[LogicalVariable],
+    previouslyBoundRelationshipGroups: Set[LogicalVariable],
+    reverseGroupVariableProjections: Boolean,
+    expansionMode: ExpansionMode,
+    accumulators: Set[AllReduceAccumulator]
+  ) =
+    call(
+      "AcyclicParameters",
+      repetition.min,
+      repetition.max.toString,
+      start,
+      end,
+      innerStart,
+      innerEnd,
+      groupNodes,
+      innerNodes,
+      previouslyBoundNodes,
+      previouslyBoundNodeGroups,
+      groupRelationships,
+      innerRelationships,
+      previouslyBoundRelationships,
+      previouslyBoundRelationshipGroups,
+      reverseGroupVariableProjections,
+      expansionMode,
+      accumulators
+    )
 
   private def trailParametersString(
     repetition: Repetition,

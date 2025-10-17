@@ -26,9 +26,7 @@ import org.neo4j.values.TernaryComparator;
 import org.neo4j.values.ValueMapper;
 import org.neo4j.values.VirtualValue;
 
-public abstract class VirtualNodeValue extends VirtualValue {
-    public abstract long id();
-
+public abstract class VirtualNodeValue extends VirtualValue implements IdentifiedVirtualValue {
     @Override
     public int unsafeCompareTo(VirtualValue other, Comparator<AnyValue> comparator) {
         VirtualNodeValue otherNode = (VirtualNodeValue) other;

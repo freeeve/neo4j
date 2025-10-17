@@ -27,9 +27,7 @@ import org.neo4j.values.TernaryComparator;
 import org.neo4j.values.ValueMapper;
 import org.neo4j.values.VirtualValue;
 
-public abstract class VirtualRelationshipValue extends VirtualValue {
-    public abstract long id();
-
+public abstract class VirtualRelationshipValue extends VirtualValue implements IdentifiedVirtualValue {
     public abstract long startNodeId(Consumer<RelationshipVisitor> consumer);
 
     public abstract long endNodeId(Consumer<RelationshipVisitor> consumer);

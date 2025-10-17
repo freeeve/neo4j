@@ -156,6 +156,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
+import org.neo4j.cypher.internal.logical.plans.RepeatAcyclic
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
@@ -2184,6 +2185,58 @@ case class InterpretedPipeMapper(
             maybeRetryParameters,
             expressionConverters.toCommandExpression(id, _)
           )
+        )(id = id)
+
+      case RepeatAcyclic(
+          _,
+          _,
+          repetition,
+          start,
+          end,
+          innerStart,
+          innerEnd,
+          groupNodes,
+          previouslyBoundNodes,
+          previouslyBoundNodeGroups,
+          innerNodes,
+          groupRelationships,
+          previouslyBoundRelationships,
+          previouslyBoundRelationshipGroups,
+          innerRelationships,
+          reverseGroupVariableProjections,
+          expansionMode,
+          accumulatorMappings
+        ) =>
+        val runtimeAccumulatorMappings = accumulatorMappings.toArray.map(acc =>
+          AllReduceAcc(expressionConverters.toCommandExpression(id, acc.initial), acc.previous.name, acc.next.name)
+        )
+
+        val nodeInScope = expansionMode match {
+          case ExpandAll  => false
+          case ExpandInto => true
+        }
+
+        RepeatPipe(
+          lhs,
+          rhs,
+          repetition,
+          start.name,
+          end.name,
+          innerStart.name,
+          innerEnd.name,
+          groupNodes,
+          groupRelationships,
+          RepeatPipe.AcyclicModeConstraint(
+            innerRelationships.map(_.name).toArray,
+            innerNodes.map(_.name).toArray,
+            previouslyBoundRelationships.map(_.name),
+            previouslyBoundRelationshipGroups.map(_.name),
+            previouslyBoundNodes.map(_.name),
+            previouslyBoundNodeGroups.map(_.name)
+          ),
+          reverseGroupVariableProjections,
+          nodeInScope,
+          runtimeAccumulatorMappings
         )(id = id)
 
       case RepeatTrail(

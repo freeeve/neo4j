@@ -418,6 +418,12 @@ case class AssertIsNode(lhs: Expression)(val position: InputPosition) extends Bo
 sealed trait RelationshipUniquenessPredicate extends BooleanExpression
 
 /**
+ * Predicate used for enforcing node uniqueness as done in
+ * AddNodePredicates.
+ */
+sealed trait NodeUniquenessPredicate extends BooleanExpression
+
+/**
  * Tests whether the two relationships given are different.
  *
  * @param rel1 first relationship
@@ -466,6 +472,14 @@ case class Unique(rhs: Expression)(val position: InputPosition) extends Relation
  */
 case class IsRepeatTrailUnique(variableToCheck: Variable)(val position: InputPosition)
     extends RelationshipUniquenessPredicate {
+  override def isConstantForQuery: Boolean = false
+}
+
+/**
+ * Tests whether the node is unique across Repeat(Acyclic) iterations.
+ */
+case class IsRepeatAcyclic(variableToCheck: Variable)(val position: InputPosition)
+    extends NodeUniquenessPredicate {
   override def isConstantForQuery: Boolean = false
 }
 

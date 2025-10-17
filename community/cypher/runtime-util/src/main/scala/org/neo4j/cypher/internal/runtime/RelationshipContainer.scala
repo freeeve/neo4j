@@ -95,5 +95,7 @@ object RelationshipContainer {
         new TrailModeRelationshipContainer(Some(EMPTY_LIST), 0, HeapTrackingLongImmutableSet.emptySet(memoryTracker))
       case (TraversalPathMode.Trail, false) =>
         new TrailModeRelationshipContainer(None, 0, HeapTrackingLongImmutableSet.emptySet(memoryTracker))
+      case (TraversalPathMode.Acyclic, true)  => ???
+      case (TraversalPathMode.Acyclic, false) => ???
     }
 }

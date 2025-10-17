@@ -100,6 +100,7 @@ import org.neo4j.cypher.internal.ir.SimpleMutatingPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.disjoinRelTypesToLabelExpression
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.PushdownOperators
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.ToExpression
@@ -231,6 +232,7 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
+import org.neo4j.cypher.internal.logical.plans.RepeatAcyclic
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
@@ -3251,6 +3253,44 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     ))
   }
 
+  def repeatAcyclic(
+    acyclicParameters: AcyclicParameters
+  ): IMPL = {
+    // This one comes in as an argument, so we need to declare it as a node here
+    newNode(varFor(acyclicParameters.innerStart))
+    // This is the node we "expand-to" , so we need to declare it as a node here
+    newNode(varFor(acyclicParameters.end))
+
+    appendAtCurrentIndent(BinaryOperator((lhs, rhs) =>
+      RepeatAcyclic(
+        left = lhs,
+        right = rhs,
+        repetition = Repetition(acyclicParameters.min, acyclicParameters.max),
+        start = varFor(acyclicParameters.start),
+        end = varFor(acyclicParameters.end),
+        innerStart = varFor(acyclicParameters.innerStart),
+        innerEnd = varFor(acyclicParameters.innerEnd),
+        nodeVariableGroupings = acyclicParameters.groupNodes.map { case (inner, outer) =>
+          VariableGrouping(varFor(inner), varFor(outer))(pos)
+        },
+        previouslyBoundNodes = acyclicParameters.previouslyBoundNodes.map(varFor),
+        previouslyBoundNodeGroups = acyclicParameters.previouslyBoundNodeGroups.map(varFor),
+        innerNodes = acyclicParameters.innerNodes.map(varFor),
+        relationshipVariableGroupings = acyclicParameters.groupRelationships.map { case (inner, outer) =>
+          VariableGrouping(varFor(inner), varFor(outer))(pos)
+        },
+        previouslyBoundRelationships = acyclicParameters.previouslyBoundRelationships.map(varFor),
+        previouslyBoundRelationshipGroups = acyclicParameters.previouslyBoundRelationshipGroups.map(varFor),
+        innerRelationships = acyclicParameters.innerRelationships.map(varFor),
+        reverseGroupVariableProjections = acyclicParameters.reverseGroupVariableProjections,
+        expansionMode = acyclicParameters.expansionMode,
+        accumulatorMappings = acyclicParameters.accumulators.map { case (initial, previous, current) =>
+          AllReduceAccumulator(parser.parseExpression(initial), varFor(previous), varFor(current))(pos)
+        }
+      )(_)
+    ))
+  }
+
   def repeatOptions(): IMPL = {
     appendAtCurrentIndent(BinaryOperator((lhs, rhs) =>
       RepeatOptions(lhs, rhs)(_)
@@ -3509,6 +3549,26 @@ object AbstractLogicalPlanBuilder {
     groupRelationships: Set[(String, String)],
     reverseGroupVariableProjections: Boolean,
     innerRelationships: Set[String],
+    expansionMode: ExpansionMode,
+    accumulators: Set[(String, String, String)]
+  )
+
+  case class AcyclicParameters(
+    min: Int,
+    max: UpperBound,
+    start: String,
+    end: String,
+    innerStart: String,
+    innerEnd: String,
+    groupNodes: Set[(String, String)],
+    innerNodes: Set[String],
+    previouslyBoundNodes: Set[String],
+    previouslyBoundNodeGroups: Set[String],
+    groupRelationships: Set[(String, String)],
+    innerRelationships: Set[String],
+    previouslyBoundRelationships: Set[String],
+    previouslyBoundRelationshipGroups: Set[String],
+    reverseGroupVariableProjections: Boolean,
     expansionMode: ExpansionMode,
     accumulators: Set[(String, String, String)]
   )

@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Repeat
+import org.neo4j.cypher.internal.logical.plans.RepeatAcyclic
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.Selection
@@ -163,8 +164,9 @@ case class RepeatToVarExpandRewriter(
       case (direction, true)               => direction.reversed
     }
     val pathMode = repeat match {
-      case _: RepeatTrail => TraversalPathMode.Trail
-      case _: RepeatWalk  => TraversalPathMode.Walk
+      case _: RepeatTrail   => TraversalPathMode.Trail
+      case _: RepeatWalk    => TraversalPathMode.Walk
+      case _: RepeatAcyclic => ???
     }
 
     VarExpand(

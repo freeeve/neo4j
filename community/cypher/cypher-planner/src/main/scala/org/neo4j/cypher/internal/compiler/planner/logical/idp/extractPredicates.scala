@@ -496,7 +496,6 @@ object extractQppPredicates {
           .map(relVar =>
             IsRepeatTrailUnique(relVar.asInstanceOf[Variable])(InputPosition.NONE)
           )
-
         ExtractedPredicate(unique, Ands.create(extractedPredicates))
 
       case allReduce @ AllReducePredicate(scope, _, listVariable: LogicalVariable)

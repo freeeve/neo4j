@@ -17,25 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.logical.plans
+package org.neo4j.values.virtual;
 
-import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.Unique
-
-sealed trait TraversalPathMode
-
-object TraversalPathMode {
-  case object Walk extends TraversalPathMode
-  case object Trail extends TraversalPathMode
-  case object Acyclic extends TraversalPathMode
-
-  def getFromPredicates(predicates: Iterable[Expression], alwaysTrail: Boolean = false): TraversalPathMode = {
-    val isPathModeTrail = alwaysTrail || predicates.exists(predicate => {
-      predicate match {
-        case _: Unique => true
-        case _         => false
-      }
-    })
-    if (isPathModeTrail) TraversalPathMode.Trail else TraversalPathMode.Walk
-  }
+public interface IdentifiedVirtualValue {
+    long id();
 }

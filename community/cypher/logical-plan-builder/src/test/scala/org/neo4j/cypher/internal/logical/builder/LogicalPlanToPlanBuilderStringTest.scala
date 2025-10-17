@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.HasHeaders
 import org.neo4j.cypher.internal.ir.NoHeaders
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.PushdownOperators
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
@@ -3175,6 +3176,35 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "repeatAcyclic",
+    new TestPlanBuilder()
+      .produceResults("me", "you", "a", "b", "r")
+      .repeatAcyclic(AcyclicParameters(
+        min = 0,
+        max = Limited(2),
+        start = "me",
+        end = "you",
+        innerStart = "a",
+        innerEnd = "b",
+        groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
+        innerNodes = Set("a_inner", "b_inner"),
+        previouslyBoundNodes = Set(),
+        previouslyBoundNodeGroups = Set(),
+        groupRelationships = Set(("r_inner", "r")),
+        innerRelationships = Set("r_inner"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set(),
+        reverseGroupVariableProjections = true,
+        expansionMode = ExpandAll,
+        accumulators = Set(("a", "b", "c"))
+      ))
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+  )
+
+  testPlan(
     "simulatedNodeScan",
     new TestPlanBuilder()
       .produceResults("x")
@@ -3290,6 +3320,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.removeLabel
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
+            |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.PushdownOperators
             |import org.neo4j.cypher.internal.logical.builder.TestNFABuilder

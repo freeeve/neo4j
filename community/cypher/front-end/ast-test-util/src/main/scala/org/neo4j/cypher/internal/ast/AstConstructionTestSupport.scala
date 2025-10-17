@@ -80,6 +80,7 @@ import org.neo4j.cypher.internal.expressions.InequalityExpression
 import org.neo4j.cypher.internal.expressions.Infinity
 import org.neo4j.cypher.internal.expressions.IsNotNull
 import org.neo4j.cypher.internal.expressions.IsNull
+import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
@@ -1542,6 +1543,9 @@ trait AstConstructionTestSupport {
 
   def isRepeatTrailUnique(rel: String): IsRepeatTrailUnique =
     IsRepeatTrailUnique(varFor(rel))(pos)
+
+  def isRepeatAcyclic(node: String): IsRepeatAcyclic =
+    IsRepeatAcyclic(varFor(node))(pos)
 
   def disjoint(lhs: Expression, rhs: Expression): Disjoint =
     Disjoint(lhs, rhs)(pos)

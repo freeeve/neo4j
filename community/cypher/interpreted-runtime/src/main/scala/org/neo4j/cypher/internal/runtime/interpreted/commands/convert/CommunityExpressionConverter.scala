@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
 import org.neo4j.cypher.internal.expressions.ElementIdToLongId
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -557,6 +558,7 @@ case class CommunityExpressionConverter(
       case ElementIdToLongId(RELATIONSHIP_TYPE, ElementIdToLongId.Mode.Many, rhs) =>
         commands.expressions.ElementIdListToRelationshipIdListFunction(self.toCommandExpression(id, rhs))
       case _: IsRepeatTrailUnique            => predicates.True()
+      case _: IsRepeatAcyclic                => predicates.True() // TODO: This correct?
       case _: NullCheckAssert                => commands.expressions.Literal(NO_VALUE)
       case _: NonCompilable                  => commands.expressions.Literal(NO_VALUE)
       case GraphDirectReference(catalogName) => ConstantGraphReference(catalogName)
