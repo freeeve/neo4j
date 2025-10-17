@@ -128,6 +128,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.monitoring.Monitors;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -1545,8 +1546,8 @@ class RecoveryCorruptedTransactionLogIT {
             commands.add(new Command.PropertyCommand(
                     LATEST_LOG_SERIALIZATION, new PropertyRecord(1), new PropertyRecord(2)));
             commands.add(new Command.NodeCommand(LATEST_LOG_SERIALIZATION, new NodeRecord(2), new NodeRecord(3)));
-            CompleteCommandBatch transaction =
-                    new CompleteCommandBatch(commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, kernelVersion(), ANONYMOUS);
+            CompleteCommandBatch transaction = new CompleteCommandBatch(
+                    commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, Leases.NO_LEASES, kernelVersion(), ANONYMOUS);
             writer.append(
                     transaction,
                     1000,

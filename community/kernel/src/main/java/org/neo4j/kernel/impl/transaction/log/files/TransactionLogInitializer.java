@@ -46,6 +46,7 @@ import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.NullLog;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogFilesInitializer;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.MetadataProvider;
@@ -225,6 +226,7 @@ public class TransactionLogInitializer {
                 txId,
                 timestamp,
                 NO_LEASE,
+                Leases.NO_LEASES,
                 kernelVersion,
                 ANONYMOUS);
     }

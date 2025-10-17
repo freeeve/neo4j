@@ -54,6 +54,7 @@ import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.LatestVersions;
@@ -137,6 +138,7 @@ public class CommitProcessTracingIT {
                 0,
                 0,
                 0,
+                Leases.NO_LEASES,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
         var pageCacheTracer = new DefaultPageCacheTracer();

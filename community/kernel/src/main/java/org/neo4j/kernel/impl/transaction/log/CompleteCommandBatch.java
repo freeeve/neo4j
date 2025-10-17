@@ -29,6 +29,7 @@ import org.neo4j.common.Subject;
 import org.neo4j.internal.helpers.collection.Visitor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;
 
 public class CompleteCommandBatch implements CommandBatch {
@@ -36,6 +37,7 @@ public class CompleteCommandBatch implements CommandBatch {
     private final long timeStarted;
     private final long latestCommittedTxWhenStarted;
     private final long timeCommitted;
+    private final Leases leases;
     private final KernelVersion kernelVersion;
     private final Subject subject;
     /**
@@ -54,6 +56,7 @@ public class CompleteCommandBatch implements CommandBatch {
             long latestCommittedTxWhenStarted,
             long timeCommitted,
             int leaseId,
+            Leases leases,
             KernelVersion kernelVersion,
             Subject subject) {
         this.commands = commands;
@@ -62,6 +65,7 @@ public class CompleteCommandBatch implements CommandBatch {
         this.latestCommittedTxWhenStarted = latestCommittedTxWhenStarted;
         this.timeCommitted = timeCommitted;
         this.leaseId = leaseId;
+        this.leases = leases;
         this.kernelVersion = kernelVersion;
         this.subject = subject;
     }
@@ -104,6 +108,11 @@ public class CompleteCommandBatch implements CommandBatch {
     @Override
     public int getLeaseId() {
         return leaseId;
+    }
+
+    @Override
+    public Leases leases() {
+        return leases;
     }
 
     @Override

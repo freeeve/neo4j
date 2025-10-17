@@ -115,6 +115,7 @@ import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
@@ -698,6 +699,7 @@ class BatchingNeoStoresTest {
                             0,
                             0,
                             0,
+                            Leases.NO_LEASES,
                             LatestVersions.LATEST_KERNEL_VERSION,
                             ANONYMOUS),
                     NULL_CONTEXT,

@@ -38,6 +38,7 @@ import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.LeaseClient;
+import org.neo4j.kernel.impl.api.StorageCommands;
 import org.neo4j.kernel.impl.api.TransactionClockContext;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.chunk.ChunkMetadata;
@@ -132,7 +133,9 @@ public final class ChunkCommitter implements TransactionCommitter {
             throws KernelException {
         LockManager.Client lockClient = ktx.lockClient();
         try {
-            List<StorageCommand> extractedCommands = ktx.extractCommands(memoryTracker);
+            StorageCommands storageCommands = ktx.extractCommands(memoryTracker);
+            List<StorageCommand> extractedCommands = storageCommands.commands();
+            assert storageCommands.leases().size() == 0 : "LeaseMap not implemented for chunked transactions";
             if (!extractedCommands.isEmpty() || (commit && transactionPayload != null)) {
                 serialExecutionGuard.check();
                 if (kernelVersion == null) {

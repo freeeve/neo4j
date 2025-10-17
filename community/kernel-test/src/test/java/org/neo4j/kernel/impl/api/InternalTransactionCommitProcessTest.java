@@ -61,6 +61,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
@@ -198,6 +199,7 @@ class InternalTransactionCommitProcessTest {
                 -1,
                 -1,
                 -1,
+                Leases.NO_LEASES,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
         var transactionToApply = new CompleteTransaction(
@@ -235,6 +237,7 @@ class InternalTransactionCommitProcessTest {
                 -1,
                 -1,
                 -1,
+                Leases.NO_LEASES,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
         noCommandTx.setAppendIndex(appendIndex);

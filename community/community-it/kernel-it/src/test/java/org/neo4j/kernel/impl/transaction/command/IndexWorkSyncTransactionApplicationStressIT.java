@@ -69,6 +69,7 @@ import org.neo4j.lock.ResourceLocker;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexUpdateListener;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.StorageReader;
@@ -160,7 +161,15 @@ class IndexWorkSyncTransactionApplicationStressIT {
             TransactionCommitmentFactory commitmentFactory,
             TransactionIdGenerator transactionIdGenerator) {
         CompleteCommandBatch txRepresentation = new CompleteCommandBatch(
-                commands, UNKNOWN_CONSENSUS_INDEX, -1, -1, -1, -1, LatestVersions.LATEST_KERNEL_VERSION, ANONYMOUS);
+                commands,
+                UNKNOWN_CONSENSUS_INDEX,
+                -1,
+                -1,
+                -1,
+                -1,
+                Leases.NO_LEASES,
+                LatestVersions.LATEST_KERNEL_VERSION,
+                ANONYMOUS);
         CompleteTransaction tx = new CompleteTransaction(
                 txRepresentation,
                 NULL_CONTEXT,

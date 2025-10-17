@@ -30,6 +30,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -99,7 +100,15 @@ public class GroupOfCommands implements StorageEngineTransaction {
     @Override
     public CommandBatch commandBatch() {
         return new CompleteCommandBatch(
-                List.of(commands), 0, 0, 0, 0, 0, LatestVersions.LATEST_KERNEL_VERSION, Subject.SYSTEM);
+                List.of(commands),
+                0,
+                0,
+                0,
+                0,
+                0,
+                Leases.NO_LEASES,
+                LatestVersions.LATEST_KERNEL_VERSION,
+                Subject.SYSTEM);
     }
 
     @Override

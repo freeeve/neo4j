@@ -56,6 +56,7 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.storageengine.AppendIndexProvider;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.LatestVersions;
@@ -251,6 +252,7 @@ class QueueTransactionAppenderTestIT {
                 2,
                 3,
                 4,
+                Leases.NO_LEASES,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
         var transactionCommitment = new TransactionCommitment(transactionIdStore);

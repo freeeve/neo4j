@@ -68,6 +68,7 @@ import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.InternalErrorTracer;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageCommand;
@@ -317,7 +318,7 @@ class ParallelRecoveryVisitorTest {
         commands.forEach(cmd -> ((RecoveryTestBaseCommand) cmd).txId = txId);
         LogEntryStart startEntry = newStartEntry(LATEST_KERNEL_VERSION, 0, 0, 0, 0, EMPTY_BYTE_ARRAY);
         CommandBatch txRepresentation = new CompleteCommandBatch(
-                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LATEST_KERNEL_VERSION, AUTH_DISABLED);
+                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, Leases.NO_LEASES, LATEST_KERNEL_VERSION, AUTH_DISABLED);
         LogEntryCommit commitEntry = newCommitEntry(LATEST_KERNEL_VERSION, txId, 0, BASE_TX_CHECKSUM + 1);
         return new CompleteBatchRepresentation(startEntry, txRepresentation, commitEntry, BASE_TX_CHECKSUM);
     }

@@ -57,6 +57,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
@@ -236,6 +237,14 @@ class EagerlyReversedCommandBatchCursorTest {
             }
         }
         return new CompleteCommandBatch(
-                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LatestVersions.LATEST_KERNEL_VERSION, ANONYMOUS);
+                commands,
+                UNKNOWN_CONSENSUS_INDEX,
+                0,
+                0,
+                0,
+                0,
+                Leases.NO_LEASES,
+                LatestVersions.LATEST_KERNEL_VERSION,
+                ANONYMOUS);
     }
 }

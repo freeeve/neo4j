@@ -99,6 +99,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.LogVersionRepository;
@@ -501,6 +502,7 @@ class NeoStoresTest {
                     -1,
                     -1,
                     -1,
+                    Leases.NO_LEASES,
                     LatestVersions.LATEST_KERNEL_VERSION,
                     AUTH_DISABLED);
             storageEngine.apply(

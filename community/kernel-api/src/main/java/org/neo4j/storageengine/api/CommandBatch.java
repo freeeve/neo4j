@@ -56,6 +56,12 @@ public interface CommandBatch extends CommandStream, KernelVersionProvider {
     int getLeaseId();
 
     /**
+     * @return the identifiers for leases associated with other databases and servers for this transaction.
+     * This is only used for coordinating transaction validity in a sharded cluster
+     */
+    Leases leases();
+
+    /**
      * @return the subject associated with the transaction.
      * Typically, an authenticated end user that created the transaction.
      */

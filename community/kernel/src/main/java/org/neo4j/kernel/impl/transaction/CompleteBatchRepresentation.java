@@ -33,6 +33,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;
 
 /**
@@ -56,6 +57,7 @@ public record CompleteBatchRepresentation(
                         startEntry.getLastCommittedTxWhenTransactionStarted(),
                         commitEntry.getTimeWritten(),
                         -1,
+                        Leases.NO_LEASES,
                         startEntry.kernelVersion(),
                         ANONYMOUS),
                 commitEntry,

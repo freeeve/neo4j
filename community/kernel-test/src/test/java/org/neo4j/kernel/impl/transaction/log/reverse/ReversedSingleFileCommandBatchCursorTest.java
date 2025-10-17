@@ -71,6 +71,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
@@ -316,7 +317,15 @@ class ReversedSingleFileCommandBatchCursorTest {
             commands.add(new TestCommand(LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES));
         }
         return new CompleteCommandBatch(
-                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES, ANONYMOUS);
+                commands,
+                UNKNOWN_CONSENSUS_INDEX,
+                0,
+                0,
+                0,
+                0,
+                Leases.NO_LEASES,
+                LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES,
+                ANONYMOUS);
     }
 
     private static class CorruptedLogEntryWriter<T extends WritableChannel> extends LogEntryWriter<T> {

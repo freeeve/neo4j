@@ -28,6 +28,7 @@ import org.neo4j.common.Subject;
 import org.neo4j.internal.helpers.collection.Visitor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;
 
 public record ChunkedCommandBatch(List<StorageCommand> commands, ChunkMetadata chunkMetadata) implements CommandBatch {
@@ -55,6 +56,11 @@ public record ChunkedCommandBatch(List<StorageCommand> commands, ChunkMetadata c
     @Override
     public int getLeaseId() {
         return chunkMetadata.leaseId();
+    }
+
+    @Override
+    public Leases leases() {
+        return Leases.NO_LEASES;
     }
 
     @Override

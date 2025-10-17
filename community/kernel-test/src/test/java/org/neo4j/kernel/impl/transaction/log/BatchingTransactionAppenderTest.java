@@ -106,6 +106,7 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StoreId;
@@ -169,8 +170,8 @@ class BatchingTransactionAppenderTest {
                             BASE_TX_COMMIT_TIMESTAMP,
                             UNKNOWN_CONSENSUS_INDEX));
             TransactionAppender appender = life.add(createTransactionAppender());
-            CommandBatch transaction =
-                    new CompleteCommandBatch(singleTestCommand(), 5, 12345, 7896, 123456, -1, null, ANONYMOUS);
+            CommandBatch transaction = new CompleteCommandBatch(
+                    singleTestCommand(), 5, 12345, 7896, 123456, -1, Leases.NO_LEASES, null, ANONYMOUS);
 
             // Looked up to figure out previous version on creation of writer
             assertEquals(1, versionProvider.getVersionLookedUp());
@@ -565,6 +566,7 @@ class BatchingTransactionAppenderTest {
                 latestCommittedTxWhenStarted,
                 timeCommitted,
                 -1,
+                Leases.NO_LEASES,
                 kernelVersion,
                 ANONYMOUS);
     }

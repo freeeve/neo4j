@@ -32,6 +32,7 @@ import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.txid.TransactionIdGenerator;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.storageengine.api.Commitment;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.LatestVersions;
@@ -47,6 +48,7 @@ class TransactionRepresentationFactory {
                 txId,
                 currentTimeMillis(),
                 42,
+                Leases.NO_LEASES,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
         return new CompleteTransaction(

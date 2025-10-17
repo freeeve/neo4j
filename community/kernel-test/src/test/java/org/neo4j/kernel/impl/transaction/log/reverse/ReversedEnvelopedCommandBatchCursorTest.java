@@ -79,6 +79,7 @@ import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
@@ -134,7 +135,8 @@ class ReversedEnvelopedCommandBatchCursorTest {
             // The type of command doesn't matter here
             commands.add(new TestCommand(kernelVersion));
         }
-        return new CompleteCommandBatch(commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, kernelVersion, ANONYMOUS);
+        return new CompleteCommandBatch(
+                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, Leases.NO_LEASES, kernelVersion, ANONYMOUS);
     }
 
     @BeforeEach

@@ -77,6 +77,7 @@ import org.neo4j.monitoring.Panic;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
@@ -383,6 +384,7 @@ class PhysicalLogicalTransactionStoreTest {
                 latestCommittedTxWhenStarted,
                 timeCommitted,
                 -1,
+                Leases.NO_LEASES,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
         var transactionCommitment = new TransactionCommitment(transactionIdStore);

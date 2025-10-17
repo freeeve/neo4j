@@ -49,6 +49,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
 import org.neo4j.kernel.lifecycle.LifeSupport;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
@@ -149,6 +150,7 @@ public class EnvelopedDetachedLogTailScannerTest {
                 txId - 1L,
                 0,
                 0,
+                Leases.NO_LEASES,
                 kernelVersion,
                 ANONYMOUS);
         entryWriter.serialize(commands);

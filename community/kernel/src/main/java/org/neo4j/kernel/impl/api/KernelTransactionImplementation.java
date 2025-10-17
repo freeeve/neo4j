@@ -1325,7 +1325,7 @@ public class KernelTransactionImplementation
         return needsHighIdTracking ? TransactionApplicationMode.EXTERNAL : TransactionApplicationMode.INTERNAL;
     }
 
-    public List<StorageCommand> extractCommands(MemoryTracker commandsTracker) throws KernelException {
+    public StorageCommands extractCommands(MemoryTracker commandsTracker) throws KernelException {
         final var commandDecorator = commandDecorator(commandsTracker);
         final var commands = storageEngine.createCommands(
                 txState,
@@ -1336,7 +1336,7 @@ public class KernelTransactionImplementation
                 cursorContext,
                 transactionalCursors,
                 commandsTracker);
-        return commandDecorator.transform(commands);
+        return new StorageCommands(commandDecorator.transform(commands));
     }
 
     private CommandDecorator commandDecorator(MemoryTracker commandsTracker) {

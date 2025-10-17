@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.api.commit;
 
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 
-import java.util.List;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.KernelVersionProvider;
@@ -29,6 +28,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.LeaseClient;
+import org.neo4j.kernel.impl.api.StorageCommands;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.txid.TransactionIdGenerator;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
@@ -37,7 +37,6 @@ import org.neo4j.kernel.impl.transaction.tracing.TransactionRollbackEvent;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionWriteEvent;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 
@@ -79,7 +78,7 @@ public final class DefaultCommitter implements TransactionCommitter {
             TransactionApplicationMode mode)
             throws KernelException {
         // Gather-up commands from the various sources
-        List<StorageCommand> extractedCommands = ktx.extractCommands(memoryTracker);
+        StorageCommands extractedCommands = ktx.extractCommands(memoryTracker);
 
         /* Here's the deal: we track a quick-to-access hasChanges in transaction state which is true
          * if there are any changes imposed by this transaction. Some changes made inside a transaction undo
@@ -90,16 +89,17 @@ public final class DefaultCommitter implements TransactionCommitter {
          * and get right.... So to really make sure the transaction has changes we re-check by looking if we
          * have produced any commands to add to the logical log.
          */
-        if (!extractedCommands.isEmpty()) {
+        if (!extractedCommands.commands().isEmpty()) {
             // Finish up the whole transaction representation
 
             CompleteCommandBatch transactionRepresentation = new CompleteCommandBatch(
-                    extractedCommands,
+                    extractedCommands.commands(),
                     UNKNOWN_CONSENSUS_INDEX,
                     startTimeMillis,
                     lastTransactionIdWhenStarted,
                     commitTime,
                     leaseClient.leaseId(),
+                    extractedCommands.leases(),
                     kernelVersionProvider.kernelVersion(),
                     ktx.securityContext().subject().userSubject());
 

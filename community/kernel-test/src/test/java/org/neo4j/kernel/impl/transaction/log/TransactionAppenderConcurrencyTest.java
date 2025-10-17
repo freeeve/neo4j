@@ -84,6 +84,7 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.AppendIndexProvider;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -292,6 +293,7 @@ public class TransactionAppenderConcurrencyTest {
                 0,
                 0,
                 0,
+                Leases.NO_LEASES,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
         return new CompleteTransaction(tx, NULL_CONTEXT, StoreCursors.NULL, NO_COMMITMENT, EMPTY);

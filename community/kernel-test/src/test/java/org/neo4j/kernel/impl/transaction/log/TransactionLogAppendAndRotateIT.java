@@ -94,6 +94,7 @@ import org.neo4j.monitoring.Panic;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Commitment;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
@@ -489,13 +490,22 @@ class TransactionLogAppendAndRotateIT {
             commands.add(new TestCommand(60));
         }
         return new CompleteCommandBatch(
-                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LatestVersions.LATEST_KERNEL_VERSION, ANONYMOUS);
+                commands,
+                UNKNOWN_CONSENSUS_INDEX,
+                0,
+                0,
+                0,
+                0,
+                Leases.NO_LEASES,
+                LatestVersions.LATEST_KERNEL_VERSION,
+                ANONYMOUS);
     }
 
     private static CommandBatch txWithVersion(KernelVersion version) {
         List<StorageCommand> commands = new ArrayList<>(1);
         commands.add(new TestCommand(50, version));
-        return new CompleteCommandBatch(commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, version, ANONYMOUS);
+        return new CompleteCommandBatch(
+                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, Leases.NO_LEASES, version, ANONYMOUS);
     }
 
     private static class TestLogFileMonitor extends LogRotationMonitorAdapter {

@@ -65,6 +65,7 @@ import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.AppendIndexProvider;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -180,8 +181,8 @@ class TransactionAppenderRotationIT {
 
     private CompleteTransaction prepareTransaction(KernelVersion kernelVersion) {
         List<StorageCommand> commands = createCommands(kernelVersion);
-        CompleteCommandBatch transactionRepresentation =
-                new CompleteCommandBatch(commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, kernelVersion, ANONYMOUS);
+        CompleteCommandBatch transactionRepresentation = new CompleteCommandBatch(
+                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, Leases.NO_LEASES, kernelVersion, ANONYMOUS);
         var transactionCommitment = new TransactionCommitment(transactionIdStore);
         return new CompleteTransaction(
                 transactionRepresentation,
