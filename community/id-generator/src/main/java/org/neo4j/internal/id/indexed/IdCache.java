@@ -41,7 +41,6 @@ class IdCache {
     private final ConcurrentLongQueue[] queues;
     private final AtomicInteger size = new AtomicInteger();
     private final int singleIdSlotIndex;
-    private final boolean singleSlotted;
     private final int[] slotIndexBySize;
 
     IdCache(IdSlotDistribution.Slot... slots) {
@@ -63,7 +62,6 @@ class IdCache {
                     : new MpmcLongQueue(capacity);
             queues[slotIndex] = queue;
         }
-        singleSlotted = isSingleSlotted();
         singleIdSlotIndex = findSingleSlotIndex(slotSizes);
         this.slotIndexBySize = buildSlotIndexBySize(slotSizes);
     }
@@ -75,15 +73,6 @@ class IdCache {
         }
         slotIndexBySize[slotIndexBySize.length - 1] = slotSizes.length - 1;
         return slotIndexBySize;
-    }
-
-    private boolean isSingleSlotted() {
-        for (int slotSize : slotSizes) {
-            if (slotSize != 1) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private static int findSingleSlotIndex(int[] slotSizes) {
