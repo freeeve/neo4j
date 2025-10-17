@@ -20,7 +20,6 @@
 package org.neo4j.importer;
 
 import static java.util.Objects.requireNonNull;
-import static scala.jdk.CollectionConverters.CollectionHasAsScala;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,6 +32,7 @@ import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext;
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature;
 import org.neo4j.cypher.internal.ast.semantics.SemanticState;
+import org.neo4j.cypher.internal.compiler.CypherParsingConfig;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger;
 import org.neo4j.cypher.internal.notification.devNullLogger$;
@@ -49,6 +49,7 @@ import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.util.Preconditions;
 import scala.Option;
+import scala.collection.immutable.Seq;
 
 /**
  * Reads a file that contains Cypher schema commands and converts them into the appropriate {@link SchemaCommand}s.
@@ -63,10 +64,22 @@ public class SchemaCommandReader {
 
     private final PreParser preParser;
 
+    private final Seq<SemanticFeature> semanticFeatures;
+
+    private SchemaCommandReader(
+            FileSystemAbstraction fileSystem, CypherConfiguration config, ReaderConfig readerConfig) {
+        this.fileSystem = fileSystem;
+        this.readerConfig = readerConfig;
+        this.preParser = new PreParser(config);
+        this.semanticFeatures =
+                CypherParsingConfig.fromCypherConfiguration(config).semanticFeatures();
+    }
+
     public SchemaCommandReader(FileSystemAbstraction fileSystem, Config config, ReaderConfig readerConfig) {
-        this.fileSystem = requireNonNull(fileSystem);
-        this.preParser = new PreParser(CypherConfiguration.fromConfig(requireNonNull(config)));
-        this.readerConfig = requireNonNull(readerConfig);
+        this(
+                requireNonNull(fileSystem),
+                CypherConfiguration.fromConfig(requireNonNull(config)),
+                requireNonNull(readerConfig));
     }
 
     /**
@@ -90,14 +103,13 @@ public class SchemaCommandReader {
         final var exceptionFactory = new Neo4jCypherExceptionFactory(
                 cypherText, Option.apply(preParsedQuery.options().offset()));
 
-        final List<SemanticFeature> semanticFeatures = List.of();
         final var statements = AstParserFactory$.MODULE$
                 .apply(cypherVersion)
                 .apply(
                         preParsedQuery.statement(),
                         exceptionFactory,
                         Option.apply(NOTIFICATION_LOGGER),
-                        CollectionHasAsScala(semanticFeatures).asScala().toSeq())
+                        semanticFeatures)
                 .statements();
 
         final var changesBuilder = new SchemaCommandsBuilder(readerConfig, cypherVersion);
@@ -136,7 +148,7 @@ public class SchemaCommandReader {
             throws SchemaCommandReaderException {
         if (statement instanceof org.neo4j.cypher.internal.ast.SchemaCommand command) {
             if (command.useGraph().isEmpty()) {
-                if (checkStatement(statement, errors, checkContext)) {
+                if (checkStatement(statement, errors, checkContext, semanticState())) {
                     changesBuilder.withCommand(command);
                 }
             } else {
@@ -153,10 +165,17 @@ public class SchemaCommandReader {
         }
     }
 
+    private SemanticState semanticState() {
+        return SemanticState.clean().withFeatures(semanticFeatures);
+    }
+
     private static boolean checkStatement(
-            Statement statement, MutableList<String> errors, SemanticCheckContext checkContext)
+            Statement statement,
+            MutableList<String> errors,
+            SemanticCheckContext checkContext,
+            SemanticState semanticState)
             throws SchemaCommandReaderException {
-        final var checkResult = statement.semanticCheck().run(SemanticState.clean(), checkContext);
+        final var checkResult = statement.semanticCheck().run(semanticState, checkContext);
         if (!checkResult.errors().isEmpty()) {
             checkResult.errors().foreach(error -> errors.add(errorMessage(error.position(), error.msg())));
             return false;

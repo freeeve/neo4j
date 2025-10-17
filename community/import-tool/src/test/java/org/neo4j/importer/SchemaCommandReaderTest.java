@@ -62,6 +62,7 @@ import org.neo4j.internal.schema.SchemaCommand.IndexCommand.Create.RelationshipT
 import org.neo4j.internal.schema.SchemaCommand.IndexCommand.Create.RelationshipVector;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
 import org.neo4j.internal.schema.constraints.SchemaValueType;
+import org.neo4j.internal.schema.constraints.VectorType;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
@@ -1077,6 +1078,70 @@ class SchemaCommandReaderTest {
                                 "testing", "LabelName", "prop", PropertyTypeSet.of(SchemaValueType.INTEGER), true)),
                 arguments(
                         """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR (c:LabelName)
+                    REQUIRE c.prop IS :: VECTOR<INT8>(128)
+                    """,
+                        new NodePropertyType(
+                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int8Vector(128)), true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR (c:LabelName)
+                    REQUIRE c.prop IS :: VECTOR<INT8 NOT NULL>(128)
+                    """,
+                        new NodePropertyType(
+                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int8Vector(128)), true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR (c:LabelName)
+                    REQUIRE c.prop IS :: VECTOR<INT16>(128)
+                    """,
+                        new NodePropertyType(
+                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int16Vector(128)), true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR (c:LabelName)
+                    REQUIRE c.prop IS :: VECTOR<INT32>(128)
+                    """,
+                        new NodePropertyType(
+                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int32Vector(128)), true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR (c:LabelName)
+                    REQUIRE c.prop IS :: VECTOR<INT64>(128)
+                    """,
+                        new NodePropertyType(
+                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int64Vector(128)), true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR (c:LabelName)
+                    REQUIRE c.prop IS :: VECTOR<FLOAT32>(128)
+                    """,
+                        new NodePropertyType(
+                                "testing",
+                                "LabelName",
+                                "prop",
+                                PropertyTypeSet.of(VectorType.float32Vector(128)),
+                                true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR (c:LabelName)
+                    REQUIRE c.prop IS :: VECTOR<FLOAT64>(128)
+                    """,
+                        new NodePropertyType(
+                                "testing",
+                                "LabelName",
+                                "prop",
+                                PropertyTypeSet.of(VectorType.float64Vector(128)),
+                                true)),
+                arguments(
+                        """
                     CREATE CONSTRAINT
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NODE KEY
@@ -1756,6 +1821,27 @@ class SchemaCommandReaderTest {
                     OPTIONS { duff:13 }
                     """,
                         "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'."),
+                arguments(
+                        """
+                    CREATE CONSTRAINT boom
+                    FOR (n:LabelName)
+                    REQUIRE n.prop IS :: VECTOR<INT16>(666)
+                    """,
+                        "Invalid input 'VECTOR'"),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR (n:LabelName)
+                    REQUIRE n.prop IS :: VECTOR<INT13>(666)
+                    """,
+                        "Invalid input '<'"),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR (n:LabelName)
+                    REQUIRE n.prop IS :: VECTOR<NUM16>(666)
+                    """,
+                        "Invalid input '<'"),
                 arguments(
                         """
                     CREATE CONSTRAINT boom
