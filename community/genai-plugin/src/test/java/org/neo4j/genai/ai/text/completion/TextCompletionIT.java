@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Consumer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -171,42 +170,6 @@ abstract class TextCompletionITBase implements GenAITestExtension {
         }
     }
 
-    @Test
-    void batchCompletionWithRequiredArgs() {
-        for (final var conf : confRequired()) {
-            final var query =
-                    """
-                    call ai.text.completion(
-                      ['Testing', null, 'Hello!'],
-                      '%s',
-                      %s
-                    )
-                    """
-                            .formatted(provider(), conf);
-            assertThat(execute(query))
-                    .as("Query:%n```%n%s%n```%n", query)
-                    .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
-        }
-    }
-
-    @Test
-    void batchCompletionWithAllArgs() {
-        for (final var conf : confWithVendorOptions()) {
-            final var query =
-                    """
-                    call ai.text.completion(
-                      ['Testing', null, 'Hello!'],
-                      '%s',
-                      %s
-                    )
-                    """
-                            .formatted(provider(), conf);
-            assertThat(execute(query))
-                    .as("Query:%n```%n%s%n```%n", query)
-                    .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
-        }
-    }
-
     private void assertNonBlankResult(String query) {
         assertThat(execute(query))
                 .singleElement(resultMap())
@@ -221,15 +184,5 @@ abstract class TextCompletionITBase implements GenAITestExtension {
         } catch (Throwable t) {
             throw new RuntimeException("Failed to execute query:\n" + query, t);
         }
-    }
-
-    private Consumer<Map<String, Object>> batchedNullRow(long index) {
-        return row -> assertThat(row).containsEntry("index", index).containsEntry("completion", null);
-    }
-
-    private Consumer<Map<String, Object>> batchedNonBlankRow(long index) {
-        return row -> assertThat(row)
-                .containsEntry("index", index)
-                .hasEntrySatisfying("completion", c -> assertThat(c).asString().isNotBlank());
     }
 }

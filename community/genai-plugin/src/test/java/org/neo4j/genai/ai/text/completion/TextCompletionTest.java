@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -179,82 +178,6 @@ public class TextCompletionTest implements GenAITestExtension {
                 .containsEntry("result", "Jag tog korven! (%s)".formatted(args.provider()));
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(RequiredConfArguments.class)
-    void batchCompletionWithRequiredArgs1(ProviderArgs args) {
-        final var query =
-                """
-                call ai.text.completion(
-                  ['Hello!'],
-                  '%s',
-                  %s
-                )
-                """
-                        .formatted(args.provider(), args.conf());
-        assertThat(db.executeTransactionally(query, Map.of(), consume()))
-                .as("Query:%n```%n%s%n```%n", query)
-                .containsExactly(Map.of("completion", "Bla bla bla... (%s)".formatted(args.provider()), "index", 0L));
-    }
-
-    @ParameterizedTest
-    @ArgumentsSource(RequiredConfArguments.class)
-    void batchCompletionWithRequiredArgs2(ProviderArgs args) {
-        final var query =
-                """
-                call ai.text.completion(
-                  [null, 'Hello!'],
-                  '%s',
-                  %s
-                )
-                """
-                        .formatted(args.provider(), args.conf());
-        assertThat(db.executeTransactionally(query, Map.of(), consume()))
-                .as("Query:%n```%n%s%n```%n", query)
-                .containsExactly(
-                        Maps.immutable
-                                .of("completion", null, "index", (Object) 0L)
-                                .castToMap(),
-                        Map.of("completion", "Bla bla bla... (%s)".formatted(args.provider()), "index", 1L));
-    }
-
-    @ParameterizedTest
-    @ArgumentsSource(AllOptionsArguments.class)
-    void batchCompletionWithAllArgs1(ProviderArgs args) {
-        final var query =
-                """
-                call ai.text.completion(
-                  ['Hello!'],
-                  '%s',
-                  %s
-                )
-                """
-                        .formatted(args.provider(), args.conf());
-        assertThat(db.executeTransactionally(query, Map.of(), consume()))
-                .as("Query:%n```%n%s%n```%n", query)
-                .containsExactly(Map.of("completion", "Jag tog korven! (%s)".formatted(args.provider()), "index", 0L));
-    }
-
-    @ParameterizedTest
-    @ArgumentsSource(AllOptionsArguments.class)
-    void batchCompletionWithAllArgs2(ProviderArgs args) {
-        final var query =
-                """
-                call ai.text.completion(
-                  [null, 'Hello!'],
-                  '%s',
-                  %s
-                )
-                """
-                        .formatted(args.provider(), args.conf());
-        assertThat(db.executeTransactionally(query, Map.of(), consume()))
-                .as("Query:%n```%n%s%n```%n", query)
-                .containsExactly(
-                        Maps.immutable
-                                .of("completion", null, "index", (Object) 0L)
-                                .castToMap(),
-                        Map.of("completion", "Jag tog korven! (%s)".formatted(args.provider()), "index", 1L));
-    }
-
     @Disabled // Enable when procedures are not internal
     @Test
     void completionDocsAreUpToDate() {
@@ -268,19 +191,6 @@ public class TextCompletionTest implements GenAITestExtension {
                 return *
                 """;
         assertThat(db.executeTransactionally(showFuncQuery, Map.of(), consume()))
-                .singleElement(map(String.class, Object.class))
-                .extracting("argumentDescription", InstanceOfAssertFactories.LIST)
-                .filteredOn(d -> d instanceof Map map && "provider".equals(map.get("name")))
-                .singleElement(map(String.class, Object.class))
-                .containsEntry("description", "The identifier of the provider: " + expectedProviders);
-
-        final var showProcQuery =
-                """
-                show procedures yield name, argumentDescription
-                where name = 'ai.text.completion'
-                return *
-                """;
-        assertThat(db.executeTransactionally(showProcQuery, Map.of(), consume()))
                 .singleElement(map(String.class, Object.class))
                 .extracting("argumentDescription", InstanceOfAssertFactories.LIST)
                 .filteredOn(d -> d instanceof Map map && "provider".equals(map.get("name")))

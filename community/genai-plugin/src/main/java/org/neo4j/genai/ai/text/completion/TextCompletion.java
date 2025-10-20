@@ -21,8 +21,6 @@ package org.neo4j.genai.ai.text.completion;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.List;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.eclipse.collections.api.list.ImmutableList;
 import org.neo4j.genai.util.HttpService;
@@ -67,29 +65,6 @@ public class TextCompletion {
     }
 
     @Internal // Internal until the final name and signature is decided. Update completionDocsAreUpToDate when removing.
-    @Procedure(name = "ai.text.completion")
-    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
-    @Description("Complete the specified prompts.")
-    public Stream<BatchRow> completeBatch(
-            @Name(value = "prompts", description = "The prompts to complete.") List<String> prompts,
-            @Name(value = "provider", description = "The identifier of the provider: 'OpenAI'.") String providerName,
-            @Sensitive @Name(value = "configuration", defaultValue = "{}", description = CONF_DESC)
-                    MapValue configuration) {
-        requireNonNull(prompts, "'prompts' must not be null");
-        requireNonNull(providerName, "'provider' must not be null");
-        requireNonNull(configuration, "'configuration' must not be null");
-        final var provider = providers.configure(providerName, configuration);
-        monitors.textCompletion().textCompletionProcedureCalled(provider.metricsName());
-
-        // TODO Optimise to be a single network call, if possible. Remember to handle nulls.
-        return IntStream.range(0, prompts.size()).mapToObj(i -> {
-            final var prompt = prompts.get(i);
-            final var completion = prompt == null ? null : provider.complete(prompt);
-            return new BatchRow(i, completion);
-        });
-    }
-
-    @Internal // Internal until the final name and signature is decided. Update completionDocsAreUpToDate when removing.
     @Procedure(name = "ai.text.completion.providers")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     @Description("Lists the available text completion providers.")
@@ -115,8 +90,4 @@ public class TextCompletion {
             }
         }
     }
-
-    public record BatchRow(
-            @Description("The index of the corresponding element in the input list.") long index,
-            @Description("The text completion.") String completion) {}
 }
