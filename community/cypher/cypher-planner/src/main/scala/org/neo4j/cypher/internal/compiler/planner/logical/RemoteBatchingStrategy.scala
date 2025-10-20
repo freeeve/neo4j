@@ -268,7 +268,19 @@ object RemoteBatchingStrategy {
             queryGraph,
             plan,
             context
-          ).filter(propertyAccess => availableSymbols.contains(propertyAccess.variable))
+          ).collect {
+            case propAccess @ PropertyAccess(variable, _) if availableSymbols.contains(variable) => Some(propAccess)
+            case PropertyAccess(variable, propertyName)                                          =>
+              // if it is a renamed variable, it suffices to check on the last available symbol since cached properties are updated on all renames.
+              context.plannerState.contextualPropertyAccess.entityAliases.findLatestAvailableSymbols(
+                variable,
+                availableSymbols
+              ) match {
+                case Some(latestVar) => Some(PropertyAccess(latestVar, propertyName))
+                case None            => None
+              }
+          }.flatten
+
           if (interestingPropertyAccesses.nonEmpty)
             interestingPropertyAccesses.forall(propertyAccess =>
               cachedProperties.contains(
@@ -369,6 +381,27 @@ object RemoteBatchingStrategy {
             InputPosition.NONE,
             knownToCacheStore = true
           )
+        case PropertyAccess(variable, propertyName) if !availableSymbols.contains(variable) =>
+          // if it is a renamed variable, it suffices to check on the last available symbol since cached properties are updated on all renames.
+          context.plannerState.contextualPropertyAccess.entityAliases.findLatestAvailableSymbols(
+            variable,
+            availableSymbols
+          ) match {
+            case Some(latestVar)
+              if !alreadyCachedProperties.contains(
+                latestVar,
+                PropertyKeyName(propertyName)(InputPosition.NONE)
+              ) =>
+              toCachedProperty(
+                context,
+                alreadyCachedProperties,
+                latestVar,
+                PropertyKeyName(propertyName)(InputPosition.NONE),
+                InputPosition.NONE,
+                knownToCacheStore = true
+              )
+            case _ => None
+          }
       }.flatten
 
     override def getValueFromIndexBehaviors(

@@ -195,6 +195,35 @@ class RemoteBatchPropertiesPlanningIntegrationTest
       .build()
   }
 
+  test("should use index seek to find minimum even on renames") {
+    val query =
+      """
+        |MATCH (n: Person)
+        |WITH n AS m
+        |RETURN min(m.age)
+        |""".stripMargin
+
+    val customIndexPlanner = spdPlanner
+      .setAllNodesCardinality(10000)
+      .setLabelCardinality("Person", 10000)
+      .addNodeIndex(
+        "Person",
+        List("age"),
+        existsSelectivity = 1.0,
+        uniqueSelectivity = 0.25
+      )
+      .build()
+
+    val plan = customIndexPlanner.plan(query).stripProduceResults
+    plan shouldEqual customIndexPlanner.subPlanBuilder()
+      .optional()
+      .limit(1)
+      .projection(Map("min(m.age)" -> cachedNodeProp("n", "age", "m")))
+      .projection("n AS m")
+      .nodeIndexOperator("n:Person(age)", indexOrder = IndexOrderAscending, getValue = Map("age" -> GetValue))
+      .build()
+  }
+
   test("Should be able to handle ExistsIRExpressions") {
     val query =
       """
@@ -752,7 +781,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "friendLastName" -> cachedNodeProp(variable = "friend", propKey = "lastName", currentVarName = "friend")
       ))
       .remoteBatchProperties(
-        cachedNodeProp("person", "lastName", "earlyAdopter", knownToAccessStore = true),
         cachedNodeProp("friend", "lastName", "friend", knownToAccessStore = true)
       )
       .filter("friend:Person")
@@ -760,7 +788,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .projection("person AS earlyAdopter")
       .top(10, "earlyAdopterSince ASC")
       .projection("cacheN[person.creationDate] AS earlyAdopterSince")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[person.creationDate]")( // person.lastName is not retrieved even though it is used later. This is because we don't identify renames early in the plan.
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[person.creationDate]", "cacheNFromStore[person.lastName]")(
         "person.lastName IS NOT NULL",
         "person.creationDate < $max_creation_date"
       )
@@ -3068,11 +3096,12 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.|.argument("n", "p")
       .|.projection("k AS k")
       .|.projection("m AS k")
-      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[m.lastName]")("NOT m.lastName = 'Smith'")
+      .|.filter(not(equals(cachedNodeProp("n", "lastName", "m"), literal("Smith"))))
       .|.projection("n AS m")
       .|.argument("n", "p")
       .filter("p:Person")
       .expandAll("(n)-[:KNOWS]->(p)")
+      .remoteBatchProperties("cacheNFromStore[n.lastName]")
       .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> DoNotGetValue))
       .build()
   }
@@ -3329,6 +3358,28 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       Some(signature),
       arguments.toIndexedSeq
     )(pos)
+
+  test("should fetch batch properties before expand even if the variable is renamed") {
+    val query =
+      """
+        |MATCH (message:Message)-[:POST_HAS_CREATOR]->(n: Person)
+        |WITH n AS contentCreator
+        |RETURN contentCreator.name, contentCreator.id
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection(Map(
+        "contentCreator.name" -> cachedNodeProp("n", "name", "contentCreator"),
+        "contentCreator.id" -> cachedNodeProp("n", "id", "contentCreator")
+      ))
+      .projection("n AS contentCreator")
+      .filter("message:Message")
+      .expandAll("(n)<-[:POST_HAS_CREATOR]-(message)")
+      .remoteBatchProperties("cacheNFromStore[n.name]", "cacheNFromStore[n.id]")
+      .nodeByLabelScan("n", "Person", IndexOrderNone)
+      .build()
+  }
 
   def temporalRuntimeConstant(functionName: String, temporalType: CypherType, dateString: String): RuntimeConstant = {
     RuntimeConstant(

@@ -698,7 +698,6 @@ class PushOperatorsToShardPlanningIntegrationTest
         "friendLastName" -> cachedNodeProp(variable = "friend", propKey = "lastName", currentVarName = "friend")
       ))
       .remoteBatchProperties(
-        cachedNodeProp("person", "lastName", "earlyAdopter", knownToAccessStore = true),
         cachedNodeProp("friend", "lastName", "friend", knownToAccessStore = true)
       )
       .filter("friend:Person")
@@ -706,11 +705,11 @@ class PushOperatorsToShardPlanningIntegrationTest
       .projection("person AS earlyAdopter")
       .top(10, "earlyAdopterSince ASC")
       .projection("cacheN[person.creationDate] AS earlyAdopterSince")
-      .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "person", properties = "creationDate")(
+      .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "person", properties = "creationDate", "lastName")(
         PushdownOperators()
           .limit("10") // TODO: we will have to pushdown sort as well for this plan to be correct
           .filter("person.lastName IS NOT NULL", "person.creationDate < $max_creation_date")
-      ) // person.lastName is not retrieved even though it is used later. This is because we don't identify renames early in the plan.
+      )
       .nodeByLabelScan("person", "Person")
       .build()
     plan shouldEqual expectedPlan

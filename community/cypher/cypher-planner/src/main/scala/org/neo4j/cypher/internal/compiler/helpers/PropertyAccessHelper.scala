@@ -44,6 +44,10 @@ case class RenameChain(renames: ListSet[LogicalVariable]) extends AnyVal {
   def commonRenames(other: RenameChain): RenameChain = RenameChain(renames.zip(other.renames).takeWhile { case (a, b) =>
     a == b
   }.map(_._1).to(ListSet))
+
+  def findLastAvailableDefinition(availableSymbols: Set[LogicalVariable]): Option[LogicalVariable] =
+    renames.toSeq.findLast(availableSymbols.contains)
+  def toSet: Set[LogicalVariable] = renames
 }
 
 case object RenameChain {
@@ -62,6 +66,15 @@ case class EntityAliases(renamedVariablesToOriginal: Map[LogicalVariable, Rename
   def getOriginalVariables(renamed: LogicalVariable): RenameChain = {
     renamedVariablesToOriginal.getOrElse(renamed, RenameChain.empty)
   }
+
+  def findLatestAvailableSymbols(
+    renamed: LogicalVariable,
+    availableSymbols: Set[LogicalVariable]
+  ): Option[LogicalVariable] =
+    renamedVariablesToOriginal.get(renamed) match {
+      case Some(renameChain) => renameChain.findLastAvailableDefinition(availableSymbols)
+      case None              => None
+    }
 
   def ++(
     other: EntityAliases

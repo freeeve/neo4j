@@ -522,7 +522,16 @@ object ShardOperatorPushdownStrategy {
     // We also want to find property accesses that have not yet been cached for the given variable
     val propAccesses = (context.plannerState.contextualPropertyAccess.interestingOrder ++
       context.plannerState.contextualPropertyAccess.horizon ++
-      context.plannerState.contextualPropertyAccess.propertyAccessInOtherComponents).filter(_.variable == variable)
+      context.plannerState.contextualPropertyAccess.propertyAccessInOtherComponents)
+      .collect {
+        case propAccess @ PropertyAccess(`variable`, _) => propAccess
+        case PropertyAccess(propVar, propertyName)
+          if context.plannerState.contextualPropertyAccess.entityAliases.isSameEntityAs(
+            original = variable,
+            renamed = propVar
+          ) =>
+          PropertyAccess(variable, propertyName)
+      }
 
     // we compute not only the predicates that will be solved by this selection
     val propertiesFromUnsolvedPredicates =
