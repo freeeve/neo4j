@@ -670,4 +670,29 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
       withUpdate()
     )
   }
+
+  test("Should not wrap on inner aggregation in subquery expression") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """
+      UNWIND [1,2,3] AS x
+      RETURN x
+
+      NEXT
+
+      RETURN x
+      UNION ALL
+      RETURN COUNT{ RETURN sum(x) } AS x""".stripMargin,
+      """UNWIND [1, 2, 3] AS x
+        |WITH x AS x
+        |CALL (*) {
+        |  RETURN x AS `  UNNAMED0`
+        |  UNION ALL
+        |  RETURN COUNT { RETURN sum(x) AS `sum(x)` } AS `  UNNAMED0`
+        |}
+        |RETURN `  UNNAMED0` AS x""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      withUpdate()
+    )
+  }
 }

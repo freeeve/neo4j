@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.FreeProjection
+import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Query
@@ -373,7 +374,7 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
 
     /**
      * Identifies if a query uses By-table semantics when in a NEXT statement
-     * If an aggregation or an update occurs in a ByTable context, then the rewriter
+     * If an aggregation, pagination or an update occurs in a ByTable context, then the rewriter
      * must collect and unwind the incoming rows to emulate by-table semantics.
      */
     def requiresCollecting(query: Query): Boolean =
@@ -392,6 +393,8 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
         case p: ProjectionClause => {
           case ByTable if p.distinct =>
             SkipChildren(RequiresCollecting)
+          case ByTable if p.limit.isDefined || p.skip.isDefined =>
+            SkipChildren(RequiresCollecting)
           case acc => TraverseChildren(acc)
         }
         case _: UpdateClause => {
@@ -399,6 +402,7 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
             SkipChildren(RequiresCollecting)
           case acc => TraverseChildren(acc)
         }
+        case _: FullSubqueryExpression => acc => SkipChildren(acc)
         case exp: Expression => {
           case ByTable if containsAggregate(exp) =>
             SkipChildren(RequiresCollecting)
