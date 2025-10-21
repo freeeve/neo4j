@@ -22,7 +22,7 @@ package org.neo4j.internal.batchimport;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.params.provider.Arguments.of;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
@@ -91,8 +91,9 @@ class RelationshipGroupDefragmenterTest {
 
     private static Stream<Arguments> parameters() {
         return Stream.of(
-                of(Config.defaults(), 1),
-                of(
+                argumentSet("Default", Config.defaults(), 1),
+                argumentSet(
+                        "Forced secondary units",
                         Config.defaults(
                                 GraphDatabaseSettings.db_format,
                                 ForcedSecondaryUnitRecordFormats.DEFAULT_RECORD_FORMATS.name()),
