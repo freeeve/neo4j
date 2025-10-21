@@ -117,6 +117,38 @@ class TextCompletionIT {
                     "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.nova-micro-v1:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }");
         }
     }
+
+    @Nested
+    @EnabledIfEnvironmentVariable(named = BedrockTitan.KEY, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = BedrockTitan.SECRET, matches = ".*")
+    class BedrockTitan extends TextCompletionITBase {
+        static final String KEY = "BEDROCK_KEY";
+        static final String SECRET = "BEDROCK_SECRET_KEY";
+
+        @Override
+        String provider() {
+            return "bedrock-titan";
+        }
+
+        @Override
+        Map<String, Object> params() {
+            return Map.of("key", System.getenv(KEY), "secret", System.getenv(SECRET));
+        }
+
+        @Override
+        List<String> confRequired() {
+            return List.of(
+                    "{ model: 'amazon.titan-text-lite-v1', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret }",
+                    "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.titan-text-lite-v1', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret }");
+        }
+
+        @Override
+        List<String> confWithVendorOptions() {
+            return List.of(
+                    "{ model: 'amazon.titan-text-lite-v1', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }",
+                    "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.titan-text-lite-v1', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }");
+        }
+    }
 }
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")

@@ -44,6 +44,7 @@ import org.junit.jupiter.params.support.ParameterDeclarations;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockNova;
+import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockTitan;
 import org.neo4j.genai.ai.text.completion.provider.openai.OpenAi;
 import org.neo4j.genai.ai.text.completion.provider.vertex.VertexAi;
 import org.neo4j.genai.util.GenAITestExtension;
@@ -79,7 +80,8 @@ public class TextCompletionTest implements GenAITestExtension {
         builder.addExtension(new GenAiPluginExtension(
                 new OpenAi(baseUrl),
                 new VertexAi(p -> URI.create(baseUrl)),
-                new BedrockNova(p -> URI.create(baseUrl))));
+                new BedrockNova(p -> URI.create(baseUrl)),
+                new BedrockTitan(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
     }
 
@@ -140,6 +142,15 @@ public class TextCompletionTest implements GenAITestExtension {
                     {
                       vendorOptions :: MAP NOT NULL
                     }""",
+                    "defaultConfig",
+                    Map.of("vendorOptions", Map.of())),
+            Map.of(
+                    "name",
+                    "Bedrock-Titan",
+                    "requiredConfigType",
+                    "{ accessKeyId :: STRING NOT NULL, secretAccessKey :: STRING NOT NULL, region :: STRING NOT NULL, model :: STRING NOT NULL }",
+                    "optionalConfigType",
+                    "{ vendorOptions :: MAP NOT NULL }",
                     "defaultConfig",
                     Map.of("vendorOptions", Map.of())));
 
@@ -231,7 +242,16 @@ class RequiredConfArguments implements ProviderArguments {
                         "{ model: 'arn:aws:bedrock:xxx:001:custom-model/custom.nova', modelType: 'amazon.nova', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
                 new ProviderArgs(
                         "bedrock-nova:foundation model by arn",
-                        "{ model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"));
+                        "{ model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
+                new ProviderArgs(
+                        "bedrock-titan:model by name",
+                        "{ model: 'amazon.titan-text-express-v1', region: 'eu-west-2', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
+                new ProviderArgs(
+                        "bedrock-titan:custom titan type model",
+                        "{ model: 'arn:aws:bedrock:xxx:001:custom-model/custom.titan', region: 'eu-west-2', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
+                new ProviderArgs(
+                        "bedrock-titan:foundation model by arn",
+                        "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.titan-text-lite-v1', region: 'eu-west-2', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"));
     }
 }
 
@@ -283,7 +303,6 @@ class AllOptionsArguments implements ProviderArguments {
                         """
                         {
                           model: 'arn:aws:bedrock:xxx:001:custom-model/custom.nova',
-                          modelType: 'amazon.nova',
                           region: 'eu-north-1',
                           accessKeyId: 'bedrock-key',
                           secretAccessKey: 'secret',
@@ -304,6 +323,51 @@ class AllOptionsArguments implements ProviderArguments {
                           vendorOptions: {
                             system: [{ text: 'You are Kommendoran' }],
                             inferenceConfig: { maxTokens: 1024 }
+                          }
+                        }
+                        """),
+                new ProviderArgs(
+                        "bedrock-titan:model by name",
+                        """
+                        {
+                          model: 'amazon.titan-text-lite-v2',
+                          region: 'eu-west-2',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            textGenerationConfig: {
+                              maxTokenCount: 1024
+                            }
+                          }
+                        }
+                        """),
+                new ProviderArgs(
+                        "bedrock-titan:custom titan type model",
+                        """
+                        {
+                          model: 'arn:aws:bedrock:xxx:002:custom-model/custom.titan',
+                          region: 'eu-west-2',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            textGenerationConfig: {
+                              maxTokenCount: 1024
+                            }
+                          }
+                        }
+                        """),
+                new ProviderArgs(
+                        "bedrock-titan:foundation model by arn",
+                        """
+                        {
+                          model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.titan-text-lite-v2',
+                          region: 'eu-west-2',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            textGenerationConfig: {
+                              maxTokenCount: 1024
+                            }
                           }
                         }
                         """));

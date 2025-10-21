@@ -1,0 +1,10 @@
+{
+  "inputTextTokenCount": 3,
+  "results": [
+    {
+      "tokenCount": 13,
+      "outputText": "{{parameters.answer}}",
+      "completionReason": "FINISH"
+    }
+  ]
+}
