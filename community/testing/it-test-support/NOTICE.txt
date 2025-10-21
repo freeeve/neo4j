@@ -219,6 +219,7 @@ GNU General Public License, version 2 with the Classpath Exception
   ServiceLocator Default Implementation
 
 MIT License
+  java jwt
   jersey-container-servlet
   jersey-container-servlet-core
   jersey-core-client

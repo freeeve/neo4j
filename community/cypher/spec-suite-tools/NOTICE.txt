@@ -248,6 +248,7 @@ MIT License
   fastparse_2.13
   geny_2.13
   Gherkin
+  java jwt
   jersey-container-servlet
   jersey-container-servlet-core
   jersey-core-client

@@ -369,6 +369,7 @@ MIT License
   isobject
   isomorphic-fetch
   isstream
+  java jwt
   jersey-container-servlet
   jersey-container-servlet-core
   jersey-core-client

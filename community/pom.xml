@@ -88,5 +88,6 @@
     <module>genai-plugin</module>
     <module>cypher</module>
     <module>cypher-shell</module>
+    <module>fleet-management</module>
   </modules>
 </project>
