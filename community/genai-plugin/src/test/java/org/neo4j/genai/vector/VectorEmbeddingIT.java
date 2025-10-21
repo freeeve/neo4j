@@ -36,7 +36,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.utils.TestDirectory;
 
 @DbmsExtension(configurationCallback = "configure")
-public class VectorEncodingIT implements GenAITestExtension {
+public class VectorEmbeddingIT implements GenAITestExtension {
     @Inject
     private GraphDatabaseAPI database;
 

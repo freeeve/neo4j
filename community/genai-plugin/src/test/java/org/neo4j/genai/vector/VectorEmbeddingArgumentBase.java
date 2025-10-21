@@ -47,7 +47,7 @@ import org.neo4j.values.storable.Values;
 @TestInstance(Lifecycle.PER_CLASS)
 @ExtendWith(SuppressOutputExtension.class)
 @ResourceLock(Resources.SYSTEM_OUT)
-abstract class VectorEncodingArgumentBase {
+abstract class VectorEmbeddingArgumentBase {
     protected final EncodeRunnable<String, Value> single = this::single;
 
     protected final EncodeRunnable<List<String>, List<Value>> batch = this::batch;

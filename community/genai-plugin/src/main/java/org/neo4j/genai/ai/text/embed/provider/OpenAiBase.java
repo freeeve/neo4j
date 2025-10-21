@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.vector.encode.provider;
+package org.neo4j.genai.ai.text.embed.provider;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 
@@ -29,25 +29,22 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.OptionalLong;
 import java.util.stream.Stream;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.MutableMap;
-import org.neo4j.genai.ai.vector.encode.VectorEncoding;
+import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.VectorValue;
 
-public interface OpenAiBase<PARAMS> extends VectorEncoding.Provider.Implementation {
+public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementation {
     String ENCODING_FORMAT = "float";
 
     URI endpoint();
 
     String providerName();
-
-    OptionalLong dimensions();
 
     HttpService httpService();
 
@@ -77,11 +74,11 @@ public interface OpenAiBase<PARAMS> extends VectorEncoding.Provider.Implementati
     }
 
     @Override
-    default Stream<VectorEncoding.InternalBatchRow> encodeBatch(List<String> resources, int[] nullIndexes) {
+    default Stream<VectorEmbedding.InternalBatchRow> encodeBatch(List<String> resources, int[] nullIndexes) {
         return encode(resources, nullIndexes);
     }
 
-    private Stream<VectorEncoding.InternalBatchRow> encode(List<String> resources, int[] nullIndexes) {
+    private Stream<VectorEmbedding.InternalBatchRow> encode(List<String> resources, int[] nullIndexes) {
         return httpService()
                 .request(
                         endpoint(),
@@ -97,7 +94,7 @@ public interface OpenAiBase<PARAMS> extends VectorEncoding.Provider.Implementati
                         inputStream -> parseResponse(resources, inputStream, nullIndexes));
     }
 
-    private Stream<VectorEncoding.InternalBatchRow> parseResponse(
+    private Stream<VectorEmbedding.InternalBatchRow> parseResponse(
             List<String> resources, InputStream inputStream, int[] nullIndexes) {
         return parseResponse(providerName(), resources, inputStream, nullIndexes);
     }
@@ -114,7 +111,7 @@ public interface OpenAiBase<PARAMS> extends VectorEncoding.Provider.Implementati
         }
     */
     @VisibleForTesting
-    public static Stream<VectorEncoding.InternalBatchRow> parseResponse(
+    public static Stream<VectorEmbedding.InternalBatchRow> parseResponse(
             String providerName, List<String> resources, InputStream inputStream, int[] nullIndexes)
             throws MalformedGenAIResponseException {
         final String[] properties = {"embedding"};
@@ -138,7 +135,6 @@ public interface OpenAiBase<PARAMS> extends VectorEncoding.Provider.Implementati
         final var payload = Maps.mutable.of(
                 "input", resources,
                 "encoding_format", ENCODING_FORMAT);
-        dimensions().ifPresent(d -> payload.put("dimensions", d));
         extendPayload(payload);
         return payload;
     }

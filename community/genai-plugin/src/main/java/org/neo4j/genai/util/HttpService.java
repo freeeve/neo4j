@@ -47,13 +47,13 @@ import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.set.primitive.ImmutableIntSet;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.function.ThrowingConsumer;
-import org.neo4j.genai.ai.vector.encode.VectorEncoding;
 import org.neo4j.graphdb.security.URLAccessChecker;
 import org.neo4j.graphdb.security.URLAccessValidationError;
 
 public final class HttpService {
 
-    private static final String USER_AGENT = "Neo4j-GenAIProcedures/" + VectorEncoding.VERSION;
+    public static final String VERSION = "1.2.0";
+    private static final String USER_AGENT = "Neo4j-GenAIProcedures/" + VERSION;
     private static final ImmutableIntSet defaultAcceptableStatusCodes = IntSets.immutable.of(200);
 
     private final URLAccessChecker urlAccessChecker;

@@ -26,7 +26,7 @@ import java.util.List;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.ImmutableList;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
-import org.neo4j.genai.ai.vector.encode.VectorEncoding;
+import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.util.CalledFromGeneratedCode;
 import org.neo4j.util.Preconditions;
 
@@ -63,7 +63,7 @@ public interface GlobalProviders {
     @SuppressWarnings("rawtypes")
     private static Class findType(NamedProvider provider) {
         if (provider instanceof TextCompletion.Provider) return TextCompletion.Provider.class;
-        if (provider instanceof VectorEncoding.Provider) return VectorEncoding.Provider.class;
+        if (provider instanceof VectorEmbedding.Provider) return VectorEmbedding.Provider.class;
         throw new IllegalArgumentException("Unknown provider type: " + provider.getClass());
     }
 

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.vector.encode;
+package org.neo4j.genai.ai.text.embed;
 
 import static java.util.Objects.requireNonNull;
 
@@ -44,9 +44,7 @@ import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 
-public class VectorEncoding {
-    public static final String VERSION = "1.2.0";
-
+public class VectorEmbedding {
     @Context
     public Providers providers;
 
@@ -57,7 +55,7 @@ public class VectorEncoding {
     public HttpService httpService;
 
     @Internal
-    @Procedure(name = "ai.vector.embed.providers")
+    @Procedure(name = "ai.text.embed.providers")
     @Description("Lists the available vector embedding providers.")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     public Stream<ProviderRow> listEncodingProviders() {
@@ -65,7 +63,7 @@ public class VectorEncoding {
     }
 
     @Internal
-    @UserFunction(name = "ai.vector.embed")
+    @UserFunction(name = "ai.text.embed")
     @Description("Encode a given resource as a vector using the named provider.")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     public VectorValue encode(
@@ -102,7 +100,7 @@ public class VectorEncoding {
     }
 
     @Internal
-    @Procedure(name = "ai.vector.embedBatch")
+    @Procedure(name = "ai.text.embedBatch")
     @Description(
             """
             Encode a given batch of resources as vectors using the named provider.
@@ -154,7 +152,7 @@ public class VectorEncoding {
         interface Implementation extends NamedProvider.Implementation {
             VectorValue encode(String resource);
 
-            Stream<VectorEncoding.InternalBatchRow> encodeBatch(List<String> resources, int[] nullIndexes);
+            Stream<VectorEmbedding.InternalBatchRow> encodeBatch(List<String> resources, int[] nullIndexes);
         }
     }
 

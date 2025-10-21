@@ -17,13 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.vector.encode;
+package org.neo4j.genai.ai;
 
-import org.neo4j.genai.util.GenAIMonitor;
-
-public interface VectorEncodingCallCountersMonitor extends GenAIMonitor {
-
-    void encodeFunctionCalled(String provider);
-
-    void encodeBatchProcedureCalled(String provider);
+public record ProviderArgs(String name, String conf) {
+    public String provider() {
+        return name.split(":")[0];
+    }
 }

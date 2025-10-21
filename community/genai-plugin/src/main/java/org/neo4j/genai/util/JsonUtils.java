@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.neo4j.genai.ai.vector.encode.VectorEncoding;
+import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.vector.DeprecatedVectorEncoding.BatchRow;
 import org.neo4j.values.storable.Values;
 
@@ -42,7 +42,7 @@ public final class JsonUtils {
     public static final TypeReference<Map<String, Object>> TYPE_REF_MAP_STRING_OBJECT = new TypeReference<>() {};
     public static final TypeReference<Map<String, Map<?, ?>>> TYPE_REF_MAP_STRING_MAP = new TypeReference<>() {};
 
-    public static Stream<VectorEncoding.InternalBatchRow> parseResponse(
+    public static Stream<VectorEmbedding.InternalBatchRow> parseResponse(
             String name,
             String topLevelKey,
             String[] properties,
@@ -65,7 +65,7 @@ public final class JsonUtils {
             try {
                 if (Arrays.binarySearch(nullIndexes, index) >= 0) {
                     offset.increment();
-                    return new VectorEncoding.InternalBatchRow(index, null, null);
+                    return new VectorEmbedding.InternalBatchRow(index, null, null);
                 }
                 final int offsetIndex = index - offset.intValue();
                 final var embedding = getExpectedFrom(name, predictions.get(offsetIndex), properties);
@@ -73,7 +73,7 @@ public final class JsonUtils {
                     throw new MalformedGenAIResponseException("Expected embedding to be an array");
                 }
                 try (final var parser = embedding.traverse(getObjectMapper())) {
-                    return new VectorEncoding.InternalBatchRow(
+                    return new VectorEmbedding.InternalBatchRow(
                             index,
                             resources.get(offsetIndex),
                             Values.float32Vector(parser.readValueAs(TYPE_REF_FLOAT_VECTOR)));

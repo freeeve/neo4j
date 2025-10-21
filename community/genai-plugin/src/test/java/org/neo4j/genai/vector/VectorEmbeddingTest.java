@@ -43,7 +43,7 @@ import org.neo4j.genai.vector.providers.DeprecatedVertexAI;
 import org.neo4j.genai.vector.providers.TestProvider;
 import org.neo4j.values.storable.Value;
 
-class VectorEncodingTest {
+class VectorEmbeddingTest {
     private static final DeprecatedVectorEncoding VECTOR_ENCODING = new DeprecatedVectorEncoding();
 
     static {
@@ -92,7 +92,7 @@ class VectorEncodingTest {
     }
 
     @Nested
-    class EncodeArguments extends VectorEncodingArgumentBase {
+    class EncodeArguments extends VectorEmbeddingArgumentBase {
         @Override
         Value single(String resource, String provider, Map<String, ?> configuration) {
             final var config = configuration != null ? ParametersTest.from(configuration) : NO_VALUE;

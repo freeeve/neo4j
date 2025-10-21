@@ -17,26 +17,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.vector.encode.provider;
+package org.neo4j.genai.ai.text.embed.provider;
 
 import static org.neo4j.genai.util.Parameters.parse;
 
 import java.net.URI;
-import java.util.OptionalLong;
+import java.util.Map;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
-import org.neo4j.genai.ai.vector.encode.VectorEncoding;
+import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.virtual.MapValue;
 
 @ServiceProvider
-public class OpenAi implements VectorEncoding.Provider {
+public class OpenAi implements VectorEmbedding.Provider {
     private static final String DEFAULT_BASE_URL = "https://api.openai.com";
     private static final String DEFAULT_API_PATH = "/v1/embeddings";
     private final URI endpoint;
-
-    // static final String DEFAULT_MODEL = "text-embedding-ada-002";
 
     public OpenAi() {
         this(DEFAULT_BASE_URL);
@@ -50,7 +48,8 @@ public class OpenAi implements VectorEncoding.Provider {
     public static class Parameters {
         public String token;
         public String model;
-        public OptionalLong dimensions;
+        // Optional Vendor Options: user and dimensions
+        public Map<String, Object> vendorOptions = Map.of();
     }
 
     @Override
@@ -64,7 +63,7 @@ public class OpenAi implements VectorEncoding.Provider {
     }
 
     @Override
-    public VectorEncoding.Provider.Implementation configure(HttpService httpService, MapValue conf) {
+    public VectorEmbedding.Provider.Implementation configure(HttpService httpService, MapValue conf) {
         return new Implementation(name(), endpoint, httpService, parse(Parameters.class, conf));
     }
 
@@ -81,17 +80,13 @@ public class OpenAi implements VectorEncoding.Provider {
         }
 
         @Override
-        public OptionalLong dimensions() {
-            return params.dimensions;
-        }
-
-        @Override
         public String[] authHeader() {
             return new String[] {"Authorization", "Bearer " + params.token};
         }
 
         @Override
         public void extendPayload(MutableMap<String, Object> payload) {
+            payload.putAll(params.vendorOptions); // Needs to be first to not override model
             payload.put("model", params.model);
         }
     }

@@ -41,7 +41,7 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 @DbmsExtension(configurationCallback = "configure")
-class VectorEncodingArgumentIT extends VectorEncodingArgumentBase implements GenAITestExtension {
+class VectorEmbeddingArgumentIT extends VectorEmbeddingArgumentBase implements GenAITestExtension {
 
     @Inject
     private GraphDatabaseAPI database;
@@ -67,7 +67,7 @@ class VectorEncodingArgumentIT extends VectorEncodingArgumentBase implements Gen
         return database.executeTransactionally(
                 "RETURN genai.vector.encode($resource, $provider, $configuration) AS vector",
                 Maps.mutable.of("resource", resource, "provider", provider, "configuration", configuration),
-                VectorEncodingArgumentIT::singleResultItem);
+                VectorEmbeddingArgumentIT::singleResultItem);
     }
 
     @Override

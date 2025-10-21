@@ -35,14 +35,12 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
-import org.junit.jupiter.params.support.ParameterDeclarations;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.genai.GenAiPluginExtension;
+import org.neo4j.genai.ai.ProviderArgs;
+import org.neo4j.genai.ai.ProviderArguments;
 import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockNova;
 import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockTitan;
 import org.neo4j.genai.ai.text.completion.provider.openai.OpenAi;
@@ -207,22 +205,6 @@ public class TextCompletionTest implements GenAITestExtension {
                 .filteredOn(d -> d instanceof Map map && "provider".equals(map.get("name")))
                 .singleElement(map(String.class, Object.class))
                 .containsEntry("description", "The identifier of the provider: " + expectedProviders);
-    }
-}
-
-record ProviderArgs(String name, String conf) {
-    String provider() {
-        return name.split(":")[0];
-    }
-}
-
-interface ProviderArguments extends ArgumentsProvider {
-    Stream<ProviderArgs> providers();
-
-    @Override
-    default Stream<? extends Arguments> provideArguments(ParameterDeclarations parameters, ExtensionContext context)
-            throws Exception {
-        return providers().map(p -> Arguments.argumentSet(p.name(), p));
     }
 }
 
