@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.genai.ai.Tokens;
 import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -42,13 +43,11 @@ import org.neo4j.values.storable.VectorValue;
 public class VectorEmbeddingIT {
 
     @Nested
-    @EnabledIfEnvironmentVariable(named = VectorEmbeddingIT.OpenAi.TOKEN_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.OpenAi.TOKEN_ENV, matches = ".*")
     class OpenAi extends VectorEmbeddingITBase {
-        static final String TOKEN_ENV = "OPEN_AI_TOKEN";
-
         @Override
         Map<String, Object> params() {
-            return Map.of("token", System.getenv(TOKEN_ENV));
+            return Map.of("token", System.getenv(Tokens.OpenAi.TOKEN_ENV));
         }
 
         @Override
@@ -63,25 +62,29 @@ public class VectorEmbeddingIT {
     }
 
     @Nested
-    @EnabledIfEnvironmentVariable(named = VectorEmbeddingIT.VertexAi.TOKEN_ENV, matches = ".*")
-    @EnabledIfEnvironmentVariable(named = VectorEmbeddingIT.VertexAi.PROJECT_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Vertex.TOKEN_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Vertex.PROJECT_ENV, matches = ".*")
     class VertexAi extends VectorEmbeddingITBase {
-        static final String TOKEN_ENV = "VERTEX_AI_TOKEN";
-        static final String PROJECT_ENV = "VERTEX_AI_PROJECT";
 
         @Override
         Map<String, Object> params() {
-            return Map.of("token", System.getenv(TOKEN_ENV), "project", System.getenv(PROJECT_ENV));
+            return Map.of(
+                    "token",
+                    System.getenv(Tokens.Vertex.TOKEN_ENV),
+                    "project",
+                    System.getenv(Tokens.Vertex.PROJECT_ENV),
+                    "region",
+                    System.getenv(Tokens.Vertex.REGION_ENV));
         }
 
         @Override
         String confRequired() {
-            return "{ token: $token, model: 'gemini-embedding-001', region: 'europe-west2', project: $project }";
+            return "{ token: $token, model: 'gemini-embedding-001', region: $region, project: $project }";
         }
 
         @Override
         String confWithVendorOptions() {
-            return "{ token: $token, model: 'gemini-embedding-001', region: 'europe-west2', project: $project, vendorOptions: { autoTruncate: true, task_type: 'QUESTION_ANSWERING' } }";
+            return "{ token: $token, model: 'gemini-embedding-001', region: $region, project: $project, vendorOptions: { autoTruncate: true, task_type: 'QUESTION_ANSWERING' } }";
         }
     }
 }

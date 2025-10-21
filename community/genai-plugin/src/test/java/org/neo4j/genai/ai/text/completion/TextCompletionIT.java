@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.genai.ai.Tokens;
 import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -40,13 +41,12 @@ import org.neo4j.test.utils.TestDirectory;
 class TextCompletionIT {
 
     @Nested
-    @EnabledIfEnvironmentVariable(named = OpenAi.TOKEN_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.OpenAi.TOKEN_ENV, matches = ".*")
     class OpenAi extends TextCompletionITBase {
-        static final String TOKEN_ENV = "OPEN_AI_TOKEN";
 
         @Override
         Map<String, Object> params() {
-            return Map.of("token", System.getenv(TOKEN_ENV));
+            return Map.of("token", System.getenv(Tokens.OpenAi.TOKEN_ENV));
         }
 
         @Override
@@ -62,36 +62,37 @@ class TextCompletionIT {
     }
 
     @Nested
-    @EnabledIfEnvironmentVariable(named = VertexAi.TOKEN_ENV, matches = ".*")
-    @EnabledIfEnvironmentVariable(named = VertexAi.PROJECT_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Vertex.TOKEN_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Vertex.PROJECT_ENV, matches = ".*")
     class VertexAi extends TextCompletionITBase {
-        static final String TOKEN_ENV = "VERTEX_AI_TOKEN";
-        static final String PROJECT_ENV = "VERTEX_AI_PROJECT";
 
         @Override
         Map<String, Object> params() {
-            return Map.of("token", System.getenv(TOKEN_ENV), "project", System.getenv(PROJECT_ENV));
+            return Map.of(
+                    "token",
+                    System.getenv(Tokens.Vertex.TOKEN_ENV),
+                    "project",
+                    System.getenv(Tokens.Vertex.PROJECT_ENV),
+                    "region",
+                    System.getenv(Tokens.Vertex.REGION_ENV));
         }
 
         @Override
         List<String> confRequired() {
-            return List.of(
-                    "{ token: $token, model: 'gemini-2.5-flash-lite', region: 'europe-west2', project: $project }");
+            return List.of("{ token: $token, model: 'gemini-2.5-flash-lite', region: $region, project: $project }");
         }
 
         @Override
         List<String> confWithVendorOptions() {
             return List.of(
-                    "{ token: $token, model: 'gemini-2.5-flash-lite', region: 'europe-west2', project: $project, vendorOptions: { systemInstructions: 'Always answer with a single emoji.' } }");
+                    "{ token: $token, model: 'gemini-2.5-flash-lite', region: $region, project: $project, vendorOptions: { systemInstructions: 'Always answer with a single emoji.' } }");
         }
     }
 
     @Nested
-    @EnabledIfEnvironmentVariable(named = BedrockNova.KEY, matches = ".*")
-    @EnabledIfEnvironmentVariable(named = BedrockNova.SECRET, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.ACCESS_KEY_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.SECRET_ACCESS_KEY_ENV, matches = ".*")
     class BedrockNova extends TextCompletionITBase {
-        static final String KEY = "BEDROCK_KEY";
-        static final String SECRET = "BEDROCK_SECRET_KEY";
 
         @Override
         String provider() {
@@ -100,30 +101,34 @@ class TextCompletionIT {
 
         @Override
         Map<String, Object> params() {
-            return Map.of("key", System.getenv(KEY), "secret", System.getenv(SECRET));
+            return Map.of(
+                    "key",
+                    System.getenv(Tokens.Bedrock.ACCESS_KEY_ENV),
+                    "secret",
+                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV),
+                    "region",
+                    System.getenv(Tokens.Bedrock.REGION_ENV));
         }
 
         @Override
         List<String> confRequired() {
             return List.of(
-                    "{ model: 'amazon.nova-micro-v1:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret }",
-                    "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.nova-micro-v1:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret }");
+                    "{ model: 'amazon.nova-micro-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret }",
+                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.nova-micro-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret }");
         }
 
         @Override
         List<String> confWithVendorOptions() {
             return List.of(
-                    "{ model: 'amazon.nova-micro-v1:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }",
-                    "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.nova-micro-v1:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }");
+                    "{ model: 'amazon.nova-micro-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }",
+                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.nova-micro-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }");
         }
     }
 
     @Nested
-    @EnabledIfEnvironmentVariable(named = BedrockTitan.KEY, matches = ".*")
-    @EnabledIfEnvironmentVariable(named = BedrockTitan.SECRET, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.ACCESS_KEY_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.SECRET_ACCESS_KEY_ENV, matches = ".*")
     class BedrockTitan extends TextCompletionITBase {
-        static final String KEY = "BEDROCK_KEY";
-        static final String SECRET = "BEDROCK_SECRET_KEY";
 
         @Override
         String provider() {
@@ -132,21 +137,27 @@ class TextCompletionIT {
 
         @Override
         Map<String, Object> params() {
-            return Map.of("key", System.getenv(KEY), "secret", System.getenv(SECRET));
+            return Map.of(
+                    "key",
+                    System.getenv(Tokens.Bedrock.ACCESS_KEY_ENV),
+                    "secret",
+                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV),
+                    "region",
+                    System.getenv(Tokens.Bedrock.REGION_ENV));
         }
 
         @Override
         List<String> confRequired() {
             return List.of(
-                    "{ model: 'amazon.titan-text-lite-v1', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret }",
-                    "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.titan-text-lite-v1', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret }");
+                    "{ model: 'amazon.titan-text-lite-v1', region: $region, accessKeyId: $key, secretAccessKey: $secret }",
+                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.titan-text-lite-v1', region: $region, accessKeyId: $key, secretAccessKey: $secret }");
         }
 
         @Override
         List<String> confWithVendorOptions() {
             return List.of(
-                    "{ model: 'amazon.titan-text-lite-v1', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }",
-                    "{ model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.titan-text-lite-v1', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }");
+                    "{ model: 'amazon.titan-text-lite-v1', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }",
+                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.titan-text-lite-v1', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }");
         }
     }
 }
