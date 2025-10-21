@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
 import java.time.Clock;
 import org.apache.commons.lang3.mutable.MutableLong;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.database.DatabaseStartAbortedException;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -82,6 +83,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
     private final Clock clock;
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final RecoveryMode mode;
+    private final boolean parallelRecovery;
 
     private ProgressListener progressListener;
 
@@ -101,7 +103,8 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             CursorContextFactory contextFactory,
             Clock clock,
             BinarySupportedKernelVersions binarySupportedKernelVersions,
-            RecoveryMode mode) {
+            RecoveryMode mode,
+            boolean parallelRecovery) {
         this.logFiles = logFiles;
         this.versionProvider = versionProvider;
         this.logFormatVersionProvider = logFormatVersionProvider;
@@ -118,6 +121,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         this.clock = clock;
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
         this.mode = mode;
+        this.parallelRecovery = parallelRecovery;
         this.progressListener = null;
     }
 
@@ -208,6 +212,9 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
     private void handleUnexpectedRecoveryError(
             LogPosition recoveryStartPosition, RecoveryContextTracker recoveryContextTracker, Throwable t) {
         if (failOnCorruptedLogFiles) {
+            if (parallelRecovery) {
+                throwUnableToDoParallelRecovery(t);
+            }
             throwUnableToCleanRecover(t);
         }
         if (recoveryContextTracker.hasRecoveredBatches()) {
@@ -218,6 +225,14 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         } else {
             monitor.failToRecoverTransactionsAfterPosition(t, recoveryStartPosition);
         }
+    }
+
+    private static void throwUnableToDoParallelRecovery(Throwable t) {
+        throw new RuntimeException(
+                "Error during database recovery when running in parallel mode. You can disable parallel recovery by setting '"
+                        + GraphDatabaseInternalSettings.do_parallel_recovery.name()
+                        + "=false' or --parallel-recovery=false if running backup and try again.",
+                t);
     }
 
     private void forwardRecovery(

@@ -253,7 +253,8 @@ class PhysicalLogicalTransactionStoreTest {
                 contextFactory,
                 Clock.systemUTC(),
                 LatestVersions.BINARY_VERSIONS,
-                RecoveryMode.FULL));
+                RecoveryMode.FULL,
+                false));
 
         // WHEN
         try {

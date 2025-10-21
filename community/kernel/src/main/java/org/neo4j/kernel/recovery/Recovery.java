@@ -960,7 +960,8 @@ public final class Recovery {
                 contextFactory,
                 clock,
                 binarySupportedKernelVersions,
-                mode);
+                mode,
+                doParallelRecovery);
     }
 
     private static Iterable<ExtensionFactory<?>> loadExtensions() {

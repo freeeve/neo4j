@@ -101,7 +101,8 @@ class RecoveryProgressIndicatorTest {
                 contextFactory,
                 Clocks.systemClock(),
                 LatestVersions.BINARY_VERSIONS,
-                RecoveryMode.FULL);
+                RecoveryMode.FULL,
+                false);
         recovery.init();
 
         factory.verify();

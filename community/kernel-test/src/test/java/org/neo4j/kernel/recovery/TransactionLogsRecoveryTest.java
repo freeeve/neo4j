@@ -295,7 +295,8 @@ class TransactionLogsRecoveryTest {
                     contextFactory,
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
-                    RecoveryMode.FULL));
+                    RecoveryMode.FULL,
+                    false));
 
             life.start();
 
@@ -382,7 +383,8 @@ class TransactionLogsRecoveryTest {
                     contextFactory,
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
-                    RecoveryMode.FULL));
+                    RecoveryMode.FULL,
+                    false));
 
             life.start();
 
@@ -487,7 +489,8 @@ class TransactionLogsRecoveryTest {
                     contextFactory,
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
-                    RecoveryMode.FULL));
+                    RecoveryMode.FULL,
+                    false));
 
             life.start();
 
@@ -576,7 +579,8 @@ class TransactionLogsRecoveryTest {
                     contextFactory,
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
-                    RecoveryMode.FULL));
+                    RecoveryMode.FULL,
+                    false));
 
             assertThatThrownBy(life::start)
                     .hasMessageContainingAll(
@@ -803,7 +807,8 @@ class TransactionLogsRecoveryTest {
                 contextFactory,
                 Clocks.systemClock(),
                 LatestVersions.BINARY_VERSIONS,
-                RecoveryMode.FULL);
+                RecoveryMode.FULL,
+                false);
 
         logsRecovery.init();
 
@@ -900,7 +905,8 @@ class TransactionLogsRecoveryTest {
                     contextFactory,
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
-                    RecoveryMode.FULL));
+                    RecoveryMode.FULL,
+                    false));
 
             life.start();
         } finally {
