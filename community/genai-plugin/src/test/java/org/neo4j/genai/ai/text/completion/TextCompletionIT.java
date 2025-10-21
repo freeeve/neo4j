@@ -62,6 +62,36 @@ class TextCompletionIT {
     }
 
     @Nested
+    @EnabledIfEnvironmentVariable(named = Tokens.AzureOpenAi.TOKEN_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.AzureOpenAi.RESOURCE_ENV, matches = ".*")
+    class AzureOpenAi extends TextCompletionITBase {
+        @Override
+        String provider() {
+            return "azure-openai";
+        }
+
+        @Override
+        Map<String, Object> params() {
+            return Map.of(
+                    "token",
+                    System.getenv(Tokens.AzureOpenAi.TOKEN_ENV),
+                    "resource",
+                    System.getenv(Tokens.AzureOpenAi.RESOURCE_ENV));
+        }
+
+        @Override
+        List<String> confRequired() {
+            return List.of("{ token: $token, resource: $resource, model: 'gpt-5-mini' }");
+        }
+
+        @Override
+        List<String> confWithVendorOptions() {
+            return List.of(
+                    "{ token: $token, resource: $resource, model: 'gpt-5-mini', vendorOptions: { store: false, instructions: 'Always answer with a single emoji.' } }");
+        }
+    }
+
+    @Nested
     @EnabledIfEnvironmentVariable(named = Tokens.Vertex.TOKEN_ENV, matches = ".*")
     @EnabledIfEnvironmentVariable(named = Tokens.Vertex.PROJECT_ENV, matches = ".*")
     class VertexAi extends TextCompletionITBase {

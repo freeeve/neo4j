@@ -83,6 +83,6 @@ public interface Tokens {
         /* Name of env variable containing Azure OpenAI access token that can be used for integration testing. */
         String TOKEN_ENV = "AZURE_OPENAI_TOKEN";
         /* Name of env variable containing Azure OpenAI resource name. */
-        String PROJECT_ENV = "AZURE_OPENAI_RESOURCE";
+        String RESOURCE_ENV = "AZURE_OPENAI_RESOURCE";
     }
 }

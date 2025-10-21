@@ -41,6 +41,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.ProviderArgs;
 import org.neo4j.genai.ai.ProviderArguments;
+import org.neo4j.genai.ai.text.completion.provider.azure.AzureOpenAi;
 import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockNova;
 import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockTitan;
 import org.neo4j.genai.ai.text.completion.provider.openai.OpenAi;
@@ -77,6 +78,7 @@ public class TextCompletionTest implements GenAITestExtension {
         final var baseUrl = this.wireMock.baseUrl();
         builder.addExtension(new GenAiPluginExtension(
                 new OpenAi(baseUrl),
+                new AzureOpenAi(p -> URI.create(baseUrl)),
                 new VertexAi(p -> URI.create(baseUrl)),
                 new BedrockNova(p -> URI.create(baseUrl)),
                 new BedrockTitan(p -> URI.create(baseUrl))));
@@ -96,6 +98,23 @@ public class TextCompletionTest implements GenAITestExtension {
                     """
                     {
                       token :: STRING NOT NULL,
+                      model :: STRING NOT NULL
+                    }""",
+                    "optionalConfigType",
+                    """
+                    {
+                      vendorOptions :: MAP NOT NULL
+                    }""",
+                    "defaultConfig",
+                    Map.of("vendorOptions", Map.of())),
+            Map.of(
+                    "name",
+                    "Azure-OpenAI",
+                    "requiredConfigType",
+                    """
+                    {
+                      token :: STRING NOT NULL,
+                      resource :: STRING NOT NULL,
                       model :: STRING NOT NULL
                     }""",
                     "optionalConfigType",
@@ -222,6 +241,7 @@ class RequiredConfArguments implements ProviderArguments {
     public Stream<ProviderArgs> providers() {
         return Stream.of(
                 new ProviderArgs("openai", "{ token: 'dummy-openai-token', model: 'gpt-5' }"),
+                new ProviderArgs("azure-openai", "{ token: 'dummy-azure-token', resource: 'dummy', model: 'gpt-5' }"),
                 new ProviderArgs(
                         "vertexai",
                         "{ token: 'dummy-vertex-token', model: 'gemini-3', region: 'smaland', project: 'astrid', publisher: 'google' }"),
@@ -255,6 +275,18 @@ class AllOptionsArguments implements ProviderArguments {
                         """
                         {
                           token: 'dummy-openai-token',
+                          model: 'gpt-5',
+                          vendorOptions: {
+                            max_output_tokens: 1024,
+                            store: false
+                          }
+                        }"""),
+                new ProviderArgs(
+                        "azure-openai",
+                        """
+                        {
+                          token: 'dummy-azure-token',
+                          resource: 'dummy',
                           model: 'gpt-5',
                           vendorOptions: {
                             max_output_tokens: 1024,
