@@ -234,9 +234,7 @@ class LogFormatSelectionIT {
     @MethodSource("formatSwitchAllowedAndDbName")
     @SkipOnSpd(reason = "System is being auto-upgraded on startup (not sure there is a way to turn that off)")
     void recoveryOverUpgradeTransaction(String dbName, boolean allowFormatSwitchOnUpgrade) throws Throwable {
-        LogFormat expectedFormat = newFormatExpected(allowFormatSwitchOnUpgrade)
-                ? LogFormat.fromKernelVersion(KernelVersion.GLORIOUS_FUTURE)
-                : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
+        LogFormat expectedFormat = newFormatExpected(allowFormatSwitchOnUpgrade);
 
         createBuilder();
         managementService = builder.build();
@@ -351,8 +349,11 @@ class LogFormatSelectionIT {
         checkLogFormatOfLatestFiles(logFiles, expectedFormat);
     }
 
-    private static boolean newFormatExpected(boolean allowFormatSwitchOnUpgrade) {
-        return allowFormatSwitchOnUpgrade || LATEST_LOG_FORMAT.equals(LogFormat.V10);
+    private static LogFormat newFormatExpected(boolean allowFormatSwitchOnUpgrade) {
+        if (allowFormatSwitchOnUpgrade) {
+            return LogFormat.V11;
+        }
+        return LATEST_LOG_FORMAT;
     }
 
     private void runImport(ExecutionContext ctx, String... arguments) throws Exception {
