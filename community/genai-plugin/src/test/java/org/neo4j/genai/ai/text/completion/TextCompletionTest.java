@@ -146,9 +146,18 @@ public class TextCompletionTest implements GenAITestExtension {
                     "name",
                     "Bedrock-Titan",
                     "requiredConfigType",
-                    "{ accessKeyId :: STRING NOT NULL, secretAccessKey :: STRING NOT NULL, region :: STRING NOT NULL, model :: STRING NOT NULL }",
+                    """
+                    {
+                      accessKeyId :: STRING NOT NULL,
+                      secretAccessKey :: STRING NOT NULL,
+                      region :: STRING NOT NULL,
+                      model :: STRING NOT NULL
+                    }""",
                     "optionalConfigType",
-                    "{ vendorOptions :: MAP NOT NULL }",
+                    """
+                    {
+                      vendorOptions :: MAP NOT NULL
+                    }""",
                     "defaultConfig",
                     Map.of("vendorOptions", Map.of())));
 
