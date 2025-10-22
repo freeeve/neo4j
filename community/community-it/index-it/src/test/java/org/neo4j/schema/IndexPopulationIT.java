@@ -44,9 +44,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -61,7 +59,6 @@ import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.index.IndexPopulationJob;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -80,10 +77,6 @@ import org.neo4j.values.storable.RandomValuesUtils;
 @TestDirectoryExtension
 @RandomSupportExtension
 class IndexPopulationIT {
-
-    private static final KernelVersion KERNEL_VERSION = KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED;
-    private static final DbmsRuntimeVersion DBMS_RUNTIME_VERSION = DbmsRuntimeVersion.fromKernelVersion(KERNEL_VERSION);
-
     @Inject
     private TestDirectory directory;
 
@@ -184,8 +177,6 @@ class IndexPopulationIT {
         Label testLabel = Label.label("testLabel");
         String propertyName = "testProperty";
         DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDir)
-                .setConfig(GraphDatabaseInternalSettings.latest_kernel_version, KERNEL_VERSION.version())
-                .setConfig(GraphDatabaseInternalSettings.latest_runtime_version, DBMS_RUNTIME_VERSION.getVersion())
                 .setInternalLogProvider(assertableLogProvider)
                 .build();
         GraphDatabaseService shutDownDb = managementService.database(DEFAULT_DATABASE_NAME);

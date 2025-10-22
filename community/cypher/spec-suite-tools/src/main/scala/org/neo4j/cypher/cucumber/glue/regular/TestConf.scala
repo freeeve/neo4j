@@ -438,10 +438,7 @@ object TestConf {
     "internal.dbms.single_raft_enabled" -> "true",
     "internal.dbms.replication_enabled" -> "true",
     "internal.initial.dbms.default_database.enable" -> "false",
-    "internal.dbms.sharded_property_database.enabled" -> "true",
-    // TODO vector: Remove once vector is released
-    "internal.dbms.latest_kernel_version" -> "127",
-    "internal.dbms.latest_runtime_version" -> "2147483647"
+    "internal.dbms.sharded_property_database.enabled" -> "true"
   )
 
   object SpdBolt extends InjectedTestConf {
