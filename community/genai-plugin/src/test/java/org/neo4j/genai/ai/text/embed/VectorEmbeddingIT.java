@@ -22,6 +22,7 @@ package org.neo4j.genai.ai.text.embed;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -51,13 +52,14 @@ public class VectorEmbeddingIT {
         }
 
         @Override
-        String confRequired() {
-            return "{ token: $token, model: 'text-embedding-3-small' }";
+        List<String> confRequired() {
+            return List.of("{ token: $token, model: 'text-embedding-3-small' }");
         }
 
         @Override
-        String confWithVendorOptions() {
-            return "{ token: $token, model: 'text-embedding-3-small', vendorOptions: { dimensions: 1536, user: 'gem' } }";
+        List<String> confWithVendorOptions() {
+            return List.of(
+                    "{ token: $token, model: 'text-embedding-3-small', vendorOptions: { dimensions: 1536, user: 'gem' } }");
         }
     }
 
@@ -78,13 +80,53 @@ public class VectorEmbeddingIT {
         }
 
         @Override
-        String confRequired() {
-            return "{ token: $token, model: 'gemini-embedding-001', region: $region, project: $project }";
+        List<String> confRequired() {
+            return List.of("{ token: $token, model: 'gemini-embedding-001', region: $region, project: $project }");
         }
 
         @Override
-        String confWithVendorOptions() {
-            return "{ token: $token, model: 'gemini-embedding-001', region: $region, project: $project, vendorOptions: { autoTruncate: true, task_type: 'QUESTION_ANSWERING' } }";
+        List<String> confWithVendorOptions() {
+            return List.of(
+                    "{ token: $token, model: 'gemini-embedding-001', region: $region, project: $project, vendorOptions: { autoTruncate: true, task_type: 'QUESTION_ANSWERING' } }");
+        }
+    }
+
+    @Nested
+    @EnabledIfEnvironmentVariable(named = VectorEmbeddingIT.BedrockTitan.KEY, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = VectorEmbeddingIT.BedrockTitan.SECRET, matches = ".*")
+    class BedrockTitan extends VectorEmbeddingITBase {
+        static final String KEY = "BEDROCK_KEY";
+        static final String SECRET = "BEDROCK_SECRET_KEY";
+
+        @Override
+        String provider() {
+            return "bedrock-titan";
+        }
+
+        @Override
+        Map<String, Object> params() {
+            return Map.of(
+                    "key",
+                    System.getenv(Tokens.Bedrock.ACCESS_KEY_ENV),
+                    "secret",
+                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV),
+                    "region",
+                    System.getenv(Tokens.Bedrock.REGION_ENV));
+        }
+
+        @Override
+        List<String> confRequired() {
+            return List.of(
+                    "{ model: 'amazon.titan-embed-text-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret }",
+                    "{ model: 'amazon.titan-embed-text-v2:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret }",
+                    "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret }");
+        }
+
+        @Override
+        List<String> confWithVendorOptions() {
+            return List.of(
+                    "{ model: 'amazon.titan-embed-text-v2:0', region: 'eu-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { dimensions: 1024, normalize: true, embeddingTypes: ['float'] } }",
+                    "{ model: 'arn:aws:bedrock:us-west-2::foundation-model/amazon.titan-embed-text-v2:0', region: 'us-west-2', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { dimensions: 1024, normalize: true, embeddingTypes: ['float'] } }");
         }
     }
 }
@@ -100,9 +142,9 @@ abstract class VectorEmbeddingITBase implements GenAITestExtension {
 
     abstract Map<String, Object> params();
 
-    abstract String confRequired();
+    abstract List<String> confRequired();
 
-    abstract String confWithVendorOptions();
+    abstract List<String> confWithVendorOptions();
 
     String provider() {
         return getClass().getSimpleName().toLowerCase(Locale.ROOT);
@@ -118,54 +160,62 @@ abstract class VectorEmbeddingITBase implements GenAITestExtension {
 
     @Test
     void embedWithRequiredArgs() {
-        assertNonNullVectorResult(
-                """
-                WITH %s AS conf
-                WITH ai.text.embed('Hello!', '%s', conf) AS result
-                RETURN result"""
-                        .formatted(confRequired(), provider()));
+        for (final var conf : confRequired()) {
+            assertNonNullVectorResult(
+                    """
+                            WITH %s AS conf
+                            WITH ai.text.embed('Hello!', '%s', conf) AS result
+                            RETURN result"""
+                            .formatted(conf, provider()));
+        }
     }
 
     @Test
     void embedWithAllArgs() {
-        assertNonNullVectorResult(
-                """
-                WITH %s AS conf
-                WITH ai.text.embed('Hello!', '%s', conf) AS result
-                RETURN result"""
-                        .formatted(confWithVendorOptions(), provider()));
+        for (final var conf : confWithVendorOptions()) {
+            assertNonNullVectorResult(
+                    """
+                            WITH %s AS conf
+                            WITH ai.text.embed('Hello!', '%s', conf) AS result
+                            RETURN result"""
+                            .formatted(conf, provider()));
+        }
     }
 
     @Test
     void batchEmbedWithRequiredArgs() {
-        final var query =
-                """
-                CALL ai.text.embedBatch(
-                  ['Testing', null, 'Hello!'],
-                  '%s',
-                  %s
-                )
-                """
-                        .formatted(provider(), confRequired());
-        assertThat(db.executeTransactionally(query, params(), consume()))
-                .as("Query:%n```%n%s%n```%n", query)
-                .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
+        for (final var conf : confRequired()) {
+            final var query =
+                    """
+                            CALL ai.text.embedBatch(
+                              ['Testing', null, 'Hello!'],
+                              '%s',
+                              %s
+                            )
+                            """
+                            .formatted(provider(), conf);
+            assertThat(db.executeTransactionally(query, params(), consume()))
+                    .as("Query:%n```%n%s%n```%n", query)
+                    .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
+        }
     }
 
     @Test
     void batchEmbedWithAllArgs() {
-        final var query =
-                """
-                CALL ai.text.embedBatch(
-                  ['Testing', null, 'Hello!'],
-                  '%s',
-                  %s
-                )
-                """
-                        .formatted(provider(), confWithVendorOptions());
-        assertThat(db.executeTransactionally(query, params(), consume()))
-                .as("Query:%n```%n%s%n```%n", query)
-                .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
+        for (final var conf : confWithVendorOptions()) {
+            final var query =
+                    """
+                            CALL ai.text.embedBatch(
+                              ['Testing', null, 'Hello!'],
+                              '%s',
+                              %s
+                            )
+                            """
+                            .formatted(provider(), conf);
+            assertThat(db.executeTransactionally(query, params(), consume()))
+                    .as("Query:%n```%n%s%n```%n", query)
+                    .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
+        }
     }
 
     private void assertNonNullVectorResult(String query) {

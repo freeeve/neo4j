@@ -42,8 +42,9 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.ProviderArgs;
 import org.neo4j.genai.ai.ProviderArguments;
-import org.neo4j.genai.ai.text.embed.provider.OpenAi;
-import org.neo4j.genai.ai.text.embed.provider.VertexAi;
+import org.neo4j.genai.ai.text.embed.provider.bedrock.BedrockTitan;
+import org.neo4j.genai.ai.text.embed.provider.openai.OpenAi;
+import org.neo4j.genai.ai.text.embed.provider.vertexai.VertexAi;
 import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -74,7 +75,10 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                 .http2PlainDisabled(true));
         this.wireMock.start();
         final var baseUrl = this.wireMock.baseUrl();
-        builder.addExtension(new GenAiPluginExtension(new OpenAi(baseUrl), new VertexAi(p -> URI.create(baseUrl))));
+        builder.addExtension(new GenAiPluginExtension(
+                new OpenAi(baseUrl),
+                new VertexAi(p -> URI.create(baseUrl)),
+                new BedrockTitan(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
     }
 
@@ -84,6 +88,24 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     }
 
     private final List<Map<String, Object>> EXPECTED_PROVIDERS = List.of(
+            Map.of(
+                    "name",
+                    "Bedrock-Titan",
+                    "requiredConfigType",
+                    """
+                    {
+                      accessKeyId :: STRING NOT NULL,
+                      secretAccessKey :: STRING NOT NULL,
+                      region :: STRING NOT NULL,
+                      model :: STRING NOT NULL
+                    }""",
+                    "optionalConfigType",
+                    """
+                    {
+                      vendorOptions :: MAP NOT NULL
+                    }""",
+                    "defaultConfig",
+                    Map.of("vendorOptions", Map.of())),
             Map.of(
                     "name",
                     "OpenAI",
@@ -283,7 +305,13 @@ class RequiredConfArguments implements ProviderArguments {
                 new ProviderArgs("openai", "{ token: 'dummy-openai-token', model: 'text-embedding-3-small' }"),
                 new ProviderArgs(
                         "vertexai",
-                        "{ token: 'dummy-vertex-token', model: 'gemini-embedding-001', region: 'tasman', project: 'gem', publisher: 'google' }"));
+                        "{ token: 'dummy-vertex-token', model: 'gemini-embedding-001', region: 'tasman', project: 'gem', publisher: 'google' }"),
+                new ProviderArgs(
+                        "bedrock-titan:model by name",
+                        "{ model: 'amazon.titan-embed-text-v1', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
+                new ProviderArgs(
+                        "bedrock-titan:foundation model by arn",
+                        "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v1', region: 'us-east-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"));
     }
 }
 
@@ -309,6 +337,36 @@ class AllOptionsArguments implements ProviderArguments {
                           project: 'gem',
                           publisher: 'google',
                           vendorOptions: { autoTruncate: true, task_type: 'QUESTION_ANSWERING' }
-                        }"""));
+                        }"""),
+                new ProviderArgs(
+                        "bedrock-titan:model by name",
+                        """
+                {
+                  model: 'amazon.titan-embed-text-v1',
+                  region: 'eu-north-1',
+                  accessKeyId: 'bedrock-key',
+                  secretAccessKey: 'secret',
+                  vendorOptions: {
+                    dimensions: 1024,
+                    normalize: true,
+                    embeddingTypes: ['float']
+                  }
+                }
+                """),
+                new ProviderArgs(
+                        "bedrock-titan:foundation model by arn",
+                        """
+                        {
+                          model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0',
+                          region: 'us-east-1',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            dimensions: 1024,
+                            normalize: true,
+                            embeddingTypes: ['float']
+                          }
+                        }
+                        """));
     }
 }
