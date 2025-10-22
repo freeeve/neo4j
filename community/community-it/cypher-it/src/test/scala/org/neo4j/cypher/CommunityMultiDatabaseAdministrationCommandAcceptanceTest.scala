@@ -1235,7 +1235,9 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
   }
 
   // Disable normal database creation because we need different settings on each test
-  override protected def beforeEach(): Unit = {}
+  override protected def beforeEach(): Unit = {
+    resetLogs() // Don't keep the cumulative logs in memory to avoid OOM
+  }
 
   private def setup(config: Config): Unit = {
     managementService = graphDatabaseFactory(Path.of("test")).impermanent().setConfig(

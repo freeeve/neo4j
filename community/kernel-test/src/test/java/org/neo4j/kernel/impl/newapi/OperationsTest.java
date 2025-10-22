@@ -287,7 +287,8 @@ abstract class OperationsTest {
                 .containsOrdered(line().level(Level.ERROR)
                         .database(DB_NAME)
                         .source(ClientConnectionInfo.EMBEDDED_CONNECTION.asConnectionDetails())
-                        .message(expected));
+                        .message(expected)
+                        .errorInfo(Map.of("GQLSTATUS", "42NFF")));
     }
 
     @Test
@@ -301,7 +302,8 @@ abstract class OperationsTest {
                 .containsOrdered(line().level(Level.ERROR)
                         .database(DB_NAME)
                         .source(ClientConnectionInfo.EMBEDDED_CONNECTION.asConnectionDetails())
-                        .message(expected));
+                        .message(expected)
+                        .errorInfo(Map.of("GQLSTATUS", "42NFF")));
     }
 
     @Test
@@ -315,7 +317,8 @@ abstract class OperationsTest {
                 .containsOrdered(line().level(Level.ERROR)
                         .database(DB_NAME)
                         .source(ClientConnectionInfo.EMBEDDED_CONNECTION.asConnectionDetails())
-                        .message(expected));
+                        .message(expected)
+                        .errorInfo(Map.of("GQLSTATUS", "42NFF")));
     }
 
     @Test
@@ -330,7 +333,8 @@ abstract class OperationsTest {
                 .containsOrdered(line().level(Level.ERROR)
                         .database(DB_NAME)
                         .source(ClientConnectionInfo.EMBEDDED_CONNECTION.asConnectionDetails())
-                        .message(expected));
+                        .message(expected)
+                        .errorInfo(Map.of("GQLSTATUS", "42NFF")));
     }
 
     @Test

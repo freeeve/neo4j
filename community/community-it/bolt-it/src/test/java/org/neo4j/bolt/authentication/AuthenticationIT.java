@@ -22,6 +22,7 @@ package org.neo4j.bolt.authentication;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.neo4j.bolt.test.util.ErrorUtil.useNewMessage;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord;
+import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 import static org.neo4j.test.assertion.Assert.awaitUntilAsserted;
@@ -61,6 +62,8 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.util.ValueUtils;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
+import org.neo4j.logging.internal.LogService;
+import org.neo4j.logging.internal.SimpleLogService;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.assertion.Assert;
 import org.neo4j.test.extension.SkipOnSpd;
@@ -77,11 +80,15 @@ import org.neo4j.values.virtual.VirtualValues;
 @IncludeTransport({TransportType.TCP, TransportType.UNIX, TransportType.LOCAL})
 public class AuthenticationIT {
 
+    protected final AssertableLogProvider securityLogProvider = new AssertableLogProvider();
     protected final AssertableLogProvider userLogProvider = new AssertableLogProvider();
+    protected final LogService logService = new SimpleLogService(userLogProvider, securityLogProvider);
 
     @FactoryFunction
     protected void customizeDatabase(TestDatabaseManagementServiceBuilder factory) {
         factory.setUserLogProvider(this.userLogProvider);
+
+        factory.setExternalDependencies(dependenciesOf(logService));
     }
 
     @SettingsFunction
@@ -178,6 +185,8 @@ public class AuthenticationIT {
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                         assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
+        LogAssertions.assertThat(this.securityLogProvider)
+                .containsMessages("The client is unauthorized due to authentication failure.");
 
         Assert.assertEventually(
                 () -> "Matching log call not found in\n" + this.userLogProvider.serialize(),
@@ -356,6 +365,8 @@ public class AuthenticationIT {
                             "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                             assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                     .isEventuallyTerminated();
+            LogAssertions.assertThat(this.securityLogProvider)
+                    .containsMessages("The client is unauthorized due to authentication failure.");
         }
     }
 
@@ -462,6 +473,8 @@ public class AuthenticationIT {
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
+        LogAssertions.assertThat(this.securityLogProvider)
+                .containsMessages("The client is unauthorized due to authentication failure.");
     }
 
     @BoltTest
@@ -532,6 +545,8 @@ public class AuthenticationIT {
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
+        LogAssertions.assertThat(this.securityLogProvider)
+                .containsMessages("The client is unauthorized due to authentication failure.");
     }
 
     @BoltTest
@@ -599,6 +614,8 @@ public class AuthenticationIT {
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
+        LogAssertions.assertThat(this.securityLogProvider)
+                .containsMessages("The client is unauthorized due to authentication failure.");
     }
 
     @BoltTest
@@ -670,6 +687,8 @@ public class AuthenticationIT {
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
+        LogAssertions.assertThat(this.securityLogProvider)
+                .containsMessages("The client is unauthorized due to authentication failure.");
     }
 
     @BoltTest
@@ -753,6 +772,8 @@ public class AuthenticationIT {
                                 "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                                 BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                         .isEventuallyTerminated();
+                LogAssertions.assertThat(this.securityLogProvider)
+                        .containsMessages("The client is unauthorized due to authentication failure.");
             }
         });
     }
@@ -1140,6 +1161,9 @@ public class AuthenticationIT {
                                     "error: syntax error or access rule violation - credentials expired. Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
                                     BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
                                             "CLIENT_ERROR")));
+            LogAssertions.assertThat(this.securityLogProvider)
+                    .containsMessages(
+                            "The credentials you provided were valid, but must be changed before you can use this instance.");
         } catch (StackOverflowError ignore) {
             // Compiled runtime triggers the AuthorizationViolation exception on the PULL_N message, which means the RUN
             // message will
@@ -1157,6 +1181,9 @@ public class AuthenticationIT {
                                     "error: syntax error or access rule violation - credentials expired. Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
                                     BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
                                             "CLIENT_ERROR")));
+            LogAssertions.assertThat(this.securityLogProvider)
+                    .containsMessages(
+                            "The credentials you provided were valid, but must be changed before you can use this instance.");
         }
     }
 

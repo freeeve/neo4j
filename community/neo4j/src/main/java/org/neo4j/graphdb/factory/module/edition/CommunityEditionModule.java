@@ -74,6 +74,7 @@ import org.neo4j.dbms.systemgraph.CommunityTopologyGraphComponent;
 import org.neo4j.dbms.systemgraph.ContextBasedSystemDatabaseProvider;
 import org.neo4j.dbms.systemgraph.SystemDatabaseProvider;
 import org.neo4j.graphdb.factory.module.GlobalModule;
+import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
 import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.kernel.api.security.SecurityModule;
@@ -136,6 +137,7 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
 
         logProvider = globalModule.getLogService().getInternalLogProvider();
         securityLog = new CommunitySecurityLog(logProvider.getLog(CommunitySecurityModule.class));
+        globalModule.getGlobalDependencies().satisfyDependency(securityLog);
         globalDependencies.satisfyDependency(new URIAccessRules(securityLog, globalConfig));
 
         identityModule = tryResolveOrCreate(
@@ -353,7 +355,6 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
     }
 
     private SecurityProvider makeSecurityModule(GlobalModule globalModule) {
-        globalModule.getGlobalDependencies().satisfyDependency(CommunitySecurityLog.NULL_LOG);
         if (globalModule.getGlobalConfig().get(GraphDatabaseSettings.auth_enabled)) {
             SecurityModule securityModule = new CommunitySecurityModule(
                     globalModule.getLogService(),
@@ -409,7 +410,7 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
                 globalModule.getLogService(),
                 databaseRepository,
                 databaseReferenceRepo,
-                CommunitySecurityLog.NULL_LOG);
+                globalModule.getGlobalDependencies().resolveDependency(AbstractSecurityLog.class));
         globalModule
                 .getGlobalDependencies()
                 .satisfyDependency(queryRouterBootstrap.bootstrapServices(databaseManagementService));

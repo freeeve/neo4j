@@ -24,8 +24,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 import static org.neo4j.internal.helpers.collection.MapUtil.map;
 import static org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo.EMBEDDED_CONNECTION;
@@ -35,6 +41,7 @@ import static org.neo4j.server.security.auth.SecurityTestUtils.password;
 import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.neo4j.bolt.security.Authentication;
 import org.neo4j.bolt.security.AuthenticationResult;
 import org.neo4j.bolt.security.error.AuthenticationException;
@@ -42,6 +49,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.security.User;
@@ -54,6 +62,7 @@ import org.neo4j.time.Clocks;
 class BasicAuthenticationTest {
 
     private Authentication authentication;
+    private AbstractSecurityLog securityLog;
 
     @Test
     void shouldNotDoAnythingOnSuccess() throws Exception {
@@ -63,6 +72,7 @@ class BasicAuthenticationTest {
 
         // Then
         assertThat(result.getLoginContext().subject().executingUser()).isEqualTo("mike");
+        verifyNoInteractions(securityLog);
     }
 
     @Test
@@ -77,6 +87,11 @@ class BasicAuthenticationTest {
                 useNewMessage("42NFF: Access denied, see the security logs for details.")
                         .whenLegacyFallbackTo("The client is unauthorized due to authentication failure."),
                 e.getMessage());
+        verify(securityLog)
+                .error(
+                        eq("The client is unauthorized due to authentication failure."),
+                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
+                        eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 
     @Test
@@ -87,13 +102,14 @@ class BasicAuthenticationTest {
 
         // Then
         assertTrue(result.credentialsExpired());
+        verifyNoInteractions(securityLog);
     }
 
     @Test
     void shouldFailWhenTooManyAttempts() throws Exception {
         // Given
         int maxFailedAttempts = ThreadLocalRandom.current().nextInt(1, 10);
-        Authentication auth = createAuthentication(maxFailedAttempts);
+        Authentication auth = createAuthentication(maxFailedAttempts, securityLog);
 
         for (int i = 0; i < maxFailedAttempts; ++i) {
             try {
@@ -104,7 +120,12 @@ class BasicAuthenticationTest {
                 assertThat(e.status()).isEqualTo(Status.Security.Unauthorized);
             }
         }
-
+        verify(securityLog, times(maxFailedAttempts))
+                .error(
+                        eq("The client is unauthorized due to authentication failure."),
+                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
+                        eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
+        reset(securityLog);
         var e = assertThrows(
                 AuthenticationException.class,
                 () -> auth.authenticate(
@@ -120,6 +141,11 @@ class BasicAuthenticationTest {
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_42NFF)
                 .hasStatusDescription(
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.");
+        verify(securityLog)
+                .error(
+                        eq("The client has provided incorrect authentication details too many times in a row."),
+                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
+                        eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 
     @Test
@@ -132,6 +158,7 @@ class BasicAuthenticationTest {
 
         // Then
         assertThat(password).containsOnly(0);
+        verifyNoInteractions(securityLog);
     }
 
     @Test
@@ -141,6 +168,11 @@ class BasicAuthenticationTest {
                 () -> authentication.authenticate(
                         map("principal", "bob", "credentials", password("secret")), EMBEDDED_CONNECTION));
         assertEquals(Status.Security.Unauthorized, e.status());
+        verify(securityLog)
+                .error(
+                        eq("Unsupported authentication token, missing key `scheme`"),
+                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
+                        eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 
     @Test
@@ -150,6 +182,11 @@ class BasicAuthenticationTest {
                 () -> authentication.authenticate(
                         map("this", "does", "not", "matter", "for", "test"), EMBEDDED_CONNECTION));
         assertEquals(Status.Security.Unauthorized, e.status());
+        verify(securityLog)
+                .error(
+                        eq("Unsupported authentication token, missing key `scheme`"),
+                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
+                        eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 
     @Test
@@ -166,20 +203,27 @@ class BasicAuthenticationTest {
                                 "Unsupported authentication token, the value associated with the key `principal` "
                                         + "must be a String but was: SingletonList"),
                 e.getMessage());
+        verify(securityLog)
+                .error(
+                        eq(
+                                "Unsupported authentication token, the value associated with the key `principal` must be a String but was: SingletonList"),
+                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
+                        eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 
     @BeforeEach
     void setup() throws Throwable {
-        authentication = createAuthentication(3);
+        securityLog = mock(AbstractSecurityLog.class);
+        authentication = createAuthentication(3, securityLog);
     }
 
-    private static Authentication createAuthentication(int maxFailedAttempts) {
+    private static Authentication createAuthentication(int maxFailedAttempts, AbstractSecurityLog securityLog) {
         Config config = Config.defaults(GraphDatabaseSettings.auth_max_failed_attempts, maxFailedAttempts);
         SecurityGraphHelper realmHelper =
                 spy(new SecurityGraphHelper(null, new SecureHasher(), CommunitySecurityLog.NULL_LOG));
         BasicSystemGraphRealm realm = new BasicSystemGraphRealm(
                 realmHelper, new RateLimitedAuthenticationStrategy(Clocks.systemClock(), config));
-        Authentication authentication = new BasicAuthentication(realm);
+        Authentication authentication = new BasicAuthentication(realm, securityLog);
         doReturn(new User("bob", null, credentialFor("secret"), true, false))
                 .when(realmHelper)
                 .getUserByName("bob");
