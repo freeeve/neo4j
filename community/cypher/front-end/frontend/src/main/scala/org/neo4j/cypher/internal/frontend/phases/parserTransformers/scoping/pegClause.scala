@@ -264,7 +264,7 @@ case class pegClause(anonVarGen: AnonymousVariableNameGenerator) {
         incoming.noResultScope(incoming.amendedWith(vars), Seq.empty, declared = Declarations(Seq.empty, variables))
 
       case UseGraph(graphReference) =>
-        incoming.noResultScope(incoming, Seq(pegExpression(graphReference, incoming, version)))
+        incoming.noResultScope(incoming, Seq(pegExpression(anonVarGen)(graphReference, incoming, version)))
 
       case projectionClause: ProjectionClause => scopeProjectionClause(projectionClause, incoming, version)
 
