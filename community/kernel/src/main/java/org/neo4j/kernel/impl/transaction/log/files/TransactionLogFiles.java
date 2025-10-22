@@ -29,6 +29,8 @@ import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointLogFile;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.storageengine.api.LogMetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 
 /**
  * Used to figure out what logical log file to open when the database
@@ -39,18 +41,46 @@ public class TransactionLogFiles extends LifecycleAdapter implements LogFiles {
             TransactionLogFilesHelper.DEFAULT_FILENAME_FILTER;
 
     private final CheckpointFile checkpointLogFile;
+    private final TransactionLogFilesOverrides overrides;
     private final TransactionLogFile logFile;
     private final Path logsDirectory;
+    private volatile LogMetadataProviderImpl logMetadataProvider;
     private LifeSupport logFilesLife;
 
-    TransactionLogFiles(Path logsDirectory, TransactionLogFilesContext context) {
+    TransactionLogFiles(
+            Path logsDirectory, TransactionLogFilesContext context, TransactionLogFilesOverrides overrides) {
         this.logsDirectory = logsDirectory;
         this.logFile = new TransactionLogFile(this, context);
-        this.checkpointLogFile = new CheckpointLogFile(this, context);
+        this.checkpointLogFile = new CheckpointLogFile(this, context, overrides.externalLogTail());
+        this.overrides = overrides;
+        if (!(overrides.readOnlyLogs() || overrides.fileBasedOperationsOnly() || overrides.noInit())) {
+            LogTailMetadata tailMetadata = checkpointLogFile.getTailMetadata();
+            logMetadataProvider = new LogMetadataProviderImpl(tailMetadata);
+            TransactionLogFilesProviders transactionLogFilesProviders =
+                    new TransactionLogFilesProviders(logMetadataProvider, this.overrides);
+            checkpointLogFile.initialize(transactionLogFilesProviders);
+            logFile.initialize(transactionLogFilesProviders);
+        }
+    }
+
+    @Override
+    public LogMetadataProvider logMetadataProvider() {
+        if (logMetadataProvider == null) {
+            throw new IllegalStateException("Current version of log files can't perform any "
+                    + "operation that require availability of LogMetadataProvider. Please "
+                    + "build full version of log files "
+                    + "to be able to use them.");
+        }
+        return logMetadataProvider;
     }
 
     @Override
     public void init() throws IOException {
+        if ((overrides.readOnlyLogs() || overrides.fileBasedOperationsOnly() || overrides.noInit())) {
+            throw new RuntimeException("Current version of log files can't be started. Please "
+                    + "build full version of log files to be able to start them.");
+        }
+
         // life support is not restartable so we need to create a new one each time
         logFilesLife = new LifeSupport();
         logFilesLife.add(logFile);

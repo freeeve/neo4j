@@ -151,7 +151,7 @@ class RecoveryCorruptedTransactionLogIT {
     private int CHECKPOINT_RECORD_SIZE;
     private LogCommandSerialization LATEST_LOG_SERIALIZATION;
     private BinarySupportedKernelVersions BINARY_VERSIONS;
-    private Config CONFIG;
+    private Config config;
 
     @Inject
     DefaultFileSystemAbstraction fileSystem;
@@ -177,8 +177,8 @@ class RecoveryCorruptedTransactionLogIT {
     void setUp() {
         CHECKPOINT_RECORD_SIZE = checkpointRecordSize();
         LATEST_LOG_SERIALIZATION = RecordStorageCommandReaderFactory.INSTANCE.get(kernelVersion());
-        CONFIG = Config.defaults(additionalConfig());
-        BINARY_VERSIONS = new BinarySupportedKernelVersions(CONFIG);
+        config = Config.defaults(additionalConfig());
+        BINARY_VERSIONS = new BinarySupportedKernelVersions(config);
 
         monitors.addMonitorListener(recoveryMonitor);
         monitors.addMonitorListener(corruptedFilesMonitor);
@@ -1267,7 +1267,7 @@ class RecoveryCorruptedTransactionLogIT {
             assertThat(database.isAvailable()).isFalse();
             assertThat(logProvider).containsMessages("Exception occurred while starting the database");
         }
-        assertThat(Recovery.isRecoveryRequired(fileSystem, databaseLayout, CONFIG, INSTANCE))
+        assertThat(Recovery.isRecoveryRequired(fileSystem, databaseLayout, config, INSTANCE))
                 .isTrue();
 
         // And then
@@ -1276,7 +1276,7 @@ class RecoveryCorruptedTransactionLogIT {
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             assertThat(database.isAvailable()).as(logProvider::serialize).isTrue();
         }
-        assertThat(Recovery.isRecoveryRequired(fileSystem, databaseLayout, CONFIG, INSTANCE))
+        assertThat(Recovery.isRecoveryRequired(fileSystem, databaseLayout, config, INSTANCE))
                 .isFalse();
     }
 
@@ -1528,8 +1528,8 @@ class RecoveryCorruptedTransactionLogIT {
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(new StoreId(4, 5, "engine-1", "format-1", 1, 2))
-                .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(CONFIG))
-                .withConfig(CONFIG)
+                .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(config))
+                .withConfig(config)
                 .build();
         try (Lifespan lifespan = new Lifespan(internalLogFiles)) {
             LogFile transactionLogFile = internalLogFiles.getLogFile();
@@ -1584,8 +1584,8 @@ class RecoveryCorruptedTransactionLogIT {
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(storeId)
                 .withLogProvider(logProvider)
-                .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(CONFIG))
-                .withConfig(CONFIG)
+                .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(config))
+                .withConfig(config)
                 .build();
     }
 
@@ -1598,6 +1598,7 @@ class RecoveryCorruptedTransactionLogIT {
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withDependencies(database.getDependencyResolver())
                 .withLogProvider(logProvider)
+                .withConfig(config)
                 .build();
     }
 

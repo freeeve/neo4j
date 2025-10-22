@@ -34,7 +34,6 @@ import java.time.Clock;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntSupplier;
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
@@ -58,9 +57,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.AppendIndexProvider;
-import org.neo4j.storageengine.ReadOnlyLogVersionRepository;
 import org.neo4j.storageengine.api.CommandReaderFactory;
-import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreId;
@@ -87,7 +84,6 @@ public class LogFilesBuilder {
     private Path logsDirectory;
     private Config config;
     private Long rotationThreshold;
-    private Long checkpointRotationThreshold;
     private InternalLogProvider logProvider = NullLogProvider.getInstance();
     private DependencyResolver dependencies;
     private FileSystemAbstraction fileSystem;
@@ -104,13 +100,15 @@ public class LogFilesBuilder {
     private Clock clock;
     private Monitors monitors;
     private StoreId storeId;
-    private NativeAccess nativeAccess;
-    private KernelVersionProvider kernelVersionProvider = KernelVersionProvider.THROWING_PROVIDER;
-    private LogFormatVersionProvider logFormatVersionProvider = LogFormatVersionProvider.THROWING_PROVIDER;
+    private KernelVersionProvider emptyLogskernelVersionProvider = KernelVersionProvider.THROWING_PROVIDER;
+    private KernelVersionProvider kernelVersionProvider = null;
+    private LogFormatVersionProvider emptyLogsLogFormatProvider = LogFormatVersionProvider.THROWING_PROVIDER;
+    private LogFormatVersionProvider logFormatVersionProvider = null;
     private LogTailMetadata externalLogTail;
     private int envelopeSegmentBlockSizeBytes = LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
     private int bufferSizeBytes;
     private boolean readOnlyLogs;
+    private boolean noInit;
 
     private LogFilesBuilder() {}
 
@@ -131,8 +129,8 @@ public class LogFilesBuilder {
         LogFilesBuilder filesBuilder = new LogFilesBuilder();
         filesBuilder.databaseLayout = databaseLayout;
         filesBuilder.fileSystem = fileSystem;
-        filesBuilder.kernelVersionProvider = kernelVersionProvider;
-        filesBuilder.logFormatVersionProvider = logFormatVersionProvider;
+        filesBuilder.emptyLogskernelVersionProvider = kernelVersionProvider;
+        filesBuilder.emptyLogsLogFormatProvider = logFormatVersionProvider;
         return filesBuilder;
     }
 
@@ -235,11 +233,8 @@ public class LogFilesBuilder {
         return this;
     }
 
-    public LogFilesBuilder withCheckpointRotationThreshold(long checkpointRotationThreshold) {
-        this.checkpointRotationThreshold = checkpointRotationThreshold;
-        return this;
-    }
-
+    // NOTE that only the parts that make up TransactionLogFilesContext will look in dependencies.
+    // Any other overrides need to call their individual method.
     public LogFilesBuilder withDependencies(DependencyResolver dependencies) {
         this.dependencies = dependencies;
         return this;
@@ -252,11 +247,6 @@ public class LogFilesBuilder {
 
     public LogFilesBuilder withMemoryTracker(MemoryTracker memoryTracker) {
         this.memoryTracker = memoryTracker;
-        return this;
-    }
-
-    public LogFilesBuilder withNativeAccess(NativeAccess nativeAccess) {
-        this.nativeAccess = nativeAccess;
         return this;
     }
 
@@ -315,15 +305,39 @@ public class LogFilesBuilder {
         return this;
     }
 
+    public LogFilesBuilder withNoInit() {
+        this.noInit = true;
+        return this;
+    }
+
     public LogFiles build() throws IOException {
         TransactionLogFilesContext filesContext = buildContext();
+        TransactionLogFilesOverrides overrides = buildOverrides();
+
         Path logsDirectory = getLogsDirectory();
         filesContext.getFileSystem().mkdirs(logsDirectory);
-        return new TransactionLogFiles(logsDirectory, filesContext);
+        return new TransactionLogFiles(logsDirectory, filesContext, overrides);
     }
 
     private Path getLogsDirectory() {
         return requireNonNullElseGet(logsDirectory, () -> databaseLayout.getTransactionLogsDirectory());
+    }
+
+    TransactionLogFilesOverrides buildOverrides() {
+        return new TransactionLogFilesOverrides(
+                logVersionRepository,
+                transactionIdStore,
+                appendIndexProvider,
+                lastCommittedChecksumProvider,
+                lastClosedPositionSupplier,
+                fileBasedOperationsOnly,
+                readOnlyStores,
+                readOnlyLogs,
+                databaseLayout,
+                logFormatVersionProvider,
+                kernelVersionProvider,
+                externalLogTail,
+                noInit);
     }
 
     TransactionLogFilesContext buildContext() {
@@ -332,15 +346,7 @@ public class LogFilesBuilder {
         }
         requireNonNull(fileSystem);
         Supplier<StoreId> storeIdSupplier = getStoreId();
-        LogVersionRepositoryProvider logVersionRepositorySupplier = getLogVersionRepositoryProvider();
         LogFileVersionTracker versionTracker = getLogFileVersionTracker();
-
-        LastAppendIndexProvider availableAppendIndexProvider = availableAppendIndexProvider();
-        LastAppendIndexLogFilesProvider lastAppendIndexLogFilesProvider =
-                lastAppendIndexLogFilesProvider(availableAppendIndexProvider);
-        var appendIndexProvider = lastAppendIndexProvider(availableAppendIndexProvider);
-        LastClosedPositionProvider lastClosedTransactionPositionProvider = closePositionProvider();
-        LastCommittedChecksumProvider lastCommittedChecksumProvider = lastCommittedChecksumProvider();
 
         // Register listener for rotation threshold
         AtomicLong rotationThreshold = getRotationThresholdAndRegisterForUpdates();
@@ -356,11 +362,6 @@ public class LogFilesBuilder {
                 checkpointThreshold,
                 tryPreallocateTransactionLogs,
                 commandReaderFactory(),
-                lastAppendIndexLogFilesProvider,
-                appendIndexProvider,
-                lastClosedTransactionPositionProvider,
-                lastCommittedChecksumProvider,
-                logVersionRepositorySupplier,
                 versionTracker,
                 fileSystem,
                 logProvider,
@@ -371,39 +372,15 @@ public class LogFilesBuilder {
                 monitors,
                 config.get(fail_on_corrupted_log_files),
                 health,
-                kernelVersionProvider,
-                logFormatVersionProvider,
+                emptyLogskernelVersionProvider,
+                emptyLogsLogFormatProvider,
                 clock,
                 databaseLayout.getDatabaseName(),
                 config,
-                externalLogTail,
                 new BinarySupportedKernelVersions(config),
                 readOnlyLogs,
                 envelopeSegmentBlockSizeBytes,
                 getBufferSizeBytes());
-    }
-
-    private LastAppendIndexProvider availableAppendIndexProvider() {
-        if (appendIndexProvider != null) {
-            return appendIndexProvider::getLastAppendIndex;
-        }
-        if (dependencies == null) {
-            return null;
-        }
-        return dependencies
-                .resolveOptionalDependency(LogMetadataProvider.class)
-                .map(provider -> (LastAppendIndexProvider) provider::getLastAppendIndex)
-                .orElse(null);
-    }
-
-    private LastAppendIndexProvider lastAppendIndexProvider(LastAppendIndexProvider availableProvider) {
-        if (availableProvider != null) {
-            return availableProvider;
-        }
-        return () -> {
-            throw new UnsupportedOperationException(
-                    "Unable to provide last append index in this mode. Please build full version of log files to be able to use real append index provider.");
-        };
     }
 
     private CommandReaderFactory commandReaderFactory() {
@@ -435,10 +412,12 @@ public class LogFilesBuilder {
         if (databaseHealth != null) {
             return databaseHealth;
         }
-        if (dependencies != null) {
-            return dependencies.resolveDependency(DatabaseHealth.class);
+        if (dependencies == null) {
+            return new DatabaseHealth(HealthEventGenerator.NO_OP, logProvider.getLog(DatabaseHealth.class));
         }
-        return new DatabaseHealth(HealthEventGenerator.NO_OP, logProvider.getLog(DatabaseHealth.class));
+        return dependencies
+                .resolveOptionalDependency(DatabaseHealth.class)
+                .orElse(new DatabaseHealth(HealthEventGenerator.NO_OP, logProvider.getLog(DatabaseHealth.class)));
     }
 
     private Monitors getMonitors() {
@@ -449,9 +428,6 @@ public class LogFilesBuilder {
     }
 
     private NativeAccess getNativeAccess() {
-        if (nativeAccess != null) {
-            return nativeAccess;
-        }
         if (dependencies == null) {
             return NativeAccessProvider.getNativeAccess();
         }
@@ -483,9 +459,6 @@ public class LogFilesBuilder {
     }
 
     private long getCheckpointRotationThreshold() {
-        if (checkpointRotationThreshold != null) {
-            return guaranteeAtLeastTwoSegments(roundUpToEnvelopeSegment(checkpointRotationThreshold));
-        }
         if (readOnlyLogs) {
             return roundUpToEnvelopeSegment(Long.MAX_VALUE - envelopeSegmentBlockSizeBytes);
         }
@@ -514,29 +487,6 @@ public class LogFilesBuilder {
         return tryToPreallocate;
     }
 
-    private LogVersionRepositoryProvider getLogVersionRepositoryProvider() {
-        if (logVersionRepository != null) {
-            return any -> logVersionRepository;
-        }
-        if (fileBasedOperationsOnly) {
-            return any -> {
-                throw new UnsupportedOperationException(
-                        "Current version of log files can't perform any "
-                                + "operation that require availability of log version repository. Please build full version of log files to be able to use them.");
-            };
-        }
-        if (readOnlyStores) {
-            requireNonNull(databaseLayout, "Store directory is required.");
-            return new ReadOnlyLogVersionRepositoryProvider();
-        } else {
-            requireNonNull(
-                    dependencies,
-                    LogVersionRepository.class.getSimpleName() + " is required. "
-                            + "Please provide an instance or a dependencies where it can be found.");
-            return new SupplierLogVersionRepositoryProvider(dependencies.provideDependency(LogVersionRepository.class));
-        }
-    }
-
     private LogFileVersionTracker getLogFileVersionTracker() {
         if (logFileVersionTracker != null) {
             return logFileVersionTracker;
@@ -547,87 +497,6 @@ public class LogFilesBuilder {
         return dependencies
                 .resolveOptionalDependency(LogFileVersionTracker.class)
                 .orElse(LogFileVersionTracker.NO_OP);
-    }
-
-    private LastAppendIndexLogFilesProvider lastAppendIndexLogFilesProvider(
-            LastAppendIndexProvider lastAppendIndexProvider) {
-        if (lastAppendIndexProvider != null) {
-            return new LongSupplierLastAppendIndexLogFilesProvider(lastAppendIndexProvider::lastAppendIndex);
-        }
-        if (fileBasedOperationsOnly) {
-            return any -> {
-                throw new UnsupportedOperationException("Current version of log files can't perform any "
-                        + "operation that require availability of append index provider. Please build full version of log files "
-                        + "to be able to use them.");
-            };
-        }
-        if (readOnlyStores) {
-            requireNonNull(databaseLayout, "Store directory is required.");
-            return new ReadOnlyLastAppendIndexLogFilesProvider();
-        } else {
-            return any -> {
-                throw new UnsupportedOperationException("Current version of log files can't perform any "
-                        + "operation that require availability of append index provider. Please build full version of log files "
-                        + "to be able to use them.");
-            };
-        }
-    }
-
-    private LastCommittedChecksumProvider lastCommittedChecksumProvider() {
-        if (lastCommittedChecksumProvider != null) {
-            return new IntSupplierLastCommittedChecksumProvider(lastCommittedChecksumProvider);
-        }
-        if (transactionIdStore != null) {
-            return new IntSupplierLastCommittedChecksumProvider(
-                    () -> transactionIdStore.getLastCommittedTransaction().checksum());
-        }
-        if (fileBasedOperationsOnly) {
-            return any -> {
-                throw new UnsupportedOperationException("Current version of log files can't perform any "
-                        + "operation that require availability of transaction id store. Please build full version of log files "
-                        + "to be able to use them.");
-            };
-        }
-        if (readOnlyStores) {
-            requireNonNull(databaseLayout, "Store directory is required.");
-            return new ReadOnlyLastCommittedChecksumProvider();
-        } else {
-            requireNonNull(
-                    dependencies,
-                    TransactionIdStore.class.getSimpleName() + " is required. "
-                            + "Please provide an instance or a dependencies where it can be found.");
-            return new IntSupplierLastCommittedChecksumProvider(() -> resolveDependency(TransactionIdStore.class)
-                    .getLastCommittedTransaction()
-                    .checksum());
-        }
-    }
-
-    private LastClosedPositionProvider closePositionProvider() {
-        if (lastClosedPositionSupplier != null) {
-            return any -> lastClosedPositionSupplier.get();
-        }
-        if (transactionIdStore != null) {
-            return any -> transactionIdStore.getLastClosedTransaction().logPosition();
-        }
-        if (fileBasedOperationsOnly) {
-            return any -> {
-                throw new UnsupportedOperationException("Current version of log files can't perform any "
-                        + "operation that require availability of transaction id store. Please build full version of log files "
-                        + "to be able to use them.");
-            };
-        }
-        if (readOnlyStores) {
-            requireNonNull(databaseLayout, "Store directory is required.");
-            return logFiles -> logFiles.getTailMetadata().getLastTransactionLogPosition();
-        } else {
-            requireNonNull(
-                    dependencies,
-                    TransactionIdStore.class.getSimpleName() + " is required. "
-                            + "Please provide an instance or a dependencies where it can be found.");
-            return any -> resolveDependency(TransactionIdStore.class)
-                    .getLastClosedTransaction()
-                    .logPosition();
-        }
     }
 
     private Supplier<StoreId> getStoreId() {
@@ -646,65 +515,5 @@ public class LogFilesBuilder {
 
     private <T> T resolveDependency(Class<T> clazz) {
         return dependencies.resolveDependency(clazz);
-    }
-
-    private static class LongSupplierLastAppendIndexLogFilesProvider implements LastAppendIndexLogFilesProvider {
-        private final LongSupplier idSupplier;
-
-        LongSupplierLastAppendIndexLogFilesProvider(LongSupplier idSupplier) {
-            this.idSupplier = idSupplier;
-        }
-
-        @Override
-        public long getLastAppendIndex(LogFiles logFiles) {
-            return idSupplier.getAsLong();
-        }
-    }
-
-    private static class ReadOnlyLastAppendIndexLogFilesProvider implements LastAppendIndexLogFilesProvider {
-        @Override
-        public long getLastAppendIndex(LogFiles logFiles) {
-            return logFiles.getTailMetadata().getLastCheckpointedAppendIndex();
-        }
-    }
-
-    private static class IntSupplierLastCommittedChecksumProvider implements LastCommittedChecksumProvider {
-        private final IntSupplier supplier;
-
-        IntSupplierLastCommittedChecksumProvider(IntSupplier supplier) {
-            this.supplier = supplier;
-        }
-
-        @Override
-        public int getLastCommittedChecksum(LogFiles logFiles) {
-            return supplier.getAsInt();
-        }
-    }
-
-    private static class ReadOnlyLastCommittedChecksumProvider implements LastCommittedChecksumProvider {
-        @Override
-        public int getLastCommittedChecksum(LogFiles logFiles) {
-            return logFiles.getTailMetadata().getLastCommittedTransaction().checksum();
-        }
-    }
-
-    private static class SupplierLogVersionRepositoryProvider implements LogVersionRepositoryProvider {
-        private final Supplier<LogVersionRepository> supplier;
-
-        SupplierLogVersionRepositoryProvider(Supplier<LogVersionRepository> supplier) {
-            this.supplier = supplier;
-        }
-
-        @Override
-        public LogVersionRepository logVersionRepository(LogFiles logFiles) {
-            return supplier.get();
-        }
-    }
-
-    private static class ReadOnlyLogVersionRepositoryProvider implements LogVersionRepositoryProvider {
-        @Override
-        public LogVersionRepository logVersionRepository(LogFiles logFiles) {
-            return new ReadOnlyLogVersionRepository(logFiles.getTailMetadata());
-        }
     }
 }

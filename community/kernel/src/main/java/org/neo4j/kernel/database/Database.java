@@ -191,7 +191,6 @@ import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.DeprecatedFormatWarning;
 import org.neo4j.storageengine.api.LogMetadataProvider;
-import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.ReadableStorageEngine;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -431,7 +430,8 @@ public class Database extends AbstractDatabase {
         upgradeStore(databaseConfig, databasePageCache, otherDatabaseMemoryTracker);
 
         // Check the tail of transaction logs and validate version
-        LogTailMetadata tailMetadata = getLogTail();
+        LogFiles logFiles = getLogFiles();
+        LogTailMetadata tailMetadata = logFiles.getTailMetadata();
         long lastClosedTxId = tailMetadata.getLastCommittedTransaction().id();
         initialiseContextFactory(() -> new TransactionIdSnapshot(lastClosedTxId), () -> lastClosedTxId);
 
@@ -455,13 +455,14 @@ public class Database extends AbstractDatabase {
                 .clock(clock))) {
             // recovery replayed logs and wrote some checkpoints as result we need to rescan log tail to get the
             // latest info
-            tailMetadata = getLogTail();
+            logFiles = getLogFiles();
+            tailMetadata = logFiles.getTailMetadata();
             long recoveredTxId = tailMetadata.getLastCommittedTransaction().id();
             initialiseContextFactory(() -> new TransactionIdSnapshot(recoveredTxId), () -> recoveredTxId);
         }
 
         LogMetadataProvider logMetadataProvider =
-                databaseDependencies.satisfyDependency(new LogMetadataProviderImpl(tailMetadata));
+                databaseDependencies.satisfyDependency(logFiles.logMetadataProvider());
         internalLog.info("Current KernelVersion=" + logMetadataProvider.kernelVersion() + ", LogFormat= "
                 + logMetadataProvider.getCurrentLogFormat());
 
@@ -505,6 +506,7 @@ public class Database extends AbstractDatabase {
                 exceptionHandlerService,
                 OperationMode.DEFAULT,
                 vectorStoreCreator);
+        // Satisfy the StoreIdProvider needed by logFiles. Logfiles doesn't need it until started by lifecycle.
         databaseDependencies.satisfyDependency(storageEngine.metadataProvider());
 
         initialiseContextFactory(
@@ -512,17 +514,16 @@ public class Database extends AbstractDatabase {
                 getOldestTransactionIdFactory(databaseConfig, () -> kernelModule, getNamedDatabaseId()));
         elementIdMapper = new DefaultElementIdMapperV1(namedDatabaseId);
 
-        // Recreate the logFiles after storage engine to get access to dependencies
-        var logFiles = getLogFiles();
-
         life.add(storageEngine);
         life.add(storageEngine.schemaAndTokensLifecycle(
                 databaseConfig.get(GraphDatabaseInternalSettings.ignore_corrupt_schema)));
         life.add(logFiles);
+        LogFiles logfilesForLambda = logFiles;
         life.add(onStart(() -> {
-            long lowestLogVersion = logFiles.getLogFile().getLogRangeInfo().lowestVersion();
+            long lowestLogVersion =
+                    logfilesForLambda.getLogFile().getLogRangeInfo().lowestVersion();
             if (lowestLogVersion != RangeLogVersionVisitor.UNKNOWN) {
-                var header = logFiles.getLogFile().extractHeader(lowestLogVersion);
+                var header = logfilesForLambda.getLogFile().extractHeader(lowestLogVersion);
                 if (header != null) {
                     logMetadataProvider.setLowestAvailableCommittedTransactionId(header.getLastAppendIndex() + 1);
                 }
@@ -696,10 +697,6 @@ public class Database extends AbstractDatabase {
         tx.schemaWrite().indexCreate(prototype);
     }
 
-    private LogTailMetadata getLogTail() throws IOException {
-        return getLogFiles().getTailMetadata();
-    }
-
     private LogFiles getLogFiles() throws IOException {
         DbmsRuntimeFallbackKernelVersionProvider kernelVersionProvider = new DbmsRuntimeFallbackKernelVersionProvider(
                 databaseDependencies, databaseLayout.getDatabaseName(), databaseConfig);
@@ -745,7 +742,7 @@ public class Database extends AbstractDatabase {
     private void validateLogsAndStoreAbsence(LogTailMetadata logTail) {
         if (!logTail.logsMissing()) {
             throw new RuntimeException(format(
-                    "Fail to start '%s' since transaction logs were found, while database " + "files are missing.",
+                    "Fail to start '%s' since transaction logs were found, while database files are missing.",
                     namedDatabaseId));
         }
     }
@@ -978,13 +975,12 @@ public class Database extends AbstractDatabase {
         CheckPointThreshold threshold =
                 CheckPointThreshold.createThreshold(databaseConfig, clock, logPruning, logProvider);
 
-        var checkpointAppender = logFiles.getCheckpointFile().getCheckpointAppender();
         final CheckPointerImpl checkPointer = new CheckPointerImpl(
                 logMetadataProvider,
                 threshold,
                 forceOperation,
                 logPruning,
-                checkpointAppender,
+                logFiles.getCheckpointFile(),
                 databaseHealth,
                 logProvider,
                 tracers,

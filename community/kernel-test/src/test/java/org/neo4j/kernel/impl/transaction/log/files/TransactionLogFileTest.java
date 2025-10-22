@@ -31,6 +31,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.kernel.KernelVersion.DEFAULT_BOOTSTRAP_VERSION;
 import static org.neo4j.kernel.KernelVersion.GLORIOUS_FUTURE;
 import static org.neo4j.kernel.KernelVersionProviders.fixed;
@@ -196,15 +197,15 @@ class TransactionLogFileTest {
                 .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(STORE_ID)
-                .withNativeAccess(capturingNativeAccess)
+                .withDependencies(dependenciesOf(capturingNativeAccess))
                 .build();
 
         startStop(capturingNativeAccess, life, kernelVersion);
 
         assertEquals(2, capturingNativeAccess.getPreallocateCounter());
-        assertEquals(5, capturingNativeAccess.getEvictionCounter());
-        assertEquals(3, capturingNativeAccess.getAdviseCounter());
-        assertEquals(3, capturingNativeAccess.getKeepCounter());
+        assertEquals(2, capturingNativeAccess.getEvictionCounter());
+        assertEquals(0, capturingNativeAccess.getAdviseCounter());
+        assertEquals(0, capturingNativeAccess.getKeepCounter());
     }
 
     @ParameterizedTest
@@ -218,9 +219,9 @@ class TransactionLogFileTest {
         startStop(capturingNativeAccess, new LifeSupport(), kernelVersion);
 
         assertEquals(0, capturingNativeAccess.getPreallocateCounter());
-        assertEquals(5, capturingNativeAccess.getEvictionCounter());
-        assertEquals(5, capturingNativeAccess.getAdviseCounter());
-        assertEquals(5, capturingNativeAccess.getKeepCounter());
+        assertEquals(6, capturingNativeAccess.getEvictionCounter());
+        assertEquals(6, capturingNativeAccess.getAdviseCounter());
+        assertEquals(6, capturingNativeAccess.getKeepCounter());
     }
 
     @ParameterizedTest
@@ -363,13 +364,11 @@ class TransactionLogFileTest {
         assertTrue(called.get());
     }
 
-    @ParameterizedTest
-    @KernelVersionSource(atLeast = "5.0")
-    void shouldCloseChannelInFailedAttemptToReadHeaderAfterOpen(KernelVersion kernelVersion) throws Exception {
+    @Test
+    void shouldCloseChannelInFailedAttemptToReadHeaderAfterOpen() throws Exception {
         // GIVEN a file which returns 1/2 log header size worth of bytes
         FileSystemAbstraction fs = mock(FileSystemAbstraction.class);
-        LogFiles logFiles = LogFilesBuilder.builder(
-                        databaseLayout, fs, fixed(kernelVersion), () -> LogFormat.fromKernelVersion(kernelVersion))
+        LogFiles logFiles = LogFilesBuilder.logFilesBasedOnlyBuilder(databaseLayout.getTransactionLogsDirectory(), fs)
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
@@ -392,14 +391,11 @@ class TransactionLogFileTest {
         assertEquals(0, exception.getSuppressed().length);
     }
 
-    @ParameterizedTest
-    @KernelVersionSource(atLeast = "5.0")
-    void shouldSuppressFailureToCloseChannelInFailedAttemptToReadHeaderAfterOpen(KernelVersion kernelVersion)
-            throws Exception {
+    @Test
+    void shouldSuppressFailureToCloseChannelInFailedAttemptToReadHeaderAfterOpen() throws Exception {
         // GIVEN a file which returns 1/2 log header size worth of bytes
         FileSystemAbstraction fs = mock(FileSystemAbstraction.class);
-        LogFiles logFiles = LogFilesBuilder.builder(
-                        databaseLayout, fs, fixed(kernelVersion), () -> LogFormat.fromKernelVersion(kernelVersion))
+        LogFiles logFiles = LogFilesBuilder.logFilesBasedOnlyBuilder(databaseLayout.getTransactionLogsDirectory(), fs)
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
@@ -950,7 +946,7 @@ class TransactionLogFileTest {
                 .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(STORE_ID)
-                .withNativeAccess(capturingNativeAccess)
+                .withDependencies(dependenciesOf(capturingNativeAccess))
                 .build();
 
         lifeSupport.add(logFiles);

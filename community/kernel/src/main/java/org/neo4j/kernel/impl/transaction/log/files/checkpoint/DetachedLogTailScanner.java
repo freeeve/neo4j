@@ -100,16 +100,17 @@ public class DetachedLogTailScanner {
             LogFiles logFiles,
             TransactionLogFilesContext context,
             CheckpointFile checkpointFile,
-            LogTailScannerMonitor monitor) {
+            LogTailScannerMonitor monitor,
+            LogTailMetadata externalLogTail) {
         this.logFiles = logFiles;
         this.commandReaderFactory = context.getCommandReaderFactory();
         this.memoryTracker = context.getMemoryTracker();
         this.checkpointFile = checkpointFile;
         this.fileSystem = context.getFileSystem();
         this.failOnCorruptedLogFiles = context.isFailOnCorruptedLogFiles();
-        this.fallbackKernelVersionProvider = context.getKernelVersionProvider();
-        this.fallbackLogFormatVersionProvider = context.getLogFormatVersionProvider();
-        this.logTail = context.getExternalTailInfo();
+        this.fallbackKernelVersionProvider = context.getEmptyLogsKernelVersionProvider();
+        this.fallbackLogFormatVersionProvider = context.getEmptyLogsLogFormatVersionProvider();
+        this.logTail = externalLogTail;
         this.monitor = monitor;
         this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
     }

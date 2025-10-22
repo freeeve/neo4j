@@ -93,6 +93,7 @@ public class LogTailExtractor {
                 .withMemoryTracker(memoryTracker)
                 .withDatabaseTracers(databaseTracers)
                 .withStorageEngineFactory(storageEngineFactory)
+                .withNoInit()
                 .build();
     }
 }

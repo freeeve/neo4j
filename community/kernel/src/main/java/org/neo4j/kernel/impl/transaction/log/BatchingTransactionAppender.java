@@ -24,7 +24,6 @@ import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
 import java.io.IOException;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
-import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.storageengine.AppendIndexProvider;
@@ -39,7 +38,6 @@ class BatchingTransactionAppender extends LifecycleAdapter implements Transactio
     private final LogFile logFile;
     private final AppendIndexProvider appendIndexProvider;
     private final TransactionMetadataCache metadataCache;
-    private final LogRotation logRotation;
     private final Panic databasePanic;
 
     private TransactionLogWriter transactionLogWriter;
@@ -54,7 +52,6 @@ class BatchingTransactionAppender extends LifecycleAdapter implements Transactio
         this.logFile = logFiles.getLogFile();
         this.appendIndexProvider = appendIndexProvider;
         this.metadataCache = metadataCache;
-        this.logRotation = logFile.getLogRotation();
         this.databasePanic = databasePanic;
         this.previousChecksum = transactionIdStore.getLastCommittedTransaction().checksum();
     }
@@ -92,7 +89,7 @@ class BatchingTransactionAppender extends LifecycleAdapter implements Transactio
             // We got lucky and were the one forcing the log. It's enough if ones of all doing concurrent committers
             // checks the need for log rotation.
             if (!transactionLogWriter.handlesRotationInternally()) {
-                logAppendEvent.setLogRotated(logRotation.rotateLogIfNeeded(logAppendEvent));
+                logAppendEvent.setLogRotated(logFile.getLogRotation().rotateLogIfNeeded(logAppendEvent));
             }
         }
 

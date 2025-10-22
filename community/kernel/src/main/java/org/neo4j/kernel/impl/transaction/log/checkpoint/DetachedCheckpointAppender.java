@@ -35,6 +35,7 @@ import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvent;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
@@ -46,9 +47,11 @@ import org.neo4j.kernel.impl.transaction.log.entry.v50.LogEntryDetachedCheckpoin
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryDetachedCheckpointV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.LogEntryDetachedCheckpointV5_22;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogVersionRepositoryProvider;
 import org.neo4j.kernel.impl.transaction.log.files.RotatableFile;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
+import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesProviders;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.DetachedLogTailScanner;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
@@ -76,7 +79,10 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
     private PhysicalFlushableLogPositionAwareChannel writer;
     private NativeScopedBuffer buffer;
     private PhysicalLogVersionedStoreChannel channel;
+    private final LogVersionRepositoryProvider logVersionRepositoryProvider;
     private LogVersionRepository logVersionRepository;
+    private final LogFormatVersionProvider logFormatVersionProvider;
+    private final KernelVersionProvider kernelVersionProvider;
     private KernelVersion previousKernelVersion;
 
     public DetachedCheckpointAppender(
@@ -86,7 +92,8 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
             CheckpointFile checkpointFile,
             LogRotation checkpointRotation,
             DetachedLogTailScanner logTailScanner,
-            BinarySupportedKernelVersions binarySupportedKernelVersions) {
+            BinarySupportedKernelVersions binarySupportedKernelVersions,
+            TransactionLogFilesProviders transactionLogFilesProviders) {
         this.logFiles = logFiles;
         this.checkpointFile = requireNonNull(checkpointFile);
         this.context = requireNonNull(context);
@@ -96,21 +103,22 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
         this.log = context.getLogProvider().getLog(DetachedCheckpointAppender.class);
         this.logTailScanner = logTailScanner;
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
+        this.logVersionRepositoryProvider = transactionLogFilesProviders.getLogVersionRepositoryProvider();
+        this.logFormatVersionProvider = transactionLogFilesProviders.getLogFormatVersionProvider();
+        this.kernelVersionProvider = transactionLogFilesProviders.getKernelVersionProvider();
     }
 
     @Override
     public void start() throws IOException {
         this.storeId = context.getStoreId();
-        this.logVersionRepository =
-                requireNonNull(context.getLogVersionRepositoryProvider().logVersionRepository(logFiles));
-
+        this.logVersionRepository = logVersionRepositoryProvider.logVersionRepository(logFiles);
         long currentLogVersion = logVersionRepository.getCheckpointLogVersion();
         channel = channelAllocator.createLogChannel(
                 currentLogVersion,
                 AppendIndexProvider.UNKNOWN_APPEND_INDEX,
                 BASE_TX_CHECKSUM,
-                context.getKernelVersionProvider(),
-                context.getLogFormatVersionProvider());
+                kernelVersionProvider,
+                logFormatVersionProvider);
 
         LogHeader logHeader = logHeader(currentLogVersion);
         context.getMonitors()
@@ -132,8 +140,7 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
         // Let's just rotate here if the log format should change.
         // This is just a problem in log formats before V10, otherwise the correct previous kernel version
         // can be found in the header.
-        if (channel.getLogFormatVersion()
-                != context.getLogFormatVersionProvider().getCurrentLogFormat()) {
+        if (channel.getLogFormatVersion() != logFormatVersionProvider.getCurrentLogFormat()) {
             rotate();
         }
     }
@@ -152,9 +159,8 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
             LogHeader logHeader = logHeader(channel.getLogVersion());
             channel.position(logHeader.getStartPosition().getByteOffset());
             KernelVersion logHeaderKernelVersion = logHeader.getKernelVersion();
-            previousKernelVersion = logHeaderKernelVersion != null
-                    ? logHeaderKernelVersion
-                    : context.getKernelVersionProvider().kernelVersion();
+            previousKernelVersion =
+                    logHeaderKernelVersion != null ? logHeaderKernelVersion : kernelVersionProvider.kernelVersion();
 
             return;
         }
@@ -252,7 +258,7 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
 
     public RotatableFile.RotationInfo rotate() throws IOException {
         int checksum = writer.currentChecksum().orElse(BASE_TX_CHECKSUM);
-        channel = rotateChannel(channel, context.getKernelVersionProvider(), checksum);
+        channel = rotateChannel(channel, kernelVersionProvider, checksum);
         LogHeader logHeader = logHeader(channel.getLogVersion());
         writer.setChannel(channel, logHeader);
         return new RotatableFile.RotationInfo(channel.getPath(), logHeader);
@@ -287,7 +293,7 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
                 AppendIndexProvider.UNKNOWN_APPEND_INDEX,
                 checksum,
                 kernelVersionProvider,
-                context.getLogFormatVersionProvider());
+                logFormatVersionProvider);
         channel.close();
         return newChannel;
     }

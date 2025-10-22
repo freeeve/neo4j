@@ -55,10 +55,8 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogSegments;
 import org.neo4j.logging.AssertableLogProvider;
@@ -238,11 +236,6 @@ class TransactionLogChannelAllocatorIT {
                 0L,
                 new AtomicBoolean(true),
                 TestCommandReaderFactory.INSTANCE,
-                any -> 1L,
-                () -> 1L,
-                any -> new LogPosition(0, 1),
-                any -> BASE_TX_CHECKSUM,
-                any -> new SimpleLogVersionRepository(),
                 LogFileVersionTracker.NO_OP,
                 fileSystem,
                 logProvider,
@@ -258,7 +251,6 @@ class TransactionLogChannelAllocatorIT {
                 Clock.systemUTC(),
                 DEFAULT_DATABASE_NAME,
                 config,
-                null,
                 LatestVersions.BINARY_VERSIONS,
                 false,
                 LogSegments.DEFAULT_LOG_SEGMENT_SIZE,

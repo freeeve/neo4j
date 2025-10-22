@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.checkpoint_logical_log_rotation_threshold;
 import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
+import static org.neo4j.configuration.GraphDatabaseSettings.transaction_log_buffer_size;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_logs_root_path;
 import static org.neo4j.internal.helpers.MathUtil.roundUp;
 import static org.neo4j.io.ByteUnit.kibiBytes;
@@ -55,6 +56,7 @@ import org.neo4j.logging.NullLog;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.Inject;
@@ -81,7 +83,7 @@ class LogFilesBuilderTest {
 
     @Test
     void buildActiveFilesOnlyContext() {
-        TransactionLogFilesContext context = activeFilesBuilder(
+        LogFilesBuilder builder = activeFilesBuilder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
@@ -89,8 +91,12 @@ class LogFilesBuilderTest {
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
-                .buildContext();
+                .withAppendIndexProvider(new SimpleAppendIndexProvider());
+
+        TransactionLogFilesContext context = builder.buildContext();
+        TransactionLogFilesOverrides overrides = builder.buildOverrides();
+        TransactionLogFilesProviders providers =
+                new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
 
         assertEquals(fileSystem, context.getFileSystem());
         assertNotNull(context.getCommandReaderFactory());
@@ -99,10 +105,12 @@ class LogFilesBuilderTest {
                 roundUp(Long.MAX_VALUE - segmentBlockSize, segmentBlockSize),
                 context.getRotationThreshold().get());
         assertEquals(
-                BASE_APPEND_INDEX, context.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
+                BASE_APPEND_INDEX,
+                providers.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
         assertEquals(
                 0,
-                context.getLogVersionRepositoryProvider()
+                providers
+                        .getLogVersionRepositoryProvider()
                         .logVersionRepository(null)
                         .getCurrentLogVersion());
     }
@@ -117,7 +125,7 @@ class LogFilesBuilderTest {
 
     @Test
     void buildDefaultContext() {
-        TransactionLogFilesContext context = builder(
+        LogFilesBuilder builder = builder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
@@ -125,24 +133,28 @@ class LogFilesBuilderTest {
                 .withLogVersionRepository(new SimpleLogVersionRepository(2))
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
-                .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
-                .buildContext();
+                .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS);
+        TransactionLogFilesContext context = builder.buildContext();
+        TransactionLogFilesOverrides overrides = builder.buildOverrides();
+        TransactionLogFilesProviders providers =
+                new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
         assertEquals(fileSystem, context.getFileSystem());
         assertNotNull(context.getCommandReaderFactory());
         assertEquals(
                 roundUp(ByteUnit.mebiBytes(256), context.getEnvelopeSegmentBlockSizeBytes()),
                 context.getRotationThreshold().get());
-        assertEquals(1, context.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
+        assertEquals(1, providers.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
         assertEquals(
                 2,
-                context.getLogVersionRepositoryProvider()
+                providers
+                        .getLogVersionRepositoryProvider()
                         .logVersionRepository(null)
                         .getCurrentLogVersion());
     }
 
     @Test
     void guaranteeMinimumTwoSegmentsForRotation() {
-        TransactionLogFilesContext context = builder(
+        LogFilesBuilder builder = builder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
@@ -151,17 +163,21 @@ class LogFilesBuilderTest {
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
-                .withConfig(Config.defaults(GraphDatabaseSettings.logical_log_rotation_threshold, kibiBytes(128)))
-                .buildContext();
+                .withConfig(Config.defaults(GraphDatabaseSettings.logical_log_rotation_threshold, kibiBytes(128)));
+        TransactionLogFilesContext context = builder.buildContext();
+        TransactionLogFilesOverrides overrides = builder.buildOverrides();
+        TransactionLogFilesProviders providers =
+                new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
         assertEquals(fileSystem, context.getFileSystem());
         assertNotNull(context.getCommandReaderFactory());
         assertEquals(
                 context.getEnvelopeSegmentBlockSizeBytes() * 2L,
                 context.getRotationThreshold().get());
-        assertEquals(1, context.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
+        assertEquals(1, providers.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
         assertEquals(
                 2,
-                context.getLogVersionRepositoryProvider()
+                providers
+                        .getLogVersionRepositoryProvider()
                         .logVersionRepository(null)
                         .getCurrentLogVersion());
     }
@@ -199,7 +215,7 @@ class LogFilesBuilderTest {
 
     @Test
     void buildContextWithRotationThreshold() {
-        TransactionLogFilesContext context = builder(
+        LogFilesBuilder builder = builder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
@@ -209,15 +225,19 @@ class LogFilesBuilderTest {
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
                 .withRotationThreshold(ByteUnit.mebiBytes(1))
-                .withBufferSizeBytes((int) ByteUnit.mebiBytes(1))
-                .buildContext();
+                .withConfig(Config.defaults(transaction_log_buffer_size, ByteUnit.mebiBytes(1)));
+        TransactionLogFilesContext context = builder.buildContext();
+        TransactionLogFilesOverrides overrides = builder.buildOverrides();
+        TransactionLogFilesProviders providers =
+                new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
         assertEquals(fileSystem, context.getFileSystem());
         assertNotNull(context.getCommandReaderFactory());
         assertEquals(ByteUnit.mebiBytes(1), context.getRotationThreshold().get());
-        assertEquals(1, context.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
+        assertEquals(1, providers.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
         assertEquals(
                 2,
-                context.getLogVersionRepositoryProvider()
+                providers
+                        .getLogVersionRepositoryProvider()
                         .logVersionRepository(null)
                         .getCurrentLogVersion());
     }
@@ -225,11 +245,10 @@ class LogFilesBuilderTest {
     @Test
     void buildDefaultContextWithDependencies() {
         SimpleLogVersionRepository logVersionRepository = new SimpleLogVersionRepository(2);
-        SimpleTransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
         DatabaseHealth databaseHealth = new DatabaseHealth(HealthEventGenerator.NO_OP, NullLog.getInstance());
-        Dependencies dependencies = dependenciesOf(logVersionRepository, transactionIdStore, databaseHealth);
+        Dependencies dependencies = dependenciesOf(databaseHealth);
 
-        TransactionLogFilesContext context = builder(
+        LogFilesBuilder builder = builder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
@@ -237,7 +256,11 @@ class LogFilesBuilderTest {
                 .withDependencies(dependencies)
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
-                .buildContext();
+                .withLogVersionRepository(logVersionRepository);
+        TransactionLogFilesContext context = builder.buildContext();
+        TransactionLogFilesOverrides overrides = builder.buildOverrides();
+        TransactionLogFilesProviders providers =
+                new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
 
         assertEquals(fileSystem, context.getFileSystem());
         assertNotNull(context.getCommandReaderFactory());
@@ -245,10 +268,11 @@ class LogFilesBuilderTest {
                 roundUp(ByteUnit.mebiBytes(256), context.getEnvelopeSegmentBlockSizeBytes()),
                 context.getRotationThreshold().get());
         assertEquals(databaseHealth, context.getDatabaseHealth());
-        assertEquals(1, context.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
+        assertEquals(1, providers.getLastAppendIndexLogFilesProvider().getLastAppendIndex(null));
         assertEquals(
                 2,
-                context.getLogVersionRepositoryProvider()
+                providers
+                        .getLogVersionRepositoryProvider()
                         .logVersionRepository(null)
                         .getCurrentLogVersion());
     }
@@ -326,44 +350,14 @@ class LogFilesBuilderTest {
     }
 
     @Test
-    void failToBuildFullContextWithoutLogVersionRepo() {
-        assertThrows(NullPointerException.class, () -> builderWithTestCommandReaderFactory(databaseLayout, fileSystem)
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .buildContext());
-    }
-
-    @Test
-    void failToBuildFullContextWithoutTransactionIdStore() {
-        assertThrows(NullPointerException.class, () -> builderWithTestCommandReaderFactory(databaseLayout, fileSystem)
-                .withLogVersionRepository(new SimpleLogVersionRepository(2))
-                .buildContext());
-    }
-
-    @Test
-    void fileBasedOperationsContextFailOnLastCommittedTransactionIdAccess() {
-        assertThrows(UnsupportedOperationException.class, () -> logFilesBasedOnlyBuilder(storeDirectory, fileSystem)
-                .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
-                .buildContext()
-                .getLastAppendIndexLogFilesProvider()
-                .getLastAppendIndex(null));
-    }
-
-    @Test
     void fileBasedOperationsContextFailOnLogVersionRepositoryAccess() {
-        assertThrows(UnsupportedOperationException.class, () -> logFilesBasedOnlyBuilder(storeDirectory, fileSystem)
+        TransactionLogFilesOverrides overrides = logFilesBasedOnlyBuilder(storeDirectory, fileSystem)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
-                .buildContext()
-                .getLogVersionRepositoryProvider()
-                .logVersionRepository(null));
-    }
-
-    private static LogFilesBuilder builderWithTestCommandReaderFactory(
-            DatabaseLayout databaseLayout, FileSystemAbstraction fileSystem) {
-        return builder(
-                        databaseLayout,
-                        fileSystem,
-                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
-                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
-                .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE);
+                .buildOverrides();
+        TransactionLogFilesProviders providers =
+                new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> providers.getLogVersionRepositoryProvider().logVersionRepository(null));
     }
 }

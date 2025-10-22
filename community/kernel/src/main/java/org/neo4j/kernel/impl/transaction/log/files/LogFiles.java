@@ -25,6 +25,7 @@ import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.lifecycle.Lifecycle;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 
 /**
  * Main point of access to database transactional logs.
@@ -37,6 +38,9 @@ public interface LogFiles extends Lifecycle {
     LogFile getLogFile();
 
     Path logFilesDirectory();
+
+    // Not available if full logfiles have not been built
+    LogMetadataProvider logMetadataProvider();
 
     Path[] logFiles() throws IOException;
 

@@ -53,6 +53,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
+import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesProviders;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.DetachedLogTailScanner;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
@@ -135,7 +136,8 @@ class DetachedCheckpointAppenderTest {
                 logFiles.getCheckpointFile(),
                 NO_ROTATION,
                 mock(DetachedLogTailScanner.class),
-                LatestVersions.BINARY_VERSIONS);
+                LatestVersions.BINARY_VERSIONS,
+                mock(TransactionLogFilesProviders.class));
         assertDoesNotThrow(() -> appender.checkPoint(
                 LogCheckPointEvent.NULL,
                 UNKNOWN_TRANSACTION_ID,

@@ -49,6 +49,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.pagecache.IOController;
@@ -60,6 +61,7 @@ import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.AppendBatchInfo;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl.ForceOperation;
+import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.impl.transaction.log.pruning.LogPruning;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
@@ -84,6 +86,7 @@ class CheckPointerImplTest {
     private final CheckPointThreshold threshold = mock(CheckPointThreshold.class);
     private final ForceOperation forceOperation = mock(ForceOperation.class);
     private final LogPruning logPruning = mock(LogPruning.class);
+    private final CheckpointFile checkpointFile = mock(CheckpointFile.class);
     private final CheckpointAppender appender = mock(CheckpointAppender.class);
     private final Panic panic = mock(DatabaseHealth.class);
     private final DatabaseTracer tracer = mock(DatabaseTracer.class, RETURNS_MOCKS);
@@ -93,6 +96,11 @@ class CheckPointerImplTest {
     private final LogPosition logPosition = new LogPosition(16L, 233L);
     private final Clock clock = Clocks.fakeClock();
     private final StoreId storeId = new StoreId(1, 1, "engine-1", "format-1", 1, 1);
+
+    @BeforeEach
+    void setUp() {
+        when(checkpointFile.getCheckpointAppender()).thenReturn(appender);
+    }
 
     @Test
     void shouldNotFlushIfItIsNotNeeded() throws Throwable {
@@ -416,7 +424,7 @@ class CheckPointerImplTest {
                 threshold,
                 forceOperation,
                 logPruning,
-                appender,
+                checkpointFile,
                 panic,
                 NullLogProvider.getInstance(),
                 databaseTracers,

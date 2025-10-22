@@ -65,15 +65,17 @@ import org.neo4j.kernel.impl.transaction.log.files.RangeLogVersionVisitor;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
+import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesProviders;
 import org.neo4j.kernel.impl.transaction.log.rotation.monitor.LogRotationMonitor;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.kernel.recovery.LogTailScannerMonitor;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.storageengine.api.LogVersionRepository;
+import org.neo4j.util.Preconditions;
 import org.neo4j.util.VisibleForTesting;
 
 public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFile {
-    private final DetachedCheckpointAppender checkpointAppender;
+    private volatile DetachedCheckpointAppender checkpointAppender;
     private final DetachedLogTailScanner logTailScanner;
     private final TransactionLogFilesHelper fileHelper;
     private final TransactionLogChannelAllocator channelAllocator;
@@ -85,8 +87,9 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private LogVersionRepository logVersionRepository;
     private volatile boolean started;
+    private volatile TransactionLogFilesProviders transactionLogFilesProviders;
 
-    public CheckpointLogFile(LogFiles logFiles, TransactionLogFilesContext context) {
+    public CheckpointLogFile(LogFiles logFiles, TransactionLogFilesContext context, LogTailMetadata externalLogTail) {
         this.context = context;
         this.logFiles = logFiles;
         this.rotationsSize = context.getCheckpointRotationThreshold();
@@ -94,37 +97,46 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
                 TransactionLogFilesHelper.forCheckpoints(context.getFileSystem(), logFiles.logFilesDirectory());
         this.channelAllocator = new CheckpointLogChannelAllocator(context, fileHelper);
         this.monitor = context.getMonitors().newMonitor(LogTailScannerMonitor.class);
-        this.logTailScanner = new DetachedLogTailScanner(logFiles, context, this, monitor);
+        this.logTailScanner = new DetachedLogTailScanner(logFiles, context, this, monitor, externalLogTail);
         this.log = context.getLogProvider().getLog(getClass());
-        var rotationMonitor = context.getMonitors().newMonitor(LogRotationMonitor.class);
+        this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
+    }
+
+    @Override
+    public void initialize(TransactionLogFilesProviders transactionLogFilesProviders) {
+        Preconditions.checkArgument(!started, "Initialize must be called before start");
+        this.transactionLogFilesProviders = transactionLogFilesProviders;
+    }
+
+    @Override
+    public void start() throws Exception {
         var checkpointRotation = checkpointLogRotation(
                 this,
                 logFiles.getLogFile(),
                 context.getClock(),
                 context.getDatabaseHealth(),
-                rotationMonitor,
-                context.getKernelVersionProvider());
-        this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
-        this.checkpointAppender = new DetachedCheckpointAppender(
+                context.getMonitors().newMonitor(LogRotationMonitor.class),
+                transactionLogFilesProviders.getKernelVersionProvider());
+        checkpointAppender = new DetachedCheckpointAppender(
                 logFiles,
                 channelAllocator,
                 context,
                 this,
                 checkpointRotation,
                 logTailScanner,
-                binarySupportedKernelVersions);
-    }
-
-    @Override
-    public void start() throws Exception {
+                binarySupportedKernelVersions,
+                transactionLogFilesProviders);
         checkpointAppender.start();
-        logVersionRepository = context.getLogVersionRepositoryProvider().logVersionRepository(logFiles);
+        logVersionRepository =
+                transactionLogFilesProviders.getLogVersionRepositoryProvider().logVersionRepository(logFiles);
         started = true;
     }
 
     @Override
     public void shutdown() throws Exception {
-        checkpointAppender.shutdown();
+        if (checkpointAppender != null) {
+            checkpointAppender.shutdown();
+        }
         started = false;
     }
 
@@ -294,6 +306,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
     @Override
     public CheckpointAppender getCheckpointAppender() {
+        assert started : "CheckpointAppender only available after start";
         return checkpointAppender;
     }
 

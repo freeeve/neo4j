@@ -2489,7 +2489,11 @@ class RecoveryIT {
     }
 
     private int countCheckpointFiles() throws IOException {
-        LogFiles logFiles = buildLogFiles();
+        // Don't build active files here since that will trigger logTail reading and
+        // potentially clean up empty checkpoint files
+        LogFiles logFiles = LogFilesBuilder.logFilesBasedOnlyBuilder(
+                        databaseLayout.getTransactionLogsDirectory(), fileSystem)
+                .build();
         return logFiles.getCheckpointFile().getMatchedFiles().length;
     }
 

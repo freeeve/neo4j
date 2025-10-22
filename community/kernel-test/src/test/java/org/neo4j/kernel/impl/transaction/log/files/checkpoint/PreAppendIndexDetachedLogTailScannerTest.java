@@ -173,7 +173,13 @@ class PreAppendIndexDetachedLogTailScannerTest {
             fs.delete(matchedFile);
         }
 
-        var e = assertThrows(RuntimeException.class, testTogFiles::getTailMetadata);
+        var e = assertThrows(RuntimeException.class, () -> LogFilesBuilder.activeFilesBuilder(
+                        databaseLayout,
+                        fs,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
+                .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
+                .build());
         assertThat(e)
                 .rootCause()
                 .hasMessageContaining("LogPosition{logVersion=8,")
@@ -350,7 +356,7 @@ class PreAppendIndexDetachedLogTailScannerTest {
         fs.truncate(highestLogFile, fs.getFileSize(highestLogFile) - 3);
 
         // when
-        var logTailInformation = logFiles.getTailMetadata();
+        var logTailInformation = createLogFiles().getTailMetadata();
 
         // then
         assertLatestCheckPoint(true, true, BASE_APPEND_INDEX, false, logTailInformation);

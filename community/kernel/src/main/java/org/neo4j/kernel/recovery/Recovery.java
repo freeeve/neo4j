@@ -142,9 +142,7 @@ import org.neo4j.storageengine.OperationMode;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.LogMetadataProvider;
-import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.LogVersionRepository;
-import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StorageFilesState;
@@ -604,7 +602,34 @@ public final class Recovery {
                 tracers.getPageCacheTracer(),
                 indexDependencies));
 
-        LogMetadataProvider logMetadataProvider = new LogMetadataProviderImpl(logTailMetadata);
+        var dependencies = dependenciesOf(
+                databaseLayout,
+                config,
+                databasePageCache,
+                fs,
+                logProvider,
+                tokenHolders,
+                schemaState,
+                getConstraintSemantics(),
+                NO_LOCK_SERVICE,
+                databaseHealth,
+                new DefaultIdGeneratorFactory(
+                        fs, recoveryCleanupCollector, tracers.getPageCacheTracer(), databaseLayout.getDatabaseName()),
+                new DefaultIdController(),
+                readOnlyChecker,
+                cursorContextFactory,
+                logService);
+
+        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, logTailMetadata, logTailMetadata)
+                .withStorageEngineFactory(storageEngineFactory)
+                .withConfig(config)
+                .withDatabaseTracers(tracers)
+                .withExternalLogTailMetadata(logTailMetadata)
+                .withDependencies(dependencies)
+                .withMemoryTracker(memoryTracker)
+                .build();
+
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         StorageEngine storageEngine = storageEngineFactory.instantiate(
                 fs,
                 clock,
@@ -633,6 +658,8 @@ public final class Recovery {
                 new ExceptionHandlerService(logService.getInternalLogProvider()),
                 OperationMode.RECOVERY,
                 VectorStoreCreator.FAILING);
+
+        dependencies.satisfyDependency(storageEngine.metadataProvider());
 
         // multi versioned stores recovery does not support format mode atm
         if (multiversion) {
@@ -676,37 +703,6 @@ public final class Recovery {
                 logMetadataProvider,
                 fs,
                 EMPTY_VISIBILITY_PROVIDER);
-
-        MetadataProvider metadataProvider = storageEngine.metadataProvider();
-
-        var dependencies = dependenciesOf(
-                databaseLayout,
-                config,
-                databasePageCache,
-                fs,
-                logProvider,
-                tokenHolders,
-                schemaState,
-                getConstraintSemantics(),
-                NO_LOCK_SERVICE,
-                databaseHealth,
-                new DefaultIdGeneratorFactory(
-                        fs, recoveryCleanupCollector, tracers.getPageCacheTracer(), databaseLayout.getDatabaseName()),
-                new DefaultIdController(),
-                readOnlyChecker,
-                cursorContextFactory,
-                logService,
-                metadataProvider,
-                logMetadataProvider);
-
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, logMetadataProvider, logMetadataProvider)
-                .withStorageEngineFactory(storageEngineFactory)
-                .withConfig(config)
-                .withDatabaseTracers(tracers)
-                .withExternalLogTailMetadata(logTailMetadata)
-                .withDependencies(dependencies)
-                .withMemoryTracker(memoryTracker)
-                .build();
 
         validateStoreId(logTailMetadata, storageEngine.retrieveStoreId());
 
@@ -756,7 +752,6 @@ public final class Recovery {
 
         CheckPointerImpl.ForceOperation forceOperation =
                 new DefaultForceOperation(indexingService, storageEngine, databasePageCache);
-        var checkpointAppender = logFiles.getCheckpointFile().getCheckpointAppender();
         LogPruning logPruning = new LogPruningImpl(
                 fs,
                 logFiles,
@@ -774,7 +769,7 @@ public final class Recovery {
                 RecoveryThreshold.INSTANCE,
                 forceOperation,
                 logPruning,
-                checkpointAppender,
+                logFiles.getCheckpointFile(),
                 databaseHealth,
                 logProvider,
                 tracers,

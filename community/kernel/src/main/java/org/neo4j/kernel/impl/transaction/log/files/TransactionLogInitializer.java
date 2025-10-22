@@ -174,7 +174,9 @@ public class TransactionLogInitializer {
                 .withLogsDirectory(transactionLogsDirectory)
                 .withStorageEngineFactory(storageEngineFactory)
                 .withConfig(config)
-                .withDatabaseHealth(new DatabaseHealth(HealthEventGenerator.NO_OP, NullLog.getInstance()));
+                .withDatabaseHealth(new DatabaseHealth(HealthEventGenerator.NO_OP, NullLog.getInstance()))
+                .withLogFormatVersionProvider(logMetadataProvider)
+                .withKernelVersionProvider(logMetadataProvider);
         if (logMetadataProvider.kernelVersion() == KernelVersion.GLORIOUS_FUTURE) {
             builder.withConfig(Config.defaults(
                     GraphDatabaseInternalSettings.latest_kernel_version,

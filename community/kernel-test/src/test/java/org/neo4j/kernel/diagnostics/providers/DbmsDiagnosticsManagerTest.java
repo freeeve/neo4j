@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.kernel.database.DatabaseIdFactory.from;
-import static org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder.logFilesBasedOnlyBuilder;
+import static org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder.activeFilesBuilder;
 import static org.neo4j.logging.LogAssertions.assertThat;
 
 import java.io.IOException;
@@ -397,10 +397,15 @@ class DbmsDiagnosticsManagerTest {
         databaseDependencies.satisfyDependency(storageEngineFactory);
         databaseDependencies.satisfyDependency(new DefaultFileSystemAbstraction());
         databaseDependencies.satisfyDependency(DeviceMapper.UNKNOWN_MAPPER);
-        LogFiles logFiles = databaseDependencies.satisfyDependency(
-                logFilesBasedOnlyBuilder(directory.homePath(), directory.getFileSystem())
-                        .withKernelVersionProvider(LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
-                        .build());
+        DatabaseLayout layout = DatabaseLayout.ofFlat(directory.homePath());
+        LogFiles logFiles = databaseDependencies.satisfyDependency(activeFilesBuilder(
+                        layout,
+                        directory.getFileSystem(),
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
+                .withKernelVersionProvider(LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                .withStorageEngineFactory(storageEngineFactory)
+                .build());
         LogTailMetadata logTailMetadata = databaseDependencies.satisfyDependency(logFiles.getTailMetadata());
         TransactionIdStore txIdStore = databaseDependencies.satisfyDependency(mock(TransactionIdStore.class));
         when(txIdStore.getLastClosedTransactionId())
@@ -408,7 +413,7 @@ class DbmsDiagnosticsManagerTest {
         when(database.getDependencyResolver()).thenReturn(databaseDependencies);
         when(database.getNamedDatabaseId()).thenReturn(databaseId);
         when(database.isStarted()).thenReturn(true);
-        when(database.getDatabaseLayout()).thenReturn(DatabaseLayout.ofFlat(directory.homePath()));
+        when(database.getDatabaseLayout()).thenReturn(layout);
         when(database.getStoreId()).thenReturn(StoreId.generateNew("engine_1", "format_1", 1, 1));
         return database;
     }

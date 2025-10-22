@@ -30,7 +30,6 @@ import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
-import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
@@ -38,97 +37,30 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.StoreId;
 
-public class TransactionLogFilesContext {
-    private final AtomicLong rotationThreshold;
-    private final long checkpointRotationThreshold;
-    private final AtomicBoolean tryPreallocateTransactionLogs;
-    private final CommandReaderFactory commandReaderFactory;
-    private final LastAppendIndexLogFilesProvider lastAppendIndexLogFilesProvider;
-    private final LastAppendIndexProvider lastAppendIndexProvider;
-    private final LastClosedPositionProvider lastClosedPositionProvider;
-    private final LastCommittedChecksumProvider lastCommittedChecksumProvider;
-    private final LogVersionRepositoryProvider logVersionRepositoryProvider;
-    private final LogFileVersionTracker versionTracker;
-    private final FileSystemAbstraction fileSystem;
-    private final InternalLogProvider logProvider;
-    private final DatabaseTracers databaseTracers;
-    private final NativeAccess nativeAccess;
-    private final MemoryTracker memoryTracker;
-    private final Monitors monitors;
-    private final boolean failOnCorruptedLogFiles;
-    private final Supplier<StoreId> storeId;
-    private final DatabaseHealth databaseHealth;
-    private final KernelVersionProvider kernelVersionProvider;
-    private final LogFormatVersionProvider logFormatVersionProvider;
-    private final Clock clock;
-    private final String databaseName;
-    private final Config config;
-    private final LogTailMetadata externalTailInfo;
-    private final BinarySupportedKernelVersions binarySupportedKernelVersions;
-    private final boolean readOnly;
-    private final int envelopeSegmentBlockSizeBytes;
-    private final int bufferSizeBytes;
-
-    public TransactionLogFilesContext(
-            AtomicLong rotationThreshold,
-            long checkpointRotationThreshold,
-            AtomicBoolean tryPreallocateTransactionLogs,
-            CommandReaderFactory commandReaderFactory,
-            LastAppendIndexLogFilesProvider lastAppendIndexLogFilesProvider,
-            LastAppendIndexProvider lastAppendIndexProvider,
-            LastClosedPositionProvider lastClosedPositionProvider,
-            LastCommittedChecksumProvider lastCommittedChecksumProvider,
-            LogVersionRepositoryProvider logVersionRepositoryProvider,
-            LogFileVersionTracker versionTracker,
-            FileSystemAbstraction fileSystem,
-            InternalLogProvider logProvider,
-            DatabaseTracers databaseTracers,
-            Supplier<StoreId> storeId,
-            NativeAccess nativeAccess,
-            MemoryTracker memoryTracker,
-            Monitors monitors,
-            boolean failOnCorruptedLogFiles,
-            DatabaseHealth databaseHealth,
-            KernelVersionProvider kernelVersionProvider,
-            LogFormatVersionProvider logFormatVersionProvider,
-            Clock clock,
-            String databaseName,
-            Config config,
-            LogTailMetadata externalTailInfo,
-            BinarySupportedKernelVersions binarySupportedKernelVersions,
-            boolean readOnly,
-            int envelopeSegmentBlockSizeBytes,
-            int bufferSizeBytes) {
-        this.rotationThreshold = rotationThreshold;
-        this.checkpointRotationThreshold = checkpointRotationThreshold;
-        this.tryPreallocateTransactionLogs = tryPreallocateTransactionLogs;
-        this.commandReaderFactory = commandReaderFactory;
-        this.lastAppendIndexLogFilesProvider = lastAppendIndexLogFilesProvider;
-        this.lastAppendIndexProvider = lastAppendIndexProvider;
-        this.lastClosedPositionProvider = lastClosedPositionProvider;
-        this.lastCommittedChecksumProvider = lastCommittedChecksumProvider;
-        this.logVersionRepositoryProvider = logVersionRepositoryProvider;
-        this.versionTracker = versionTracker;
-        this.fileSystem = fileSystem;
-        this.logProvider = logProvider;
-        this.databaseTracers = databaseTracers;
-        this.storeId = storeId;
-        this.nativeAccess = nativeAccess;
-        this.memoryTracker = memoryTracker;
-        this.monitors = monitors;
-        this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
-        this.databaseHealth = databaseHealth;
-        this.kernelVersionProvider = kernelVersionProvider;
-        this.logFormatVersionProvider = logFormatVersionProvider;
-        this.clock = clock;
-        this.databaseName = databaseName;
-        this.config = config;
-        this.externalTailInfo = externalTailInfo;
-        this.binarySupportedKernelVersions = binarySupportedKernelVersions;
-        this.readOnly = readOnly;
-        this.envelopeSegmentBlockSizeBytes = envelopeSegmentBlockSizeBytes;
-        this.bufferSizeBytes = bufferSizeBytes;
-    }
+public record TransactionLogFilesContext(
+        AtomicLong rotationThreshold,
+        long checkpointRotationThreshold,
+        AtomicBoolean tryPreallocateTransactionLogs,
+        CommandReaderFactory commandReaderFactory,
+        LogFileVersionTracker versionTracker,
+        FileSystemAbstraction fileSystem,
+        InternalLogProvider logProvider,
+        DatabaseTracers databaseTracers,
+        Supplier<StoreId> storeId,
+        NativeAccess nativeAccess,
+        MemoryTracker memoryTracker,
+        Monitors monitors,
+        boolean failOnCorruptedLogFiles,
+        DatabaseHealth databaseHealth,
+        KernelVersionProvider emptyDbKernelVersionProvider,
+        LogFormatVersionProvider emptyDbLogFormatVersionProvider,
+        Clock clock,
+        String databaseName,
+        Config config,
+        BinarySupportedKernelVersions binarySupportedKernelVersions,
+        boolean readOnly,
+        int envelopeSegmentBlockSizeBytes,
+        int bufferSizeBytes) {
 
     AtomicLong getRotationThreshold() {
         return rotationThreshold;
@@ -142,28 +74,8 @@ public class TransactionLogFilesContext {
         return commandReaderFactory;
     }
 
-    public LogVersionRepositoryProvider getLogVersionRepositoryProvider() {
-        return logVersionRepositoryProvider;
-    }
-
     public LogFileVersionTracker getLogFileVersionTracker() {
         return versionTracker;
-    }
-
-    public LastAppendIndexLogFilesProvider getLastAppendIndexLogFilesProvider() {
-        return lastAppendIndexLogFilesProvider;
-    }
-
-    public long appendIndex() {
-        return lastAppendIndexProvider.lastAppendIndex();
-    }
-
-    LastClosedPositionProvider getLastClosedTransactionPositionProvider() {
-        return lastClosedPositionProvider;
-    }
-
-    public LastCommittedChecksumProvider getLastCommittedChecksumProvider() {
-        return lastCommittedChecksumProvider;
     }
 
     public FileSystemAbstraction getFileSystem() {
@@ -206,12 +118,12 @@ public class TransactionLogFilesContext {
         return databaseHealth;
     }
 
-    public KernelVersionProvider getKernelVersionProvider() {
-        return kernelVersionProvider;
+    public KernelVersionProvider getEmptyLogsKernelVersionProvider() {
+        return emptyDbKernelVersionProvider;
     }
 
-    public LogFormatVersionProvider getLogFormatVersionProvider() {
-        return logFormatVersionProvider;
+    public LogFormatVersionProvider getEmptyLogsLogFormatVersionProvider() {
+        return emptyDbLogFormatVersionProvider;
     }
 
     public Clock getClock() {
@@ -224,10 +136,6 @@ public class TransactionLogFilesContext {
 
     public Config getConfig() {
         return config;
-    }
-
-    public LogTailMetadata getExternalTailInfo() {
-        return externalTailInfo;
     }
 
     public BinarySupportedKernelVersions getBinarySupportedKernelVersions() {

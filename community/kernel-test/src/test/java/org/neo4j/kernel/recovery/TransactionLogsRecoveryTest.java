@@ -338,6 +338,9 @@ class TransactionLogsRecoveryTest {
                     "test");
             return true;
         });
+        // The logs have been changed, let's reinitialize to get the latest state
+        life.shutdown();
+        setUp();
 
         LifeSupport life = new LifeSupport();
         RecoveryMonitor monitor = mock(RecoveryMonitor.class);

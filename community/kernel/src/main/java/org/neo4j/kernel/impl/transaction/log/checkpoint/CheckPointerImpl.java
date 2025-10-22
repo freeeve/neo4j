@@ -43,6 +43,7 @@ import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.impl.transaction.log.pruning.LogPruning;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
@@ -63,7 +64,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             "Checkpoint flushed %d pages (%d%% of total available pages), in %d IOs. Checkpoint performed with IO limit: %s, paused in total %d times(%d millis). Average checkpoint flush speed: %s.";
     private static final String UNLIMITED_IO_CONTROLLER_LIMIT = "unlimited";
 
-    private final CheckpointAppender checkpointAppender;
+    private final CheckpointFile checkpointFile;
     private final LogMetadataProvider metadataProvider;
     private final CheckPointThreshold threshold;
     private final ForceOperation forceOperation;
@@ -86,7 +87,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             CheckPointThreshold threshold,
             ForceOperation forceOperation,
             LogPruning logPruning,
-            CheckpointAppender checkpointAppender,
+            CheckpointFile checkpointFile,
             Panic databasePanic,
             InternalLogProvider logProvider,
             DatabaseTracers tracers,
@@ -96,7 +97,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             IOController ioController,
             MemoryTracker memoryTracker,
             Config config) {
-        this.checkpointAppender = checkpointAppender;
+        this.checkpointFile = checkpointFile;
         this.metadataProvider = metadataProvider;
         this.threshold = threshold;
         this.forceOperation = forceOperation;
@@ -281,15 +282,17 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
              * repair the damages.
              */
             databasePanic.assertNoPanic(IOException.class);
-            checkpointAppender.checkPoint(
-                    checkPointEvent,
-                    transactionId,
-                    appendIndex,
-                    kernelVersion,
-                    oldestNotCompletedPosition,
-                    checkpointedLogPosition,
-                    clock.instant(),
-                    checkpointReason);
+            checkpointFile
+                    .getCheckpointAppender()
+                    .checkPoint(
+                            checkPointEvent,
+                            transactionId,
+                            appendIndex,
+                            kernelVersion,
+                            oldestNotCompletedPosition,
+                            checkpointedLogPosition,
+                            clock.instant(),
+                            checkpointReason);
             threshold.checkPointHappened(appendIndex, checkpointedLogPosition);
             long durationMillis = startTime.elapsed(MILLISECONDS);
             checkPointEvent.checkpointCompleted(durationMillis);

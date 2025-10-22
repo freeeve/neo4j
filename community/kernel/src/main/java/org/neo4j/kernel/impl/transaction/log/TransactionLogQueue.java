@@ -50,8 +50,7 @@ public class TransactionLogQueue extends LifecycleAdapter {
     private static final int INITIAL_CAPACITY = 128;
     private static final int FAILED_TX_MARKER = -1;
 
-    private final LogFiles logFiles;
-    private final LogRotation logRotation;
+    private final LogFile logFile;
     private final TransactionIdStore transactionIdStore;
     private final Panic databasePanic;
     private final AppendIndexProvider appendIndexProvider;
@@ -73,8 +72,7 @@ public class TransactionLogQueue extends LifecycleAdapter {
             JobScheduler jobScheduler,
             InternalLogProvider logProvider,
             String databaseName) {
-        this.logFiles = logFiles;
-        this.logRotation = logFiles.getLogFile().getLogRotation();
+        this.logFile = logFiles.getLogFile();
         this.transactionIdStore = transactionIdStore;
         this.databasePanic = databasePanic;
         this.appendIndexProvider = appendIndexProvider;
@@ -104,10 +102,10 @@ public class TransactionLogQueue extends LifecycleAdapter {
     public synchronized void start() {
         transactionWriter = new TransactionWriter(
                 txAppendQueue,
-                logFiles.getLogFile(),
+                logFile,
                 transactionIdStore,
                 databasePanic,
-                logRotation,
+                logFile.getLogRotation(),
                 log,
                 appendIndexProvider,
                 metadataCache,

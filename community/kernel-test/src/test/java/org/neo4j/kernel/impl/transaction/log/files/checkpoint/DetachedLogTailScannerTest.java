@@ -141,7 +141,14 @@ class DetachedLogTailScannerTest {
             fs.delete(matchedFile);
         }
 
-        var e = assertThrows(RuntimeException.class, testTogFiles::getTailMetadata);
+        // Rebuild to trigger logtail reading
+        var e = assertThrows(RuntimeException.class, () -> LogFilesBuilder.activeFilesBuilder(
+                        databaseLayout,
+                        fs,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
+                .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
+                .build());
         assertThat(e)
                 .rootCause()
                 .hasMessageContaining("LogPosition{logVersion=8,")
@@ -177,6 +184,8 @@ class DetachedLogTailScannerTest {
         fs.truncate(
                 logFiles.getLogFile().getLogFileForVersion(logFiles.getLogFile().getCurrentLogVersion()), 0);
 
+        // Recreate the logfiles since the previous header has been cached
+        LogFiles logFiles = createLogFiles();
         LogTailMetadata logTailInformation = logFiles.getTailMetadata();
         AppendBatchInfo lastBatch = logTailInformation.lastBatch();
         assertEquals(LogPosition.UNSPECIFIED, lastBatch.logPositionAfter());
