@@ -62,6 +62,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
+import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -261,6 +262,9 @@ case class pegClause(anonVarGen: AnonymousVariableNameGenerator) {
       case InputDataStream(variables) =>
         val vars = variables.toSet[LogicalVariable]
         incoming.noResultScope(incoming.amendedWith(vars), Seq.empty, declared = Declarations(Seq.empty, variables))
+
+      case UseGraph(graphReference) =>
+        incoming.noResultScope(incoming, Seq(pegExpression(graphReference, incoming, version)))
 
       case projectionClause: ProjectionClause => scopeProjectionClause(projectionClause, incoming, version)
 

@@ -357,6 +357,15 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `x` not defined.")
   }
 
+  test("""WITH "%s" AS g
+         |CALL() {
+         |    USE graph.byName(g)
+         |    UNWIND [1, 2] AS i
+         |    CREATE (:Number {value:i})
+         |} IN TRANSACTIONS""".stripMargin) {
+    error("42N62", "Variable `g` not defined.")
+  }
+
   test("""UNWIND [1, 2, 3] AS x
          |RETURN SUM(x) AS s
          |  ORDER BY x ASCENDING""".stripMargin) {
