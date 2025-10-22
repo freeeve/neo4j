@@ -43,11 +43,12 @@ public class AlreadyConstrainedException extends SchemaKernelException {
     public static AlreadyConstrainedException cannotCreateIndex(
             ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup) {
         var constraintName = constraint.getName();
+        var description = constraint.schema().userDescription(tokenNameLookup);
 
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N74)
                 .withParam(GqlParams.StringParam.constr, constraintName)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N70)
-                        .withParam(GqlParams.StringParam.idxDescrOrName, constraintName)
+                        .withParam(GqlParams.StringParam.idxDescrOrName, description)
                         .build())
                 .build();
         var message = messageWithLabelAndPropertyName(tokenNameLookup, INDEX_CONTEXT_FORMAT, constraint.schema());
@@ -57,11 +58,10 @@ public class AlreadyConstrainedException extends SchemaKernelException {
     // KNL-015
     public static AlreadyConstrainedException cannotCreateConstraint(
             ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup) {
-        var constraintName = constraint.getName();
         var constraintUD = constraint.userDescription(tokenNameLookup);
 
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N65)
-                .withParam(GqlParams.StringParam.constrDescrOrName, constraintName)
+                .withParam(GqlParams.StringParam.constrDescrOrName, constraintUD)
                 .build();
         var message = ALREADY_CONSTRAINED_MESSAGE_PREFIX + constraintUD;
         return new AlreadyConstrainedException(message, gql);

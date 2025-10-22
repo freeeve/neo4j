@@ -381,7 +381,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         assertThat(cause.gqlStatus()).isEqualTo("22N70");
         assertThat(cause.statusDescription())
                 .isEqualTo(
-                        "error: data exception - equivalent index already exists. An equivalent index already exists: 'name'");
+                        "error: data exception - equivalent index already exists. An equivalent index already exists: '(:MY_LABEL {my_property_key})'");
         assertThat(cause.gqlStatusObject().cause()).isNotPresent();
     }
 
@@ -408,8 +408,10 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         var ace = (AlreadyConstrainedException) exception.getCause();
         assertThat(ace.gqlStatus()).isEqualTo("22N65");
         assertThat(ace.statusDescription())
-                .isEqualTo(
-                        "error: data exception - equivalent constraint already exists. An equivalent constraint already exists: 'name'");
+                .startsWith(
+                        "error: data exception - equivalent constraint already exists. An equivalent constraint already exists: 'Constraint( ")
+                .contains(
+                        "name='name', type='NODE PROPERTY UNIQUENESS', schema=(:MY_LABEL {my_property_key}), ownedIndex=");
         assertThat(ace.gqlStatusObject().cause()).isNotPresent();
     }
 
