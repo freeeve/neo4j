@@ -706,9 +706,9 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             }
             monitor.noStoreFile();
             openOptions = openOptions.newWith(CREATE);
-            return new OpenResult(pageCache.map(indexFile, pageCache.pageSize(), databaseName, openOptions), true);
+            return new OpenResult(pageCache.map(indexFile, databaseName, openOptions), true);
         }
-        return new OpenResult(pageCache.map(indexFile, pageCache.pageSize(), databaseName, openOptions), false);
+        return new OpenResult(pageCache.map(indexFile, databaseName, openOptions), false);
     }
 
     /**
@@ -772,8 +772,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             String databaseName,
             ImmutableSet<OpenOption> openOptions)
             throws IOException, MetadataMismatchException {
-        PagedFile pagedFile =
-                pageCache.map(indexFile, pageCache.pageSize(), databaseName, treeOpenOptions(openOptions));
+        PagedFile pagedFile = pageCache.map(indexFile, databaseName, treeOpenOptions(openOptions));
         // This index already exists, verify meta data aligns with expectations
 
         MutableBoolean pagedFileOpen = new MutableBoolean(true);

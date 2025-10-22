@@ -92,7 +92,7 @@ public class GBPTreeStructure<ROOT_KEY, DATA_KEY, DATA_VALUE> {
             throws IOException {
         var options =
                 openOptions.newWithoutAll(asList(GBPTreeOpenOptions.values())).newWith(StandardOpenOption.READ);
-        try (var pagedFile = pageCache.map(file, pageCache.pageSize(), databaseName, options)) {
+        try (var pagedFile = pageCache.map(file, databaseName, options)) {
             try (var cursor = pagedFile.io(IdSpace.META_PAGE_ID, PagedFile.PF_SHARED_READ_LOCK, cursorContext)) {
                 visitMeta(cursor, visitor);
             }
@@ -119,7 +119,7 @@ public class GBPTreeStructure<ROOT_KEY, DATA_KEY, DATA_VALUE> {
             throws IOException {
         var options =
                 openOptions.newWithoutAll(asList(GBPTreeOpenOptions.values())).newWith(StandardOpenOption.READ);
-        try (var pagedFile = pageCache.map(file, pageCache.pageSize(), databaseName, options)) {
+        try (var pagedFile = pageCache.map(file, databaseName, options)) {
             try (var cursor = pagedFile.io(IdSpace.STATE_PAGE_A, PagedFile.PF_SHARED_READ_LOCK, cursorContext)) {
                 visitTreeState(cursor, visitor);
             }

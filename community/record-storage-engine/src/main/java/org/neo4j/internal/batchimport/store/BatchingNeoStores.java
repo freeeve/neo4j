@@ -239,8 +239,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
 
     private boolean hasExistingDatabaseContents() {
         Path metaDataFile = databaseLayout.metadataStore();
-        try (PagedFile pagedFile =
-                pageCache.map(metaDataFile, pageCache.pageSize(), databaseName, immutable.of(READ))) {
+        try (PagedFile pagedFile = pageCache.map(metaDataFile, databaseName, immutable.of(READ))) {
             // OK so the db probably exists
         } catch (IOException e) {
             // It's OK

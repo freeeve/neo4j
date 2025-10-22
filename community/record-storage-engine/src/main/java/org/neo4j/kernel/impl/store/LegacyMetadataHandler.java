@@ -63,12 +63,8 @@ public class LegacyMetadataHandler {
     public static Metadata44 readMetadata44FromStore(
             PageCache pageCache, Path metadataStore, String databaseName, CursorContext cursorContext)
             throws IOException {
-        try (PagedFile pagedFile = pageCache.map(
-                metadataStore,
-                pageCache.pageSize(),
-                databaseName,
-                immutable.of(PageCacheOpenOptions.BIG_ENDIAN),
-                DISABLED)) {
+        try (PagedFile pagedFile =
+                pageCache.map(metadataStore, databaseName, immutable.of(PageCacheOpenOptions.BIG_ENDIAN), DISABLED)) {
             if (pagedFile.getLastPageId() < 0) {
                 throw new IllegalStateException("Metadata store is empty");
             }

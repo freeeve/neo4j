@@ -2416,9 +2416,9 @@ class GBPTreeTest {
     private PageCache pageCacheThatThrowExceptionWhenToldTo(final IOException e, final AtomicBoolean throwOnNextIO) {
         return new DelegatingPageCache(createPageCache(defaultPageSize)) {
             @Override
-            public PagedFile map(Path path, int pageSize, String databaseName, ImmutableSet<OpenOption> openOptions)
+            public PagedFile map(Path path, String databaseName, ImmutableSet<OpenOption> openOptions)
                     throws IOException {
-                return new DelegatingPagedFile(super.map(path, pageSize, databaseName, openOptions)) {
+                return new DelegatingPagedFile(super.map(path, databaseName, openOptions)) {
                     @Override
                     public PageCursor io(long pageId, int pf_flags, CursorContext context) throws IOException {
                         maybeThrow();
@@ -2447,9 +2447,9 @@ class GBPTreeTest {
     private PageCache pageCacheThatBlockWhenToldTo(final Barrier barrier, final AtomicBoolean blockOnNextIO) {
         return new DelegatingPageCache(createPageCache(defaultPageSize)) {
             @Override
-            public PagedFile map(Path path, int pageSize, String databaseName, ImmutableSet<OpenOption> openOptions)
+            public PagedFile map(Path path, String databaseName, ImmutableSet<OpenOption> openOptions)
                     throws IOException {
-                return new DelegatingPagedFile(super.map(path, pageSize, databaseName, openOptions)) {
+                return new DelegatingPagedFile(super.map(path, databaseName, openOptions)) {
                     @Override
                     public PageCursor io(long pageId, int pf_flags, CursorContext context) throws IOException {
                         maybeBlock();
@@ -2543,9 +2543,9 @@ class GBPTreeTest {
     private PageCache pageCacheWithBarrierInClose(final AtomicBoolean enabled, final Barrier.Control barrier) {
         return new DelegatingPageCache(createPageCache(defaultPageSize * 4)) {
             @Override
-            public PagedFile map(Path path, int pageSize, String databaseName, ImmutableSet<OpenOption> openOptions)
+            public PagedFile map(Path path, String databaseName, ImmutableSet<OpenOption> openOptions)
                     throws IOException {
-                return new DelegatingPagedFile(super.map(path, pageSize, databaseName, openOptions)) {
+                return new DelegatingPagedFile(super.map(path, databaseName, openOptions)) {
                     @Override
                     public void close() {
                         if (enabled.get()) {

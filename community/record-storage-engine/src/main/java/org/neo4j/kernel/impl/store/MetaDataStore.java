@@ -407,8 +407,7 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
 
         private boolean readValue(Position position, ByteBuffer value) throws IOException {
             boolean inUse = false;
-            try (PagedFile pagedFile =
-                    pageCache.map(neoStore, pageCache.pageSize(), databaseName, REQUIRED_OPTIONS, DISABLED)) {
+            try (PagedFile pagedFile = pageCache.map(neoStore, databaseName, REQUIRED_OPTIONS, DISABLED)) {
                 if (pagedFile.getLastPageId() < 0) {
                     return false;
                 }
@@ -439,7 +438,7 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
         }
 
         private void writeValue(Position position, ByteBuffer value) throws IOException {
-            try (PagedFile pagedFile = pageCache.map(neoStore, pageCache.pageSize(), databaseName, REQUIRED_OPTIONS)) {
+            try (PagedFile pagedFile = pageCache.map(neoStore, databaseName, REQUIRED_OPTIONS)) {
                 try (PageCursor cursor = pagedFile.io(0, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext)) {
                     // This should not happen since the cursor is not open with PF_NO_GROW option,
                     // but better safe than sorry.
