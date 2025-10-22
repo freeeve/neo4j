@@ -104,12 +104,14 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomSupportExtension;
+import org.neo4j.test.extension.RequireAlignedFormat;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Values;
 
 @Neo4jLayoutExtension
 @RandomSupportExtension
+@RequireAlignedFormat
 public class ParallelBatchImporterTest {
     private static final int NODE_COUNT = 10_000;
     private static final int RELATIONSHIPS_PER_NODE = 5;

@@ -19,13 +19,12 @@
  */
 package org.neo4j.test.extension;
 
-import static org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER_KEY;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import org.neo4j.test.extension.StorageFormatTestCondition.StorageFormat;
 
 @Retention(RetentionPolicy.RUNTIME)
-@SkipTestExtension.Skip(key = FACTORY_SUPPLIER_KEY, value = "spd")
+@StorageFormatTestCondition.OnStorageFormatOverride(format = StorageFormat.SPD, skip = true)
 public @interface SkipOnSpd {
     String reason() default "";
 

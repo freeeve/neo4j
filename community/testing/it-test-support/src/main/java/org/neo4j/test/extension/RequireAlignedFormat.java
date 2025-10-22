@@ -24,5 +24,5 @@ import java.lang.annotation.RetentionPolicy;
 import org.neo4j.test.extension.StorageFormatTestCondition.StorageFormat;
 
 @Retention(RetentionPolicy.RUNTIME)
-@StorageFormatTestCondition.OnStorageFormatOverride(format = StorageFormat.ALIGNED, skip = true)
-public @interface SkipOnAligned {}
+@StorageFormatTestCondition.OnStorageFormatOverride(format = StorageFormat.ALIGNED, require = true)
+public @interface RequireAlignedFormat {}
