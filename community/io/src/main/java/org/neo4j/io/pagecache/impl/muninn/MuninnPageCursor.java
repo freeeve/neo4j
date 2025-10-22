@@ -1013,9 +1013,8 @@ public abstract class MuninnPageCursor extends PageCursor {
                 clearCursorError(cursor);
                 if (usePreciseCursorErrorStackTraces) {
                     throw (CursorExceptionWithPreciseStackTrace) error;
-                } else {
-                    throw new CursorException((String) error);
                 }
+                throw new CursorException((String) error);
             }
             cursor = cursor.linkedCursor;
         } while (cursor != null);
