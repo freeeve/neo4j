@@ -247,7 +247,6 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
   protected def closeRuntimeTestSupport(): Unit = {
     if (runtimeTestSupport != null) {
       try {
-        logProvider.clear()
         runtimeTestSupport.stopTx()
         runtimeTestSupport.stop()
       } finally {

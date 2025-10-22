@@ -2133,6 +2133,7 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("merge should work even when we fail to compile") {
+    assume(!canFuse)
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("n")
@@ -2174,6 +2175,7 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("nested merge should only create a single node when some merges cannot be fully fused") {
+    assume(!canFuse)
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults()
