@@ -44,4 +44,11 @@ public interface SecurityGraphDbmsModel {
     Label ROLE_LABEL = Label.label("Role");
     String ROLE = ROLE_LABEL.name();
     String ROLE_NAME_PROPERTY = "name";
+
+    Label AUTH_RULE_LABEL = Label.label("AuthRule");
+    String AUTH_RULE = AUTH_RULE_LABEL.name();
+    String AUTH_RULE_NAME_PROPERTY = "name";
+    String AUTH_RULE_CONDITION_PROPERTY = "condition";
+    String AUTH_RULE_ENABLED_PROPERTY = "enabled";
+    String AUTH_RULE_CYPHER_VERSION_PROPERTY = "cypherVersion";
 }
