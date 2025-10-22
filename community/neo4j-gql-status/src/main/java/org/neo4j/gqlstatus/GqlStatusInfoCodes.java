@@ -4206,6 +4206,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.GENERAL_PROCESSING_EXCEPTION,
             "transaction retry aborted",
             ErrorClassification.TRANSIENT_ERROR),
+    STATUS_50N24(
+            new GqlStatus("50N24"),
+            "Unexpected exception while getting transaction state.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "sharded properties transaction handling database error",
+            ErrorClassification.DATABASE_ERROR),
+    STATUS_50N25(
+            new GqlStatus("50N25"),
+            "Unexpected exception while getting transaction state.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "sharded properties transaction handling client error",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_50N42(
             new GqlStatus("50N42"),
             "Unexpected error has occurred. See debug log for details.",
