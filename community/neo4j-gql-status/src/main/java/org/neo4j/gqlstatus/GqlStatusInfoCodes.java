@@ -4942,8 +4942,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N11(
             new GqlStatus("52N11"),
-            "An unexpected error has occurred. Please refer to the server's debug log for more information.",
-            new GqlParams.GqlParam[] {},
+            "An unexpected error has occurred: { %s }",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
             "generic topology procedure error",
@@ -4990,8 +4990,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N17(
             new GqlStatus("52N17"),
-            "Setting/removing the quarantine marker failed.",
-            new GqlParams.GqlParam[] {},
+            "Setting/removing the quarantine marker failed: { %s }",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
             "quarantine change failed",

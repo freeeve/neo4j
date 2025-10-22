@@ -871,30 +871,28 @@ public class ProcedureException extends KernelException {
                 rawServer);
     }
 
-    public static ProcedureException quarantineChangeFailed(String procedureName, Throwable e) {
+    public static ProcedureException quarantineChangeFailed(String procedureName, Throwable e, boolean generalMessage) {
+        var message = generalMessage ? "Please refer to the server's debug log for more information." : e.getMessage();
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
                 .withParam(GqlParams.StringParam.proc, procedureName)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N17)
+                        .withParam(GqlParams.StringParam.msg, message)
                         .build())
                 .build();
-
-        return new ProcedureException(gql, ProcedureCallFailed, e, e.getMessage());
+        return new ProcedureException(
+                gql, ProcedureCallFailed, e, "Setting/removing the quarantine marker failed: " + message);
     }
 
-    public static ProcedureException quarantineChangeFailedWithCustomMessage(String procedureName, Throwable e) {
+    public static ProcedureException topologyProcedureGeneralException(
+            String procedureName, Throwable e, boolean generalMessage) {
+        var message = generalMessage ? "Please refer to the server's debug log for more information." : e.getMessage();
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
                 .withParam(GqlParams.StringParam.proc, procedureName)
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N17)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N11)
+                        .withParam(GqlParams.StringParam.msg, message)
                         .build())
                 .build();
-        var message =
-                "Setting/removing the quarantine marker failed. Please refer to the server's debug log for more information.";
-        return new ProcedureException(gql, ProcedureCallFailed, e, message);
-    }
-
-    public static ProcedureException generalProcedureException(String procedure, Throwable e) {
-        var gql = GqlHelper.getGql52N02_52N11(procedure);
-        return new ProcedureException(gql, ProcedureCallFailed, e, e.getMessage());
+        return new ProcedureException(gql, ProcedureCallFailed, e, "An unexpected error has occurred: " + message);
     }
 
     /**
@@ -905,12 +903,6 @@ public class ProcedureException extends KernelException {
                 .withParam(GqlParams.StringParam.proc, procedure)
                 .build();
         return new ProcedureException(gql, status, e, e.getMessage());
-    }
-
-    public static ProcedureException generalProcedureExceptionWithCustomMessage(String procedure, Throwable e) {
-        var gql = GqlHelper.getGql52N02_52N11(procedure);
-        var message = "An unexpected error has occurred. Please refer to the server's debug log for more information.";
-        return new ProcedureException(gql, ProcedureCallFailed, e, message);
     }
 
     public static ProcedureException invalidProcedureArgument(

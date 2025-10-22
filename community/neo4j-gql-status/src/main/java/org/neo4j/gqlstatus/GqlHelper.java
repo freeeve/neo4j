@@ -1275,14 +1275,6 @@ public class GqlHelper {
         return get51N31(notSupported, context, -1, -1, -1);
     }
 
-    public static ErrorGqlStatusObject getGql52N02_52N11(String procedure) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
-                .withParam(GqlParams.StringParam.proc, procedure)
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N11)
-                        .build())
-                .build();
-    }
-
     public static ErrorGqlStatusObject get52N34(String proc) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N34)
                 .withParam(GqlParams.StringParam.proc, proc)
