@@ -89,8 +89,6 @@ import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
-import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
-import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.LogTailMetadataFactoryImpl;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
 import org.neo4j.kernel.impl.util.Converters;
@@ -628,15 +626,7 @@ public class ImportCommand {
                 return List.of();
             }
 
-            final var schemaPath = fileSystem.resolve(schemaCommands);
-            if (!fileSystem.fileExists(schemaPath)) {
-                throw new CommandFailedException("The provided schema commands file does not exist.", ExitCode.IOERR);
-            }
-
-            if (fileSystem.isDirectory(schemaPath)) {
-                throw new CommandFailedException(
-                        "The provided schema commands file is not a regular file.", ExitCode.IOERR);
-            }
+            final var schemaPath = schemaCommandsPath(fileSystem);
 
             final var reader = new SchemaCommandReader(
                     fileSystem,
@@ -650,6 +640,29 @@ public class ImportCommand {
             }
         }
 
+        private Path schemaCommandsPath(SchemeFileSystemAbstraction fileSystem) throws IOException {
+            assert schemaCommands != null;
+
+            String commandPath;
+            if (schemaCommands.startsWith("'") && schemaCommands.endsWith("'")) {
+                commandPath = schemaCommands.substring(1, schemaCommands.length() - 1);
+            } else {
+                commandPath = schemaCommands;
+            }
+
+            final var schemaPath = fileSystem.resolve(commandPath);
+            if (!fileSystem.fileExists(schemaPath)) {
+                throw new CommandFailedException("The provided schema commands file does not exist.", ExitCode.IOERR);
+            }
+
+            if (fileSystem.isDirectory(schemaPath)) {
+                throw new CommandFailedException(
+                        "The provided schema commands file is not a regular file.", ExitCode.IOERR);
+            }
+
+            return schemaPath;
+        }
+
         @VisibleForTesting
         Config loadNeo4jConfig(String format) {
             Config.Builder builder = createPrefilledConfigBuilder();
@@ -657,17 +670,6 @@ public class ImportCommand {
                 builder.set(GraphDatabaseSettings.db_format, format);
             }
             return builder.build();
-        }
-
-        protected LogTailMetadata readLogTailMetaData(
-                FileSystemAbstraction fileSystem,
-                DatabaseLayout databaseLayout,
-                StorageEngineFactory storageEngineFactory)
-                throws IOException {
-            return LogFilesBuilder.logFilesBasedOnlyBuilder(databaseLayout.getTransactionLogsDirectory(), fileSystem)
-                    .withStorageEngineFactory(storageEngineFactory)
-                    .build()
-                    .getTailMetadata();
         }
 
         private org.neo4j.csv.reader.Configuration csvConfiguration(SchemeFileSystemAbstraction fs) {
