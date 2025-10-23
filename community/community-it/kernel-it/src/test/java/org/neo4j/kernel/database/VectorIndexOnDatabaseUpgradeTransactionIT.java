@@ -232,7 +232,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
     @ParameterizedTest
     @MethodSource("multiTokenIndexVersions")
     void shouldBeBlockedFromCreatingVectorIndexWithMultiToken(VectorIndexVersion indexVersion, EntityType entityType) {
-        final var previousVersion = previousFrom(KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING);
+        final var previousVersion = KernelVersion.V2025_09;
         setup(previousVersion);
         assertThatThrownBy(() -> {
                     try (final var tx = database.beginTx()) {
@@ -255,7 +255,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
     @MethodSource("multiTokenIndexVersions")
     void shouldBePossibleToCreateVectorIndexWithMultiTokenAfterUpgrade(
             VectorIndexVersion indexVersion, EntityType entityType) {
-        final var previousVersion = previousFrom(KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING);
+        final var previousVersion = KernelVersion.V2025_09;
         setup(previousVersion);
         UpgradeTestUtil.upgradeDatabase(dbms, database, previousVersion, KERNEL_VERSION);
 

@@ -108,6 +108,7 @@ recreatedStart = %s,
         checksums.put(KernelVersion.V2025_08, -915619660);
         checksums.put(KernelVersion.V2025_09, -972701025);
         checksums.put(KernelVersion.V2025_10, -675363614);
+        checksums.put(KernelVersion.V2025_11, -656947511);
 
         final LogEntryCommit commit = newCommitEntry(kernelVersion, 42, 21, checksums.get(kernelVersion));
         final InMemoryClosableChannel channel = new InMemoryClosableChannel(true);
