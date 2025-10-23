@@ -35,12 +35,12 @@ import org.neo4j.storageengine.api.TransactionIdStore;
  * A {@link VersionContext} that can be injected in tests to verify the behavior of {@link SnapshotExecutionEngine}.
  */
 public class TestVersionContext extends TransactionVersionContext {
-    private boolean wrongLastClosedTxId;
-    private int numIsDirtyCalls;
-    private int additionalAttempts;
-    private boolean stayDirty;
-    private Exception lastMarkAsDirtyCall;
-    private Exception additionalAttemptsCall;
+    private volatile boolean wrongLastClosedTxId;
+    private volatile int numIsDirtyCalls;
+    private volatile int additionalAttempts;
+    private volatile boolean stayDirty;
+    private volatile Exception lastMarkAsDirtyCall;
+    private volatile Exception additionalAttemptsCall;
     private final String databaseName;
 
     public TestVersionContext(TransactionIdSnapshotFactory transactionIdSnapshotFactory, String databaseName) {
