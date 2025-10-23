@@ -2010,7 +2010,8 @@ case class Return(
         if s.currentScope.isEmpty && context == ScopeClauseSubqueryCall =>
         Seq(SemanticError.invalidUseOfReturnStar(position))
       case ReturnItems(AdditiveProjection, _, _)
-        if (s.currentScope.isEmpty && s.currentScope.parent.fold(true)(_.isEmpty)) =>
+        if (s.currentScope.isEmpty && s.currentScope.parent.fold(true)(_.isEmpty))
+          && returnType != ReturnAddedInRewrite =>
         Seq(SemanticError.invalidUseOfReturnStar(position))
       case _ =>
         Seq.empty
