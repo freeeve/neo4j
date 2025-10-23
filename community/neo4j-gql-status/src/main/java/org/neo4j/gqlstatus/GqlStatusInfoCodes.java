@@ -4010,6 +4010,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "incorrectly formatted graph reference",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAB(
+            new GqlStatus("42NAB"),
+            "WHERE is not supported in a standalone call. Use `CALL ... YIELD ... WHERE ... RETURN ...` instead.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "not supported standalone call",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             new GqlStatus("42NFC"),
             "Authentication and/or authorization could not be validated. See security logs for details.",

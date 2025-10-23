@@ -1098,6 +1098,18 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42N71_42NAB(int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N71)
+                        .atPosition(offset, line, column)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAB)
+                                .atPosition(offset, line, column)
+                                .build())
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42N72(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)

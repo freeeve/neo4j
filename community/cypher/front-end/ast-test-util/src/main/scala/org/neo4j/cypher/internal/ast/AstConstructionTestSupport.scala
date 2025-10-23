@@ -1408,13 +1408,16 @@ trait AstConstructionTestSupport {
     ns: Seq[String],
     name: String,
     args: Option[Seq[Expression]] = Some(Vector()),
-    yields: Option[Seq[Variable]] = None
+    yields: Option[Seq[Variable]] = None,
+    where: Option[Expression] = None
   ): UnresolvedCall =
     UnresolvedCall(
       Namespace(ns.toList)(pos),
       ProcedureName(name)(pos),
       args,
-      yields.map(vs => ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)))(pos)),
+      yields.map(vs =>
+        ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)), where.map(p => Where(p)(pos)))(pos)
+      ),
       false,
       false
     )(pos)
@@ -1423,13 +1426,16 @@ trait AstConstructionTestSupport {
     ns: Seq[String],
     name: String,
     args: Option[Seq[Expression]] = Some(Vector()),
-    yields: Option[Seq[Variable]] = None
+    yields: Option[Seq[Variable]] = None,
+    where: Option[Expression] = None
   ): UnresolvedCall =
     UnresolvedCall(
       Namespace(ns.toList)(pos),
       ProcedureName(name)(pos),
       args,
-      yields.map(vs => ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)))(pos)),
+      yields.map(vs =>
+        ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)), where.map(p => Where(p)(pos)))(pos)
+      ),
       false,
       true
     )(pos)

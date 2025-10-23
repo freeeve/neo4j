@@ -397,10 +397,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
 
   private def checkStandaloneCall(clauses: Seq[Clause]): SemanticCheck = {
     clauses match {
-      case Seq(_: UnresolvedCall, where: With) =>
-        val gql = GqlHelper.getGql42001_42N24(
-          "CALL",
-          "WHERE",
+      case Seq(_: UnresolvedCall, where @ With(_, _, _, _, _, _, AddedInRewriteProcCall)) =>
+        val gql = GqlHelper.getGql42001_42N71_42NAB(
           where.position.offset,
           where.position.line,
           where.position.column
