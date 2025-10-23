@@ -30,6 +30,7 @@ import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
 import static org.neo4j.test.assertion.Assert.assertEventually;
 import static org.neo4j.test.conditions.Conditions.equalityCondition;
 
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -195,29 +196,22 @@ class DatabaseUpgradeTransactionHandlerTest {
      * - V4_2,V4_2,V4_2,UPGRADE(V4_2->V4_3),V4_3,V4_3
      */
     private void assertCorrectTransactionStream() {
-        KernelVersion checkVersion = null;
-        boolean justSawUpgrade = false;
-        for (RegisteredTransaction registeredTransaction : registeredTransactions) {
-            if (registeredTransaction.isUpgradeTransaction) {
-                if (checkVersion != null) {
-                    assertThat(registeredTransaction.version).isEqualTo(checkVersion);
-                }
-                checkVersion = registeredTransaction.version;
-                justSawUpgrade = true;
+        if (registeredTransactions.isEmpty()) {
+            return;
+        }
+
+        assertThat(registeredTransactions).hasSizeGreaterThanOrEqualTo(2);
+
+        Iterator<RegisteredTransaction> itr = registeredTransactions.iterator();
+        RegisteredTransaction prevTx = itr.next();
+        while (itr.hasNext()) {
+            RegisteredTransaction tx = itr.next();
+            if (prevTx.isUpgradeTransaction) {
+                assertThat(tx.version).as(registeredTransactions::toString).isGreaterThan(prevTx.version);
             } else {
-                if (checkVersion != null) {
-                    if (justSawUpgrade) {
-                        assertThat(registeredTransaction.version.isGreaterThan(checkVersion))
-                                .isTrue();
-                        checkVersion = registeredTransaction.version;
-                    } else {
-                        assertThat(registeredTransaction.version).isEqualTo(checkVersion);
-                    }
-                } else {
-                    checkVersion = registeredTransaction.version;
-                }
-                justSawUpgrade = false;
+                assertThat(tx.version).as(registeredTransactions::toString).isEqualTo(prevTx.version);
             }
+            prevTx = tx;
         }
     }
 
@@ -308,21 +302,7 @@ class DatabaseUpgradeTransactionHandlerTest {
         }
     }
 
-    private static class RegisteredTransaction {
-        private final KernelVersion version;
-        private final boolean isUpgradeTransaction;
-
-        RegisteredTransaction(KernelVersion version, boolean isUpgradeTransaction) {
-            this.version = version;
-            this.isUpgradeTransaction = isUpgradeTransaction;
-        }
-
-        @Override
-        public String toString() {
-            return "RegisteredTransaction{" + "version=" + version + ", isUpgradeTransaction=" + isUpgradeTransaction
-                    + '}';
-        }
-    }
+    private record RegisteredTransaction(KernelVersion version, boolean isUpgradeTransaction) {}
 
     private static class RWUpgradeLocker implements UpgradeLocker {
         private final ReadWriteLock realLock = new ReentrantReadWriteLock();
