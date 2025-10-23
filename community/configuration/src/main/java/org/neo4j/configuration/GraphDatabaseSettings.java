@@ -746,7 +746,8 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
     public static final Setting<Boolean> filewatcher_enabled =
             newBuilder("db.filewatcher.enabled", BOOL, true).build();
 
-    @Description("Relationship count threshold for considering a node to be dense.")
+    @Description(
+            "Relationship count threshold for considering a node to be dense. Not applicable for the block format.")
     public static final Setting<Integer> dense_node_threshold = newBuilder(
                     "db.relationship_grouping_threshold", INT, 50)
             .addConstraint(min(1))
