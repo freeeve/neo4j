@@ -21,6 +21,7 @@ package org.neo4j.genai.ai.text.embed;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.map;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -42,10 +43,12 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.ProviderArgs;
 import org.neo4j.genai.ai.ProviderArguments;
+import org.neo4j.genai.ai.text.embed.provider.azure.AzureOpenAi;
 import org.neo4j.genai.ai.text.embed.provider.bedrock.BedrockTitan;
 import org.neo4j.genai.ai.text.embed.provider.openai.OpenAi;
 import org.neo4j.genai.ai.text.embed.provider.vertexai.VertexAi;
 import org.neo4j.genai.util.GenAITestExtension;
+import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
@@ -76,6 +79,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
         this.wireMock.start();
         final var baseUrl = this.wireMock.baseUrl();
         builder.addExtension(new GenAiPluginExtension(
+                new AzureOpenAi(p -> URI.create(baseUrl)),
                 new OpenAi(baseUrl),
                 new VertexAi(p -> URI.create(baseUrl)),
                 new BedrockTitan(p -> URI.create(baseUrl))));
@@ -88,6 +92,23 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     }
 
     private final List<Map<String, Object>> EXPECTED_PROVIDERS = List.of(
+            Map.of(
+                    "name",
+                    "Azure-OpenAI",
+                    "requiredConfigType",
+                    """
+                    {
+                      token :: STRING NOT NULL,
+                      resource :: STRING NOT NULL,
+                      model :: STRING NOT NULL
+                    }""",
+                    "optionalConfigType",
+                    """
+                    {
+                      vendorOptions :: MAP NOT NULL
+                    }""",
+                    "defaultConfig",
+                    Map.of("vendorOptions", Map.of())),
             Map.of(
                     "name",
                     "Bedrock-Titan",
@@ -263,6 +284,173 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                         Map.of("vector", true, "index", 1L, "resource", "Hello!"));
     }
 
+    @ParameterizedTest
+    @ArgumentsSource(RequiredConfArguments.class)
+    void embeddingWithNullResource(ProviderArgs args) {
+        final var query =
+                """
+                WITH %s AS conf
+                RETURN ai.text.embed(null, '%s', conf) AS result"""
+                        .formatted(args.conf(), args.provider());
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
+                .singleElement(resultMap())
+                .containsEntry("result", null);
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(RequiredConfArguments.class)
+    void embeddingBatchWithNullResource(ProviderArgs args) {
+        final var query =
+                """
+                WITH %s AS conf
+                CALL ai.text.embedBatch(null, '%s', conf)
+                YIELD index, vector, resource
+                RETURN vector AS result"""
+                        .formatted(args.conf(), args.provider());
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageContainingAll("'resources' must not be null");
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(RequiredConfArguments.class)
+    void embeddingWithEmptyStringResource(ProviderArgs args) {
+        final var query =
+                """
+                WITH %s AS conf
+                RETURN ai.text.embed('', '%s', conf) AS result"""
+                        .formatted(args.conf(), args.provider());
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
+                .singleElement(resultMap())
+                .containsEntry("result", null);
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(RequiredConfArguments.class)
+    void embeddingBatchWithEmptyStringResource(ProviderArgs args) {
+        final var query =
+                """
+                WITH %s AS conf
+                CALL ai.text.embedBatch([''], '%s', conf)
+                YIELD index, vector, resource
+                RETURN vector AS result"""
+                        .formatted(args.conf(), args.provider());
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
+                .singleElement(resultMap())
+                .containsEntry("result", null);
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(RequiredConfArguments.class)
+    void embeddingBatchWithEmptyResource(ProviderArgs args) {
+        final var query =
+                """
+                WITH %s AS conf
+                CALL ai.text.embedBatch([], '%s', conf)
+                YIELD index, vector, resource
+                RETURN count(index) AS result"""
+                        .formatted(args.conf(), args.provider());
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
+                .singleElement(resultMap())
+                .containsEntry("result", 0L);
+    }
+
+    @Test
+    void invalidProviderEmbed() {
+        final var query1 = "RETURN ai.text.embed('Hello world', 'FakeProvider', {}) AS result";
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageContainingAll("Provider not supported: FakeProvider");
+
+        final var query2 = "RETURN ai.text.embed('Hello world', null, {}) AS result";
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query2, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageContainingAll("'provider' must not be null");
+    }
+
+    @Test
+    void invalidProviderEmbedBatch() {
+        final var query1 = "CALL ai.text.embedBatch(['Hello world'], 'FakeProvider', {})";
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageContainingAll("Provider not supported: FakeProvider");
+
+        final var query2 = "CALL ai.text.embedBatch(['Hello world'], null, {})";
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query2, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageContainingAll("'provider' must not be null");
+    }
+
+    @Test
+    void invalidArgumentsEmbed() {
+        final var query1 = "RETURN ai.text.embed('Hello world', 'OpenAI', 1) AS result";
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageContainingAll("Type mismatch: expected Map");
+
+        final var query2 = "RETURN ai.text.embed('Hello world', 'OpenAI', null) AS result";
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query2, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageContainingAll("'configuration' must not be null");
+    }
+
+    @Test
+    void invalidArgumentsEmbedBatch() {
+        final var query1 = "CALL ai.text.embedBatch(['Hello world'], 'OpenAI', 1)";
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageContainingAll("Type mismatch: expected Map");
+
+        final var query2 = "CALL ai.text.embedBatch(['Hello world'], 'OpenAI', null)";
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query2, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageContainingAll("'configuration' must not be null");
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(MissingSecretsArguments.class)
+    void missingSecretsEmbed(ProviderArgs args) {
+        final var query =
+                """
+                WITH %s AS conf
+                RETURN ai.text.embed('Hello world', '%s', conf) AS result
+                """
+                        .formatted(args.conf(), args.provider());
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageMatching(".*'(token|accessKeyId|secretAccessKey)' is expected to have been set");
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(MissingSecretsArguments.class)
+    void missingSecretsEmbedBatch(ProviderArgs args) {
+        final var query =
+                """
+                WITH %s AS conf
+                CALL ai.text.embedBatch(['Hello world'], '%s', conf)
+                YIELD index, vector, resource
+                RETURN index, vector, resource"""
+                        .formatted(args.conf(), args.provider());
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageMatching(".*'(token|accessKeyId|secretAccessKey)' is expected to have been set");
+    }
+
     @Disabled // Enable when procedures are not internal
     @Test
     void embeddingDocsAreUpToDate() {
@@ -302,6 +490,9 @@ class RequiredConfArguments implements ProviderArguments {
     @Override
     public Stream<ProviderArgs> providers() {
         return Stream.of(
+                new ProviderArgs(
+                        "azure-openai",
+                        "{ token: 'dummy-azure-token', resource: 'dummy', model: 'text-embedding-3-small' }"),
                 new ProviderArgs("openai", "{ token: 'dummy-openai-token', model: 'text-embedding-3-small' }"),
                 new ProviderArgs(
                         "vertexai",
@@ -319,6 +510,18 @@ class AllOptionsArguments implements ProviderArguments {
     @Override
     public Stream<ProviderArgs> providers() {
         return Stream.of(
+                new ProviderArgs(
+                        "azure-openai",
+                        """
+                        {
+                          token: 'dummy-azure-token',
+                          resource: 'dummy',
+                          model: 'text-embedding-3-small',
+                          vendorOptions: {
+                            dimensions: 1536,
+                            user: 'gem'
+                          }
+                        }"""),
                 new ProviderArgs(
                         "openai",
                         """
@@ -368,5 +571,22 @@ class AllOptionsArguments implements ProviderArguments {
                           }
                         }
                         """));
+    }
+}
+
+class MissingSecretsArguments implements ProviderArguments {
+    @Override
+    public Stream<ProviderArgs> providers() {
+        return Stream.of(
+                new ProviderArgs("azure-openai", "{ resource: 'dummy', model: 'text-embedding-3-small' }"),
+                new ProviderArgs("openai", "{ model: 'text-embedding-3-small' }"),
+                new ProviderArgs(
+                        "vertexai",
+                        "{ model: 'gemini-embedding-001', region: 'tasman', project: 'gem', publisher: 'google' }"),
+                new ProviderArgs(
+                        "bedrock-titan:model by name", "{ model: 'amazon.titan-embed-text-v1', region: 'eu-north-1'}"),
+                new ProviderArgs(
+                        "bedrock-titan:foundation model by arn",
+                        "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v1', region: 'us-east-1' }"));
     }
 }

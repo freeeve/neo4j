@@ -74,7 +74,7 @@ public class DeprecatedVectorEncoding {
     public HttpService httpService;
 
     @Deprecated
-    @Procedure(name = "genai.vector.listEncodingProviders", deprecatedBy = "ai.vector.listEncodingProviders")
+    @Procedure(name = "genai.vector.listEncodingProviders", deprecatedBy = "ai.text.embed.providers")
     @Description("Lists the available vector embedding providers.")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5, QueryLanguage.CYPHER_25})
     public Stream<ProviderRow> listEncodingProviders() {
@@ -135,7 +135,7 @@ public class DeprecatedVectorEncoding {
     }
 
     @Deprecated
-    @UserFunction(name = "genai.vector.encode", deprecatedBy = "ai.vector.encode")
+    @UserFunction(name = "genai.vector.encode", deprecatedBy = "ai.text.embed")
     @Description("Encode a given resource as a vector using the named provider.")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5, QueryLanguage.CYPHER_25})
     public Value encode(
@@ -171,7 +171,7 @@ public class DeprecatedVectorEncoding {
     }
 
     @Deprecated
-    @Procedure(name = "genai.vector.encodeBatch", deprecatedBy = "ai.vector.encodeBatch")
+    @Procedure(name = "genai.vector.encodeBatch", deprecatedBy = "ai.text.embedBatch")
     @Description(
             """
             Encode a given batch of resources as vectors using the named provider.

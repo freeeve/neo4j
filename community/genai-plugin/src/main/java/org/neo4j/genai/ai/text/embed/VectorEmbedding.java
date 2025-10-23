@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.factory.primitive.IntLists;
@@ -40,7 +41,6 @@ import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 import org.neo4j.procedure.Sensitive;
 import org.neo4j.procedure.UserFunction;
-import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 
@@ -88,11 +88,11 @@ public class VectorEmbedding {
                             AmazonBedrock: {accessKeyId :: STRING, secretAccessKey :: STRING, model :: STRING, region :: STRING}""")
                     MapValue configuration) {
         requireNonNull(providerName, "'provider' must not be null");
-        final var configurationMap = requireNonNull(configuration);
+        requireNonNull(configuration, "'configuration' must not be null");
         final var provider = providers.configure(providerName, configuration);
 
         monitors.vectorEnc().encodeFunctionCalled(provider.name());
-        if (resource == null) {
+        if (resource == null || resource.isEmpty()) {
             return null;
         } else {
             return provider.encode(resource);
@@ -122,9 +122,11 @@ public class VectorEmbedding {
                     @Name(value = "configuration", defaultValue = "{}", description = "The provider specific settings.")
                     MapValue configuration) {
         requireNonNull(resources, "'resources' must not be null");
-        Preconditions.checkArgument(!resources.isEmpty(), "'resources' must not be empty");
         requireNonNull(providerName, "'provider' must not be null");
-        final var configurationMap = requireNonNull(configuration);
+        requireNonNull(configuration, "'configuration' must not be null");
+        if (resources.isEmpty()) {
+            return Stream.empty();
+        }
         final var provider = providers.configure(providerName, configuration);
         monitors.vectorEnc().encodeBatchProcedureCalled(provider.name());
         // Remember all the places where we had nulls and remove them from the requested resources
@@ -136,11 +138,15 @@ public class VectorEmbedding {
             final var index = it.nextIndex();
             final var resource = it.next();
 
-            if (resource == null) {
+            if (resource == null || resource.isEmpty()) {
                 removedIndexes.add(index);
             } else {
                 cleanedResources.add(resource);
             }
+        }
+
+        if (cleanedResources.isEmpty()) {
+            return IntStream.range(0, removedIndexes.size()).mapToObj(index -> new InternalBatchRow(index, null, null));
         }
 
         return provider.encodeBatch(cleanedResources, removedIndexes.toArray());

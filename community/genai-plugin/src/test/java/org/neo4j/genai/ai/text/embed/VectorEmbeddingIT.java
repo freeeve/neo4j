@@ -44,6 +44,36 @@ import org.neo4j.values.storable.VectorValue;
 public class VectorEmbeddingIT {
 
     @Nested
+    @EnabledIfEnvironmentVariable(named = Tokens.AzureOpenAi.TOKEN_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.AzureOpenAi.RESOURCE_ENV, matches = ".*")
+    class AzureOpenAi extends VectorEmbeddingITBase {
+        @Override
+        String provider() {
+            return "azure-openai";
+        }
+
+        @Override
+        Map<String, Object> params() {
+            return Map.of(
+                    "token",
+                    System.getenv(Tokens.AzureOpenAi.TOKEN_ENV),
+                    "resource",
+                    System.getenv(Tokens.AzureOpenAi.RESOURCE_ENV));
+        }
+
+        @Override
+        List<String> confRequired() {
+            return List.of("{ token: $token, resource: $resource, model: 'text-embedding-3-small' }");
+        }
+
+        @Override
+        List<String> confWithVendorOptions() {
+            return List.of(
+                    "{ token: $token, resource: $resource, model: 'text-embedding-3-small', vendorOptions: { dimensions: 1536, user: 'gem' }}");
+        }
+    }
+
+    @Nested
     @EnabledIfEnvironmentVariable(named = Tokens.OpenAi.TOKEN_ENV, matches = ".*")
     class OpenAi extends VectorEmbeddingITBase {
         @Override
