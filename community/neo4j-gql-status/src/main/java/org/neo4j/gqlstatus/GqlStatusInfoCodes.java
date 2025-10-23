@@ -314,7 +314,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.SECURITY),
     STATUS_01N73(
             new GqlStatus("01N73"),
-            "This privilege will severely reduce the performance of queries run on sharded databases. We recommend to exclude sharded databases for now.",
+            "The specified privilege severely reduces the performance of queries run on sharded databases. Consider excluding sharded databases for now.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.WARNING,

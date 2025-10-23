@@ -569,7 +569,7 @@ public interface Status {
                 ClientNotification, "`%s` has no effect.", SeverityLevel.WARNING, NotificationCategory.SECURITY),
         ShardedPrivilegePerformance(
                 ClientNotification,
-                "This privilege will have a severe performance impact on sharded databases.",
+                "Privilege with a severe performance impact on sharded databases.",
                 SeverityLevel.INFORMATION,
                 NotificationCategory.SECURITY);
 

@@ -316,9 +316,9 @@ public enum NotificationCodeWithDescription {
             "Use setting `dbms.security.require_local_user` to enable external auth."),
 
     SHARDED_PRIVILEGE_PERFORMANCE(
-            Status.Security.ExternalAuthNotEnabled,
+            Status.Security.ShardedPrivilegePerformance,
             GqlStatusInfoCodes.STATUS_01N73,
-            "This privilege will severely reduce the performance of queries run on sharded databases. We recommend to exclude sharded databases for now."),
+            "This specified privilege severely reduces the performance of queries run on sharded databases. Consider excluding sharded databases for now."),
 
     OIDC_CREDENTIAL_FORWARDING_NOT_ENABLED(
             Status.Security.OidcCredentialForwardingNotEnabled,
