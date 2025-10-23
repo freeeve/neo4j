@@ -21,8 +21,11 @@ package org.neo4j.procedure.impl;
 
 import static java.lang.String.format;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -55,26 +58,31 @@ public class ProcedureRegistry {
     private final ProcedureHolder<CallableProcedure> procedures;
     private final ProcedureHolder<CallableUserFunction> functions;
     private final ProcedureHolder<CallableUserAggregationFunction> aggregationFunctions;
+    private final Map<QueryLanguage, Set<String>> shadowedNames;
 
     public ProcedureRegistry() {
-        this(new ProcedureHolder<>(), new ProcedureHolder<>(), new ProcedureHolder<>());
+        this(new ProcedureHolder<>(), new ProcedureHolder<>(), new ProcedureHolder<>(), initShadowedNames());
     }
 
     private ProcedureRegistry(
             ProcedureHolder<CallableProcedure> procedures,
             ProcedureHolder<CallableUserFunction> functions,
-            ProcedureHolder<CallableUserAggregationFunction> aggregationFunctions) {
+            ProcedureHolder<CallableUserAggregationFunction> aggregationFunctions,
+            Map<QueryLanguage, Set<String>> shadowedNames) {
         this.procedures = procedures;
         this.functions = functions;
         this.aggregationFunctions = aggregationFunctions;
+        this.shadowedNames = shadowedNames;
     }
 
     /**
      * Register a new procedure.
+     * If fullAccess is set to false the procedure is considered user defined.
      *
      * @param proc the procedure.
      */
-    public void register(CallableProcedure proc) throws ProcedureException {
+    public void register(CallableProcedure proc, boolean fullAccess, AbstractSecurityLog securityLog)
+            throws ProcedureException {
         ProcedureSignature signature = proc.signature();
         QualifiedName name = signature.name();
 
@@ -88,12 +96,28 @@ public class ProcedureRegistry {
 
         var supportedScopes = signature.supportedQueryLanguages();
         for (var scope : supportedScopes) {
+            if (!fullAccess && NamingRestrictions.isDeprecatedProcedureNamespace(name, scope)) {
+                addShadowedName(name.toString(), scope);
+            }
             if (procedures.contains(name, scope)) {
-                throw ProcedureException.procedureNameAlreadyInUse(name.toString());
+                if (!fullAccess && NamingRestrictions.isDeprecatedProcedureNamespace(name, scope)) {
+                    if (securityLog != null) {
+                        securityLog.warn(
+                                "Procedure `%s` is in a deprecated namespace. Please rename to an unused namespace."
+                                        .formatted(name.toString()));
+                    }
+                    procedures.unregister(name, scope);
+                } else {
+                    throw ProcedureException.procedureNameAlreadyInUse(name.toString());
+                }
             }
         }
 
         procedures.put(name, supportedScopes, proc, signature.caseInsensitive());
+    }
+
+    public void register(CallableProcedure procedure, AbstractSecurityLog securityLog) throws ProcedureException {
+        register(procedure, true, securityLog);
     }
 
     /**
@@ -101,18 +125,35 @@ public class ProcedureRegistry {
      *
      * @param function the function.
      */
-    public void register(CallableUserFunction function) throws ProcedureException {
+    public void register(CallableUserFunction function, AbstractSecurityLog securityLog) throws ProcedureException {
         UserFunctionSignature signature = function.signature();
         QualifiedName name = signature.name();
         var supportedScopes = signature.supportedQueryLanguages();
 
         for (var scope : supportedScopes) {
+
+            if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
+                if (NamingRestrictions.isShadowingBuiltInFunction(name, scope) && securityLog != null) {
+                    securityLog.warn("Function `%s` is in a deprecated namespace. Please rename to an unused namespace."
+                            .formatted(name.toString()));
+                }
+                addShadowedName(name.toString(), scope);
+            }
+
             if (aggregationFunctions.contains(name, scope)) {
-                throw ProcedureException.aggregationFunctionNameAlreadyInUseAsAggregationFunction(name.toString());
+                if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
+                    aggregationFunctions.unregister(name, scope);
+                } else {
+                    throw ProcedureException.aggregationFunctionNameAlreadyInUseAsAggregationFunction(name.toString());
+                }
             }
 
             if (functions.contains(name, scope)) {
-                throw ProcedureException.functionNameAlreadyInUse(name.toString());
+                if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
+                    functions.unregister(name, scope);
+                } else {
+                    throw ProcedureException.functionNameAlreadyInUse(name.toString());
+                }
             }
         }
 
@@ -120,22 +161,40 @@ public class ProcedureRegistry {
     }
 
     /**
-     * Register a new function.
+     * Register a new aggregation function.
      *
-     * @param function the function.
+     * @param function the aggregation function.
      */
-    public void register(CallableUserAggregationFunction function) throws ProcedureException {
+    public void register(CallableUserAggregationFunction function, AbstractSecurityLog securityLog)
+            throws ProcedureException {
         UserFunctionSignature signature = function.signature();
         QualifiedName name = signature.name();
         var supportedScopes = signature.supportedQueryLanguages();
 
         for (var scope : supportedScopes) {
+            if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
+                if (NamingRestrictions.isShadowingBuiltInFunction(name, scope) && securityLog != null) {
+                    securityLog.warn(
+                            "Aggregation function `%s` is in a deprecated namespace. Please rename to an unused namespace."
+                                    .formatted(name.toString()));
+                }
+                addShadowedName(name.toString(), scope);
+            }
+
             if (functions.contains(name, scope)) {
-                throw ProcedureException.aggregationFunctionNameAlreadyInUseAsFunction(name.toString());
+                if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
+                    functions.unregister(name, scope);
+                } else {
+                    throw ProcedureException.aggregationFunctionNameAlreadyInUseAsFunction(name.toString());
+                }
             }
 
             if (aggregationFunctions.contains(name, scope)) {
-                throw ProcedureException.aggregationFunctionNameAlreadyInUse(name.toString());
+                if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
+                    aggregationFunctions.unregister(name, scope);
+                } else {
+                    throw ProcedureException.aggregationFunctionNameAlreadyInUse(name.toString());
+                }
             }
         }
 
@@ -271,6 +330,10 @@ public class ProcedureRegistry {
                 .contains(scope));
     }
 
+    public Set<String> getAllShadowedNames(QueryLanguage scope) {
+        return Collections.unmodifiableSet(shadowedNames.get(scope));
+    }
+
     int[] getIdsOfAggregatingFunctionsMatching(Predicate<CallableUserAggregationFunction> predicate) {
         return getIdsOf(aggregationFunctions, predicate);
     }
@@ -286,29 +349,29 @@ public class ProcedureRegistry {
      * Create an immutable copy of the ProcedureRegistry
      *
      * @param ref The source {@link ProcedureRegistry} to copy.
-     *
      * @return an immutable copy of the source
      **/
     public static ProcedureRegistry copyOf(ProcedureRegistry ref) {
         return new ProcedureRegistry(
                 ProcedureHolder.copyOf(ref.procedures),
                 ProcedureHolder.copyOf(ref.functions),
-                ProcedureHolder.copyOf(ref.aggregationFunctions));
+                ProcedureHolder.copyOf(ref.aggregationFunctions),
+                Map.copyOf(ref.shadowedNames));
     }
 
     /**
      * Create an tomestoned copy of the ProcedureRegistry
      *
-     * @param ref The source {@link ProcedureRegistry} to tombstone and copy.
+     * @param ref   The source {@link ProcedureRegistry} to tombstone and copy.
      * @param which Which QualifiedNames should be filtered.
-     *
      * @return a tombstoned copy.
      **/
     public static ProcedureRegistry tombstone(ProcedureRegistry ref, Predicate<QualifiedName> which) {
         return new ProcedureRegistry(
                 ProcedureHolder.tombstone(ref.procedures, which),
                 ProcedureHolder.tombstone(ref.functions, which),
-                ProcedureHolder.tombstone(ref.aggregationFunctions, which));
+                ProcedureHolder.tombstone(ref.aggregationFunctions, which),
+                initShadowedNames());
     }
 
     private static <T> int[] getIdsOf(ProcedureHolder<T> holder, Predicate<T> predicate) {
@@ -331,5 +394,17 @@ public class ProcedureRegistry {
             }
         });
         return builder.build();
+    }
+
+    private static Map<QueryLanguage, Set<String>> initShadowedNames() {
+        Map<QueryLanguage, Set<String>> map = new HashMap<>();
+        for (var scope : QueryLanguage.values()) {
+            map.put(scope, new HashSet<>());
+        }
+        return map;
+    }
+
+    private void addShadowedName(String name, QueryLanguage scope) {
+        shadowedNames.get(scope).add(name);
     }
 }

@@ -26,11 +26,14 @@ import static org.neo4j.configuration.GraphDatabaseSettings.procedure_unrestrict
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -122,7 +125,8 @@ class ProcedureCompiler {
             Class<?> fcnDefinition,
             boolean isBuiltin,
             ClassLoader parentClassLoader,
-            Predicate<String> methodNameFilter)
+            Predicate<String> methodNameFilter,
+            Optional<Path> maybePath)
             throws ProcedureException {
         try {
             List<Method> functionMethods = Arrays.stream(fcnDefinition.getDeclaredMethods())
@@ -147,7 +151,12 @@ class ProcedureCompiler {
                 }
 
                 if (isBuiltin || config.isWhitelisted(funcName.toString())) {
-                    out.add(compileFunction(fcnDefinition, method, funcName, parentClassLoader));
+                    var compiledFunction =
+                            compileFunction(fcnDefinition, method, funcName, parentClassLoader, maybePath);
+                    if (compiledFunction != null) {
+                        // If the name of the function is not valid in any Cypher version, compiled function is null
+                        out.add(compiledFunction);
+                    }
                 } else {
                     log.warn(String.format("The function '%s' is not on the allowlist and won't be loaded.", funcName));
                 }
@@ -162,7 +171,10 @@ class ProcedureCompiler {
     }
 
     List<CallableUserAggregationFunction> compileAggregationFunction(
-            Class<?> fcnDefinition, ClassLoader parentClassLoader, Predicate<String> methodNameFilter)
+            Class<?> fcnDefinition,
+            ClassLoader parentClassLoader,
+            Predicate<String> methodNameFilter,
+            Optional<Path> maybePath)
             throws ProcedureException {
         try {
             List<Method> methods = Arrays.stream(fcnDefinition.getDeclaredMethods())
@@ -188,7 +200,12 @@ class ProcedureCompiler {
                 }
 
                 if (config.isWhitelisted(funcName.toString())) {
-                    out.add(compileAggregationFunction(fcnDefinition, method, funcName, parentClassLoader));
+                    var compiledAggregationFunction =
+                            compileAggregationFunction(fcnDefinition, method, funcName, parentClassLoader, maybePath);
+                    if (compiledAggregationFunction != null) {
+                        // If the name of the function is not valid in any Cypher version, compiled function is null
+                        out.add(compiledAggregationFunction);
+                    }
                 } else {
                     log.warn(String.format("The function '%s' is not on the allowlist and won't be loaded.", funcName));
                 }
@@ -206,7 +223,8 @@ class ProcedureCompiler {
             Class<?> procDefinition,
             boolean fullAccess,
             ClassLoader parentClassLoader,
-            Predicate<String> methodNameFilter)
+            Predicate<String> methodNameFilter,
+            Optional<Path> maybePath)
             throws ProcedureException {
         try {
             List<Method> procedureMethods = Arrays.stream(procDefinition.getDeclaredMethods())
@@ -229,7 +247,12 @@ class ProcedureCompiler {
                 }
 
                 if (fullAccess || config.isWhitelisted(procName.toString())) {
-                    out.add(compileProcedure(procDefinition, method, fullAccess, procName, parentClassLoader));
+                    var compiledProcedure = compileProcedure(
+                            procDefinition, method, fullAccess, procName, parentClassLoader, maybePath);
+                    if (compiledProcedure != null) {
+                        // If the name of the procedure is not valid in any Cypher version, compiled function is null
+                        out.add(compiledProcedure);
+                    }
                 } else {
                     log.warn(
                             String.format("The procedure '%s' is not on the allowlist and won't be loaded.", procName));
@@ -249,9 +272,23 @@ class ProcedureCompiler {
             Method method,
             boolean fullAccess,
             QualifiedName procName,
-            ClassLoader parentClassLoader)
+            ClassLoader parentClassLoader,
+            Optional<Path> maybePath)
             throws ProcedureException {
-        procedureRestrictions.verify(procName);
+
+        Set<QueryLanguage> actualCypherVersions = cypherVersionsWithVerifiedNameRestrictions(
+                log,
+                getSupportedCypherVersions(method),
+                procedureRestrictions,
+                procName,
+                procDefinition,
+                "procedure",
+                maybePath);
+
+        // If the name of the procedure is not valid in any Cypher version, we can finish early
+        if (actualCypherVersions.isEmpty()) {
+            return null;
+        }
 
         List<FieldSignature> inputSignature = inputSignatureDeterminer.signatureFor(method);
         List<FieldSignature> outputSignature = outputSignatureCompiler.fieldSignatures(method);
@@ -298,7 +335,7 @@ class ProcedureCompiler {
                         internal,
                         allowExpiredCredentials,
                         threadSafe,
-                        getSupportedCypherVersions(method),
+                        actualCypherVersions,
                         unsupportedDbTypes);
                 return new FailedLoadProcedure(signature);
             }
@@ -320,10 +357,49 @@ class ProcedureCompiler {
                 internal,
                 allowExpiredCredentials,
                 threadSafe,
-                getSupportedCypherVersions(method),
+                actualCypherVersions,
                 unsupportedDbTypes);
 
         return ProcedureCompilation.compileProcedure(signature, setters, method, parentClassLoader);
+    }
+
+    private static Set<QueryLanguage> cypherVersionsWithVerifiedNameRestrictions(
+            InternalLog log,
+            Set<QueryLanguage> supportedCypherVersions,
+            NamingRestrictions restrictions,
+            QualifiedName name,
+            Class<?> definition,
+            String type,
+            Optional<Path> maybePath) {
+
+        Set<QueryLanguage> actualCypherVersions = new HashSet<>();
+
+        for (QueryLanguage cypherVersion : supportedCypherVersions) {
+            try {
+                restrictions.verify(name, cypherVersion, log);
+                actualCypherVersions.add(cypherVersion);
+            } catch (NamingRestrictions.IllegalNamingException exc) {
+                String msg = maybePath
+                        .map(path -> "Failed to load %s `%s` from class %s in %s/%s for %s: %s"
+                                .formatted(
+                                        type,
+                                        name,
+                                        definition.getSimpleName(),
+                                        path.getParent().getFileName(),
+                                        path.getFileName(),
+                                        cypherVersion.name().replace("_", " "),
+                                        exc.getMessage()))
+                        .orElseGet(() -> "Failed to load %s `%s` from class %s for %s: %s"
+                                .formatted(
+                                        type,
+                                        name,
+                                        definition.getSimpleName(),
+                                        cypherVersion.name().replace("_", " "),
+                                        exc.getMessage()));
+                log.error(msg);
+            }
+        }
+        return actualCypherVersions;
     }
 
     private static Set<QueryLanguage> getSupportedCypherVersions(Method method) throws IllegalArgumentException {
@@ -343,17 +419,25 @@ class ProcedureCompiler {
 
     List<CallableProcedure> compileProcedure(Class<?> procDefinition, boolean fullAccess) throws ProcedureException {
         return compileProcedure(
-                procDefinition, fullAccess, CallableUserFunction.class.getClassLoader(), Globbing.MATCH_ALL);
+                procDefinition,
+                fullAccess,
+                CallableUserFunction.class.getClassLoader(),
+                Globbing.MATCH_ALL,
+                Optional.empty());
     }
 
     List<CallableUserAggregationFunction> compileAggregationFunction(Class<?> fcnDefinition) throws ProcedureException {
         return compileAggregationFunction(
-                fcnDefinition, CallableUserFunction.class.getClassLoader(), Globbing.MATCH_ALL);
+                fcnDefinition, CallableUserFunction.class.getClassLoader(), Globbing.MATCH_ALL, Optional.empty());
     }
 
     List<CallableUserFunction> compileFunction(Class<?> fcnDefinition, boolean isBuiltin) throws ProcedureException {
         return compileFunction(
-                fcnDefinition, isBuiltin, CallableUserFunction.class.getClassLoader(), Globbing.MATCH_ALL);
+                fcnDefinition,
+                isBuiltin,
+                CallableUserFunction.class.getClassLoader(),
+                Globbing.MATCH_ALL,
+                Optional.empty());
     }
 
     private String describeAndLogLoadFailure(QualifiedName name) {
@@ -368,9 +452,25 @@ class ProcedureCompiler {
     }
 
     private CallableUserFunction compileFunction(
-            Class<?> procDefinition, Method method, QualifiedName procName, ClassLoader parentClassLoader)
+            Class<?> funcDefinition,
+            Method method,
+            QualifiedName funcName,
+            ClassLoader parentClassLoader,
+            Optional<Path> maybePath)
             throws ProcedureException {
-        functionRestrictions.verify(procName);
+        Set<QueryLanguage> actualCypherVersions = cypherVersionsWithVerifiedNameRestrictions(
+                log,
+                getSupportedCypherVersions(method),
+                functionRestrictions,
+                funcName,
+                funcDefinition,
+                "function",
+                maybePath);
+
+        // If the name of the function is not valid in any Cypher version, we can finish early
+        if (actualCypherVersions.isEmpty()) {
+            return null;
+        }
 
         List<FieldSignature> inputSignature = inputSignatureDeterminer.signatureFor(method);
         Class<?> returnType = method.getReturnType();
@@ -382,17 +482,17 @@ class ProcedureCompiler {
         boolean isDeprecated = method.isAnnotationPresent(Deprecated.class);
         String deprecated = deprecated(
                 function::deprecatedBy,
-                "Use of @UserFunction(deprecatedBy) without @Deprecated in " + procName,
+                "Use of @UserFunction(deprecatedBy) without @Deprecated in " + funcName,
                 isDeprecated);
 
-        List<FieldSetter> setters = allFieldInjections.setters(procDefinition);
-        if (!config.fullAccessFor(procName.toString())) {
+        List<FieldSetter> setters = allFieldInjections.setters(funcDefinition);
+        if (!config.fullAccessFor(funcName.toString())) {
             try {
-                setters = safeFieldInjections.setters(procDefinition);
+                setters = safeFieldInjections.setters(funcDefinition);
             } catch (ComponentInjectionException e) {
-                description = describeAndLogLoadFailure(procName);
+                description = describeAndLogLoadFailure(funcName);
                 UserFunctionSignature signature = new UserFunctionSignature(
-                        procName,
+                        funcName,
                         inputSignature,
                         typeChecker.type(),
                         isDeprecated,
@@ -403,13 +503,13 @@ class ProcedureCompiler {
                         false,
                         internal,
                         threadSafe,
-                        getSupportedCypherVersions(method));
+                        actualCypherVersions);
                 return new FailedLoadFunction(signature);
             }
         }
 
         UserFunctionSignature signature = new UserFunctionSignature(
-                procName,
+                funcName,
                 inputSignature,
                 typeChecker.type(),
                 isDeprecated,
@@ -420,15 +520,31 @@ class ProcedureCompiler {
                 false,
                 internal,
                 threadSafe,
-                getSupportedCypherVersions(method));
+                actualCypherVersions);
 
         return ProcedureCompilation.compileFunction(signature, setters, method, parentClassLoader);
     }
 
     private CallableUserAggregationFunction compileAggregationFunction(
-            Class<?> definition, Method create, QualifiedName funcName, ClassLoader parentClassLoader)
+            Class<?> definition,
+            Method create,
+            QualifiedName funcName,
+            ClassLoader parentClassLoader,
+            Optional<Path> maybePath)
             throws ProcedureException {
-        functionRestrictions.verify(funcName);
+        Set<QueryLanguage> actualCypherVersions = cypherVersionsWithVerifiedNameRestrictions(
+                log,
+                getSupportedCypherVersions(create),
+                functionRestrictions,
+                funcName,
+                definition,
+                "aggregation function",
+                maybePath);
+
+        // If the name of the procedure is not valid in any Cypher version, we can finish early
+        if (actualCypherVersions.isEmpty()) {
+            return null;
+        }
 
         // find update and result method
         Method update = null;
@@ -504,7 +620,7 @@ class ProcedureCompiler {
                         false,
                         internal,
                         threadSafe,
-                        getSupportedCypherVersions(create));
+                        actualCypherVersions);
 
                 return new FailedLoadAggregatedFunction(signature);
             }
@@ -522,7 +638,7 @@ class ProcedureCompiler {
                 false,
                 internal,
                 threadSafe,
-                getSupportedCypherVersions(create));
+                actualCypherVersions);
 
         return ProcedureCompilation.compileAggregation(signature, setters, create, update, result, parentClassLoader);
     }
@@ -579,7 +695,7 @@ class ProcedureCompiler {
         return new QualifiedName(namespace, name);
     }
 
-    ProcedureCompiler withAdditionalProcedureRestrictions(NamingRestrictions additionalProcedureRestrictions) {
+    ProcedureCompiler withRestrictionsForUsers() {
         return new ProcedureCompiler(
                 inputSignatureDeterminer,
                 outputSignatureCompiler,
@@ -588,7 +704,7 @@ class ProcedureCompiler {
                 log,
                 typeCheckers,
                 config,
-                functionRestrictions,
-                NamingRestrictions.allOf(procedureRestrictions, additionalProcedureRestrictions));
+                NamingRestrictions.rejectFunctionReservations(),
+                NamingRestrictions.rejectProcedureReservations());
     }
 }

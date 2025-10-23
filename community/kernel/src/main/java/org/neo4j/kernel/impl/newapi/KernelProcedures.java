@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.neo4j.collection.Dependencies;
@@ -209,6 +210,12 @@ public abstract class KernelProcedures implements Procedures {
     public Stream<UserFunctionSignature> aggregationFunctionGetAll(QueryLanguage scope) {
         performCheckBeforeOperation();
         return getProcedureCaller().procedureView.getAllAggregatingFunctions(scope);
+    }
+
+    @Override
+    public Set<String> shadowedNamespaces(QueryLanguage scope) {
+        performCheckBeforeOperation();
+        return getProcedureCaller().procedureView.getAllShadowedNames(scope);
     }
 
     @Override

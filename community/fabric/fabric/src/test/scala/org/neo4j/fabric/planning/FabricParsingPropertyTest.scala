@@ -152,6 +152,7 @@ class FabricParsingPropertyTest extends CypherFunSuite
           override def sessionDatabase: DatabaseReference = null
           override def semanticFeatures: Seq[SemanticFeature] = Seq()
           override def isScopeQuery: Boolean = false
+          override def shadowedFunctions: Set[String] = Set.empty
         }
 
         try {

@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.kernel.api;
 
+import java.util.Set;
 import java.util.stream.Stream;
 import org.neo4j.collection.ResourceRawIterator;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
@@ -62,6 +63,13 @@ public interface Procedures {
      * @return all aggregating functions
      */
     Stream<UserFunctionSignature> aggregationFunctionGetAll(QueryLanguage scope);
+
+    /**
+     * Fetch all names and namespaces that are shadowed by user defined function and procedures
+     * @param scope
+     * @return all shadowed names and namespaces
+     */
+    Set<String> shadowedNamespaces(QueryLanguage scope);
 
     /**
      * Fetch a procedure handle

@@ -185,7 +185,8 @@ trait FragmentTestUtils {
       CancellationChecker.NeverCancelled,
       devNullLogger,
       InternalUsageStatsNoOp,
-      null
+      null,
+      Set.empty
     )
 
   def pipeline(query: String): frontend.Pipeline = pipeline(query, cypherConfig.systemDefaultLanguage)

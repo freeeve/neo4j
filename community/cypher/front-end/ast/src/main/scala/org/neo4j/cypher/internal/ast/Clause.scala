@@ -1266,6 +1266,7 @@ case class Match(
           _,
           Seq(Property(Variable(`variable`), PropertyKeyName(name)), _, _),
           _,
+          _,
           _
         ) if namespace.equalsIgnoreCase("point") && functionName.equalsIgnoreCase("withinBBox") =>
         acc => SkipChildren(acc :+ name)
@@ -1279,6 +1280,7 @@ case class Match(
                   FunctionName(Namespace(List(namespace)), functionName),
                   _,
                   Seq(Property(Variable(id), PropertyKeyName(name)), _),
+                  _,
                   _,
                   _
                 )
@@ -1609,6 +1611,8 @@ case class UnresolvedCall(
   override val yieldAll: Boolean = false,
   override val optional: Boolean = false
 )(val position: InputPosition) extends CallClause {
+
+  def fullName: String = procedureNamespace.parts.map(_ + ".").mkString("", "", procedureName.name)
 
   override def returnVariables: ReturnVariables =
     ReturnVariables(

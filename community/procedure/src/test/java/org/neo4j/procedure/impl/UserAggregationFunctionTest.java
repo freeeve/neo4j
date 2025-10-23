@@ -304,15 +304,6 @@ public class UserAggregationFunctionTest {
     }
 
     @Test
-    void shouldNotAllowOverridingFunctionNameWithoutNamespace() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(FunctionWithSingleName.class));
-        assertThat(exception.getMessage())
-                .isEqualTo("It is not allowed to define functions in the root namespace. Please define a "
-                        + "namespace, e.g. `@UserFunction(\"org.example.com.singleName\")");
-    }
-
-    @Test
     void shouldGiveHelpfulErrorOnNullMessageException() throws Throwable {
         // Given
         CallableUserAggregationFunction method =

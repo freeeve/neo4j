@@ -109,7 +109,7 @@ case object bfsAggregationRemover extends Rewriter {
 
     def relaxAggregationExpressions: Map[String, Expression] = {
       aggregatingPlan.aggregationExpressions.map {
-        case (key, fun @ FunctionInvocation(_, true, Seq(variable: Variable), _, _))
+        case (key, fun @ FunctionInvocation(_, true, Seq(variable: Variable), _, _, _))
           if variable.name == bfsPruningVarExpand.to.name =>
           key.name -> fun.copy(distinct = false)(fun.position)
         case k -> v =>
@@ -158,7 +158,7 @@ case object bfsAggregationRemover extends Rewriter {
       )
 
     def isDistinct(e: Expression, name: String = null): Boolean = e match {
-      case FunctionInvocation(_, true, Seq(variable: Variable), _, _) =>
+      case FunctionInvocation(_, true, Seq(variable: Variable), _, _, _) =>
         name == null || name == variable.name
       case _ =>
         false

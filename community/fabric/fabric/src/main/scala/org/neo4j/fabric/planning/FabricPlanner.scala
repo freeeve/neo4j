@@ -70,7 +70,8 @@ case class FabricPlanner(
     queryParams: MapValue,
     sessionDatabase: DatabaseReference,
     catalog: Catalog,
-    defaultLanguage: CypherVersion
+    defaultLanguage: CypherVersion,
+    shadowedFunctions: Set[String]
   ): PlannerInstance =
     instance(
       signatureResolver,
@@ -80,7 +81,8 @@ case class FabricPlanner(
       catalog,
       InternalUsageStatsNoOp,
       CancellationChecker.NeverCancelled,
-      defaultLanguage
+      defaultLanguage,
+      shadowedFunctions
     )
 
   def instance(
@@ -91,7 +93,8 @@ case class FabricPlanner(
     catalog: Catalog,
     internalSyntaxUsageStats: InternalUsageStats,
     cancellationChecker: CancellationChecker,
-    defaultLanguage: CypherVersion
+    defaultLanguage: CypherVersion,
+    shadowedFunctions: Set[String]
   ): PlannerInstance = {
     val notificationLogger = new RecordingNotificationLogger()
 
@@ -108,7 +111,27 @@ case class FabricPlanner(
       catalog,
       cancellationChecker,
       notificationLogger,
-      internalSyntaxUsageStats
+      internalSyntaxUsageStats,
+      shadowedFunctions
+    )
+  }
+
+  def testInstance(
+    signatureResolver: ProcedureSignatureResolver,
+    queryString: String,
+    queryParams: MapValue,
+    sessionDatabase: DatabaseReference,
+    catalog: Catalog,
+    defaultLanguage: CypherVersion
+  ): PlannerInstance = {
+    instance(
+      signatureResolver,
+      queryString,
+      queryParams,
+      sessionDatabase,
+      catalog,
+      defaultLanguage,
+      Set.empty
     )
   }
 
@@ -120,7 +143,8 @@ case class FabricPlanner(
     catalog: Catalog,
     cancellationChecker: CancellationChecker,
     notificationLogger: InternalNotificationLogger,
-    internalSyntaxUsageStats: InternalUsageStats
+    internalSyntaxUsageStats: InternalUsageStats,
+    shadowedFunctions: Set[String]
   ) {
 
     private lazy val pipeline =
@@ -131,7 +155,8 @@ case class FabricPlanner(
         cancellationChecker,
         notificationLogger,
         internalSyntaxUsageStats,
-        sessionDatabase
+        sessionDatabase,
+        shadowedFunctions
       )
 
     private val useHelper = new UseHelper(catalog, sessionDatabase.alias().name())

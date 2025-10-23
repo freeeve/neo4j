@@ -573,6 +573,7 @@ object ObfuscatorSanity extends Matcher[ParseResult] with AstParsing {
       override def sessionDatabase: DatabaseReference = null
       override def semanticFeatures: Seq[SemanticFeature] = Seq.empty
       override def isScopeQuery: Boolean = false
+      override def shadowedFunctions: Set[String] = Set.empty
     }
 
     // Try to collect obfuscation metadata

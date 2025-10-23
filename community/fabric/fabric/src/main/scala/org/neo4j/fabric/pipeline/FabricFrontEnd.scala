@@ -106,7 +106,8 @@ case class FabricFrontEnd(
     cancellationChecker: CancellationChecker,
     notificationLogger: InternalNotificationLogger,
     internalSyntaxUsageStats: InternalUsageStats,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    shadowedFunctions: Set[String]
   ) {
 
     def traceStart(): CompilationTracer.QueryCompilationEvent =
@@ -150,7 +151,8 @@ case class FabricFrontEnd(
       internalSyntaxUsageStats,
       sessionDatabase,
       parsingConfig.semanticFeatures,
-      query.options.queryOptions.planMode.isScope
+      query.options.queryOptions.planMode.isScope,
+      shadowedFunctions = shadowedFunctions
     )
 
     object parseAndPrepare {

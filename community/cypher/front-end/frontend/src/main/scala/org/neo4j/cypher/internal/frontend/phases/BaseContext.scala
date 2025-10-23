@@ -38,4 +38,5 @@ trait BaseContext {
   def sessionDatabase: DatabaseReference
   def semanticFeatures: Seq[SemanticFeature]
   def isScopeQuery: Boolean
+  def shadowedFunctions: Set[String]
 }

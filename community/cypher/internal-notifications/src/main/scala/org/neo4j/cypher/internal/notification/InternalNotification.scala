@@ -111,7 +111,10 @@ object InternalNotifications {
     "WaitServerUnavailable",
     "WaitServerCatchingUp",
     "WaitServerFailed",
-    "WaitServerCaughtUp"
+    "WaitServerCaughtUp",
+    "DeprecatedFunctionNamespaceUsed",
+    "DeprecatedProcedureNamespaceUsed",
+    "ShadowingInternalFunction"
   )
 
   def allNotificationsAsJavaIterable(): lang.Iterable[String] = allNotifications.asJava
@@ -293,6 +296,15 @@ case class DeprecatedProcedureFieldNotification(position: InputPosition, procedu
     extends InternalNotification
 
 case class DeprecatedFunctionFieldNotification(position: InputPosition, procedure: String, field: String)
+    extends InternalNotification
+
+case class DeprecatedFunctionNamespaceUsed(position: InputPosition, callable: String)
+    extends InternalNotification
+
+case class DeprecatedProcedureNamespaceUsed(position: InputPosition, callable: String)
+    extends InternalNotification
+
+case class ShadowingInternalFunction(position: InputPosition, callable: String)
     extends InternalNotification
 
 case class MissingParametersNotification(parameters: Seq[String]) extends InternalNotification

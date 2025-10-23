@@ -1616,36 +1616,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description(
-            "The reserved namespaces that are used for internal functionality of the DBMS. Procedures and UDFs in these namespaces will never be loaded, or compiled from disk.")
-    public static final Setting<List<String>> reserved_procedure_namespaces = newBuilder(
-                    "internal.dbms.reserved_procedure_namespaces",
-                    listOf(STRING),
-                    List.of(
-                            // Reserved functions
-                            "date",
-                            "datetime",
-                            "duration",
-                            "localdatetime",
-                            "localtime",
-                            "time",
-                            // Reserved namespaces
-                            "cdc.*",
-                            "date.*",
-                            "datetime.*",
-                            "db.*",
-                            "dbms.*",
-                            "duration.*",
-                            "graph.*",
-                            "internal.*",
-                            "localdatetime.*",
-                            "localtime.*",
-                            "time.*",
-                            "tx.*",
-                            "unsupported.*"))
-            .build();
-
-    @Internal
     @Description("The non-reloadable namespaces for procedures that we know are not reloadable, such as APOC-core.")
     public static final Setting<List<String>> non_reloadable_procedure_namespaces = newBuilder(
                     "internal.dbms.non_reloadable_procedure_namespaces",

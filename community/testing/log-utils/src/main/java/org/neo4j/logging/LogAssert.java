@@ -203,6 +203,22 @@ public class LogAssert extends AbstractAssert<LogAssert, AssertableLogProvider> 
         return this;
     }
 
+    public LogAssert doesNotContainMessageWithAll(String... snippets) {
+        isNotNull();
+
+        var logCalls = actual.getLogCalls();
+        boolean matched = logCalls.stream()
+                .anyMatch(call -> matchedLogger(call)
+                        && matchedLevel(call)
+                        && Arrays.stream(snippets).allMatch(snippet -> matchedMessage(snippet, call)));
+
+        if (matched) {
+            failWithMessage("Unexpected log message: `%s` in:%n%s", Arrays.toString(snippets), actual.serialize());
+        }
+
+        return this;
+    }
+
     public LogAssert onlyContainsMessages(String... messages) {
         isNotNull();
         if (!actual.getLogCalls().stream()

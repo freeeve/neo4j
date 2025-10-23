@@ -20,6 +20,7 @@
 package org.neo4j.fabric.transaction;
 
 import java.time.Clock;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.neo4j.collection.ResourceRawIterator;
 import org.neo4j.common.DependencyResolver;
@@ -81,6 +82,11 @@ public class FabricProcedures implements Procedures {
     @Override
     public Stream<UserFunctionSignature> aggregationFunctionGetAll(QueryLanguage scope) {
         return notAvailable();
+    }
+
+    @Override
+    public Set<String> shadowedNamespaces(QueryLanguage scope) {
+        return Set.of();
     }
 
     @Override

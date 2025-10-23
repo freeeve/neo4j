@@ -105,7 +105,8 @@ trait RewriteTest extends AstRewritingTestSupport {
   protected def getRewrite(originalQuery: String, expectedQuery: String): (Statement, AnyRef) = {
     val original = parseForRewriting(originalQuery)
     val expected = parseForRewriting(expectedQuery)
-    val semanticContext = SemanticCheckContext(CypherVersionHelpers.randomVersion(), NotImplementedErrorMessageProvider)
+    val semanticContext =
+      SemanticCheckContext(CypherVersionHelpers.randomVersion(), NotImplementedErrorMessageProvider)
     SemanticChecker.check(original, SemanticState.clean, semanticContext)
     val result = rewrite(original, originalQuery)
     (expected, result)

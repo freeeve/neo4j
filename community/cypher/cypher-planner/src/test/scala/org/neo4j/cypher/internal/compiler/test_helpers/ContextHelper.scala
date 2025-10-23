@@ -117,7 +117,8 @@ object ContextHelper extends MockitoSugar {
       internalNotificationStats,
       internalSyntaxUsageStats,
       labelInferenceStrategy,
-      sessionDatabase
+      sessionDatabase,
+      shadowedFunctions = Set.empty
     )
   }
 

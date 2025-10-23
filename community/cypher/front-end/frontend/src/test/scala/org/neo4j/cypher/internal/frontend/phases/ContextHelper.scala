@@ -59,6 +59,8 @@ object ContextHelper extends MockitoSugar {
       override def semanticFeatures: Seq[SemanticFeature] = Seq()
 
       def isScopeQuery: Boolean = false
+
+      override def shadowedFunctions: Set[String] = Set.empty
     }
   }
 }

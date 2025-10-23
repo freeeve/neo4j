@@ -228,7 +228,10 @@ object SemanticCheckContext {
     sessionDb: DatabaseReference
   ): SemanticCheckContext = Impl(language, errorMessages, Some(sessionDb))
 
-  def apply(language: CypherVersion, errorMessages: ErrorMessageProvider): SemanticCheckContext =
+  def apply(
+    language: CypherVersion,
+    errorMessages: ErrorMessageProvider
+  ): SemanticCheckContext =
     Impl(language, errorMessages, None)
 }
 

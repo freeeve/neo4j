@@ -276,7 +276,8 @@ object TestContext extends MockitoSugar {
 
 class TestContext(
   override val monitors: Monitors,
-  language: Option[CypherVersion] = None
+  language: Option[CypherVersion] = None,
+  override val shadowedFunctions: Set[String] = Set.empty
 ) extends BaseContext {
 
   override def cypherVersion: CypherVersion =

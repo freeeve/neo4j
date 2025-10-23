@@ -42,7 +42,8 @@ class ErrorCollectingContext(
   val isComposite: Boolean = false,
   databaseName: String = "mock",
   query: String = "mock",
-  override val semanticFeatures: Seq[SemanticFeature] = Seq()
+  override val semanticFeatures: Seq[SemanticFeature] = Seq(),
+  override val shadowedFunctions: Set[String] = Set.empty
 ) extends BaseContext {
 
   var errors: Seq[SemanticErrorDef] = Seq.empty

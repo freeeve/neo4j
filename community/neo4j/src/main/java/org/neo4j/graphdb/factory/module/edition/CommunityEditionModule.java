@@ -137,7 +137,7 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
 
         logProvider = globalModule.getLogService().getInternalLogProvider();
         securityLog = new CommunitySecurityLog(logProvider.getLog(CommunitySecurityModule.class));
-        globalModule.getGlobalDependencies().satisfyDependency(securityLog);
+        globalDependencies.satisfyDependency(securityLog);
         globalDependencies.satisfyDependency(new URIAccessRules(securityLog, globalConfig));
 
         identityModule = tryResolveOrCreate(

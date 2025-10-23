@@ -53,11 +53,11 @@ case object collectDistinctRewriter extends Rewriter {
     aggregationExpressions: Map[LogicalVariable, Expression]
   ) =
     aggregationExpressions.map {
-      case (v, f @ FunctionInvocation(FunctionName(_, name), true, IndexedSeq(in), _, _))
+      case (v, f @ FunctionInvocation(FunctionName(_, name), true, IndexedSeq(in), _, _, _))
         if name.equalsIgnoreCase(Collect.name) && !rewriteConstraints.unsafeVariables(v) =>
         v -> CollectDistinct(in, f.isOrdered)(f.position)
 
-      case (v, f @ FunctionInvocation(FunctionName(_, name), false, IndexedSeq(in), _, _))
+      case (v, f @ FunctionInvocation(FunctionName(_, name), false, IndexedSeq(in), _, _, _))
         if name.equalsIgnoreCase(Collect.name) && rewriteConstraints.implicitlyDistinctVariables(v) =>
         v -> CollectDistinct(in, f.isOrdered)(f.position)
 

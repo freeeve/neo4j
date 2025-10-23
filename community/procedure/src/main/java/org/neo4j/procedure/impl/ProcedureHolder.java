@@ -230,6 +230,19 @@ class ProcedureHolder<T> {
             }
         }
     }
+
+    public void unregister(QualifiedName name, QueryLanguage scope) {
+        int[] entry = name2entry(name);
+        if (entry == null) {
+            return;
+        }
+
+        int reference = entry[scope.ordinal()];
+        if (reference != UNUSED_REFERENCE) {
+            store.set(entry[scope.ordinal()], TOMBSTONE);
+        }
+    }
+
     /**
      * Create an immutable copy of the ProcedureHolder
      *

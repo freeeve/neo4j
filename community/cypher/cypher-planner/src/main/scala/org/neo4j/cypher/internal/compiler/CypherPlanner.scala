@@ -115,7 +115,8 @@ case class CypherPlanner[Context <: PlannerContext](
     params: MapValue,
     cancellationChecker: CancellationChecker,
     sessionDatabase: DatabaseReference,
-    isScopeQuery: Boolean
+    isScopeQuery: Boolean,
+    shadowedFunctions: Set[String]
   ): BaseState = {
     parsing.parseQuery(
       queryText,
@@ -128,7 +129,8 @@ case class CypherPlanner[Context <: PlannerContext](
       params,
       cancellationChecker,
       sessionDatabase = sessionDatabase,
-      isScopeQuery = isScopeQuery
+      isScopeQuery = isScopeQuery,
+      shadowedFunctions = shadowedFunctions
     )
   }
 

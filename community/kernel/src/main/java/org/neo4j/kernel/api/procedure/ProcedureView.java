@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api.procedure;
 
+import java.util.Set;
 import java.util.stream.Stream;
 import org.neo4j.collection.ResourceRawIterator;
 import org.neo4j.function.ThrowingFunction;
@@ -51,6 +52,8 @@ public interface ProcedureView {
     Stream<UserFunctionSignature> getAllNonAggregatingFunctions(QueryLanguage scope);
 
     Stream<UserFunctionSignature> getAllAggregatingFunctions(QueryLanguage scope);
+
+    Set<String> getAllShadowedNames(QueryLanguage scope);
 
     /* Note: The id-based functions have no concept of QueryLanguage.*/
 

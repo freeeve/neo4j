@@ -20,6 +20,7 @@
 package org.neo4j.fabric.executor;
 
 import static scala.jdk.javaapi.CollectionConverters.asJava;
+import static scala.jdk.javaapi.CollectionConverters.asScala;
 
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.cypher.internal.compiler.helpers.SignatureResolver;
 import org.neo4j.cypher.internal.evaluator.StaticEvaluation;
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats;
+import org.neo4j.cypher.internal.frontend.phases.QueryLanguage;
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
 import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup;
 import org.neo4j.exceptions.InvalidSemanticsException;
@@ -120,6 +122,10 @@ public class FabricExecutor {
                     defaultGraphName.namedDatabaseId(),
                     planner.cypherConfig().systemDefaultLanguage());
 
+            final var shadowedFunctions = fabricTransaction
+                    .contextlessProcedures()
+                    .shadowedNamespaces(QueryLanguage.toKernelScope(defaultLanguage));
+
             var plannerInstance = planner.instance(
                     signatureResolver,
                     statement,
@@ -128,7 +134,8 @@ public class FabricExecutor {
                     catalog,
                     internalUsageStats,
                     fabricTransaction.cancellationChecker(),
-                    defaultLanguage);
+                    defaultLanguage,
+                    asScala(shadowedFunctions).toSet());
             lifecycle.donePreParsing(plannerInstance.query());
             var plan = plannerInstance.plan();
             var query = plan.query();

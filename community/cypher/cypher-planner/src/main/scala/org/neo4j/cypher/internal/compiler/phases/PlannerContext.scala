@@ -68,7 +68,8 @@ class BaseContextImpl(
   override val internalUsageStats: InternalUsageStats,
   val sessionDatabase: DatabaseReference,
   override val semanticFeatures: Seq[SemanticFeature],
-  override val isScopeQuery: Boolean
+  override val isScopeQuery: Boolean,
+  override val shadowedFunctions: Set[String]
 ) extends BaseContext {
 
   override val errorHandler: Seq[SemanticErrorDef] => Unit =
@@ -90,7 +91,8 @@ object BaseContextImpl {
     internalSyntaxUsageStats: InternalUsageStats,
     sessionDatabase: DatabaseReference,
     semanticFeatures: Seq[SemanticFeature],
-    isScopeQuery: Boolean
+    isScopeQuery: Boolean,
+    shadowedFunctions: Set[String]
   ): BaseContextImpl = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
     new BaseContextImpl(
@@ -103,7 +105,8 @@ object BaseContextImpl {
       internalSyntaxUsageStats,
       sessionDatabase,
       semanticFeatures,
-      isScopeQuery
+      isScopeQuery,
+      shadowedFunctions
     )
   }
 }
@@ -136,7 +139,8 @@ class PlannerContext(
   internalSyntaxUsageStats: InternalUsageStats,
   val labelInferenceStrategy: LabelInferenceStrategy,
   override val sessionDatabase: DatabaseReference,
-  override val semanticFeatures: Seq[SemanticFeature] = Seq()
+  override val semanticFeatures: Seq[SemanticFeature] = Seq(),
+  override val shadowedFunctions: Set[String]
 ) extends BaseContextImpl(
       cypherVersion,
       cypherExceptionFactory,
@@ -147,7 +151,8 @@ class PlannerContext(
       internalSyntaxUsageStats,
       sessionDatabase,
       semanticFeatures,
-      false
+      false,
+      shadowedFunctions
     ) {
 
   /**
@@ -182,7 +187,8 @@ class PlannerContext(
       internalNotificationStats,
       internalSyntaxUsageStats,
       labelInferenceStrategy,
-      sessionDatabase
+      sessionDatabase,
+      shadowedFunctions = shadowedFunctions
     )
   }
 }
@@ -218,7 +224,8 @@ object PlannerContext {
     securityLog: AbstractSecurityLog,
     internalNotificationStats: InternalNotificationStats,
     internalUsageStats: InternalUsageStats,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    shadowedFunctions: Set[String]
   ): PlannerContext = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
 
@@ -259,7 +266,8 @@ object PlannerContext {
       internalNotificationStats,
       internalUsageStats,
       labelInferenceStrategy,
-      sessionDatabase
+      sessionDatabase,
+      shadowedFunctions = shadowedFunctions
     )
   }
 }

@@ -65,10 +65,12 @@ class CypherParsing(
     cancellationChecker: CancellationChecker,
     resolver: Option[ScopedProcedureSignatureResolver] = None,
     sessionDatabase: DatabaseReference,
-    isScopeQuery: Boolean
+    isScopeQuery: Boolean,
+    shadowedFunctions: Set[String]
   ): BaseState = {
     val plannerName = PlannerNameFor(plannerNameText)
     val startState = InitialState(queryText, plannerName, new AnonymousVariableNameGenerator)
+
     val context = BaseContextImpl(
       cypherVersion,
       tracer,
@@ -80,7 +82,8 @@ class CypherParsing(
       internalSyntaxUsageStats,
       sessionDatabase,
       config.semanticFeatures,
-      isScopeQuery
+      isScopeQuery,
+      shadowedFunctions
     )
     val paramTypes = ParameterValueTypeHelper.asCypherTypeMap(params, config.useParameterSizeHint)
 

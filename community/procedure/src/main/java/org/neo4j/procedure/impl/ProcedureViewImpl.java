@@ -20,6 +20,7 @@
 package org.neo4j.procedure.impl;
 
 import java.util.Arrays;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.neo4j.collection.ResourceRawIterator;
@@ -150,6 +151,11 @@ public class ProcedureViewImpl implements ProcedureView {
     @Override
     public Stream<UserFunctionSignature> getAllAggregatingFunctions(QueryLanguage scope) {
         return registry.getAllAggregatingFunctions(scope);
+    }
+
+    @Override
+    public Set<String> getAllShadowedNames(QueryLanguage scope) {
+        return registry.getAllShadowedNames(scope);
     }
 
     @Override

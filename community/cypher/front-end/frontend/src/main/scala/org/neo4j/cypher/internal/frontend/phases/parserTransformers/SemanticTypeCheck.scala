@@ -123,7 +123,7 @@ object PatternExpressionInNonExistenceCheck extends ExpectedBooleanTypeCheck {
         errors => SkipChildren(errors)
 
       // The replacement for size(PatternExpression) is COUNT {PatternExpression} and not size(PatternComprehension).
-      case FunctionInvocation(FunctionName(_, "size"), _, IndexedSeq(p: PatternExpression), _, _)
+      case FunctionInvocation(FunctionName(_, "size"), _, IndexedSeq(p: PatternExpression), _, _, _)
         if !isExpectedTypeBoolean(baseState.semanticTable(), p) =>
         errors => SkipChildren(errors :+ SemanticError.patternExpressionInSize(p.position))
 

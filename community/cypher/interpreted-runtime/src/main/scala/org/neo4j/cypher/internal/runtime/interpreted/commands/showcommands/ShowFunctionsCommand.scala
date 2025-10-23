@@ -125,16 +125,20 @@ case class ShowFunctionsCommand(
     val loadedAggregationFunctions =
       txContext.procedures.aggregationFunctionGetAll(scope).iterator.asScala
 
+    // gets you all shadowed namespaces which should be excluded from SHOW FUNCTIONS
+    val shadowedNamespaces =
+      txContext.procedures.shadowedNamespaces(scope).iterator().asScala.toSet
+
     // filters out functions annotated with @Internal and gets the FunctionInfo
     val loadedAggregationFunctionsInfo =
       loadedAggregationFunctions.filter(f => !f.internal).map(f => FunctionInfo(f, aggregating = true)).toList
 
     val allFunctions = languageFunctionsInfo ++ loadedFunctionsInfo ++ loadedAggregationFunctionsInfo
-    val filteredFunctions = functionType match {
+    val filteredFunctions = (functionType match {
       case AllFunctions         => allFunctions
       case BuiltInFunctions     => allFunctions.filter(f => f.isBuiltIn)
       case UserDefinedFunctions => allFunctions.filter(f => !f.isBuiltIn)
-    }
+    }).filter(f => !(shadowedNamespaces.contains(f.name) && f.isBuiltIn))
     val sortedFunctions = filteredFunctions.sortBy(a => a.name)
 
     val rows = sortedFunctions.map { func =>

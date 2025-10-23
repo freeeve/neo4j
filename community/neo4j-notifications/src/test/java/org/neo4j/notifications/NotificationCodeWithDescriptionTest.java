@@ -37,6 +37,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.deprecated
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedEagerAnalyzerPreParserOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedExistingDataOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFormat;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionNamespace;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionWithReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionWithoutReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedGraphReferenceNotification;
@@ -48,6 +49,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.deprecated
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedNodeOrRelationshipOnRhsSetClause;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedOptionInOptionMap;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedPrecedenceOfLabelExpressionPredicate;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureNamespace;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureWithReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureWithoutReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedPropertyReferenceInCreate;
@@ -87,6 +89,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.requestedT
 import static org.neo4j.notifications.NotificationCodeWithDescription.runtimeUnsupported;
 import static org.neo4j.notifications.NotificationCodeWithDescription.serverAlreadyCordoned;
 import static org.neo4j.notifications.NotificationCodeWithDescription.serverAlreadyEnabled;
+import static org.neo4j.notifications.NotificationCodeWithDescription.shadowingInternalFunction;
 import static org.neo4j.notifications.NotificationCodeWithDescription.subqueryVariableShadowing;
 import static org.neo4j.notifications.NotificationCodeWithDescription.unboundedShortestPath;
 import static org.neo4j.notifications.NotificationCodeWithDescription.unsatisfiableRelationshipTypeExpression;
@@ -463,6 +466,78 @@ class NotificationCodeWithDescriptionTest {
                                 warning, NotificationClassification.DEPRECATION, -1, -1, -1, Map.of("feat", "oldName"))
                         .asMap(),
                 "warn: feature deprecated without replacement. oldName is deprecated and will be removed without a replacement.");
+    }
+
+    @Test
+    void shouldConstructNotificationsFor_DEPRECATED_FUNCTION_NAMESPACE() {
+        NotificationImplementation notification = deprecatedFunctionNamespace(InputPosition.empty, "point.function");
+
+        verifyNotification(
+                notification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
+                "The namespace of the invoked function is deprecated. (point.function)",
+                NotificationCategory.DEPRECATION,
+                NotificationClassification.DEPRECATION,
+                "01N00",
+                new DiagnosticRecord(
+                                warning,
+                                NotificationClassification.DEPRECATION,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("feat1", "oldName", "feat2", "newName"))
+                        .asMap(),
+                "warn: feature deprecated. The namespace used by the function `point.function` is deprecated.");
+    }
+
+    @Test
+    void shouldConstructNotificationsFor_DEPRECATED_PROCEDURE_NAMESPACE() {
+        NotificationImplementation notification = deprecatedProcedureNamespace(InputPosition.empty, "point.procedure");
+
+        verifyNotification(
+                notification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
+                "The namespace of the called procedure is deprecated. (point.procedure)",
+                NotificationCategory.DEPRECATION,
+                NotificationClassification.DEPRECATION,
+                "01N00",
+                new DiagnosticRecord(
+                                warning,
+                                NotificationClassification.DEPRECATION,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("feat1", "oldName", "feat2", "newName"))
+                        .asMap(),
+                "warn: feature deprecated. The namespace used by the procedure `point.procedure` is deprecated.");
+    }
+
+    @Test
+    void shouldConstructNotificationsFor_SHADOWING_INTERNAL_FUNCTION() {
+        NotificationImplementation notification = shadowingInternalFunction(InputPosition.empty, "point.function");
+
+        verifyNotification(
+                notification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
+                "The namespace of the invoked function is deprecated and the function is shadowing an internal function. (point.function)",
+                NotificationCategory.DEPRECATION,
+                NotificationClassification.DEPRECATION,
+                "01N00",
+                new DiagnosticRecord(
+                                warning,
+                                NotificationClassification.DEPRECATION,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("feat1", "oldName", "feat2", "newName"))
+                        .asMap(),
+                "warn: feature deprecated. The namespace of the invoked function `point.function` is deprecated and the function is shadowing an internal function.");
     }
 
     @Test
@@ -2154,8 +2229,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            78, 53, -3, -53, -70, -97, -85, -115, -107, 99, -54, -128, 119, -74, 33, 43, -96, 48, 125, -92, 88, -6, 51,
-            102, -79, -115, 29, -124, 49, 85, -110, -55
+            78, 84, -67, -93, -49, 38, 85, 108, -103, 77, -82, 90, -72, 43, 124, 118, 63, 109, -87, -123, 60, -7, -88,
+            -105, -1, 53, -10, -48, -92, 112, -106, -75
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

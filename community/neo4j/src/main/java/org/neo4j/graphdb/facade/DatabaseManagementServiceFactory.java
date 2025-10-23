@@ -350,10 +350,12 @@ public class DatabaseManagementServiceFactory {
             LogService logService = globalModule.getLogService();
             InternalLog internalLog = logService.getInternalLog(GlobalProcedures.class);
             Log proceduresLog = logService.getUserLog(GlobalProcedures.class);
+            AbstractSecurityLog securityLog =
+                    globalModule.getGlobalDependencies().resolveDependency(AbstractSecurityLog.class);
 
             ProcedureConfig procedureConfig = editionModule.getProcedureConfig(globalConfig);
             GlobalProceduresRegistry globalProcedures =
-                    new GlobalProceduresRegistry(proceduresDirectory, internalLog, procedureConfig);
+                    new GlobalProceduresRegistry(proceduresDirectory, internalLog, securityLog, procedureConfig);
 
             try (var registry = globalProcedures.bulk()) {
                 registry.registerType(Node.class, NTNode);

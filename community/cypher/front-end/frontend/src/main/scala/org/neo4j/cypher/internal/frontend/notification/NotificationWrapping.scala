@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.notification.DeprecatedConnectComponentsPlanner
 import org.neo4j.cypher.internal.notification.DeprecatedEagerAnalyzerPreParserOption
 import org.neo4j.cypher.internal.notification.DeprecatedExistingDataOption
 import org.neo4j.cypher.internal.notification.DeprecatedFunctionFieldNotification
+import org.neo4j.cypher.internal.notification.DeprecatedFunctionNamespaceUsed
 import org.neo4j.cypher.internal.notification.DeprecatedFunctionNotification
 import org.neo4j.cypher.internal.notification.DeprecatedGraphReferenceNotification
 import org.neo4j.cypher.internal.notification.DeprecatedIdentifierUnicode
@@ -38,6 +39,7 @@ import org.neo4j.cypher.internal.notification.DeprecatedNodesOrRelationshipsInSe
 import org.neo4j.cypher.internal.notification.DeprecatedOptionInOptionMap
 import org.neo4j.cypher.internal.notification.DeprecatedPrecedenceOfLabelExpressionPredicate
 import org.neo4j.cypher.internal.notification.DeprecatedProcedureFieldNotification
+import org.neo4j.cypher.internal.notification.DeprecatedProcedureNamespaceUsed
 import org.neo4j.cypher.internal.notification.DeprecatedProcedureNotification
 import org.neo4j.cypher.internal.notification.DeprecatedProcedureReturnFieldNotification
 import org.neo4j.cypher.internal.notification.DeprecatedPropertyReferenceInCreate
@@ -83,6 +85,7 @@ import org.neo4j.cypher.internal.notification.RuntimeUnsatisfiableRelationshipTy
 import org.neo4j.cypher.internal.notification.RuntimeUnsupportedNotification
 import org.neo4j.cypher.internal.notification.ServerAlreadyCordoned
 import org.neo4j.cypher.internal.notification.ServerAlreadyEnabled
+import org.neo4j.cypher.internal.notification.ShadowingInternalFunction
 import org.neo4j.cypher.internal.notification.ShardedPerformanceNotification
 import org.neo4j.cypher.internal.notification.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.notification.UnboundedShortestPathNotification
@@ -233,6 +236,15 @@ object NotificationWrapping {
         function,
         field
       )
+    case DeprecatedFunctionNamespaceUsed(pos, callable) =>
+      NotificationCodeWithDescription.deprecatedFunctionNamespace(pos.withOffset(offset).asInputPosition, callable)
+
+    case DeprecatedProcedureNamespaceUsed(pos, callable) =>
+      NotificationCodeWithDescription.deprecatedProcedureNamespace(pos.withOffset(offset).asInputPosition, callable)
+
+    case ShadowingInternalFunction(pos, callable) =>
+      NotificationCodeWithDescription.shadowingInternalFunction(pos.withOffset(offset).asInputPosition, callable)
+
     case DeprecatedRelTypeSeparatorNotification(pos, oldExpression, rewrittenExpression) =>
       NotificationCodeWithDescription.deprecatedRelationshipTypeSeparator(
         pos.withOffset(offset).asInputPosition,

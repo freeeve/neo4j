@@ -20,47 +20,242 @@
 package org.neo4j.procedure.impl;
 
 import java.util.List;
-import java.util.Objects;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
+import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.logging.InternalLog;
 import org.neo4j.string.Globbing;
 
-interface NamingRestrictions {
-    void verify(QualifiedName name) throws IllegalNamingException;
+public interface NamingRestrictions {
+    void verify(QualifiedName name, QueryLanguage queryLanguage, InternalLog log) throws IllegalNamingException;
 
-    static NamingRestrictions allOf(NamingRestrictions... restrictions) {
-        return (name) -> {
-            for (var restriction : restrictions) {
-                restriction.verify(name);
-            }
-        };
+    static NamingRestrictions rejectNone() {
+        return (name, queryLanguage, log) -> {};
     }
 
     static NamingRestrictions rejectEmptyNamespace() {
-        return (name) -> {
+        return (name, queryLanguage, log) -> {
             if (name.namespace() == null || name.namespace().length == 0) {
                 throw IllegalNamingException.invalidNameRootNamespace(name.name());
             }
         };
     }
 
-    static NamingRestrictions rejectReservedNamespace(List<String> namespaces) {
-        Objects.requireNonNull(namespaces);
-        final var filter = Globbing.compose(namespaces, List.of());
-        return (name) -> {
-            if (filter.test(name.toString())) {
-                throw IllegalNamingException.invalidNameReservedNameSpace(namespaces, name.name());
+    static NamingRestrictions rejectProcedureReservations() {
+        return (name, queryLanguage, log) -> {
+            final var reservationFilter = Globbing.compose(reservedProcedureNamespaces, List.of());
+            if (reservationFilter.test(name.toString())) {
+                throw IllegalNamingException.invalidNameReservedNameSpace(reservedProcedureNamespaces, name.name());
+            }
+            var deprecatedNamespaces = deprecatedProcedureNamespaces(queryLanguage);
+            final var deprecationFilter = Globbing.compose(deprecatedNamespaces, List.of());
+            if (deprecationFilter.test(name.toString())) {
+                log.warn(
+                        "The procedure `%s` is in a deprecated namespace. The namespace is deprecated in %s.",
+                        name.toString(), queryLanguage.name().replace("_", " "));
             }
         };
     }
 
-    static NamingRestrictions rejectNone() {
-        return (name) -> {};
+    static NamingRestrictions rejectFunctionReservations() {
+        return (name, queryLanguage, log) -> {
+            if (name.namespace() == null || name.namespace().length == 0) {
+                throw IllegalNamingException.invalidNameRootNamespace(name.name());
+            }
+
+            final var reservationFilter = Globbing.compose(reservedFunctionNamespaces, List.of());
+            if (reservationFilter.test(name.toString())) {
+                throw IllegalNamingException.invalidNameReservedNameSpace(reservedFunctionNamespaces, name.name());
+            }
+            var deprecatedNamespaces = deprecatedFunctionNamespaces(queryLanguage);
+            final var deprecationFilter = Globbing.compose(deprecatedNamespaces, List.of());
+            if (deprecationFilter.test(name.toString())) {
+                log.warn(
+                        "The function `%s` is in a deprecated namespace. The namespace is deprecated in %s.",
+                        name.toString(), queryLanguage.name().replace("_", " "));
+            }
+        };
+    }
+
+    static Boolean isDeprecatedProcedureNamespace(QualifiedName name, QueryLanguage queryLanguage) {
+        var deprecatedNamespaces = deprecatedProcedureNamespaces(queryLanguage);
+        final var filter = Globbing.compose(deprecatedNamespaces, List.of());
+        return filter.test(name.toString());
+    }
+
+    static Boolean isDeprecatedFunctionNamespace(QualifiedName name, QueryLanguage queryLanguage) {
+        var deprecatedNamespaces = deprecatedFunctionNamespaces(queryLanguage);
+        final var filter = Globbing.compose(deprecatedNamespaces, List.of());
+        return filter.test(name.toString());
+    }
+
+    static Boolean isShadowingBuiltInFunction(QualifiedName name, QueryLanguage queryLanguage) {
+        return namespacedBuiltInFunctions(queryLanguage).contains(name.toString());
+    }
+
+    // The reserved namespaces are the same for Cypher 5 and Cypher 25
+    List<String> reservedProcedureNamespaces = List.of(
+            "date",
+            "datetime",
+            "duration",
+            "localdatetime",
+            "localtime",
+            "time",
+            "cdc.*",
+            "date.*",
+            "datetime.*",
+            "db.*",
+            "dbms.*",
+            "duration.*",
+            "graph.*",
+            "internal.*",
+            "localdatetime.*",
+            "localtime.*",
+            "time.*",
+            "tx.*",
+            "unsupported.*");
+
+    // The reserved namespaces are the same for Cypher 5 and Cypher 25
+    List<String> reservedFunctionNamespaces = List.of(
+            "date",
+            "date.realtime",
+            "date.statement",
+            "date.transaction",
+            "date.truncate",
+            "datetime",
+            "datetime.fromepoch",
+            "datetime.fromepochmillis",
+            "datetime.realtime",
+            "datetime.statement",
+            "datetime.transaction",
+            "datetime.truncate",
+            "db.nameFromElementId",
+            "duration",
+            "duration.between",
+            "duration.inDays",
+            "duration.inMonths",
+            "duration.inSeconds",
+            "graph.byElementId",
+            "graph.byName",
+            "graph.names",
+            "graph.propertiesByName",
+            "localdatetime",
+            "localdatetime.realtime",
+            "localdatetime.statement",
+            "localdatetime.transaction",
+            "localdatetime.truncate",
+            "localtime",
+            "localtime.realtime",
+            "localtime.statement",
+            "localtime.transaction",
+            "localtime.truncate",
+            "point.distance",
+            "point.withinBBox",
+            "time",
+            "time.realtime",
+            "time.statement",
+            "time.transaction",
+            "time.truncate",
+            "vector.similarity.cosine",
+            "vector.similarity.euclidean");
+
+    static List<String> deprecatedProcedureNamespaces(QueryLanguage queryLanguage) {
+        return switch (queryLanguage) {
+            case CYPHER_5 -> List.of();
+
+            case CYPHER_25 ->
+                List.of(
+                        // Deprecated namespaces
+                        "*",
+                        "abac.*",
+                        "aura.*",
+                        "builtin.*",
+                        "coll.*",
+                        "math.*",
+                        "plugin.*",
+                        "point.*",
+                        "stored.*",
+                        "string.*",
+                        "vector.*");
+        };
+    }
+
+    static List<String> deprecatedFunctionNamespaces(QueryLanguage queryLanguage) {
+        return switch (queryLanguage) {
+            case CYPHER_5 -> List.of();
+
+            case CYPHER_25 ->
+                List.of(
+                        // Deprecated namespaces
+                        "abac.*",
+                        "aura.*",
+                        "builtin.*",
+                        "cdc.*",
+                        "coll.*",
+                        "date.*",
+                        "datetime.*",
+                        "db.*",
+                        "dbms.*",
+                        "duration.*",
+                        "graph.*",
+                        "internal.*",
+                        "localdatetime.*",
+                        "localtime.*",
+                        "math.*",
+                        "plugin.*",
+                        "point.*",
+                        "stored.*",
+                        "string.*",
+                        "time.*",
+                        "tx.*",
+                        "unsupported.*",
+                        "vector.*");
+        };
+    }
+
+    static List<String> namespacedBuiltInFunctions(QueryLanguage queryLanguage) {
+        // This list is currently the same in both Cypher 5 and 25
+        return List.of(
+                "date.realtime",
+                "date.statement",
+                "date.transaction",
+                "date.truncate",
+                "datetime.fromepoch",
+                "datetime.fromepochmillis",
+                "datetime.realtime",
+                "datetime.statement",
+                "datetime.transaction",
+                "datetime.truncate",
+                "db.nameFromElementId",
+                "duration.between",
+                "duration.inDays",
+                "duration.inMonths",
+                "duration.inSeconds",
+                "graph.byElementId",
+                "graph.byName",
+                "graph.names",
+                "graph.propertiesByName",
+                "localdatetime.realtime",
+                "localdatetime.statement",
+                "localdatetime.transaction",
+                "localdatetime.truncate",
+                "localtime.realtime",
+                "localtime.statement",
+                "localtime.transaction",
+                "localtime.truncate",
+                "point.distance",
+                "point.withinBBox",
+                "time.realtime",
+                "time.statement",
+                "time.transaction",
+                "time.truncate",
+                "vector.similarity.cosine",
+                "vector.similarity.euclidean");
     }
 
     class IllegalNamingException extends ProcedureException {

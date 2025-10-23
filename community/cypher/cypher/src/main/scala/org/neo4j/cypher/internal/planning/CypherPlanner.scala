@@ -76,6 +76,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
+import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
@@ -135,6 +136,7 @@ import java.time.Clock
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 object CypherPlanner {
 
@@ -264,7 +266,8 @@ case class CypherPlanner(
     offset: InputPosition,
     tracer: CompilationPhaseTracer,
     cancellationChecker: CancellationChecker,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    shadowedFunctions: Set[String]
   ): BaseState = {
     val key = AstCache.key(preParsedQuery, params, parsingConfig.useParameterSizeHint)
     val maybeValue = caches.astCache.get(key)
@@ -280,7 +283,8 @@ case class CypherPlanner(
         params,
         cancellationChecker,
         sessionDatabase,
-        preParsedQuery.options.queryOptions.planMode.isScope
+        preParsedQuery.options.queryOptions.planMode.isScope,
+        shadowedFunctions = shadowedFunctions
       )
       val value = AstCache.AstCacheValue(parsedQuery, notificationLogger.notifications)
       // We don't want to cache any query when a parameter has been solved
@@ -324,6 +328,9 @@ case class CypherPlanner(
     sessionDatabase: DatabaseReference
   ): LogicalPlanResult = {
     val transactionalContextWrapper = TransactionalContextWrapper(transactionalContext)
+    val shadowedFunctions = transactionalContextWrapper.procedures.shadowedNamespaces(
+      QueryLanguage.toKernelScope(preParsedQuery.resolvedLanguage)
+    ).asScala.toSet
     val syntacticQuery = getOrParse(
       preParsedQuery,
       params,
@@ -331,7 +338,8 @@ case class CypherPlanner(
       preParsedQuery.options.offset,
       tracer,
       transactionalContextWrapper.cancellationChecker,
-      sessionDatabase = sessionDatabase
+      sessionDatabase = sessionDatabase,
+      shadowedFunctions
     )
 
     // The parser populates the notificationLogger as a side-effect of its work, therefore
@@ -481,7 +489,10 @@ case class CypherPlanner(
       securityLog,
       internalNotificationStats,
       internalUsageStats,
-      null
+      null,
+      shadowedFunctions = transactionalContextWrapper.procedures.shadowedNamespaces(
+        QueryLanguage.toKernelScope(options.resolvedLanguage)
+      ).asScala.toSet
     )
 
     // Prepare query for caching

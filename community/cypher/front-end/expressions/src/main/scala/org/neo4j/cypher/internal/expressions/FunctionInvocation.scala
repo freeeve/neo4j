@@ -72,15 +72,19 @@ case class FunctionInvocation(
   distinct: Boolean,
   args: IndexedSeq[Expression],
   order: ArgumentOrder = ArgumentUnordered,
-  calledFromUseClause: Boolean = false
+  calledFromUseClause: Boolean = false,
+  isShadowed: Boolean = false
 )(val position: InputPosition) extends Expression {
   val name: String = (functionName.namespace.parts :+ functionName.name).mkString(".")
 
   val function: functions.Function =
-    functions.Function.lookup.getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
+    if (isShadowed) UnresolvedFunction
+    else functions.Function.lookup.getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
 
-  def functionWithScope(version: CypherVersion): functions.Function =
-    functions.Function.scopedLookup(version).getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
+  def functionWithScope(version: CypherVersion): functions.Function = {
+    if (isShadowed) UnresolvedFunction
+    else functions.Function.scopedLookup(version).getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
+  }
 
   val isOrdered: Boolean = order != ArgumentUnordered
 

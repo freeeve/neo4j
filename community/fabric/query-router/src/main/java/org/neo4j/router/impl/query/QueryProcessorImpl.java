@@ -20,6 +20,7 @@
 package org.neo4j.router.impl.query;
 
 import static org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME;
+import static scala.jdk.CollectionConverters.CollectionHasAsScala;
 import static scala.jdk.javaapi.OptionConverters.toJava;
 
 import java.util.Optional;
@@ -34,6 +35,7 @@ import org.neo4j.cypher.internal.compiler.CypherParsing;
 import org.neo4j.cypher.internal.compiler.helpers.SignatureResolver;
 import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator;
 import org.neo4j.cypher.internal.frontend.phases.BaseState;
+import org.neo4j.cypher.internal.frontend.phases.QueryLanguage;
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver;
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators;
 import org.neo4j.cypher.internal.javacompat.InternalQueryExecutionEngine;
@@ -155,12 +157,14 @@ public class QueryProcessorImpl implements QueryProcessor {
             CancellationChecker cancellationChecker,
             DatabaseReference sessionDatabase) {
         var notificationLogger = new RecordingNotificationLogger();
-
+        var shadowedFunctions = globalProcedures
+                .getCurrentView()
+                .getAllShadowedNames(QueryLanguage.toKernelScope(preParsedQuery.resolvedLanguage()));
         var cachedValue = cache.get(preParsedQuery, query.parameters());
 
         if (cachedValue == null) {
             var preparedForCacheQuery = prepareQueryForCache(
-                    preParsedQuery, notificationLogger, query, cancellationChecker, sessionDatabase);
+                    preParsedQuery, notificationLogger, query, cancellationChecker, sessionDatabase, shadowedFunctions);
             if (preparedForCacheQuery.catalogInfo().canBeCached()) {
                 cache.put(preParsedQuery, query.parameters(), preparedForCacheQuery);
             }
@@ -174,11 +178,19 @@ public class QueryProcessorImpl implements QueryProcessor {
             RecordingNotificationLogger notificationLogger,
             Query query,
             CancellationChecker cancellationChecker,
-            DatabaseReference sessionDatabase) {
+            DatabaseReference sessionDatabase,
+            Set<String> shadowedFunctions) {
         var queryTracer = tracer.compileQuery(query.text());
         var resolver = SignatureResolver.from(globalProcedures.getCurrentView(), preParsedQuery.resolvedLanguage());
         var parsedQuery = parse(
-                query, queryTracer, preParsedQuery, resolver, notificationLogger, cancellationChecker, sessionDatabase);
+                query,
+                queryTracer,
+                preParsedQuery,
+                resolver,
+                notificationLogger,
+                cancellationChecker,
+                sessionDatabase,
+                shadowedFunctions);
         var catalogInfo = resolveCatalogInfo(
                 parsedQuery.statement(),
                 sessionDatabase.isComposite(),
@@ -290,7 +302,8 @@ public class QueryProcessorImpl implements QueryProcessor {
             ScopedProcedureSignatureResolver resolver,
             RecordingNotificationLogger notificationLogger,
             CancellationChecker cancellationChecker,
-            DatabaseReference sessionDatabase) {
+            DatabaseReference sessionDatabase,
+            Set<String> shadowedFunctions) {
         return parsing.parseQuery(
                 preParsedQuery.statement(),
                 preParsedQuery.rawStatement(),
@@ -303,7 +316,8 @@ public class QueryProcessorImpl implements QueryProcessor {
                 cancellationChecker,
                 Some$.MODULE$.apply(resolver),
                 sessionDatabase,
-                preParsedQuery.options().queryOptions().planMode().isScope());
+                preParsedQuery.options().queryOptions().planMode().isScope(),
+                CollectionHasAsScala(shadowedFunctions).asScala().toSet());
     }
 
     private TargetService.CatalogInfo toCatalogInfo(Seq<Option<StaticUseEvaluation.CatalogInfo>> graphSelections) {

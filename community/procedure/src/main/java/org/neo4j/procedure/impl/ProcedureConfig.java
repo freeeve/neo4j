@@ -35,7 +35,6 @@ public class ProcedureConfig {
     private final List<Pattern> accessPatterns;
     private final List<Pattern> whiteList;
     private final ZoneId defaultTemporalTimeZone;
-    private final List<String> reservedProcedureNamespaces;
 
     private final boolean procedureReloadEnabled;
     private final GraphDatabaseInternalSettings.ProcedureClassPreloading preload;
@@ -44,7 +43,6 @@ public class ProcedureConfig {
         this.accessPatterns = Collections.emptyList();
         this.whiteList = Collections.singletonList(compilePattern("*"));
         this.defaultTemporalTimeZone = UTC;
-        this.reservedProcedureNamespaces = GraphDatabaseInternalSettings.reserved_procedure_namespaces.defaultValue();
         this.procedureReloadEnabled = false;
         this.preload = GraphDatabaseInternalSettings.preload.defaultValue();
     }
@@ -59,7 +57,6 @@ public class ProcedureConfig {
         this.whiteList =
                 parseMatchers(config.get(GraphDatabaseSettings.procedure_allowlist), ProcedureConfig::compilePattern);
         this.defaultTemporalTimeZone = config.get(GraphDatabaseSettings.db_temporal_timezone);
-        this.reservedProcedureNamespaces = config.get(GraphDatabaseInternalSettings.reserved_procedure_namespaces);
         this.procedureReloadEnabled = procedureReloadEnabled;
         this.preload = config.get(GraphDatabaseInternalSettings.preload);
     }
@@ -90,10 +87,6 @@ public class ProcedureConfig {
 
     public ZoneId getDefaultTemporalTimeZone() {
         return defaultTemporalTimeZone;
-    }
-
-    public List<String> reservedProcedureNamespaces() {
-        return reservedProcedureNamespaces;
     }
 
     public boolean procedureReloadEnabled() {

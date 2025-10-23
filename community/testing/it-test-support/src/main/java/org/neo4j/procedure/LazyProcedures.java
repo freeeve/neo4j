@@ -22,6 +22,7 @@ package org.neo4j.procedure;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -228,6 +229,16 @@ public class LazyProcedures implements GlobalProcedures, Consumer<Supplier<Globa
         public Stream<UserFunctionSignature> getAllAggregatingFunctions(QueryLanguage scope) {
             initView();
             return view.getAllAggregatingFunctions(scope);
+        }
+
+        @Override
+        public Set<String> getAllShadowedNames(QueryLanguage scope) {
+            // Since shadowedNamespaces are now used by the query planner cache, basically any transactions
+            // would cause initialization. To avoid this, we instead return a placeholder value.
+            if (view == null) {
+                return Set.of();
+            }
+            return view.getAllShadowedNames(scope);
         }
 
         @Override

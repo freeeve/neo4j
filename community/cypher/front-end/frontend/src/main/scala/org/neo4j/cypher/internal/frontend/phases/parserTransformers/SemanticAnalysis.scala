@@ -58,7 +58,11 @@ case class SemanticAnalysis(warn: Option[Boolean], features: SemanticFeature*)
         .semanticCheckHasRunOnce(from.maybeSemanticTable.isDefined)
 
     val checkContext =
-      SemanticCheckContext.Impl(context.cypherVersion, context.errorMessageProvider, Option(context.sessionDatabase))
+      SemanticCheckContext.Impl(
+        context.cypherVersion,
+        context.errorMessageProvider,
+        Option(context.sessionDatabase)
+      )
 
     val SemanticCheckResult(state, errors) = SemanticChecker.check(from.statement(), startState, checkContext)
     if (warn.getOrElse(!from.maybeSemantics.exists(_.semanticCheckHasRunOnce)))

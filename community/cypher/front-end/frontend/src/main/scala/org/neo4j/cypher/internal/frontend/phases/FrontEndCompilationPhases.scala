@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ResolveSimpl
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SyntaxDeprecationWarningsAndReplacements
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnresolveShadowedFunctions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnwrapTopLevelBraces
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.rewriting.Deprecations
@@ -87,7 +88,8 @@ trait FrontEndCompilationPhases {
         SemanticTypeCheck,
         SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures),
         SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures),
-        UnwrapTopLevelBraces
+        UnwrapTopLevelBraces,
+        UnresolveShadowedFunctions
       ),
       initialConditions = Set(BaseContains[Statement]())
     )
@@ -151,7 +153,8 @@ trait FrontEndCompilationPhases {
 
   // Phase 1.1 (Fabric)
   def fabricFinalize(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    SemanticAnalysis(warn = Some(true), config.semanticFeatures: _*) andThen
+    UnresolveShadowedFunctions andThen
+      SemanticAnalysis(warn = Some(true), config.semanticFeatures: _*) andThen
       AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
       SemanticAnalysis(warn = Some(false), config.semanticFeatures: _*)

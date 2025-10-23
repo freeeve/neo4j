@@ -79,6 +79,7 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
     override def sessionDatabase: DatabaseReference = null
     override def semanticFeatures: Seq[SemanticFeature] = Seq()
     override def isScopeQuery: Boolean = false
+    override def shadowedFunctions: Set[String] = Set.empty
   }
 
   test(

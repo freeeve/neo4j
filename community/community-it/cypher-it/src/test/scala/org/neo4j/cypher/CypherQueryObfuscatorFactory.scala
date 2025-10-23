@@ -121,7 +121,8 @@ class CypherQueryObfuscatorFactory {
       null,
       null,
       null,
-      null
+      null,
+      shadowedFunctions = Set.empty
     )
 
   private object PlanContextWithProceduresRegistry extends PlanContext {

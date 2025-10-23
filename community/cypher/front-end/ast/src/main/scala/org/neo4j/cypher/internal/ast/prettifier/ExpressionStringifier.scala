@@ -333,6 +333,7 @@ private class DefaultExpressionStringifier(
           false,
           IndexedSeq(value, StringLiteral(NormalForm(form))),
           ArgumentUnordered,
+          _,
           _
         ) =>
         val fn = "normalize" // Can't have backticks because that does not parse as a normalizeFunction
@@ -345,6 +346,7 @@ private class DefaultExpressionStringifier(
           false,
           IndexedSeq(vector1, vector2, StringLiteral(VectorDistanceMetric(metric))),
           ArgumentUnordered,
+          _,
           _
         ) =>
         val fn = "vector_distance" // Can't have backticks because that does not parse as a vectorDistanceFunction
@@ -360,6 +362,7 @@ private class DefaultExpressionStringifier(
           false,
           IndexedSeq(vector, StringLiteral(VectorDistanceMetric(metric))),
           ArgumentUnordered,
+          _,
           _
         ) =>
         val fn = "vector_norm" // Can't have backticks because that does not parse as a vectorNormFunction
@@ -367,7 +370,7 @@ private class DefaultExpressionStringifier(
           Seq(delimitedInner(ast, shouldBacktickEmpty)(vector), metric.metricName).mkString(", ")
         noEagerConsumption(s"$fn($as)")
 
-      case FunctionInvocation(FunctionName(namespace, functionName), distinct, args, order, _) =>
+      case FunctionInvocation(FunctionName(namespace, functionName), distinct, args, order, _, _) =>
         val ns = apply(namespace, shouldBacktickEmpty)
         val fn = backtick(functionName, shouldBacktickEmpty)
         val np = if (namespace.parts.isEmpty) "" else "."
