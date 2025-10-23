@@ -846,7 +846,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       val finalMatchMode = astOpt(matchMode, MatchMode.default(patternPos))
       SingleQuery(
         ArraySeq(
-          Match(optional = false, finalMatchMode, Pattern.ForMatch(patternParts)(patternPos), Seq.empty, where)(
+          Match(optional = false, finalMatchMode, Pattern.ForMatch(patternParts)(patternPos), Seq.empty, where, None)(
             patternPos
           )
         )

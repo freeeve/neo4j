@@ -136,7 +136,7 @@ case class pegClause(anonVarGen: AnonymousVariableNameGenerator) {
         val declared = Declarations(Seq.empty, Seq(variable))
         incoming.noResultScope(outgoing = incoming.amendedWith(variable), children, declared = declared)
 
-      case Match(_, _, pattern, _, whereOpt) =>
+      case Match(_, _, pattern, _, whereOpt, _) => // TODO implement checking for search here
         val patternScope = pegPattern(anonVarGen)(pattern, incoming.constantChildContext(), version)
         val whereScopeOpt = whereOpt.map(where =>
           pegExpression(anonVarGen)(

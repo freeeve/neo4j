@@ -71,7 +71,7 @@ case class NormalizePredicates(normalizer: PredicateNormalizer) extends Rewriter
   override def apply(that: AnyRef): AnyRef = instance(that)
 
   private val rewriter = Rewriter.lift {
-    case m @ Match(_, _, pattern, _, where) =>
+    case m @ Match(_, _, pattern, _, where, _) =>
       val predicates = normalizer.extractAllFrom(pattern)
       val rewrittenPredicates = predicates ++ where.map(_.expression)
       val predOpt: Option[Expression] = rewrittenPredicates.reduceOption(And(_, _)(m.position))

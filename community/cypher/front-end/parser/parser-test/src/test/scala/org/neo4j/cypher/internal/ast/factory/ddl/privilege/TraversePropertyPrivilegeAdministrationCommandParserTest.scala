@@ -600,6 +600,7 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
                     PathPatternPart(NodePattern(Some(varFor("n")), None, None, None)(pos))
                   )))(pos),
                   List(),
+                  None,
                   None
                 )(pos)
               )

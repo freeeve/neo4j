@@ -165,7 +165,7 @@ case object PatternToQueryConverter {
 
     SingleQuery(
       Seq(
-        Match(optional = false, matchMode = MatchMode.default(position), pattern, Seq.empty, maybeWhere)(position)
+        Match(optional = false, matchMode = MatchMode.default(position), pattern, Seq.empty, maybeWhere, None)(position)
       )
     )(position)
   }

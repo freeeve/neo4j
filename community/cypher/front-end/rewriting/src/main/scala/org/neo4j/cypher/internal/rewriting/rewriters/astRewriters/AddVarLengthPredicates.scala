@@ -40,7 +40,7 @@ import org.neo4j.cypher.internal.util.bottomUp
 case object AddVarLengthPredicates extends AddRelationshipPredicates[RelationshipPattern] {
 
   override val rewriter: Rewriter = bottomUp(Rewriter.lift {
-    case matchClause @ Match(_, _, pattern: Pattern, _, where) =>
+    case matchClause @ Match(_, _, pattern: Pattern, _, where, _) =>
       val relationships = collectNodeConnections(pattern)
       val newWhere = withPredicates(matchClause, relationships, where)
       matchClause.copy(where = newWhere)(matchClause.position)

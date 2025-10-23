@@ -75,7 +75,8 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             _,
             AllPathsPattern(PathPatternPart(NodePattern(Some(Variable("n")), None, None, None))),
             Seq(),
-            Some(Where(Equals(Property(Variable("n"), pkToken), StringLiteral("Resolved"))))
+            Some(Where(Equals(Property(Variable("n"), pkToken), StringLiteral("Resolved")))),
+            None
           ),
           Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
         )) =>
@@ -96,7 +97,8 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             _,
             AllPathsPattern(PathPatternPart(NodePattern(Some(Variable("n")), None, None, None))),
             Seq(),
-            Some(Where(Equals(Property(Variable("n"), pkToken), StringLiteral("Unresolved"))))
+            Some(Where(Equals(Property(Variable("n"), pkToken), StringLiteral("Unresolved")))),
+            None
           ),
           Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
         )) =>
@@ -117,7 +119,8 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             _,
             AllPathsPattern(PathPatternPart(NodePattern(Some(Variable("n")), None, None, None))),
             Seq(),
-            Some(Where(HasLabels(Variable("n"), Seq(labelToken))))
+            Some(Where(HasLabels(Variable("n"), Seq(labelToken)))),
+            None
           ),
           Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
         )) =>
@@ -138,7 +141,8 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             _,
             AllPathsPattern(PathPatternPart(NodePattern(Some(Variable("n")), None, None, None))),
             Seq(),
-            Some(Where(HasLabels(Variable("n"), Seq(labelToken))))
+            Some(Where(HasLabels(Variable("n"), Seq(labelToken)))),
+            None
           ),
           Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
         )) =>
@@ -172,6 +176,7 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
               )
             )),
             Seq(),
+            None,
             None
           ),
           Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
@@ -206,6 +211,7 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
               )
             )),
             Seq(),
+            None,
             None
           ),
           Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)

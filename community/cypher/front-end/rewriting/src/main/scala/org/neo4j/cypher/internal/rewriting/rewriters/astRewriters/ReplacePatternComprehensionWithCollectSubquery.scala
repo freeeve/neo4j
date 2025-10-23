@@ -124,7 +124,8 @@ case class ReplacePatternComprehensionWithCollectSubquery(
           matchMode = MatchMode.default(pattern.position),
           pattern = patternForMatch,
           hints = Seq.empty,
-          where = where
+          where = where,
+          search = None
         )(pattern.position),
         Return(ReturnItems(
           FreeProjection,

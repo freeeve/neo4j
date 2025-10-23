@@ -770,7 +770,7 @@ trait ExpressionBuilder extends Cypher5ParserListener {
       val finalMatchMode = astOpt(matchMode, MatchMode.default(patternPos))
       SingleQuery(
         ArraySeq(
-          Match(optional = false, finalMatchMode, Pattern.ForMatch(patternParts)(patternPos), Seq.empty, where)(
+          Match(optional = false, finalMatchMode, Pattern.ForMatch(patternParts)(patternPos), Seq.empty, where, None)(
             patternPos
           )
         )

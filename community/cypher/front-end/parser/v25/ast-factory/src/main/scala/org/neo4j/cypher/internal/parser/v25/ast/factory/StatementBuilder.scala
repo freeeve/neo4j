@@ -59,6 +59,7 @@ import org.neo4j.cypher.internal.ast.RemovePropertyItem
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.SetClause
 import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
@@ -105,6 +106,7 @@ import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
+import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
@@ -278,6 +280,33 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = Where(astChild(ctx, 1))(pos(ctx))
   }
 
+  final override def exitSearchClause(ctx: Cypher25Parser.SearchClauseContext): Unit = {
+
+    val indexName = ctx.indexSpecificationClause().ast[Either[String, Parameter]]
+    val maybeScoreClause = ctx.scoreClause()
+    val maybeScore = if (maybeScoreClause == null) None else Some(maybeScoreClause.variable().ast())
+
+    ctx.ast = Search(
+      ctx.variable.ast(),
+      maybeScore,
+      indexName,
+      ctx.forClause().ast(),
+      ctx.limit().ast()
+    )(pos(ctx))
+  }
+
+  final override def exitIndexSpecificationClause(ctx: Cypher25Parser.IndexSpecificationClauseContext): Unit = {
+    ctx.ast = ctx.symbolicNameOrStringParameter().ast()
+  }
+
+  final override def exitForClause(ctx: Cypher25Parser.ForClauseContext): Unit = {
+    ctx.ast = ctx.expression().ast()
+  }
+
+  final override def exitScoreClause(ctx: Cypher25Parser.ScoreClauseContext): Unit = {
+    ctx.ast = ctx.variable().ast()
+  }
+
   final override def exitWithClause(
     ctx: Cypher25Parser.WithClauseContext
   ): Unit = {
@@ -389,7 +418,8 @@ trait StatementBuilder extends Cypher25ParserListener {
       pattern =
         Pattern.ForMatch(patternPartsWithSelector)(pos(patternPos)),
       hints = astSeq(ctx.hint()).toList,
-      where = astOpt(ctx.whereClause())
+      where = astOpt(ctx.whereClause()),
+      search = astOpt(ctx.searchClause())
     )(position)
   }
 

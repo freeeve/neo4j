@@ -37,6 +37,7 @@ class NoReferenceEqualityAmongVariablesTest extends CypherFunSuite with AstConst
         matchMode = MatchMode.default(pos),
         patternForMatch(nodePattern),
         Seq(),
+        None,
         None
       ) _
 
@@ -50,6 +51,7 @@ class NoReferenceEqualityAmongVariablesTest extends CypherFunSuite with AstConst
       matchMode = MatchMode.default(pos),
       patternForMatch(nodePattern),
       Seq(),
+      None,
       None
     ) _
 

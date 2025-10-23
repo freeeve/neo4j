@@ -63,7 +63,7 @@ case object MoveBoundaryNodePredicates extends StatementRewriter
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
 
   private val rewriter: Rewriter = topDown(Rewriter.lift {
-    case matchClause @ Match(_, _, pattern @ Pattern.ForMatch(parts), _, where) =>
+    case matchClause @ Match(_, _, pattern @ Pattern.ForMatch(parts), _, where, _) =>
       val (newParts, extractedPredicates) = parts.map {
         case patternPart @ PatternPartWithSelector(_: SelectiveSelector, part) =>
           val (newElement: PatternElement, extractedPredicates: ListSet[Expression]) = part.element match {

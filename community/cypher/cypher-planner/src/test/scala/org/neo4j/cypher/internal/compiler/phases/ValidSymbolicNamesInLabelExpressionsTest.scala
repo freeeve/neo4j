@@ -103,7 +103,7 @@ class ValidSymbolicNamesInLabelExpressionsTest extends CypherFunSuite with AstCo
     val labelOrRelTypeName = LabelOrRelTypeName("B")(pos)
     val labelExpressionPred = labelExpressionPredicate(variable, Leaf(labelOrRelTypeName))
     val where = Where(labelExpressionPred)(pos)
-    val matchClause = Match(optional = false, MatchMode.default(pos), pattern, Seq.empty, Some(where))(
+    val matchClause = Match(optional = false, MatchMode.default(pos), pattern, Seq.empty, Some(where), None)(
       pos
     )
     condition(matchClause) shouldBe empty
@@ -119,7 +119,7 @@ class ValidSymbolicNamesInLabelExpressionsTest extends CypherFunSuite with AstCo
     val labelName = LabelName("B")(InputPosition(41, 10, 42))
     val labelExpressionPred = labelExpressionPredicate(variable, Leaf(labelName))
     val where = Where(labelExpressionPred)(pos)
-    val matchClause = Match(optional = false, MatchMode.default(pos), pattern, Seq.empty, Some(where))(
+    val matchClause = Match(optional = false, MatchMode.default(pos), pattern, Seq.empty, Some(where), None)(
       pos
     )
     condition(matchClause) shouldEqual List(

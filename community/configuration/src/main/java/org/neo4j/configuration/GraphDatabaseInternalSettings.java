@@ -1336,6 +1336,15 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Description("Set this to enable the use of single stage filtering on vector indexes.")
     public static final Setting<Boolean> vector_single_stage_filtering_enabled = newBuilder(
                     "internal.dbms.vector_single_stage_filtering_enabled", BOOL, false)
+            .immutable()
+            .build();
+
+    @Internal
+    @Description("Set this to enable the use of vector search in Cypher.")
+    public static final Setting<Boolean> cypher_vector_search_enabled = newBuilder(
+                    "internal.cypher.vector_search_enabled", BOOL, null)
+            .setDependency(vector_single_stage_filtering_enabled)
+            .immutable()
             .build();
 
     public enum ExtractLiteral {

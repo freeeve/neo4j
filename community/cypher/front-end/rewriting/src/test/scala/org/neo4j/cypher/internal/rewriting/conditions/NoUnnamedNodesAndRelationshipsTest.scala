@@ -56,6 +56,7 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
           node(Some(varFor("m")))
         )),
         Seq.empty,
+        None,
         None
       ) _,
       Return(
@@ -85,6 +86,7 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
           node(Some(varFor("m")))
         )),
         Seq.empty,
+        None,
         None
       ) _,
       Return(
@@ -115,6 +117,7 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
           nodePattern
         )),
         Seq.empty,
+        None,
         None
       ) _,
       Return(
@@ -146,6 +149,7 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
           node(Some(varFor("m")))
         )),
         Seq.empty,
+        None,
         None
       ) _,
       Return(
@@ -181,7 +185,8 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
           node(Some(varFor("m")))
         )),
         Seq.empty,
-        Some(where)
+        Some(where),
+        None
       ) _,
       Return(
         distinct = false,

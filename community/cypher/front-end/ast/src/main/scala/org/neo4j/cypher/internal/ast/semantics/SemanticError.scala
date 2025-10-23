@@ -2171,15 +2171,10 @@ final case class FeatureError(
   override val position: InputPosition
 ) extends SemanticErrorDef {
 
-  def this(msg: String, featureError: SemanticFeature, position: InputPosition) =
-    this(null, msg, featureError, position)
   override def withMsg(error: SemanticError): FeatureError = copy(msg = error.msg)
 }
 
 object FeatureError {
-
-  def apply(msg: String, featureError: SemanticFeature, position: InputPosition): FeatureError =
-    new FeatureError(null, msg, featureError, position)
 
   def unapply(errorDef: FeatureError): Option[(ErrorGqlStatusObject, String, SemanticFeature, InputPosition)] =
     Some((errorDef.gqlStatusObject, errorDef.msg, errorDef.feature, errorDef.position))
@@ -2188,6 +2183,7 @@ object FeatureError {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N26)
       .withParam(GqlParams.StringParam.item, msg)
       .withParam(GqlParams.StringParam.feat, feature.toString)
+      .atPosition(position.offset, position.line, position.column)
       .build()
     FeatureError(
       gql,

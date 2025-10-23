@@ -40,6 +40,7 @@ class CollectNodesOfTypeTest extends CypherFunSuite with AstConstructionTestSupp
         matchMode = MatchMode.default(pos),
         patternForMatch(nodePattern),
         Seq(),
+        None,
         None
       ) _
 
@@ -53,6 +54,7 @@ class CollectNodesOfTypeTest extends CypherFunSuite with AstConstructionTestSupp
         matchMode = MatchMode.default(pos),
         patternForMatch(NodePattern(None, None, None, None) _),
         Seq(),
+        None,
         None
       ) _
 

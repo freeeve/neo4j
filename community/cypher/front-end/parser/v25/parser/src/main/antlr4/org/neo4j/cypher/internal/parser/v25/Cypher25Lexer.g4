@@ -1108,6 +1108,14 @@ SCAN
    : S C A N
    ;
 
+SCORE
+   : S C O R E
+   ;
+
+SEARCH
+   : S E A R C H
+   ;
+
 SEC
    : S E C
    ;

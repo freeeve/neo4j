@@ -637,6 +637,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
                       PathPatternPart(NodePattern(Some(varFor("n")), None, None, None)(pos))
                     )))(pos),
                     List(),
+                    None,
                     None
                   )(pos)
                 )
@@ -668,6 +669,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
                       PathPatternPart(NodePattern(Some(varFor("n")), None, None, None)(pos))
                     )))(pos),
                     List(),
+                    None,
                     None
                   )(pos)
                 )

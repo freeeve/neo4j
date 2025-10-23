@@ -67,7 +67,7 @@ import scala.util.control.TailCalls.TailRec
 case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnection] {
 
   override val rewriter: Rewriter = bottomUp(Rewriter.lift {
-    case m @ Match(_, matchMode, pattern: Pattern, _, where) if matchMode.requiresDifferentRelationships =>
+    case m @ Match(_, matchMode, pattern: Pattern, _, where, _) if matchMode.requiresDifferentRelationships =>
       val nodeConnections = collectNodeConnections(pattern)
       val newWhere = withPredicates(m, nodeConnections, where)
       val newPattern = pattern.endoRewrite(patternRewriter)

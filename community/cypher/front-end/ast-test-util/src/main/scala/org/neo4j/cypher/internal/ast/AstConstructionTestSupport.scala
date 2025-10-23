@@ -407,6 +407,9 @@ trait AstConstructionTestSupport {
   def listOfBoolean(booleanValues: Boolean*): ListLiteral =
     ListLiteral(booleanValues.toSeq.map(literalBoolean))(pos)
 
+  def vector(expr: Expression, dim: Int, typeName: CypherType): VectorValueConstructor =
+    VectorValueConstructor(expr, literalInt(dim), typeName)(pos)
+
   def index(expression: Expression, idx: Int): ContainerIndex =
     ContainerIndex(expression, literal(idx))(pos)
 
@@ -1206,16 +1209,17 @@ trait AstConstructionTestSupport {
   def match_(
     pattern: PatternElement,
     matchMode: MatchMode = MatchMode.default(pos),
-    where: Option[Where] = None
+    where: Option[Where] = None,
+    search: Option[Search] = None
   ): Match =
-    Match(optional = false, matchMode = matchMode, patternForMatch(pattern), Seq(), where)(pos)
+    Match(optional = false, matchMode = matchMode, patternForMatch(pattern), Seq(), where, search)(pos)
 
-  def optionalMatch(pattern: PatternElement, where: Option[Where] = None): Match = {
-    Match(optional = true, MatchMode.default(pos), patternForMatch(pattern), Seq(), where)(pos)
+  def optionalMatch(pattern: PatternElement, where: Option[Where] = None, search: Option[Search] = None): Match = {
+    Match(optional = true, MatchMode.default(pos), patternForMatch(pattern), Seq(), where, search)(pos)
   }
 
   def match_(patterns: Seq[PatternElement], where: Option[Where]): Match =
-    Match(optional = false, MatchMode.default(pos), patternForMatch(patterns: _*), Seq(), where)(pos)
+    Match(optional = false, MatchMode.default(pos), patternForMatch(patterns: _*), Seq(), where, None)(pos)
 
   def match_shortest(
     selector: Selector,
@@ -1228,7 +1232,8 @@ trait AstConstructionTestSupport {
       matchMode = matchMode,
       Pattern.ForMatch(Seq(PatternPartWithSelector(selector, PatternPart(pattern))))(pos),
       Seq(),
-      where
+      where,
+      None
     )(pos)
 
   def repeatableElementsMatchMode(): MatchMode.RepeatableElements = MatchMode.RepeatableElements()(pos)
@@ -1239,6 +1244,17 @@ trait AstConstructionTestSupport {
 
   def patternForMatch(elements: PatternElement*)(implicit dummy: DummyImplicit): Pattern.ForMatch = {
     patternForMatch(elements.map(e => PatternPart(e)): _*)
+  }
+
+  def search(
+    refVariable: String,
+    score: Option[String],
+    indexName: Either[String, Parameter],
+    embedding: Expression,
+    limitNbr: Long
+  ): Search = {
+    val scoreVariable = if (score.isDefined) Some(varFor(score.get)) else None
+    Search(varFor(refVariable), scoreVariable, indexName, embedding, limit(limitNbr))(pos)
   }
 
   def with_(items: ReturnItem*): With =
@@ -1497,7 +1513,7 @@ trait AstConstructionTestSupport {
   ): ExistsExpression = {
 
     val simpleMatchQuery = singleQuery(
-      Match(optional = false, matchMode, pattern, Seq(), maybeWhere)(pos)
+      Match(optional = false, matchMode, pattern, Seq(), maybeWhere, None)(pos)
     )
 
     ExistsExpression(simpleMatchQuery)(pos, Some(introducedVariables), Some(scopeDependencies))
@@ -1513,7 +1529,7 @@ trait AstConstructionTestSupport {
   ): CollectExpression = {
 
     val simpleMatchQuery = singleQuery(
-      Match(optional = false, matchMode, pattern, Seq(), maybeWhere)(pos),
+      Match(optional = false, matchMode, pattern, Seq(), maybeWhere, None)(pos),
       returnItem
     )
 
@@ -1529,7 +1545,7 @@ trait AstConstructionTestSupport {
   ): CountExpression = {
 
     val simpleMatchQuery = singleQuery(
-      Match(optional = false, matchMode, pattern, Seq(), maybeWhere)(pos)
+      Match(optional = false, matchMode, pattern, Seq(), maybeWhere, None)(pos)
     )
 
     CountExpression(simpleMatchQuery)(pos, Some(introducedVariables), Some(scopeDependencies))

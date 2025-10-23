@@ -286,6 +286,7 @@ import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.RevokeType
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.ServerManagementAction
 import org.neo4j.cypher.internal.ast.SetAuthAction
 import org.neo4j.cypher.internal.ast.SetClause
@@ -1582,6 +1583,14 @@ class AstGenerator(
   def _where: Gen[Where] =
     _expression.map(Where(_)(pos))
 
+  def _search: Gen[Search] = for {
+    variable <- _variable
+    score <- option(_variable)
+    indexName <- _nameAsEither
+    expr <- _expression
+    limit <- _limit
+  } yield Search(variable, score, indexName, expr, limit)(pos)
+
   def _with: Gen[With] = for {
     distinct <- boolean
     projectionType <- oneOf(AdditiveProjection, FreeProjection)
@@ -1664,7 +1673,8 @@ class AstGenerator(
     pattern <- _patternForMatch
     hints <- zeroOrMore(_hint)
     where <- option(_where)
-  } yield Match(optional, matchMode, pattern, hints, where)(pos)
+    search <- if (usesCypher5) const(None) else option(_search)
+  } yield Match(optional, matchMode, pattern, hints, where, search)(pos)
 
   def _matchMode: Gen[MatchMode] = oneOf(MatchMode.RepeatableElements()(pos), MatchMode.DifferentRelationships()(pos))
 

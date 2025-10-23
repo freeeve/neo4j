@@ -33,7 +33,8 @@ class ClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       hints = Seq.empty,
       Some(Where(
         hasLabels("n", "N")
-      )(pos))
+      )(pos)),
+      search = None
     )(pos)
     `match`.containsLabelOrRelTypePredicate("n", "N") should be(true)
     `match`.containsLabelOrRelTypePredicate("n", "M") should be(false)
@@ -48,7 +49,8 @@ class ClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       MatchMode.default(pos),
       patternForMatch(nodePat(Some("n"), Some(labelLeaf("N")))),
       hints = Seq.empty,
-      where = None
+      where = None,
+      search = None
     )(pos)
     `match`.containsLabelOrRelTypePredicate("n", "N") should be(true)
     `match`.containsLabelOrRelTypePredicate("n", "M") should be(false)
@@ -68,7 +70,8 @@ class ClauseTest extends CypherFunSuite with AstConstructionTestSupport {
           hasLabels("n", "N"),
           propEquality("n", "prop", 1)
         )
-      )(pos))
+      )(pos)),
+      search = None
     )(pos)
     `match`.containsLabelOrRelTypePredicate("n", "N") should be(true)
     `match`.containsLabelOrRelTypePredicate("n", "M") should be(false)
@@ -88,7 +91,8 @@ class ClauseTest extends CypherFunSuite with AstConstructionTestSupport {
           hasLabels("n", "N"),
           propEquality("n", "prop", 1)
         )
-      )(pos))
+      )(pos)),
+      search = None
     )(pos)
     `match`.containsLabelOrRelTypePredicate("n", "N") should be(true)
     `match`.containsLabelOrRelTypePredicate("n", "M") should be(false)
@@ -111,7 +115,8 @@ class ClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       hints = Seq.empty,
       Some(Where(
         hasTypes("r", "R")
-      )(pos))
+      )(pos)),
+      search = None
     )(pos)
 
     // assert
@@ -136,7 +141,8 @@ class ClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       hints = Seq.empty,
       Some(Where(
         labelExpressionPredicate("r", labelLeaf("R"))
-      )(pos))
+      )(pos)),
+      search = None
     )(pos)
 
     // assert
@@ -161,7 +167,8 @@ class ClauseTest extends CypherFunSuite with AstConstructionTestSupport {
         )(pos)
       ),
       hints = Seq.empty,
-      None
+      where = None,
+      search = None
     )(pos)
 
     // assert
@@ -191,7 +198,8 @@ class ClauseTest extends CypherFunSuite with AstConstructionTestSupport {
         )(pos)
       ),
       hints = Seq.empty,
-      None
+      where = None,
+      search = None
     )(pos)
 
     // assert

@@ -197,6 +197,7 @@ class MatchModeParserTest extends AstParsingTestBase with LegacyAstParsingTestSu
         matchMode = MatchMode.RepeatableElements()(pos),
         hints = List(),
         where = None,
+        search = None,
         pattern = patternForMatch(NamedPatternPart(
           varFor("path"),
           PathPatternPart(
@@ -214,6 +215,7 @@ class MatchModeParserTest extends AstParsingTestBase with LegacyAstParsingTestSu
         matchMode = MatchMode.default(pos),
         hints = List(),
         where = None,
+        search = None,
         pattern = patternForMatch(NamedPatternPart(
           varFor("REPEATABLE"),
           PathPatternPart(
@@ -231,6 +233,7 @@ class MatchModeParserTest extends AstParsingTestBase with LegacyAstParsingTestSu
         matchMode = MatchMode.DifferentRelationships()(pos),
         hints = List(),
         where = None,
+        search = None,
         pattern = patternForMatch(NamedPatternPart(
           varFor("path"),
           PathPatternPart(
@@ -248,6 +251,7 @@ class MatchModeParserTest extends AstParsingTestBase with LegacyAstParsingTestSu
         matchMode = MatchMode.default(pos),
         hints = List(),
         where = None,
+        search = None,
         pattern = patternForMatch(NamedPatternPart(
           varFor("DIFFERENT"),
           PathPatternPart(
@@ -282,6 +286,7 @@ class MatchModeParserTest extends AstParsingTestBase with LegacyAstParsingTestSu
         )(pos)
       )))(pos),
       List(),
+      None,
       None
     )(pos))
   }
@@ -302,6 +307,7 @@ class MatchModeParserTest extends AstParsingTestBase with LegacyAstParsingTestSu
         )(pos)
       )))(pos),
       List(),
+      None,
       None
     )(pos))
   }

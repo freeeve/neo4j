@@ -97,6 +97,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
               )
             ))(pos),
             Seq(),
+            None,
             None
           )(pos)
         }
@@ -119,6 +120,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                   )
                 ))(pos),
                 Seq(),
+                None,
                 None
               )(pos)
             )
@@ -152,6 +154,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
               )(pos)
             )))(pos),
             List(),
+            None,
             None
           )(pos)
         }
@@ -184,6 +187,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                   )(pos)
                 )))(pos),
                 List(),
+                None,
                 None
               )(pos)
             )
@@ -213,6 +217,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
               )
             ))(pos),
             Seq(),
+            None,
             None
           )(pos)
         }
@@ -241,6 +246,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                   )
                 ))(pos),
                 Seq(),
+                None,
                 None
               )(pos)
             )
@@ -266,6 +272,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
               )
             ))(pos),
             Seq(),
+            None,
             None
           )(pos)
         }
@@ -290,6 +297,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                   )
                 ))(pos),
                 Seq(),
+                None,
                 None
               )(pos)
             )
@@ -321,6 +329,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                       )
                     ))(pos),
                     Seq(),
+                    None,
                     None
                   )(pos)
                 )
@@ -356,6 +365,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                           )
                         ))(pos),
                         Seq(),
+                        None,
                         None
                       )(pos)
                     )
@@ -392,6 +402,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                       )
                     ))(pos),
                     Seq(),
+                    None,
                     None
                   )(pos)
                 )
@@ -427,6 +438,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                           )
                         ))(pos),
                         Seq(),
+                        None,
                         None
                       )(pos)
                     )
@@ -458,6 +470,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                   )
                 ))(pos),
                 Seq(),
+                None,
                 None
               )(pos)
             ),
@@ -487,6 +500,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                       )
                     ))(pos),
                     Seq(),
+                    None,
                     None
                   )(pos)
                 ),

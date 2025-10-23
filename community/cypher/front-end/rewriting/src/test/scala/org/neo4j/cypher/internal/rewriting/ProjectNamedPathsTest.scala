@@ -249,6 +249,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           NodePattern(Some(a), None, None, None)(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 
@@ -301,6 +302,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           NodePattern(Some(a), None, None, None)(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 
@@ -354,6 +356,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         NodePattern(Some(a), None, None, None)(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -408,6 +411,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         NodePattern(Some(a), None, None, None)(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -499,6 +503,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         )(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -612,6 +617,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         )(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -689,6 +695,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         )(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -756,6 +763,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         )(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -868,6 +876,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         )(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -942,6 +951,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         )(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -1062,6 +1072,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         )(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -1141,6 +1152,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         )(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -1256,6 +1268,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         NodePattern(Some(a), None, None, None)(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -1310,6 +1323,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         NodePattern(Some(a), None, None, None)(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -1398,6 +1412,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         NodePattern(Some(b), None, None, None)(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -1454,6 +1469,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         NodePattern(Some(b), None, None, None)(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -1541,6 +1557,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         NodePattern(Some(a), None, None, None)(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -1621,6 +1638,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         NodePattern(Some(a), None, None, None)(pos)
       ),
       List(),
+      None,
       None
     )(pos)
 
@@ -1755,6 +1773,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           NodePattern(Some(a), None, None, None)(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 
@@ -1805,6 +1824,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           NodePattern(Some(a), None, None, None)(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 
@@ -1858,6 +1878,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           NodePattern(Some(a), None, None, None)(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 
@@ -1884,6 +1905,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           NodePattern(Some(b), None, None, None)(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 
@@ -2076,6 +2098,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 
@@ -2138,7 +2161,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos)
         ),
         List(),
-        Some(WHERE)
+        Some(WHERE),
+        None
       )(pos)
 
     val RETURN =
@@ -2173,6 +2197,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           NodePattern(Some(a), None, None, None)(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 
@@ -2241,6 +2266,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           NodePattern(Some(aId), None, None, None)(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 
@@ -2305,6 +2331,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           NodePattern(Some(bId), None, None, None)(pos)
         ),
         List(),
+        None,
         None
       )(pos)
 

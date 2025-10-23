@@ -325,6 +325,8 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.ROWS -> "'ROWS'",
     Cypher25Parser.RPAREN -> "')'",
     Cypher25Parser.SCAN -> "'SCAN'",
+    Cypher25Parser.SCORE -> "'SCORE'",
+    Cypher25Parser.SEARCH -> "'SEARCH'",
     Cypher25Parser.SECONDARY -> "'SECONDARY'",
     Cypher25Parser.SECONDARIES -> "'SECONDARIES'",
     Cypher25Parser.SEC -> "'SEC'",

@@ -135,6 +135,7 @@ final protected class CypherAstBuildingAntlrParser(
     case Cypher25Parser.RULE_edgeTypeInSituReference           => false
     case Cypher25Parser.RULE_arcTypePointingRight              => false
     case Cypher25Parser.RULE_remoteTargetConnectionCredentials => false
+    case Cypher25Parser.RULE_scoreClause                       => false
     case _                                                     => !jsSemanticAnalysis
   }
 }

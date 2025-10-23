@@ -105,6 +105,44 @@ class PrettifierIT extends CypherFunSuite {
     "MATCH (n) WHERE n:(A| (B))" ->
       """MATCH (n)
         |  WHERE n:A|B""".stripMargin,
+    FailsInCypher5(
+      "MATCH (n)     search n IN (vECToR InDEX iDx For $vector LIMiT 2)",
+      """MATCH (n)
+        |  SEARCH n IN (
+        |    VECTOR INDEX iDx
+        |    FOR $vector
+        |    LIMIT 2
+        |  )""".stripMargin
+    ),
+    FailsInCypher5(
+      "MATCH ()-[r]->() SEARCH r in (vECToR InDEX `iD x` For n.`$pRop` LIMiT 2) SCORE AS `sCore `",
+      """MATCH ()-[r]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX `iD x`
+        |    FOR n.`$pRop`
+        |    LIMIT 2
+        |  ) SCORE AS `sCore `""".stripMargin
+    ),
+    FailsInCypher5(
+      "MATCH (n) SEARCH n IN (VECTOR INDEX $index FOR [1, 2, 3] LIMIT 5) SCORE AS score WHERE score > 0.8",
+      """MATCH (n)
+        |  SEARCH n IN (
+        |    VECTOR INDEX $index
+        |    FOR [1, 2, 3]
+        |    LIMIT 5
+        |  ) SCORE AS score
+        |  WHERE score > 0.8""".stripMargin
+    ),
+    FailsInCypher5(
+      "MATCH ()-[r]->() WHERE s > 0.9 SEARCH r in (VECTOR INDEX idx FOR vector([0.2, 0.5], 2, FLOAT32) LIMIT 2) SCORE AS s",
+      """MATCH ()-[r]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX idx
+        |    FOR vector([0.2, 0.5], 2, FLOAT32 NOT NULL)
+        |    LIMIT 2
+        |  ) SCORE AS s
+        |  WHERE s > 0.9""".stripMargin
+    ),
     "MATCH (n:N WHERE n.prop > 0)" -> "MATCH (n:N WHERE n.prop > 0)",
     "MATCH (n:N {foo: 5} WHERE n.prop > 0)" -> "MATCH (n:N {foo: 5} WHERE n.prop > 0)",
     "match (n  : $( 'a' + 'b'):$( c))" -> "MATCH (n:$all(\"a\" + \"b\"):$all(c))",

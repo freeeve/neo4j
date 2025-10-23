@@ -164,6 +164,7 @@ import org.neo4j.cypher.internal.ast.RevokePrivilege
 import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.SetClause
 import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
@@ -1055,8 +1056,9 @@ case class Prettifier(
       val p = expr.patterns.apply(m.pattern)
       val ind = indented()
       val w = m.where.map(ind.asString).map(asNewLine).getOrElse("")
+      val s = m.search.map(ind.asString).map(asNewLine).getOrElse("")
       val h = m.hints.map(ind.asString).map(asNewLine).mkString
-      s"$INDENT${o}MATCH $mm$p$h$w"
+      s"$INDENT${o}MATCH $mm$p$h$s$w"
     }
 
     def asString(c: ImportingWithSubqueryCall): String = {
@@ -1111,6 +1113,19 @@ case class Prettifier(
 
     def asString(w: Where, shouldBacktickEmpty: Boolean): String =
       s"${INDENT}WHERE ${expr(w.expression, shouldBacktickEmpty = shouldBacktickEmpty)}"
+
+    def asString(s: Search): String = {
+
+      val indexName = Prettifier.escapeName(s.indexName)
+
+      val maybeScore = if (s.score.isDefined) s" SCORE AS ${Prettifier.escapeName(s.score.get)}" else ""
+
+      s"""${INDENT}SEARCH ${s.bindingVariable.name} IN (
+         |$INDENT${INDENT}VECTOR INDEX $indexName
+         |$INDENT${INDENT}FOR ${expr(s.embedding)}
+         |$INDENT${INDENT}LIMIT ${expr(s.limit.expression)}
+         |$INDENT)$maybeScore""".stripMargin
+    }
 
     def asString(m: Hint): String = {
       m match {
@@ -1721,6 +1736,7 @@ object Prettifier {
 
   val escapeName: PartialFunction[Expression, String] = {
     case StringLiteral(s) => backtickEmpty(s)
+    case Variable(v)      => backtickEmpty(v)
     case p: Parameter     => s"$$${backtickEmpty(p.name)}"
   }
 

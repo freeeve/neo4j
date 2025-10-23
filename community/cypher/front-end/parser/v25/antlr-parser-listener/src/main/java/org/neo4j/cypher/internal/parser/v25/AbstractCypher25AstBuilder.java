@@ -67,6 +67,11 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_skip -> exitSkip((Cypher25Parser.SkipContext) ctx);
             case Cypher25Parser.RULE_limit -> exitLimit((Cypher25Parser.LimitContext) ctx);
             case Cypher25Parser.RULE_whereClause -> exitWhereClause((Cypher25Parser.WhereClauseContext) ctx);
+            case Cypher25Parser.RULE_searchClause -> exitSearchClause((Cypher25Parser.SearchClauseContext) ctx);
+            case Cypher25Parser.RULE_indexSpecificationClause ->
+                exitIndexSpecificationClause((Cypher25Parser.IndexSpecificationClauseContext) ctx);
+            case Cypher25Parser.RULE_forClause -> exitForClause((Cypher25Parser.ForClauseContext) ctx);
+            case Cypher25Parser.RULE_scoreClause -> exitScoreClause((Cypher25Parser.ScoreClauseContext) ctx);
             case Cypher25Parser.RULE_withClause -> exitWithClause((Cypher25Parser.WithClauseContext) ctx);
             case Cypher25Parser.RULE_createClause -> exitCreateClause((Cypher25Parser.CreateClauseContext) ctx);
             case Cypher25Parser.RULE_insertClause -> exitInsertClause((Cypher25Parser.InsertClauseContext) ctx);

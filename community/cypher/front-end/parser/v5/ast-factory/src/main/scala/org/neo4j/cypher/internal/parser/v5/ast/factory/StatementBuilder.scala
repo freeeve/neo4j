@@ -385,7 +385,8 @@ trait StatementBuilder extends Cypher5ParserListener {
       pattern =
         Pattern.ForMatch(patternPartsWithSelector)(pos(patternPos)),
       hints = astSeq(ctx.hint()).toList,
-      where = astOpt(ctx.whereClause())
+      where = astOpt(ctx.whereClause()),
+      search = None
     )(position)
   }
 

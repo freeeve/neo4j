@@ -752,7 +752,8 @@ case class Match(
   matchMode: MatchMode,
   pattern: Pattern.ForMatch,
   hints: Seq[Hint],
-  where: Option[Where]
+  where: Option[Where],
+  search: Option[Search]
 )(val position: InputPosition) extends Clause with SemanticAnalysisTooling {
   override def name = "MATCH"
 
@@ -765,6 +766,7 @@ case class Match(
       ) ifOkChain {
         hints.semanticCheck chain
           uniqueHints chain
+          search.semanticCheck chain
           where.semanticCheck chain
           checkHints chain
           checkForCartesianProducts

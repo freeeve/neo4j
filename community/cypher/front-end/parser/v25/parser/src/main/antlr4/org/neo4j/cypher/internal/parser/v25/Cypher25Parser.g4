@@ -135,6 +135,22 @@ whereClause
    : WHERE expression
    ;
 
+searchClause
+   : SEARCH variable IN LPAREN indexSpecificationClause forClause limit RPAREN scoreClause?
+   ;
+
+indexSpecificationClause
+   : VECTOR INDEX symbolicNameOrStringParameter
+   ;
+
+forClause
+   : FOR expression
+   ;
+
+scoreClause
+  : SCORE AS variable
+  ;
+
 withClause
    : WITH returnBody whereClause?
    ;
@@ -176,7 +192,7 @@ deleteClause
    ;
 
 matchClause
-   : OPTIONAL? MATCH matchMode? patternList hint* whereClause?
+   : OPTIONAL? MATCH matchMode? patternList hint* (whereClause? searchClause? | searchClause whereClause)
    ;
 
 matchMode
@@ -2260,6 +2276,8 @@ unescapedSymbolicNameString_
    | ROW
    | ROWS
    | SCAN
+   | SCORE
+   | SEARCH
    | SECONDARY
    | SECONDARIES
    | SEC

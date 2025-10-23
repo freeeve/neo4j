@@ -259,6 +259,7 @@ class MiscParserTest extends AstParsingTestBase {
             PathPatternPart(NodePattern(Some(varFor("m")), None, None, None)(InputPosition(11, 1, 12)))
           )))(InputPosition(11, 1, 12)),
           List(),
+          None,
           None
         )(InputPosition(0, 1, 1)),
         Return(
@@ -430,6 +431,7 @@ class MiscParserTest extends AstParsingTestBase {
             )
           ))(pos),
           Seq(),
+          None,
           None
         )(pos),
         Return(

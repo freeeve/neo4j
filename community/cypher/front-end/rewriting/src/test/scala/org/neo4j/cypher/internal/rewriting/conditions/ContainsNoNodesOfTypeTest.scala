@@ -40,6 +40,7 @@ class ContainsNoNodesOfTypeTest extends CypherFunSuite with AstConstructionTestS
         matchMode = MatchMode.default(pos),
         patternForMatch(NodePattern(None, None, None, None) _),
         Seq(),
+        None,
         None
       ) _
 

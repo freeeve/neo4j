@@ -293,7 +293,8 @@ class QuantifiedPathPatternInMatchParserTest extends AstParsingTestBase {
           )
         ))(pos),
         hints = Seq.empty,
-        where = Some(where(prop("a", "prop")))
+        where = Some(where(prop("a", "prop"))),
+        search = None
       )(pos)
     }
   }
@@ -324,7 +325,8 @@ class QuantifiedPathPatternInMatchParserTest extends AstParsingTestBase {
           ))(pos))
         ).map(_.withAllPathsSelector))(pos),
         hints = Seq.empty,
-        where = None
+        where = None,
+        search = None
       )(pos)
     }
   }

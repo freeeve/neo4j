@@ -336,6 +336,7 @@ class CountExpressionParserTest extends AstParsingTestBase with LegacyAstParsing
             )
           ))(InputPosition(24, 1, 25)),
           Seq.empty,
+          None,
           None
         )(pos)
       )

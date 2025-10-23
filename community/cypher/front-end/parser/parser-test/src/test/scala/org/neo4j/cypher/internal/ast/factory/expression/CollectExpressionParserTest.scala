@@ -357,6 +357,7 @@ class CollectExpressionParserTest extends AstParsingTestBase with LegacyAstParsi
             )
           ))(InputPosition(32, 1, 33)),
           Seq.empty,
+          None,
           None
         )(pos),
         return_(returnItem(
