@@ -868,7 +868,7 @@ private[internal] class TransactionBoundReadQueryContext(
   }
 
   override def relationshipLockingUniqueIndexSeek(
-    index: IndexDescriptor,
+    index: IndexReadSession,
     queries: Seq[PropertyIndexQuery.ExactPredicate]
   ): RelationshipValueIndexCursor = {
 
@@ -876,7 +876,7 @@ private[internal] class TransactionBoundReadQueryContext(
       transactionalContext.cursorContext,
       transactionalContext.memoryTracker
     )
-    indexSearchMonitor.lockingUniqueIndexSeek(index, queries)
+    indexSearchMonitor.lockingUniqueIndexSeek(index.reference(), queries)
     if (queries.exists(q => q.value() eq Values.NO_VALUE)) {
       cursor.close()
       RelationshipValueHit.EMPTY
@@ -1080,7 +1080,7 @@ private[internal] class TransactionBoundReadQueryContext(
     )
 
   override def nodeLockingUniqueIndexSeek(
-    index: IndexDescriptor,
+    index: IndexReadSession,
     queries: Seq[PropertyIndexQuery.ExactPredicate]
   ): NodeValueIndexCursor = {
 
@@ -1089,7 +1089,7 @@ private[internal] class TransactionBoundReadQueryContext(
       transactionalContext.memoryTracker
     )
     try {
-      indexSearchMonitor.lockingUniqueIndexSeek(index, queries)
+      indexSearchMonitor.lockingUniqueIndexSeek(index.reference(), queries)
       if (queries.exists(q => q.value() eq Values.NO_VALUE)) {
         NodeValueHit.EMPTY
       } else {

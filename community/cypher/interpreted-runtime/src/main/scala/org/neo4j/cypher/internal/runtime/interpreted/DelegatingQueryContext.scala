@@ -371,7 +371,7 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     inner.relationshipIndexSeek(index, needsValues, indexOrder, queries)
 
   override def relationshipLockingUniqueIndexSeek(
-    index: IndexDescriptor,
+    index: IndexReadSession,
     queries: Seq[PropertyIndexQuery.ExactPredicate]
   ): RelationshipValueIndexCursor =
     singleDbHit(inner.relationshipLockingUniqueIndexSeek(index, queries))
@@ -547,7 +547,7 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
   ): String = singleDbHit(inner.getGeneratedNameForConstraint(forNode, entityId, propertyIds, descriptor))
 
   override def nodeLockingUniqueIndexSeek(
-    index: IndexDescriptor,
+    index: IndexReadSession,
     queries: Seq[PropertyIndexQuery.ExactPredicate]
   ): NodeValueIndexCursor =
     singleDbHit(inner.nodeLockingUniqueIndexSeek(index, queries))

@@ -379,7 +379,7 @@ object StaticEvaluation {
     ): NodeValueIndexCursor = notAvailable()
 
     override def nodeLockingUniqueIndexSeek(
-      index: IndexDescriptor,
+      index: IndexReadSession,
       queries: Seq[PropertyIndexQuery.ExactPredicate]
     ): NodeValueIndexCursor = notAvailable()
 
@@ -391,7 +391,7 @@ object StaticEvaluation {
     ): RelationshipValueIndexCursor = notAvailable()
 
     override def relationshipLockingUniqueIndexSeek(
-      index: IndexDescriptor,
+      index: IndexReadSession,
       queries: Seq[PropertyIndexQuery.ExactPredicate]
     ): RelationshipValueIndexCursor = notAvailable()
 

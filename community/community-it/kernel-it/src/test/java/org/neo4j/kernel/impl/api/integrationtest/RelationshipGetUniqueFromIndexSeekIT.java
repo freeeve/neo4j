@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.internal.kernel.api.IndexReadSession;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor;
 import org.neo4j.internal.kernel.api.TokenWrite;
@@ -87,11 +88,12 @@ class RelationshipGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
         // when looking for it
         KernelTransaction transaction = newTransaction();
         Read read = transaction.dataRead();
+        IndexReadSession indexReadSession = read.indexReadSession(index);
         int propertyId = index.schema().getPropertyIds()[0];
         try (RelationshipValueIndexCursor cursor = transaction
                 .cursors()
                 .allocateRelationshipValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
-            long foundId = read.lockingRelationshipUniqueIndexSeek(index, cursor, exact(propertyId, value));
+            long foundId = read.lockingRelationshipUniqueIndexSeek(indexReadSession, cursor, exact(propertyId, value));
 
             // then
             assertEquals(relId, foundId, "Created relationship was not found");
@@ -108,11 +110,14 @@ class RelationshipGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
 
         // when looking for it
         KernelTransaction transaction = newTransaction();
+        IndexReadSession indexReadSession = transaction.dataRead().indexReadSession(index);
+
         try (RelationshipValueIndexCursor cursor = transaction
                 .cursors()
                 .allocateRelationshipValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
-            long foundId =
-                    transaction.dataRead().lockingRelationshipUniqueIndexSeek(index, cursor, exact(propertyId1, value));
+            long foundId = transaction
+                    .dataRead()
+                    .lockingRelationshipUniqueIndexSeek(indexReadSession, cursor, exact(propertyId1, value));
 
             // then
             assertTrue(isNoSuchRelationship(foundId), "Non-matching created relationship was found");
@@ -130,13 +135,14 @@ class RelationshipGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
 
         // when looking for it
         KernelTransaction transaction = newTransaction();
+        IndexReadSession indexReadSession = transaction.dataRead().indexReadSession(index);
         try (RelationshipValueIndexCursor cursor = transaction
                 .cursors()
                 .allocateRelationshipValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
             long foundId = transaction
                     .dataRead()
                     .lockingRelationshipUniqueIndexSeek(
-                            index, cursor, exact(propertyId1, value1), exact(propertyId2, value2));
+                            indexReadSession, cursor, exact(propertyId1, value1), exact(propertyId2, value2));
 
             // then
             assertEquals(relId, foundId, "Created relationship was not found");
@@ -154,13 +160,15 @@ class RelationshipGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
 
         // when looking for it
         KernelTransaction transaction = newTransaction();
+        IndexReadSession indexReadSession = transaction.dataRead().indexReadSession(index);
+
         try (RelationshipValueIndexCursor cursor = transaction
                 .cursors()
                 .allocateRelationshipValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
             long foundId = transaction
                     .dataRead()
                     .lockingRelationshipUniqueIndexSeek(
-                            index, cursor, exact(propertyId1, value1), exact(propertyId2, value2));
+                            indexReadSession, cursor, exact(propertyId1, value1), exact(propertyId2, value2));
 
             // then
             assertTrue(isNoSuchRelationship(foundId), "Non-matching created relationship was found");
@@ -203,7 +211,9 @@ class RelationshipGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
                         kernel.beginTransaction(KernelTransaction.Type.IMPLICIT, LoginContext.AUTH_DISABLED)) {
                     try (RelationshipValueIndexCursor cursor =
                             tx.cursors().allocateRelationshipValueIndexCursor(tx.cursorContext(), tx.memoryTracker())) {
-                        tx.dataRead().lockingRelationshipUniqueIndexSeek(index, cursor, exact(propertyId1, value));
+                        tx.dataRead()
+                                .lockingRelationshipUniqueIndexSeek(
+                                        tx.dataRead().indexReadSession(index), cursor, exact(propertyId1, value));
                     }
                     tx.commit();
                 }
@@ -234,8 +244,9 @@ class RelationshipGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
                     kernel.beginTransaction(KernelTransaction.Type.IMPLICIT, LoginContext.AUTH_DISABLED)) {
                 try (RelationshipValueIndexCursor cursor =
                         tx.cursors().allocateRelationshipValueIndexCursor(tx.cursorContext(), tx.memoryTracker())) {
-                    long relId =
-                            tx.dataRead().lockingRelationshipUniqueIndexSeek(index, cursor, exact(propertyId1, value));
+                    long relId = tx.dataRead()
+                            .lockingRelationshipUniqueIndexSeek(
+                                    tx.dataRead().indexReadSession(index), cursor, exact(propertyId1, value));
                     if (relId == StatementConstants.NO_SUCH_RELATIONSHIP) {
                         Write write = tx.dataWrite();
                         relId = write.relationshipCreate(write.nodeCreate(), relationshipTypeId, write.nodeCreate());

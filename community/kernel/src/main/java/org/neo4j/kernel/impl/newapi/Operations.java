@@ -773,7 +773,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             assertOnlineAndLock(constraint, index, propertyValues);
 
             ((KernelRead) ktx.dataRead())
-                    .nodeIndexSeekForExactProperty(valueCursor, unboundedRelatedContext, index, propertyValues);
+                    .indexSeekForExactProperty(
+                            (EntityIndexSeekClient) valueCursor, unboundedRelatedContext, index, propertyValues);
 
             while (valueCursor.next()) {
                 if (valueCursor.nodeReference() != modifiedNode) {
@@ -876,7 +877,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             assertOnlineAndLock(constraint, index, propertyValues);
 
             ((KernelRead) ktx.dataRead())
-                    .relationshipIndexSeekForExactProperty(valueCursor, unboundedRelatedContext, index, propertyValues);
+                    .indexSeekForExactProperty(
+                            (EntityIndexSeekClient) valueCursor, unboundedRelatedContext, index, propertyValues);
 
             while (valueCursor.next()) {
                 if (valueCursor.relationshipReference() != modifiedRel) {

@@ -137,7 +137,9 @@ class UniqueIndexSeekIT {
                     .allocateNodeValueIndexCursor(
                             kernelTransaction.cursorContext(), kernelTransaction.memoryTracker())) {
                 dataRead.lockingNodeUniqueIndexSeek(
-                        indexReference, cursor, PropertyIndexQuery.ExactPredicate.exact(propertyId, "value"));
+                        dataRead.indexReadSession(indexReference),
+                        cursor,
+                        PropertyIndexQuery.ExactPredicate.exact(propertyId, "value"));
             }
             transaction.commit();
         }
@@ -158,7 +160,9 @@ class UniqueIndexSeekIT {
                     .allocateRelationshipValueIndexCursor(
                             kernelTransaction.cursorContext(), kernelTransaction.memoryTracker())) {
                 dataRead.lockingRelationshipUniqueIndexSeek(
-                        indexReference, cursor, PropertyIndexQuery.ExactPredicate.exact(propertyId, "value"));
+                        dataRead.indexReadSession(indexReference),
+                        cursor,
+                        PropertyIndexQuery.ExactPredicate.exact(propertyId, "value"));
             }
             transaction.commit();
         }

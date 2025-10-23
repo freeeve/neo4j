@@ -902,7 +902,9 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
                 IndexNotApplicableKernelException e =
                         assertThrows(IndexNotApplicableKernelException.class, () -> ktx.dataRead()
                                 .lockingNodeUniqueIndexSeek(
-                                        index, cursor, PropertyIndexQuery.exact(propertyKey, "does not matter")));
+                                        ktx.dataRead().indexReadSession(index),
+                                        cursor,
+                                        PropertyIndexQuery.exact(propertyKey, "does not matter")));
                 assertThat(e).hasMessageContaining("Multi-token index", "does not support uniqueness.");
                 assertThat(e.gqlStatus()).isEqualTo("50N15");
                 assertThat(e.statusDescription())
@@ -944,7 +946,9 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
                 IndexNotApplicableKernelException e =
                         assertThrows(IndexNotApplicableKernelException.class, () -> ktx.dataRead()
                                 .lockingRelationshipUniqueIndexSeek(
-                                        index, cursor, PropertyIndexQuery.exact(propertyKey, "does not matter")));
+                                        ktx.dataRead().indexReadSession(index),
+                                        cursor,
+                                        PropertyIndexQuery.exact(propertyKey, "does not matter")));
                 assertThat(e).hasMessageContaining("Multi-token index", "does not support uniqueness.");
                 assertThat(e.gqlStatus()).isEqualTo("50N15");
                 assertThat(e.statusDescription())

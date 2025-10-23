@@ -203,7 +203,7 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
   def nodeIndexScan(index: IndexReadSession, needsValues: Boolean, indexOrder: IndexOrder): NodeValueIndexCursor
 
   def nodeLockingUniqueIndexSeek(
-    index: IndexDescriptor,
+    index: IndexReadSession,
     queries: Seq[PropertyIndexQuery.ExactPredicate]
   ): NodeValueIndexCursor
 
@@ -215,7 +215,7 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
   ): RelationshipValueIndexCursor
 
   def relationshipLockingUniqueIndexSeek(
-    index: IndexDescriptor,
+    index: IndexReadSession,
     queries: Seq[PropertyIndexQuery.ExactPredicate]
   ): RelationshipValueIndexCursor
 

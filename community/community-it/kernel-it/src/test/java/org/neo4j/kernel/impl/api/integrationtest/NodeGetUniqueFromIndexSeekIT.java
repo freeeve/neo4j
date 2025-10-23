@@ -91,7 +91,8 @@ class NodeGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
         try (NodeValueIndexCursor cursor = transaction
                 .cursors()
                 .allocateNodeValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
-            long foundId = read.lockingNodeUniqueIndexSeek(index, cursor, exact(propertyId, value));
+            long foundId =
+                    read.lockingNodeUniqueIndexSeek(read.indexReadSession(index), cursor, exact(propertyId, value));
 
             // then
             assertEquals(nodeId, foundId, "Created node was not found");
@@ -111,7 +112,10 @@ class NodeGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
         try (NodeValueIndexCursor cursor = transaction
                 .cursors()
                 .allocateNodeValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
-            long foundId = transaction.dataRead().lockingNodeUniqueIndexSeek(index, cursor, exact(propertyId1, value));
+            long foundId = transaction
+                    .dataRead()
+                    .lockingNodeUniqueIndexSeek(
+                            transaction.dataRead().indexReadSession(index), cursor, exact(propertyId1, value));
 
             // then
             assertTrue(isNoSuchNode(foundId), "Non-matching created node was found");
@@ -134,7 +138,11 @@ class NodeGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
                 .allocateNodeValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
             long foundId = transaction
                     .dataRead()
-                    .lockingNodeUniqueIndexSeek(index, cursor, exact(propertyId1, value1), exact(propertyId2, value2));
+                    .lockingNodeUniqueIndexSeek(
+                            transaction.dataRead().indexReadSession(index),
+                            cursor,
+                            exact(propertyId1, value1),
+                            exact(propertyId2, value2));
 
             // then
             assertEquals(nodeId, foundId, "Created node was not found");
@@ -157,7 +165,11 @@ class NodeGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
                 .allocateNodeValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
             long foundId = transaction
                     .dataRead()
-                    .lockingNodeUniqueIndexSeek(index, cursor, exact(propertyId1, value1), exact(propertyId2, value2));
+                    .lockingNodeUniqueIndexSeek(
+                            transaction.dataRead().indexReadSession(index),
+                            cursor,
+                            exact(propertyId1, value1),
+                            exact(propertyId2, value2));
 
             // then
             assertTrue(isNoSuchNode(foundId), "Non-matching created node was found");
@@ -201,7 +213,9 @@ class NodeGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
                         kernel.beginTransaction(KernelTransaction.Type.IMPLICIT, LoginContext.AUTH_DISABLED)) {
                     try (NodeValueIndexCursor cursor =
                             tx.cursors().allocateNodeValueIndexCursor(tx.cursorContext(), tx.memoryTracker())) {
-                        tx.dataRead().lockingNodeUniqueIndexSeek(index, cursor, exact(propertyId1, value));
+                        tx.dataRead()
+                                .lockingNodeUniqueIndexSeek(
+                                        tx.dataRead().indexReadSession(index), cursor, exact(propertyId1, value));
                     }
                     tx.commit();
                 }
@@ -232,7 +246,9 @@ class NodeGetUniqueFromIndexSeekIT extends KernelIntegrationTest {
                     kernel.beginTransaction(KernelTransaction.Type.IMPLICIT, LoginContext.AUTH_DISABLED)) {
                 try (NodeValueIndexCursor cursor =
                         tx.cursors().allocateNodeValueIndexCursor(tx.cursorContext(), tx.memoryTracker())) {
-                    long nodeId = tx.dataRead().lockingNodeUniqueIndexSeek(index, cursor, exact(propertyId1, value));
+                    long nodeId = tx.dataRead()
+                            .lockingNodeUniqueIndexSeek(
+                                    tx.dataRead().indexReadSession(index), cursor, exact(propertyId1, value));
                     if (nodeId == StatementConstants.NO_SUCH_NODE) {
                         Write write = tx.dataWrite();
                         nodeId = write.nodeCreate();

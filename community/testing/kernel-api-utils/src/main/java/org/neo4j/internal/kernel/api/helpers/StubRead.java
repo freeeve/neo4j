@@ -96,13 +96,15 @@ public class StubRead implements Read {
 
     @Override
     public long lockingNodeUniqueIndexSeek(
-            IndexDescriptor index, NodeValueIndexCursor cursor, PropertyIndexQuery.ExactPredicate... predicates) {
+            IndexReadSession index, NodeValueIndexCursor cursor, PropertyIndexQuery.ExactPredicate... predicates) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public long lockingRelationshipUniqueIndexSeek(
-            IndexDescriptor index, RelationshipValueIndexCursor cursor, PropertyIndexQuery.ExactPredicate... predicates)
+            IndexReadSession index,
+            RelationshipValueIndexCursor cursor,
+            PropertyIndexQuery.ExactPredicate... predicates)
             throws KernelException {
         throw new UnsupportedOperationException();
     }

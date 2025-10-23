@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.internal.kernel.api.IndexReadSession;
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
 import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor;
 import org.neo4j.internal.kernel.api.SchemaWrite;
@@ -320,6 +321,7 @@ class UniquenessConstraintValidationIT extends KernelIntegrationTest {
         TokenRead tokenRead = transaction.tokenRead();
         int propId = tokenRead.propertyKey("id");
         IndexDescriptor idx = transaction.schemaRead().indexGetForName(constraint.getName());
+        IndexReadSession indexReadSession = transaction.dataRead().indexReadSession(idx);
 
         // when
         createLabeledNode(transaction, "Item", "id", 2);
@@ -328,7 +330,9 @@ class UniquenessConstraintValidationIT extends KernelIntegrationTest {
         try (NodeValueIndexCursor cursor = transaction
                 .cursors()
                 .allocateNodeValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
-            assertThat(transaction.dataRead().lockingNodeUniqueIndexSeek(idx, cursor, exact(propId, Values.of(1))))
+            assertThat(transaction
+                            .dataRead()
+                            .lockingNodeUniqueIndexSeek(indexReadSession, cursor, exact(propId, Values.of(1))))
                     .isEqualTo(ourNode);
         }
         commit();
@@ -351,6 +355,7 @@ class UniquenessConstraintValidationIT extends KernelIntegrationTest {
         TokenRead tokenRead = transaction.tokenRead();
         int propId = tokenRead.propertyKey("id");
         IndexDescriptor idx = transaction.schemaRead().indexGetForName(constraint.getName());
+        IndexReadSession indexReadSession = transaction.dataRead().indexReadSession(idx);
 
         // when
         createRelationship(transaction, "OTHER", "id", 2);
@@ -361,7 +366,7 @@ class UniquenessConstraintValidationIT extends KernelIntegrationTest {
                 .allocateRelationshipValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
             assertThat(transaction
                             .dataRead()
-                            .lockingRelationshipUniqueIndexSeek(idx, cursor, exact(propId, Values.of(1))))
+                            .lockingRelationshipUniqueIndexSeek(indexReadSession, cursor, exact(propId, Values.of(1))))
                     .isEqualTo(ourRelationship);
         }
         commit();
@@ -383,6 +388,7 @@ class UniquenessConstraintValidationIT extends KernelIntegrationTest {
         TokenRead tokenRead = transaction.tokenRead();
         int propId = tokenRead.propertyKey("id");
         IndexDescriptor idx = transaction.schemaRead().indexGetForName(constraint.getName());
+        IndexReadSession indexReadSession = transaction.dataRead().indexReadSession(idx);
 
         // when
         createLabeledNode(transaction, "Person", "id", 2);
@@ -391,7 +397,9 @@ class UniquenessConstraintValidationIT extends KernelIntegrationTest {
         try (NodeValueIndexCursor cursor = transaction
                 .cursors()
                 .allocateNodeValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
-            assertThat(transaction.dataRead().lockingNodeUniqueIndexSeek(idx, cursor, exact(propId, Values.of(1))))
+            assertThat(transaction
+                            .dataRead()
+                            .lockingNodeUniqueIndexSeek(indexReadSession, cursor, exact(propId, Values.of(1))))
                     .isEqualTo(ourNode);
         }
         commit();
@@ -413,6 +421,7 @@ class UniquenessConstraintValidationIT extends KernelIntegrationTest {
         TokenRead tokenRead = transaction.tokenRead();
         int propId = tokenRead.propertyKey("id");
         IndexDescriptor idx = transaction.schemaRead().indexGetForName(constraint.getName());
+        IndexReadSession indexReadSession = transaction.dataRead().indexReadSession(idx);
 
         // when
         createRelationship(transaction, "R", "id", 2);
@@ -423,7 +432,7 @@ class UniquenessConstraintValidationIT extends KernelIntegrationTest {
                 .allocateRelationshipValueIndexCursor(transaction.cursorContext(), transaction.memoryTracker())) {
             assertThat(transaction
                             .dataRead()
-                            .lockingRelationshipUniqueIndexSeek(idx, cursor, exact(propId, Values.of(1))))
+                            .lockingRelationshipUniqueIndexSeek(indexReadSession, cursor, exact(propId, Values.of(1))))
                     .isEqualTo(ourRelationship);
         }
         commit();

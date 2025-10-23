@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.newapi;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.neo4j.internal.kernel.api.EntityLocks;
+import org.neo4j.internal.kernel.api.IndexReadSession;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
@@ -67,6 +69,8 @@ class LockingNodeUniqueIndexSeekTest {
             .withName("index_12")
             .materialise(12);
 
+    private final IndexReadSession indexReadSession = mock(DefaultIndexReadSession.class, RETURNS_DEEP_STUBS);
+
     private final Value value = Values.of("value");
     private final PropertyIndexQuery.ExactPredicate predicate = exact(propertyKeyId, value);
     private final long resourceId = indexEntryResourceId(labelId, predicate);
@@ -77,6 +81,7 @@ class LockingNodeUniqueIndexSeekTest {
     @BeforeEach
     void setup() {
         order = inOrder(locks);
+        when(indexReadSession.reference()).thenReturn(index);
     }
 
     @Test
@@ -84,9 +89,10 @@ class LockingNodeUniqueIndexSeekTest {
         var cursor = mock(DefaultNodeValueIndexCursor.class);
         when(cursor.next()).thenReturn(true);
         when(cursor.nodeReference()).thenReturn(42L);
+        when(cursor.reference()).thenReturn(42L);
 
         var read = createMockedRead();
-        long nodeId = read.lockingNodeUniqueIndexSeek(index, cursor, predicate);
+        long nodeId = read.lockingNodeUniqueIndexSeek(indexReadSession, cursor, predicate);
 
         assertEquals(42L, nodeId);
         verify(locks).acquireShared(LockTracer.NONE, INDEX_ENTRY, resourceId);
@@ -96,10 +102,10 @@ class LockingNodeUniqueIndexSeekTest {
     void shouldHoldSharedIndexLockIfNodeIsConcurrentlyCreated() throws Exception {
         var cursor = mock(DefaultNodeValueIndexCursor.class);
         when(cursor.next()).thenReturn(false, true);
-        when(cursor.nodeReference()).thenReturn(42L);
+        when(cursor.reference()).thenReturn(42L);
 
         var read = createMockedRead();
-        long nodeId = read.lockingNodeUniqueIndexSeek(index, cursor, predicate);
+        long nodeId = read.lockingNodeUniqueIndexSeek(indexReadSession, cursor, predicate);
 
         assertEquals(42L, nodeId);
         order.verify(locks).acquireShared(LockTracer.NONE, INDEX_ENTRY, resourceId);
@@ -116,7 +122,7 @@ class LockingNodeUniqueIndexSeekTest {
         when(cursor.nodeReference()).thenReturn(-1L);
 
         var read = createMockedRead();
-        long nodeId = read.lockingNodeUniqueIndexSeek(index, cursor, predicate);
+        long nodeId = read.lockingNodeUniqueIndexSeek(indexReadSession, cursor, predicate);
 
         assertEquals(-1L, nodeId);
         order.verify(locks).acquireShared(LockTracer.NONE, INDEX_ENTRY, resourceId);

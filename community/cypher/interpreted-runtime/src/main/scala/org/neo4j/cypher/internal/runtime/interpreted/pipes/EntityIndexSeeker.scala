@@ -105,11 +105,11 @@ trait EntityIndexSeeker {
       case LockingUniqueIndexSeek =>
         val indexQueries = computeExactQueries(state, baseContext)
         if (indexQueries.size == 1) {
-          state.query.nodeLockingUniqueIndexSeek(index.reference(), indexQueries.head)
+          state.query.nodeLockingUniqueIndexSeek(index, indexQueries.head)
         } else {
           orderedCursor(
             indexOrder,
-            indexQueries.map(query => state.query.nodeLockingUniqueIndexSeek(index.reference(), query)).toArray
+            indexQueries.map(query => state.query.nodeLockingUniqueIndexSeek(index, query)).toArray
           )
         }
     }
@@ -141,13 +141,13 @@ trait EntityIndexSeeker {
     case LockingUniqueIndexSeek =>
       val indexQueries = computeExactQueries(state, baseContext)
       if (indexQueries.size == 1) {
-        state.query.relationshipLockingUniqueIndexSeek(index.reference(), indexQueries.head)
+        state.query.relationshipLockingUniqueIndexSeek(index, indexQueries.head)
       } else {
         orderedCursor(
           indexOrder,
           indexQueries.map(query =>
             state.query.relationshipLockingUniqueIndexSeek(
-              index.reference(),
+              index,
               query
             )
           ).toArray

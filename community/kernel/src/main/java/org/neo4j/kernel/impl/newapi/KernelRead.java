@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.newapi;
 import static java.lang.String.format;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.kernel.impl.locking.ResourceIds.indexEntryResourceId;
+import static org.neo4j.util.Preconditions.checkArgument;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -243,103 +244,74 @@ public class KernelRead implements Read {
 
     @Override
     public long lockingNodeUniqueIndexSeek(
-            IndexDescriptor index, NodeValueIndexCursor cursor, PropertyIndexQuery.ExactPredicate... predicates)
+            IndexReadSession index, NodeValueIndexCursor cursor, PropertyIndexQuery.ExactPredicate... predicates)
             throws IndexNotApplicableKernelException, IndexNotFoundKernelException, IndexBrokenKernelException {
-        verifyNotParallel();
-        assertIndexOnline(index);
-        assertPredicatesMatchSchema(index, predicates);
-
-        int[] entityTokenIds = index.schema().getEntityTokenIds();
-        if (entityTokenIds.length != 1) {
-            throw IndexNotApplicableKernelException.indexNotApplicable(
-                    log, index.getName(), "Multi-token index " + index + " does not support uniqueness.");
-        }
-        long indexEntryId = indexEntryResourceId(entityTokenIds[0], predicates);
-
-        // First try to find node under a shared lock
-        // if not found upgrade to exclusive and try again
-        entityLocks.acquireSharedIndexEntryLock(indexEntryId);
-        nodeIndexSeekForExactProperty(cursor, queryContext.cursorContext(), index, predicates);
-        if (!cursor.next()) {
-            entityLocks.releaseSharedIndexEntryLock(indexEntryId);
-            entityLocks.acquireExclusiveIndexEntryLock(indexEntryId);
-            nodeIndexSeekForExactProperty(cursor, queryContext.cursorContext(), index, predicates);
-            if (cursor.next()) {
-                // we found it under the exclusive lock
-                // downgrade to a shared lock
-                entityLocks.acquireSharedIndexEntryLock(indexEntryId);
-                entityLocks.releaseExclusiveIndexEntryLock(indexEntryId);
-                return cursor.nodeReference();
-            } else {
-                return StatementConstants.NO_SUCH_NODE;
-            }
-        }
-
-        return cursor.nodeReference();
+        return lockingUniqueIndexSeek(index, (DefaultEntityValueIndexCursor<?>) cursor, predicates);
     }
 
     @Override
     public long lockingRelationshipUniqueIndexSeek(
-            IndexDescriptor index, RelationshipValueIndexCursor cursor, PropertyIndexQuery.ExactPredicate... predicates)
+            IndexReadSession index,
+            RelationshipValueIndexCursor cursor,
+            PropertyIndexQuery.ExactPredicate... predicates)
             throws KernelException {
-        verifyNotParallel();
-        assertIndexOnline(index);
-        assertPredicatesMatchSchema(index, predicates);
+        return lockingUniqueIndexSeek(index, (DefaultEntityValueIndexCursor<?>) cursor, predicates);
+    }
 
-        int[] entityTokenIds = index.schema().getEntityTokenIds();
+    private long lockingUniqueIndexSeek(
+            IndexReadSession index,
+            DefaultEntityValueIndexCursor<?> cursor,
+            PropertyIndexQuery.ExactPredicate... predicates)
+            throws IndexNotApplicableKernelException, IndexNotFoundKernelException, IndexBrokenKernelException {
+        verifyNotParallel();
+        DefaultIndexReadSession indexSession = (DefaultIndexReadSession) index;
+        IndexDescriptor indexDescriptor = indexSession.reference();
+        ValueIndexReader reader = indexSession.reader();
+        CursorContext cursorContext = queryContext.cursorContext();
+        assertIndexOnline(indexDescriptor);
+        assertPredicatesMatchSchema(indexDescriptor, predicates);
+
+        int[] entityTokenIds = indexDescriptor.schema().getEntityTokenIds();
         if (entityTokenIds.length != 1) {
             throw IndexNotApplicableKernelException.indexNotApplicable(
-                    log, index.getName(), "Multi-token index " + index + " does not support uniqueness.");
+                    log, indexDescriptor.getName(), "Multi-token index " + index + " does not support uniqueness.");
         }
         long indexEntryId = indexEntryResourceId(entityTokenIds[0], predicates);
-
-        // First try to find relationship under a shared lock
+        // First try to find entity under a shared lock
         // if not found upgrade to exclusive and try again
         entityLocks.acquireSharedIndexEntryLock(indexEntryId);
-        relationshipIndexSeekForExactProperty(cursor, queryContext.cursorContext(), index, predicates);
+        exactEntityIndexSeek(cursor, cursorContext, reader, predicates);
         if (!cursor.next()) {
             entityLocks.releaseSharedIndexEntryLock(indexEntryId);
             entityLocks.acquireExclusiveIndexEntryLock(indexEntryId);
-            relationshipIndexSeekForExactProperty(cursor, queryContext.cursorContext(), index, predicates);
+            exactEntityIndexSeek(cursor, cursorContext, reader, predicates);
             if (cursor.next()) {
                 // we found it under the exclusive lock
                 // downgrade to a shared lock
                 entityLocks.acquireSharedIndexEntryLock(indexEntryId);
                 entityLocks.releaseExclusiveIndexEntryLock(indexEntryId);
-                return cursor.relationshipReference();
+                return cursor.reference();
             } else {
-                return StatementConstants.NO_SUCH_RELATIONSHIP;
+                return StatementConstants.NO_SUCH_ENTITY;
             }
         }
 
-        return cursor.relationshipReference();
+        return cursor.reference();
     }
 
-    public void nodeIndexSeekForExactProperty(
-            NodeValueIndexCursor valueCursor,
+    void indexSeekForExactProperty(
+            EntityIndexSeekClient entityIndexSeekClient,
             CursorContext cursorContext,
             IndexDescriptor index,
             PropertyIndexQuery.ExactPredicate... query)
             throws IndexNotFoundKernelException, IndexNotApplicableKernelException {
-        try (IndexReaders indexReaders = new IndexReaders(index, this)) {
-            entityIndexSeekWithFreshIndexReader(
-                    (EntityIndexSeekClient) valueCursor, cursorContext, indexReaders.createReader(), query);
+        checkArgument(index.isUnique(), "This method should only be used to verify uniqueness constraints");
+        try (var reader = newValueIndexReader(index)) {
+            exactEntityIndexSeek(entityIndexSeekClient, cursorContext, reader, query);
         }
     }
 
-    public void relationshipIndexSeekForExactProperty(
-            RelationshipValueIndexCursor valueCursor,
-            CursorContext cursorContext,
-            IndexDescriptor index,
-            PropertyIndexQuery.ExactPredicate... query)
-            throws IndexNotFoundKernelException, IndexNotApplicableKernelException {
-        try (IndexReaders indexReaders = new IndexReaders(index, this)) {
-            entityIndexSeekWithFreshIndexReader(
-                    (EntityIndexSeekClient) valueCursor, cursorContext, indexReaders.createReader(), query);
-        }
-    }
-
-    private void entityIndexSeekWithFreshIndexReader(
+    private void exactEntityIndexSeek(
             EntityIndexSeekClient cursor,
             CursorContext cursorContext,
             ValueIndexReader indexReader,
