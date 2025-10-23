@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor.unitVariables
@@ -62,6 +63,16 @@ case class RegularContext(constants: Set[LogicalVariable], variables: Set[Logica
     checkIfVariablesAreAlreadyDeclaredIn(variables, newVariables, errorFunc)
   }
 
+  @inline def checkIfVariablesHaveMultipleDeclarations(
+    newVariables: Iterable[LogicalVariable],
+    errorFunc: (String, InputPosition) => SemanticError = (n, p) => SemanticError.variableAlreadyDeclared(n, p)
+  )
+    : Seq[SemanticError] = {
+    checkIfVariablesAreAlreadyDeclaredIn(variables, newVariables, errorFunc) ++
+      checkIfNameOccursTwiceInDeclared(newVariables.toSeq, errorFunc)
+
+  }
+
   @inline private def checkIfVariablesAreAlreadyDeclaredIn(
     existingVariables: Set[LogicalVariable],
     newVariables: Iterable[LogicalVariable],
@@ -72,6 +83,20 @@ case class RegularContext(constants: Set[LogicalVariable], variables: Set[Logica
         case variable if existingVariables contains variable =>
           errorFunc.apply(variable.name, variable.position)
       }.toSeq
+    } else {
+      Seq.empty
+    }
+  }
+
+  @inline private def checkIfNameOccursTwiceInDeclared(
+    newVariables: Seq[LogicalVariable],
+    errorFunc: (String, InputPosition) => SemanticError
+  ): Seq[SemanticError] = {
+    if (newVariables.nonEmpty) {
+      newVariables.collect {
+        case variable if newVariables.exists(v => v.name == variable.name && v.position != variable.position) =>
+          errorFunc.apply(variable.name, variable.position)
+      }
     } else {
       Seq.empty
     }
@@ -184,10 +209,34 @@ case class PatternIncomingContext(
       groupConstants
     )
 
-  @inline def amendedWithTopologicalConstant(amendment: Set[LogicalVariable]): PatternIncomingContext =
+  @inline def amendedWithTopologicalConstants(amendment: Set[LogicalVariable]): PatternIncomingContext =
     PatternIncomingContext(
       topologicalConstants union amendment,
       predicateConstants,
+      pathConstants,
+      groupConstants
+    )
+
+  @inline def amendedWithConstantsAccordingToVersion(
+    amendment: LogicalVariable,
+    version: CypherVersion
+  ): PatternIncomingContext =
+    PatternIncomingContext(
+      topologicalConstants + amendment,
+      // CREATE/MERGE pattern in Cypher5 where predicates of pattern part can refer to variables introduce in earlier pattern parts
+      if (version == CypherVersion.Cypher5) predicateConstants + amendment else predicateConstants,
+      pathConstants,
+      groupConstants
+    )
+
+  @inline def amendedWithConstantAccordingToVersion(
+    amendment: Set[LogicalVariable],
+    version: CypherVersion
+  ): PatternIncomingContext =
+    PatternIncomingContext(
+      topologicalConstants union amendment,
+      // CREATE/MERGE pattern in Cypher5 where predicates of pattern part can refer to variables introduce in earlier pattern parts
+      if (version == CypherVersion.Cypher5) predicateConstants union amendment else predicateConstants,
       pathConstants,
       groupConstants
     )
@@ -202,6 +251,22 @@ case class PatternIncomingContext(
 
   @inline def removePathConstants(): PatternIncomingContext =
     PatternIncomingContext(topologicalConstants, predicateConstants, unitVariables, groupConstants)
+
+  @inline def addPathConstants(amendment: Set[LogicalVariable]): PatternIncomingContext =
+    PatternIncomingContext(
+      topologicalConstants,
+      predicateConstants,
+      pathConstants ++ amendment,
+      groupConstants
+    )
+
+  @inline def addGroupConstants(amendment: Set[LogicalVariable]): PatternIncomingContext =
+    PatternIncomingContext(
+      topologicalConstants,
+      predicateConstants,
+      pathConstants,
+      groupConstants ++ amendment
+    )
 
   @inline def resultScope(
     result: TableResult,

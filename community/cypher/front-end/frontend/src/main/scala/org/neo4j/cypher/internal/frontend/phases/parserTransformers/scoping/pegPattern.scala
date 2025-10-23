@@ -56,16 +56,16 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
         case _: ForMatch  => collectPathVariables(pattern)
         case _: ForUpdate => Set.empty
       },
-      groupConstants = pattern match {
-        case _: ForMatch  => collectGroupVariables(pattern)
-        case _: ForUpdate => Set.empty
-      }
+      groupConstants = Set.empty
     )
     val children =
       pattern.patternParts.scanLeft(WorkingScope.aprioriPattern(patternIncomingContext, RegularContext.unit)) {
         case (precedingPartsScope, currentPart) =>
           val newIncoming =
-            precedingPartsScope.patternIncoming.amendedWithTopologicalConstant(precedingPartsScope.outgoing.variables)
+            precedingPartsScope.patternIncoming.amendedWithConstantAccordingToVersion(
+              precedingPartsScope.outgoing.variables,
+              version
+            )
           scopePatternPart(currentPart, newIncoming, version)
       }.tail
     if (children.size == 1) {
@@ -109,7 +109,8 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
         selector match {
           case AllPaths() => scopePatternPart(patternPart, incoming, version)
           case _ =>
-            val patternPartIncoming = incoming.removePathConstants()
+            val newPathConstants = collectPathVariablesOfPatternPart(patternPart)
+            val patternPartIncoming = incoming.removePathConstants().addPathConstants(newPathConstants)
             val patternPartScope = scopePatternPart(patternPart, patternPartIncoming, version)
             val children = Seq(patternPartScope)
             incoming.resultScope(
@@ -140,14 +141,15 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
         val children = pathFactors.scanLeft(WorkingScope.aprioriPattern(incoming, RegularContext.unit)) {
           case (precedingFactorsScope, currentFactor) =>
             val newIncoming =
-              precedingFactorsScope.patternIncoming.amendedWithTopologicalConstant(
+              precedingFactorsScope.patternIncoming.amendedWithTopologicalConstants(
                 precedingFactorsScope.outgoing.variables
               )
             scopePatternElement(currentFactor, newIncoming, version)
         }.tail
         val declared = collectDeclaredFromChildren(children)
         val columns = collectColumnsFromChildren(children)
-        incoming.resultScope(TableResult(columns), children, declared = declared)
+        val groups = collectGroupsFromChildren(children)
+        incoming.addGroupConstants(groups).resultScope(TableResult(columns), children, declared = declared)
       case quantifiedPath: QuantifiedPath =>
         scopeQuantifiedPath(quantifiedPath, incoming, version)
       case parenthesizedPath: ParenthesizedPath =>
@@ -158,8 +160,13 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
         val patternAtoms = collectPatternAtoms(relationshipChain)
         val children =
           patternAtoms.scanLeft(WorkingScope.aprioriPattern(incoming, RegularContext.unit)) {
+            case (precedingAtomsScope, currentAtom: NodePattern) =>
+              val newIncoming = precedingAtomsScope.patternIncoming.amendedWithTopologicalConstants(
+                precedingAtomsScope.outgoing.variables
+              )
+              scopePatternAtom(currentAtom, newIncoming, version)
             case (precedingAtomsScope, currentAtom) =>
-              val newIncoming = precedingAtomsScope.patternIncoming.amendedWithTopologicalConstant(
+              val newIncoming = precedingAtomsScope.patternIncoming.amendedWithTopologicalConstants(
                 precedingAtomsScope.outgoing.variables
               )
               scopePatternAtom(currentAtom, newIncoming, version)
@@ -178,7 +185,8 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
     implicit val astNode: ASTNode = patternAtom
     patternAtom match {
       case NodePattern(variableOpt, labelExpressionOpt, propertiesOpt, predicateOpt) =>
-        val predicateIncoming = variableOpt.map(v => incoming.amendedWithTopologicalConstant(v)).getOrElse(incoming)
+        val predicateIncoming =
+          variableOpt.map(v => incoming.amendedWithTopologicalConstant(v)).getOrElse(incoming)
         val labelExpressionScopeOpt =
           labelExpressionOpt.map(labelExpression => scopePredicate(labelExpression, predicateIncoming, version))
         val propertiesScopeOpt =
@@ -198,7 +206,9 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
           if (varLengthOpt.isEmpty) incoming
           else PatternIncomingContext.unit
         val predicateIncoming =
-          variableOpt.map(v => varLengthIncoming.amendedWithTopologicalConstant(v)).getOrElse(varLengthIncoming)
+          variableOpt.map(v => varLengthIncoming.amendedWithTopologicalConstant(v)).getOrElse(
+            varLengthIncoming
+          )
         val labelExpressionScopeOpt =
           labelExpressionOpt.map(labelExpression => scopePredicate(labelExpression, predicateIncoming, version))
         val propertiesScopeOpt = propertiesOpt.map(expression => scopePredicate(expression, predicateIncoming, version))
@@ -224,7 +234,8 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
   ): PatternScope = {
     implicit val astNode: ASTNode = parenthesizedPath
     val ParenthesizedPath(patternPart, whereExpressionOpt) = parenthesizedPath
-    val newIncoming = incoming.removePathConstants()
+    val newPathConstants = collectPathVariablesOfPatternPart(patternPart)
+    val newIncoming = incoming.removePathConstants().addPathConstants(newPathConstants)
     val patternPartScope = scopePatternPart(patternPart, newIncoming, version)
     val whereExpressionScopes = whereExpressionOpt.map(whereExpression =>
       Seq(scopePredicate(whereExpression, newIncoming, version))
@@ -243,14 +254,16 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
     version: CypherVersion
   ): PatternScope = {
     implicit val astNode: ASTNode = quantifiedPath
-    val QuantifiedPath(patternPart, _, whereExpressionOpt, _) = quantifiedPath
-    val newIncoming = incoming.removePathConstants()
+    val QuantifiedPath(patternPart, _, whereExpressionOpt, variableGroupings) = quantifiedPath
+    val newPathConstants = collectPathVariablesOfPatternPart(patternPart)
+    val newIncoming = incoming.removePathConstants().addPathConstants(newPathConstants)
     val patternPartScope = scopePatternPart(patternPart, newIncoming, version)
     val whereExpressionScopes = whereExpressionOpt.map(whereExpression =>
       Seq(scopePredicate(whereExpression, newIncoming, version))
     ).getOrElse(Seq.empty[WorkingScope])
     val children = patternPartScope +: whereExpressionScopes
-    incoming.resultScope(
+    val groups = collectPathVariablesOfPatternPart(patternPart) union variableGroupings.map(_.singleton)
+    incoming.addGroupConstants(groups).resultScope(
       patternPartScope.result,
       children,
       declared = patternPartScope.declared
@@ -273,41 +286,16 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
     )
   }
 
+  private def collectPathVariablesOfPatternPart(patternPart: PatternPart): Set[LogicalVariable] = {
+    patternPart match {
+      case NamedPatternPart(variable, _) => Set(variable)
+      case PatternPartWithSelector(_, patternPart) =>
+        collectPathVariablesOfPatternPart(patternPart)
+      case _ => Set.empty
+    }
+  }.toSet
+
   private def collectPathVariables(pattern: Pattern): Set[LogicalVariable] = {
-    // path variable can only be assigned at the top
-    def collectPathVariablesOfPatternPart(patternPart: PatternPart): Set[LogicalVariable] = {
-      patternPart match {
-        case NamedPatternPart(variable, _) => Set(variable)
-        case PatternPartWithSelector(_, patternPart) =>
-          collectPathVariablesOfPatternPart(patternPart)
-        case _ => Set.empty
-      }
-    }.toSet
-
-    pattern.patternParts.flatMap(pp => collectPathVariablesOfPatternPart(pp)).toSet
-  }
-
-  private def collectGroupVariables(pattern: Pattern): Set[LogicalVariable] = {
-    def collectGroupsFromElement(element: PatternElement): Set[LogicalVariable] = {
-      element match {
-        case PathConcatenation(factors) => factors.flatMap(collectGroupsFromElement).toSet
-        case QuantifiedPath(part, _, _, variableGroupings) =>
-          collectPathVariablesOfPatternPart(part) union variableGroupings.map(_.singleton)
-        case ParenthesizedPath(part, _) => collectPathVariablesOfPatternPart(part)
-        case _                          => Set.empty
-      }
-    }
-
-    @tailrec
-    def collectPathVariablesOfPatternPart(patternPart: PatternPart): Set[LogicalVariable] = {
-      patternPart match {
-        case NamedPatternPart(_, anon)               => collectPathVariablesOfPatternPart(anon)
-        case PatternPartWithSelector(_, patternPart) => collectPathVariablesOfPatternPart(patternPart)
-        case PathPatternPart(element)                => collectGroupsFromElement(element)
-        case _                                       => Set.empty
-      }
-    }
-
     pattern.patternParts.flatMap(pp => collectPathVariablesOfPatternPart(pp)).toSet
   }
 
@@ -380,17 +368,10 @@ case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
     Declarations(Seq.empty, children.flatMap(_.declared.variables))
   }
 
-//  private def collectAnonDeclaredFromChildren(children: Seq[PatternScope], removeAll: Boolean): Declarations = {
-//    // no duplicates in declared
-//    Declarations(
-//      Seq.empty,
-//      children.flatMap {
-//        case PatternScope(_, _, _, declared, result, _) if removeAll =>
-//          declared.variables.filter(v => result.columns.exists(_.name == v.name))
-//        case PatternScope(_: NodePattern, _, _, declared, result, _) =>
-//          declared.variables.filter(v => result.columns.exists(_.name == v.name))
-//        case x => x.declared.variables
-//      }
-//    )
-//  }
+  private def collectGroupsFromChildren(children: Seq[PatternScope]): Set[LogicalVariable] = {
+    // no duplicates in declared
+    children.foldLeft(Set.empty[LogicalVariable]) {
+      case (acc, child) => acc ++ child.patternIncoming.groupConstants
+    }
+  }
 }

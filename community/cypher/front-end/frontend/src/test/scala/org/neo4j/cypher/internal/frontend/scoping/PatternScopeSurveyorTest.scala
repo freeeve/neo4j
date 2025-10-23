@@ -1018,26 +1018,26 @@ class PatternScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedResult.TableResult("p", "r", "b"),
               ExpectedWorkingScope(
                 Ast("p = (:A) (()-[r:R]->())+ (b:B)"),
-                PatternIncoming(predicate = Set("r", "b")),
+                PatternIncoming(predicate = Set("r", "b"), path = Set("p")),
                 Declared(variables = Seq("p", "  UNNAMED0", "  UNNAMED1", "r", "  UNNAMED2", "b")),
                 Outgoing(variables = Set("p", "r", "b")),
                 ExpectedResult.TableResult("p", "r", "b"),
                 ExpectedWorkingScope(
                   Ast("(:A) (()-[r:R]->())+ (b:B)"),
-                  PatternIncoming(predicate = Set("r", "b")),
+                  PatternIncoming(predicate = Set("r", "b"), path = Set("p")),
                   Declared(variables = Seq("  UNNAMED0", "  UNNAMED1", "r", "  UNNAMED2", "b")),
                   Outgoing(variables = Set("r", "b")),
                   ExpectedResult.TableResult("r", "b"),
                   ExpectedWorkingScope(
                     Ast("(:A)"),
-                    PatternIncoming(predicate = Set("r", "b")),
+                    PatternIncoming(predicate = Set("r", "b"), path = Set("p")),
                     Declared(variables = Seq("  UNNAMED0")),
                     ExpectedResult.TableResult(),
-                    ExpectedWorkingScope.constExp("A", Set("r", "b"))
+                    ExpectedWorkingScope.constExp("A", Set("r", "b", "p"))
                   ),
                   ExpectedWorkingScope(
                     Ast("(()-[r:R]->())+"),
-                    PatternIncoming(predicate = Set("r", "b")),
+                    PatternIncoming(predicate = Set("r", "b"), path = Set("p")),
                     Declared(variables = Seq("  UNNAMED1", "r", "  UNNAMED2")),
                     Outgoing(variables = Set("r")),
                     ExpectedResult.TableResult("r"),
@@ -1071,11 +1071,11 @@ class PatternScopeSurveyorTest extends VariableCheckingTestSuite {
                   ),
                   ExpectedWorkingScope(
                     Ast("(b:B)"),
-                    PatternIncoming(topology = Set("r"), predicate = Set("r", "b")),
+                    PatternIncoming(topology = Set("r"), predicate = Set("r", "b"), path = Set("p")),
                     Declared(variables = Seq("b")),
                     Outgoing(variables = Set("b")),
                     ExpectedResult.TableResult("b"),
-                    ExpectedWorkingScope.constExp("B", Set("r", "b"))
+                    ExpectedWorkingScope.constExp("B", Set("r", "b", "p"))
                   )
                 )
               )

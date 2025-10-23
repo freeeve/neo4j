@@ -95,7 +95,7 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
        * Scalar subqueries
        */
       case fse: FullSubqueryExpression =>
-        val child = ScopeSurveyor.scope(fse.query, incoming, anonVarGen, version)
+        val child = ScopeSurveyor.scope(fse.query, incoming.constantChildContext(), anonVarGen, version)
         val children = Seq(child)
         collect(incoming.expressionResultScope(fse, children))
 
@@ -137,6 +137,7 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
         }
         val declared = Declarations(variables, Seq.empty)
         collect(incoming.expressionResultScope(pc, children, referenced, declared))
+
       case iter: IterablePredicateExpression =>
         val FilterScope(variable, innerPredicate) = iter.scope
         val innerIncoming = incoming.amendedWithConstant(variable)

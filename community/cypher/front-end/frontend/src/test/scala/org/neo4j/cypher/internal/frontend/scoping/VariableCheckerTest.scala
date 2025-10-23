@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.frontend.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
+
 class VariableCheckerTest extends VariableCheckingTestSuite {
 
   /**
@@ -197,6 +199,38 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   test("""CREATE (n {p: n.p})
          |RETURN n""".stripMargin) {
     error("42N62", "Variable `n` not defined.")
+  }
+
+  test("""CREATE (n {p: n.q})
+         |RETURN n""".stripMargin) {
+    error("42N62", "Variable `n` not defined.", CypherVersion.Cypher5)
+  }
+
+  test("""CREATE (a:A {p: a.q})-[r:R {p: a.q}]->(b:B {p: a.q})
+         |RETURN a""".stripMargin) {
+    error("42N62", "Variable `a` not defined.", CypherVersion.Cypher5)
+  }
+
+  test("""CREATE (a:A), (a)-[r:R {p: a.t}]->(b:B {p: a.q})
+         |RETURN a""".stripMargin) {
+    passes(CypherVersion.Cypher5)
+  }
+
+  test("""CREATE (a:A), (a)-[r:R {p: a.q}]->(b:B {p: a.q})
+         |RETURN a""".stripMargin) {
+    // Should fail with 42I58 in the future
+    error("42N62", "Variable `a` not defined.", CypherVersion.Cypher25)
+  }
+
+  test("""CREATE (a:A {p: 1})-[r:R {p: 1}]->(b:B {p: 1}), (c:C)-[s:S {p: a.p+b.p+r.p}]->(d:D)
+         |RETURN a""".stripMargin) {
+    passes(CypherVersion.Cypher5)
+  }
+
+  test("""CREATE (a:A {p: 2})-[r:R {p: 1}]->(b:B {p: 1}), (c:C)-[s:S {p: a.p+b.p+r.p}]->(d:D)
+         |RETURN a""".stripMargin) {
+    // Should fail with 42I58 in the future
+    error("42N62", "Variable `a` not defined.", CypherVersion.Cypher25)
   }
 
   test("""MATCH (n {p: n.p})
@@ -591,6 +625,71 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test("""MATCH (p)-[]-(x)
+         |MATCH p = (x)-[]-(y), x = (p)
+         |RETURN p, x""".stripMargin) {
+    error("42N59", "Variable `p` already declared.")
+  }
+
+  test("""MATCH p = (p)--() RETURN p""".stripMargin) {
+    error("42N59", "Variable `p` already declared.")
+  }
+
+  test("""MATCH ((a)-[r]->(b))+, (b)-[c]->(d)
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `b` already declared.")
+  }
+
+  test("""MATCH ((a)--(b))+, (a WHERE size([1,2]) = 2)
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""MATCH ((a)--(b))+, (a) WHERE size([1,2]) = 2
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""MATCH ((a)--(b))+, (x WHERE size(a) = 2)
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH ((a)--(b))+, (x) WHERE size(a) = 2
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH ((a)--(b))+, (n:$(a[0].name))
+         |RETURN *;""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH ((a)--(b))+, (n {prop:size(a)})
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH ((a)--(b))+, (n:$(a[0].name) {prop:size(a)} WHERE size(a) = 1)
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH ((a)--(b))+, (a:$(a[0].name) {prop:size(a)} WHERE size(a) = 1)
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""MATCH ((a)-[r]-(b))+, ()-[x:$(r[0].name) {prop:size(r)} WHERE size(r) = 1]->()
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH ((a)-[r]-(b))+, ()-[r:$(r[0].name) {prop:size(r)} WHERE size(r) = 1]->()
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `r` already declared.")
+  }
+
   /**
    * Shadowing variable in outer scope
    */
@@ -757,6 +856,19 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42I37", "'RETURN *' is not allowed when there are no variables in scope.")
   }
 
+  test("""MATCH (p:Person)
+         |WHERE COUNT { MATCH (p) RETURN * } = 1
+         |RETURN p.name AS name""".stripMargin) {
+    passes()
+  }
+
+  test(
+    """WITH 1 AS a
+      |RETURN COUNT { RETURN * } AS x""".stripMargin
+  ) {
+    passes()
+  }
+
   /**
    * Relationship already bound
    */
@@ -764,6 +876,35 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |MATCH p = shortestPath((src)-[r*]->(dst))
          |RETURN src, dst""".stripMargin) {
     error("42N66", "relationship variable already bound")
+  }
+
+  /**
+   * Incompatible return columns
+   */
+
+  test(
+    """CALL () {
+      |  RETURN 1 as x, 2 AS y
+      |  UNION
+      |  RETURN 3 AS y, 2 as x
+      |}
+      |RETURN x, y""".stripMargin
+  ) {
+    passes()
+  }
+
+  test(
+    """CALL () {
+      |  RETURN 1 as x, 2 AS y
+      |  UNION
+      |  RETURN 3 AS y, 2 as z
+      |}
+      |RETURN x, y""".stripMargin
+  ) {
+    error(
+      "42N39",
+      "error: syntax error or access rule violation - incompatible return column names. All UNION subqueries must have the same return column names. Use `AS` to ensure columns have the same name."
+    )
   }
 
   /**
@@ -842,6 +983,48 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N59", "Variable `n` already declared.")
   }
 
+  test("""MATCH ((a)-[e]->(b)-[f]->(a))+(p)-[g]->(r)-[q]->(s)
+         |RETURN a, b, p, r, s""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH ((a)-[b]->(c))* (d)-[e]->() ((a)-[f]->(g)){2,}
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""MATCH ((a)-[b]->(c))*(d), (f)-[e]->(a)
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""MATCH (a)-->(b)
+         |MATCH (x)--(y)((a)-->(t)){1,5}()-->(z)
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""MATCH (a:A) MATCH p = ( ()--() WHERE EXISTS { (a) } )+
+         |RETURN length(p) AS l""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (a)-->(b)
+         |MATCH (x)--(y)((s)-->(t WHERE a.p = 1)){1,5}()-->(z)
+         |RETURN *;""".stripMargin) {
+    passes()
+  }
+
+  test("""CALL test.my.proc(null) YIELD a, b AS a
+         |RETURN a""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""CALL test.my.proc(null) YIELD a AS c, b AS c
+         |RETURN c""".stripMargin) {
+    error("42N59", "Variable `c` already declared.")
+  }
+
   test("""FOREACH(v IN [null] | CREATE ({property: v}))""".stripMargin) {
     passes()
   }
@@ -861,4 +1044,29 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test("""CREATE (a {prop: 1}), ({prop: a.prop})""".stripMargin) {
+    passes(CypherVersion.Cypher5)
+    error("42N62", "Variable `a` not defined.")
+  }
+
+  test("""MATCH (a)
+         |
+         |RETURN COLLECT {
+         |  MATCH (a)
+         |  RETURN a
+         |  UNION
+         |  MATCH (a)
+         |  RETURN a
+         |}""".stripMargin) {
+    passes()
+  }
+
+  test("""CREATE (this0:Movie)
+         |CALL {
+         |  WITH *
+         |  RETURN this0 AS x
+         |}
+         |RETURN 1 AS data""".stripMargin) {
+    passes()
+  }
 }

@@ -84,7 +84,8 @@ case class pegClause(anonVarGen: AnonymousVariableNameGenerator) {
       // composition
       // Importing With is already deprecated
       case call @ ImportingWithSubqueryCall(query, inTransactionsParameters, _) =>
-        val importedVariableSet: Set[LogicalVariable] = query.importColumns.toSet
+        val importedVariableSet: Set[LogicalVariable] =
+          if (query.isCorrelated && query.importColumns.isEmpty) incoming.variables else query.importColumns.toSet
         val innerQueryIncoming = RegularContext(constants = unitVariables, variables = importedVariableSet)
         val innerQuery = query.withoutImportingWith
         scopeInlineSubquery(
@@ -115,9 +116,9 @@ case class pegClause(anonVarGen: AnonymousVariableNameGenerator) {
       // named call
       case UnresolvedCall(_, _, declaredArguments, declaredResult, _, _) =>
         val children =
-          declaredArguments.map(_.map(arg =>
-            pegExpression(anonVarGen)(arg, incoming.constantChildContext(), version)
-          )).getOrElse(Seq.empty)
+          declaredArguments.map(
+            _.map(arg => pegExpression(anonVarGen)(arg, incoming.constantChildContext(), version))
+          ).getOrElse(Seq.empty)
         val referenced = Some(WorkingScope.referencedInChildren(children))
         if (declaredResult.isEmpty) {
           // standalone call without YIELD or with YIELD *
@@ -376,7 +377,9 @@ case class pegClause(anonVarGen: AnonymousVariableNameGenerator) {
         RegularContext(constants, variables)
       }
       val aggregationItemScopes =
-        aggregationItems.map(item => pegExpression(anonVarGen)(item.expression, aggregationItemIncoming, version))
+        aggregationItems.map(item =>
+          pegExpression(anonVarGen)(item.expression, aggregationItemIncoming, version)
+        )
       val referencedInAggregationItems = WorkingScope.referencedInChildren(aggregationItemScopes)
       val newVariablesFromAggregation = returnItemAliases(aggregationItems)
       val notShadowedAggregationVariables =

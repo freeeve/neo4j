@@ -209,40 +209,53 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
-  def passes(version: CypherVersion = CypherVersion.Cypher25): Unit = {
-    val query = testName
-    runQuery(query, version) match {
-      case Left(state) =>
-        state.maybeWorkingScope should not be empty
+  def passes(version: CypherVersion): Unit = passes(Array(version))
 
-        if (testLog) {
-          log.append(
-            s"""Query:
+  def passes(versions: Array[CypherVersion] = Array(CypherVersion.Cypher25)): Unit = {
+    val query = testName
+    versions.foreach(version => {
+      runQuery(query, version) match {
+        case Left(state) =>
+          state.maybeWorkingScope should not be empty
+
+          if (testLog) {
+            log.append(
+              s"""Version: $version
+                 |Query:
+                 |
+                 |$query
+                 |
+                 |passed without errors.
+                 |----------
+                 |""".stripMargin
+            )
+          }
+        case Right(semanticErrors) =>
+          fail(
+            s"""Version: $version
+               |Query:
                |
                |$query
                |
-               |passed without errors.
-               |----------
-               |""".stripMargin
+               |is expected to be successful, but
+               |
+               |actually threw errors: ${pprint.apply(semanticErrors)}""".stripMargin
           )
-        }
-      case Right(semanticErrors) =>
-        fail(
-          s"""Query:
-             |
-             |$query
-             |
-             |is expected to be successful, but
-             |
-             |actually threw errors: ${pprint.apply(semanticErrors)}""".stripMargin
-        )
-    }
+      }
+
+    })
   }
 
   def error(
     expectedGqlStatusCode: String,
     msgContains: String,
-    version: CypherVersion = CypherVersion.Cypher25
+    version: CypherVersion
+  ): Unit = error(expectedGqlStatusCode, msgContains, Array(version))
+
+  def error(
+    expectedGqlStatusCode: String,
+    msgContains: String,
+    versions: Array[CypherVersion] = Array(CypherVersion.Cypher25)
   ): Unit = {
     val query = testName
 
@@ -256,89 +269,107 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         }
     }
 
-    runQuery(query, version) match {
-      case Left(_) =>
-        fail(
-          s"""Query:
-             |
-             |$query
-             |
-             |is expected to throw an error, but
-             |
-             |actually was successful""".stripMargin
-        )
-      case Right(semanticErrors) =>
-        semanticErrors.collectFirst(Function.unlift {
-          semanticError: SemanticError => findGqlStatus(semanticError.gqlStatusObject)
-        }) match {
-          case Some(gqlStatusObject) =>
-            gqlStatusObject.gqlStatus() shouldBe expectedGqlStatusCode
-            gqlStatusObject.statusDescription() should include(msgContains)
+    versions.foreach(version => {
+      runQuery(query, version) match {
+        case Left(_) =>
+          fail(
+            s"""Version: $version
+               |Query:
+               |
+               |$query
+               |
+               |is expected to throw an error, but
+               |
+               |actually was successful""".stripMargin
+          )
+        case Right(semanticErrors) =>
+          semanticErrors.collectFirst(Function.unlift {
+            semanticError: SemanticError => findGqlStatus(semanticError.gqlStatusObject)
+          }) match {
+            case Some(gqlStatusObject) =>
+              gqlStatusObject.gqlStatus() shouldBe expectedGqlStatusCode
+              gqlStatusObject.statusDescription() should include(msgContains)
 
-            if (testLog) {
-              log.append(
-                s"""Query:
+              if (testLog) {
+                log.append(
+                  s"""Version: $version
+                     |Query:
+                     |
+                     |$query
+                     |
+                     |Error:
+                     |
+                     |${logPPrint(gqlStatusObject).plainText.trim}
+                     |----------
+                     |""".stripMargin
+                )
+              }
+            case None => fail(
+                s"""Version: $version
+                   |Query:
                    |
                    |$query
                    |
-                   |Error:
+                   |is expected to throw gql status $expectedGqlStatusCode, but
                    |
-                   |${logPPrint(gqlStatusObject).plainText.trim}
-                   |----------
-                   |""".stripMargin
+                   |actually did not.
+                   |
+                   |Errors:
+                   |${semanticErrors.map(x => logPPrint(x.gqlStatusObject).plainText.trim).mkString(", ")}""".stripMargin
               )
-            }
-          case None => fail(
-              s"""Query:
-                 |
-                 |$query
-                 |
-                 |is expected to throw gql status $expectedGqlStatusCode, but
-                 |
-                 |actually did not""".stripMargin
-            )
-        }
+          }
+      }
+    })
 
-    }
   }
 
   def hasScope(
     expected: ExpectedWorkingScope,
-    version: CypherVersion = CypherVersion.Cypher25,
+    version: CypherVersion,
+    skipVariableChecker: Boolean
+  ): Unit = hasScope(expected, Array(version), skipVariableChecker)
+
+  def hasScope(
+    expected: ExpectedWorkingScope,
+    versions: Array[CypherVersion] = Array(CypherVersion.Cypher25),
     skipVariableChecker: Boolean = false
   ): Unit = {
     val query = testName
-    runQuery(query, version, skipVariableChecker) match {
-      case Left(state) =>
-        state.maybeWorkingScope should not be empty
-        val ws = state.maybeWorkingScope.get
+    versions.foreach(version => {
+      runQuery(query, version, skipVariableChecker) match {
+        case Left(state) =>
+          state.maybeWorkingScope should not be empty
+          val ws = state.maybeWorkingScope.get
 
-        assertExpectation(ws, expected)
+          assertExpectation(ws, expected)
 
-        if (testLog) {
-          log.append(
-            s"""Query:
+          if (testLog) {
+            log.append(
+              s"""Query:
+                 |
+                 |$query
+                 |
+                 |Working scope:
+                 |
+                 |${logPPrint(ws)}
+                 |----------
+                 |""".stripMargin
+            )
+          }
+        case Right(semanticErrors) =>
+          fail(
+            s"""Version: $version
+               |Query:
                |
                |$query
                |
-               |Working scope:
+               |is expected to be successful, but
                |
-               |${logPPrint(ws)}
-               |----------
-               |""".stripMargin
+               |actually threw errors: ${pprint.apply(semanticErrors)}""".stripMargin
           )
-        }
-      case Right(semanticErrors) =>
-        fail(
-          s"""Query:
-             |
-             |$query
-             |
-             |is expected to be successful, but
-             |
-             |actually threw errors: ${pprint.apply(semanticErrors)}""".stripMargin
-        )
-    }
+      }
+
+    })
   }
 
   private def assertExpectation(ws: WorkingScope, expected: ExpectedWorkingScope): Unit = {
