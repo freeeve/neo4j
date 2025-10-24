@@ -50,7 +50,14 @@ class MagicInputStreamTest {
     @MethodSource("allTheMagic")
     void create(Magic headerMagic, boolean withMarkSupport) throws IOException {
         final var bytes = random.nextBytes(new byte[42 + headerMagic.length()]);
-        System.arraycopy(headerMagic.bytes(), 0, bytes, 0, headerMagic.length());
+        if (headerMagic == Magic.NONE) {
+            // ensure we don't randomly create a valid magic header by blatting out the determining header range
+            for (var i = 0; i < Magic.longest(); i++) {
+                bytes[i] = (byte) 0;
+            }
+        } else {
+            System.arraycopy(headerMagic.bytes(), 0, bytes, 0, headerMagic.length());
+        }
 
         final var streamCreationCount = new AtomicInteger();
         final var closed = new AtomicBoolean();
