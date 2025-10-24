@@ -303,6 +303,7 @@ public class TxState implements TransactionState {
         return getDataRevision() != 0;
     }
 
+    @Override
     public EnrichmentMode enrichmentMode() {
         return enrichmentStrategy.check();
     }

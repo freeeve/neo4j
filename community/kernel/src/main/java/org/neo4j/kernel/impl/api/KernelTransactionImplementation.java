@@ -51,6 +51,7 @@ import org.neo4j.collection.Dependencies;
 import org.neo4j.collection.factory.CollectionsFactory;
 import org.neo4j.collection.pool.Pool;
 import org.neo4j.common.DependencyResolver;
+import org.neo4j.common.ThreadSanitizer;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.LocalConfig;
@@ -164,6 +165,7 @@ import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.kernel.internal.event.TransactionEventListeners;
 import org.neo4j.lock.ActiveLock;
 import org.neo4j.lock.LockTracer;
+import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.MemoryTracker;
@@ -195,6 +197,7 @@ import org.neo4j.storageengine.api.txstate.validation.TransactionValidatorFactor
 import org.neo4j.storageengine.api.txstate.validation.ValidationLockDumper;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
+import org.neo4j.util.FeatureToggles;
 import org.neo4j.values.ElementIdMapper;
 
 public class KernelTransactionImplementation
@@ -211,6 +214,8 @@ public class KernelTransactionImplementation
     private static final long NOT_COMMITTED_TRANSACTION_COMMIT_TIME = -1;
     private static final String TRANSACTION_TAG = "transaction";
     private static final VarHandle CURSOR_CONTEXT_HANDLE = getVarHandle(lookup(), "cursorContext");
+    private static final boolean SANITIZE_CONCURRENT_TXSTATE_ACCESS =
+            FeatureToggles.flag(KernelTransaction.class, "sanitizeConcurrentTxStateAccess", false);
 
     private final CollectionsFactory collectionsFactory;
 
@@ -255,7 +260,7 @@ public class KernelTransactionImplementation
 
     // State that needs to be reset between uses. Most of these should be cleared or released in #release(),
     // whereas others, such as timestamp or txId when transaction starts, even locks, needs to be set in #initialize().
-    private TxState txState;
+    private TransactionState txState;
     private volatile TransactionWriteState writeState;
     protected AccessCapability accessCapability;
     private final KernelStatement currentStatement;
@@ -1079,6 +1084,13 @@ public class KernelTransactionImplementation
                     txStateWriter,
                     txStateMemoryConsumer,
                     transactionEvent);
+            if (SANITIZE_CONCURRENT_TXSTATE_ACCESS) {
+                Log log = logProvider.getLog(KernelTransactionImplementation.class);
+                txState = ThreadSanitizer.sanitize(
+                        txState,
+                        TransactionState.class,
+                        e -> log.error("Concurrent access of Transaction State is happening!", e));
+            }
         }
         return txState;
     }

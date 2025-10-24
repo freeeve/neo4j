@@ -25,6 +25,7 @@ import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.constraints.IndexBackedConstraintDescriptor;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.enrichment.EnrichmentMode;
 import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
@@ -114,4 +115,6 @@ public interface TransactionState extends ReadableTransactionState {
      * a transaction will throw an Exception.
      */
     void createVectorStore(Vector.CoordinateType coordinateType, int dimensions);
+
+    EnrichmentMode enrichmentMode();
 }

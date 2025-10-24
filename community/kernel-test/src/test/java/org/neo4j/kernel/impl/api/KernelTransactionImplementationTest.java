@@ -108,7 +108,6 @@ import org.neo4j.kernel.api.query.ExecutingQuery;
 import org.neo4j.kernel.api.security.AnonymousContext;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.database.DatabaseIdFactory;
-import org.neo4j.kernel.impl.api.state.TxState;
 import org.neo4j.kernel.impl.api.transaction.trace.TransactionInitializationTrace;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.monitoring.TransactionMonitor;
@@ -920,7 +919,7 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                     EMBEDDED_CONNECTION,
                     mock(ProcedureView.class),
                     0L);
-            assertThat(((TxState) transaction.txState()).enrichmentMode()).isEqualTo(mode);
+            assertThat((transaction.txState()).enrichmentMode()).isEqualTo(mode);
             if (createNode) {
                 transaction.dataWrite().nodeCreate();
             } else {

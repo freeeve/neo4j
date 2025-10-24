@@ -29,7 +29,7 @@ import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.exceptions.Status;
-import org.neo4j.kernel.impl.api.state.TxState;
+import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
@@ -52,7 +52,7 @@ public class TransactionEventListeners {
         this.storageReader = storageReader;
     }
 
-    public void beforeCommit(TxState txState, boolean isCommitCall) throws TransactionFailureException {
+    public void beforeCommit(TransactionState txState, boolean isCommitCall) throws TransactionFailureException {
         if (listenersSnapshot == null) {
             listenersSnapshot = databaseEventListeners.getCurrentRegisteredTransactionEventListeners();
         }
