@@ -155,6 +155,7 @@ public class KernelRead implements Read {
             IndexReadSession index,
             NodeValueIndexCursor cursor,
             IndexQueryConstraints constraints,
+            boolean includeChangesFromThisTransaction,
             PropertyIndexQuery... query)
             throws IndexNotApplicableKernelException {
         performCheckBeforeOperation();
@@ -198,6 +199,7 @@ public class KernelRead implements Read {
             IndexReadSession index,
             RelationshipValueIndexCursor cursor,
             IndexQueryConstraints constraints,
+            boolean includeChangesFromThisTransaction,
             PropertyIndexQuery... query)
             throws IndexNotApplicableKernelException {
         performCheckBeforeOperation();
@@ -322,7 +324,11 @@ public class KernelRead implements Read {
     }
 
     @Override
-    public void nodeIndexScan(IndexReadSession index, NodeValueIndexCursor cursor, IndexQueryConstraints constraints)
+    public void nodeIndexScan(
+            IndexReadSession index,
+            NodeValueIndexCursor cursor,
+            IndexQueryConstraints constraints,
+            boolean includeChangesFromThisTransaction)
             throws KernelException {
         performCheckBeforeOperation();
         DefaultIndexReadSession indexSession = (DefaultIndexReadSession) index;
@@ -356,7 +362,10 @@ public class KernelRead implements Read {
 
     @Override
     public void relationshipIndexScan(
-            IndexReadSession index, RelationshipValueIndexCursor cursor, IndexQueryConstraints constraints)
+            IndexReadSession index,
+            RelationshipValueIndexCursor cursor,
+            IndexQueryConstraints constraints,
+            boolean includeChangesFromThisTransaction)
             throws KernelException {
         performCheckBeforeOperation();
         DefaultIndexReadSession indexSession = (DefaultIndexReadSession) index;
@@ -458,7 +467,8 @@ public class KernelRead implements Read {
             NodeLabelIndexCursor cursor,
             IndexQueryConstraints constraints,
             TokenPredicate query,
-            CursorContext cursorContext)
+            CursorContext cursorContext,
+            boolean includeChangesFromThisTransaction)
             throws KernelException {
         performCheckBeforeOperation();
 
@@ -478,7 +488,7 @@ public class KernelRead implements Read {
     }
 
     @Override
-    public void allNodesScan(NodeCursor cursor) {
+    public void allNodesScan(NodeCursor cursor, boolean includeChangesFromThisTransaction) {
         performCheckBeforeOperation();
         ((DefaultNodeCursor) cursor).scan(this, txStateHolder, accessModeProvider);
     }
@@ -531,7 +541,7 @@ public class KernelRead implements Read {
     }
 
     @Override
-    public void allRelationshipsScan(RelationshipScanCursor cursor) {
+    public void allRelationshipsScan(RelationshipScanCursor cursor, boolean includeChangesFromThisTransaction) {
         performCheckBeforeOperation();
         ((DefaultRelationshipScanCursor) cursor).scan(this, txStateHolder, accessModeProvider);
     }
@@ -592,7 +602,8 @@ public class KernelRead implements Read {
             RelationshipTypeIndexCursor cursor,
             IndexQueryConstraints constraints,
             TokenPredicate query,
-            CursorContext cursorContext)
+            CursorContext cursorContext,
+            boolean includeChangesFromThisTransaction)
             throws KernelException {
         performCheckBeforeOperation();
 
