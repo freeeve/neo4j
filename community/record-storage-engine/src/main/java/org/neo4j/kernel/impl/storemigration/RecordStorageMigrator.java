@@ -348,6 +348,12 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                             ? super.maxOffHeapMemory()
                             : maxOffHeapMemory;
                 }
+
+                @Override
+                public boolean enableInstrumentation() {
+                    // should be unused anyway in the record import, but better safe than sorry!
+                    return false;
+                }
             };
             AdditionalInitialIds additionalInitialIds = readAdditionalIds(
                     lastTxId,

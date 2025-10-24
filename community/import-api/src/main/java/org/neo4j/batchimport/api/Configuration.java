@@ -204,6 +204,30 @@ public interface Configuration {
         return 1;
     }
 
+    /**
+     * Enables performance monitoring instrumentation, will be a NO-OP if none of {@code
+     * instrumentationCaptureJFRs()} {@code instrumentationCaptureThreadDumps} are set to true
+     */
+    default boolean enableInstrumentation() {
+        return true;
+    }
+
+    /**
+     * Enables JFR captures when {@code ImportPerformanceInstrumentation} notices significant performance loss
+     * Setting is ignored if {@code enableInstrumentation} is {@code false}
+     */
+    default boolean instrumentationCaptureJFRs() {
+        return true;
+    }
+
+    /**
+     * Enables Thread dump captures when {@code ImportPerformanceInstrumentation} notices significant performance loss.
+     * Setting is ignored if {@code enableInstrumentation} is {@code false}
+     */
+    default boolean instrumentationCaptureThreadDumps() {
+        return false;
+    }
+
     Configuration DEFAULT = new Configuration() {};
 
     /**
@@ -328,6 +352,21 @@ public interface Configuration {
         @Override
         public int indexPopulationBufferCountAmplification() {
             return defaults.indexPopulationBufferCountAmplification();
+        }
+
+        @Override
+        public boolean enableInstrumentation() {
+            return defaults.enableInstrumentation();
+        }
+
+        @Override
+        public boolean instrumentationCaptureJFRs() {
+            return defaults.instrumentationCaptureJFRs();
+        }
+
+        @Override
+        public boolean instrumentationCaptureThreadDumps() {
+            return defaults.instrumentationCaptureThreadDumps();
         }
     }
 

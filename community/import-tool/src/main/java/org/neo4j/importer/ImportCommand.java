@@ -477,6 +477,34 @@ public class ImportCommand {
                                 + "If not specifically provided, the default temp path will be created inside the database directory of the imported database.")
         private Path tempPath;
 
+        @Option(
+                names = "--disable-instrumentation",
+                hidden = true,
+                defaultValue = "false",
+                fallbackValue = "true",
+                description = "Disable import performance instrumentation")
+        private boolean disableInstrumentation;
+
+        @Option(
+                names = "--capture-java-flight-recordings",
+                hidden = true,
+                arity = "0..1",
+                fallbackValue = "true",
+                defaultValue = "true",
+                description = "Enable import performance instrumentation to take java flight recordings when "
+                        + "significant performance issues are found")
+        private boolean captureJFRs;
+
+        @Option(
+                names = "--capture-thread-dumps",
+                hidden = true,
+                arity = "0..1",
+                fallbackValue = "true",
+                defaultValue = "false",
+                description = "Enable import performance instrumentation to take thread dumps when "
+                        + "significant performance issues are found")
+        private boolean captureThreadDumps;
+
         protected Monitor monitor = Monitor.NO_MONITOR;
 
         protected Base(ExecutionContext ctx) {
@@ -733,6 +761,21 @@ public class ImportCommand {
                 @Override
                 public boolean strictNodeCheck() {
                     return strict;
+                }
+
+                @Override
+                public boolean enableInstrumentation() {
+                    return !disableInstrumentation;
+                }
+
+                @Override
+                public boolean instrumentationCaptureJFRs() {
+                    return captureJFRs;
+                }
+
+                @Override
+                public boolean instrumentationCaptureThreadDumps() {
+                    return captureThreadDumps;
                 }
 
                 @Override

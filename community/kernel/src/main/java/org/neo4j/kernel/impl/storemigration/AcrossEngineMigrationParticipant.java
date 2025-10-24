@@ -188,6 +188,11 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                                 ? super.maxOffHeapMemory()
                                 : maxOffHeapMemory;
                     }
+
+                    @Override
+                    public boolean enableInstrumentation() {
+                        return false;
+                    }
                 },
                 logService,
                 progressOutput,
