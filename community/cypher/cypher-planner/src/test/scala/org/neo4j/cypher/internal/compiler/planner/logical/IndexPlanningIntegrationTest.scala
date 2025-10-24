@@ -3134,4 +3134,68 @@ class IndexPlanningIntegrationTest
       .build()
   }
 
+  test("should plan a node index scan from an equality predicate spanning multiple components") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 800)
+      .setLabelCardinality("B", 500)
+      .addNodeIndex("A", Seq("prop"), 0.1, 0.1)
+      .build()
+
+    val query = "MATCH (a:A), (b:B) WHERE b.prop = a.prop RETURN *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .valueHashJoin("cacheN[a.prop] = b.prop")
+      .|.nodeByLabelScan("b", "B")
+      .nodeIndexOperator("a:A(prop)", getValue = Map("prop" -> GetValue))
+      .build()
+  }
+
+  test("should plan a relationship index scan from an equality predicate spanning multiple components") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[:REL]->()", 500)
+      .addRelationshipIndex("REL", Seq("prop"), 0.1, 0.1)
+      .build()
+
+    val query = "MATCH ()-[r:REL]->(), (b) WHERE b.prop = r.prop RETURN *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .valueHashJoin("cacheR[r.prop] = b.prop")
+      .|.allNodeScan("b")
+      .relationshipIndexOperator("()-[r:REL(prop)]->()", getValue = Map("prop" -> GetValue))
+      .build()
+  }
+
+  test("should plan index operator for both sides of equality within the same component, given two index hints") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 800)
+      .setLabelCardinality("B", 500)
+      .setRelationshipCardinality("()-[]->()", 400)
+      .setRelationshipCardinality("(:A)-[]->()", 300)
+      .setRelationshipCardinality("()-[]->(:B)", 350)
+      .setRelationshipCardinality("(:A)-[]->(:B)", 200)
+      .addNodeIndex("A", Seq("x"), 0.1, 0.1)
+      .addNodeIndex("B", Seq("y"), 0.1, 0.1)
+      .build()
+
+    val query =
+      """MATCH (a:A)-->(b:B)
+        |USING INDEX a:A(x)
+        |USING INDEX b:B(y)
+        |WHERE a.x = b.y
+        |RETURN a, b
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("cacheN[a.x] = cacheN[b.y]")
+      .nodeHashJoin("b")
+      .|.nodeIndexOperator("b:B(y)", getValue = Map("y" -> GetValue))
+      .expandAll("(a)-[]->(b)")
+      .nodeIndexOperator("a:A(x)", getValue = Map("x" -> GetValue))
+      .build()
+  }
+
 }

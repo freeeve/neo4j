@@ -82,7 +82,7 @@ final case class ExistsSubqueryPlannerWithCaching() extends ExistsSubqueryPlanne
       case LogicalPlanningContext(
           _,
           _,
-          PlannerState(_, _, _, _, _, _, _, previouslyCachedProperties)
+          PlannerState(_, _, _, _, _, _, _, previouslyCachedProperties, _)
         ) =>
         previouslyCachedProperties
     }

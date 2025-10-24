@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOpti
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CostComparisonListener
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProducer
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
@@ -288,6 +289,9 @@ object LogicalPlanningContext {
    *                           Thus not relevant for caching.
    * @param previouslyCachedProperties properties that have already been fetched by previous horizons.
    *                                   This is useful in the RHS of apply's, optionalMatch, etc so that the rhs doesn't try to fetch properties again.
+   * @param overlappingMulticomponentPredicates When planning multiple components, contains predicates that have
+   *                                            dependencies on the currently planned component and one or more other
+   *                                            components. Such predicates might be partially solved.
    */
   case class PlannerState(
     input: QueryGraphSolverInput = QueryGraphSolverInput.empty,
@@ -298,7 +302,8 @@ object LogicalPlanningContext {
     accessedProperties: Set[PropertyAccess] = Set.empty,
     contextualPropertyAccess: ContextualPropertyAccess = ContextualPropertyAccess.empty,
     config: QueryPlannerConfiguration = QueryPlannerConfiguration.default,
-    previouslyCachedProperties: CachedProperties = CachedProperties.empty
+    previouslyCachedProperties: CachedProperties = CachedProperties.empty,
+    overlappingMulticomponentPredicates: Set[Expression] = Set.empty
   ) {
 
     val accessedAndAggregatingProperties: Set[PropertyAccess] =
@@ -358,6 +363,9 @@ object LogicalPlanningContext {
 
     def importedSubqueryVariables: Set[LogicalVariable] =
       maybeEnclosingSubquery.fold(Set.empty[LogicalVariable])(_.importedVariables)
+
+    def withOverlappingMulticomponentPredicates(predicates: Set[Expression]): PlannerState =
+      copy(overlappingMulticomponentPredicates = predicates)
   }
 
 }

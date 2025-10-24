@@ -37,6 +37,8 @@ import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 
+import scala.util.chaining.scalaUtilChainingOps
+
 trait IDPQueryGraphSolverMonitor extends IDPSolverMonitor {
   def noIDPIterationFor(graph: QueryGraph, result: LogicalPlan): Unit
   def initTableFor(graph: QueryGraph): Unit
@@ -199,17 +201,28 @@ case class IDPQueryGraphSolver(
     parentQueryGraph: QueryGraph
   ): Seq[PlannedComponent] = {
     def updatedContext(qg: QueryGraph) = {
-      if (context.staticComponents.planContext.databaseMode == DatabaseMode.SHARDED) {
-        val relatedPredicates = parentQueryGraph.selections.flatPredicatesSet.diff(
-          qg.selections.flatPredicatesSet
-        ).filter(_.dependencies.exists(qg.dependencies.contains))
-        val propertyAccessInRelatedQueryQueryGraph = PropertyAccessHelper.findPropertyAccesses(relatedPredicates.toSeq)
-        val updatedContextualPropertyAccess = context.plannerState.contextualPropertyAccess.copy(
-          propertyAccessInOtherComponents = propertyAccessInRelatedQueryQueryGraph
-        )
-        context.withModifiedPlannerState(_.withContextualPropertyAccess(updatedContextualPropertyAccess))
-      } else
-        context
+      val additionalParentPredicates =
+        parentQueryGraph.selections.flatPredicatesSet.diff(qg.selections.flatPredicatesSet)
+
+      context
+        .pipe { context =>
+          val overlappingPredicates =
+            additionalParentPredicates.filter(_.dependencies.exists(qg.allCoveredIds.contains))
+          context.withModifiedPlannerState(_.withOverlappingMulticomponentPredicates(overlappingPredicates))
+        }
+        .pipe { context =>
+          if (context.staticComponents.planContext.databaseMode == DatabaseMode.SHARDED) {
+            val relatedPredicates =
+              additionalParentPredicates.filter(_.dependencies.exists(qg.dependencies.contains))
+            val propertyAccessInRelatedQueryQueryGraph =
+              PropertyAccessHelper.findPropertyAccesses(relatedPredicates.toSeq)
+            val updatedContextualPropertyAccess = context.plannerState.contextualPropertyAccess.copy(
+              propertyAccessInOtherComponents = propertyAccessInRelatedQueryQueryGraph
+            )
+            context.withModifiedPlannerState(_.withContextualPropertyAccess(updatedContextualPropertyAccess))
+          } else
+            context
+        }
     }
 
     components.map { qg =>

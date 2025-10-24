@@ -63,7 +63,7 @@ case class NodeIndexLeafPlanner(planProviders: Seq[NodeIndexPlanProvider], restr
     context: LogicalPlanningContext
   ): Set[LogicalPlan] = {
     val indexMatches = findIndexMatchesForQueryGraph(
-      qg,
+      qg.addPredicates(context.plannerState.overlappingMulticomponentPredicates),
       context.semanticTable,
       context.staticComponents.planContext,
       context.plannerState.indexCompatiblePredicatesProviderContext,

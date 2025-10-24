@@ -1718,8 +1718,7 @@ class PushOperatorsToShardPlanningIntegrationTest
         argumentIds = Set("city"),
         getValue = Map("firstName" -> DoNotGetValue)
       )
-      .remoteBatchProperties("cacheNFromStore[city.name]")
-      .nodeByLabelScan("city", "City")
+      .nodeIndexOperator("city:City(name)", getValue = Map("name" -> GetValue))
       .build())
   }
 
@@ -1743,8 +1742,7 @@ class PushOperatorsToShardPlanningIntegrationTest
           getValue = Map("id" -> GetValue),
           unique = true
         )
-        .remoteBatchProperties("cacheNFromStore[person.id]")
-        .nodeByLabelScan("person", "Person")
+        .nodeIndexOperator("person:Person(id)", getValue = Map("id" -> GetValue))
         .build()) or
         equal(planner.planBuilder().produceResults("`person.id`", "`friend.id`")
           .projection("cacheN[person.id] AS `person.id`", "cacheN[friend.id] AS `friend.id`")
@@ -1755,8 +1753,7 @@ class PushOperatorsToShardPlanningIntegrationTest
             getValue = Map("id" -> GetValue),
             unique = true
           )
-          .remoteBatchProperties("cacheNFromStore[friend.id]")
-          .nodeByLabelScan("friend", "Person")
+          .nodeIndexOperator("friend:Person(id)", getValue = Map("id" -> GetValue))
           .build())
     )
   }

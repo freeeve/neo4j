@@ -575,6 +575,34 @@ class SargableTest extends CypherFunSuite with AstConstructionTestSupport {
     }
   }
 
+  test("should produce scannable property for both sides of equality predicate") {
+    val axProp = prop("a", "x")
+    val byProp = prop("b", "y")
+    val equalsPred = equals(axProp, byProp)
+
+    assertMatches(equalsPred) {
+      case AsPropertyScannable(scannables) =>
+        scannables.iterator.toList shouldEqual List(
+          ImplicitlyPropertyScannable(
+            PartialPredicateWrapper(isNotNull(axProp), equalsPred),
+            v"a",
+            axProp,
+            solvesPredicate = false,
+            CTAny,
+            safelyScannableWhenNegated = true
+          ),
+          ImplicitlyPropertyScannable(
+            PartialPredicateWrapper(isNotNull(byProp), equalsPred),
+            v"b",
+            byProp,
+            solvesPredicate = false,
+            CTAny,
+            safelyScannableWhenNegated = true
+          )
+        )
+    }
+  }
+
   private def assertMatches[T](item: Expression)(pf: PartialFunction[Expression, T]) =
     if (pf.isDefinedAt(item)) pf(item) else fail(s"Failed to match: $item")
 

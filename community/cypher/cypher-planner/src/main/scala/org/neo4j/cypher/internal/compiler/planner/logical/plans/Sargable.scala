@@ -158,7 +158,9 @@ object AsPropertyScannable {
       ).toSeq.toNonEmptyListOption
 
     case expr: Equals =>
-      partialPropertyPredicate(expr, expr.lhs).map(NonEmptyList(_))
+      (partialPropertyPredicate(expr, expr.lhs) ++
+        partialPropertyPredicate(expr, expr.rhs))
+        .toNonEmptyListOption
 
     case expr @ In(lhs, rhs) =>
       // Because `NOT NULL IN []` is `TRUE`, then null property values can only be safely
@@ -211,11 +213,11 @@ object AsPropertyScannable {
 
   private def partialPropertyPredicate[P <: Expression](
     predicate: P,
-    lhs: Expression,
+    predicateArgumentExpr: Expression,
     cypherType: CypherType = CTAny,
     safelyScannableWhenNegated: Boolean = true
   ): Option[ImplicitlyPropertyScannable[IsNotNull]] = {
-    lhs match {
+    predicateArgumentExpr match {
       case property @ Property(ident: LogicalVariable, _) =>
         PartialPredicate.ifNotEqual(
           IsNotNull(property)(predicate.position),
