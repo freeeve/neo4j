@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper
 import org.neo4j.cypher.internal.runtime.slotted.SlottedPipelineBreakingPolicy
 import org.neo4j.cypher.internal.runtime.slotted.expressions.MaterializedEntitiesExpressionConverter
 import org.neo4j.cypher.internal.runtime.slotted.expressions.SlottedExpressionConverters
+import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherException
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
@@ -87,6 +88,7 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
         printPlanInfo(query)
       }
 
+      val cancellationChecker: CancellationChecker = () => context.assertOpen.assertOpen()
       val physicalPlan = PhysicalPlanner.plan(
         context.tokenContext,
         query.logicalPlan,
@@ -94,7 +96,7 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
         SlottedPipelineBreakingPolicy,
         context.config,
         context.anonymousVariableNameGenerator,
-        () => context.assertOpen.assertOpen()
+        cancellationChecker
       )
 
       if (ENABLE_DEBUG_PRINTS && PRINT_PLAN_INFO_EARLY) {
@@ -149,9 +151,9 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
         pipeTreeBuilder,
         physicalPlan.logicalPlan,
         physicalPlan.availableExpressionVariables,
-        () => context.assertOpen.assertOpen()
+        cancellationChecker
       )
-      val pipe = pipeTreeBuilder.build(logicalPlanWithConvertedNestedPlans, () => context.assertOpen.assertOpen())
+      val pipe = pipeTreeBuilder.build(logicalPlanWithConvertedNestedPlans, cancellationChecker, isNestedPlan = false)
       val columns = query.resultColumns
 
       val transactionMode = calculateTransactionMode(query)

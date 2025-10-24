@@ -51,6 +51,7 @@ import org.neo4j.cypher.internal.logical.plans.AllNodesScan
 import org.neo4j.cypher.internal.logical.plans.AntiConditionalApply
 import org.neo4j.cypher.internal.logical.plans.AntiSemiApply
 import org.neo4j.cypher.internal.logical.plans.Apply
+import org.neo4j.cypher.internal.logical.plans.ApplyPlan
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.AssertSameNode
 import org.neo4j.cypher.internal.logical.plans.AssertSameRelationship
@@ -106,6 +107,7 @@ import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByElementIdSeek
@@ -376,6 +378,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.NonGroupi
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.OrderedGroupingAggTable
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.OrderedNonGroupingAggTable
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
+import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Eagerly
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -403,6 +406,21 @@ case class InterpretedPipeMapper(
   private def getBuildExpression(id: Id): internal.expressions.Expression => Expression =
     ((e: internal.expressions.Expression) => expressionConverters.toCommandExpression(id, e)) andThen
       (expression => expression.rewrite(KeyTokenResolver.resolveExpressions(_, tokenContext)))
+
+  // State set onBeginMap
+  private[this] var rootPlan: LogicalPlan = _
+  private[this] var cancellationChecker: CancellationChecker = _
+  private[this] var isNestedPlan: Boolean = _
+
+  override def onBeginMap(
+    rootPlan: LogicalPlan,
+    cancellationChecker: CancellationChecker,
+    isNestedPlan: Boolean
+  ): Unit = {
+    this.rootPlan = rootPlan
+    this.cancellationChecker = cancellationChecker
+    this.isNestedPlan = isNestedPlan
+  }
 
   override def onLeaf(plan: LogicalPlan): Pipe = {
     val id = plan.id
@@ -1507,7 +1525,11 @@ case class InterpretedPipeMapper(
         val projection = groupingExpressions.map {
           case (key, value) => DistinctPipe.GroupingCol(key.name, buildExpression(value))
         }.toArray
-        DistinctPipe(source, projection)(id = id)
+        // NOTE: This is doing a bit of unnecessary recursive traversal that could have been tracked in
+        //       the pipe mapper traversal logic itself.
+        //       However, this case only applies when explicitly requesting legacy runtime.
+        val isTopLevel = !isNestedPlan && !InterpretedPipeMapper.isOnRhsOfApplyPlan(plan, rootPlan, cancellationChecker)
+        DistinctPipe(source, projection, enableScopedHeapEstimatorCache = isTopLevel)(id = id)
 
       case OrderedDistinct(_, groupingExpressions, orderToLeverage) =>
         val projection = groupingExpressions.map {
@@ -2353,4 +2375,53 @@ case class InterpretedPipeMapper(
       case plans.Ascending(name)  => org.neo4j.cypher.internal.runtime.interpreted.Ascending(name.name)
       case plans.Descending(name) => org.neo4j.cypher.internal.runtime.interpreted.Descending(name.name)
     }
+}
+
+object InterpretedPipeMapper {
+
+  def isOnRhsOfApplyPlan(
+    plan: LogicalPlan,
+    rootPlan: LogicalPlan,
+    cancellationChecker: CancellationChecker
+  ): Boolean = {
+
+    case class Acc(
+      foundOnRhs: Boolean = false,
+      applyNestingDepth: Int = 0
+    )
+
+    val result = LogicalPlans.foldPlan(Acc())(
+      root = rootPlan,
+      f = { (acc, p) =>
+        if (p == plan && acc.applyNestingDepth > 0) {
+          acc.copy(foundOnRhs = true)
+        } else {
+          acc
+        }
+      },
+      combineLeftAndRight = { (lhsAcc, rhsAcc, plan) =>
+        Acc(
+          foundOnRhs = lhsAcc.foundOnRhs || rhsAcc.foundOnRhs,
+          applyNestingDepth = plan match {
+            case _: ApplyPlan =>
+              // Coming back from ApplyPlan: decrement nesting depth
+              rhsAcc.applyNestingDepth - 1
+            case _ =>
+              // Coming back from non-ApplyPlan: restore LHS depth
+              lhsAcc.applyNestingDepth
+          }
+        )
+      },
+      mapArguments = { (acc, plan) =>
+        plan match {
+          case _: ApplyPlan =>
+            acc.copy(applyNestingDepth = acc.applyNestingDepth + 1)
+          case _ =>
+            acc
+        }
+      }
+    )(cancellationChecker)
+
+    result.foundOnRhs
+  }
 }
