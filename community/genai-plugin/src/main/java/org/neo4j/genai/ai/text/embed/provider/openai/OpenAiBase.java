@@ -132,10 +132,11 @@ public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementat
        }
     */
     private Object buildPayload(List<String> resources) {
-        final var payload = Maps.mutable.of(
-                "input", resources,
-                "encoding_format", ENCODING_FORMAT);
+        final var payload = Maps.mutable.<String, Object>empty();
         extendPayload(payload);
+        // Put in after so the user can't override the input and encoding_format
+        payload.put("input", resources);
+        payload.put("encoding_format", ENCODING_FORMAT);
         return payload;
     }
 

@@ -71,7 +71,7 @@ public class VectorEmbedding {
             @Name(
                             value = "provider",
                             description =
-                                    "The identifier of the provider: 'AzureOpenAI', 'Bedrock', 'OpenAI', 'VertexAI'.")
+                                    "The identifier of the provider: 'Azure-OpenAI', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.")
                     String providerName,
             @Sensitive
                     @Name(
@@ -116,7 +116,7 @@ public class VectorEmbedding {
             @Name(
                             value = "provider",
                             description =
-                                    "The identifier of the provider: 'AzureOpenAI', 'Bedrock', 'OpenAI', 'VertexAI'.")
+                                    "The identifier of the provider: 'Azure-OpenAI', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.")
                     String providerName,
             @Sensitive
                     @Name(value = "configuration", defaultValue = "{}", description = "The provider specific settings.")
