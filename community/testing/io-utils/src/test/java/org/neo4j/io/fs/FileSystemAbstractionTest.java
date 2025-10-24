@@ -854,6 +854,24 @@ public abstract class FileSystemAbstractionTest {
         assertThat(fsa.fileExists(to.resolve(b1))).isTrue();
     }
 
+    @Test
+    void nonAppendModeImpliesTruncation() throws IOException {
+        // The documentation of nonAppendMode implies truncation
+        ensureDirectoryExists(path);
+        Path target = path.resolve("target");
+
+        // Create the file
+        try (var os = fsa.openAsOutputStream(target, false)) {
+            byte[] data = new byte[1024];
+            Arrays.fill(data, (byte) 'a');
+            os.write(data);
+        }
+        try (var os = fsa.openAsOutputStream(target, false)) {
+            // noop
+        }
+        assertThat(fsa.getFileSize(target)).isEqualTo(0);
+    }
+
     private void generateFileWithRecords(Path file, int recordCount) throws IOException {
         try (StoreChannel channel = fsa.write(file)) {
             ByteBuffer buf = ByteBuffers.allocate(recordSize, ByteOrder.LITTLE_ENDIAN, INSTANCE);
