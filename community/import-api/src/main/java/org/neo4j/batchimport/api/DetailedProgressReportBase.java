@@ -28,6 +28,7 @@ import java.util.function.IntFunction;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.batchimport.api.DetailedProgressReport.Stats;
 import org.neo4j.batchimport.api.input.ApplicationMode;
+import org.neo4j.common.EntityType;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.schema.SchemaUserDescription;
 
@@ -40,11 +41,15 @@ public class DetailedProgressReportBase {
     private final MutableStats relationshipStats = new MutableStats();
     private final PerTokenMutableStats perLabelStats = new PerTokenMutableStats();
     private final PerTokenMutableStats perRelationshipTypeStats = new PerTokenMutableStats();
-    private final MutableStats indexStats = new MutableStats();
-    private final MutableStats constraintStats = new MutableStats();
+    private final MutableStats nodeIndexStats = new MutableStats();
+    private final MutableStats nodeConstraintStats = new MutableStats();
+    private final MutableStats relationshipIndexStats = new MutableStats();
+    private final MutableStats relationshipConstraintStats = new MutableStats();
     private final Timer schemaTimer = new Timer();
     private final Timer nodeTimer = new Timer();
     private final Timer relationshipTimer = new Timer();
+    private final long estimatedTotalNumberOfNodes;
+    private final long estimatedTotalNumberOfRelationships;
     private final boolean trackPerEntityTokenStats;
     private volatile TokenNameLookup tokenNameLookup = SchemaUserDescription.TOKEN_ID_NAME_LOOKUP;
 
@@ -52,7 +57,12 @@ public class DetailedProgressReportBase {
      * @param trackPerEntityTokenStats register stats per entity tokens too. Optional because it's
      * slightly more expensive and those stats are not always used.
      */
-    public DetailedProgressReportBase(boolean trackPerEntityTokenStats) {
+    public DetailedProgressReportBase(
+            long estimatedTotalNumberOfNodes,
+            long estimatedTotalNumberOfRelationships,
+            boolean trackPerEntityTokenStats) {
+        this.estimatedTotalNumberOfNodes = estimatedTotalNumberOfNodes;
+        this.estimatedTotalNumberOfRelationships = estimatedTotalNumberOfRelationships;
         this.trackPerEntityTokenStats = trackPerEntityTokenStats;
     }
 
@@ -68,12 +78,18 @@ public class DetailedProgressReportBase {
         return relationshipStats;
     }
 
-    public MutableStats indexStats() {
-        return indexStats;
+    public MutableStats indexStats(EntityType entityType) {
+        return switch (entityType) {
+            case NODE -> nodeIndexStats;
+            case RELATIONSHIP -> relationshipIndexStats;
+        };
     }
 
-    public MutableStats constraintStats() {
-        return constraintStats;
+    public MutableStats constraintStats(EntityType entityType) {
+        return switch (entityType) {
+            case NODE -> nodeConstraintStats;
+            case RELATIONSHIP -> relationshipConstraintStats;
+        };
     }
 
     public Timer schemaTimer() {
@@ -104,12 +120,16 @@ public class DetailedProgressReportBase {
 
     public DetailedProgressReport snapshot() {
         return new DetailedProgressReport(
+                estimatedTotalNumberOfNodes,
+                estimatedTotalNumberOfRelationships,
                 nodeStats.snapshot(),
                 relationshipStats.snapshot(),
                 perLabelStats.snapshot(tokenNameLookup::labelGetName),
                 perRelationshipTypeStats.snapshot(tokenNameLookup::relationshipTypeGetName),
-                indexStats.snapshot(),
-                constraintStats.snapshot(),
+                nodeIndexStats.snapshot(),
+                nodeConstraintStats.snapshot(),
+                relationshipIndexStats.snapshot(),
+                relationshipConstraintStats.snapshot(),
                 nodeTimer.snapshot(),
                 relationshipTimer.snapshot(),
                 schemaTimer.snapshot());

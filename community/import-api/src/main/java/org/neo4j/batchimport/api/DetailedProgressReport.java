@@ -26,12 +26,16 @@ import java.util.Map;
  * Detailed, (ideally) immutable progress report from an import. A new will be generated with a certain frequency.
  */
 public record DetailedProgressReport(
+        long estimatedTotalNumberOfNodes,
+        long estimatedTotalNumberOfRelationships,
         Stats nodeStats,
         Stats relationshipStats,
         Map<String, Stats> perLabelStats,
         Map<String, Stats> perRelationshipTypeStats,
-        Stats indexStats,
-        Stats constraintStats,
+        Stats nodeIndexStats,
+        Stats nodeConstraintStats,
+        Stats relationshipIndexStats,
+        Stats relationshipConstraintStats,
         Duration nodeImportDuration,
         Duration relationshipImportDuration,
         Duration schemaImportDuration) {
