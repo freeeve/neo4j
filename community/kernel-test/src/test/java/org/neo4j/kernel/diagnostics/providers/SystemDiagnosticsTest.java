@@ -20,6 +20,7 @@
 package org.neo4j.kernel.diagnostics.providers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.io.File;
 import org.junit.jupiter.api.Test;
@@ -42,5 +43,23 @@ class SystemDiagnosticsTest {
 
         // then
         assertThat(canonicalized).isEqualTo(path);
+    }
+
+    @Test
+    void shouldHandleInvalidPathsGracefully() {
+        String invalidFileName = "thisfilenameisinvalid\0.bad";
+        assertThatCode(() -> SystemDiagnostics.canonicalize(invalidFileName)).doesNotThrowAnyException();
+        assertThat(SystemDiagnostics.canonicalize(invalidFileName)).contains(invalidFileName);
+        assertThat(SystemDiagnostics.canonicalize(invalidFileName)).contains("InvalidPath");
+    }
+
+    @Test
+    void shouldHandlePathWithExtraWhitespace() {
+        // On windows we have seen a case where the path variable contained an entry with a spurious line break
+        // We should be able to ignore surrounding whitespace
+        String pathWithTrailingNoise = directory.directory("mydir") + File.separator + "test.txt\n";
+        assertThatCode(() -> SystemDiagnostics.canonicalize(pathWithTrailingNoise))
+                .doesNotThrowAnyException();
+        assertThat(SystemDiagnostics.canonicalize(pathWithTrailingNoise)).isEqualTo(pathWithTrailingNoise.trim());
     }
 }
