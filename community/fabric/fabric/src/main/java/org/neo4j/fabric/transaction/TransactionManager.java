@@ -101,7 +101,9 @@ public class TransactionManager extends LifecycleAdapter {
 
         var sessionDb = transactionInfo.getSessionDatabaseReference();
 
-        transactionInfo.getLoginContext().authorize(LoginContext.IdLookup.EMPTY, sessionDb, securityLog);
+        transactionInfo
+                .getLoginContext()
+                .authorize(LoginContext.IdLookup.EMPTY, sessionDb, securityLog, clock.millis());
 
         var procedures = new FabricProcedures(globalProcedures.getCurrentView());
 

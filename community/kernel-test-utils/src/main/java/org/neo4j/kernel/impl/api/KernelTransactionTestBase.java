@@ -228,8 +228,8 @@ class KernelTransactionTestBase {
             long userTransactionId,
             long startTimeMillis,
             KernelTransactionImplementation tx) {
-        SecurityContext securityContext =
-                loginContext.authorize(LoginContext.IdLookup.EMPTY, sessionDatabase, CommunitySecurityLog.NULL_LOG);
+        SecurityContext securityContext = loginContext.authorize(
+                LoginContext.IdLookup.EMPTY, sessionDatabase, CommunitySecurityLog.NULL_LOG, startTimeMillis);
         tx.initialize(
                 lastTransactionIdWhenStarted,
                 KernelTransaction.Type.EXPLICIT,

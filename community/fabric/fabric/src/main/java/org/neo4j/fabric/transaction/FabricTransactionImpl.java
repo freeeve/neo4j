@@ -95,7 +95,8 @@ public class FabricTransactionImpl extends AbstractCompoundTransaction<SingleDbT
         this.locationCache = new LocationCache(catalogManager, transactionInfo);
 
         try {
-            remoteTransactionContext = remoteExecutor.startTransactionContext(this, transactionInfo, bookmarkManager);
+            remoteTransactionContext =
+                    remoteExecutor.startTransactionContext(this, transactionInfo, bookmarkManager, clock);
             localTransactionContext = localExecutor.startTransactionContext(this, transactionInfo, bookmarkManager);
             DatabaseReference sessionDatabaseReference = getSessionDatabaseReference();
             if (inCompositeContext) {

@@ -287,7 +287,8 @@ class TxStateTransactionDataViewTest {
                 .authorize(
                         LoginContext.IdLookup.EMPTY,
                         new PrivilegeDatabaseReferenceImpl(DEFAULT_DATABASE_NAME),
-                        CommunitySecurityLog.NULL_LOG);
+                        CommunitySecurityLog.NULL_LOG,
+                        0);
         when(transaction.securityContext()).thenReturn(securityContext);
 
         TxStateTransactionDataSnapshot transactionDataSnapshot = snapshot();

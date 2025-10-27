@@ -86,7 +86,10 @@ public class BasicLoginContext extends LoginContext {
 
     @Override
     public SecurityContext authorize(
-            IdLookup idLookup, PrivilegeDatabaseReference dbReference, AbstractSecurityLog securityLog) {
+            IdLookup idLookup,
+            PrivilegeDatabaseReference dbReference,
+            AbstractSecurityLog securityLog,
+            long timeOfEvaluationMillis) {
         String dbName = dbReference.name();
         SecurityContext securityContext = new SecurityContext(subject(), accessMode, connectionInfo(), dbName);
         if (subject().getAuthenticationResult().equals(FAILURE)

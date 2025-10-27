@@ -33,6 +33,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -486,7 +488,7 @@ class KernelTransactionsTest {
     void shouldNotLeakTransactionOnSecurityContextFailure() throws Throwable {
         KernelTransactions kernelTransactions = newKernelTransactions();
         LoginContext loginContext = mock(LoginContext.class);
-        when(loginContext.authorize(any(), any(), any()))
+        when(loginContext.authorize(any(), any(), any(), anyLong()))
                 .thenThrow(AuthorizationExpiredException.ldapAuthInfoExpired());
 
         assertThatThrownBy(
@@ -711,6 +713,16 @@ class KernelTransactionsTest {
             ktx.dataWrite().nodeCreate(); // Make it a write TX
             ktx.commit(KernelTransaction.Monitor.withBeforeApply(() ->
                     assertThat(ktxs.startTimeOfOldestExecutingTransaction()).isNotEqualTo(Long.MAX_VALUE)));
+        }
+    }
+
+    @Test
+    void shouldSynchronizeTransactionStartTimeWithAuthorizationEvaluationTime() throws Throwable {
+        KernelTransactions kernelTransactions = newKernelTransactions();
+        LoginContext loginContext = mock(LoginContext.class);
+        try (KernelTransaction tx =
+                kernelTransactions.newInstance(EXPLICIT, loginContext, EMBEDDED_CONNECTION, NO_TIMEOUT)) {
+            verify(loginContext).authorize(any(), any(), any(), eq(tx.startTime()));
         }
     }
 

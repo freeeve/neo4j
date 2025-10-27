@@ -57,7 +57,7 @@ class SecurityContextDescriptionTest {
         doReturn(user).when(realmHelper).getUserByName("johan");
         PrivilegeDatabaseReference sessionDatabase = new PrivilegeDatabaseReferenceImpl(DEFAULT_DATABASE_NAME);
         context = realm.login(authToken("johan", "bar"), EMBEDDED_CONNECTION)
-                .authorize(LoginContext.IdLookup.EMPTY, sessionDatabase, CommunitySecurityLog.NULL_LOG);
+                .authorize(LoginContext.IdLookup.EMPTY, sessionDatabase, CommunitySecurityLog.NULL_LOG, 0);
     }
 
     @Test

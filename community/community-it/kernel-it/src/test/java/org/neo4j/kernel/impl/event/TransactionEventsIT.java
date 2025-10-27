@@ -215,7 +215,10 @@ class TransactionEventsIT {
         LoginContext loginContext = new LoginContext(subject, EMBEDDED_CONNECTION) {
             @Override
             public SecurityContext authorize(
-                    IdLookup idLookup, PrivilegeDatabaseReference dbName, AbstractSecurityLog securityLog) {
+                    IdLookup idLookup,
+                    PrivilegeDatabaseReference dbName,
+                    AbstractSecurityLog securityLog,
+                    long timeOfEvaluationMillis) {
                 return new SecurityContext(subject, StaticAccessMode.WRITE, EMBEDDED_CONNECTION, dbName.name());
             }
         };

@@ -91,7 +91,7 @@ class FabricTransactionMonitorTest {
         when(localTransactionContext.isEmptyContext()).thenReturn(true);
 
         var fabricRemoteExecutor = mock(FabricRemoteExecutor.class);
-        when(fabricRemoteExecutor.startTransactionContext(any(), any(), any()))
+        when(fabricRemoteExecutor.startTransactionContext(any(), any(), any(), any()))
                 .thenReturn(localTransactionContext, remoteTransactionContext, localTransactionContext);
 
         var localExecutor = mock(FabricLocalExecutor.class, RETURNS_MOCKS);

@@ -19,6 +19,7 @@
  */
 package org.neo4j.fabric.executor;
 
+import java.time.Clock;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
 import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
@@ -31,7 +32,8 @@ public class ThrowingFabricRemoteExecutor implements FabricRemoteExecutor {
     public RemoteTransactionContext startTransactionContext(
             CompoundTransaction compositeTransaction,
             FabricTransactionInfo transactionInfo,
-            TransactionBookmarkManager bookmarkManager) {
+            TransactionBookmarkManager bookmarkManager,
+            Clock clock) {
         return new RemoteTransactionContextImpl();
     }
 

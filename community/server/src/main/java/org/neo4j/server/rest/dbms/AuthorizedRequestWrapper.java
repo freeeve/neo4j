@@ -48,7 +48,10 @@ public class AuthorizedRequestWrapper extends HttpServletRequestWrapper {
         return new LoginContext(AuthSubject.ANONYMOUS, connectionInfo) {
             @Override
             public SecurityContext authorize(
-                    IdLookup idLookup, PrivilegeDatabaseReference dbReference, AbstractSecurityLog securityLog) {
+                    IdLookup idLookup,
+                    PrivilegeDatabaseReference dbReference,
+                    AbstractSecurityLog securityLog,
+                    long timeOfEvaluationMillis) {
                 return new SecurityContext(subject(), StaticAccessMode.ACCESS, connectionInfo(), dbReference.name());
             }
         };

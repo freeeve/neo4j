@@ -218,7 +218,7 @@ public class QueryRouterImpl implements QueryRouter {
     }
 
     private void authorize(DatabaseReference sessionDb, LoginContext loginContext) {
-        loginContext.authorize(LoginContext.IdLookup.EMPTY, sessionDb, securityLog);
+        loginContext.authorize(LoginContext.IdLookup.EMPTY, sessionDb, securityLog, systemNanoClock.millis());
     }
 
     private boolean isRpcCall(DatabaseReference databaseReference) {

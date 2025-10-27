@@ -296,11 +296,12 @@ public class KernelTransactions extends LifecycleAdapter
         ProcedureView procedureView = globalProcedures.getCurrentView();
         BooleanSupplier isStale = () -> !globalProcedures.getCurrentView().equals(procedureView);
         PrivilegeDatabaseReference sessionDatabase = getDatabaseReference(loginContext);
-        // startTimeMillis is captured here in preparation for being passed into the loginContext.authorize call. This
-        // will be done in a subsequent change.
         long startTimeMillis = clock.millis();
         SecurityContext securityContext = loginContext.authorize(
-                new TokenHoldersIdLookup(tokenHolders, procedureView, isStale), sessionDatabase, securityLog);
+                new TokenHoldersIdLookup(tokenHolders, procedureView, isStale),
+                sessionDatabase,
+                securityLog,
+                startTimeMillis);
         var tx = newKernelTransaction(type, clientInfo, timeout, securityContext, procedureView, startTimeMillis);
         databaseSerialGuard.acquireSerialLock(tx);
         return tx;

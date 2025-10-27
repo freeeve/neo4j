@@ -166,7 +166,7 @@ public final class KernelTransactionFactory {
         transaction.initialize(
                 0,
                 KernelTransaction.Type.IMPLICIT,
-                loginContext.authorize(LoginContext.IdLookup.EMPTY, defaultSessionDb, CommunitySecurityLog.NULL_LOG),
+                loginContext.authorize(LoginContext.IdLookup.EMPTY, defaultSessionDb, CommunitySecurityLog.NULL_LOG, 0),
                 NO_TIMEOUT,
                 1L,
                 EMBEDDED_CONNECTION,

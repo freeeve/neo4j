@@ -85,7 +85,10 @@ public class SecurityContext extends LoginContext {
 
     @Override
     public SecurityContext authorize(
-            IdLookup idLookup, PrivilegeDatabaseReference dbReference, AbstractSecurityLog securityLog) {
+            IdLookup idLookup,
+            PrivilegeDatabaseReference dbReference,
+            AbstractSecurityLog securityLog,
+            long timeOfEvaluationMillis) {
         return this;
     }
 
