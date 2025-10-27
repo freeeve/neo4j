@@ -55,8 +55,6 @@ import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.api.txid.IdStoreTransactionIdGenerator;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation.BatchInformation;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
@@ -78,11 +76,11 @@ import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Leases;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
-import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.Inject;
@@ -93,7 +91,6 @@ import org.neo4j.test.utils.TestDirectory;
 @Neo4jLayoutExtension
 class PhysicalLogicalTransactionStoreTest {
     private static final Panic DATABASE_PANIC = mock(DatabaseHealth.class);
-    private static SimpleAppendIndexProvider appendIndexProvider;
 
     @Inject
     private DefaultFileSystemAbstraction fileSystem;
@@ -112,7 +109,6 @@ class PhysicalLogicalTransactionStoreTest {
     void setup() {
         jobScheduler = new ThreadPoolJobScheduler();
         databaseDirectory = testDirectory.homePath();
-        appendIndexProvider = new SimpleAppendIndexProvider();
     }
 
     @AfterEach
@@ -122,17 +118,17 @@ class PhysicalLogicalTransactionStoreTest {
 
     @Test
     void extractTransactionFromLogFilesSkippingLastLogFileWithoutHeader() throws Exception {
-        TransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
         TransactionMetadataCache positionCache = new TransactionMetadataCache();
         Config config = Config.defaults();
         final long consensusIndex = 1;
         final long timeStarted = 12345;
         long latestCommittedTxWhenStarted = 4545;
         long timeCommitted = timeStarted + 10;
-        long initialAppendIndex = appendIndexProvider.getLastAppendIndex();
 
         LifeSupport life = new LifeSupport();
-        final LogFiles logFiles = buildLogFiles(transactionIdStore);
+        final LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
+        long initialAppendIndex = logMetadataProvider.getLastAppendIndex();
         life.add(logFiles);
         life.start();
         try {
@@ -140,7 +136,7 @@ class PhysicalLogicalTransactionStoreTest {
                     life,
                     logFiles,
                     positionCache,
-                    transactionIdStore,
+                    logMetadataProvider,
                     consensusIndex,
                     timeStarted,
                     latestCommittedTxWhenStarted,
@@ -172,14 +168,13 @@ class PhysicalLogicalTransactionStoreTest {
     @Test
     void shouldOpenCleanStore() throws Exception {
         // GIVEN
-        TransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
-
         LifeSupport life = new LifeSupport();
-        final LogFiles logFiles = buildLogFiles(transactionIdStore);
+        final LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         life.add(createTransactionAppender(
-                transactionIdStore,
+                logMetadataProvider,
                 logFiles,
                 new DatabaseConfig(Config.defaults()),
                 jobScheduler,
@@ -196,7 +191,6 @@ class PhysicalLogicalTransactionStoreTest {
     @Test
     void shouldOpenAndRecoverExistingData() throws Exception {
         // GIVEN
-        TransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
         TransactionMetadataCache positionCache = new TransactionMetadataCache();
         var contextFactory = new CursorContextFactory(new DefaultPageCacheTracer(), EMPTY_CONTEXT_SUPPLIER);
         Config config = Config.defaults();
@@ -205,7 +199,8 @@ class PhysicalLogicalTransactionStoreTest {
         long latestCommittedTxWhenStarted = 4545;
         long timeCommitted = timeStarted + 10;
         LifeSupport life = new LifeSupport();
-        final LogFiles logFiles = buildLogFiles(transactionIdStore);
+        final LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
 
         life.start();
         life.add(logFiles);
@@ -214,7 +209,7 @@ class PhysicalLogicalTransactionStoreTest {
                     life,
                     logFiles,
                     positionCache,
-                    transactionIdStore,
+                    logMetadataProvider,
                     consensusIndex,
                     timeStarted,
                     latestCommittedTxWhenStarted,
@@ -234,7 +229,7 @@ class PhysicalLogicalTransactionStoreTest {
                 logFiles, positionCache, TestCommandReaderFactory.INSTANCE, monitors, true, config, INSTANCE);
 
         life.add(createTransactionAppender(
-                transactionIdStore, logFiles, new DatabaseConfig(Config.defaults()), jobScheduler, positionCache));
+                logMetadataProvider, logFiles, new DatabaseConfig(Config.defaults()), jobScheduler, positionCache));
         CorruptedLogsTruncator logPruner =
                 new CorruptedLogsTruncator(databaseDirectory, logFiles, fileSystem, INSTANCE);
         life.add(new TransactionLogsRecovery(
@@ -271,17 +266,17 @@ class PhysicalLogicalTransactionStoreTest {
     @Test
     void shouldExtractMetadataFromExistingTransaction() throws Exception {
         // GIVEN
-        TransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
         TransactionMetadataCache positionCache = new TransactionMetadataCache();
         Config config = Config.defaults();
         final long consensusIndex = 5;
         final long timeStarted = 12345;
         long latestCommittedTxWhenStarted = 4545;
         long timeCommitted = timeStarted + 10;
-        long initialAppendIndex = appendIndexProvider.getLastAppendIndex();
 
         LifeSupport life = new LifeSupport();
-        final LogFiles logFiles = buildLogFiles(transactionIdStore);
+        final LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
+        long initialAppendIndex = logMetadataProvider.getLastAppendIndex();
         life.start();
         life.add(logFiles);
         try {
@@ -289,7 +284,7 @@ class PhysicalLogicalTransactionStoreTest {
                     life,
                     logFiles,
                     positionCache,
-                    transactionIdStore,
+                    logMetadataProvider,
                     consensusIndex,
                     timeStarted,
                     latestCommittedTxWhenStarted,
@@ -349,16 +344,14 @@ class PhysicalLogicalTransactionStoreTest {
         }
     }
 
-    private LogFiles buildLogFiles(TransactionIdStore transactionIdStore) throws IOException {
+    private LogFiles buildLogFiles() throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withRotationThreshold(ByteUnit.mebiBytes(1))
-                .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
                 .withLogVersionRepository(mock(LogVersionRepository.class))
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
@@ -369,7 +362,7 @@ class PhysicalLogicalTransactionStoreTest {
             LifeSupport life,
             LogFiles logFiles,
             TransactionMetadataCache positionCache,
-            TransactionIdStore transactionIdStore,
+            LogMetadataProvider logMetadataProvider,
             long consensusIndex,
             long timeStarted,
             long latestCommittedTxWhenStarted,
@@ -377,7 +370,7 @@ class PhysicalLogicalTransactionStoreTest {
             JobScheduler jobScheduler)
             throws Exception {
         TransactionAppender appender = life.add(createTransactionAppender(
-                transactionIdStore, logFiles, new DatabaseConfig(Config.defaults()), jobScheduler, positionCache));
+                logMetadataProvider, logFiles, new DatabaseConfig(Config.defaults()), jobScheduler, positionCache));
         CompleteCommandBatch transaction = new CompleteCommandBatch(
                 singleTestCommand(),
                 consensusIndex,
@@ -388,14 +381,14 @@ class PhysicalLogicalTransactionStoreTest {
                 Leases.NO_LEASES,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
-        var transactionCommitment = new TransactionCommitment(transactionIdStore);
+        var transactionCommitment = new TransactionCommitment(logMetadataProvider);
         appender.append(
                 new CompleteTransaction(
                         transaction,
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         transactionCommitment,
-                        new IdStoreTransactionIdGenerator(transactionIdStore)),
+                        new IdStoreTransactionIdGenerator(logMetadataProvider)),
                 LogAppendEvent.NULL);
     }
 
@@ -427,15 +420,15 @@ class PhysicalLogicalTransactionStoreTest {
     }
 
     private static TransactionAppender createTransactionAppender(
-            TransactionIdStore transactionIdStore,
+            LogMetadataProvider logMetadataProvider,
             LogFiles logFiles,
             DatabaseConfig databaseConfig,
             JobScheduler jobScheduler,
             TransactionMetadataCache positionCache) {
         return TransactionAppenderFactory.createTransactionAppender(
                 logFiles,
-                transactionIdStore,
-                appendIndexProvider,
+                logMetadataProvider,
+                logMetadataProvider,
                 databaseConfig,
                 DATABASE_PANIC,
                 jobScheduler,

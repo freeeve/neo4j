@@ -44,7 +44,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -61,7 +60,6 @@ import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.NullLog;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
-import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -85,7 +83,6 @@ class DetachedCheckpointAppenderTest {
     private final long rotationThreshold = ByteUnit.mebiBytes(1);
     private final DatabaseHealth databaseHealth = new DatabaseHealth(HealthEventGenerator.NO_OP, NullLog.getInstance());
     private final LogVersionRepository logVersionRepository = new SimpleLogVersionRepository(1L);
-    private final AppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
     private final TransactionIdStore transactionIdStore = new SimpleTransactionIdStore(
             2L, 3L, LATEST_KERNEL_VERSION, 0, BASE_TX_COMMIT_TIMESTAMP, UNKNOWN_CONSENSUS_INDEX, 0, 0);
     private CheckpointAppender checkpointAppender;
@@ -276,14 +273,13 @@ class DetachedCheckpointAppenderTest {
 
     private LogFiles buildLogFiles(KernelVersion initialKernelVersion) throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         fixed(initialKernelVersion),
                         () -> LogFormat.fromKernelVersion(initialKernelVersion))
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
                 .withDatabaseHealth(databaseHealth)
                 .withLogVersionRepository(logVersionRepository)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)

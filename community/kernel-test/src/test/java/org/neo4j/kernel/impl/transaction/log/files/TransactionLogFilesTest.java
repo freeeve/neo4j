@@ -52,8 +52,6 @@ import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
@@ -345,10 +343,8 @@ class TransactionLogFilesTest {
 
     private LogFiles createLogFiles(KernelVersionProvider kvp) throws Exception {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        var files = LogFilesBuilder.builder(
+        var files = LogFilesBuilder.writeableBuilder(
                         databaseLayout, fileSystem, kvp, () -> LogFormat.fromKernelVersion(kvp.kernelVersion()))
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
                 .build();

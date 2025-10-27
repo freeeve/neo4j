@@ -187,7 +187,7 @@ class TransactionLogFileTest {
     @KernelVersionSource(atLeast = "5.0")
     void preAllocateOnStartAndEvictOnShutdownNewLogFile(KernelVersion kernelVersion) throws IOException {
         final CapturingNativeAccess capturingNativeAccess = new CapturingNativeAccess();
-        LogFilesBuilder.builder(
+        LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         fixed(kernelVersion),
@@ -901,7 +901,7 @@ class TransactionLogFileTest {
     }
 
     private LogFiles buildLogFiles(KernelVersion kernelVersion) throws IOException {
-        var builder = LogFilesBuilder.builder(
+        var builder = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         wrappingFileSystem,
                         fixed(kernelVersion),
@@ -936,7 +936,7 @@ class TransactionLogFileTest {
     private void startStop(
             CapturingNativeAccess capturingNativeAccess, LifeSupport lifeSupport, KernelVersion kernelVersion)
             throws IOException {
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         fixed(kernelVersion),

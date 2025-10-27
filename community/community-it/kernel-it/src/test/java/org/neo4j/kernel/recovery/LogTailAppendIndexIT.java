@@ -42,9 +42,6 @@ import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.StoreFileChannel;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.AppendBatchInfo;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
@@ -285,11 +282,8 @@ public class LogTailAppendIndexIT {
     private LogFiles buildDefaultLogFiles(DatabaseLayout databaseLayout) throws IOException {
         var storageEngine = StorageEngineFactory.selectStorageEngine(new DefaultFileSystemAbstraction(), databaseLayout)
                 .get();
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.readableBuilder(
                         databaseLayout, fileSystem, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
-                .withLogVersionRepository(new SimpleLogVersionRepository())
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStorageEngineFactory(storageEngine)
                 .build();
     }

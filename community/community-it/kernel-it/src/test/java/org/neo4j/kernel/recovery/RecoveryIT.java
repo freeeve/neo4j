@@ -2456,18 +2456,14 @@ class RecoveryIT {
     }
 
     private LogFiles buildLogFiles() throws IOException {
-        return buildLogFiles(EMPTY);
-    }
-
-    private LogFiles buildLogFiles(DatabaseTracers databaseTracers) throws IOException {
-        return LogFilesBuilder.activeFilesBuilder(
+        return LogFilesBuilder.readableBuilder(
                         databaseLayout,
                         fileSystem,
-                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withCommandReaderFactory(StorageEngineFactory.selectStorageEngine(fileSystem, databaseLayout, null)
                         .commandReaderFactory())
-                .withDatabaseTracers(databaseTracers)
+                .withDatabaseTracers(EMPTY)
                 .build();
     }
 

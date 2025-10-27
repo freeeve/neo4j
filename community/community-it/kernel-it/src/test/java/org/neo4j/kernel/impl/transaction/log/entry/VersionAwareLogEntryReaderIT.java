@@ -38,9 +38,6 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -95,15 +92,12 @@ class VersionAwareLogEntryReaderIT {
     @Test
     @EnabledOnOs(OS.LINUX)
     void readOnlyLogFilesWhileCommandsAreAvailable() throws IOException {
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fs,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withStorageEngineFactory(storageEngineFactory)
-                .withLogVersionRepository(new SimpleLogVersionRepository())
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(STORE_ID)
                 .build();
         try (Lifespan lifespan = new Lifespan(logFiles)) {
@@ -121,12 +115,9 @@ class VersionAwareLogEntryReaderIT {
 
     @Test
     void correctlyResetPositionWhenEndOfCommandsReached() throws IOException {
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout, fs, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
                 .withStorageEngineFactory(storageEngineFactory)
-                .withLogVersionRepository(new SimpleLogVersionRepository())
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(STORE_ID)
                 .build();
         try (Lifespan lifespan = new Lifespan(logFiles)) {
@@ -146,12 +137,9 @@ class VersionAwareLogEntryReaderIT {
     @Test
     @DisabledOnOs(OS.LINUX)
     void readTillTheEndOfNotPreallocatedFile() throws IOException {
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout, fs, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
                 .withStorageEngineFactory(storageEngineFactory)
-                .withLogVersionRepository(new SimpleLogVersionRepository())
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(STORE_ID)
                 .build();
         try (Lifespan lifespan = new Lifespan(logFiles)) {

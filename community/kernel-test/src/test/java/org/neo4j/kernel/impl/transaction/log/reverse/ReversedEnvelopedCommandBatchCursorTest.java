@@ -55,9 +55,6 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
@@ -141,18 +138,13 @@ class ReversedEnvelopedCommandBatchCursorTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
-        SimpleTransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
         config = Config.defaults(latest_kernel_version, kernelVersion.version());
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout, fs, fixed(kernelVersion), () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withRotationThreshold(ROTATION_THRESHOLD)
-                .withLogVersionRepository(logVersionRepository)
-                .withTransactionIdStore(transactionIdStore)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withConfig(config)
                 .build();
         life.add(logFiles);

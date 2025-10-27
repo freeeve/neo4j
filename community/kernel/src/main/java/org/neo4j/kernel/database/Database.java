@@ -700,7 +700,7 @@ public class Database extends AbstractDatabase {
     private LogFiles getLogFiles() throws IOException {
         DbmsRuntimeFallbackKernelVersionProvider kernelVersionProvider = new DbmsRuntimeFallbackKernelVersionProvider(
                 databaseDependencies, databaseLayout.getDatabaseName(), databaseConfig);
-        return LogFilesBuilder.builder(databaseLayout, fs, kernelVersionProvider, kernelVersionProvider)
+        return LogFilesBuilder.writeableBuilder(databaseLayout, fs, kernelVersionProvider, kernelVersionProvider)
                 .withConfig(databaseConfig)
                 .withDependencies(databaseDependencies)
                 .withLogProvider(internalLogProvider)

@@ -71,7 +71,7 @@ public class TransactionLogChecker {
     public static void verifyCorrectTransactionLogUpgrades(
             FileSystemAbstraction fs, DatabaseLayout layout, Config config)
             throws IOException, InconsistentTransactionLogException {
-        LogFiles logFiles = LogFilesBuilder.readOnlyBuilder(
+        LogFiles logFiles = LogFilesBuilder.readableBuilder(
                         layout, fs, KernelVersionProvider.THROWING_PROVIDER, LogFormatVersionProvider.THROWING_PROVIDER)
                 .build();
 

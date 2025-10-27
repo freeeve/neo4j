@@ -216,7 +216,7 @@ class ForwardRecoveryIT {
     }
 
     private LogFiles buildLogFiles(DatabaseTracers databaseTracers) throws IOException {
-        return LogFilesBuilder.activeFilesBuilder(
+        return LogFilesBuilder.readableBuilder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,

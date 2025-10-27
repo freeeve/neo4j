@@ -53,7 +53,7 @@ public class TransactionLogFiles extends LifecycleAdapter implements LogFiles {
         this.logFile = new TransactionLogFile(this, context);
         this.checkpointLogFile = new CheckpointLogFile(this, context, overrides.externalLogTail());
         this.overrides = overrides;
-        if (!(overrides.readOnlyLogs() || overrides.fileBasedOperationsOnly() || overrides.noInit())) {
+        if (!overrides.noInit()) {
             LogTailMetadata tailMetadata = checkpointLogFile.getTailMetadata();
             logMetadataProvider = new LogMetadataProviderImpl(tailMetadata);
             TransactionLogFilesProviders transactionLogFilesProviders =
@@ -76,7 +76,7 @@ public class TransactionLogFiles extends LifecycleAdapter implements LogFiles {
 
     @Override
     public void init() throws IOException {
-        if ((overrides.readOnlyLogs() || overrides.fileBasedOperationsOnly() || overrides.noInit())) {
+        if (overrides.noInit() || overrides.notStartable()) {
             throw new RuntimeException("Current version of log files can't be started. Please "
                     + "build full version of log files to be able to start them.");
         }

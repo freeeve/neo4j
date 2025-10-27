@@ -19,91 +19,55 @@
  */
 package org.neo4j.kernel.impl.transaction.log.files;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.function.IntSupplier;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
-import org.neo4j.storageengine.ReadOnlyLogVersionRepository;
+import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 
 public class TransactionLogFilesProviders {
     private final LogMetadataProvider logMetadataProvider;
     private final TransactionLogFilesOverrides overrides;
-    private final LastAppendIndexLogFilesProvider lastAppendIndexLogFilesProvider;
-    private final LastAppendIndexProvider lastAppendIndexProvider;
+    private final AppendIndexProvider lastAppendIndexProvider;
     private final LastCommittedChecksumProvider lastCommittedChecksumProvider;
-    private final LogVersionRepositoryProvider logVersionRepositoryProvider;
+    private final LogVersionRepository logVersionRepository;
     private final LastClosedPositionProvider lastClosedPositionProvider;
 
     public TransactionLogFilesProviders(
             LogMetadataProvider logMetadataProvider, TransactionLogFilesOverrides overrides) {
         this.logMetadataProvider = logMetadataProvider;
         this.overrides = overrides;
-        logVersionRepositoryProvider = setupLogVersionRepositoryProvider();
-        LastAppendIndexProvider availableAppendIndexProvider = availableAppendIndexProvider();
-        lastAppendIndexLogFilesProvider = lastAppendIndexLogFilesProvider(availableAppendIndexProvider);
-        lastAppendIndexProvider = lastAppendIndexProvider(availableAppendIndexProvider);
+        logVersionRepository = setupLogVersionRepository();
+        lastAppendIndexProvider = lastAppendIndexProvider();
         lastClosedPositionProvider = closePositionProvider();
         lastCommittedChecksumProvider = lastCommittedChecksumProvider();
     }
 
     private LastCommittedChecksumProvider lastCommittedChecksumProvider() {
         if (overrides.lastCommittedChecksumProvider() != null) {
-            return new IntSupplierLastCommittedChecksumProvider(overrides.lastCommittedChecksumProvider());
+            return () -> overrides.lastCommittedChecksumProvider().getAsInt();
         }
         if (overrides.transactionIdStore() != null) {
-            return new IntSupplierLastCommittedChecksumProvider(() ->
-                    overrides.transactionIdStore().getLastCommittedTransaction().checksum());
+            return () ->
+                    overrides.transactionIdStore().getLastCommittedTransaction().checksum();
         }
-        if (overrides.fileBasedOperationsOnly()) {
-            return any -> {
-                throw new UnsupportedOperationException("Current version of log files can't perform any operation that"
-                        + " require availability of transaction id store. Please build full version of log files to be"
-                        + " able to use them.");
-            };
-        }
-        if (overrides.readOnlyStores()) {
-            requireNonNull(overrides.databaseLayout(), "Store directory is required.");
-            return new ReadOnlyLastCommittedChecksumProvider();
-        } else {
-            return new IntSupplierLastCommittedChecksumProvider(
-                    () -> logMetadataProvider.getLastCommittedTransaction().checksum());
-        }
+
+        return () -> logMetadataProvider.getLastCommittedTransaction().checksum();
     }
 
-    private LogVersionRepositoryProvider setupLogVersionRepositoryProvider() {
+    private LogVersionRepository setupLogVersionRepository() {
         if (overrides.logVersionRepository() != null) {
-            return any -> overrides.logVersionRepository();
+            return overrides.logVersionRepository();
         }
-        if (overrides.fileBasedOperationsOnly()) {
-            return any -> {
-                throw new UnsupportedOperationException(
-                        "Current version of log files can't perform any operation that require availability of log"
-                                + " version repository. Please build full version of log files to be able to use them.");
-            };
-        }
-        if (overrides.readOnlyStores()) {
-            requireNonNull(overrides.databaseLayout(), "Store directory is required.");
-            return new ReadOnlyLogVersionRepositoryProvider();
-        } else {
-            return new SupplierLogVersionRepositoryProvider(() -> logMetadataProvider);
-        }
+        return logMetadataProvider;
     }
 
-    public LogVersionRepositoryProvider getLogVersionRepositoryProvider() {
-        return logVersionRepositoryProvider;
-    }
-
-    public LastAppendIndexLogFilesProvider getLastAppendIndexLogFilesProvider() {
-        return lastAppendIndexLogFilesProvider;
+    public LogVersionRepository getLogVersionRepository() {
+        return logVersionRepository;
     }
 
     public long appendIndex() {
-        return lastAppendIndexProvider.lastAppendIndex();
+        return lastAppendIndexProvider.getLastAppendIndex();
     }
 
     LastClosedPositionProvider getLastClosedTransactionPositionProvider() {
@@ -128,109 +92,21 @@ public class TransactionLogFilesProviders {
         return logMetadataProvider;
     }
 
-    private LastAppendIndexProvider availableAppendIndexProvider() {
+    private AppendIndexProvider lastAppendIndexProvider() {
         if (overrides.appendIndexProvider() != null) {
-            return overrides.appendIndexProvider()::getLastAppendIndex;
+            return overrides.appendIndexProvider();
         }
-        return logMetadataProvider::getLastAppendIndex;
-    }
-
-    private LastAppendIndexProvider lastAppendIndexProvider(LastAppendIndexProvider availableProvider) {
-        return availableProvider;
-    }
-
-    private record LongSupplierLastAppendIndexLogFilesProvider(LongSupplier idSupplier)
-            implements LastAppendIndexLogFilesProvider {
-
-        @Override
-        public long getLastAppendIndex(LogFiles logFiles) {
-            return idSupplier.getAsLong();
-        }
-    }
-
-    private static class ReadOnlyLastAppendIndexLogFilesProvider implements LastAppendIndexLogFilesProvider {
-        @Override
-        public long getLastAppendIndex(LogFiles logFiles) {
-            return logFiles.getTailMetadata().getLastCheckpointedAppendIndex();
-        }
-    }
-
-    private record IntSupplierLastCommittedChecksumProvider(IntSupplier supplier)
-            implements LastCommittedChecksumProvider {
-
-        @Override
-        public int getLastCommittedChecksum(LogFiles logFiles) {
-            return supplier.getAsInt();
-        }
-    }
-
-    private static class ReadOnlyLastCommittedChecksumProvider implements LastCommittedChecksumProvider {
-        @Override
-        public int getLastCommittedChecksum(LogFiles logFiles) {
-            return logFiles.getTailMetadata().getLastCommittedTransaction().checksum();
-        }
-    }
-
-    private record SupplierLogVersionRepositoryProvider(Supplier<LogVersionRepository> supplier)
-            implements LogVersionRepositoryProvider {
-
-        @Override
-        public LogVersionRepository logVersionRepository(LogFiles logFiles) {
-            return supplier.get();
-        }
-    }
-
-    private static class ReadOnlyLogVersionRepositoryProvider implements LogVersionRepositoryProvider {
-        @Override
-        public LogVersionRepository logVersionRepository(LogFiles logFiles) {
-            return new ReadOnlyLogVersionRepository(logFiles.getTailMetadata());
-        }
-    }
-
-    private LastAppendIndexLogFilesProvider lastAppendIndexLogFilesProvider(
-            LastAppendIndexProvider lastAppendIndexProvider) {
-        if (lastAppendIndexProvider != null) {
-            return new LongSupplierLastAppendIndexLogFilesProvider(lastAppendIndexProvider::lastAppendIndex);
-        }
-        if (overrides.fileBasedOperationsOnly()) {
-            return any -> {
-                throw new UnsupportedOperationException("Current version of log files can't perform any operation that"
-                        + " require availability of append index provider. Please build full version of log files to be"
-                        + " able to use them.");
-            };
-        }
-        if (overrides.readOnlyStores()) {
-            requireNonNull(overrides.databaseLayout(), "Store directory is required.");
-            return new ReadOnlyLastAppendIndexLogFilesProvider();
-        } else {
-            return any -> {
-                throw new UnsupportedOperationException("Current version of log files can't perform any operation that"
-                        + " require availability of append index provider. Please build full version of log files to be"
-                        + " able to use them.");
-            };
-        }
+        return logMetadataProvider;
     }
 
     private LastClosedPositionProvider closePositionProvider() {
         if (overrides.lastClosedPositionSupplier() != null) {
-            return any -> overrides.lastClosedPositionSupplier().get();
+            return () -> overrides.lastClosedPositionSupplier().get();
         }
         if (overrides.transactionIdStore() != null) {
-            return any ->
+            return () ->
                     overrides.transactionIdStore().getLastClosedTransaction().logPosition();
         }
-        if (overrides.fileBasedOperationsOnly()) {
-            return any -> {
-                throw new UnsupportedOperationException("Current version of log files can't perform any operation that"
-                        + " require availability of transaction id store. Please build full version of log files to be"
-                        + " able to use them.");
-            };
-        }
-        if (overrides.readOnlyStores()) {
-            requireNonNull(overrides.databaseLayout(), "Store directory is required.");
-            return logFiles -> logFiles.getTailMetadata().getLastTransactionLogPosition();
-        } else {
-            return any -> logMetadataProvider.getLastClosedTransaction().logPosition();
-        }
+        return () -> logMetadataProvider.getLastClosedTransaction().logPosition();
     }
 }

@@ -70,9 +70,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.locker.Locker;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -225,14 +222,11 @@ class DumpCommandIT {
 
     @Test
     void databaseThatRequireRecoveryIsNotDumpable() throws IOException {
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         testDirectory.getFileSystem(),
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
-                .withLogVersionRepository(new SimpleLogVersionRepository())
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(new StoreId(1, 1, "engine-1", "format-1", 1, 1))
                 .build();
         try (Lifespan ignored = new Lifespan(logFiles)) {

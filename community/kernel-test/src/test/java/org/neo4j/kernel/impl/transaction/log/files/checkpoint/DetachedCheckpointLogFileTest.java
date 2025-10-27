@@ -38,7 +38,6 @@ import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
@@ -50,7 +49,6 @@ import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.NullLog;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
-import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
@@ -77,7 +75,6 @@ class DetachedCheckpointLogFileTest {
     private final LogVersionRepository logVersionRepository = new SimpleLogVersionRepository(1L);
     private final TransactionIdStore transactionIdStore = new SimpleTransactionIdStore(
             2L, 3L, LATEST_KERNEL_VERSION, 0, BASE_TX_COMMIT_TIMESTAMP, UNKNOWN_CONSENSUS_INDEX, 0, 0);
-    private final AppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
     private CheckpointFile checkpointFile;
     private LogFiles logFiles;
 
@@ -170,11 +167,10 @@ class DetachedCheckpointLogFileTest {
 
     private LogFiles buildLogFiles() throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout, fileSystem, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
                 .withDatabaseHealth(databaseHealth)
                 .withLogVersionRepository(logVersionRepository)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)

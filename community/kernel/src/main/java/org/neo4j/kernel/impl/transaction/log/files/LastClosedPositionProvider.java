@@ -24,5 +24,5 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 
 @FunctionalInterface
 public interface LastClosedPositionProvider {
-    LogPosition lastClosedPosition(LogFiles logFiles) throws IOException;
+    LogPosition lastClosedPosition() throws IOException;
 }

@@ -82,7 +82,7 @@ class TransactionLogFileIT {
     @Test
     @EnabledOnOs(OS.LINUX)
     void doNotScanDirectoryOnRotate() throws IOException {
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
@@ -121,7 +121,7 @@ class TransactionLogFileIT {
 
     @Test
     void rotateUsesCorrectAppendIndexAndChecksum() throws IOException {
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
@@ -190,7 +190,7 @@ class TransactionLogFileIT {
     void trackTransactionLogFileMemory() throws IOException {
         var memoryTracker = new LocalMemoryTracker();
         var life = new LifeSupport();
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,

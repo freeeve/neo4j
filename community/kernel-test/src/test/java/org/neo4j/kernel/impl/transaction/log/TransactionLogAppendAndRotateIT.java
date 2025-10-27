@@ -67,9 +67,6 @@ import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommand;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
@@ -92,9 +89,11 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Commitment;
 import org.neo4j.storageengine.api.Leases;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
@@ -347,7 +346,6 @@ class TransactionLogAppendAndRotateIT {
     }
 
     private Setup setupLogAppender(KernelVersionProvider versionProvider, boolean useQueueAppender) throws IOException {
-        LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
         Monitors monitors = new Monitors();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
         var databaseConfig = new DatabaseConfig(Config.defaults(Map.of(
@@ -357,32 +355,34 @@ class TransactionLogAppendAndRotateIT {
                 GLORIOUS_FUTURE.version(),
                 GraphDatabaseInternalSettings.latest_runtime_version,
                 DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())));
-        SimpleAppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         versionProvider,
                         () -> LogFormat.fromKernelVersion(versionProvider.kernelVersion()))
-                .withLogVersionRepository(logVersionRepository)
                 .withRotationThreshold(ByteUnit.mebiBytes(1))
                 .withMonitors(monitors)
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
                 .withConfig(databaseConfig)
                 .build();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
         final AtomicBoolean end = new AtomicBoolean();
         TestLogFileMonitor monitoring = new TestLogFileMonitor(end, 100, logFiles.getLogFile());
         monitors.addMonitorListener(monitoring);
 
-        TransactionIdStore txIdStore = new SimpleTransactionIdStore();
         Panic panic = new DatabaseHealth(mock(DatabaseHealthEventGenerator.class), NullLog.getInstance());
         TransactionMetadataCache metadataCache = new TransactionMetadataCache();
         final TransactionAppender appender = life.add(createBatchAppender(
-                logFiles, txIdStore, panic, jobScheduler, databaseConfig, metadataCache, appendIndexProvider));
-        return new Setup(end, monitoring, appender, logFiles, metadataCache, appendIndexProvider);
+                logFiles,
+                logMetadataProvider,
+                panic,
+                jobScheduler,
+                databaseConfig,
+                metadataCache,
+                logMetadataProvider));
+        return new Setup(end, monitoring, appender, logFiles, metadataCache, logMetadataProvider);
     }
 
     private record Setup(
@@ -391,7 +391,7 @@ class TransactionLogAppendAndRotateIT {
             TransactionAppender appender,
             LogFiles logFiles,
             TransactionMetadataCache metadataCache,
-            SimpleAppendIndexProvider appendIndexProvider) {}
+            AppendIndexProvider appendIndexProvider) {}
 
     private TransactionAppender createBatchAppender(
             LogFiles logFiles,
@@ -400,7 +400,7 @@ class TransactionLogAppendAndRotateIT {
             JobScheduler jobScheduler,
             DatabaseConfig databaseConfig,
             TransactionMetadataCache metadataCache,
-            SimpleAppendIndexProvider appendIndexProvider) {
+            AppendIndexProvider appendIndexProvider) {
         return createTransactionAppender(
                 logFiles,
                 txIdStore,

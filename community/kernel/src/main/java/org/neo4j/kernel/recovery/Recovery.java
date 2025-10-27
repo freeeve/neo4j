@@ -620,7 +620,7 @@ public final class Recovery {
                 cursorContextFactory,
                 logService);
 
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, logTailMetadata, logTailMetadata)
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(databaseLayout, fs, logTailMetadata, logTailMetadata)
                 .withStorageEngineFactory(storageEngineFactory)
                 .withConfig(config)
                 .withDatabaseTracers(tracers)

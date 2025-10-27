@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.kernel.database.DatabaseIdFactory.from;
-import static org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder.activeFilesBuilder;
+import static org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder.readableBuilder;
 import static org.neo4j.logging.LogAssertions.assertThat;
 
 import java.io.IOException;
@@ -59,7 +59,6 @@ import org.neo4j.kernel.database.DatabaseIdFactory;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
-import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.internal.SimpleLogService;
@@ -67,7 +66,6 @@ import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreId;
-import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.Race;
 import org.neo4j.test.extension.Inject;
@@ -398,18 +396,15 @@ class DbmsDiagnosticsManagerTest {
         databaseDependencies.satisfyDependency(new DefaultFileSystemAbstraction());
         databaseDependencies.satisfyDependency(DeviceMapper.UNKNOWN_MAPPER);
         DatabaseLayout layout = DatabaseLayout.ofFlat(directory.homePath());
-        LogFiles logFiles = databaseDependencies.satisfyDependency(activeFilesBuilder(
+        LogFiles logFiles = databaseDependencies.satisfyDependency(readableBuilder(
                         layout,
                         directory.getFileSystem(),
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
-                .withKernelVersionProvider(LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
                 .withStorageEngineFactory(storageEngineFactory)
+                .withInitializeProviders()
                 .build());
-        LogTailMetadata logTailMetadata = databaseDependencies.satisfyDependency(logFiles.getTailMetadata());
-        TransactionIdStore txIdStore = databaseDependencies.satisfyDependency(mock(TransactionIdStore.class));
-        when(txIdStore.getLastClosedTransactionId())
-                .thenReturn(logTailMetadata.getLastCommittedTransaction().id());
+        databaseDependencies.satisfyDependency(logFiles.logMetadataProvider());
         when(database.getDependencyResolver()).thenReturn(databaseDependencies);
         when(database.getNamedDatabaseId()).thenReturn(databaseId);
         when(database.isStarted()).thenReturn(true);

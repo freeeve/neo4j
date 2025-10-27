@@ -47,7 +47,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.v50.LogEntryDetachedCheckpoin
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryDetachedCheckpointV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.LogEntryDetachedCheckpointV5_22;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
-import org.neo4j.kernel.impl.transaction.log.files.LogVersionRepositoryProvider;
 import org.neo4j.kernel.impl.transaction.log.files.RotatableFile;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
@@ -79,8 +78,7 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
     private PhysicalFlushableLogPositionAwareChannel writer;
     private NativeScopedBuffer buffer;
     private PhysicalLogVersionedStoreChannel channel;
-    private final LogVersionRepositoryProvider logVersionRepositoryProvider;
-    private LogVersionRepository logVersionRepository;
+    private final LogVersionRepository logVersionRepository;
     private final LogFormatVersionProvider logFormatVersionProvider;
     private final KernelVersionProvider kernelVersionProvider;
     private KernelVersion previousKernelVersion;
@@ -103,7 +101,7 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
         this.log = context.getLogProvider().getLog(DetachedCheckpointAppender.class);
         this.logTailScanner = logTailScanner;
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
-        this.logVersionRepositoryProvider = transactionLogFilesProviders.getLogVersionRepositoryProvider();
+        this.logVersionRepository = transactionLogFilesProviders.getLogVersionRepository();
         this.logFormatVersionProvider = transactionLogFilesProviders.getLogFormatVersionProvider();
         this.kernelVersionProvider = transactionLogFilesProviders.getKernelVersionProvider();
     }
@@ -111,7 +109,6 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
     @Override
     public void start() throws IOException {
         this.storeId = context.getStoreId();
-        this.logVersionRepository = logVersionRepositoryProvider.logVersionRepository(logFiles);
         long currentLogVersion = logVersionRepository.getCheckpointLogVersion();
         channel = channelAllocator.createLogChannel(
                 currentLogVersion,

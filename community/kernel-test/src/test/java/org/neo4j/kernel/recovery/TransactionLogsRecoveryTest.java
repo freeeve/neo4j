@@ -75,7 +75,6 @@ import org.neo4j.kernel.database.DatabaseStartupController;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.CompleteBatchRepresentation;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
@@ -102,8 +101,6 @@ import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.monitoring.Monitors;
-import org.neo4j.storageengine.AppendIndexProvider;
-import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageFilesState;
 import org.neo4j.storageengine.api.StoreId;
@@ -128,8 +125,6 @@ class TransactionLogsRecoveryTest {
     @Inject
     private TestDirectory testDirectory;
 
-    private final AppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
-    private final LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
     private final StoreId storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
     private final TransactionIdStore transactionIdStore = new SimpleTransactionIdStore(
             5L, 6L, LATEST_KERNEL_VERSION, 0, BASE_TX_COMMIT_TIMESTAMP, UNKNOWN_CONSENSUS_INDEX, 0, 0);
@@ -941,14 +936,12 @@ class TransactionLogsRecoveryTest {
     private record DataWriters(LogEntryWriter<?> writer, FlushableLogPositionAwareChannel channel) {}
 
     private LogFiles buildLogFiles() throws IOException {
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
-                .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
                 .withConfig(Config.newBuilder()

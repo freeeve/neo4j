@@ -37,11 +37,9 @@ public record TransactionLogFilesOverrides(
         AppendIndexProvider appendIndexProvider,
         IntSupplier lastCommittedChecksumProvider,
         ThrowingSupplier<LogPosition, IOException> lastClosedPositionSupplier,
-        boolean fileBasedOperationsOnly,
-        boolean readOnlyStores,
-        boolean readOnlyLogs,
         DatabaseLayout databaseLayout,
         LogFormatVersionProvider logFormatVersionProvider,
         KernelVersionProvider kernelVersionProvider,
         LogTailMetadata externalLogTail,
-        boolean noInit) {}
+        boolean noInit,
+        boolean notStartable) {}

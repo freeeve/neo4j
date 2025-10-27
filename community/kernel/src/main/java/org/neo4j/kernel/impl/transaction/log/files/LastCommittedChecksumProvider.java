@@ -21,5 +21,5 @@ package org.neo4j.kernel.impl.transaction.log.files;
 
 @FunctionalInterface
 public interface LastCommittedChecksumProvider {
-    int getLastCommittedChecksum(LogFiles logFiles);
+    int getLastCommittedChecksum();
 }

@@ -47,18 +47,13 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.lifecycle.LifeSupport;
-import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Leases;
-import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.LatestVersions;
@@ -92,18 +87,12 @@ class EagerlyReversedCommandBatchCursorTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
-        SimpleTransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
-        AppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        logFiles = LogFilesBuilder.builder(
+        logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fs,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
-                .withLogVersionRepository(logVersionRepository)
-                .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withRotationThreshold(ByteUnit.kibiBytes(512L))
                 .withStoreId(storeId)

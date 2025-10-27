@@ -340,7 +340,7 @@ class LogFormatSelectionIT {
 
         // THEN
         assertTrue(ctx.outAsString().contains("IMPORT DONE"));
-        LogFiles logFiles = LogFilesBuilder.readOnlyBuilder(
+        LogFiles logFiles = LogFilesBuilder.readableBuilder(
                         neo4jLayout.databaseLayout(DEFAULT_DATABASE_NAME),
                         fs,
                         KernelVersionProvider.THROWING_PROVIDER,

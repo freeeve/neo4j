@@ -127,8 +127,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
                 binarySupportedKernelVersions,
                 transactionLogFilesProviders);
         checkpointAppender.start();
-        logVersionRepository =
-                transactionLogFilesProviders.getLogVersionRepositoryProvider().logVersionRepository(logFiles);
+        logVersionRepository = transactionLogFilesProviders.getLogVersionRepository();
         started = true;
     }
 

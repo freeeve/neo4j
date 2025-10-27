@@ -42,17 +42,15 @@ import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.api.txid.IdStoreTransactionIdGenerator;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.DatabaseHealth;
-import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.Leases;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.Inject;
@@ -73,20 +71,14 @@ class TransactionLogQueueIT {
     private DatabaseLayout databaseLayout;
 
     private ThreadPoolJobScheduler jobScheduler;
-    private SimpleLogVersionRepository logVersionRepository;
-    private SimpleTransactionIdStore transactionIdStore;
     private TransactionMetadataCache metadataCache;
     private DatabaseHealth databaseHealth;
     private NullLogProvider logProvider;
-    private SimpleAppendIndexProvider appendIndexProvider;
 
     @BeforeEach
     void setUp() {
         jobScheduler = new ThreadPoolJobScheduler();
 
-        logVersionRepository = new SimpleLogVersionRepository();
-        transactionIdStore = new SimpleTransactionIdStore();
-        appendIndexProvider = new SimpleAppendIndexProvider();
         logProvider = NullLogProvider.getInstance();
         metadataCache = new TransactionMetadataCache();
         databaseHealth = new DatabaseHealth(NO_OP, logProvider.getLog(DatabaseHealth.class));
@@ -100,15 +92,16 @@ class TransactionLogQueueIT {
 
     @Test
     void processMessagesByTheTransactionQueue() throws IOException {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
         life.add(logFiles);
 
         TransactionLogQueue logQueue = createLogQueue(logFiles);
         life.add(logQueue);
 
-        long committedTransactionId = transactionIdStore.getLastCommittedTransactionId();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
+        long committedTransactionId = logMetadataProvider.getLastCommittedTransactionId();
         for (int i = 0; i < 100; i++) {
-            CompleteTransaction transaction = createTransaction();
+            CompleteTransaction transaction = createTransaction(logMetadataProvider);
             assertEquals(
                     ++committedTransactionId,
                     logQueue.submit(transaction, LogAppendEvent.NULL).getCommittedAppendIndex());
@@ -117,40 +110,42 @@ class TransactionLogQueueIT {
 
     @Test
     void doNotProcessMessagesAfterShutdown() throws IOException, ExecutionException, InterruptedException {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         TransactionLogQueue logQueue = createLogQueue(logFiles);
         life.add(logQueue);
 
-        assertDoesNotThrow(
-                () -> logQueue.submit(createTransaction(), LogAppendEvent.NULL).getCommittedAppendIndex());
+        assertDoesNotThrow(() -> logQueue.submit(createTransaction(logMetadataProvider), LogAppendEvent.NULL)
+                .getCommittedAppendIndex());
 
         logQueue.shutdown();
 
-        assertThatThrownBy(() -> logQueue.submit(createTransaction(), LogAppendEvent.NULL)
+        assertThatThrownBy(() -> logQueue.submit(createTransaction(logMetadataProvider), LogAppendEvent.NULL)
                         .getCommittedAppendIndex())
                 .isInstanceOf(DatabaseShutdownException.class);
     }
 
     @Test
     void stillProcessMessagesAfterStop() throws Exception {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         TransactionLogQueue logQueue = createLogQueue(logFiles);
         life.add(logQueue);
 
-        assertDoesNotThrow(
-                () -> logQueue.submit(createTransaction(), LogAppendEvent.NULL).getCommittedAppendIndex());
+        assertDoesNotThrow(() -> logQueue.submit(createTransaction(logMetadataProvider), LogAppendEvent.NULL)
+                .getCommittedAppendIndex());
 
         logQueue.stop();
 
-        assertDoesNotThrow(
-                () -> logQueue.submit(createTransaction(), LogAppendEvent.NULL).getCommittedAppendIndex());
+        assertDoesNotThrow(() -> logQueue.submit(createTransaction(logMetadataProvider), LogAppendEvent.NULL)
+                .getCommittedAppendIndex());
     }
 
-    private CompleteTransaction createTransaction() {
+    private CompleteTransaction createTransaction(TransactionIdStore transactionIdStore) {
         CompleteCommandBatch tx = new CompleteCommandBatch(
                 List.of(new TestCommand()),
                 UNKNOWN_CONSENSUS_INDEX,
@@ -171,32 +166,26 @@ class TransactionLogQueueIT {
     }
 
     private TransactionLogQueue createLogQueue(LogFiles logFiles) {
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         return new TransactionLogQueue(
                 logFiles,
-                transactionIdStore,
+                logMetadataProvider,
                 databaseHealth,
-                appendIndexProvider,
+                logMetadataProvider,
                 metadataCache,
                 jobScheduler,
                 logProvider,
                 "le db");
     }
 
-    private LogFiles buildLogFiles(
-            SimpleLogVersionRepository logVersionRepository,
-            SimpleTransactionIdStore transactionIdStore,
-            AppendIndexProvider appendIndexProvider)
-            throws IOException {
+    private LogFiles buildLogFiles() throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
-                .withLogVersionRepository(logVersionRepository)
                 .withRotationThreshold(ByteUnit.mebiBytes(1))
-                .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
                 .build();

@@ -202,7 +202,7 @@ class TransactionAppenderRotationIT {
             AppendIndexProvider appendIndexProvider)
             throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         layout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
@@ -230,7 +230,7 @@ class TransactionAppenderRotationIT {
                         GraphDatabaseInternalSettings.latest_kernel_version,
                         KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED.version())
                 .build();
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         layout,
                         fileSystem,
                         () -> KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED,

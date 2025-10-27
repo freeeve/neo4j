@@ -61,7 +61,6 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.AppendBatchInfo;
 import org.neo4j.kernel.impl.transaction.log.LogIndexEncoding;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -79,7 +78,6 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
-import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
@@ -95,7 +93,6 @@ class DetachedLogTailScannerTest {
     protected LogFiles logFiles;
     protected AssertableLogProvider logProvider;
     protected LogVersionRepository logVersionRepository;
-    protected TransactionIdStore transactionIdStore;
     private SimpleAppendIndexProvider appendIndexProvider;
 
     private static Stream<Arguments> params() {
@@ -105,7 +102,6 @@ class DetachedLogTailScannerTest {
     @BeforeEach
     void setUp() throws IOException {
         logVersionRepository = new SimpleLogVersionRepository();
-        transactionIdStore = new SimpleTransactionIdStore();
         appendIndexProvider = new SimpleAppendIndexProvider();
         logProvider = new AssertableLogProvider();
         logFiles = createLogFiles();
@@ -113,20 +109,6 @@ class DetachedLogTailScannerTest {
 
     @Test
     void includeWrongPositionInException() throws Exception {
-        var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        var testTogFiles = LogFilesBuilder.activeFilesBuilder(
-                        databaseLayout,
-                        fs,
-                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
-                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
-                .withLogVersionRepository(logVersionRepository)
-                .withTransactionIdStore(transactionIdStore)
-                .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
-                .withStoreId(storeId)
-                .withLogProvider(logProvider)
-                .withConfig(Config.defaults(fail_on_corrupted_log_files, true))
-                .build();
-
         long txId = BASE_APPEND_INDEX + 2;
         PositionEntry position = position();
         setupLogFiles(
@@ -136,13 +118,13 @@ class DetachedLogTailScannerTest {
                 logFile(start(txId), commit(txId)));
 
         // remove all tx log files
-        Path[] matchedFiles = testTogFiles.getLogFile().getMatchedFiles();
+        Path[] matchedFiles = logFiles.getLogFile().getMatchedFiles();
         for (Path matchedFile : matchedFiles) {
             fs.delete(matchedFile);
         }
 
         // Rebuild to trigger logtail reading
-        var e = assertThrows(RuntimeException.class, () -> LogFilesBuilder.activeFilesBuilder(
+        var e = assertThrows(RuntimeException.class, () -> LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fs,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
@@ -855,10 +837,9 @@ class DetachedLogTailScannerTest {
 
     LogFiles createLogFiles(KernelVersion kernelVersion) throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.activeFilesBuilder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout, fs, fixed(kernelVersion), () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withLogVersionRepository(logVersionRepository)
-                .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)

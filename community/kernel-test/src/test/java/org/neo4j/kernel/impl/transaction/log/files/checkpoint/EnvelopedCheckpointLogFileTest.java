@@ -40,8 +40,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
@@ -51,8 +49,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.v522.DetachedCheckpointLogEnt
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.lifecycle.LifeSupport;
-import org.neo4j.storageengine.AppendIndexProvider;
-import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -75,8 +71,6 @@ class EnvelopedCheckpointLogFileTest {
     private LifeSupport life;
 
     private final long rotationThreshold = ByteUnit.kibiBytes(1);
-    private final LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
-    private final AppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
     private final TransactionIdStore transactionIdStore = new SimpleTransactionIdStore(
             2L, 3L, LATEST_KERNEL_VERSION, 0, BASE_TX_COMMIT_TIMESTAMP, UNKNOWN_CONSENSUS_INDEX, 0, 0);
     private CheckpointFile checkpointFile;
@@ -150,7 +144,7 @@ class EnvelopedCheckpointLogFileTest {
                         DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())
                 .set(GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version())
                 .build();
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         fixed(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED),
@@ -158,8 +152,6 @@ class EnvelopedCheckpointLogFileTest {
                 .withConfig(futureEnabledConf)
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
-                .withLogVersionRepository(logVersionRepository)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
                 .withEnvelopeSegmentBlockSizeBytes(

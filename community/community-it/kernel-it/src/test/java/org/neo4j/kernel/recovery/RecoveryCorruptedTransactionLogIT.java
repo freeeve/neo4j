@@ -94,9 +94,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.PropertyRecord;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.InMemoryVersionableReadableClosablePositionAwareChannel;
@@ -1519,14 +1517,12 @@ class RecoveryCorruptedTransactionLogIT {
 
     private void addCorruptedCommandsToLastLogFile(LogEntryWriterWrapper logEntryWriterWrapper) throws IOException {
         var versionRepository = new SimpleLogVersionRepository(getInitialVersion(logFiles), 0);
-        LogFiles internalLogFiles = LogFilesBuilder.builder(
+        LogFiles internalLogFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         this::kernelVersion,
                         () -> LogFormat.fromKernelVersion(kernelVersion()))
                 .withLogVersionRepository(versionRepository)
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(new StoreId(4, 5, "engine-1", "format-1", 1, 2))
                 .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(config))
                 .withConfig(config)
@@ -1574,14 +1570,11 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     LogFiles buildDefaultLogFiles(StoreId storeId) throws IOException {
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         this::kernelVersion,
                         () -> LogFormat.fromKernelVersion(kernelVersion()))
-                .withLogVersionRepository(new SimpleLogVersionRepository())
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(storeId)
                 .withLogProvider(logProvider)
                 .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(config))
@@ -1590,12 +1583,11 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private LogFiles buildDefaultLogFiles(GraphDatabaseAPI database) throws IOException {
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         this::kernelVersion,
                         () -> LogFormat.fromKernelVersion(kernelVersion()))
-                .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withDependencies(database.getDependencyResolver())
                 .withLogProvider(logProvider)
                 .withConfig(config)

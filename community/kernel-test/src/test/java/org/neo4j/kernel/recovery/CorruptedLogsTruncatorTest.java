@@ -58,9 +58,7 @@ import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
@@ -105,17 +103,13 @@ class CorruptedLogsTruncatorTest {
     private LogFiles logFiles;
     private CorruptedLogsTruncator logPruner;
     private SimpleLogVersionRepository logVersionRepository;
-    private SimpleTransactionIdStore transactionIdStore;
-    private SimpleAppendIndexProvider appendIndexProvider;
 
     @BeforeEach
     void setUp() throws Exception {
         databaseDirectory = testDirectory.homePath();
         logVersionRepository = new SimpleLogVersionRepository();
-        transactionIdStore = new SimpleTransactionIdStore();
-        appendIndexProvider = new SimpleAppendIndexProvider();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        logFiles = LogFilesBuilder.builder(
+        logFiles = LogFilesBuilder.writeableBuilder(
                         DatabaseLayout.ofFlat(databaseDirectory),
                         fs,
                         LATEST_KERNEL_VERSION_PROVIDER,
@@ -126,8 +120,6 @@ class CorruptedLogsTruncatorTest {
                 .withKernelVersionProvider(LATEST_KERNEL_VERSION_PROVIDER)
                 .withLogFormatVersionProvider(LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(logVersionRepository)
-                .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
                 .withConfig(Config.newBuilder()
@@ -279,7 +271,7 @@ class CorruptedLogsTruncatorTest {
         long byteOffset = fileSizeBeforePrune - bytesToPrune;
         LogPosition prunePosition = new LogPosition(highestCorrectLogFileIndex, byteOffset);
         CheckpointFile checkpointFile = logFiles.getCheckpointFile();
-        TransactionId transactionId = transactionIdStore.getLastCommittedTransaction();
+        TransactionId transactionId = logFiles.logMetadataProvider().getLastCommittedTransaction();
         // Write checkpoints that should be truncated. Write enough to get them in two files.
         int checkpointsToTruncate = 0;
         while (checkpointFile.getCurrentLogVersion() == 0L) {

@@ -77,7 +77,6 @@ import org.neo4j.storageengine.api.TransactionIdStore;
  * be used in precedence of value that can be specified in provided config.
  */
 public class LogFilesBuilder {
-    private boolean readOnlyStores;
     private StorageEngineFactory storageEngineFactory;
     private CommandReaderFactory commandReaderFactory;
     private DatabaseLayout databaseLayout;
@@ -109,6 +108,7 @@ public class LogFilesBuilder {
     private int bufferSizeBytes;
     private boolean readOnlyLogs;
     private boolean noInit;
+    private boolean turnOffPreallocation;
 
     private LogFilesBuilder() {}
 
@@ -117,52 +117,31 @@ public class LogFilesBuilder {
      * Log files will be able to access store and external components information, perform rotations, etc.
      * @param databaseLayout database directory
      * @param fileSystem log files filesystem
-     * @param kernelVersionProvider provider of the kernel version to use for transactions and checkpoints.
-     *                              Make sure that this is a provider that will listen to upgrade transactions
-     *                              so the version is updated when needed.
+     * @param emptyLogsKernelVersionProvider provider of the kernel version to use for empty log files.
      */
-    public static LogFilesBuilder builder(
+    public static LogFilesBuilder writeableBuilder(
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
-            KernelVersionProvider kernelVersionProvider,
-            LogFormatVersionProvider logFormatVersionProvider) {
+            KernelVersionProvider emptyLogsKernelVersionProvider,
+            LogFormatVersionProvider emptyLogsLogFormatVersionProvider) {
         LogFilesBuilder filesBuilder = new LogFilesBuilder();
         filesBuilder.databaseLayout = databaseLayout;
         filesBuilder.fileSystem = fileSystem;
-        filesBuilder.emptyLogskernelVersionProvider = kernelVersionProvider;
-        filesBuilder.emptyLogsLogFormatProvider = logFormatVersionProvider;
+        filesBuilder.emptyLogskernelVersionProvider = emptyLogsKernelVersionProvider;
+        filesBuilder.emptyLogsLogFormatProvider = emptyLogsLogFormatVersionProvider;
         return filesBuilder;
     }
 
-    /**
-     * Build log files that can access and operate only on active set of log files without ability to
-     * rotate and create any new one. Appending to current log file still possible.
-     * Store and external components access available in read only mode.
-     *
-     * @param databaseLayout store directory
-     * @param fileSystem log file system
-     * @param kernelVersionProvider provider of the kernel version to use for transactions and checkpoints.
-     *                              Make sure that this is a provider that will listen to upgrade transactions
-     *                              so the version is updated when needed.
-     */
-    public static LogFilesBuilder activeFilesBuilder(
+    public static LogFilesBuilder readableBuilder(
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
-            KernelVersionProvider kernelVersionProvider,
-            LogFormatVersionProvider logFormatVersionProvider) {
-        LogFilesBuilder builder = builder(databaseLayout, fileSystem, kernelVersionProvider, logFormatVersionProvider);
-        builder.readOnlyStores = true;
-        return builder;
-    }
-
-    public static LogFilesBuilder readOnlyBuilder(
-            DatabaseLayout databaseLayout,
-            FileSystemAbstraction fileSystem,
-            KernelVersionProvider kernelVersionProvider,
-            LogFormatVersionProvider logFormatVersionProvider) {
-        LogFilesBuilder builder = builder(databaseLayout, fileSystem, kernelVersionProvider, logFormatVersionProvider);
-        builder.readOnlyStores = true;
+            KernelVersionProvider emptyLogsKernelVersionProvider,
+            LogFormatVersionProvider emptyLogsLogFormatVersionProvider) {
+        LogFilesBuilder builder = writeableBuilder(
+                databaseLayout, fileSystem, emptyLogsKernelVersionProvider, emptyLogsLogFormatVersionProvider);
+        builder.turnOffPreallocation = true;
         builder.readOnlyLogs = true;
+        builder.noInit = true;
         return builder;
     }
 
@@ -179,6 +158,9 @@ public class LogFilesBuilder {
         builder.databaseLayout = DatabaseLayout.ofFlat(logsDirectory);
         builder.fileSystem = fileSystem;
         builder.fileBasedOperationsOnly = true;
+        builder.readOnlyLogs = true;
+        builder.turnOffPreallocation = true;
+        builder.noInit = true;
         return builder;
     }
 
@@ -305,8 +287,18 @@ public class LogFilesBuilder {
         return this;
     }
 
+    public LogFilesBuilder withInitializeProviders() {
+        this.noInit = false;
+        return this;
+    }
+
     public LogFilesBuilder withNoInit() {
         this.noInit = true;
+        return this;
+    }
+
+    public LogFilesBuilder withNoPreallocation() {
+        this.turnOffPreallocation = true;
         return this;
     }
 
@@ -330,14 +322,12 @@ public class LogFilesBuilder {
                 appendIndexProvider,
                 lastCommittedChecksumProvider,
                 lastClosedPositionSupplier,
-                fileBasedOperationsOnly,
-                readOnlyStores,
-                readOnlyLogs,
                 databaseLayout,
                 logFormatVersionProvider,
                 kernelVersionProvider,
                 externalLogTail,
-                noInit);
+                noInit,
+                noInit || fileBasedOperationsOnly || readOnlyLogs);
     }
 
     TransactionLogFilesContext buildContext() {
@@ -447,9 +437,6 @@ public class LogFilesBuilder {
         if (rotationThreshold != null) {
             return new AtomicLong(guaranteeAtLeastTwoSegments(roundUpToEnvelopeSegment(rotationThreshold)));
         }
-        if (readOnlyStores) {
-            return new AtomicLong(roundUpToEnvelopeSegment(Long.MAX_VALUE - envelopeSegmentBlockSizeBytes));
-        }
         AtomicLong configThreshold = new AtomicLong(
                 guaranteeAtLeastTwoSegments(roundUpToEnvelopeSegment(config.get(logical_log_rotation_threshold))));
         config.addListener(
@@ -459,9 +446,6 @@ public class LogFilesBuilder {
     }
 
     private long getCheckpointRotationThreshold() {
-        if (readOnlyLogs) {
-            return roundUpToEnvelopeSegment(Long.MAX_VALUE - envelopeSegmentBlockSizeBytes);
-        }
         return guaranteeAtLeastTwoSegments(
                 roundUpToEnvelopeSegment(config.get(checkpoint_logical_log_rotation_threshold)));
     }
@@ -475,7 +459,7 @@ public class LogFilesBuilder {
     }
 
     private AtomicBoolean getTryToPreallocateTransactionLogs() {
-        if (readOnlyStores) {
+        if (turnOffPreallocation) {
             return new AtomicBoolean(false);
         }
         AtomicBoolean tryToPreallocate = new AtomicBoolean(config.get(preallocate_logical_logs));

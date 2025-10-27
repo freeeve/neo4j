@@ -86,9 +86,10 @@ public class LogTailExtractor {
         LogFormatVersionProvider emptyLogsFormatProvider =
                 () -> LogFormat.fromConfigAndKernelVersion(config, kernelVersionProvider.kernelVersion());
         var builder = readOnly
-                ? LogFilesBuilder.readOnlyBuilder(databaseLayout, fs, kernelVersionProvider, emptyLogsFormatProvider)
-                : LogFilesBuilder.activeFilesBuilder(
-                        databaseLayout, fs, kernelVersionProvider, emptyLogsFormatProvider);
+                ? LogFilesBuilder.readableBuilder(databaseLayout, fs, kernelVersionProvider, emptyLogsFormatProvider)
+                // Writeable to allow CheckpointFile to cleanup files without header on recovery
+                : LogFilesBuilder.writeableBuilder(databaseLayout, fs, kernelVersionProvider, emptyLogsFormatProvider)
+                        .withNoPreallocation();
         return builder.withConfig(config)
                 .withMemoryTracker(memoryTracker)
                 .withDatabaseTracers(databaseTracers)

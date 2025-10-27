@@ -38,9 +38,6 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
@@ -50,10 +47,9 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.storageengine.api.Leases;
-import org.neo4j.storageengine.api.LogVersionRepository;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
-import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 
@@ -67,15 +63,8 @@ public class EnvelopedDetachedLogTailScannerTest {
     @Inject
     private DatabaseLayout databaseLayout;
 
-    private LogVersionRepository logVersionRepository;
-    private TransactionIdStore transactionIdStore;
-    private SimpleAppendIndexProvider appendIndexProvider;
-
     @BeforeEach
     void setUp() throws IOException {
-        logVersionRepository = new SimpleLogVersionRepository();
-        transactionIdStore = new SimpleTransactionIdStore();
-        appendIndexProvider = new SimpleAppendIndexProvider();
         setupLogFiles();
     }
 
@@ -87,11 +76,8 @@ public class EnvelopedDetachedLogTailScannerTest {
                         DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())
                 .set(GraphDatabaseInternalSettings.latest_kernel_version, kernelVersion.version())
                 .build();
-        return LogFilesBuilder.activeFilesBuilder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout, fs, () -> kernelVersion, () -> LogFormat.fromKernelVersion(kernelVersion))
-                .withLogVersionRepository(logVersionRepository)
-                .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
                 .withRotationThreshold(4096L)
@@ -167,6 +153,7 @@ public class EnvelopedDetachedLogTailScannerTest {
             logLifeCycle.add(logFiles);
             var logFile = logFiles.getLogFile();
             var checkpointFile = logFiles.getCheckpointFile();
+            LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
             var logWriter = logFile.getTransactionLogWriter();
             LogEntryWriter<?> entryWriter = logWriter.getWriter();
             int previousChecksum = BASE_TX_CHECKSUM;
@@ -176,7 +163,7 @@ public class EnvelopedDetachedLogTailScannerTest {
             LogPosition postCommitPosition;
             do {
                 preStartPosition = logWriter.getCurrentPosition();
-                appendIndex = appendIndexProvider.nextAppendIndex();
+                appendIndex = logMetadataProvider.nextAppendIndex();
                 txId = lastTxId.incrementAndGet();
                 previousChecksum = writeTxEntries(entryWriter, txId, appendIndex, previousChecksum);
                 postCommitPosition = logWriter.getCurrentPosition();
@@ -197,7 +184,7 @@ public class EnvelopedDetachedLogTailScannerTest {
                                 Instant.now(),
                                 "test");
                 if (addPostCommitTx) {
-                    appendIndex = appendIndexProvider.nextAppendIndex();
+                    appendIndex = logMetadataProvider.nextAppendIndex();
                     txId = lastTxId.incrementAndGet();
                     writeTxEntries(entryWriter, txId, appendIndex, previousChecksum);
                 }

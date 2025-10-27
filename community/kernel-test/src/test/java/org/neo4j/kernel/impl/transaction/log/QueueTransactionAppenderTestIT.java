@@ -45,9 +45,6 @@ import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.api.txid.IdStoreTransactionIdGenerator;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvent;
@@ -55,9 +52,10 @@ import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
-import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.Leases;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.Inject;
@@ -78,20 +76,13 @@ class QueueTransactionAppenderTestIT {
     private DatabaseLayout databaseLayout;
 
     private ThreadPoolJobScheduler jobScheduler;
-    private SimpleLogVersionRepository logVersionRepository;
-    private SimpleTransactionIdStore transactionIdStore;
     private TransactionMetadataCache metadataCache;
     private DatabaseHealth databaseHealth;
     private NullLogProvider logProvider;
-    private SimpleAppendIndexProvider appendIndexProvider;
 
     @BeforeEach
     void setUp() {
         jobScheduler = new ThreadPoolJobScheduler();
-
-        logVersionRepository = new SimpleLogVersionRepository();
-        transactionIdStore = new SimpleTransactionIdStore();
-        appendIndexProvider = new SimpleAppendIndexProvider();
         logProvider = NullLogProvider.getInstance();
         metadataCache = new TransactionMetadataCache();
         databaseHealth = new DatabaseHealth(HealthEventGenerator.NO_OP, logProvider.getLog(DatabaseHealth.class));
@@ -105,28 +96,30 @@ class QueueTransactionAppenderTestIT {
 
     @Test
     void sequentialProcessingOfTransaction() throws IOException, ExecutionException, InterruptedException {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         QueueTransactionAppender transactionAppender = createAppender(logFiles);
         life.add(transactionAppender);
 
-        long txId = transactionIdStore.getLastCommittedTransactionId();
+        long txId = logMetadataProvider.getLastCommittedTransactionId();
         for (int i = 0; i < 10; i++) {
-            CompleteTransaction completeTransaction = createTransaction();
+            CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
             assertEquals(++txId, transactionAppender.append(completeTransaction, LogAppendEvent.NULL));
         }
     }
 
     @Test
     void failToProcessTransactionOnShutdownAppender() throws IOException {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         QueueTransactionAppender transactionAppender = createAppender(logFiles);
         life.add(transactionAppender);
 
-        CompleteTransaction completeTransaction = createTransaction();
+        CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
         assertDoesNotThrow(() -> transactionAppender.append(completeTransaction, LogAppendEvent.NULL));
 
         life.shutdown();
@@ -137,40 +130,43 @@ class QueueTransactionAppenderTestIT {
 
     @Test
     void failToProcessTransactionOnNotStartedAppender() throws IOException {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         QueueTransactionAppender transactionAppender = createAppender(logFiles);
 
-        CompleteTransaction completeTransaction = createTransaction();
+        CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
         assertThatThrownBy(() -> transactionAppender.append(completeTransaction, LogAppendEvent.NULL))
                 .isInstanceOf(DatabaseShutdownException.class);
     }
 
     @Test
     void publishTransactionAsCommittedOnProcessing() throws IOException, ExecutionException, InterruptedException {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         QueueTransactionAppender transactionAppender = createAppender(logFiles);
         life.add(transactionAppender);
 
-        long initialLastCommittedTxId = transactionIdStore.getLastCommittedTransactionId();
-        long initialLastClosedTxId = transactionIdStore.getLastClosedTransactionId();
+        long initialLastCommittedTxId = logMetadataProvider.getLastCommittedTransactionId();
+        long initialLastClosedTxId = logMetadataProvider.getLastClosedTransactionId();
         int numberOfTransactions = 10;
         for (int i = 0; i < numberOfTransactions; i++) {
-            CompleteTransaction completeTransaction = createTransaction();
+            CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
             transactionAppender.append(completeTransaction, LogAppendEvent.NULL);
         }
 
         assertEquals(
-                initialLastCommittedTxId + numberOfTransactions, transactionIdStore.getLastCommittedTransactionId());
-        assertEquals(initialLastClosedTxId, transactionIdStore.getLastClosedTransactionId());
+                initialLastCommittedTxId + numberOfTransactions, logMetadataProvider.getLastCommittedTransactionId());
+        assertEquals(initialLastClosedTxId, logMetadataProvider.getLastClosedTransactionId());
     }
 
     @Test
     void failToProcessTransactionOnNonHealthyDatabase() throws IOException {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         QueueTransactionAppender transactionAppender = createAppender(logFiles);
@@ -179,20 +175,21 @@ class QueueTransactionAppenderTestIT {
         RuntimeException panicException = new RuntimeException("Don't panic, the answer is known!");
         databaseHealth.panic(panicException);
 
-        CompleteTransaction completeTransaction = createTransaction();
+        CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
         assertThatThrownBy(() -> transactionAppender.append(completeTransaction, LogAppendEvent.NULL))
                 .hasRootCause(panicException);
     }
 
     @Test
     void processTransactionWithProperEvents() throws IOException, ExecutionException, InterruptedException {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         QueueTransactionAppender transactionAppender = createAppender(logFiles);
         life.add(transactionAppender);
 
-        CompleteTransaction completeTransaction = createTransaction();
+        CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
         RecordingLogAppendEvent logAppendEvent = new RecordingLogAppendEvent();
         transactionAppender.append(completeTransaction, logAppendEvent);
         assertThat(logAppendEvent.getEvents())
@@ -206,14 +203,15 @@ class QueueTransactionAppenderTestIT {
 
     @Test
     void failureOnProcessingUpdatesDatabaseHealth() throws IOException {
-        LogFiles logFiles = buildLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        LogFiles logFiles = buildLogFiles();
+        LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
 
         QueueTransactionAppender transactionAppender = createAppender(logFiles);
         life.add(transactionAppender);
 
         RuntimeException criticalException = new RuntimeException("The greatest teacher, failure is.");
-        CompleteTransaction completeTransaction = createTransaction();
+        CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
         assertThatThrownBy(() -> transactionAppender.append(completeTransaction, new LogAppendEvent.Empty() {
                     @Override
                     public LogForceEvent beginLogForce() {
@@ -234,9 +232,9 @@ class QueueTransactionAppenderTestIT {
     private QueueTransactionAppender createAppender(LogFiles logFiles) {
         var logQueue = new TransactionLogQueue(
                 logFiles,
-                transactionIdStore,
+                logFiles.logMetadataProvider(),
                 databaseHealth,
-                appendIndexProvider,
+                logFiles.logMetadataProvider(),
                 metadataCache,
                 jobScheduler,
                 logProvider,
@@ -244,7 +242,7 @@ class QueueTransactionAppenderTestIT {
         return new QueueTransactionAppender(logQueue);
     }
 
-    private CompleteTransaction createTransaction() {
+    private CompleteTransaction createTransaction(TransactionIdStore transactionIdStore) {
         CompleteCommandBatch tx = new CompleteCommandBatch(
                 List.of(new TestCommand()),
                 UNKNOWN_CONSENSUS_INDEX,
@@ -264,21 +262,14 @@ class QueueTransactionAppenderTestIT {
                 new IdStoreTransactionIdGenerator(transactionIdStore));
     }
 
-    private LogFiles buildLogFiles(
-            SimpleLogVersionRepository logVersionRepository,
-            SimpleTransactionIdStore transactionIdStore,
-            AppendIndexProvider appendIndexProvider)
-            throws IOException {
+    private LogFiles buildLogFiles() throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.builder(
+        return LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fileSystem,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
-                .withLogVersionRepository(logVersionRepository)
                 .withRotationThreshold(ByteUnit.mebiBytes(1))
-                .withTransactionIdStore(transactionIdStore)
-                .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
                 .build();

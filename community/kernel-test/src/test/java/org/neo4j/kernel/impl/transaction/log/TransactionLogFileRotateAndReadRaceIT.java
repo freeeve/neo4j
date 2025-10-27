@@ -38,9 +38,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
-import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
-import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidEndOfFileReadException;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
@@ -92,7 +89,6 @@ class TransactionLogFileRotateAndReadRaceIT {
                 LatestVersions.LATEST_LOG_FORMAT.usesSegments(),
                 "Disabled for Enveloped log files as they can give spurious errors when reads overlap live writes");
         // GIVEN
-        LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
         Config cfg = Config.newBuilder()
                 .set(
                         GraphDatabaseSettings.neo4j_home,
@@ -102,14 +98,11 @@ class TransactionLogFileRotateAndReadRaceIT {
                 .build();
 
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        LogFiles logFiles = LogFilesBuilder.builder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
                         fs,
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
-                .withLogVersionRepository(logVersionRepository)
-                .withTransactionIdStore(new SimpleTransactionIdStore())
-                .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withConfig(cfg)
                 .withStoreId(storeId)
