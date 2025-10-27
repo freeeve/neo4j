@@ -53,6 +53,8 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsJava
 import scala.math.Ordering.Implicits.seqOrdering
+import scala.util.Success
+import scala.util.Try
 import scala.util.control.NonFatal
 
 /**
@@ -70,9 +72,13 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
     if (!inErrorRecoveryMode(parser)) {
       beginErrorCondition()
       populateException(parser.getContext, e)
-      val (legacyMessage, gql) = errorDetails(parser, e)
-      val exceptionWithGql = new RecognitionExceptionWithGql(e, gql)
-      parser.notifyErrorListeners(e.getOffendingToken, legacyMessage, exceptionWithGql)
+      Try(errorDetails(parser, e)) match {
+        case Success((legacyMessage, gql)) =>
+          val exceptionWithGql = new RecognitionExceptionWithGql(e, gql)
+          parser.notifyErrorListeners(e.getOffendingToken, legacyMessage, exceptionWithGql)
+        case _ =>
+          parser.notifyErrorListeners(e.getOffendingToken, e.getMessage, e)
+      }
     }
   }
 
@@ -177,12 +183,20 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
   }
 
   private def isUnclosedQuote(offender: Token): Boolean = {
-    offender.getText == "'" || offender.getText == "\""
+    offender != null && (offender.getText == "'" || offender.getText == "\"")
   }
 
   private def isUnclosedComment(offender: Token, recognizer: Parser): Boolean = {
-    (offender.getText == "/" && recognizer.getInputStream.LT(2).getText == "*") ||
-    (offender.getText == "*" && recognizer.getInputStream.LT(-1).getText == "/")
+    val offenderText = if (offender != null) offender.getText else null
+    if (offenderText == "/") {
+      val nextToken = recognizer.getInputStream.LT(2)
+      nextToken != null && nextToken.getText == "*"
+    } else if (offenderText == "*") {
+      val previousToken = recognizer.getInputStream.LT(-1)
+      previousToken != null && previousToken.getText == "/"
+    } else {
+      false
+    }
   }
 
   @tailrec
