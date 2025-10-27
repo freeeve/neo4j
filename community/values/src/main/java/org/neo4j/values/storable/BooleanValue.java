@@ -63,7 +63,7 @@ public abstract class BooleanValue extends ScalarValue {
     public static final BooleanValue TRUE = new BooleanValue() {
         @Override
         public boolean equals(Value other) {
-            return this == other;
+            return this == other || getClass().equals(other.getClass());
         }
 
         @Override
@@ -111,7 +111,7 @@ public abstract class BooleanValue extends ScalarValue {
     public static final BooleanValue FALSE = new BooleanValue() {
         @Override
         public boolean equals(Value other) {
-            return this == other;
+            return this == other || getClass().equals(other.getClass());
         }
 
         @Override

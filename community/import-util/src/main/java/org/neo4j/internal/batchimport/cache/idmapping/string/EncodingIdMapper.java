@@ -255,7 +255,7 @@ public class EncodingIdMapper implements IdMapper {
 
     @Override
     public void remove(Object inputId, long actualId, Group group) {
-        throw new UnsupportedOperationException();
+        dataCache.set(actualId, GAP_VALUE);
     }
 
     private long encode(Object inputId) {

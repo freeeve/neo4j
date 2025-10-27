@@ -800,6 +800,37 @@ public class EncodingIdMapperTest {
         }
     }
 
+    @Test
+    void shouldManuallyRemoveIds() throws KeyCollisionException {
+        // given
+        var group = groups.getOrCreate("Group");
+        try (var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1)) {
+            var setter = idMapper.newSetter();
+            int numNodes = 10;
+            for (int i = 0; i < numNodes; i++) {
+                setter.put(String.valueOf(i), i, group);
+            }
+            idMapper.prepare(CONVERT_TO_STRING, Collector.EMPTY, NONE, LongSets.immutable.empty());
+            try (var getter = idMapper.newGetter()) {
+                for (long i = 0; i < numNodes; i++) {
+                    assertThat(getter.get(String.valueOf(i), group)).isEqualTo(i);
+                }
+            }
+
+            // when
+            long removedId = random.nextLong(numNodes);
+            idMapper.remove(String.valueOf(removedId), removedId, group);
+
+            // then
+            try (var getter = idMapper.newGetter()) {
+                for (long i = 0; i < numNodes; i++) {
+                    assertThat(getter.get(String.valueOf(i), group))
+                            .isEqualTo(i == removedId ? IdMapper.ID_NOT_FOUND : i);
+                }
+            }
+        }
+    }
+
     private PropertyValueLookup mapValues(Map<Long, String> data) {
         return r -> new PropertyValueLookup.Lookup() {
             @Override

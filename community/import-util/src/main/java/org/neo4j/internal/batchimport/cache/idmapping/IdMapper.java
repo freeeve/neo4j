@@ -127,7 +127,7 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
         void close();
     }
 
-    interface Setter {
+    interface Setter extends AutoCloseable {
         /**
          * Maps an {@code inputId} to an actual node id.
          * @param inputId an id of an unknown type, coming from input.
@@ -153,5 +153,8 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
             }
             return result;
         }
+
+        @Override
+        default void close() throws Exception {}
     }
 }
