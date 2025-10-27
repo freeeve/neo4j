@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
@@ -27,11 +26,10 @@ import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.util.ASTNode
-import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 
-case class pegStatement(anonVarGen: AnonymousVariableNameGenerator) {
+object pegStatement {
 
-  def apply(statement: Statement, incoming: RegularContext, version: CypherVersion): WorkingScope = {
+  def apply(statement: Statement, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
     implicit val astNode: ASTNode = statement
     statement match {
 
@@ -40,14 +38,14 @@ case class pegStatement(anonVarGen: AnonymousVariableNameGenerator) {
        */
       case NextStatement(queries) =>
         val children = queries.scanLeft(WorkingScope.apriori(incoming)) {
-          case (previous, query) => apply(query, incoming.replaceWith(previous.outgoing.variables), version)
+          case (previous, query) => apply(query, incoming.replaceWith(previous.outgoing.variables))
         }.tail
         // Alternatively, referenced can be computed by referencedInChildren minus "declaredInChildren"
         val referenced =
           Some(WorkingScope.referencedInChildren(children) intersect incoming.constantsAndVariables)
         incoming.resultScope(children.last.outgoing, children.last.result, children, referenced)
       case u: Union =>
-        val children = Seq(u.lhs, u.rhs).map(q => apply(q, incoming, version))
+        val children = Seq(u.lhs, u.rhs).map(q => apply(q, incoming))
         incoming.resultScope(children.head.outgoing, children.head.result, children)
       case ConditionalQueryWhen(branches, defaultOpt) =>
         val allBranched = branches.appendedAll(defaultOpt)
@@ -55,8 +53,8 @@ case class pegStatement(anonVarGen: AnonymousVariableNameGenerator) {
         val children = allBranched.map {
           case branch @ ConditionalQueryBranch(predicateOpt, query) =>
             val predicateScopeOpt =
-              predicateOpt.map(predicate => pegExpression(anonVarGen)(predicate, branchIncoming, version))
-            val queryScope = apply(query, branchIncoming, version)
+              predicateOpt.map(predicate => pegExpression(predicate, branchIncoming))
+            val queryScope = apply(query, branchIncoming)
             val branchChildren = Seq(predicateScopeOpt, Some(queryScope)).flatten
             val referenced =
               Some(WorkingScope.referencedInChildren(branchChildren) intersect branchIncoming.constantsAndVariables)
@@ -66,13 +64,13 @@ case class pegStatement(anonVarGen: AnonymousVariableNameGenerator) {
         incoming.resultScope(children.head.outgoing, children.head.result, children)
       case SingleQuery(clauses) =>
         if (clauses.size == 1 && clauses.head.isInstanceOf[UnresolvedCall]) {
-          val child = pegClause(anonVarGen)(clauses.head, incoming, version)
+          val child = pegClause(clauses.head, incoming)
           val referenced =
             Some(WorkingScope.referencedInChildren(Seq(child)) intersect incoming.constantsAndVariables)
           incoming.resultScope(child.outgoing, child.result, Seq(child), referenced)
         } else {
           val children = clauses.scanLeft(WorkingScope.apriori(incoming)) {
-            case (previous, clause) => pegClause(anonVarGen)(clause, previous.outgoing, version) match {
+            case (previous, clause) => pegClause(clause, previous.outgoing) match {
                 // adjusting for in-query calls to have no result
                 case ws @ StatementScope(_: UnresolvedCall, _, _, _, _, TableResult(_), _) =>
                   ws.copy(result = NoResult)
@@ -86,10 +84,10 @@ case class pegStatement(anonVarGen: AnonymousVariableNameGenerator) {
           // Alternatively, we could simply forward a single child.
           incoming.resultScope(children.last.outgoing, children.last.result, children, referenced)
         }
-      case TopLevelBraces(query, _) => apply(query, incoming, version)
+      case TopLevelBraces(query, _) => apply(query, incoming)
 
       // TODO other query forms and admin commands
-      case command: AdministrationCommand => pegCommand(anonVarGen)(command, incoming, version)
+      case command: AdministrationCommand => pegCommand(command, incoming)
 
       /**
        * To make match exhaustive

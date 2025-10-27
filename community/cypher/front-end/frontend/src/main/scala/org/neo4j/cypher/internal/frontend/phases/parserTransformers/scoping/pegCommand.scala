@@ -22,11 +22,10 @@ import org.neo4j.cypher.internal.ast.ReadAdministrationCommand
 import org.neo4j.cypher.internal.ast.WaitableAdministrationCommand
 import org.neo4j.cypher.internal.ast.WriteAdministrationCommand
 import org.neo4j.cypher.internal.util.ASTNode
-import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 
-case class pegCommand(anonVarGen: AnonymousVariableNameGenerator) {
+object pegCommand {
 
-  def apply(command: AdministrationCommand, incoming: RegularContext, version: CypherVersion): WorkingScope = {
+  def apply(command: AdministrationCommand, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
     implicit val astNode: ASTNode = command
     command match {
 
@@ -47,16 +46,15 @@ case class pegCommand(anonVarGen: AnonymousVariableNameGenerator) {
 
         val yieldOrWhereScopes = read.yieldOrWhere match {
           case Some(Left((yieldClause, None))) =>
-            Seq(pegClause(anonVarGen)(yieldClause, declaringScope.outgoing, version))
+            Seq(pegClause(yieldClause, declaringScope.outgoing))
           case Some(Left((yieldClause, optReturn))) =>
-            val yieldScope = pegClause(anonVarGen)(yieldClause, declaringScope.outgoing, version)
-            val returnScope = optReturn.map(pegClause(anonVarGen)(_, yieldScope.outgoing, version))
+            val yieldScope = pegClause(yieldClause, declaringScope.outgoing)
+            val returnScope = optReturn.map(pegClause(_, yieldScope.outgoing))
             Seq(yieldScope) ++ returnScope
           case Some(Right(whereClause)) =>
-            Seq(pegExpression(anonVarGen)(
+            Seq(pegExpression(
               whereClause.expression,
-              declaringScope.outgoing.constantChildContext(),
-              version
+              declaringScope.outgoing.constantChildContext()
             ))
           case None => Seq.empty
         }
@@ -71,7 +69,7 @@ case class pegCommand(anonVarGen: AnonymousVariableNameGenerator) {
       /**
        * WriteAdministrationCommand
        */
-      case wait: WaitableAdministrationCommand if version == CypherVersion.Cypher5 =>
+      case wait: WaitableAdministrationCommand if c.language == CypherVersion.Cypher5 =>
         val defaultCols = wait.returnColumns
         incoming.resultScope(
           incoming.amendedWith(defaultCols.toSet),

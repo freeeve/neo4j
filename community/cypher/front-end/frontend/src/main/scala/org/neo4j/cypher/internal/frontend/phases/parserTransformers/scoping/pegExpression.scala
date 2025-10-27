@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
@@ -37,18 +36,17 @@ import org.neo4j.cypher.internal.expressions.functions.AggregatingFunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.util.ASTNode
-import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Foldable.FoldingBehavior
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 
-case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
+object pegExpression {
 
-  def apply(labelExpression: LabelExpression, incoming: RegularContext, version: CypherVersion): WorkingScope = {
+  def apply(labelExpression: LabelExpression, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
     def collect(scope: WorkingScope): Seq[WorkingScope] => FoldingBehavior[Seq[WorkingScope]] =
       acc => SkipChildren(acc :+ scope)
 
     val children = labelExpression.folder.treeFold(Seq[WorkingScope]()) {
-      case DynamicLeaf(leafExpression, _) => collect(apply(leafExpression.expression, incoming, version))
+      case DynamicLeaf(leafExpression, _) => collect(apply(leafExpression.expression, incoming))
     }
     onlyChildIfSelfOrElse(
       children,
@@ -57,16 +55,15 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
     )
   }
 
-  def apply(expression: Expression, incoming: RegularContext, version: CypherVersion): WorkingScope = {
-    val children = scopeExpression(expression, incoming, version)
+  def apply(expression: Expression, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
+    val children = scopeExpression(expression, incoming)
     onlyChildIfSelfOrElse(children, expression, () => incoming.expressionResultScope(expression, children))
   }
 
   private def scopeExpression(
     expression: Expression,
-    incoming: RegularContext,
-    version: CypherVersion
-  ): Seq[ExpressionScope] = {
+    incoming: RegularContext
+  )(implicit c: PegContext): Seq[ExpressionScope] = {
     def collect(scope: ExpressionScope)
       : Seq[ExpressionScope] => FoldingBehavior[Seq[ExpressionScope]] =
       acc => SkipChildren(acc :+ scope)
@@ -88,14 +85,14 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
         collect(incoming.expressionResultScope(cntStar, Seq.empty))
       case fi @ FunctionInvocation(_, _, args, _, false, _) if fi.function.isInstanceOf[AggregatingFunction] =>
         val argIncoming = incoming.constantChildContext()
-        val children = args.map(arg => apply(arg, argIncoming, version))
+        val children = args.map(arg => apply(arg, argIncoming))
         collect(incoming.expressionResultScope(fi, children))
 
       /**
        * Scalar subqueries
        */
       case fse: FullSubqueryExpression =>
-        val child = ScopeSurveyor.scope(fse.query, incoming.constantChildContext(), anonVarGen, version)
+        val child = ScopeSurveyor.scope(fse.query, incoming.constantChildContext(), c)
         val children = Seq(child)
         collect(incoming.expressionResultScope(fse, children))
 
@@ -105,10 +102,10 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
       case lc @ ListComprehension(ExtractScope(variable, innerPredicate, extractExpression), expression) =>
         val innerIncoming = incoming.amendedWithConstant(variable)
         val innerResult = Seq(innerPredicate, extractExpression).flatMap {
-          case Some(ex) => Some(apply(ex, innerIncoming, version))
+          case Some(ex) => Some(apply(ex, innerIncoming))
           case None     => None
         }
-        val expressionResult = apply(expression, incoming, version)
+        val expressionResult = apply(expression, incoming)
         val children = expressionResult +: innerResult
         val referenced = {
           val innerReferenced = WorkingScope.referencedInChildren(innerResult) excl variable
@@ -119,14 +116,14 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
         collect(incoming.expressionResultScope(lc, children, referenced, declared))
 
       case pc @ PatternComprehension(optVar, pattern, innerPredicate, projection) =>
-        val patternResult = pegPattern(anonVarGen)(pattern.element, incoming, version)
+        val patternResult = pegPattern(pattern.element, incoming)
         val variables = optVar match {
           case Some(value) => Seq(value) ++ patternResult.declared.variables
           case None        => patternResult.declared.variables
         }
         val innerIncoming = incoming.amendedWithConstant(variables.toSet)
         val innerResult = Seq(innerPredicate, Some(projection)).flatMap {
-          case Some(ex) => Some(apply(ex, innerIncoming, version))
+          case Some(ex) => Some(apply(ex, innerIncoming))
           case None     => None
         }
         val children = patternResult +: innerResult
@@ -141,8 +138,8 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
       case iter: IterablePredicateExpression =>
         val FilterScope(variable, innerPredicate) = iter.scope
         val innerIncoming = incoming.amendedWithConstant(variable)
-        val innerResult = innerPredicate.fold(Seq.empty[WorkingScope]) { ex => Seq(apply(ex, innerIncoming, version)) }
-        val expressionResult = apply(iter.expression, incoming, version)
+        val innerResult = innerPredicate.fold(Seq.empty[WorkingScope]) { ex => Seq(apply(ex, innerIncoming)) }
+        val expressionResult = apply(iter.expression, incoming)
         val children = expressionResult +: innerResult
         val referenced = {
           val innerReferenced = WorkingScope.referencedInChildren(innerResult) excl variable
@@ -154,9 +151,9 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
 
       case r @ ReduceExpression(ReduceScope(accumulator, variable, expression), init, list) =>
         val innerIncoming = incoming.amendedWithConstant(Set(accumulator, variable))
-        val innerResult = apply(expression, innerIncoming, version)
-        val initResult = apply(init, incoming, version)
-        val listResult = apply(list, incoming, version)
+        val innerResult = apply(expression, innerIncoming)
+        val initResult = apply(init, incoming)
+        val listResult = apply(list, incoming)
 
         val children = Seq(initResult, listResult, innerResult)
         val referenced = {
@@ -173,10 +170,10 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
           list
         ) =>
         val reductionStepResult =
-          apply(reductionStep, incoming.amendedWithConstant(Set(accumulator, reductionStepVariable)), version)
-        val predicateResult = apply(predicate, incoming.amendedWithConstant(Set(accumulator)), version)
-        val initResult = apply(init, incoming, version)
-        val listResult = apply(list, incoming, version)
+          apply(reductionStep, incoming.amendedWithConstant(Set(accumulator, reductionStepVariable)))
+        val predicateResult = apply(predicate, incoming.amendedWithConstant(Set(accumulator)))
+        val initResult = apply(init, incoming)
+        val listResult = apply(list, incoming)
 
         val children = Seq(initResult, listResult, reductionStepResult, predicateResult)
         val referenced = {

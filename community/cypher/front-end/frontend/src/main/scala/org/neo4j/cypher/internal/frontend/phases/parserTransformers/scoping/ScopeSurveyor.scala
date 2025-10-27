@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
@@ -48,7 +47,11 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
     val anonVarGen = new AnonymousVariableNameGenerator
-    val workingContextOfStatement = scope(from.statement(), RegularContext.unit, anonVarGen, context.cypherVersion)
+    val workingContextOfStatement = scope(
+      from.statement(),
+      RegularContext.unit,
+      PegContext(anonVarGen, context.cypherVersion, context.semanticFeatures)
+    )
     from.withWorkingScope(workingContextOfStatement)
   }
 
@@ -70,33 +73,33 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
   def scope(
     astNode: ASTNode,
     incoming: RegularContext,
-    anonVarGen: AnonymousVariableNameGenerator,
-    version: CypherVersion
+    ctx: PegContext
   ): WorkingScope = {
+    implicit val c: PegContext = ctx
     astNode match {
 
       /**
        * Statement
        */
-      case statement: Statement => pegStatement(anonVarGen)(statement, incoming, version: CypherVersion)
+      case statement: Statement => pegStatement(statement, incoming)
 
       /**
        * Clause
        */
-      case clause: Clause => pegClause(anonVarGen)(clause, incoming, version: CypherVersion)
+      case clause: Clause => pegClause(clause, incoming)
 
       /**
        * Expression
        */
-      case expression: Expression => pegExpression(anonVarGen)(expression, incoming, version: CypherVersion)
+      case expression: Expression => pegExpression(expression, incoming)
       case labelExpression: LabelExpression =>
-        pegExpression(anonVarGen)(labelExpression, incoming, version: CypherVersion)
+        pegExpression(labelExpression, incoming)
 
       /**
        * Pattern
        */
-      case pattern: Pattern         => pegPattern(anonVarGen)(pattern, incoming, version: CypherVersion)
-      case patternPart: PatternPart => pegPattern(anonVarGen)(patternPart, incoming, version: CypherVersion)
+      case pattern: Pattern         => pegPattern(pattern, incoming)
+      case patternPart: PatternPart => pegPattern(patternPart, incoming)
 
       /**
        * To make match exhaustive
