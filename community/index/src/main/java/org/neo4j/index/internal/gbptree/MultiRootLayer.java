@@ -194,18 +194,20 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
             // deleted roots
             var rootUnderDeletion = new DataTreeRoot<ROOT_KEY>(null, NULL_ROOT);
             rootMappingCache.put(dataRootKey, rootUnderDeletion);
-            long rootIdToDelete = deleteRootFromTree(dataRootKey, cursorContext, rootDeleteValueMerger);
-            long generation = support.generation();
-            var unstableGeneration = unstableGeneration(generation);
-            support.structureWriteLog().deleteRoot(unstableGeneration, rootIdToDelete);
-            support.idProvider()
-                    .releaseId(
-                            stableGeneration(generation),
-                            unstableGeneration,
-                            rootIdToDelete,
-                            bind(support, PF_SHARED_WRITE_LOCK, cursorContext));
-        } finally {
-            rootMappingCache.remove(dataRootKey);
+            try {
+                long rootIdToDelete = deleteRootFromTree(dataRootKey, cursorContext, rootDeleteValueMerger);
+                long generation = support.generation();
+                var unstableGeneration = unstableGeneration(generation);
+                support.structureWriteLog().deleteRoot(unstableGeneration, rootIdToDelete);
+                support.idProvider()
+                        .releaseId(
+                                stableGeneration(generation),
+                                unstableGeneration,
+                                rootIdToDelete,
+                                bind(support, PF_SHARED_WRITE_LOCK, cursorContext));
+            } finally {
+                rootMappingCache.remove(dataRootKey);
+            }
         }
     }
 
