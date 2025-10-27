@@ -55,6 +55,10 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         return dbmsModel;
     }
 
+    protected String mirrorUpstream() {
+        return "nothing reads this in community";
+    }
+
     private static NormalizedDatabaseName name(String name) {
         return new NormalizedDatabaseName(name);
     }
@@ -229,20 +233,16 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
     @Test
     void canReturnAllMirrorDatabaseReferences() {
         // given
-        var upstream = newDatabase(b -> b.withDatabase("upstream"));
-        var mirror0 = newDatabase(b -> b.withDatabase("mirror0").withUpstream(upstream));
-        var mirror1 = newDatabase(b -> b.withDatabase("mirror1").withUpstream(upstream));
+        var mirror0 = newDatabase(b -> b.withDatabase("mirror0").withUpstream(mirrorUpstream()));
+        var mirror1 = newDatabase(b -> b.withDatabase("mirror1").withUpstream(mirrorUpstream()));
         createInternalReferenceForDatabase(tx, mirror0.name(), true, mirror0);
         createInternalReferenceForDatabase(tx, mirror1.name(), true, mirror1);
-        createInternalReferenceForDatabase(tx, upstream.name(), true, upstream);
 
         // then
-        var mirror0Ref = new DatabaseReferenceImpl.Mirror(mirror0.normalizedName(), mirror0, upstream.name());
-        var mirror1Ref = new DatabaseReferenceImpl.Mirror(mirror1.normalizedName(), mirror1, upstream.name());
-        var upstreamRef = new DatabaseReferenceImpl.Internal(upstream.normalizedName(), upstream, true);
+        var mirror0Ref = new DatabaseReferenceImpl.Mirror(mirror0.normalizedName(), mirror0);
+        var mirror1Ref = new DatabaseReferenceImpl.Mirror(mirror1.normalizedName(), mirror1);
 
-        assertThat(dbmsModel().getAllDatabaseReferences())
-                .containsExactlyInAnyOrder(mirror0Ref, mirror1Ref, upstreamRef);
+        assertThat(dbmsModel().getAllDatabaseReferences()).containsExactlyInAnyOrder(mirror0Ref, mirror1Ref);
         assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(mirror0.name())))
                 .hasValue(mirror0Ref);
         assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(mirror1.name())))

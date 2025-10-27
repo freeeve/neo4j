@@ -427,8 +427,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     private static Optional<DatabaseReferenceImpl.Mirror> createMirrorReference(Node alias, Node db) {
         return CommunityTopologyGraphDbmsModelUtil.createInternalReference(
                         alias, CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db))
-                .flatMap(internal -> CommunityTopologyGraphDbmsModelUtil.readUpstreamDatabase(db)
-                        .map(internal::asMirror));
+                .map(DatabaseReferenceImpl.Internal::asMirror);
     }
 
     private Set<DatabaseReference> getAllDatabaseReferencesInComposite(NormalizedDatabaseName compositeName) {

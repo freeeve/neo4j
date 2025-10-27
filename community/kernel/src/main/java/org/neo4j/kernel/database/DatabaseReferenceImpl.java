@@ -306,8 +306,8 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
             return new PropertyShard(alias, namedDatabaseId, primary, ownerDatabase, index);
         }
 
-        public DatabaseReferenceImpl.Mirror asMirror(String upstreamDatabase) {
-            return new Mirror(alias, namedDatabaseId, upstreamDatabase);
+        public DatabaseReferenceImpl.Mirror asMirror() {
+            return new Mirror(alias, namedDatabaseId);
         }
     }
 
@@ -612,15 +612,8 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
     }
 
     public static final class Mirror extends DatabaseReferenceImpl.Internal {
-        private final String upstream;
-
-        public Mirror(NormalizedDatabaseName alias, NamedDatabaseId namedDatabaseId, String upstream) {
+        public Mirror(NormalizedDatabaseName alias, NamedDatabaseId namedDatabaseId) {
             super(alias, namedDatabaseId, true);
-            this.upstream = upstream;
-        }
-
-        public String upstream() {
-            return upstream;
         }
 
         @Override
@@ -629,8 +622,7 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
                     + alias + ", namespace="
                     + namespace + ", namedDatabaseId="
                     + namedDatabaseId + ", primary="
-                    + primary + ", upstream="
-                    + upstream + '}';
+                    + primary + '}';
         }
     }
 }

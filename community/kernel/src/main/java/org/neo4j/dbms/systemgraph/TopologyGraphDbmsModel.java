@@ -208,7 +208,7 @@ public interface TopologyGraphDbmsModel {
     String DATABASE_BOOTSTRAP_VERSION = "bootstrapDatabaseVersion";
     String DATABASE_DEFAULT_LANGUAGE_PROPERTY = "defaultLanguage";
     String DATABASE_BACKPRESSURE_ENABLED_PROPERTY = "backpressureEnabled";
-    String DATABASE_MIRROR_URI_PROPERTY = "mirrorURI";
+    String DATABASE_MIRROR_DESCRIPTOR_PROPERTY = "mirrorDescriptor";
 
     Label DATABASE_NAME_LABEL = Label.label("DatabaseName");
     String DATABASE_NAME = DATABASE_NAME_LABEL.name();
@@ -310,8 +310,6 @@ public interface TopologyGraphDbmsModel {
     RelationshipType HAS_ALLOCATION_HINTS_RELATIONSHIP = RelationshipType.withName("HAS_ALLOCATION_HINTS");
 
     Label MIRROR_LABEL = Label.label("Mirror");
-    RelationshipType IS_MIRROR_OF_RELATIONSHIP = RelationshipType.withName("IS_MIRROR_OF");
-    String IS_MIRROR_OF_INSTALLED_AT_PROPERTY = "installed_at";
 
     /**
      * Fetches all known database references

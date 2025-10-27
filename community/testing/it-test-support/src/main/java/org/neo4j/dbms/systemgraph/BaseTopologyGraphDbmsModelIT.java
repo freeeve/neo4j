@@ -37,6 +37,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_CREATED
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DESIGNATED_SEEDER_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_MIRROR_DESCRIPTOR_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_PRIMARIES_PROPERTY;
@@ -75,7 +76,6 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.INSTANCE_MODE_CO
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.INSTANCE_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.INSTANCE_STATUS_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.INSTANCE_UUID_PROPERTY;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IS_MIRROR_OF_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IV_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.InstanceStatus.ENABLED;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.LATEST_SUPPORTED_COMPONENT_VERSIONS_RELATIONSHIP;
@@ -457,12 +457,8 @@ public abstract class BaseTopologyGraphDbmsModelIT {
             return this;
         }
 
-        public DatabaseNodeBuilder withUpstream(NamedDatabaseId upstream) {
-            var otherDatabase = tx.findNode(
-                    DATABASE_LABEL,
-                    DATABASE_UUID_PROPERTY,
-                    upstream.databaseId().uuid().toString());
-            node.createRelationshipTo(otherDatabase, IS_MIRROR_OF_RELATIONSHIP);
+        public DatabaseNodeBuilder withUpstream(String upstream) {
+            node.setProperty(DATABASE_MIRROR_DESCRIPTOR_PROPERTY, upstream);
             node.addLabel(MIRROR_LABEL);
             return this;
         }

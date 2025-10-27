@@ -27,7 +27,6 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD_LABE
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_GRAPH_SHARD_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_INDEX_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_RELATIONSHIP;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IS_MIRROR_OF_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.MIRROR_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTY_SHARD_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL;
@@ -502,22 +501,6 @@ public final class CommunityTopologyGraphDbmsModelUtil {
             int index = (int) hasPropertyShardRel.getFirst().getProperty(HAS_PROPERTY_SHARD_INDEX_PROPERTY);
             return readGraphShardOwningDatabase(hasPropertyShardRel.getFirst().getStartNode())
                     .map(owner -> Pair.of(owner, index));
-        });
-    }
-
-    public static Optional<String> readUpstreamDatabase(Node aliasNode) {
-        return ignoreConcurrentDeletes(() -> {
-            var relationships = aliasNode.getRelationships(Direction.OUTGOING, IS_MIRROR_OF_RELATIONSHIP).stream()
-                    .map(Relationship::getStartNode)
-                    .toList(); // exhaust cursor
-            if (relationships.isEmpty()) {
-                return Optional.of(aliasNode.getProperty(DATABASE_NAME_PROPERTY).toString());
-            } else {
-                return Optional.of(relationships
-                        .getFirst()
-                        .getProperty(DATABASE_NAME_PROPERTY)
-                        .toString());
-            }
         });
     }
 }
