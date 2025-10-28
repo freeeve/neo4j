@@ -115,7 +115,8 @@ class ParserTest extends CypherFunSuite with TestName with AstConstructionTestSu
       Some(ProcedureResult(IndexedSeq(
         ProcedureResultItem(None, varFor("foo"))(pos),
         ProcedureResultItem(ProcedureOutput("bar")(pos), varFor("boo"))(pos)
-      ))(pos))
+      ))(pos)),
+      isStandalone = false
     )(pos)
 
     Parser.Latest.parseProcedureCall("db.my.proc(1) YIELD foo, bar AS boo") should be(expected)

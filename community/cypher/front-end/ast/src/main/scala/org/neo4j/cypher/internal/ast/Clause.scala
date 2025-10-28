@@ -1607,6 +1607,7 @@ case class UnresolvedCall(
   declaredArguments: Option[Seq[Expression]] = None,
   // None: No results declared  (i.e. no "YIELD" part or "YIELD *")
   declaredResult: Option[ProcedureResult] = None,
+  isStandalone: Boolean = false,
   // YIELD *
   override val yieldAll: Boolean = false,
   override val optional: Boolean = false

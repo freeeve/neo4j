@@ -48,7 +48,7 @@ import org.neo4j.exceptions.SyntaxException
 object ResolvedCall {
 
   def apply(signatureLookup: QualifiedName => ProcedureSignature)(unresolved: UnresolvedCall): ResolvedCall = {
-    val UnresolvedCall(_, _, declaredArguments, declaredResult, yieldAll, optional) = unresolved
+    val UnresolvedCall(_, _, declaredArguments, declaredResult, _, yieldAll, optional) = unresolved
     val position = unresolved.position
     val signature = signatureLookup(QualifiedName(unresolved))
     def implicitArguments = signature.inputSignature.map(s =>

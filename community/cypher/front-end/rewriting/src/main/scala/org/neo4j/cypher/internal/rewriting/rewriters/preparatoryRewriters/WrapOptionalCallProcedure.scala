@@ -44,7 +44,7 @@ case object WrapOptionalCallProcedure extends StepSequencer.Step with Preparator
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
 
   private val rewriter: Rewriter = Rewriter.lift {
-    case unresolved @ UnresolvedCall(_, _, _, Some(_), _, true) =>
+    case unresolved @ UnresolvedCall(_, _, _, Some(_), _, _, true) =>
       val pos = unresolved.position
       val copyResolved = unresolved.copy(optional = false)(pos)
       val returnItems = unresolved.returnVariables.explicitVariables.map(x => AliasedReturnItem(x))

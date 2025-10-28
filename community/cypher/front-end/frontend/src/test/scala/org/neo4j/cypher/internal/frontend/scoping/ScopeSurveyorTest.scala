@@ -2378,19 +2378,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
     )
   }
 
-  test("CALL db.info()") {
-    hasScope(
-      ExpectedWorkingScope(
-        Ast("CALL db.info()"), // query level
-        ExpectedResult.TableResultWithNotYetKnownColumns,
-        ExpectedWorkingScope(
-          Ast("CALL db.info()"),
-          ExpectedResult.TableResultWithNotYetKnownColumns
-        )
-      )
-    )
-  }
-
   test("""LET a = 10
          |CALL {
          |  WITH a
@@ -2475,6 +2462,19 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
     )
   }
 
+  test("CALL db.info()") {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("CALL db.info()"), // query level
+        ExpectedResult.TableResultWithNotYetKnownColumns,
+        ExpectedWorkingScope(
+          Ast("CALL db.info()"),
+          ExpectedResult.TableResultWithNotYetKnownColumns
+        )
+      )
+    )
+  }
+
   test("CALL db.info() YIELD *") {
     hasScope(
       ExpectedWorkingScope(
@@ -2504,6 +2504,107 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
     )
   }
 
+  test(
+    """CALL db.info()
+      |RETURN 1 AS x""".stripMargin
+  ) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""CALL db.info()
+              |RETURN 1 AS x""".stripMargin), // query level
+        Outgoing(variables = Set("x")),
+        ExpectedResult.TableResult("x"),
+        ExpectedWorkingScope(
+          Ast("CALL db.info()"),
+          ExpectedResult.OmittedResult
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN 1 AS x"),
+          Outgoing(variables = Set("x")),
+          ExpectedResult.TableResult("x"),
+          ExpectedWorkingScope.constExp("1")
+        )
+      )
+    )
+  }
+
+  test(
+    """CALL () {
+      |  CALL db.info()
+      |}
+      |RETURN 1 AS x""".stripMargin
+  ) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""CALL () {
+              |  CALL db.info()
+              |}
+              |RETURN 1 AS x""".stripMargin), // query level
+        Outgoing(variables = Set("x")),
+        ExpectedResult.TableResult("x"),
+        ExpectedWorkingScope(
+          Ast("""CALL () {
+                |  CALL db.info()
+                |}""".stripMargin),
+          ExpectedResult.NoResult,
+          ExpectedWorkingScope(
+            Ast("CALL db.info()"), // query level
+            ExpectedResult.OmittedResult,
+            ExpectedWorkingScope(
+              Ast("CALL db.info()"),
+              ExpectedResult.OmittedResult
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN 1 AS x"),
+          Outgoing(variables = Set("x")),
+          ExpectedResult.TableResult("x"),
+          ExpectedWorkingScope.constExp("1")
+        )
+      )
+    )
+  }
+
+//  ExpectedWorkingScope(
+//    Ast("""CALL (a) {
+//          |  UNWIND [1, 2, 3] AS x
+//          |  RETURN a * x AS x
+//          |}""".stripMargin),
+//    Incoming(variables = Set("a", "b")),
+//    Referenced(Set("a")),
+//    Declared(variables = Seq("x")),
+//    Outgoing(variables = Set("a", "b", "x")),
+//    ExpectedWorkingScope(
+//      Ast("""UNWIND [1, 2, 3] AS x
+//            |RETURN a * x AS x""".stripMargin),
+//      Incoming(constants = Set("a")),
+//      Referenced(Set("a")),
+//      Outgoing(variables = Set("x")),
+//      ExpectedResult.TableResult("x"),
+//      ExpectedWorkingScope(
+//        Ast("UNWIND [1, 2, 3] AS x"),
+//        Incoming(constants = Set("a")),
+//        Declared(variables = Seq("x")),
+//        Outgoing(constants = Set("a"), variables = Set("x")),
+//        ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+//      ),
+//      ExpectedWorkingScope(
+//        Ast("RETURN a * x AS x"),
+//        Incoming(constants = Set("a"), variables = Set("x")),
+//        Referenced(Set("a", "x")),
+//        Outgoing(variables = Set("x")),
+//        ExpectedResult.TableResult("x"),
+//        ExpectedWorkingScope(
+//          Ast("a * x"),
+//          Incoming(constants = Set("a", "x")),
+//          Referenced(Set("a", "x")),
+//          ExpectedWorkingScope.varExp("a", Set("a", "x")),
+//          ExpectedWorkingScope.varExp("x", Set("a", "x"))
+//        )
+//      )
+//    )
+//  ),
   test("""CALL db.info() YIELD name, id
          |RETURN name""".stripMargin) {
     hasScope(

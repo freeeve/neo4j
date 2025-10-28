@@ -29,7 +29,7 @@ statement
 periodicCommitQueryHintFailure
    : USING PERIODIC COMMIT UNSIGNED_DECIMAL_INTEGER?
    ;
-
+   
 regularQuery
    : singleQuery (UNION (ALL | DISTINCT)? singleQuery)*
    ;

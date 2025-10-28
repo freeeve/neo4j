@@ -1425,7 +1425,8 @@ trait AstConstructionTestSupport {
     name: String,
     args: Option[Seq[Expression]] = Some(Vector()),
     yields: Option[Seq[Variable]] = None,
-    where: Option[Expression] = None
+    where: Option[Expression] = None,
+    standalone: Boolean = false
   ): UnresolvedCall =
     UnresolvedCall(
       Namespace(ns.toList)(pos),
@@ -1434,8 +1435,7 @@ trait AstConstructionTestSupport {
       yields.map(vs =>
         ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)), where.map(p => Where(p)(pos)))(pos)
       ),
-      false,
-      false
+      standalone
     )(pos)
 
   def optCall(
@@ -1452,8 +1452,7 @@ trait AstConstructionTestSupport {
       yields.map(vs =>
         ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)), where.map(p => Where(p)(pos)))(pos)
       ),
-      false,
-      true
+      optional = true
     )(pos)
 
   def use(names: List[String], resolveStrictly: Boolean): UseGraph = {

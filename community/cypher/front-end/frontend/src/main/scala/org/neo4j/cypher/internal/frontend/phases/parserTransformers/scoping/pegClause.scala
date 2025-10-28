@@ -110,22 +110,49 @@ object pegClause {
         )
 
       // named call
-      case UnresolvedCall(_, _, declaredArguments, declaredResult, _, _) =>
+      case UnresolvedCall(_, _, declaredArguments, declaredResult, isStandalone, _, _) =>
         val children =
           declaredArguments.map(
             _.map(arg => pegExpression(arg, incoming.constantChildContext()))
           ).getOrElse(Seq.empty)
         val referenced = Some(WorkingScope.referencedInChildren(children))
-        if (declaredResult.isEmpty) {
-          // standalone call without YIELD or with YIELD *
-          incoming.resultScope(outgoing = incoming, TableResultWithNotYetKnownColumns, children, referenced)
-        } else {
-          // in-query call or standalone call with YIELD
-          val resultColumns = declaredResult.map(_.items.map(_.variable)).getOrElse(Seq.empty)
-          val declared = Declarations(Seq.empty, resultColumns)
-          val outgoing = incoming.amendedWith(resultColumns.toSet)
-          // TODO explore if this should note result in both the in-query call and standalone case.
-          incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced, declared)
+
+        /**
+         *
+         *  In standalone context        | result                             | outgoing     |
+         *  -----------------------------|------------------------------------|--------------|
+         *  CALL db.labels()             | TableResultWithNotYetKnownColumns  | Set()        |
+         *  CALL db.labels() YIELD *     | TableResultWithNotYetKnownColumns  | Set()        |
+         *  CALL db.labels() YIELD label | TableResult(Seq(var("label")))     | Set("label") |
+         *
+         *  In inlined context           | result                             | outgoing     |
+         *  -----------------------------|------------------------------------|--------------|
+         *  CALL db.labels()             | OmittedResult                      | Set()        |
+         *  CALL db.labels() YIELD label | NoResult                           | Set("label") |
+         *
+         */
+        (isStandalone, declaredResult) match {
+          case (true, None) =>
+            incoming.resultScope(incoming, TableResultWithNotYetKnownColumns, children, referenced)
+          case (true, Some(procedureResult)) =>
+            val resultColumns = procedureResult.items.map(_.variable)
+            incoming.resultScope(
+              incoming.amendedWith(resultColumns.toSet),
+              TableResult(resultColumns),
+              children,
+              referenced,
+              Declarations(Seq.empty, resultColumns)
+            )
+          case (false, Some(procedureResult)) =>
+            val resultColumns = procedureResult.items.map(_.variable)
+            incoming.noResultScope(
+              incoming.amendedWith(resultColumns.toSet),
+              children,
+              referenced,
+              Declarations(Seq.empty, resultColumns)
+            )
+          case (false, _) =>
+            incoming.omittedResultScope(incoming, children, referenced)
         }
       // query clauses
       case Unwind(expression, variable) =>

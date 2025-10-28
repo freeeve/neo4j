@@ -50,7 +50,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
   private val ID = 1337
 
   test("should resolve CALL my.proc.foo") {
-    val unresolved = UnresolvedCall(ns, name, None, None)(pos)
+    val unresolved = UnresolvedCall(ns, name, None, None, isStandalone = true)(pos)
     val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
     val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))
     val signature =
@@ -76,7 +76,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
   }
 
   test("should resolve void CALL my.proc.foo") {
-    val unresolved = UnresolvedCall(ns, name, None, None)(pos)
+    val unresolved = UnresolvedCall(ns, name, None, None, isStandalone = true)(pos)
     val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
     val signatureOutputs = None
     val signature =
@@ -108,7 +108,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureSignature(qualifiedName, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = ID)
     val callArguments = Seq(parameter("a", CTInteger))
     val callResults = IndexedSeq(ProcedureResultItem(v"x")(pos), ProcedureResultItem(v"y")(pos))
-    val unresolved = UnresolvedCall(ns, name, None, Some(ProcedureResult(callResults)(pos)))(pos)
+    val unresolved = UnresolvedCall(ns, name, None, Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
 
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
@@ -134,7 +134,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureSignature(qualifiedName, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = ID)
     val callArguments = Seq(parameter("a", CTAny))
     val callResults = IndexedSeq(ProcedureResultItem(v"x")(pos), ProcedureResultItem(v"y")(pos))
-    val unresolved = UnresolvedCall(ns, name, Some(callArguments), None)(pos)
+    val unresolved = UnresolvedCall(ns, name, Some(callArguments), None, isStandalone = true)(pos)
 
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
@@ -160,7 +160,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureSignature(qualifiedName, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = ID)
     val callArguments = Seq(parameter("a", CTAny))
     val callResults = IndexedSeq.empty
-    val unresolved = UnresolvedCall(ns, name, Some(callArguments), None)(pos)
+    val unresolved = UnresolvedCall(ns, name, Some(callArguments), None, isStandalone = true)(pos)
 
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
@@ -189,7 +189,8 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureResultItem(v"x")(pos),
       ProcedureResultItem(ProcedureOutput("y")(pos), v"z")(pos)
     )
-    val unresolved = UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)))(pos)
+    val unresolved =
+      UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
 
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
@@ -231,7 +232,8 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureResultItem(v"x")(pos),
       ProcedureResultItem(ProcedureOutput("y")(pos), v"z")(pos)
     )
-    val unresolved = UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)))(pos)
+    val unresolved =
+      UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
     val coerced = resolved.coerceArguments
@@ -259,7 +261,8 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureResultItem(v"x")(pos),
       ProcedureResultItem(ProcedureOutput("y")(pos), v"z")(pos)
     )
-    val unresolved = UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)))(pos)
+    val unresolved =
+      UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
     val toList: List[String] =
@@ -283,7 +286,8 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureResultItem(v"x")(pos),
       ProcedureResultItem(ProcedureOutput("y")(pos), v"x")(pos)
     )
-    val unresolved = UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)))(pos)
+    val unresolved =
+      UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
     errorTexts(resolved.semanticCheck.run(
@@ -304,7 +308,8 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureResultItem(v"x")(pos),
       ProcedureResultItem(ProcedureOutput("p")(pos), v"y")(pos)
     )
-    val unresolved = UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)))(pos)
+    val unresolved =
+      UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
     val result = resolved.semanticCheck.run(SemanticState.clean, CypherVersionHelpers.arbitrarySemanticContext)
@@ -324,7 +329,8 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureResultItem(v"x")(pos),
       ProcedureResultItem(ProcedureOutput("y")(pos), v"z")(pos)
     )
-    val unresolved = UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)))(pos)
+    val unresolved =
+      UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
     errorTexts(resolved.semanticCheck.run(

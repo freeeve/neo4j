@@ -831,7 +831,7 @@ class FabricFragmenterTest
       ).shouldEqual(
         init(defaultUse)
           .leaf(
-            Seq(call(Seq(), "unknownProcedure", Some(Seq()), Some(Seq(varFor("x"), varFor("y"))))),
+            Seq(call(Seq(), "unknownProcedure", Some(Seq()), Some(Seq(varFor("x"), varFor("y"))), standalone = true)),
             Seq("x", "y")
           )
       )

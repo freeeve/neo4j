@@ -43,7 +43,7 @@ case object ExpandCallWhere extends Step with DefaultPostCondition with Preparat
   val instance: Rewriter = bottomUp(Rewriter.lift {
     case query @ SingleQuery(clauses) =>
       val newClauses = clauses.flatMap {
-        case unresolved @ UnresolvedCall(_, _, _, Some(result @ ProcedureResult(_, optWhere @ Some(where))), _, _) =>
+        case unresolved @ UnresolvedCall(_, _, _, Some(result @ ProcedureResult(_, optWhere @ Some(where))), _, _, _) =>
           val newResult = result.copy(where = None)(result.position)
           val newUnresolved = unresolved.copy(declaredResult = Some(newResult))(unresolved.position)
           val newItems = ReturnItems(AdditiveProjection, Seq.empty)(where.position)
