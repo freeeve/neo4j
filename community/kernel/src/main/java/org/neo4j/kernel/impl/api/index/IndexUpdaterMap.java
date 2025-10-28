@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.api.index;
 
-import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,7 +26,6 @@ import java.util.Set;
 import org.neo4j.exceptions.UnderlyingStorageException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.store.IndexFailureRecord;
 import org.neo4j.kernel.impl.store.MultipleUnderlyingStorageExceptions;
@@ -70,12 +68,12 @@ class IndexUpdaterMap implements AutoCloseable {
     public void close() throws UnderlyingStorageException {
         Set<IndexFailureRecord> exceptions = null;
 
-        for (Map.Entry<IndexDescriptor, IndexUpdater> updaterEntry : updaterMap.entrySet()) {
-            IndexUpdater updater = updaterEntry.getValue();
+        for (var updaterEntry : updaterMap.entrySet()) {
+            var updater = updaterEntry.getValue();
             try {
                 updater.close();
-            } catch (UncheckedIOException | IndexEntryConflictException e) {
-                if (null == exceptions) {
+            } catch (Throwable e) {
+                if (exceptions == null) {
                     exceptions = new HashSet<>();
                 }
                 exceptions.add(new IndexFailureRecord(updaterEntry.getKey(), new UnderlyingStorageException(e)));
@@ -84,7 +82,7 @@ class IndexUpdaterMap implements AutoCloseable {
 
         clear();
 
-        if (null != exceptions) {
+        if (exceptions != null) {
             throw new MultipleUnderlyingStorageExceptions(exceptions);
         }
     }
