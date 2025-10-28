@@ -46,7 +46,8 @@ object CNFNormalizer {
       normalizeInequalities,
       simplifyPredicates,
       normalizeSargablePredicates,
-      flattenBooleanOperators
+      flattenBooleanOperators,
+      RemoveRedundantIsNotNullPredicates
     )
   }
 

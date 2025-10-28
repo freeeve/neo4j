@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting.SemanticAnalysisPossible
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizerTest.SemanticWrapper
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -41,7 +42,8 @@ class TransitiveEqualitiesTest extends CypherFunSuite with AstConstructionTestSu
         CNFNormalizer.steps ++ Set(SemanticWrapper(Nil)),
         initialConditions = Set(
           BaseContains[Statement](),
-          SemanticAnalysisPossible
+          SemanticAnalysisPossible,
+          NormalizePredicates.completed
         )
       )
       .steps

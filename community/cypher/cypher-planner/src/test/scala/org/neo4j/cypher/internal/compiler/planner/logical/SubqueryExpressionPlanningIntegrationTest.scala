@@ -4193,6 +4193,27 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       .build()
   }
 
+  test("should solve subquery expression only once and not plan redundant IS NOT NULL filter") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(100)
+      .build()
+
+    val query =
+      """MATCH (n)
+        |WHERE ($param IS NOT NULL AND coalesce(n.prop, 123) = $param) OR EXISTS { (n)-[r]->(n) }
+        |RETURN n
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .selectOrSemiApply("coalesce(n.prop, 123) = $param")
+      .|.expandInto("(n)-[]->(n)")
+      .|.argument("n")
+      .allNodeScan("n")
+      .build()
+  }
+
   object VariableSet {
 
     def unapplySeq(s: Set[LogicalVariable]): Option[Seq[String]] = {

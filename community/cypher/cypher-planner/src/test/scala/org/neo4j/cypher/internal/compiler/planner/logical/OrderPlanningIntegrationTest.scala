@@ -1820,9 +1820,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     )
     val query =
       """MATCH (a:A), (x)
-        |WHERE a.prop IS NOT NULL AND a.foo IS NOT NULL AND
-        |      x.prop IS NOT NULL AND x.prop IS NOT NULL AND
-        |      x.prop = a.prop
+        |WHERE a.prop IS NOT NULL AND
+        |      a.foo IS NOT NULL AND
+        |      x.prop = a.otherProp
         |WITH DISTINCT a, x
         |WITH x, a AS y SKIP 1
         |MATCH (y)-->(b)-->(c)
@@ -2718,8 +2718,6 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     val plan = cfg
       .plan(query)
       .stripProduceResults
-
-    println(plan)
 
     shouldNotSort(plan)
   }

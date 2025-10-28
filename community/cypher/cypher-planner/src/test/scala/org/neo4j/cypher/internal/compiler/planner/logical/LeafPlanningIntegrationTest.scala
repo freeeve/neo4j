@@ -408,15 +408,33 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
   }
 
   test("should plan index seek instead of index scan when there are predicates for both") {
-    val plan =
-      new givenConfig {
-        indexOn("Awesome", "prop")
-        cost = nodeIndexScanCost
-      } getLogicalPlanFor "MATCH (n:Awesome) WHERE n.prop IS NOT NULL AND n.prop = 42 RETURN n"
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("Awesome", 800)
+      .addNodeIndex("Awesome", Seq("prop"), 0.5, 0.5)
+      .addNodeIndex("Awesome", Seq("otherProp"), 0.5, 0.5)
+      .build()
 
-    plan._1 should equal(
-      Selection(ands(isNotNull(cachedNodeProp("n", "prop"))), nodeIndexSeek("n:Awesome(prop = 42)", _ => GetValue))
-    )
+    val query = "MATCH (n:Awesome) WHERE n.otherProp IS NOT NULL AND n.prop = 42 RETURN n"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("n.otherProp IS NOT NULL")
+      .nodeIndexOperator("n:Awesome(prop = 42)", getValue = _ => GetValue)
+      .build()
+  }
+
+  test("should not plan IS NOT NULL filter on top of an index seek on the same property") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("Awesome", 800)
+      .addNodeIndex("Awesome", Seq("prop"), 0.5, 0.5)
+      .build()
+
+    val query = "MATCH (n:Awesome) WHERE n.prop IS NOT NULL AND n.prop = 42 RETURN n"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .nodeIndexOperator("n:Awesome(prop = 42)", getValue = _ => GetValue)
+      .build()
   }
 
   test("should plan index seek when there is an index on the property") {

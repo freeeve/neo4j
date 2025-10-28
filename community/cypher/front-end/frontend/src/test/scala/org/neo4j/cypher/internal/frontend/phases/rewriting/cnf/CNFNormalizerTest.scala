@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.frontend.phases.transitiveEqualities
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.rewriting.AstRewritingMonitor
 import org.neo4j.cypher.internal.rewriting.PredicateTestSupport
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -239,7 +240,8 @@ object CNFNormalizerTest {
           ) ++ steps,
           initialConditions = Set(
             BaseContains[Statement](),
-            SemanticAnalysisPossible
+            SemanticAnalysisPossible,
+            NormalizePredicates.completed
           )
         )
         .steps
