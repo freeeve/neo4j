@@ -99,15 +99,15 @@ public enum NotificationCodeWithDescription {
     DEPRECATED_PROCEDURE_NAMESPACE(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
-            "The namespace of the called procedure is deprecated. (%s)"),
+            "The namespace of the called user-defined procedure is deprecated. (%s)"),
     DEPRECATED_FUNCTION_NAMESPACE(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
-            "The namespace of the invoked function is deprecated. (%s)"),
+            "The namespace of the invoked user-defined function is deprecated. (%s)"),
     SHADOWING_INTERNAL_FUNCTION(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
-            "The namespace of the invoked function is deprecated and the function is shadowing an internal function. (%s)"),
+            "The namespace of the invoked user-defined function is deprecated and the function is shadowing an internal function. (%s)"),
     DEPRECATED_RELATIONSHIP_TYPE_SEPARATOR(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N01,
@@ -532,22 +532,22 @@ public enum NotificationCodeWithDescription {
 
     public static NotificationImplementation deprecatedFunctionNamespace(InputPosition position, String callable) {
         return DEPRECATED_FUNCTION_NAMESPACE.notificationWithParameters(
-                position,
-                new String[] {callable},
-                new String[] {String.format("The namespace used by the function `%s` is deprecated.", callable)});
+                position, new String[] {callable}, new String[] {
+                    String.format("The namespace used by the user-defined function `%s` is deprecated.", callable)
+                });
     }
 
     public static NotificationImplementation deprecatedProcedureNamespace(InputPosition position, String callable) {
         return DEPRECATED_PROCEDURE_NAMESPACE.notificationWithParameters(
-                position,
-                new String[] {callable},
-                new String[] {String.format("The namespace used by the procedure `%s` is deprecated.", callable)});
+                position, new String[] {callable}, new String[] {
+                    String.format("The namespace used by the user-defined procedure `%s` is deprecated.", callable)
+                });
     }
 
     public static NotificationImplementation shadowingInternalFunction(InputPosition position, String callable) {
         return SHADOWING_INTERNAL_FUNCTION.notificationWithParameters(position, new String[] {callable}, new String[] {
             String.format(
-                    "The namespace of the invoked function `%s` is deprecated and the function is shadowing an internal function.",
+                    "The namespace of the invoked user-defined function `%s` is deprecated and the function is shadowing an internal function.",
                     callable)
         });
     }

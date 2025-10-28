@@ -477,7 +477,7 @@ class NotificationCodeWithDescriptionTest {
                 "This feature is deprecated and will be removed in future versions.",
                 SeverityLevel.WARNING,
                 "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
-                "The namespace of the invoked function is deprecated. (point.function)",
+                "The namespace of the invoked user-defined function is deprecated. (point.function)",
                 NotificationCategory.DEPRECATION,
                 NotificationClassification.DEPRECATION,
                 "01N00",
@@ -489,7 +489,7 @@ class NotificationCodeWithDescriptionTest {
                                 -1,
                                 Map.of("feat1", "oldName", "feat2", "newName"))
                         .asMap(),
-                "warn: feature deprecated. The namespace used by the function `point.function` is deprecated.");
+                "warn: feature deprecated. The namespace used by the user-defined function `point.function` is deprecated.");
     }
 
     @Test
@@ -501,7 +501,7 @@ class NotificationCodeWithDescriptionTest {
                 "This feature is deprecated and will be removed in future versions.",
                 SeverityLevel.WARNING,
                 "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
-                "The namespace of the called procedure is deprecated. (point.procedure)",
+                "The namespace of the called user-defined procedure is deprecated. (point.procedure)",
                 NotificationCategory.DEPRECATION,
                 NotificationClassification.DEPRECATION,
                 "01N00",
@@ -513,7 +513,7 @@ class NotificationCodeWithDescriptionTest {
                                 -1,
                                 Map.of("feat1", "oldName", "feat2", "newName"))
                         .asMap(),
-                "warn: feature deprecated. The namespace used by the procedure `point.procedure` is deprecated.");
+                "warn: feature deprecated. The namespace used by the user-defined procedure `point.procedure` is deprecated.");
     }
 
     @Test
@@ -525,7 +525,7 @@ class NotificationCodeWithDescriptionTest {
                 "This feature is deprecated and will be removed in future versions.",
                 SeverityLevel.WARNING,
                 "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
-                "The namespace of the invoked function is deprecated and the function is shadowing an internal function. (point.function)",
+                "The namespace of the invoked user-defined function is deprecated and the function is shadowing an internal function. (point.function)",
                 NotificationCategory.DEPRECATION,
                 NotificationClassification.DEPRECATION,
                 "01N00",
@@ -537,7 +537,7 @@ class NotificationCodeWithDescriptionTest {
                                 -1,
                                 Map.of("feat1", "oldName", "feat2", "newName"))
                         .asMap(),
-                "warn: feature deprecated. The namespace of the invoked function `point.function` is deprecated and the function is shadowing an internal function.");
+                "warn: feature deprecated. The namespace of the invoked user-defined function `point.function` is deprecated and the function is shadowing an internal function.");
     }
 
     @Test
@@ -2229,8 +2229,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            78, 84, -67, -93, -49, 38, 85, 108, -103, 77, -82, 90, -72, 43, 124, 118, 63, 109, -87, -123, 60, -7, -88,
-            -105, -1, 53, -10, -48, -92, 112, -106, -75
+            -28, 75, 69, -92, 48, 79, -46, -59, 8, 68, -34, 44, 100, 72, 95, -69, -112, 56, 97, -69, -46, -108, 59,
+            -120, -64, 36, 102, 76, 28, -94, 61, -94
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {
