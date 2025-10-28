@@ -68,6 +68,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.gqlstatus.GqlHelper
 
 import java.util.Locale
@@ -467,20 +468,20 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
             SemanticCheckResult.error(
               s,
               SemanticError.invalidEntityType(
-                specifiedType.mkString(", "),
+                TypeSpec.cypherTypeForTypeSpec(specifiedType).normalizedCypherTypeString(),
                 "argument to function toString()",
                 List(
-                  "Boolean",
-                  "Float",
-                  "Integer",
-                  "Point",
-                  "String",
-                  "Duration",
-                  "Date",
-                  "Time",
-                  "LocalTime",
-                  "LocalDateTime",
-                  "DateTime"
+                  "BOOLEAN",
+                  "FLOAT",
+                  "INTEGER",
+                  "POINT",
+                  "STRING",
+                  "DURATION",
+                  "DATE",
+                  "ZONED TIME",
+                  "LOCAL TIME",
+                  "LOCAL DATETIME",
+                  "ZONED DATETIME"
                 ),
                 s"Type mismatch: expected Boolean, Float, Integer, Point, String, Duration, Date, Time, LocalTime, LocalDateTime or DateTime but was ${specifiedType.mkString(", ")}",
                 argument.position
@@ -490,9 +491,9 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
             SemanticCheckResult.error(
               s,
               SemanticError.invalidEntityType(
-                specifiedType.mkString(", "),
+                TypeSpec.cypherTypeForTypeSpec(specifiedType).normalizedCypherTypeString(),
                 "argument of function toBoolean()",
-                List("Boolean", "Integer", "String"),
+                List("BOOLEAN", "INTEGER", "STRING"),
                 s"Type mismatch: expected Boolean, Integer or String but was ${specifiedType.mkString(", ")}",
                 argument.position
               )
@@ -503,7 +504,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
               SemanticError.invalidEntityType(
                 specifiedType.mkString(", "),
                 invocation.functionName.name,
-                List("Boolean", "String"),
+                List("BOOLEAN", "STRING"),
                 s"Type mismatch: expected Boolean or String but was ${specifiedType.mkString(", ")}",
                 argument.position
               )

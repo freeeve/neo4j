@@ -81,9 +81,9 @@ class ReplaceFunctionSemanticAnalysisTest extends CypherFunSuite with NameBasedS
   test("RETURN replace(\"hello\", \"l\", \"w\", 1.0)") {
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasError(
       GqlHelper.getGql22G03_22N27(
-        "Float",
+        "FLOAT",
         "argument at index 3 of function replace()",
-        java.util.List.of("Integer"),
+        java.util.List.of("INTEGER"),
         34,
         1,
         35

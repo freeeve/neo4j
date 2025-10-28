@@ -172,6 +172,8 @@ trait SemanticAnalysisTooling {
         // If no type is returned, then we don't know the type, so default to Any
         val existingTypesString =
           if (specifiedExistingTypes.isEmpty) "Any" else specifiedExistingTypes.mkString(", ", " or ")
+        val existingCypherTypeString =
+          TypeSpec.cypherTypeForTypeSpec(specifiedExistingTypes).normalizedCypherTypeString()
         val expectedTypesString = possibleTypes.mkString(", ", " or ")
         expression match {
           case p: Parameter
@@ -181,9 +183,9 @@ trait SemanticAnalysisTooling {
             SemanticCheckResult.error(
               ss,
               SemanticError.invalidEntityType(
-                existingTypesString,
+                existingCypherTypeString,
                 s"${typeMismatchVal.txt} parameter: ${p.name}",
-                possibleTypes.toStrings.toList,
+                possibleTypes.toCypherStrings.toList,
                 "Type mismatch for parameter '" + p.name + "': " + messageGen(expectedTypesString, existingTypesString),
                 expression.position
               )
@@ -194,8 +196,8 @@ trait SemanticAnalysisTooling {
                 // No information is available about the context, so fall back to GQL code 22NB1:
                 //   Type mismatch: expected to be one of { $s } but was { $s }."
                 SemanticError.typeMismatch(
-                  possibleTypes.toStrings.toList,
-                  existingTypesString,
+                  possibleTypes.toCypherStrings.toList,
+                  existingCypherTypeString,
                   "Type mismatch: " + messageGen(expectedTypesString, existingTypesString),
                   expression.position
                 )
@@ -203,9 +205,9 @@ trait SemanticAnalysisTooling {
                 // Information about the context is available, so use it using GQL code 22N27:
                 //   Invalid input { %s } for { %s }. Expected to be one of { %s }.
                 SemanticError.invalidEntityType(
-                  existingTypesString,
+                  existingCypherTypeString,
                   typeMismatchVal.txt,
-                  possibleTypes.toStrings.toList,
+                  possibleTypes.toCypherStrings.toList,
                   "Type mismatch: " + messageGen(expectedTypesString, existingTypesString),
                   expression.position
                 )

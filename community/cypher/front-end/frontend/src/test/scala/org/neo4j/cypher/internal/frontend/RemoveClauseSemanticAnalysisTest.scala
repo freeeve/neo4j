@@ -35,9 +35,9 @@ class RemoveClauseSemanticAnalysisTest
 
   test("MATCH (n), (m) REMOVE n[1]") {
     run().hasErrors(SemanticError.invalidEntityType(
-      "Integer",
+      "INTEGER",
       "node or relationship property key",
-      List("String"),
+      List("STRING"),
       "Type mismatch: node or relationship property key must be given as String, but was Integer",
       p(24, 1, 25).withInputLength(1)
     ))
@@ -45,9 +45,9 @@ class RemoveClauseSemanticAnalysisTest
 
   test("MATCH (n)-[r]->(m) REMOVE r[5.0]") {
     run().hasErrors(SemanticError.invalidEntityType(
-      "Float",
+      "FLOAT",
       "node or relationship property key",
-      List("String"),
+      List("STRING"),
       "Type mismatch: node or relationship property key must be given as String, but was Float",
       p(28, 1, 29).withInputLength(3)
     ))
@@ -55,9 +55,9 @@ class RemoveClauseSemanticAnalysisTest
 
   test("WITH 5 AS var MATCH (n) REMOVE n[var]") {
     run().hasErrors(SemanticError.invalidEntityType(
-      "Integer",
+      "INTEGER",
       "node or relationship property key",
-      List("String"),
+      List("STRING"),
       "Type mismatch: node or relationship property key must be given as String, but was Integer",
       p(33, 1, 34)
     ))
@@ -65,9 +65,9 @@ class RemoveClauseSemanticAnalysisTest
 
   test("WITH {key: 1} AS var REMOVE var['key']") {
     run().hasErrors(SemanticError.invalidEntityType(
-      "Map",
+      "MAP",
       GqlParams.StringParam.ident.process("var"),
-      List("Node", "Relationship"),
+      List("NODE", "RELATIONSHIP"),
       "Type mismatch: expected Node or Relationship but was Map",
       p(28, 1, 29)
     ))

@@ -256,6 +256,38 @@ class TypeSpec(val ranges: Seq[TypeRange]) extends Equals {
         t => s"List<${format(t)}>"
       )
 
+  def toCypherStrings: IndexedSeq[String] = toCypherStrings(Vector.empty, ranges, identity)
+
+  @tailrec
+  private def toCypherStrings(
+    acc: IndexedSeq[String],
+    rs: Seq[TypeRange],
+    format: String => String
+  ): IndexedSeq[String] =
+    if (rs.isEmpty)
+      acc
+    else if (
+      rs.exists({
+        case TypeRange(_: AnyType, None) => true
+        case _                           => false
+      })
+    )
+      acc :+ format("T")
+    else {
+      val possibleTypes = TypeSpec.simpleTypes.filter(contains(_, rs))
+
+      // Remove more specific type when parentType already exists, except for MAP being parentType to NODE
+      // and RELATIONSHIP, because that is more of an implementation quirk than user knowledge.
+      val simplifiedPossibleTypes =
+        possibleTypes.filterNot(t => possibleTypes.contains(t.parentType) && t.parentType != CTMap)
+
+      toCypherStrings(
+        acc ++ simplifiedPossibleTypes.map(t => format(t.normalizedCypherTypeString())),
+        innerTypeRanges(rs),
+        t => if (t.equals("T")) "LIST" else s"LIST<${format(t)}>"
+      )
+    }
+
   def mkString(sep: String): String =
     mkString("", sep, sep, "")
 

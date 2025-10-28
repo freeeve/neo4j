@@ -271,8 +271,8 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         p(40, 3, 22).withInputLength(3)
       ),
       SemanticError.typeMismatch(
-        List("Integer"),
-        "Float",
+        List("INTEGER"),
+        "FLOAT",
         "Type mismatch: expected Integer but was Float",
         p(40, 3, 22).withInputLength(3)
       )
@@ -296,8 +296,8 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         p(40, 3, 22).withInputLength(5)
       ),
       SemanticError.typeMismatch(
-        List("Integer"),
-        "String",
+        List("INTEGER"),
+        "STRING",
         "Type mismatch: expected Integer but was String",
         p(40, 3, 22).withInputLength(5)
       )
@@ -380,8 +380,8 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         p(40, 3, 22)
       ),
       SemanticError.typeMismatch(
-        List("Integer"),
-        "List<Integer>",
+        List("INTEGER"),
+        "LIST<INTEGER>",
         "Type mismatch: expected Integer but was List<Integer>",
         p(40, 3, 22)
       ),
@@ -466,8 +466,8 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         p(24, 3, 6).withInputLength(3)
       ),
       SemanticError.typeMismatch(
-        List("Integer"),
-        "Float",
+        List("INTEGER"),
+        "FLOAT",
         "Type mismatch: expected Integer but was Float",
         p(24, 3, 6).withInputLength(3)
       )
@@ -491,8 +491,8 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         p(24, 3, 6).withInputLength(5)
       ),
       SemanticError.typeMismatch(
-        List("Integer"),
-        "String",
+        List("INTEGER"),
+        "STRING",
         "Type mismatch: expected Integer but was String",
         p(24, 3, 6).withInputLength(5)
       )
@@ -575,8 +575,8 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         p(24, 3, 6)
       ),
       SemanticError.typeMismatch(
-        List("Integer"),
-        "List<Integer>",
+        List("INTEGER"),
+        "LIST<INTEGER>",
         "Type mismatch: expected Integer but was List<Integer>",
         p(24, 3, 6)
       ),

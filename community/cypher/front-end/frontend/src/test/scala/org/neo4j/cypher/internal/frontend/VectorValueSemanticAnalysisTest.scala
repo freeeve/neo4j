@@ -71,9 +71,9 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   test("RETURN VECTOR(1, 3, INTEGER64)") {
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasError(
       GqlHelper.getGql22G03_22N27(
-        "Integer",
+        "INTEGER",
         "argument at index 0 of function vector()",
-        java.util.List.of("String", "List<Float>", "List<Integer>", "List<Number>"),
+        java.util.List.of("STRING", "LIST<INTEGER | FLOAT>"),
         14,
         1,
         15
@@ -87,9 +87,9 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql22G03_22N27(
-          "List<String>",
+          "LIST<STRING>",
           "argument at index 0 of function vector()",
-          java.util.List.of("String", "List<Float>", "List<Integer>", "List<Number>"),
+          java.util.List.of("STRING", "LIST<INTEGER | FLOAT>"),
           14,
           1,
           15
@@ -104,9 +104,9 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql22G03_22N27(
-          "String",
+          "STRING",
           "argument at index 1 of function vector()",
-          java.util.List.of("Integer"),
+          java.util.List.of("INTEGER"),
           19,
           1,
           20
@@ -122,8 +122,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("List<T>"),
-          "Vector",
+          java.util.List.of("LIST"),
+          "VECTOR",
           7,
           1,
           8
@@ -138,8 +138,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("List<T>"),
-          "Vector",
+          java.util.List.of("LIST"),
+          "VECTOR",
           7,
           1,
           8
@@ -154,8 +154,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("List<T>"),
-          "Vector",
+          java.util.List.of("LIST"),
+          "VECTOR",
           12,
           1,
           13
@@ -170,8 +170,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("List<T>"),
-          "Vector",
+          java.util.List.of("LIST"),
+          "VECTOR",
           12,
           1,
           13
@@ -186,8 +186,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("Float", "Integer", "String", "List<T>"),
-          "Vector",
+          java.util.List.of("FLOAT", "INTEGER", "STRING", "LIST"),
+          "VECTOR",
           11,
           1,
           12
@@ -202,8 +202,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("List<T>"),
-          "Integer",
+          java.util.List.of("LIST"),
+          "INTEGER",
           39,
           1,
           40
@@ -218,8 +218,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("String", "List<T>"),
-          "Vector",
+          java.util.List.of("STRING", "LIST"),
+          "VECTOR",
           7,
           1,
           8
@@ -234,8 +234,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("List<T>"),
-          "Vector",
+          java.util.List.of("LIST"),
+          "VECTOR",
           12,
           1,
           13
@@ -250,8 +250,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("List<T>"),
-          "Vector",
+          java.util.List.of("LIST"),
+          "VECTOR",
           14,
           1,
           15
@@ -261,8 +261,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       ),
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("Float", "Integer", "Duration"),
-          "Any",
+          java.util.List.of("FLOAT", "INTEGER", "DURATION"),
+          "ANY",
           46,
           1,
           47
@@ -277,8 +277,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("List<T>"),
-          "Vector",
+          java.util.List.of("LIST"),
+          "VECTOR",
           37,
           1,
           38
@@ -288,8 +288,8 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       ),
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("Float"),
-          "Any",
+          java.util.List.of("FLOAT"),
+          "ANY",
           77,
           1,
           78

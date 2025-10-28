@@ -1532,8 +1532,8 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
       val msg = "Type mismatch: expected Boolean but was Integer"
       run(query).hasErrors(
         SemanticError.typeMismatch(
-          List("Boolean"),
-          "Integer",
+          List("BOOLEAN"),
+          "INTEGER",
           msg,
           pos
         )
@@ -1714,16 +1714,16 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
   test("should fail for size(COUNT{...})") {
     run("RETURN size(COUNT{ (n) }) AS foo").hasSemanticErrorsIn {
       case Cypher5 => Seq(invalidEntityType(
-          "Integer",
+          "INTEGER",
           "argument at index 0 of function size()",
-          List("String", "List<T>"),
+          List("STRING", "LIST"),
           "Type mismatch: expected String or List<T> but was Integer",
           InputPosition(12, 1, 13)
         ))
       case _ => Seq(invalidEntityType(
-          "Integer",
+          "INTEGER",
           "argument at index 0 of function size()",
-          List("String", "Vector", "List<T>"),
+          List("STRING", "VECTOR", "LIST"),
           "Type mismatch: expected String, Vector or List<T> but was Integer",
           InputPosition(12, 1, 13)
         ))
@@ -1733,9 +1733,9 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
   test("should fail for percentileCont(0.5, n) where n is a node variable") {
     run("MATCH (n) RETURN percentileCont(0.5, n) AS foo")
       .hasErrors(SemanticError.invalidEntityType(
-        "Node",
+        "NODE",
         "argument at index 1 of function percentileCont()",
-        List("Float"),
+        List("FLOAT"),
         "Type mismatch: expected Float but was Node",
         InputPosition(37, 1, 38)
       ))
@@ -1811,9 +1811,9 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
 
   test("should fail for normalize() with incorrect arguments") {
     run("RETURN normalize(1) AS normalize").hasErrors(invalidEntityType(
-      "Integer",
+      "INTEGER",
       "argument at index 0 of function normalize()",
-      List("String"),
+      List("STRING"),
       "Type mismatch: expected String but was Integer",
       InputPosition(17, 1, 18).withInputLength(1)
     ))

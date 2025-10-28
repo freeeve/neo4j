@@ -45,7 +45,7 @@ class ConditionalQueryWhenSemanticAnalysisTest
       case CypherVersion.Cypher5 => Seq()
       case CypherVersion.Cypher25 =>
         val msg = s"Type mismatch: expected Boolean but was $actual"
-        Seq(SemanticError.typeMismatch(List("Boolean"), actual, msg, pos))
+        Seq(SemanticError.typeMismatch(List("BOOLEAN"), actual.toUpperCase, msg, pos))
     }
   }
 
@@ -70,7 +70,7 @@ class ConditionalQueryWhenSemanticAnalysisTest
       case CypherVersion.Cypher5 => Seq()
       case CypherVersion.Cypher25 =>
         val msg = s"Type mismatch: expected Boolean but was $actual"
-        Seq(SemanticError.invalidEntityType(actual, "`a`", List("Boolean"), msg, pos))
+        Seq(SemanticError.invalidEntityType(actual.toUpperCase, "`a`", List("BOOLEAN"), msg, pos))
     }
   }
 
@@ -136,26 +136,26 @@ class ConditionalQueryWhenSemanticAnalysisTest
       case CypherVersion.Cypher25 =>
         Seq(
           SemanticError.typeMismatch(
-            List("Boolean"),
-            "Integer",
+            List("BOOLEAN"),
+            "INTEGER",
             "Type mismatch: expected Boolean but was Integer",
             p(5, 1, 6).withInputLength(1)
           ),
           SemanticError.typeMismatch(
-            List("Boolean"),
-            "String",
+            List("BOOLEAN"),
+            "STRING",
             "Type mismatch: expected Boolean but was String",
             InputPosition.Range(31, 2, 6, 5)
           ),
           SemanticError.typeMismatch(
-            List("Boolean"),
-            "Integer",
+            List("BOOLEAN"),
+            "INTEGER",
             "Type mismatch: expected Boolean but was Integer",
             p(63, 3, 8)
           ),
           SemanticError.typeMismatch(
-            List("Boolean"),
-            "Integer",
+            List("BOOLEAN"),
+            "INTEGER",
             "Type mismatch: expected Boolean but was Integer",
             p(91, 4, 6)
           )

@@ -759,9 +759,9 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test("MATCH (n:$(1)) RETURN *") {
     run().hasErrors(SemanticError.invalidEntityType(
-      "Integer",
+      "INTEGER",
       "dynamic label",
-      List("String", "List<String>"),
+      List("STRING", "LIST<STRING>"),
       "Type mismatch: expected String or List<String> but was Integer",
       p(11, 1, 12).withInputLength(1)
     ))
@@ -793,9 +793,9 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test("MATCH (n)-[:$(point({x:22, y:44}))]-() RETURN *") {
     run().hasErrors(SemanticError.invalidEntityType(
-      "Point",
+      "POINT",
       "dynamic type",
-      List("String", "List<String>"),
+      List("STRING", "LIST<STRING>"),
       "Type mismatch: expected String or List<String> but was Point",
       p(14, 1, 15)
     ))
@@ -803,9 +803,9 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test("MATCH (n:$([1])) RETURN *") {
     run().hasErrors(SemanticError.invalidEntityType(
-      "List<Integer>",
+      "LIST<INTEGER>",
       "dynamic label",
-      List("String", "List<String>"),
+      List("STRING", "LIST<STRING>"),
       "Type mismatch: expected String or List<String> but was List<Integer>",
       p(11, 1, 12)
     ))
