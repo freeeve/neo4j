@@ -370,6 +370,47 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       config.get(GraphDatabaseSettings.db_timezone).getZoneId
     ).toZonedDateTime)
 
+  private def setUpMultiTokenIndexes(): Unit = {
+    val rangeNodeIndexDescriptor =
+      IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, 0, 1), AllIndexProviderDescriptors.RANGE_DESCRIPTOR)
+        .withName("index00")
+        .materialise(0)
+    val rangeRelIndexDescriptor =
+      IndexPrototype.forSchema(SchemaDescriptors.forRelType(0, 0, 1), AllIndexProviderDescriptors.RANGE_DESCRIPTOR)
+        .withName("index01")
+        .materialise(1)
+    val rangeNodeIndexInfo = IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List(label), List(prop, prop2))
+    val rangeRelIndexInfo = IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List(relType), List(prop, prop2))
+
+    val fulltextNodeIndexDescriptor =
+      IndexPrototype.forSchema(
+        SchemaDescriptors.forSemanticSearch(EntityType.NODE, Array(0, 1), Array(0, 1)),
+        AllIndexProviderDescriptors.DEFAULT_FULLTEXT_DESCRIPTOR
+      )
+        .withIndexType(IndexType.FULLTEXT)
+        .withName("index02")
+        .materialise(2)
+    val fulltextRelIndexDescriptor =
+      IndexPrototype.forSchema(
+        SchemaDescriptors.forSemanticSearch(EntityType.RELATIONSHIP, Array(0, 1), Array(0, 1)),
+        AllIndexProviderDescriptors.DEFAULT_FULLTEXT_DESCRIPTOR
+      )
+        .withIndexType(IndexType.FULLTEXT)
+        .withName("index03")
+        .materialise(3)
+    val fulltextNodeIndexInfo =
+      IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List(label, label2), List(prop, prop2))
+    val fulltextRelIndexInfo =
+      IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List(relType, relType2), List(prop, prop2))
+
+    when(ctx.getAllIndexes()).thenReturn(Map(
+      rangeNodeIndexDescriptor -> rangeNodeIndexInfo,
+      rangeRelIndexDescriptor -> rangeRelIndexInfo,
+      fulltextNodeIndexDescriptor -> fulltextNodeIndexInfo,
+      fulltextRelIndexDescriptor -> fulltextRelIndexInfo
+    ))
+  }
+
   // Only checks the given parameters
   private def checkResult(
     resultMap: Map[String, AnyValue],
@@ -784,6 +825,110 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     result should have size 2
     checkResult(result.head, name = "index00")
     checkResult(result.last, name = "index01")
+  }
+
+  test("show indexes with multiple labels/relTypes and/or properties - Cypher 25") {
+    // Set-up which indexes to return:
+    setUpMultiTokenIndexes()
+
+    // When
+    val showIndexes = ShowIndexesCommand(AllIndexes, allColumns, List.empty, CypherVersion.Cypher25)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 4
+    checkResult(
+      result.head,
+      name = "index00",
+      indexType = "RANGE",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop, prop2),
+      createStatement = s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`, n.`$prop2`)"
+    )
+    checkResult(
+      result(1),
+      name = "index01",
+      indexType = "RANGE",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop, prop2),
+      createStatement = s"CREATE RANGE INDEX `index01` FOR ()-[r:`$relType`]-() ON (r.`$prop`, r.`$prop2`)"
+    )
+    checkResult(
+      result(2),
+      name = "index02",
+      indexType = "FULLTEXT",
+      entityType = "NODE",
+      labelsOrTypes = List(label, label2),
+      properties = List(prop, prop2),
+      createStatement =
+        // Index config is empty as we did not set up anything in the mocking
+        s"CREATE FULLTEXT INDEX `index02` FOR (n:`$label`|`$label2`) ON EACH [n.`$prop`, n.`$prop2`] OPTIONS {indexConfig: {}}"
+    )
+    checkResult(
+      result(3),
+      name = "index03",
+      indexType = "FULLTEXT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType, relType2),
+      properties = List(prop, prop2),
+      createStatement =
+        // Index config is empty as we did not set up anything in the mocking
+        s"CREATE FULLTEXT INDEX `index03` FOR ()-[r:`$relType`|`$relType2`]-() ON EACH [r.`$prop`, r.`$prop2`] OPTIONS {indexConfig: {}}"
+    )
+  }
+
+  test("show indexes with multiple labels/relTypes and/or properties - Cypher 5") {
+    // Set-up which indexes to return:
+    setUpMultiTokenIndexes()
+
+    // When
+    val showIndexes = ShowIndexesCommand(AllIndexes, allColumns, List.empty, CypherVersion.Cypher5)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 4
+    checkResult(
+      result.head,
+      name = "index00",
+      indexType = "RANGE",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop, prop2),
+      createStatement = s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`, n.`$prop2`)"
+    )
+    checkResult(
+      result(1),
+      name = "index01",
+      indexType = "RANGE",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop, prop2),
+      createStatement = s"CREATE RANGE INDEX `index01` FOR ()-[r:`$relType`]-() ON (r.`$prop`, r.`$prop2`)"
+    )
+    checkResult(
+      result(2),
+      name = "index02",
+      indexType = "FULLTEXT",
+      entityType = "NODE",
+      labelsOrTypes = List(label, label2),
+      properties = List(prop, prop2),
+      createStatement =
+        // Index config is empty as we did not set up anything in the mocking
+        s"CREATE FULLTEXT INDEX `index02` FOR (n:`$label`|`$label2`) ON EACH [n.`$prop`, n.`$prop2`] OPTIONS {indexConfig: {}}"
+    )
+    checkResult(
+      result(3),
+      name = "index03",
+      indexType = "FULLTEXT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType, relType2),
+      properties = List(prop, prop2),
+      createStatement =
+        // Index config is empty as we did not set up anything in the mocking
+        s"CREATE FULLTEXT INDEX `index03` FOR ()-[r:`$relType`|`$relType2`]-() ON EACH [r.`$prop`, r.`$prop2`] OPTIONS {indexConfig: {}}"
+    )
   }
 
   test("show indexes should give back nulls when no statistics available") {
