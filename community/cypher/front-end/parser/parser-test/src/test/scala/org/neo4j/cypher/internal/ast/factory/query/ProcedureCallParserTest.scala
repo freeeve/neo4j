@@ -17,6 +17,8 @@
 package org.neo4j.cypher.internal.ast.factory.expression
 
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 
 class ProcedureCallParserTest extends AstParsingTestBase {
@@ -73,6 +75,92 @@ class ProcedureCallParserTest extends AstParsingTestBase {
 
   test("procedure parameters with invalid start comma should not parse") {
     "CALL foo(, 'test', 42)" should notParse[Clause]
+  }
+
+  test("Not standalone in UNION") {
+    val query =
+      """
+      CALL db.labels() YIELD label
+      UNION
+      CALL db.labels() YIELD label
+      RETURN label AS label
+      """
+    query should parseIn[Statement] {
+      _ =>
+        _.toAst(
+          union(
+            singleQuery(
+              call(Seq("db"), "labels", Some(Seq.empty), Some(Seq(varFor("label"))))
+            ),
+            singleQuery(
+              call(Seq("db"), "labels", Some(Seq.empty), Some(Seq(varFor("label")))),
+              return_(varFor("label").as("label"))
+            )
+          )
+        )
+    }
+  }
+
+  test("Not standalone in NEXT") {
+    val query =
+      """
+      CALL db.labels() YIELD label
+      NEXT
+      CALL db.labels() YIELD label
+      RETURN label AS label
+      """
+    query should parseIn[Statement] {
+      case Cypher5 =>
+        _.withSyntaxError("""Invalid input 'NEXT': expected ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF> (line 3, column 7 (offset: 42))
+                            |"      NEXT"
+                            |       ^""".stripMargin)
+      case _ =>
+        _.toAst(
+          nextStatement(
+            singleQuery(
+              call(Seq("db"), "labels", Some(Seq.empty), Some(Seq(varFor("label"))))
+            ),
+            singleQuery(
+              call(Seq("db"), "labels", Some(Seq.empty), Some(Seq(varFor("label")))),
+              return_(varFor("label").as("label"))
+            )
+          )
+        )
+    }
+  }
+
+  test("Not standalone in inline subquery") {
+    val query =
+      """
+      CALL () {
+        CALL db.labels() YIELD label
+      }
+      RETURN *
+      """
+    query should parseIn[Statement] {
+      _ =>
+        _.toAst(
+          singleQuery(
+            scopeClauseSubqueryCall(
+              false,
+              Seq.empty,
+              call(Seq("db"), "labels", Some(Seq.empty), Some(Seq(varFor("label"))))
+            ),
+            returnAll
+          )
+        )
+    }
+  }
+
+  test("Is standalone") {
+    val query =
+      """
+      CALL db.labels() YIELD label
+      """
+    query should parseIn[Statement] {
+      _ =>
+        _.toAst(singleQuery(call(Seq("db"), "labels", Some(Seq.empty), Some(Seq(varFor("label"))), standalone = true)))
+    }
   }
 
   // OPTIONAL CALL

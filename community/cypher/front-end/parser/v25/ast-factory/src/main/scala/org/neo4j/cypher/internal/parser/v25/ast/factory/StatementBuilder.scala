@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.parser.v25.ast.factory
 
-import org.antlr.v4.runtime.RuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
@@ -142,7 +141,6 @@ import java.util.stream.Collectors
 
 import scala.collection.immutable.ArraySeq
 import scala.jdk.CollectionConverters.IterableHasAsScala
-import scala.jdk.CollectionConverters.SeqHasAsJava
 
 trait StatementBuilder extends Cypher25ParserListener {
 
@@ -153,7 +151,11 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitStatement(ctx: Cypher25Parser.StatementContext): Unit = {
-    ctx.ast = lastChild[AstRuleCtx](ctx).ast
+    ctx.ast = lastChild[AstRuleCtx](ctx).ast match {
+      case sq @ SingleQuery(Seq(call: UnresolvedCall)) =>
+        sq.copy(Seq(call.copy(isStandalone = true)(call.position)))(sq.position)
+      case q => q
+    }
   }
 
   final override def exitNextStatement(ctx: Cypher25Parser.NextStatementContext): Unit = {
@@ -203,27 +205,11 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = ConditionalQueryBranch(None, ctx.singleQuery().ast[PartQuery])(pos(ctx))
   }
 
-  private def isStandalone(ctx: RuleContext, clauses: Seq[Clause]): Seq[Clause] = {
-    clauses match {
-      case Seq(call: UnresolvedCall) =>
-        val isStandalone = if (ctx == null) {
-          false
-        } else if (ctx.getChildCount != 1) {
-          false
-        } else {
-          val parents = "[union regularQuery nextStatement statement statements]"
-          parents == ctx.parent.toString(Cypher25Parser.ruleNames.toList.asJava)
-        }
-        Seq(call.copy(isStandalone = isStandalone)(call.position))
-      case _ => clauses
-    }
-  }
-
   final override def exitSingleQuery(ctx: Cypher25Parser.SingleQueryContext): Unit = {
     ctx.ast = if (ctx.nextStatement() != null) {
       TopLevelBraces(ctx.nextStatement().ast[Query], astOpt[UseGraph](ctx.useClause()))(pos(ctx))
     } else {
-      SingleQuery(isStandalone(ctx, astSeq[Clause](ctx.children)))(pos(ctx))
+      SingleQuery(astSeq[Clause](ctx.children))(pos(ctx))
     }
   }
 
