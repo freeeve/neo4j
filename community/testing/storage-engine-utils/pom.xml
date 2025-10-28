@@ -16,6 +16,7 @@
     <properties>
         <moduleName>org.neo4j.test.storageengine</moduleName>
         <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <name>Neo4j - Storage Engine Test Utilities</name>
@@ -54,6 +55,34 @@
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-kernel-api</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-io</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-graphdb-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-configuration</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
         </dependency>
     </dependencies>
 </project>
