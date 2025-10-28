@@ -37,8 +37,12 @@ class FrozenClock extends Clock implements Supplier<ZoneId> {
     private ZoneId zone;
 
     FrozenClock(String zoneId) {
-        instant = Instant.now();
-        zone = ZoneId.of(zoneId);
+        this(Instant.now(), zoneId);
+    }
+
+    FrozenClock(Instant instant, String zoneId) {
+        this.instant = instant;
+        this.zone = ZoneId.of(zoneId);
     }
 
     @Override
@@ -94,6 +98,7 @@ class FrozenClock extends Clock implements Supplier<ZoneId> {
         assertThat(actual).isEqualTo(expected);
         assertEqualsWithMapping(actual, expected, FrozenClock::timezone);
         assertEqualsWithMapping(actual, expected, TemporalValue::temporal);
+        assertThat(actual.get("epochMillis")).isEqualTo(expected.get("epochMillis"));
     }
 
     private static ZoneId timezone(TemporalValue<?, ?> temporal) {

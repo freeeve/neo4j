@@ -42,6 +42,7 @@ import static org.neo4j.values.storable.Values.stringValue;
 import static org.neo4j.values.utils.AnyValueTestUtil.assertEqual;
 import static org.neo4j.values.utils.AnyValueTestUtil.assertNotEqual;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -217,7 +218,7 @@ class DateTimeValueTest {
                         .add("datetime", datetime(ZonedDateTime.now(clock)))
                         .build());
         assertEqualTemporal(
-                datetime(ZonedDateTime.now(clock)),
+                datetime(ZonedDateTime.now(clock).withEarlierOffsetAtOverlap()),
                 builder(clock)
                         .add("datetime", localDateTime(LocalDateTime.now(clock)))
                         .build());
@@ -534,5 +535,26 @@ class DateTimeValueTest {
     void shouldNotEqualSameInstantButDifferentTimezoneWithSameOffset() {
         assertNotEqual(
                 datetime(1969, 12, 31, 23, 59, 59, 0, UTC), datetime(1969, 12, 31, 23, 59, 59, 0, "Africa/Freetown"));
+    }
+
+    @Test
+    void shouldCopyDateTimeOnOverlap() {
+        clock = new FrozenClock(Instant.parse("2025-10-26T02:30:00+01:00"), "Europe/Stockholm");
+        assertEqualTemporal(
+                datetime(ZonedDateTime.now(clock)),
+                builder(clock)
+                        .add("datetime", datetime(ZonedDateTime.now(clock)))
+                        .build());
+        assertEqualTemporal(
+                datetime(ZonedDateTime.now(clock).withEarlierOffsetAtOverlap()),
+                builder(clock)
+                        .add("datetime", localDateTime(LocalDateTime.now(clock)))
+                        .build());
+        assertEqualTemporal(
+                datetime(ZonedDateTime.now(clock).withZoneSameLocal(ZoneId.of("America/New_York"))),
+                builder(clock)
+                        .add("datetime", localDateTime(LocalDateTime.now(clock)))
+                        .add("timezone", stringValue("America/New_York"))
+                        .build());
     }
 }

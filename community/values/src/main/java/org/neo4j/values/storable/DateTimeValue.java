@@ -278,8 +278,14 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                     }
                     LocalTime timePart = dt.getTimePart(defaultZone).toLocalTime();
                     ZoneId zoneId = dt.getZoneId(defaultZone);
-                    result = ZonedDateTime.of(dt.getDatePart(), timePart, zoneId);
                     selectingTimeZone = dt.supportsTimeZone();
+
+                    final var offset = selectingTimeZone ? dt.getZoneOffset() : null;
+                    if (offset != null) {
+                        result = ZonedDateTime.ofInstant(LocalDateTime.of(dt.getDatePart(), timePart), offset, zoneId);
+                    } else {
+                        result = ZonedDateTime.of(dt.getDatePart(), timePart, zoneId);
+                    }
                 } else if (selectingEpoch) {
                     if (fields.containsKey(TemporalFields.epochSeconds)) {
                         AnyValue epochField = fields.get(TemporalFields.epochSeconds);
