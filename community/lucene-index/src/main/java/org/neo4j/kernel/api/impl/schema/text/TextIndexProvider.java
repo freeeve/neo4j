@@ -94,7 +94,8 @@ public class TextIndexProvider extends AbstractTextIndexProvider {
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour,
             IndexPopulator.Configuration configuration) {
-        final var writerConfigBuilder = new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT_POPULATION, config);
+        final var writerConfigBuilder = new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT_POPULATION, config)
+                .withLogProvider(logProvider);
         final var index = TextIndexBuilder.create(descriptor, readOnlyChecker, config, logProvider)
                 .withFileSystem(fileSystem)
                 .withSamplingConfig(samplingConfig)

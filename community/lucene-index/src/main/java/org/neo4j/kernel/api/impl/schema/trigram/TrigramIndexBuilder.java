@@ -50,7 +50,8 @@ public class TrigramIndexBuilder extends AbstractLuceneIndexBuilder<TrigramIndex
         this.descriptor = descriptor;
         this.config = config;
 
-        final var writerConfigBuilder = new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT, config);
+        final var writerConfigBuilder =
+                new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT, config).withLogProvider(logProvider);
         this.writerConfigFactory = writerConfigBuilder::build;
     }
 

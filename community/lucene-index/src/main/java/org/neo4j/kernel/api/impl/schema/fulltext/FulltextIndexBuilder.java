@@ -99,8 +99,9 @@ public class FulltextIndexBuilder extends AbstractLuceneIndexBuilder<FulltextInd
      */
     public DatabaseIndex<FulltextIndexReader> build() {
         IndexWriterConfigMode mode = populating ? IndexWriterConfigMode.TEXT_POPULATION : IndexWriterConfigMode.TEXT;
-        IndexWriterConfigBuilder writerConfigBuilder =
-                new IndexWriterConfigBuilder(mode, config).withAnalyzer(analyzer);
+        IndexWriterConfigBuilder writerConfigBuilder = new IndexWriterConfigBuilder(mode, config)
+                .withLogProvider(logProvider)
+                .withAnalyzer(analyzer);
 
         WritableIndexPartitionFactory partitionFactory = new WritableIndexPartitionFactory(writerConfigBuilder::build);
         FulltextIndex fulltextIndex = new FulltextIndex(

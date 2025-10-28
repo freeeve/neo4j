@@ -24,6 +24,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.util.Collection;
+import org.neo4j.io.ByteUnit;
+import org.neo4j.logging.Log;
 
 public interface LuceneDirectory extends Closeable {
     /**
@@ -133,6 +135,31 @@ public interface LuceneDirectory extends Closeable {
         @Override
         public LuceneContext getLuceneContext() {
             return delegate.getLuceneContext();
+        }
+    }
+
+    record LogMergeListener(Log log, String trigger) implements AutoCloseable {
+        public LogMergeListener {
+            log.debug("%s Merge [%s]: starting merge", trigger, System.identityHashCode(this));
+        }
+
+        public void individualMergeInfo(int numberOfDocuments, long inputSize, long estimatedMergedSize) {
+            log.debug(
+                    "%s Merge [%s]: merging %d documents of %s with estimated merged size %s",
+                    trigger,
+                    System.identityHashCode(this),
+                    numberOfDocuments,
+                    ByteUnit.bytesToString(inputSize),
+                    ByteUnit.bytesToString(estimatedMergedSize));
+        }
+
+        public void thrown(Throwable throwable) {
+            log.error("%s Merge [%s]: failed".formatted(trigger, System.identityHashCode(this)), throwable);
+        }
+
+        @Override
+        public void close() {
+            log.debug("%s Merge [%s]: finishing merge", trigger, System.identityHashCode(this));
         }
     }
 }

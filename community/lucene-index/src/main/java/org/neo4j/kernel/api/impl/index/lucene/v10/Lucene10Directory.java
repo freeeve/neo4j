@@ -25,13 +25,16 @@ import java.io.IOException;
 import java.util.Collection;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.index.CheckIndex;
+import org.apache.lucene.index.ConcurrentMergeScheduler;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
 import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.MergePolicy.OneMerge;
 import org.apache.lucene.index.MergeScheduler;
+import org.apache.lucene.index.MergeScheduler.MergeSource;
 import org.apache.lucene.index.MergeTrigger;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SnapshotDeletionPolicy;
@@ -44,6 +47,8 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 
 public class Lucene10Directory implements LuceneDirectory {
     final Directory directory;
@@ -158,9 +163,15 @@ public class Lucene10Directory implements LuceneDirectory {
         if (config.codec != null) {
             indexWriterConfig.setCodec(config.codec);
         }
+        MergeScheduler mergeScheduler;
         if (config.useOnThreadConcurrentMergeScheduler) {
-            indexWriterConfig.setMergeScheduler(new OnThreadConcurrentMergeScheduler());
+            mergeScheduler = new OnThreadConcurrentMergeScheduler();
+        } else {
+            ConcurrentMergeScheduler cms = new ConcurrentMergeScheduler();
+            cms.setDefaultMaxMergesAndThreads(false);
+            mergeScheduler = cms;
         }
+        indexWriterConfig.setMergeScheduler(new LoggedMergeScheduler(mergeScheduler, config.logProvider));
 
         LogByteSizeMergePolicy mergePolicy = new LogByteSizeMergePolicy();
         mergePolicy.setNoCFSRatio(config.noCFSRatio);
@@ -198,5 +209,62 @@ public class Lucene10Directory implements LuceneDirectory {
 
         @Override
         public void close() {}
+    }
+
+    /**
+     * This is a delegate wrapper around a {@link MergeScheduler} to inject some custom logging
+     */
+    private static final class LoggedMergeScheduler extends MergeScheduler {
+        private final MergeScheduler delegate;
+        private final Log log;
+
+        private LoggedMergeScheduler(MergeScheduler delegate, LogProvider logProvider) {
+            this.delegate = delegate;
+            this.log = logProvider.getLog(getClass());
+        }
+
+        @Override
+        public synchronized void merge(MergeSource mergeSource, MergeTrigger trigger) throws IOException {
+            LogMergeListener mergeListener = new LogMergeListener(log, trigger.name());
+            try (mergeListener) {
+                mergeSource = new LoggedMergeSource(mergeSource, mergeListener);
+                delegate.merge(mergeSource, trigger);
+            } catch (Exception e) {
+                mergeListener.thrown(e);
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * This is a delegate wrapper around a {@link MergeSource} to inject some custom logging
+     */
+    private record LoggedMergeSource(MergeSource delegate, LogMergeListener mergeListener) implements MergeSource {
+        @Override
+        public OneMerge getNextMerge() {
+            return delegate.getNextMerge();
+        }
+
+        @Override
+        public void onMergeFinished(OneMerge merge) {
+            delegate.onMergeFinished(merge);
+        }
+
+        @Override
+        public boolean hasPendingMerges() {
+            return delegate.hasPendingMerges();
+        }
+
+        @Override
+        public void merge(OneMerge merge) throws IOException {
+            try {
+                delegate.merge(merge);
+                mergeListener.individualMergeInfo(
+                        merge.totalNumDocs(), merge.totalBytesSize(), merge.estimatedMergeBytes);
+            } catch (Exception e) {
+                mergeListener.thrown(e);
+                throw e;
+            }
+        }
     }
 }

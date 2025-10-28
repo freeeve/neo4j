@@ -22,12 +22,15 @@ package org.neo4j.kernel.api.impl.index.lucene;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.neo4j.logging.LogProvider;
+import org.neo4j.logging.NullLogProvider;
 
 public class LuceneIndexWriterConfig {
     public static final int DISABLE_AUTO_FLUSH = IndexWriterConfig.DISABLE_AUTO_FLUSH;
     public static final double DEFAULT_RAM_BUFFER_SIZE_MB = IndexWriterConfig.DEFAULT_RAM_BUFFER_SIZE_MB;
     public final boolean analyzerOnly;
     public final Analyzer analyzer;
+    public LogProvider logProvider = NullLogProvider.getInstance();
     public boolean useOnThreadConcurrentMergeScheduler;
     public Integer maxBufferedDocs;
     public Double RAMBufferSizeMB;
@@ -52,6 +55,11 @@ public class LuceneIndexWriterConfig {
     private LuceneIndexWriterConfig(Analyzer analyzer, boolean analyzerOnly) {
         this.analyzer = analyzer;
         this.analyzerOnly = analyzerOnly;
+    }
+
+    public LuceneIndexWriterConfig setLogProvider(LogProvider logProvider) {
+        this.logProvider = logProvider;
+        return this;
     }
 
     public LuceneIndexWriterConfig setRAMBufferSizeMB(double RAMBufferSizeMB) {

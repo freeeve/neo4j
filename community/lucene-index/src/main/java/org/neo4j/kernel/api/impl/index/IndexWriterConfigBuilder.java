@@ -28,6 +28,8 @@ import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.codecs.Codec;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
+import org.neo4j.logging.LogProvider;
+import org.neo4j.logging.NullLogProvider;
 
 /**
  * Helper factory for standard lucene index writer configuration.
@@ -38,12 +40,18 @@ public final class IndexWriterConfigBuilder {
 
     private final IndexWriterConfigMode mode;
     private final Config config;
+    private LogProvider logProvider = NullLogProvider.getInstance();
     private Analyzer analyzer = KEYWORD_ANALYZER;
     private Codec codec;
 
     public IndexWriterConfigBuilder(IndexWriterConfigMode mode, Config config) {
         this.mode = mode;
         this.config = config;
+    }
+
+    public IndexWriterConfigBuilder withLogProvider(LogProvider logProvider) {
+        this.logProvider = logProvider;
+        return this;
     }
 
     public IndexWriterConfigBuilder withAnalyzer(Analyzer analyzer) {
@@ -57,8 +65,7 @@ public final class IndexWriterConfigBuilder {
     }
 
     public LuceneIndexWriterConfig build() {
-        final var writerConfig = new LuceneIndexWriterConfig(analyzer);
-
+        final var writerConfig = new LuceneIndexWriterConfig(analyzer).setLogProvider(logProvider);
         if (codec != null) {
             writerConfig.setCodec(codec);
         }
