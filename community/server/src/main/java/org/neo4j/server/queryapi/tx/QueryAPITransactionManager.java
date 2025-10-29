@@ -127,8 +127,9 @@ public class QueryAPITransactionManager implements TransactionManager {
     @Override
     public void beginTimeoutJob() {
         var timeoutFrom = Instant.now();
-
-        for (Map.Entry<String, Transaction> tx : transactions.entrySet()) {
+        var it = transactions.entrySet().iterator();
+        while (it.hasNext()) {
+            var tx = it.next();
             if (tx.getValue().tryAcquire()) {
                 if (timeoutFrom.compareTo(tx.getValue().expiresAt()) > 0) {
                     removeTransaction(tx.getKey());
@@ -147,7 +148,9 @@ public class QueryAPITransactionManager implements TransactionManager {
     @Override
     @VisibleForTesting
     public void removeAllTransactions() {
-        for (Map.Entry<String, Transaction> tx : transactions.entrySet()) {
+        var it = transactions.entrySet().iterator();
+        while (it.hasNext()) {
+            var tx = it.next();
             removeTransaction(tx.getKey());
         }
     }
