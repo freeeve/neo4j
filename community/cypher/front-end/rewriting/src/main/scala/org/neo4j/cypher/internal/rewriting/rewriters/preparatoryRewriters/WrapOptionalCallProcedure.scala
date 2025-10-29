@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.ReturnAddedInRewrite
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -49,7 +50,7 @@ case object WrapOptionalCallProcedure extends StepSequencer.Step with Preparator
       val copyResolved = unresolved.copy(optional = false)(pos)
       val returnItems = unresolved.returnVariables.explicitVariables.map(x => AliasedReturnItem(x))
       val returnClause =
-        if (returnItems.nonEmpty) Seq(Return(ReturnItems(FreeProjection, returnItems)(pos))(pos))
+        if (returnItems.nonEmpty) Seq(Return(ReturnItems(FreeProjection, returnItems)(pos), ReturnAddedInRewrite)(pos))
         else Seq.empty
       val innerQuery = SingleQuery(Seq(copyResolved) ++ returnClause)(pos)
       ScopeClauseSubqueryCall(innerQuery, isImportingAll = true, Seq.empty, None, optional = true)(pos)

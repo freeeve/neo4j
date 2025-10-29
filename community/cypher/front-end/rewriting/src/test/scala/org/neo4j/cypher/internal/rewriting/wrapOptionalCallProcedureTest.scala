@@ -16,8 +16,11 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.ReturnAddedInRewrite
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.WrapOptionalCallProcedure
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class wrapOptionalCallProcedureTest extends CypherFunSuite with RewriteTest {
@@ -26,12 +29,24 @@ class wrapOptionalCallProcedureTest extends CypherFunSuite with RewriteTest {
 
   test("rewrite optional call procedure") {
     assertRewrite(
-      "OPTIONAL CALL foo() YIELD a, b RETURN a, b",
-      "OPTIONAL CALL (*) { CALL foo() YIELD a, b RETURN a AS a, b AS b } RETURN a, b"
+      "OPTIONAL CALL foo() YIELD a, b FINISH",
+      "OPTIONAL CALL (*) { CALL foo() YIELD a, b RETURN a AS a, b AS b } FINISH",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          case r: Return =>
+            r.copy(returnType = ReturnAddedInRewrite)(r.position)
+        }))
+      }
     )
     assertRewrite(
-      "OPTIONAL CALL foo() YIELD a, b WHERE a > 0 RETURN a, b",
-      "OPTIONAL CALL (*) { CALL foo() YIELD a, b WHERE a > 0 RETURN a AS a, b AS b } RETURN a, b"
+      "OPTIONAL CALL foo() YIELD a, b WHERE a > 0 FINISH",
+      "OPTIONAL CALL (*) { CALL foo() YIELD a, b WHERE a > 0 RETURN a AS a, b AS b } FINISH",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          case r: Return =>
+            r.copy(returnType = ReturnAddedInRewrite)(r.position)
+        }))
+      }
     )
   }
 

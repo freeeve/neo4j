@@ -1965,6 +1965,9 @@ object Return {
   def apply(returnItems: ReturnItems)(pos: InputPosition): Return =
     Return(distinct = false, returnItems, None, None, None)(pos)
 
+  def apply(returnItems: ReturnItems, returnType: ReturnType)(pos: InputPosition): Return =
+    Return(distinct = false, returnItems, None, None, None, returnType = returnType)(pos)
+
   // Unapply for RETURN * ...
   object WithStar {
 
@@ -2332,12 +2335,14 @@ case class ScopeClauseSubqueryCall(
         val filteredVariables =
           innerFinalScope.symbolTable.values.filter(x => !importedSymbolNames.contains(x.name))
 
-        innerQuery.getReturns.flatMap(v => difference.map((v, _))).foldSemanticCheck { case (ret, name) =>
-          val position = ret.returnItems.items.find(_.name == name) match {
-            case _ @Some(AliasedReturnItem(_, variable)) => variable.position
-            case _                                       => ret.position
-          }
-          SemanticError.variableAlreadyDeclaredInOuterScope(name, position)
+        innerQuery.getReturns.flatMap(v => difference.map((v, _))).foldSemanticCheck {
+          case (ret, name) if ret.returnType != ReturnAddedInRewrite =>
+            val position = ret.returnItems.items.find(_.name == name) match {
+              case _ @Some(AliasedReturnItem(_, variable)) => variable.position
+              case _                                       => ret.position
+            }
+            SemanticError.variableAlreadyDeclaredInOuterScope(name, position)
+          case _ => SemanticCheck.success
         } ifOkChain declareVariables(filteredVariables)
       }
   }

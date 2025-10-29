@@ -679,39 +679,42 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   }
 
   private def errorOnShadowedImportVariables(outer: SemanticState): SemanticCheck = { (inner: SemanticState) =>
-    val outerScopeSymbols: Map[String, Symbol] = outer.currentScope.scope.symbolTable
+    if (getReturns.exists(_.returnType == ReturnAddedInRewrite)) { SemanticCheckResult.success(inner) }
+    else {
+      val outerScopeSymbols: Map[String, Symbol] = outer.currentScope.scope.symbolTable
 
-    // Finds symbols of children of innerScope
-    val childrenTables = inner.currentScope.scope.children.map(_.symbolTable)
-    val innerScopeSymbols: Map[String, Set[Symbol]] =
-      childrenTables.foldLeft(Map.empty[String, Set[Symbol]]) {
-        case (acc0, table) =>
-          table.foldLeft(acc0) {
-            case (acc, (str, symbol)) if acc.contains(str) =>
-              acc.updated(str, acc(str) + symbol)
-            case (acc, (str, symbol)) =>
-              acc.updated(str, Set(symbol))
-          }
+      // Finds symbols of children of innerScope
+      val childrenTables = inner.currentScope.scope.children.map(_.symbolTable)
+      val innerScopeSymbols: Map[String, Set[Symbol]] =
+        childrenTables.foldLeft(Map.empty[String, Set[Symbol]]) {
+          case (acc0, table) =>
+            table.foldLeft(acc0) {
+              case (acc, (str, symbol)) if acc.contains(str) =>
+                acc.updated(str, acc(str) + symbol)
+              case (acc, (str, symbol)) =>
+                acc.updated(str, Set(symbol))
+            }
+        }
+
+      def isShadowed(s: Symbol): Boolean = {
+        innerScopeSymbols.contains(s.name) &&
+        !innerScopeSymbols(s.name).map(_.definition).forall(_ == s.definition)
       }
 
-    def isShadowed(s: Symbol): Boolean = {
-      innerScopeSymbols.contains(s.name) &&
-      !innerScopeSymbols(s.name).map(_.definition).forall(_ == s.definition)
+      val shadowedSymbols = outerScopeSymbols.collect {
+        case (symbolName, symbol) if isShadowed(symbol) =>
+          symbolName -> innerScopeSymbols(
+            symbolName
+          ).find(_.definition != symbol.definition).get.definition.asVariable.position
+      }
+
+      val shadowingErrors = shadowedSymbols.map {
+        case (varName, pos) =>
+          SemanticError.variableShadowingOuterScope(varName, pos)
+      }.toSeq
+
+      SemanticCheckResult(inner, shadowingErrors)
     }
-
-    val shadowedSymbols = outerScopeSymbols.collect {
-      case (symbolName, symbol) if isShadowed(symbol) =>
-        symbolName -> innerScopeSymbols(
-          symbolName
-        ).find(_.definition != symbol.definition).get.definition.asVariable.position
-    }
-
-    val shadowingErrors = shadowedSymbols.map {
-      case (varName, pos) =>
-        SemanticError.variableShadowingOuterScope(varName, pos)
-    }.toSeq
-
-    SemanticCheckResult(inner, shadowingErrors)
   }
 }
 
