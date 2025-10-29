@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.neo4j.kernel.api.exceptions.Status.General.InvalidArguments;
 import static org.neo4j.logging.AssertableLogProvider.Level.ERROR;
 import static org.neo4j.logging.LogAssertions.assertThat;
 
@@ -37,6 +38,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.io.fs.DelegatingFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
@@ -271,6 +274,26 @@ class FileUserRepositoryTest {
             latch.finish();
             setUsers.get();
         }
+    }
+
+    @Test
+    void shouldFailToCreateDuplicateUsers() throws Exception {
+        FileUserRepository users = new FileUserRepository(fs, authFile, logProvider, memoryTracker);
+        User badger = new User("badger", null, LegacyCredential.forPassword("hidden"), false, false);
+
+        // Given
+        users.create(badger);
+
+        // When / then
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> users.create(badger))
+                .isInstanceOf(InvalidArgumentsException.class)
+                .hasStatus(InvalidArguments)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_42001)
+                .hasStatusDescription("error: syntax error or access rule violation - invalid syntax")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_42N12)
+                .hasStatusDescription(
+                        "error: syntax error or access rule violation - user already exists. A user with the name `badger` already exists.");
     }
 
     static class HangingListSnapshot extends ListSnapshot<User> {

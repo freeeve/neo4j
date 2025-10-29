@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity;
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
 import org.neo4j.kernel.impl.security.User;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
@@ -64,7 +65,9 @@ public abstract class AbstractUserRepository extends LifecycleAdapter implements
             // Check for existing user
             for (User other : users) {
                 if (other.name().equals(user.name())) {
-                    throw new InvalidArgumentsException("The specified user '" + user.name() + "' already exists.");
+                    throw new InvalidArgumentsException(
+                            PrivilegeGqlCodeEntity.entityAlreadyExists(PrivilegeGqlCodeEntity.USER, user.name()),
+                            "The specified user '" + user.name() + "' already exists.");
                 }
             }
 

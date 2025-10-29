@@ -4906,6 +4906,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "database unavailable",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_51N7A(
+            new GqlStatus("51N7A"),
+            "No admin user candidate is found. Use `neo4j-admin dbms set-default-admin` to select a valid admin.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "no admin user candidate",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_52N01(
             new GqlStatus("52N01"),
             "Execution of the procedure { %s } timed out after { %s } { %s }.",
