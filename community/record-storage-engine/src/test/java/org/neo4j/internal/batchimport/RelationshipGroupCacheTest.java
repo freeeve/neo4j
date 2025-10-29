@@ -152,9 +152,10 @@ class RelationshipGroupCacheTest {
     void shouldHandleGroupCountBeyondSignedShortRange() {
         // GIVEN
         long nodeId = 0;
+        long highNodeId = nodeId + 1;
         int limit = Short.MAX_VALUE + 10;
         try (RelationshipGroupCache cache = new RelationshipGroupCache(
-                NumberArrayFactories.OFF_HEAP, ByteUnit.kibiBytes(100), nodeId + 1, INSTANCE)) {
+                NumberArrayFactories.OFF_HEAP, ByteUnit.kibiBytes(100), highNodeId, INSTANCE)) {
 
             // WHEN first counting all groups per node
             for (int type = 0; type < limit; type++) {
@@ -169,11 +170,10 @@ class RelationshipGroupCacheTest {
                 group.setType(type);
                 cache.put(group);
             }
-            long prepared = cache.prepare(nodeId);
 
             // THEN that should work, because it used to fail inside prepare, but we can also ask
             // the groupCount method to be sure
-            assertEquals(nodeId, prepared);
+            assertEquals(highNodeId, cache.prepare(nodeId));
             assertEquals(limit, cache.groupCount(nodeId));
         }
     }

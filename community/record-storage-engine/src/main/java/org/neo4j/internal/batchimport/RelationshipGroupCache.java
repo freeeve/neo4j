@@ -123,7 +123,7 @@ public class RelationshipGroupCache
         highCacheId = 0;
         for (long nodeId = fromNodeId; nodeId < highNodeId; nodeId++) {
             int count = groupCount(nodeId);
-            if (highCacheId + count > maxCacheLength) {
+            if (nodeId > fromNodeId && highCacheId + count > maxCacheLength) {
                 // Cannot include this one, so up until the previous is good
                 return this.toNodeId = nodeId;
             }
