@@ -4018,6 +4018,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "not supported standalone call",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAC(
+            new GqlStatus("42NAC"),
+            "The backup metadata script contains an invalid or missing CREATE DATABASE statement. The metadata script must contain exactly one CREATE DATABASE statement and it must use the parameter $database.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid CREATE DATABASE statement",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             new GqlStatus("42NFC"),
             "Authentication and/or authorization could not be validated. See security logs for details.",
@@ -4229,6 +4237,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
             "sharded properties transaction handling client error",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_50N26(
+            new GqlStatus("50N26"),
+            "The backup metadata script contains invalid syntax.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "invalid backup metadata script",
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N42(
             new GqlStatus("50N42"),
