@@ -490,6 +490,8 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
 
       override def storageHasPropertyColocation: Boolean = false
 
+      override def storageSupportsFastExpandInto: Boolean = false
+
       override def getNodeLabelConstraints(constrainedLabel: String): Set[String] = Set.empty
 
       override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] = Map.empty

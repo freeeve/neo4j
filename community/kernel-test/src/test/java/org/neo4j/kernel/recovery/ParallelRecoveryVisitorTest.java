@@ -368,7 +368,17 @@ class ParallelRecoveryVisitorTest {
         private final long[] applyOrder = new long[100];
         private final AtomicInteger lockOrderCursor = new AtomicInteger();
         private final AtomicInteger applyOrderCursor = new AtomicInteger();
-        private final StorageEngineCostCharacteristics costCharacteristics = () -> false;
+        private final StorageEngineCostCharacteristics costCharacteristics = new StorageEngineCostCharacteristics() {
+            @Override
+            public boolean hasPropertyColocation() {
+                return false;
+            }
+
+            @Override
+            public boolean supportsFastExpandInto() {
+                return false;
+            }
+        };
 
         @Override
         public void lockRecoveryCommands(

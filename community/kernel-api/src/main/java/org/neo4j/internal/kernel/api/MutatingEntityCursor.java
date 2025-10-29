@@ -17,18 +17,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.recordstorage;
+package org.neo4j.internal.kernel.api;
 
-import org.neo4j.storageengine.api.StorageEngineCostCharacteristics;
-
-public class RecordStorageCostCharacteristics implements StorageEngineCostCharacteristics {
-    @Override
-    public boolean hasPropertyColocation() {
-        return false;
+/**
+ * A mutating cursor is a cursor that also performs mutating side-effects while iterating.
+ */
+public interface MutatingEntityCursor {
+    @FunctionalInterface
+    interface MutationCallback {
+        void onMutation(int nodesCreated, int relationshipsCreated, int propertiesUpdated);
     }
 
-    @Override
-    public boolean supportsFastExpandInto() {
-        return false;
-    }
+    boolean next(MutationCallback mutationCallback);
+
+    long reference();
 }

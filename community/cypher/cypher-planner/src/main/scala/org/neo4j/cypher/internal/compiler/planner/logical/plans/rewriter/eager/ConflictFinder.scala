@@ -59,6 +59,7 @@ import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.LogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeLogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RelationshipLogicalLeafPlan
@@ -173,8 +174,9 @@ sealed trait ConflictFinder {
     }
   }
 
-  private def canConflictWithCreateOrDelete(lp: LogicalPlan): Boolean = {
-    !lp.isUpdatingPlan || containsNestedPlanExpression(lp)
+  private def canConflictWithCreateOrDelete(lp: LogicalPlan): Boolean = lp match {
+    case _: MergeInto => true
+    case _            => !lp.isUpdatingPlan || containsNestedPlanExpression(lp)
   }
 
   protected[eager] def containsNestedPlanExpression(lp: LogicalPlan): Boolean = {

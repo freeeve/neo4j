@@ -87,6 +87,7 @@ import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NestedPlanCollectExpression
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
@@ -818,6 +819,9 @@ class SingleQuerySlotAllocator private[physicalplanning] (
       case SimulatedExpand(_, _, rel, to, _) =>
         slots.newLong(rel, nullable, CTRelationship)
         slots.newLong(to, nullable, CTNode)
+
+      case u: MergeInto =>
+        slots.newLong(u.idName, nullable, CTRelationship)
 
       case Optional(_, _) =>
         recordArgument(lp)

@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
+import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
@@ -109,6 +110,7 @@ import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByIdSeek
@@ -292,7 +294,9 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LimitPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LoadCSVPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LockNodesPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LockingMergePipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.MergeIntoPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.MergePipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.MergePropertySets
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeByIdSeekPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeByLabelScanPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeCountFromCountStorePipe
@@ -1112,6 +1116,17 @@ case class InterpretedPipeMapper(
   override def onOneChildPlan(plan: LogicalPlan, source: Pipe): Pipe = {
     val id = plan.id
     val buildExpression = getBuildExpression(id)
+    def compilePropertyExpressions(items: Seq[(PropertyKeyName, internal.expressions.Expression)]) = {
+      val size = items.size
+      val keys = new Array[LazyPropertyKey](size)
+      val values = new Array[Expression](size)
+      items.zipWithIndex.foreach {
+        case ((k, e), i) =>
+          keys(i) = LazyPropertyKey(k)(semanticTable)
+          values(i) = buildExpression(e)
+      }
+      (keys, values)
+    }
 
     def compileEffects(sideEffect: SimpleMutatingPattern): Seq[SideEffect] = {
       sideEffect match {
@@ -1159,15 +1174,7 @@ case class InterpretedPipeMapper(
           val needsExclusiveLock = items.exists {
             case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(node, e, p)
           }
-          val size = items.size
-          val keys = new Array[LazyPropertyKey](size)
-          val values = new Array[Expression](size)
-          items.zipWithIndex.foreach {
-            case ((k, e), i) =>
-              keys(i) = LazyPropertyKey(k)
-              values(i) = buildExpression(e)
-          }
-
+          val (keys, values) = compilePropertyExpressions(items)
           Seq(SetNodePropertiesOperation(node.name, keys, values, needsExclusiveLock))
         case SetNodePropertiesFromMapPattern(node, map, removeOtherProps) =>
           val needsExclusiveLock =
@@ -1186,15 +1193,7 @@ case class InterpretedPipeMapper(
           val needsExclusiveLock = items.exists {
             case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(rel, e, p)
           }
-          val size = items.size
-          val keys = new Array[LazyPropertyKey](size)
-          val values = new Array[Expression](size)
-          items.zipWithIndex.foreach {
-            case ((k, e), i) =>
-              keys(i) = LazyPropertyKey(k)
-              values(i) = buildExpression(e)
-          }
-
+          val (keys, values) = compilePropertyExpressions(items)
           Seq(SetRelationshipPropertiesOperation(rel.name, keys, values, needsExclusiveLock))
         case SetRelationshipPropertiesFromMapPattern(relationship, map, removeOtherProps) =>
           val needsExclusiveLock =
@@ -1218,14 +1217,7 @@ case class InterpretedPipeMapper(
             buildExpression(expression)
           ))
         case SetPropertiesPattern(entityExpression, items) =>
-          val size = items.size
-          val keys = new Array[LazyPropertyKey](size)
-          val values = new Array[Expression](size)
-          items.zipWithIndex.foreach {
-            case ((k, e), i) =>
-              keys(i) = LazyPropertyKey(k)
-              values(i) = buildExpression(e)
-          }
+          val (keys, values) = compilePropertyExpressions(items)
           Seq(SetPropertiesOperation(buildExpression(entityExpression), keys, values))
         case SetPropertiesFromMapPattern(entityExpression, expression, removeOtherProps) =>
           Seq(SetPropertyFromMapOperation(
@@ -1807,7 +1799,28 @@ case class InterpretedPipeMapper(
         )(id = id)
 
       case LockNodes(_, nodesToLock) =>
-        new LockNodesPipe(source, nodesToLock.map(n => n.name).toArray)(id)
+        LockNodesPipe(source, nodesToLock.map(n => n.name).toArray)(id)
+
+      case MergeInto(
+          _,
+          idName,
+          leftNode,
+          dir,
+          relType,
+          rightNode,
+          onMatchProperties,
+          onCreateProperties
+        ) =>
+        new MergeIntoPipe(
+          source,
+          leftNode.name,
+          idName.name,
+          rightNode.name,
+          dir,
+          LazyType(relType),
+          MergePropertySets(compilePropertyExpressions(onMatchProperties)),
+          MergePropertySets(compilePropertyExpressions(onCreateProperties))
+        )(id)
 
       case Merge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
         val creates = createNodes.map {
@@ -1869,14 +1882,7 @@ case class InterpretedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(name, e, p)
         }
-        val size = items.size
-        val keys = new Array[LazyPropertyKey](size)
-        val values = new Array[Expression](size)
-        items.zipWithIndex.foreach {
-          case ((k, e), i) =>
-            keys(i) = LazyPropertyKey(k)
-            values(i) = buildExpression(e)
-        }
+        val (keys, values) = compilePropertyExpressions(items)
         SetPipe(source, SetNodePropertiesOperation(name.name, keys, values, needsExclusiveLock))(id = id)
 
       case SetNodePropertiesFromMap(_, name, expression, removeOtherProps) =>
@@ -1910,14 +1916,7 @@ case class InterpretedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(name, e, p)
         }
-        val size = items.size
-        val keys = new Array[LazyPropertyKey](size)
-        val values = new Array[Expression](size)
-        items.zipWithIndex.foreach {
-          case ((k, e), i) =>
-            keys(i) = LazyPropertyKey(k)
-            values(i) = buildExpression(e)
-        }
+        val (keys, values) = compilePropertyExpressions(items)
         SetPipe(source, SetRelationshipPropertiesOperation(name.name, keys, values, needsExclusiveLock))(id = id)
 
       case SetRelationshipPropertiesFromMap(_, name, expression, removeOtherProps) =>
@@ -1954,14 +1953,7 @@ case class InterpretedPipeMapper(
         )(id = id)
 
       case SetProperties(_, entityExpr, items) =>
-        val size = items.size
-        val keys = new Array[LazyPropertyKey](size)
-        val values = new Array[Expression](size)
-        items.zipWithIndex.foreach {
-          case ((k, e), i) =>
-            keys(i) = LazyPropertyKey(k)
-            values(i) = buildExpression(e)
-        }
+        val (keys, values) = compilePropertyExpressions(items)
         SetPipe(source, SetPropertiesOperation(buildExpression(entityExpr), keys, values))(id = id)
 
       case RemoveLabels(_, name, labels, dynamicLabels) =>

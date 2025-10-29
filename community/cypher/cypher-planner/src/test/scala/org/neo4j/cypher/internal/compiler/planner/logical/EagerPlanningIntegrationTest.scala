@@ -1084,12 +1084,11 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     val expected = planner.planBuilder()
       .produceResults("end")
       .apply()
-      .|.merge(Seq(), Seq(createRelationship("t", "start", "T", "end", BOTH)), Seq(), Seq(), Set("start", "end"))
-      .|.expandInto("(start)-[t:T]-(end)")
+      .|.mergeInto("(start)-[t:T]-(end)")
       .|.argument("start", "end")
       // This eager is unnecessary since a relationship cannot have more than one type.
       .eager(ListSet(
-        TypeReadSetConflict(relTypeName("T")).withConflict(Conflict(Id(2), Id(6)))
+        TypeReadSetConflict(relTypeName("T")).withConflict(Conflict(Id(2), Id(5)))
       ))
       .statefulShortestPath(`((start)(({prop: 5})-[r:R]->())+(end))`)
       .filter("start.prop = 5")
@@ -1113,10 +1112,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     val expected = planner.planBuilder()
       .produceResults("end")
       .apply()
-      .|.merge(Seq(), Seq(createRelationship("t", "start", "R", "end", BOTH)), Seq(), Seq(), Set("start", "end"))
-      .|.expandInto("(start)-[t:R]-(end)")
+      .|.mergeInto("(start)-[t:R]-(end)")
       .|.argument("start", "end")
-      .eager(ListSet(TypeReadSetConflict(relTypeName("R")).withConflict(Conflict(Id(2), Id(6)))))
+      .eager(ListSet(TypeReadSetConflict(relTypeName("R")).withConflict(Conflict(Id(2), Id(5)))))
       .statefulShortestPath(`((start)((a{prop: 5})-[r:R]->(b))+(end))`)
       .filter("start.prop = 5")
       .allNodeScan("start")
@@ -1142,8 +1140,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("end")
         .apply()
-        .|.merge(Seq(), Seq(createRelationship("t", "start", "R", "end", BOTH)), Seq(), Seq(), Set("start", "end"))
-        .|.expandInto("(start)-[t:R]-(end)")
+        .|.mergeInto("(start)-[t:R]-(end)")
         .|.argument("start", "end")
         .statefulShortestPath(
           "start",

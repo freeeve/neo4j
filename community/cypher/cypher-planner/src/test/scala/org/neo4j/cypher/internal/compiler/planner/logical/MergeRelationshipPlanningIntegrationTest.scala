@@ -159,14 +159,10 @@ class MergeRelationshipPlanningIntegrationTest
 
     val plan = cfg.plan("MATCH (n) MATCH (m) MERGE (n)-[r:T]->(m)").stripProduceResults
 
-    val mergeRelationships = Seq(createRelationship("r", "n", "T", "m", OUTGOING))
-    val mergeLockNodes = Set("n", "m")
-
     plan shouldEqual cfg.subPlanBuilder()
       .emptyResult()
       .apply()
-      .|.merge(relationships = mergeRelationships, lockNodes = mergeLockNodes)
-      .|.expandInto("(n)-[r:T]->(m)")
+      .|.mergeInto("(n)-[r:T]->(m)")
       .|.argument("n", "m")
       .cartesianProduct()
       .|.allNodeScan("m")
@@ -179,14 +175,10 @@ class MergeRelationshipPlanningIntegrationTest
 
     val plan = cfg.plan("MATCH (n) MATCH (m) WITH n AS a, m AS b MERGE (a)-[r:T]->(b)").stripProduceResults
 
-    val mergeRelationships = Seq(createRelationship("r", "a", "T", "b", OUTGOING))
-    val mergeLockNodes = Set("a", "b")
-
     plan shouldEqual cfg.subPlanBuilder()
       .emptyResult()
       .apply()
-      .|.merge(relationships = mergeRelationships, lockNodes = mergeLockNodes)
-      .|.expandInto("(a)-[r:T]->(b)")
+      .|.mergeInto("(a)-[r:T]->(b)")
       .|.argument("a", "b")
       .projection("n AS a", "m AS b")
       .cartesianProduct()

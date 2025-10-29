@@ -68,6 +68,7 @@ import org.neo4j.cypher.internal.logical.plans.DetachDeletePath
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.PhysicalPlanningPlan
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.SetDynamicProperty
@@ -307,6 +308,24 @@ object WriteFinder {
 
           val nodeCreatePart = processCreateNodes(PlanCreates(), nodes)
           val createPart = processCreateRelationships(nodeCreatePart, relationships)
+
+          PlanWrites(setPart, createPart)
+
+        case MergeInto(_, rel, source, direction, relType, target, onMatch, onCreate) =>
+          val setPart = Function.chain[PlanSets](Seq(
+            onMatch.foldLeft(_) {
+              case (acc, (p, _)) =>
+                acc.withRelPropertyWritten(AccessedProperty(p, Some(rel)))
+            },
+            onCreate.foldLeft(_) {
+              case (acc, (p, _)) =>
+                acc.withRelPropertyWritten(AccessedProperty(p, Some(rel)))
+            }
+          ))(PlanSets())
+          val createPart = processCreateRelationships(
+            PlanCreates(),
+            Seq(CreateRelationship(rel, source, relType, target, direction, None))
+          )
 
           PlanWrites(setPart, createPart)
 

@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal
 import org.neo4j.cypher.internal.ast.semantics.TokenTable
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreatePattern
@@ -92,6 +93,7 @@ import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
@@ -210,6 +212,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyPropertyKey
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyType
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.MergePipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.MergePropertySets
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.OrderedAggregationPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PartialSortPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PartialTop1Pipe
@@ -286,6 +289,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.IntersectionNodesByLabels
 import org.neo4j.cypher.internal.runtime.slotted.pipes.LoadCSVSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.LockNodesSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.LockingMergeSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.MergeIntoSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe.KeyOffsets
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe.SlotMapping
@@ -1002,6 +1006,18 @@ class SlottedPipeMapper(
     val id = plan.id
     val convertExpressions = (e: internal.expressions.Expression) => expressionConverters.toCommandExpression(id, e)
 
+    def compilePropertyExpressions(items: Seq[(PropertyKeyName, internal.expressions.Expression)]) = {
+      val size = items.size
+      val keys = new Array[LazyPropertyKey](size)
+      val values = new Array[Expression](size)
+      items.zipWithIndex.foreach {
+        case ((k, e), i) =>
+          keys(i) = LazyPropertyKey(k)(semanticTable)
+          values(i) = convertExpressions(e)
+      }
+      (keys, values)
+    }
+
     val slots = physicalPlan.slotConfigurations(id)
     // some operators will overwrite this value
     var argumentSize = physicalPlan.argumentSizes.getOrElse(id, SlotConfiguration.Size.zero)
@@ -1061,15 +1077,7 @@ class SlottedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(node, e, p)
         }
-        val size = items.size
-        val keys = new Array[LazyPropertyKey](size)
-        val values = new Array[Expression](size)
-        items.zipWithIndex.foreach {
-          case ((k, e), i) =>
-            keys(i) = LazyPropertyKey(k)
-            values(i) = convertExpressions(e)
-        }
-
+        val (keys, values) = compilePropertyExpressions(items)
         Seq(SlottedSetNodePropertiesOperation(slots(node).slot, keys, values, needsExclusiveLock))
       case SetNodePropertiesFromMapPattern(node, map, removeOtherProps) =>
         val needsExclusiveLock = internal.expressions.Expression.mapExpressionHasPropertyReadDependency(node, map)
@@ -1092,15 +1100,7 @@ class SlottedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(rel, e, p)
         }
-        val size = items.size
-        val keys = new Array[LazyPropertyKey](size)
-        val values = new Array[Expression](size)
-        items.zipWithIndex.foreach {
-          case ((k, e), i) =>
-            keys(i) = LazyPropertyKey(k)
-            values(i) = convertExpressions(e)
-        }
-
+        val (keys, values) = compilePropertyExpressions(items)
         Seq(SlottedSetRelationshipPropertiesOperation(slots(rel).slot, keys, values, needsExclusiveLock))
       case SetRelationshipPropertiesFromMapPattern(relationship, map, removeOtherProps) =>
         val needsExclusiveLock =
@@ -1126,15 +1126,7 @@ class SlottedPipeMapper(
         ))
 
       case SetPropertiesPattern(entity, items) =>
-        val size = items.size
-        val keys = new Array[LazyPropertyKey](size)
-        val values = new Array[Expression](size)
-        items.zipWithIndex.foreach {
-          case ((k, e), i) =>
-            keys(i) = LazyPropertyKey(k)
-            values(i) = convertExpressions(e)
-        }
-
+        val (keys, values) = compilePropertyExpressions(items)
         Seq(SetPropertiesOperation(convertExpressions(entity), keys, values))
       case SetPropertiesFromMapPattern(entityExpression, expression, removeOtherProps) =>
         Seq(SetPropertyFromMapOperation(
@@ -1473,6 +1465,28 @@ class SlottedPipeMapper(
       case LockNodes(_, nodesToLock) =>
         new LockNodesSlottedPipe(source, nodesToLock.map(n => slots(n).slot).toArray)(id)
 
+      case MergeInto(
+          _,
+          idName,
+          leftNode,
+          direction,
+          relType,
+          rightNode,
+          onMatchProperties,
+          onCreateProperties
+        ) =>
+        new MergeIntoSlottedPipe(
+          source,
+          slots(leftNode.name).slot,
+          direction,
+          slots.longOffset(idName.name),
+          slots(rightNode).slot,
+          LazyType(relType)(semanticTable),
+          MergePropertySets(compilePropertyExpressions(onMatchProperties)),
+          MergePropertySets(compilePropertyExpressions(onCreateProperties)),
+          slots
+        )(id)
+
       case Merge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
         val creates = createNodes.map {
           case CreateNode(node, labels, labelExpressions, properties) =>
@@ -1544,14 +1558,7 @@ class SlottedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(name, e, p)
         }
-        val size = items.size
-        val keys = new Array[LazyPropertyKey](size)
-        val values = new Array[Expression](size)
-        items.zipWithIndex.foreach {
-          case ((k, e), i) =>
-            keys(i) = LazyPropertyKey(k)
-            values(i) = convertExpressions(e)
-        }
+        val (keys, values) = compilePropertyExpressions(items)
         SetPipe(source, SlottedSetNodePropertiesOperation(slots(name).slot, keys, values, needsExclusiveLock))(id =
           id
         )
@@ -1586,14 +1593,7 @@ class SlottedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(name, e, p)
         }
-        val size = items.size
-        val keys = new Array[LazyPropertyKey](size)
-        val values = new Array[Expression](size)
-        items.zipWithIndex.foreach {
-          case ((k, e), i) =>
-            keys(i) = LazyPropertyKey(k)
-            values(i) = convertExpressions(e)
-        }
+        val (keys, values) = compilePropertyExpressions(items)
         SetPipe(
           source,
           SlottedSetRelationshipPropertiesOperation(slots(name).slot, keys, values, needsExclusiveLock)

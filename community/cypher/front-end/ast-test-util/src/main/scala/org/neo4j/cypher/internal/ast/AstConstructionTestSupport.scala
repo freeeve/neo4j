@@ -631,6 +631,18 @@ trait AstConstructionTestSupport {
 
   def hasDegreeGreater(
     node: String,
+    direction: SemanticDirection,
+    degree: Expression
+  ) =
+    HasDegreeGreaterThan(
+      varFor(node),
+      None,
+      direction,
+      degree
+    )(pos)
+
+  def hasDegreeGreater(
+    node: String,
     relType: String,
     direction: SemanticDirection,
     degree: Expression

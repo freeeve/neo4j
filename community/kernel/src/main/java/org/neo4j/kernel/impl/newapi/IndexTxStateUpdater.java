@@ -37,6 +37,7 @@ import org.neo4j.common.EntityType;
 import org.neo4j.internal.kernel.api.EntityCursor;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
@@ -164,7 +165,7 @@ public class IndexTxStateUpdater {
     }
 
     void onPropertyAdd(
-            RelationshipScanCursor relationship,
+            RelationshipCursor relationship,
             PropertyCursor propertyCursor,
             int type,
             int propertyKeyId,
@@ -181,7 +182,7 @@ public class IndexTxStateUpdater {
     }
 
     void onPropertyRemove(
-            RelationshipScanCursor relationship,
+            RelationshipCursor relationship,
             PropertyCursor propertyCursor,
             int type,
             int propertyKeyId,
@@ -198,7 +199,7 @@ public class IndexTxStateUpdater {
     }
 
     void onPropertyChange(
-            RelationshipScanCursor relationship,
+            RelationshipCursor relationship,
             PropertyCursor propertyCursor,
             int type,
             int propertyKeyId,

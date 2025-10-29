@@ -146,6 +146,10 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
     resolver.resolveDependency(classOf[Config]).setDynamicByUser(setting, value, "dbms.setConfigValue")
   }
 
+  def supportFastExpandInto(): Boolean = {
+    tx.kernelTransaction().storageEngineCostCharacteristics().supportsFastExpandInto()
+  }
+
   def canFuse: Boolean = {
     val fuseablePipeline = isPipelined || isParallel
 

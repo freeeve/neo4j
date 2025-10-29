@@ -401,6 +401,18 @@ object LogicalPlanToPlanBuilderString {
       case FusedMerge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
         params(createNodes, createRelationships, onMatch, onCreate, nodesToLock)
 
+      case MergeInto(_, rel, from, dir, relTYpe, to, onMatch, onCreate) =>
+        val (dirStrA, dirStrB) = arrows(dir)
+        val typeStr = relTypeStr(Seq(relTYpe))
+        val fromName = escapeIdentifier(from.name)
+        val relName = escapeIdentifier(rel.name)
+        val toName = escapeIdentifier(to.name)
+        params(
+          s"($fromName)$dirStrA[$relName$typeStr]$dirStrB($toName)".quoted,
+          s"Seq(${setPropertiesParam(onMatch)})",
+          s"Seq(${setPropertiesParam(onCreate)})"
+        )
+
       case Foreach(_, variable, list, mutations) =>
         params(
           variable,

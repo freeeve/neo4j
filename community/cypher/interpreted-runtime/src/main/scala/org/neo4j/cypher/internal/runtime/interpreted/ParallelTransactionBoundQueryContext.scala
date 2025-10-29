@@ -23,6 +23,7 @@ import org.eclipse.collections.api.map.primitive.IntObjectMap
 import org.eclipse.collections.api.set.primitive.IntSet
 import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.NodeOperations
 import org.neo4j.cypher.internal.runtime.Operations
@@ -36,9 +37,11 @@ import org.neo4j.cypher.internal.runtime.interpreted.ParallelTransactionBoundQue
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
 import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
+import org.neo4j.internal.kernel.api.MutatingEntityCursor
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.PropertyCursor
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
+import org.neo4j.internal.kernel.api.RelationshipTraversalCursor
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
@@ -81,6 +84,19 @@ object ParallelTransactionBoundQueryContext {
     override def relationshipWriteOps: RelationshipOperations = new UnsupportedRelationshipOperations
     override def createNodeId(labels: Array[Int]): Long = unsupported()
     override def createRelationshipId(start: Long, end: Long, relType: Int): Long = unsupported()
+
+    override def mergeInto(
+      nodeCursor: NodeCursor,
+      traversalCursor: RelationshipTraversalCursor,
+      propertyCursor: PropertyCursor,
+      source: Long,
+      relType: Int,
+      direction: SemanticDirection,
+      target: Long,
+      onMatch: IntObjectMap[Value],
+      onCreate: IntObjectMap[Value]
+    ): MutatingEntityCursor = unsupported()
+
     override def getOrCreateRelTypeId(relTypeName: String): Int = unsupported()
     override def getOrCreateLabelId(labelName: String): Int = unsupported()
     override def getOrCreateTypeId(relTypeName: String): Int = unsupported()

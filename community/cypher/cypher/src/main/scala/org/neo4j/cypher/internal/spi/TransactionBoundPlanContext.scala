@@ -599,5 +599,13 @@ class TransactionBoundPlanContext(
     }
   }
 
+  override def storageSupportsFastExpandInto: Boolean =
+    try {
+      tc.kernelTransaction.storageEngineCostCharacteristics().supportsFastExpandInto()
+    } catch {
+      // VirtualKernelTransaction.storageEngineCostCharacteristics throws
+      case _: Neo4jException => false
+    }
+
   override def queryLanguage: QueryLanguage = QueryLanguage.from(cypherVersion)
 }

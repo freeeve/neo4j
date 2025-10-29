@@ -3203,6 +3203,20 @@ object FusedMerge {
   }
 }
 
+case class MergeInto(
+  source: LogicalPlan,
+  idName: LogicalVariable,
+  leftNode: LogicalVariable,
+  dir: SemanticDirection,
+  relType: RelTypeName,
+  rightNode: LogicalVariable,
+  onMatchProperties: Seq[(PropertyKeyName, Expression)],
+  onCreateProperties: Seq[(PropertyKeyName, Expression)]
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+  override def withLhs(source: LogicalPlan)(idGen: IdGen): UpdatingPlan = copy(source = source)(idGen)
+  override def localAvailableSymbols: Set[LogicalVariable] = Set(idName, leftNode, rightNode)
+}
+
 case class LockNodes(override val source: LogicalPlan, nodesToLock: Set[LogicalVariable])(implicit idGen: IdGen)
     extends LogicalUnaryPlan(idGen)
     with PhysicalPlanningPlan {

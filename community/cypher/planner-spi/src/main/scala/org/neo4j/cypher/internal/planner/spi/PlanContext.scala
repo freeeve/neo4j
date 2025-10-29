@@ -222,4 +222,6 @@ trait PlanContext extends ReadTokenContext with ScopedProcedureSignatureResolver
   def databaseMode: DatabaseMode.DatabaseMode
 
   def storageHasPropertyColocation: Boolean
+
+  def storageSupportsFastExpandInto: Boolean
 }

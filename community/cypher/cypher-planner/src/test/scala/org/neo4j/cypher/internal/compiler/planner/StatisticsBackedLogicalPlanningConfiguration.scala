@@ -1381,6 +1381,8 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
       override def storageHasPropertyColocation: Boolean = dbFormatFromSettings == DatabaseFormat.Block
 
+      override def storageSupportsFastExpandInto: Boolean = dbFormatFromSettings == DatabaseFormat.Block
+
       override def statistics: InstrumentedGraphStatistics =
         InstrumentedGraphStatistics(graphStatistics, new MutableGraphStatisticsSnapshot())
 

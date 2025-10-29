@@ -75,6 +75,7 @@ import org.neo4j.memory.HeapEstimator;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.memory.ScopedMemoryTracker;
 import org.neo4j.storageengine.api.RelationshipDirection;
+import org.neo4j.storageengine.api.RelationshipSelection;
 import org.neo4j.storageengine.api.RelationshipVisitor;
 import org.neo4j.storageengine.api.RelationshipVisitorWithProperties;
 import org.neo4j.storageengine.api.enrichment.ApplyEnrichmentStrategy;
@@ -86,6 +87,7 @@ import org.neo4j.storageengine.api.txstate.RelationshipState;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
 import org.neo4j.storageengine.api.txstate.memory.TxStateMemoryConsumer;
+import org.neo4j.storageengine.util.SingleDegree;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
@@ -942,6 +944,18 @@ public class TxState implements TransactionState {
     @Override
     public boolean isMultiChunk() {
         return isMultiChunk;
+    }
+
+    @Override
+    public int calculateDegreeInTxState(long node, RelationshipSelection selection) {
+        NodeState nodeState = getNodeState(node);
+        if (nodeState == null) {
+            return 0;
+        } else {
+            SingleDegree degrees = new SingleDegree();
+            nodeState.fillDegrees(selection, degrees);
+            return degrees.getTotal();
+        }
     }
 
     @Override

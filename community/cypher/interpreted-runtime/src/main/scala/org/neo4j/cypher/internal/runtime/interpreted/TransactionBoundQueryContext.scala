@@ -66,6 +66,7 @@ import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
 import org.neo4j.exceptions.EntityNotFoundException
 import org.neo4j.exceptions.FailedIndexException
+import org.neo4j.graphdb.Direction
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
@@ -75,6 +76,7 @@ import org.neo4j.internal.kernel.api.IndexQueryConstraints
 import org.neo4j.internal.kernel.api.IndexQueryConstraints.ordered
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.InternalIndexState
+import org.neo4j.internal.kernel.api.MutatingEntityCursor
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.NodeLabelIndexCursor
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
@@ -183,6 +185,35 @@ sealed class TransactionBoundQueryContext(
 
   override def createRelationshipId(start: Long, end: Long, relType: Int): Long =
     writes().relationshipCreate(start, relType, end)
+
+  override def mergeInto(
+    nodeCursor: NodeCursor,
+    traversalCursor: RelationshipTraversalCursor,
+    propertyCursor: PropertyCursor,
+    source: Long,
+    relType: Int,
+    direction: SemanticDirection,
+    target: Long,
+    onMatch: IntObjectMap[Value],
+    onCreate: IntObjectMap[Value]
+  ): MutatingEntityCursor = {
+    val kernelDirection = direction match {
+      case SemanticDirection.OUTGOING => Direction.OUTGOING
+      case SemanticDirection.INCOMING => Direction.INCOMING
+      case SemanticDirection.BOTH     => Direction.BOTH
+    }
+    writes().relationshipMergeInto(
+      nodeCursor,
+      traversalCursor,
+      propertyCursor,
+      source,
+      relType,
+      kernelDirection,
+      target,
+      onMatch,
+      onCreate
+    )
+  }
 
   override def getOrCreateRelTypeId(relTypeName: String): Int =
     transactionalContext.tokenWrite.relationshipTypeGetOrCreateForName(relTypeName)
@@ -826,6 +857,11 @@ private[internal] class TransactionBoundReadQueryContext(
       transactionalContext.cursorContext,
       transactionalContext.memoryTracker
     )
+
+  override def propertyCursor(): PropertyCursor = transactionalContext.cursors.allocatePropertyCursor(
+    transactionalContext.cursorContext,
+    transactionalContext.memoryTracker
+  )
 
   override def scanCursor(): RelationshipScanCursor =
     transactionalContext.cursors.allocateRelationshipScanCursor(

@@ -30,6 +30,7 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
+import org.neo4j.storageengine.api.RelationshipSelection;
 import org.neo4j.storageengine.api.RelationshipVisitor;
 import org.neo4j.values.storable.ValueTuple;
 
@@ -177,4 +178,12 @@ public interface ReadableTransactionState {
      * @return {@code true} if this transaction state is multi chunked
      */
     boolean isMultiChunk();
+
+    /**
+     * Computes the degree of a node by just looking in what is in the transaction state.
+     * @param node the node which degree to compute
+     * @param selection the selection to use for the computation
+     * @return the degree of the node in the transaction state.
+     */
+    int calculateDegreeInTxState(long node, RelationshipSelection selection);
 }

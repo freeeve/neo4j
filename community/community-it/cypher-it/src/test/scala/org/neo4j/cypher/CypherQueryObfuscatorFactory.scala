@@ -224,6 +224,8 @@ class CypherQueryObfuscatorFactory {
 
     override def storageHasPropertyColocation: Boolean = fail()
 
+    override def storageSupportsFastExpandInto: Boolean = fail()
+
     override def queryLanguage: QueryLanguage = fail()
   }
 }

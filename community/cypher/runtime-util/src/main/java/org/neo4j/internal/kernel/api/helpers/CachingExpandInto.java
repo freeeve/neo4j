@@ -50,9 +50,7 @@ import org.neo4j.memory.ScopedMemoryTracker;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.Reference;
 import org.neo4j.storageengine.api.RelationshipSelection;
-import org.neo4j.storageengine.api.txstate.NodeState;
 import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
-import org.neo4j.storageengine.util.SingleDegree;
 
 /**
  * Utility for performing Expand(Into)
@@ -243,14 +241,7 @@ public class CachingExpandInto extends DefaultCloseListenable {
         if (txState == null) {
             return 0;
         } else {
-            NodeState nodeState = txState.getNodeState(node);
-            if (nodeState == null) {
-                return 0;
-            } else {
-                SingleDegree degrees = new SingleDegree();
-                nodeState.fillDegrees(selection, degrees);
-                return degrees.getTotal();
-            }
+            return txState.calculateDegreeInTxState(node, selection);
         }
     }
 

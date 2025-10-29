@@ -89,6 +89,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.MemoryDeallocationTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MemoryLeakTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MemoryManagementDisabledTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MemoryManagementTestBase
+import org.neo4j.cypher.internal.runtime.spec.tests.MergeIntoTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MergeProfileRowsTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MergeStressTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MergeTestBase
@@ -596,6 +597,9 @@ class InterpretedSetNodePropertiesFromMapTest
 class InterpretedSetRelationshipPropertiesFromMapTest
     extends SetRelationshipPropertiesFromMapTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 class InterpretedLockNodesTest extends LockNodesTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedMergeIntoTest
+    extends MergeIntoTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 class InterpretedMergeTest extends MergeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 class InterpretedMergeStressTest extends MergeStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 class InterpretedSetLabelsTest extends SetLabelsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)

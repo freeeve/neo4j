@@ -186,6 +186,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeByElementIdSeek
@@ -2247,6 +2248,30 @@ case class LogicalPlan2PlanDescription(
           "LoadCSV",
           children,
           Seq(Details(asPrettyString(variableName))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case MergeInto(_, r, leftNode, dir, relType, rightNode, onMatch, onCreate) =>
+        val createRelationship =
+          expandExpressionDescription(Some(leftNode), Some(r), Seq(relType), Some(rightNode), dir, 1, Some(1), None)
+        def asPrettyProps(kv: (PropertyKeyName, Expression)): PrettyString = {
+          pretty"${asPrettyString(r)}.${asPrettyString(kv._1)} = ${asPrettyString(kv._2)}"
+        }
+        def asPretty(op: String, props: Seq[(PropertyKeyName, Expression)]): PrettyString = {
+          if (props.isEmpty) pretty""
+          else {
+            pretty" ON ${asPrettyString(op)} SET ${props.map(asPrettyProps).mkPrettyString(", ")}"
+          }
+        }
+
+        val detail = pretty"MERGE $createRelationship${asPretty("MATCH", onMatch)}${asPretty("CREATE", onCreate)}"
+        PlanDescriptionImpl(
+          id,
+          "MergeInto",
+          children,
+          Seq(Details(Seq(detail))),
           variables,
           withRawCardinalities,
           withDistinctness

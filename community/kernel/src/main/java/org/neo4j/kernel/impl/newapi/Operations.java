@@ -28,6 +28,7 @@ import static org.neo4j.collection.PrimitiveArrays.intersect;
 import static org.neo4j.common.EntityType.NODE;
 import static org.neo4j.common.EntityType.RELATIONSHIP;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.additional_lock_verification;
+import static org.neo4j.exceptions.EntityNotFoundException.createEntityNotFoundException;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException.Phase.VALIDATION;
 import static org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException.OperationContext.CONSTRAINT_CREATION;
@@ -42,6 +43,7 @@ import static org.neo4j.kernel.impl.newapi.IndexTxStateUpdater.LabelChangeType.A
 import static org.neo4j.kernel.impl.newapi.IndexTxStateUpdater.LabelChangeType.REMOVED_LABEL;
 import static org.neo4j.lock.ResourceType.INDEX_ENTRY;
 import static org.neo4j.lock.ResourceType.SCHEMA_NAME;
+import static org.neo4j.storageengine.api.RelationshipSelection.selection;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.ArrayList;
@@ -69,18 +71,23 @@ import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.DbmsRuntimeVersionProvider;
+import org.neo4j.exceptions.ConstraintViolationException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.ThrowingLongConsumer;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.EntityCursor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
+import org.neo4j.internal.kernel.api.MutatingEntityCursor;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.NodeLabelIndexCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
+import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
 import org.neo4j.internal.kernel.api.RelationshipTypeIndexCursor;
 import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.SchemaWrite;
@@ -130,6 +137,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.AccessModeProvider;
+import org.neo4j.kernel.api.StatementConstants;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.exceptions.schema.AlreadyConstrainedException;
 import org.neo4j.kernel.api.exceptions.schema.AlreadyIndexedException;
@@ -162,10 +170,12 @@ import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.NodeIdAllocator;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.RelationshipIdAllocator;
+import org.neo4j.storageengine.api.RelationshipSelection;
 import org.neo4j.storageengine.api.StorageLocks;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.token.api.TokenConstants;
+import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
 
 /**
@@ -175,6 +185,7 @@ import org.neo4j.values.storable.Value;
  * Keep that in mind: e.g. nodeCursor, propertyCursor and relationshipCursor
  */
 public class Operations implements Write, SchemaWrite, Upgrade {
+    private static final int[] EMPTY_INT_ARRAY = new int[0];
 
     private final KernelTransactionImplementation ktx;
     private final KernelRead kernelRead;
@@ -198,11 +209,11 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private final boolean alwaysUseLatestIndexProvider;
     private final boolean singleStageFilteringEnabled;
     private final TransactionStateBehaviour transactionStateBehaviour;
-    private DefaultNodeCursor nodeCursor;
+    private DefaultNodeCursor localNodeCursor;
     private NodeCursor restrictedNodeCursor;
-    private PropertyCursor propertyCursor;
+    private PropertyCursor localPropertyCursor;
     private PropertyCursor restrictedPropertyCursor;
-    private RelationshipScanCursor relationshipCursor;
+    private RelationshipScanCursor localRelationshipCursor;
     private RelationshipScanCursor restrictedRelationshipCursor;
 
     private CursorContext cursorContext;
@@ -260,9 +271,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private void ensureCursors() {
         if (!this.hasCursors) {
-            this.nodeCursor = cursors.allocateFullAccessNodeCursor(cursorContext, memoryTracker);
-            this.propertyCursor = cursors.allocateFullAccessPropertyCursor(cursorContext, memoryTracker);
-            this.relationshipCursor = cursors.allocateFullAccessRelationshipScanCursor(cursorContext, memoryTracker);
+            this.localNodeCursor = cursors.allocateFullAccessNodeCursor(cursorContext, memoryTracker);
+            this.localPropertyCursor = cursors.allocateFullAccessPropertyCursor(cursorContext, memoryTracker);
+            this.localRelationshipCursor =
+                    cursors.allocateFullAccessRelationshipScanCursor(cursorContext, memoryTracker);
             this.restrictedNodeCursor = cursors.allocateNodeCursor(cursorContext, memoryTracker);
             this.restrictedPropertyCursor = cursors.allocatePropertyCursor(cursorContext, memoryTracker);
             this.restrictedRelationshipCursor = cursors.allocateRelationshipScanCursor(cursorContext, memoryTracker);
@@ -313,14 +325,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             checkAfterLocked.accept(nodeId);
         }
         txState.nodeDoCreate(nodeId);
-        nodeCursor.single(nodeId, kernelRead, ktx, accessModeProvider);
-        nodeCursor.next();
+        localNodeCursor.single(nodeId, kernelRead, ktx, accessModeProvider);
+        localNodeCursor.next();
         int prevLabel = NO_SUCH_LABEL;
         for (long lockingId : lockingIds) {
             int label = (int) lockingId;
             if (label != prevLabel) // Filter out duplicates.
             {
-                checkConstraintsAndAddLabelToNode(nodeId, label);
+                checkConstraintsAndAddLabelToNode(nodeId, label, localNodeCursor, localPropertyCursor);
                 prevLabel = label;
             }
         }
@@ -445,20 +457,20 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 throw new IllegalStateException("Relationship " + relationship
                         + " was created in this transaction, but was not found when deleting it");
             }
-            updater.onDeleteUncreated(relationshipCursor, propertyCursor);
+            updater.onDeleteUncreated(localRelationshipCursor, localPropertyCursor);
             txState.relationshipDoDeleteAddedInThisBatch(relationship);
             return true;
         }
 
-        kernelRead.singleRelationship(relationship, relationshipCursor); // tx-state aware
+        kernelRead.singleRelationship(relationship, localRelationshipCursor); // tx-state aware
 
-        if (!relationshipCursor.next()) {
+        if (!localRelationshipCursor.next()) {
             return false;
         }
-        sharedSchemaLock(ResourceType.RELATIONSHIP_TYPE, relationshipCursor.type());
+        sharedSchemaLock(ResourceType.RELATIONSHIP_TYPE, localRelationshipCursor.type());
         sharedTokenSchemaLock(ResourceType.RELATIONSHIP_TYPE);
-        var sourceNode = relationshipCursor.sourceNodeReference();
-        var targetNode = relationshipCursor.targetNodeReference();
+        var sourceNode = localRelationshipCursor.sourceNodeReference();
+        var targetNode = localRelationshipCursor.targetNodeReference();
         boolean sourceNodeAddedInBatch = txState.nodeIsAddedInThisBatch(sourceNode);
         boolean targetNodeAddedInBatch = txState.nodeIsAddedInThisBatch(targetNode);
         storageLocks.acquireRelationshipDeletionLock(
@@ -476,12 +488,202 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         ktx.securityAuthorizationHandler()
                 .assertAllowsDeleteRelationship(
-                        ktx.securityContext(), token::relationshipTypeGetName, relationshipCursor.type());
+                        ktx.securityContext(), token::relationshipTypeGetName, localRelationshipCursor.type());
         if (transactionStateBehaviour.useIndexCommands()) {
-            updater.onDeleteUncreated(relationshipCursor, propertyCursor);
+            updater.onDeleteUncreated(localRelationshipCursor, localPropertyCursor);
         }
-        txState.relationshipDoDelete(relationship, relationshipCursor.type(), sourceNode, targetNode);
+        txState.relationshipDoDelete(relationship, localRelationshipCursor.type(), sourceNode, targetNode);
         return true;
+    }
+
+    @Override
+    public MutatingEntityCursor relationshipMergeInto(
+            NodeCursor nodeCursor,
+            RelationshipTraversalCursor traversalCursor,
+            PropertyCursor propertyCursor,
+            long leftNode,
+            int type,
+            Direction direction,
+            long rightNode,
+            IntObjectMap<Value> onMatchProperties,
+            IntObjectMap<Value> onCreateProperties)
+            throws EntityNotFoundException {
+        ktx.assertOpen();
+        Preconditions.checkArgument(
+                ktx.storageEngineCostCharacteristics().supportsFastExpandInto(),
+                "Should only ever be called when running on block format");
+        ensureCursors();
+        long sourceNode = leftNode;
+        long targetNode = rightNode;
+        RelationshipSelection selection = selection(type, direction);
+        if (ktx.hasTxStateWithChanges()) {
+            RelationshipSelection reversedSelection = selection(type, direction.reverse());
+            int leftDegree = ktx.txState().calculateDegreeInTxState(leftNode, selection);
+            int rightDegree = ktx.txState().calculateDegreeInTxState(rightNode, reversedSelection);
+            if (leftDegree > rightDegree) {
+                sourceNode = rightNode;
+                targetNode = leftNode;
+                selection = reversedSelection;
+            }
+        }
+        singleNode(sourceNode, nodeCursor);
+        nodeCursor.relationshipsTo(traversalCursor, selection, targetNode);
+        return new MutatingRelationshipCursor(
+                nodeCursor,
+                traversalCursor,
+                propertyCursor,
+                targetNode,
+                leftNode,
+                type,
+                direction,
+                rightNode,
+                selection,
+                onMatchProperties,
+                onCreateProperties);
+    }
+
+    private final class MutatingRelationshipCursor implements MutatingEntityCursor {
+        private final NodeCursor nodeCursor;
+        private final RelationshipTraversalCursor traversalCursor;
+        private final PropertyCursor propertyCursor;
+        private final long targetNode;
+        private final long leftNode;
+        private final int type;
+        private final Direction direction;
+        private final long rightNode;
+        private final RelationshipSelection selection;
+        private final IntObjectMap<Value> onMatchProperties;
+        private final IntObjectMap<Value> onCreateProperties;
+        private State state = State.FIRST;
+        private long createdRelationship = NO_SUCH_RELATIONSHIP;
+
+        private MutatingRelationshipCursor(
+                NodeCursor nodeCursor,
+                RelationshipTraversalCursor traversalCursor,
+                PropertyCursor propertyCursor,
+                long targetNode,
+                long leftNode,
+                int type,
+                Direction direction,
+                long rightNode,
+                RelationshipSelection selection,
+                IntObjectMap<Value> onMatchProperties,
+                IntObjectMap<Value> onCreateProperties) {
+            this.nodeCursor = nodeCursor;
+            this.targetNode = targetNode;
+            this.leftNode = leftNode;
+            this.type = type;
+            this.direction = direction;
+            this.rightNode = rightNode;
+            this.traversalCursor = traversalCursor;
+            this.propertyCursor = propertyCursor;
+            this.selection = selection;
+            this.onMatchProperties = onMatchProperties;
+            this.onCreateProperties = onCreateProperties;
+        }
+
+        private enum State {
+            FIRST,
+            SCANNING,
+            CREATED
+        }
+
+        @Override
+        public long reference() {
+            if (createdRelationship == StatementConstants.NO_SUCH_RELATIONSHIP) {
+                return traversalCursor.relationshipReference();
+            } else {
+                return createdRelationship;
+            }
+        }
+
+        @Override
+        public boolean next(MutationCallback mutationCallback) {
+            return switch (state) {
+                case FIRST -> {
+                    boolean result = traversalCursor.next();
+                    if (result) {
+                        state = State.SCANNING;
+                        onMatch(mutationCallback);
+                    } else {
+                        result = lockAndReRead();
+                        if (!result) {
+                            createdRelationship = createRelationship(mutationCallback);
+                            state = State.CREATED;
+                        } else {
+                            onMatch(mutationCallback);
+                            state = State.SCANNING;
+                        }
+                    }
+                    yield true;
+                }
+                case SCANNING -> {
+                    boolean result = traversalCursor.next();
+                    if (result) {
+                        onMatch(mutationCallback);
+                    }
+                    yield result;
+                }
+                case CREATED -> false;
+            };
+        }
+
+        private boolean lockAndReRead() {
+            ktx.locks().acquireExclusiveNodeLock(leftNode, rightNode);
+            nodeCursor.relationshipsTo(traversalCursor, selection, targetNode);
+            return traversalCursor.next();
+        }
+
+        private long createRelationship(MutationCallback mutationCallback) {
+            try {
+                long source;
+                long target;
+                if (direction == Direction.INCOMING) {
+                    source = rightNode;
+                    target = leftNode;
+                } else {
+                    source = leftNode;
+                    target = rightNode;
+                }
+                long newId = internalRelationshipCreate(commandCreationContext, source, type, target, null);
+
+                RichIterable<IntObjectPair<Value>> propertiesKeyValueView = onCreateProperties.keyValuesView();
+                for (IntObjectPair<Value> property : propertiesKeyValueView) {
+                    int key = property.getOne();
+                    Value value = property.getTwo();
+                    // we can ignore NO_VALUES, since removing a property on a newly created relationship is a no op
+                    if (value != NO_VALUE) {
+                        ktx.securityAuthorizationHandler()
+                                .assertAllowsSetProperty(
+                                        ktx.securityContext(), Operations.this::resolvePropertyKey, type, key);
+                        ktx.txState().relationshipDoReplaceProperty(newId, type, source, target, key, NO_VALUE, value);
+                        boolean hasRelatedSchema = storageReader.hasRelatedSchema(new int[] {type}, key, RELATIONSHIP);
+                        if (hasRelatedSchema) {
+                            updater.onPropertyAdd(traversalCursor, propertyCursor, type, key, EMPTY_INT_ARRAY, value);
+                        }
+                    }
+                }
+                mutationCallback.onMutation(0, 1, onCreateProperties.size());
+                return newId;
+            } catch (EntityNotFoundException e) {
+                throw createEntityNotFoundException(e, e.getUserMessage(token));
+            }
+        }
+
+        private void onMatch(MutationCallback mutationCallback) {
+            if (onMatchProperties.isEmpty()) {
+                mutationCallback.onMutation(0, 0, 0);
+                return;
+            }
+            // lock
+            acquireExclusiveRelationshipLock(traversalCursor.relationshipReference());
+            mutationCallback.onMutation(0, 0, onMatchProperties.size());
+            try {
+                internalRelationshipApply(traversalCursor, propertyCursor, onMatchProperties);
+            } catch (ConstraintValidationException e) {
+                throw new ConstraintViolationException(e, e.getUserMessage(token), e);
+            }
+        }
     }
 
     @Override
@@ -496,7 +698,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         singleNode(node);
 
-        if (nodeCursor.hasLabel(nodeLabel)) {
+        if (localNodeCursor.hasLabel(nodeLabel)) {
             // label already there, nothing to do
             return false;
         }
@@ -506,24 +708,27 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     .assertAllowsSetLabel(ktx.securityContext(), token::labelGetName, nodeLabel);
         }
 
-        checkConstraintsAndAddLabelToNode(node, nodeLabel);
+        checkConstraintsAndAddLabelToNode(node, nodeLabel, localNodeCursor, localPropertyCursor);
         return true;
     }
 
-    private void checkConstraintsAndAddLabelToNode(long node, int nodeLabel)
+    private void checkConstraintsAndAddLabelToNode(
+            long node, int nodeLabel, NodeCursor nodeCursor, PropertyCursor propertyCursor)
             throws UniquePropertyValueValidationException, UnableToValidateConstraintException {
-        Collection<IndexDescriptor> indexes = checkConstraintsAndGetIndexes(node, nodeLabel);
+        Collection<IndexDescriptor> indexes =
+                checkConstraintsAndGetIndexes(node, nodeLabel, nodeCursor, propertyCursor);
         ktx.txState().nodeDoAddLabel(nodeLabel, node);
         updater.onLabelChange(nodeCursor, propertyCursor, ADDED_LABEL, nodeLabel, indexes);
     }
 
-    private Collection<IndexDescriptor> checkConstraintsAndGetIndexes(long node, int nodeLabel)
+    private Collection<IndexDescriptor> checkConstraintsAndGetIndexes(
+            long node, int nodeLabel, NodeCursor nodeCursor, PropertyCursor propertyCursor)
             throws UniquePropertyValueValidationException, UnableToValidateConstraintException {
         if (storageReader.hasRelatedSchema(nodeLabel, NODE)) {
             // Load the property key id list for this node. We may need it for constraint validation if there are any
             // related constraints,
             // but regardless we need it for tx state updating
-            int[] existingPropertyKeyIds = loadSortedNodePropertyKeyList();
+            int[] existingPropertyKeyIds = loadSortedNodePropertyKeyList(nodeCursor, propertyCursor);
 
             // Check so that we are not breaking uniqueness constraints
             // We do this by checking if there is an existing node in the index that
@@ -553,17 +758,18 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         return Collections.emptyList();
     }
 
-    private int[] loadSortedNodePropertyKeyList() {
+    private int[] loadSortedNodePropertyKeyList(NodeCursor nodeCursor, PropertyCursor propertyCursor) {
         nodeCursor.properties(propertyCursor, PropertySelection.ALL_PROPERTY_KEYS);
-        return doLoadSortedPropertyKeyList();
+        return doLoadSortedPropertyKeyList(propertyCursor);
     }
 
-    private int[] loadSortedRelationshipPropertyKeyList() {
+    private int[] loadSortedRelationshipPropertyKeyList(
+            RelationshipCursor relationshipCursor, PropertyCursor propertyCursor) {
         relationshipCursor.properties(propertyCursor, PropertySelection.ALL_PROPERTY_KEYS);
-        return doLoadSortedPropertyKeyList();
+        return doLoadSortedPropertyKeyList(propertyCursor);
     }
 
-    private int[] doLoadSortedPropertyKeyList() {
+    private int[] doLoadSortedPropertyKeyList(PropertyCursor propertyCursor) {
         if (!propertyCursor.next()) {
             return EMPTY_INT_ARRAY;
         }
@@ -603,7 +809,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     throw new IllegalStateException("Node " + node
                             + " was created in this transaction, but was not found when it was about to be deleted");
                 }
-                updater.onDeleteUncreated(nodeCursor, propertyCursor);
+                updater.onDeleteUncreated(localNodeCursor, localPropertyCursor);
                 state.nodeDoDelete(node);
                 return true;
             }
@@ -617,15 +823,15 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             storageLocks.acquireNodeDeletionLock(ktx.txState(), ktx.lockTracer(), node);
         }
 
-        kernelRead.singleNode(node, nodeCursor);
-        if (nodeCursor.next()) {
+        kernelRead.singleNode(node, localNodeCursor);
+        if (localNodeCursor.next()) {
             acquireSharedNodeLabelLocks();
             sharedTokenSchemaLock(ResourceType.LABEL);
 
             ktx.securityAuthorizationHandler()
-                    .assertAllowsDeleteNode(ktx.securityContext(), token::labelGetName, nodeCursor::labels);
+                    .assertAllowsDeleteNode(ktx.securityContext(), token::labelGetName, localNodeCursor::labels);
             if (transactionStateBehaviour.useIndexCommands()) {
-                updater.onDeleteUncreated(nodeCursor, propertyCursor);
+                updater.onDeleteUncreated(localNodeCursor, localPropertyCursor);
             }
             ktx.txState().nodeDoDelete(node);
             return true;
@@ -639,7 +845,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
      * Assuming that the nodeCursor has been initialized to the node that labels are retrieved from
      */
     private int[] acquireSharedNodeLabelLocks() {
-        int[] labels = nodeCursor.labels().all();
+        int[] labels = localNodeCursor.labels().all();
         acquireSharedLabelLocks(labels);
         return labels;
     }
@@ -648,12 +854,20 @@ public class Operations implements Write, SchemaWrite, Upgrade {
      * Assuming that the relationshipCursor has been initialized to the relationship that the type is retrieved from
      */
     private int acquireSharedRelationshipTypeLock() {
+        return acquireSharedRelationshipTypeLock(localRelationshipCursor);
+    }
+
+    private int acquireSharedRelationshipTypeLock(RelationshipCursor relationshipCursor) {
         int relType = relationshipCursor.type();
         ktx.lockClient().acquireShared(ktx.lockTracer(), ResourceType.RELATIONSHIP_TYPE, relType);
         return relType;
     }
 
     private void singleNode(long node) throws EntityNotFoundException {
+        singleNode(node, localNodeCursor);
+    }
+
+    private void singleNode(long node, NodeCursor nodeCursor) throws EntityNotFoundException {
         kernelRead.singleNode(node, nodeCursor);
         if (!nodeCursor.next()) {
             throw EntityNotFoundException.internalError(
@@ -664,8 +878,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     }
 
     private void singleRelationship(long relationship) throws EntityNotFoundException {
-        kernelRead.singleRelationship(relationship, relationshipCursor);
-        if (!relationshipCursor.next()) {
+        kernelRead.singleRelationship(relationship, localRelationshipCursor);
+        if (!localRelationshipCursor.next()) {
             throw EntityNotFoundException.internalError(
                     this.getClass().getSimpleName(),
                     RELATIONSHIP,
@@ -683,13 +897,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         PropertyIndexQuery.ExactPredicate[] values = new PropertyIndexQuery.ExactPredicate[schemaPropertyIds.length];
 
         int nMatched = 0;
-        cursor.properties(propertyCursor, PropertySelection.selection(schemaPropertyIds));
-        while (propertyCursor.next()) {
-            int entityPropertyId = propertyCursor.propertyKey();
+        cursor.properties(localPropertyCursor, PropertySelection.selection(schemaPropertyIds));
+        while (localPropertyCursor.next()) {
+            int entityPropertyId = localPropertyCursor.propertyKey();
             int k = indexOf(schemaPropertyIds, entityPropertyId);
             if (k >= 0) {
                 if (entityPropertyId != NO_SUCH_PROPERTY_KEY) {
-                    values[k] = PropertyIndexQuery.exact(entityPropertyId, propertyCursor.propertyValue());
+                    values[k] = PropertyIndexQuery.exact(entityPropertyId, localPropertyCursor.propertyValue());
                 }
                 nMatched++;
             }
@@ -720,13 +934,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         PropertyIndexQuery.ExactPredicate[] values = new PropertyIndexQuery.ExactPredicate[schemaPropertyIds.length];
 
         int nMatched = 0;
-        cursor.properties(propertyCursor, PropertySelection.selection(schemaPropertyIds));
-        while (propertyCursor.next()) {
-            int entityPropertyId = propertyCursor.propertyKey();
+        cursor.properties(localPropertyCursor, PropertySelection.selection(schemaPropertyIds));
+        while (localPropertyCursor.next()) {
+            int entityPropertyId = localPropertyCursor.propertyKey();
             int k = indexOf(schemaPropertyIds, entityPropertyId);
             if (k >= 0) {
                 if (entityPropertyId != NO_SUCH_PROPERTY_KEY) {
-                    values[k] = PropertyIndexQuery.exact(entityPropertyId, propertyCursor.propertyValue());
+                    values[k] = PropertyIndexQuery.exact(entityPropertyId, localPropertyCursor.propertyValue());
                 }
                 nMatched++;
             }
@@ -940,7 +1154,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         ensureCursors();
         singleNode(node);
 
-        if (!nodeCursor.hasLabel(labelId)) {
+        if (!localNodeCursor.hasLabel(labelId)) {
             // the label wasn't there, nothing to do
             return false;
         }
@@ -954,10 +1168,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         sharedTokenSchemaLock(ResourceType.LABEL);
         ktx.txState().nodeDoRemoveLabel(labelId, node);
         if (storageReader.hasRelatedSchema(labelId, NODE)) {
-            int[] existingPropertyKeyIds = loadSortedNodePropertyKeyList();
+            int[] existingPropertyKeyIds = loadSortedNodePropertyKeyList(localNodeCursor, localPropertyCursor);
             updater.onLabelChange(
-                    nodeCursor,
-                    propertyCursor,
+                    localNodeCursor,
+                    localPropertyCursor,
                     REMOVED_LABEL,
                     labelId,
                     storageReader.valueIndexesGetRelated(new int[] {labelId}, existingPropertyKeyIds, NODE));
@@ -974,15 +1188,15 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         ensureCursors();
 
         singleNode(node);
-        int[] labels = nodeCursor
-                .labelsAndProperties(propertyCursor, PropertySelection.selection(propertyKey))
+        int[] labels = localNodeCursor
+                .labelsAndProperties(localPropertyCursor, PropertySelection.selection(propertyKey))
                 .all();
-        var existingValue = propertyCursor.next() ? propertyCursor.propertyValue() : NO_VALUE;
+        var existingValue = localPropertyCursor.next() ? localPropertyCursor.propertyValue() : NO_VALUE;
         acquireSharedLabelLocks(labels);
         int[] existingPropertyKeyIds = null;
         boolean hasRelatedSchema = storageReader.hasRelatedSchema(labels, propertyKey, NODE);
         if (hasRelatedSchema) {
-            existingPropertyKeyIds = loadSortedNodePropertyKeyList();
+            existingPropertyKeyIds = loadSortedNodePropertyKeyList(localNodeCursor, localPropertyCursor);
         }
 
         if (existingValue == NO_VALUE) {
@@ -996,7 +1210,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             // no existing value, we just add it
             ktx.txState().nodeDoAddProperty(node, propertyKey, value);
             if (hasRelatedSchema) {
-                updater.onPropertyAdd(nodeCursor, propertyCursor, labels, propertyKey, existingPropertyKeyIds, value);
+                updater.onPropertyAdd(
+                        localNodeCursor, localPropertyCursor, labels, propertyKey, existingPropertyKeyIds, value);
             }
         } else if (propertyHasChanged(value, existingValue)) {
             ktx.securityAuthorizationHandler()
@@ -1010,7 +1225,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             ktx.txState().nodeDoChangeProperty(node, propertyKey, value);
             if (hasRelatedSchema) {
                 updater.onPropertyChange(
-                        nodeCursor, propertyCursor, labels, propertyKey, existingPropertyKeyIds, existingValue, value);
+                        localNodeCursor,
+                        localPropertyCursor,
+                        labels,
+                        propertyKey,
+                        existingPropertyKeyIds,
+                        existingValue,
+                        value);
             }
         }
     }
@@ -1045,23 +1266,24 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         MutableIntObjectMap<Value> existingValuesForChangedProperties = null;
         if (!properties.isEmpty()) {
             // read all affected property values in one go, to speed up changes below
-            existingLabels = nodeCursor
+            existingLabels = localNodeCursor
                     .labelsAndProperties(
-                            propertyCursor,
+                            localPropertyCursor,
                             PropertySelection.selection(properties.keySet().toArray()))
                     .all();
             existingValuesForChangedProperties = IntObjectMaps.mutable.empty();
-            while (propertyCursor.next()) {
-                existingValuesForChangedProperties.put(propertyCursor.propertyKey(), propertyCursor.propertyValue());
+            while (localPropertyCursor.next()) {
+                existingValuesForChangedProperties.put(
+                        localPropertyCursor.propertyKey(), localPropertyCursor.propertyValue());
             }
         } else {
-            existingLabels = nodeCursor.labels().all();
+            existingLabels = localNodeCursor.labels().all();
         }
         acquireSharedLabelLocks(existingLabels);
 
         // create a view of labels/properties as it will look after the changes would have been applied
         int[] labelsAfter = combineLabelIds(existingLabels, addedLabels, removedLabels);
-        int[] existingPropertyKeyIds = loadSortedNodePropertyKeyList();
+        int[] existingPropertyKeyIds = loadSortedNodePropertyKeyList(localNodeCursor, localPropertyCursor);
         MutableIntSet afterPropertyKeyIdsSet = IntSets.mutable.of(existingPropertyKeyIds);
         RichIterable<IntObjectPair<Value>> propertiesKeyValueView = properties.keyValuesView();
         MutableIntSet removedPropertyKeyIdsSet = null;
@@ -1111,7 +1333,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 constraint -> validateNoExistingNodeWithExactValues(
                         constraint,
                         storageReader.indexGetForName(constraint.getName()),
-                        getAllPropertyValues(nodeCursor, constraint.schema(), properties),
+                        getAllPropertyValues(localNodeCursor, constraint.schema(), properties),
                         node));
 
         // remove labels
@@ -1128,8 +1350,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     ktx.txState().nodeDoRemoveLabel(removedLabelId, node);
                     if (storageReader.hasRelatedSchema(removedLabelId, NODE)) {
                         updater.onLabelChange(
-                                nodeCursor,
-                                propertyCursor,
+                                localNodeCursor,
+                                localPropertyCursor,
                                 REMOVED_LABEL,
                                 removedLabelId,
                                 storageReader.valueIndexesGetRelated(
@@ -1156,8 +1378,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     existingPropertyKeyIds = remove(existingPropertyKeyIds, existingPropertyKeyIdIndex);
                     if (storageReader.hasRelatedSchema(existingLabelsMinusRemovedArray, key, NODE)) {
                         updater.onPropertyRemove(
-                                nodeCursor,
-                                propertyCursor,
+                                localNodeCursor,
+                                localPropertyCursor,
                                 existingLabelsMinusRemovedArray,
                                 key,
                                 existingPropertyKeyIds,
@@ -1181,8 +1403,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     ktx.txState().nodeDoAddLabel(addedLabelId, node);
                     if (storageReader.hasRelatedSchema(addedLabelId, NODE)) {
                         updater.onLabelChange(
-                                nodeCursor,
-                                propertyCursor,
+                                localNodeCursor,
+                                localPropertyCursor,
                                 ADDED_LABEL,
                                 addedLabelId,
                                 storageReader.valueIndexesGetRelated(
@@ -1207,8 +1429,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     boolean hasRelatedSchema = storageReader.hasRelatedSchema(labelsAfter, key, NODE);
                     if (hasRelatedSchema) {
                         updater.onPropertyAdd(
-                                nodeCursor,
-                                propertyCursor,
+                                localNodeCursor,
+                                localPropertyCursor,
                                 labelsAfter,
                                 key,
                                 existingPropertyKeyIdsBeforeChange.toSortedArray(),
@@ -1224,8 +1446,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     boolean hasRelatedSchema = storageReader.hasRelatedSchema(labelsAfter, key, NODE);
                     if (hasRelatedSchema) {
                         updater.onPropertyChange(
-                                nodeCursor,
-                                propertyCursor,
+                                localNodeCursor,
+                                localPropertyCursor,
                                 labelsAfter,
                                 key,
                                 existingPropertyKeyIdsBeforeChange.toSortedArray(),
@@ -1253,9 +1475,16 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             return;
         }
         singleRelationship(relationship);
-        int type = acquireSharedRelationshipTypeLock();
+        internalRelationshipApply(localRelationshipCursor, localPropertyCursor, properties);
+    }
 
+    private void internalRelationshipApply(
+            RelationshipCursor relationshipCursor, PropertyCursor propertyCursor, IntObjectMap<Value> properties)
+            throws ConstraintValidationException {
         // read all affected property values in one go, to speed up changes below
+        long relationship = relationshipCursor.relationshipReference();
+        int type = acquireSharedRelationshipTypeLock(relationshipCursor);
+
         MutableIntObjectMap<Value> existingValuesForChangedProperties = IntObjectMaps.mutable.empty();
         relationshipCursor.properties(
                 propertyCursor, PropertySelection.selection(properties.keySet().toArray()));
@@ -1264,7 +1493,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
 
         // create a view of properties as it will look after the changes would have been applied
-        int[] existingPropertyKeyIds = loadSortedRelationshipPropertyKeyList();
+        int[] existingPropertyKeyIds = loadSortedRelationshipPropertyKeyList(relationshipCursor, propertyCursor);
         MutableIntSet afterPropertyKeyIdsSet = IntSets.mutable.of(existingPropertyKeyIds);
         boolean hasPropertyRemovals = false;
         MutableIntSet changedPropertyKeyIdsSet = null;
@@ -1362,7 +1591,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     if (hasRelatedSchema) {
                         updater.onPropertyAdd(
                                 relationshipCursor,
-                                propertyCursor,
+                                this.localPropertyCursor,
                                 type,
                                 key,
                                 existingPropertyKeyIdsBeforeChange.toSortedArray(),
@@ -1386,7 +1615,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     if (hasRelatedSchema) {
                         updater.onPropertyChange(
                                 relationshipCursor,
-                                propertyCursor,
+                                this.localPropertyCursor,
                                 type,
                                 key,
                                 existingPropertyKeyIdsBeforeChange.toSortedArray(),
@@ -1433,7 +1662,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 constraint -> validateNoExistingNodeWithExactValues(
                         constraint,
                         storageReader.indexGetForName(constraint.getName()),
-                        getAllPropertyValues(nodeCursor, constraint.schema(), propertyKey, value),
+                        getAllPropertyValues(localNodeCursor, constraint.schema(), propertyKey, value),
                         node));
     }
 
@@ -1450,7 +1679,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 constraint -> validateNoExistingRelWithExactValues(
                         constraint,
                         storageReader.indexGetForName(constraint.getName()),
-                        getAllPropertyValues(relationshipCursor, constraint.schema(), propertyKey, value),
+                        getAllPropertyValues(localRelationshipCursor, constraint.schema(), propertyKey, value),
                         rel));
     }
 
@@ -1470,11 +1699,11 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             ktx.txState().nodeDoRemoveProperty(node, propertyKey);
             if (storageReader.hasRelatedSchema(labels, propertyKey, NODE)) {
                 updater.onPropertyRemove(
-                        nodeCursor,
-                        propertyCursor,
+                        localNodeCursor,
+                        localPropertyCursor,
                         labels,
                         propertyKey,
-                        loadSortedNodePropertyKeyList(),
+                        loadSortedNodePropertyKeyList(localNodeCursor, localPropertyCursor),
                         existingValue);
             }
         }
@@ -1494,7 +1723,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         int[] existingPropertyKeyIds = null;
         boolean hasRelatedSchema = storageReader.hasRelatedSchema(new int[] {type}, propertyKey, RELATIONSHIP);
         if (hasRelatedSchema) {
-            existingPropertyKeyIds = loadSortedRelationshipPropertyKeyList();
+            existingPropertyKeyIds =
+                    loadSortedRelationshipPropertyKeyList(localRelationshipCursor, localPropertyCursor);
         }
         if (existingValue == NO_VALUE) {
             ktx.securityAuthorizationHandler()
@@ -1505,15 +1735,15 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             ktx.txState()
                     .relationshipDoReplaceProperty(
                             relationship,
-                            relationshipCursor.type(),
-                            relationshipCursor.sourceNodeReference(),
-                            relationshipCursor.targetNodeReference(),
+                            localRelationshipCursor.type(),
+                            localRelationshipCursor.sourceNodeReference(),
+                            localRelationshipCursor.targetNodeReference(),
                             propertyKey,
                             NO_VALUE,
                             value);
             if (hasRelatedSchema) {
                 updater.onPropertyAdd(
-                        relationshipCursor, propertyCursor, type, propertyKey, existingPropertyKeyIds, value);
+                        localRelationshipCursor, localPropertyCursor, type, propertyKey, existingPropertyKeyIds, value);
             }
             return;
         }
@@ -1526,16 +1756,16 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             ktx.txState()
                     .relationshipDoReplaceProperty(
                             relationship,
-                            relationshipCursor.type(),
-                            relationshipCursor.sourceNodeReference(),
-                            relationshipCursor.targetNodeReference(),
+                            localRelationshipCursor.type(),
+                            localRelationshipCursor.sourceNodeReference(),
+                            localRelationshipCursor.targetNodeReference(),
                             propertyKey,
                             existingValue,
                             value);
             if (hasRelatedSchema) {
                 updater.onPropertyChange(
-                        relationshipCursor,
-                        propertyCursor,
+                        localRelationshipCursor,
+                        localPropertyCursor,
                         type,
                         propertyKey,
                         existingPropertyKeyIds,
@@ -1560,17 +1790,17 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             ktx.txState()
                     .relationshipDoRemoveProperty(
                             relationship,
-                            relationshipCursor.type(),
-                            relationshipCursor.sourceNodeReference(),
-                            relationshipCursor.targetNodeReference(),
+                            localRelationshipCursor.type(),
+                            localRelationshipCursor.sourceNodeReference(),
+                            localRelationshipCursor.targetNodeReference(),
                             propertyKey);
             if (storageReader.hasRelatedSchema(new int[] {type}, propertyKey, RELATIONSHIP)) {
                 updater.onPropertyRemove(
-                        relationshipCursor,
-                        propertyCursor,
+                        localRelationshipCursor,
+                        localPropertyCursor,
                         type,
                         propertyKey,
-                        loadSortedRelationshipPropertyKeyList(),
+                        loadSortedRelationshipPropertyKeyList(localRelationshipCursor, localPropertyCursor),
                         existingValue);
             }
         }
@@ -1579,17 +1809,17 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     }
 
     private Value readNodeProperty(int propertyKey) {
-        nodeCursor.properties(propertyCursor, PropertySelection.selection(propertyKey));
+        localNodeCursor.properties(localPropertyCursor, PropertySelection.selection(propertyKey));
 
         // Find out if the property had a value
-        return propertyCursor.next() ? propertyCursor.propertyValue() : NO_VALUE;
+        return localPropertyCursor.next() ? localPropertyCursor.propertyValue() : NO_VALUE;
     }
 
     private Value readRelationshipProperty(int propertyKey) {
-        relationshipCursor.properties(propertyCursor, PropertySelection.selection(propertyKey));
+        localRelationshipCursor.properties(localPropertyCursor, PropertySelection.selection(propertyKey));
 
         // Find out if the property had a value
-        return propertyCursor.next() ? propertyCursor.propertyValue() : NO_VALUE;
+        return localPropertyCursor.next() ? localPropertyCursor.propertyValue() : NO_VALUE;
     }
 
     public CursorFactory cursors() {
@@ -1597,25 +1827,25 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     }
 
     public void release() {
-        if (nodeCursor != null) {
-            nodeCursor.close();
-            nodeCursor = null;
+        if (localNodeCursor != null) {
+            localNodeCursor.close();
+            localNodeCursor = null;
         }
         if (restrictedNodeCursor != null) {
             restrictedNodeCursor.close();
             restrictedNodeCursor = null;
         }
-        if (propertyCursor != null) {
-            propertyCursor.close();
-            propertyCursor = null;
+        if (localPropertyCursor != null) {
+            localPropertyCursor.close();
+            localPropertyCursor = null;
         }
         if (restrictedPropertyCursor != null) {
             restrictedPropertyCursor.close();
             restrictedPropertyCursor = null;
         }
-        if (relationshipCursor != null) {
-            relationshipCursor.close();
-            relationshipCursor = null;
+        if (localRelationshipCursor != null) {
+            localRelationshipCursor.close();
+            localRelationshipCursor = null;
         }
         if (restrictedRelationshipCursor != null) {
             restrictedRelationshipCursor.close();
@@ -2182,14 +2412,19 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 kernelRead.nodeLabelScan(
                         session, cursor, unconstrained(), new TokenPredicate(schema.getLabelId()), ktx.cursorContext());
                 constraintSemantics.validateNodeKeyConstraint(
-                        cursor, nodeCursor, propertyCursor, schema.asLabelSchemaDescriptor(), token, memoryTracker);
+                        cursor,
+                        localNodeCursor,
+                        localPropertyCursor,
+                        schema.asLabelSchemaDescriptor(),
+                        token,
+                        memoryTracker);
             }
         } else {
             try (var cursor = cursors.allocateFullAccessNodeCursor(ktx.cursorContext(), memoryTracker)) {
                 kernelRead.allNodesScan(cursor);
                 constraintSemantics.validateNodeKeyConstraint(
                         new FilteringNodeCursorWrapper(cursor, CursorPredicates.hasLabel(schema.getLabelId())),
-                        propertyCursor,
+                        localPropertyCursor,
                         schema.asLabelSchemaDescriptor(),
                         token,
                         memoryTracker);
@@ -2211,8 +2446,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         ktx.cursorContext());
                 constraintSemantics.validateRelKeyConstraint(
                         cursor,
-                        relationshipCursor,
-                        propertyCursor,
+                        localRelationshipCursor,
+                        localPropertyCursor,
                         schema.asRelationshipTypeSchemaDescriptor(),
                         token,
                         memoryTracker);
@@ -2223,7 +2458,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 constraintSemantics.validateRelKeyConstraint(
                         new FilteringRelationshipScanCursorWrapper(
                                 cursor, CursorPredicates.hasType(schema.getRelTypeId())),
-                        propertyCursor,
+                        localPropertyCursor,
                         schema.asRelationshipTypeSchemaDescriptor(),
                         token,
                         memoryTracker);
@@ -2256,14 +2491,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 var session = kernelRead.tokenReadSession(index);
                 kernelRead.nodeLabelScan(
                         session, cursor, unconstrained(), new TokenPredicate(schema.getLabelId()), ktx.cursorContext());
-                nodeValidatorWithIndex.validate(cursor, nodeCursor, propertyCursor, token);
+                nodeValidatorWithIndex.validate(cursor, localNodeCursor, localPropertyCursor, token);
             }
         } else {
             try (var cursor = cursors.allocateFullAccessNodeCursor(ktx.cursorContext(), memoryTracker)) {
                 kernelRead.allNodesScan(cursor);
                 nodeValidatorWithoutIndex.validate(
                         new FilteringNodeCursorWrapper(cursor, CursorPredicates.hasLabel(schema.getLabelId())),
-                        propertyCursor,
+                        localPropertyCursor,
                         token);
             }
         }
@@ -2327,7 +2562,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         unconstrained(),
                         new TokenPredicate(schema.getRelTypeId()),
                         ktx.cursorContext());
-                relValidatorWithIndex.validate(fullAccessIndexCursor, propertyCursor, token);
+                relValidatorWithIndex.validate(fullAccessIndexCursor, localPropertyCursor, token);
             }
         } else {
             // fallback to all relationship scan
@@ -2337,7 +2572,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 relValidatorWithoutIndex.validate(
                         new FilteringRelationshipScanCursorWrapper(
                                 fullAccessCursor, CursorPredicates.hasType(schema.getRelTypeId())),
-                        propertyCursor,
+                        localPropertyCursor,
                         token);
             }
         }
@@ -2546,7 +2781,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 var session = kernelRead.tokenReadSession(index);
                 kernelRead.nodeLabelScan(
                         session, cursor, unconstrained(), new TokenPredicate(schema.getLabelId()), ktx.cursorContext());
-                constraintSemantics.validateNodeLabelExistenceConstraint(cursor, nodeCursor, descriptor, token);
+                constraintSemantics.validateNodeLabelExistenceConstraint(cursor, localNodeCursor, descriptor, token);
             }
         } else {
             try (var cursor = cursors.allocateFullAccessNodeCursor(ktx.cursorContext(), ktx.memoryTracker())) {

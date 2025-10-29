@@ -125,6 +125,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalLeafPlanExtension
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanExtension
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeByElementIdSeek
@@ -900,8 +901,8 @@ object ReadFinder {
         mutations.foldLeft(PlanReads())(processSimpleMutatingPattern)
 
       case Merge(_, nodes, rels, onMatch, onCreate, _) =>
-        val createdNodes = nodes.map(_.variable)
-        val createdRels = rels.map(_.variable)
+        val createdNodes: Seq[LogicalVariable] = nodes.map(_.variable)
+        val createdRels: Seq[LogicalVariable] = rels.map(_.variable)
         val referencedNodes = rels.flatMap(r => Seq(r.leftNode, r.rightNode))
 
         Function.chain[PlanReads](Seq(
@@ -910,6 +911,14 @@ object ReadFinder {
           referencedNodes.foldLeft(_)(_.withReferencedNodeVariable(_)),
           onMatch.foldLeft(_)(processSimpleMutatingPattern),
           onCreate.foldLeft(_)(processSimpleMutatingPattern)
+        ))(PlanReads())
+
+      case MergeInto(_, idName, source, _, relType, target, _, _) =>
+        Function.chain[PlanReads](Seq(
+          _.withReferencedNodeVariable(source),
+          _.withReferencedNodeVariable(target),
+          _.withIntroducedRelationshipVariable(idName),
+          _.withAddedRelationshipFilterExpression(idName, HasTypes(idName, Seq(relType))(InputPosition.NONE))
         ))(PlanReads())
 
       case TransactionApply(_, _, _, _, _, _, _) =>

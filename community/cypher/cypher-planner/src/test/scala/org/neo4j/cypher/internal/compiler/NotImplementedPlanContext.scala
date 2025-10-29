@@ -177,5 +177,7 @@ class NotImplementedPlanContext extends PlanContext {
 
   override def storageHasPropertyColocation: Boolean = ???
 
+  override def storageSupportsFastExpandInto: Boolean = ???
+
   override def queryLanguage: QueryLanguage = Cypher25
 }

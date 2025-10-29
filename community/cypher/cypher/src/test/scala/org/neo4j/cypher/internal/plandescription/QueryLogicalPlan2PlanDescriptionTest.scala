@@ -152,6 +152,7 @@ import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.NFA.MultiRelationshipExpansionTransition
@@ -3101,6 +3102,143 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Seq(lhsPD),
         Seq(details(Seq("(x)<-[r:$all(n.prop) {y: 1, crs: \"cartesian\"}]-(y)"))),
         Set("a", "r")
+      )
+    )
+  }
+
+  test("MergeInto") {
+    assertGood(
+      attach(
+        MergeInto(
+          lhsLP,
+          varFor("r"),
+          varFor("x"),
+          OUTGOING,
+          relType("R"),
+          varFor("y"),
+          Seq.empty,
+          Seq.empty
+        ),
+        32.2
+      ),
+      planDescription(
+        id,
+        "MergeInto",
+        Seq(lhsPD),
+        Seq(details(Seq("MERGE (x)-[r:R]->(y)"))),
+        Set("r", "x", "y")
+      )
+    )
+    assertGood(
+      attach(
+        MergeInto(
+          lhsLP,
+          varFor("r"),
+          varFor("x"),
+          INCOMING,
+          relType("R"),
+          varFor("y"),
+          Seq.empty,
+          Seq.empty
+        ),
+        32.2
+      ),
+      planDescription(
+        id,
+        "MergeInto",
+        Seq(lhsPD),
+        Seq(details(Seq("MERGE (x)<-[r:R]-(y)"))),
+        Set("r", "x", "y")
+      )
+    )
+    assertGood(
+      attach(
+        MergeInto(
+          lhsLP,
+          varFor("r"),
+          varFor("x"),
+          BOTH,
+          relType("R"),
+          varFor("y"),
+          Seq.empty,
+          Seq.empty
+        ),
+        32.2
+      ),
+      planDescription(
+        id,
+        "MergeInto",
+        Seq(lhsPD),
+        Seq(details(Seq("MERGE (x)-[r:R]-(y)"))),
+        Set("r", "x", "y")
+      )
+    )
+    assertGood(
+      attach(
+        MergeInto(
+          lhsLP,
+          varFor("r"),
+          varFor("x"),
+          OUTGOING,
+          relType("R"),
+          varFor("y"),
+          Seq(PropertyKeyName("p1")(pos) -> stringLiteral("A"), PropertyKeyName("p2")(pos) -> stringLiteral("B")),
+          Seq.empty
+        ),
+        32.2
+      ),
+      planDescription(
+        id,
+        "MergeInto",
+        Seq(lhsPD),
+        Seq(details(Seq("MERGE (x)-[r:R]->(y) ON MATCH SET r.p1 = \"A\", r.p2 = \"B\""))),
+        Set("r", "x", "y")
+      )
+    )
+    assertGood(
+      attach(
+        MergeInto(
+          lhsLP,
+          varFor("r"),
+          varFor("x"),
+          OUTGOING,
+          relType("R"),
+          varFor("y"),
+          Seq.empty,
+          Seq(PropertyKeyName("p1")(pos) -> stringLiteral("A"), PropertyKeyName("p2")(pos) -> stringLiteral("B"))
+        ),
+        32.2
+      ),
+      planDescription(
+        id,
+        "MergeInto",
+        Seq(lhsPD),
+        Seq(details(Seq("MERGE (x)-[r:R]->(y) ON CREATE SET r.p1 = \"A\", r.p2 = \"B\""))),
+        Set("r", "x", "y")
+      )
+    )
+    assertGood(
+      attach(
+        MergeInto(
+          lhsLP,
+          varFor("r"),
+          varFor("x"),
+          OUTGOING,
+          relType("R"),
+          varFor("y"),
+          Seq(PropertyKeyName("p1")(pos) -> stringLiteral("A"), PropertyKeyName("p2")(pos) -> stringLiteral("B")),
+          Seq(PropertyKeyName("p3")(pos) -> stringLiteral("C"), PropertyKeyName("p4")(pos) -> stringLiteral("D"))
+        ),
+        32.2
+      ),
+      planDescription(
+        id,
+        "MergeInto",
+        Seq(lhsPD),
+        Seq(details(
+          Seq("MERGE (x)-[r:R]->(y) ON MATCH SET r.p1 = \"A\", r.p2 = \"B\" ON CREATE SET r.p3 = \"C\", r.p4 = \"D\"")
+        )),
+        Set("r", "x", "y")
       )
     )
   }

@@ -54,6 +54,7 @@ import org.neo4j.internal.kernel.api
 import org.neo4j.internal.kernel.api.CursorFactory
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.Locks
+import org.neo4j.internal.kernel.api.MutatingEntityCursor
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.NodeLabelIndexCursor
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
@@ -147,6 +148,31 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
   override def createRelationshipId(start: Long, end: Long, relType: Int): Long =
     singleDbHit(inner.createRelationshipId(start, end, relType))
 
+  override def mergeInto(
+    nodeCursor: NodeCursor,
+    traversalCursor: RelationshipTraversalCursor,
+    propertyCursor: PropertyCursor,
+    source: Long,
+    relType: Int,
+    direction: SemanticDirection,
+    target: Long,
+    onMatch: IntObjectMap[Value],
+    onCreate: IntObjectMap[Value]
+  ): MutatingEntityCursor = {
+    // NOTE: db-hits counting should be done by the cursors we pass in
+    inner.mergeInto(
+      nodeCursor,
+      traversalCursor,
+      propertyCursor,
+      source,
+      relType,
+      direction,
+      target,
+      onMatch,
+      onCreate
+    )
+  }
+
   override def getOrCreateRelTypeId(relTypeName: String): Int = singleDbHit(inner.getOrCreateRelTypeId(relTypeName))
 
   override def getLabelsForNode(node: Long, nodeCursor: NodeCursor): ListValue =
@@ -187,6 +213,8 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     manyDbHits(inner.relationshipTypeIndexCursor())
 
   override def traversalCursor(): RelationshipTraversalCursor = manyDbHits(inner.traversalCursor())
+
+  override def propertyCursor(): PropertyCursor = manyDbHits(inner.propertyCursor())
 
   override def scanCursor(): RelationshipScanCursor = manyDbHits(inner.scanCursor())
 

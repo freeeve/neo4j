@@ -52,6 +52,7 @@ import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.internal.kernel.api.IndexReadSession
+import org.neo4j.internal.kernel.api.MutatingEntityCursor
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.NodeLabelIndexCursor
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
@@ -209,6 +210,18 @@ object StaticEvaluation {
 
     override def createRelationshipId(start: Long, end: Long, relType: Int): Long = notAvailable()
 
+    override def mergeInto(
+      nodeCursor: NodeCursor,
+      traversalCursor: RelationshipTraversalCursor,
+      propertyCursor: PropertyCursor,
+      source: Long,
+      relType: Int,
+      direction: SemanticDirection,
+      target: Long,
+      onMatch: IntObjectMap[Value],
+      onCreate: IntObjectMap[Value]
+    ): MutatingEntityCursor = notAvailable()
+
     override def getOrCreateRelTypeId(relTypeName: String): Int = notAvailable()
 
     override def nodeCursor(): NodeCursor = notAvailable()
@@ -218,6 +231,8 @@ object StaticEvaluation {
     override def relationshipTypeIndexCursor(): RelationshipTypeIndexCursor = notAvailable()
 
     override def traversalCursor(): RelationshipTraversalCursor = notAvailable()
+
+    override def propertyCursor(): PropertyCursor = notAvailable()
 
     override def scanCursor(): RelationshipScanCursor = notAvailable()
 

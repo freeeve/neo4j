@@ -22,6 +22,7 @@ package org.neo4j.internal.kernel.api;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
@@ -84,6 +85,38 @@ public interface Write {
      * @param relationship the internal id of the relationship to delete
      */
     boolean relationshipDelete(long relationship);
+
+    /**
+     * Finds all relationships connecting source and target with the given type and direction,
+     * should no such relationships exists it will be created.
+     * <p>
+     * Apart from finding or creating relationship, properties will also be set on the matched and/or
+     * created relationships.
+     * <p>
+     * NOTE: This method should only ever be called on Block-format.
+     * @param nodeCursor NodeCursor to be used for looking up connecting relationship
+     * @param traversalCursor RelationshipTraversalCursor to be used for looking up relationship
+     * @param propertyCursor PropertyCursor to be used for setting properties.
+     * @param sourceNode the source node of the relationships
+     * @param type the type of the relationships
+     * @param direction the direction of the relationships
+     * @param targetNode the target node of the relationships
+     * @param onMatchProperties if relationships exists, these properties will be set on the existing relationship
+     * @param onCreateProperties if no relationship exists, these properties will be set on the newly created relationship
+     * @return a MutatingEntityCursor to be used to iterate over the connecting relationships.
+     * @throws EntityNotFoundException if source or target node is missing
+     */
+    MutatingEntityCursor relationshipMergeInto(
+            NodeCursor nodeCursor,
+            RelationshipTraversalCursor traversalCursor,
+            PropertyCursor propertyCursor,
+            long sourceNode,
+            int type,
+            Direction direction,
+            long targetNode,
+            IntObjectMap<Value> onMatchProperties,
+            IntObjectMap<Value> onCreateProperties)
+            throws EntityNotFoundException;
 
     /**
      * Add a label to a node

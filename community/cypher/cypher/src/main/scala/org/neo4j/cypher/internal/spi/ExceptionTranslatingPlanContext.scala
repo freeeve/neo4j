@@ -245,5 +245,8 @@ class ExceptionTranslatingPlanContext(inner: PlanContext) extends PlanContext wi
   override def storageHasPropertyColocation: Boolean =
     translateException(tokenNameLookup, inner.storageHasPropertyColocation)
 
+  override def storageSupportsFastExpandInto: Boolean =
+    translateException(tokenNameLookup, inner.storageSupportsFastExpandInto)
+
   override def queryLanguage: QueryLanguage = inner.queryLanguage
 }

@@ -1052,6 +1052,20 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "mergeInto",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .mergeInto(
+        "(x)-[r:R]->(y)",
+        onCreate = Seq("p1" -> "42", "p2" -> "false")
+      )
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+  )
+
+  testPlan(
     "lockNodes",
     new TestPlanBuilder()
       .produceResults("x")

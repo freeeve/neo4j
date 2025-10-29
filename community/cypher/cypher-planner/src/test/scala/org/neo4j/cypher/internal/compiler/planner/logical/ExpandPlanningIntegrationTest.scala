@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 
@@ -703,7 +704,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
     )
   }
 
-  test("should plan ExpandInto for MERGE with ON CREATE with update one property") {
+  test("should plan MergeInto for MERGE with ON CREATE with update one property") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[:TYPE]->()", 10000)
@@ -713,11 +714,11 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         |MERGE (a)-[r:TYPE]->(b) ON CREATE SET r.name = 'foo'""".stripMargin
 
     planner.plan(query) should containPlanMatching {
-      case Expand(_, _, _, _, _, _, ExpandInto) =>
+      case _: MergeInto =>
     }
   }
 
-  test("should plan ExpandInto for MERGE with ON CREATE with deleting one property") {
+  test("should plan MergeInto for MERGE with ON CREATE with deleting one property") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[:TYPE]->()", 10000)
@@ -727,7 +728,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         |MERGE (a)-[r:TYPE]->(b) ON CREATE SET r.name = null""".stripMargin
 
     planner.plan(query) should containPlanMatching {
-      case Expand(_, _, _, _, _, _, ExpandInto) =>
+      case _: MergeInto =>
     }
   }
 

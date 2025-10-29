@@ -52,6 +52,7 @@ import org.neo4j.dbms.database.DatabaseContextProvider
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.internal.kernel.api.IndexReadSession
+import org.neo4j.internal.kernel.api.MutatingEntityCursor
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.NodeLabelIndexCursor
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
@@ -463,6 +464,8 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
   override def traversalCursor(): RelationshipTraversalCursor =
     translateException(tokenNameLookup, inner.traversalCursor())
 
+  override def propertyCursor(): PropertyCursor = translateException(tokenNameLookup, inner.propertyCursor())
+
   override def scanCursor(): RelationshipScanCursor = translateException(tokenNameLookup, inner.scanCursor())
 
   override def relationshipById(
@@ -856,6 +859,32 @@ class ExceptionTranslatingQueryContext(override val inner: QueryContext)
 
   override def createRelationshipId(start: Long, end: Long, relType: Int): Long =
     translateException(tokenNameLookup, inner.createRelationshipId(start, end, relType))
+
+  override def mergeInto(
+    nodeCursor: NodeCursor,
+    traversalCursor: RelationshipTraversalCursor,
+    propertyCursor: PropertyCursor,
+    source: Long,
+    relType: Int,
+    direction: SemanticDirection,
+    target: Long,
+    onMatch: IntObjectMap[Value],
+    onCreate: IntObjectMap[Value]
+  ): MutatingEntityCursor =
+    translateException(
+      tokenNameLookup,
+      inner.mergeInto(
+        nodeCursor,
+        traversalCursor,
+        propertyCursor,
+        source,
+        relType,
+        direction,
+        target,
+        onMatch,
+        onCreate
+      )
+    )
 
   override def getOrCreateRelTypeId(relTypeName: String): Int =
     translateException(tokenNameLookup, inner.getOrCreateRelTypeId(relTypeName))

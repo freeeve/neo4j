@@ -91,6 +91,11 @@ public class EntityNotFoundException extends Neo4jException {
                         graph, composite));
     }
 
+    public static EntityNotFoundException createEntityNotFoundException(
+            ErrorGqlStatusObject gqlStatusObject, String message) {
+        return new EntityNotFoundException(gqlStatusObject, message);
+    }
+
     @Override
     public Status status() {
         return Status.Statement.EntityNotFound;

@@ -32,8 +32,11 @@ import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.QueryStatistics
 import org.neo4j.cypher.internal.runtime.RelationshipOperations
 import org.neo4j.cypher.internal.runtime.interpreted.CountingQueryContext.Counter
+import org.neo4j.internal.kernel.api.MutatingEntityCursor
 import org.neo4j.internal.kernel.api.NodeCursor
+import org.neo4j.internal.kernel.api.PropertyCursor
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
+import org.neo4j.internal.kernel.api.RelationshipTraversalCursor
 import org.neo4j.internal.schema.ConstraintDescriptor
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
@@ -119,6 +122,12 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     inner.addStatistics(statistics)
   }
 
+  override def onMutation(nodes: Int, relationships: Int, properties: Int): Unit = {
+    nodesCreated.increase(nodes)
+    relationshipsCreated.increase(relationships)
+    propertiesSet.increase(properties)
+  }
+
   override def createNodeId(labels: Array[Int]): Long = {
     nodesCreated.increase()
     labelsAdded.increase(labels.length)
@@ -141,6 +150,30 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
   override def createRelationshipId(start: Long, end: Long, relType: Int): Long = {
     relationshipsCreated.increase()
     inner.createRelationshipId(start, end, relType)
+  }
+
+  override def mergeInto(
+    nodeCursor: NodeCursor,
+    traversalCursor: RelationshipTraversalCursor,
+    propertyCursor: PropertyCursor,
+    source: Long,
+    relType: Int,
+    direction: SemanticDirection,
+    target: Long,
+    onMatch: IntObjectMap[Value],
+    onCreate: IntObjectMap[Value]
+  ): MutatingEntityCursor = {
+    inner.mergeInto(
+      nodeCursor,
+      traversalCursor,
+      propertyCursor,
+      source,
+      relType,
+      direction,
+      target,
+      onMatch,
+      onCreate
+    )
   }
 
   override def removeLabelsFromNode(node: Long, labelIds: Iterator[Int]): Int = {

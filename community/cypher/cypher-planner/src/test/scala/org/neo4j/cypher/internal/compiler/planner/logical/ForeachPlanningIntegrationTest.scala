@@ -20,9 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
-import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.EagernessReason
-import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.removeLabel
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -56,8 +54,7 @@ class ForeachPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
     plan shouldEqual cfg.subPlanBuilder()
       .emptyResult()
       .foreachApply("o", "others")
-      .|.merge(Seq(), Seq(createRelationship("anon_0", "o", "KNOWS", "a", OUTGOING)), lockNodes = Set("o", "a"))
-      .|.expandInto("(o)-[anon_0:KNOWS]->(a)")
+      .|.mergeInto("(o)-[anon_0:KNOWS]->(a)")
       .|.argument("a", "o")
       .setNodeProperty("a", "knows", "size(others)")
       .orderedAggregation(Seq("a AS a"), Seq("COLLECT(b) AS others"), Seq("a"))
@@ -94,8 +91,7 @@ class ForeachPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .emptyResult()
       .foreachApply("o", "others")
       .|.setNodeProperty("a", "prop", "others")
-      .|.merge(Seq(), Seq(createRelationship("anon_0", "o", "KNOWS", "a", OUTGOING)), lockNodes = Set("o", "a"))
-      .|.expandInto("(o)-[anon_0:KNOWS]->(a)")
+      .|.mergeInto("(o)-[anon_0:KNOWS]->(a)")
       .|.argument("a", "o", "others")
       .setNodeProperty("a", "knows", "size(others)")
       .orderedAggregation(Seq("a AS a"), Seq("COLLECT(b) AS others"), Seq("a"))

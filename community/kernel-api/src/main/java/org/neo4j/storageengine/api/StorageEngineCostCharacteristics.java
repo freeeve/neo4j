@@ -28,4 +28,9 @@ public interface StorageEngineCostCharacteristics {
      * @return whether the storage generally has property values co-located with each node and relationship.
      */
     boolean hasPropertyColocation();
+
+    /**
+     * @return whether the storage supports fast look-up of the relationships connecting two given nodes.
+     */
+    boolean supportsFastExpandInto();
 }

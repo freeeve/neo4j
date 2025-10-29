@@ -83,6 +83,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexedPropertyProvidingPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.PhysicalPlanningPlan
@@ -802,6 +803,13 @@ object RestrictedCaching {
         }
         if (protectedMergeProps.nonEmpty) Some(CombinedProtectedProperties(protectedMergeProps))
         else None
+      case mergeInto: MergeInto =>
+        val protectedMergeIntoProps = mergeInto.onMatchProperties.map {
+          case (p, v) => protectedProperties(mergeInto.idName, Seq(p.name -> v))
+        }
+        if (protectedMergeIntoProps.nonEmpty) Some(CombinedProtectedProperties(protectedMergeIntoProps))
+        else None
+
       case _: Create                 => None
       case _: DeleteExpression       => None
       case _: DeleteNode             => None

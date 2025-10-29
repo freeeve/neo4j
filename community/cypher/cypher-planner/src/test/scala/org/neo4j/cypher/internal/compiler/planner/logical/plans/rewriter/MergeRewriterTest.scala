@@ -1,0 +1,149 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
+
+import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
+import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setLabel
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setRelationshipProperty
+import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+
+class MergeRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
+
+  test("should rewrite merge + expandInto") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.merge(Seq.empty, Seq(createRelationship("r", "x", "R", "y")), lockNodes = Set("x", "y"))
+      .|.expandInto("(x)-[r:R]->(y)")
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.mergeInto("(x)-[r:R]->(y)")
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
+  test("should rewrite merge + expandInto with ON MATCH and ON CREATE") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.merge(
+        Seq.empty,
+        Seq(createRelationship("r", "x", "R", "y")),
+        onMatch = Seq(setRelationshipProperty("r", "prop", "true")),
+        onCreate = Seq(setRelationshipProperty("r", "prop", "false")),
+        lockNodes = Set("x", "y")
+      )
+      .|.expandInto("(x)-[r:R]->(y)")
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.mergeInto("(x)-[r:R]->(y)", onMatch = Seq(("prop", "true")), onCreate = Seq(("prop", "false")))
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
+  test("should not rewrite if only one node is bound") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.merge(Seq(createNode("y")), Seq(createRelationship("r", "x", "R", "y")), lockNodes = Set("x"))
+      .|.expand("(x)-[r:R]->(y)")
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+
+    assertNotRewritten(before)
+  }
+
+  test("should not rewrite if ON MATCH reference something that is not related to relationships") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.merge(
+        Seq.empty,
+        Seq(createRelationship("r", "x", "R", "y")),
+        onMatch = Seq(setLabel("y", "FOO")),
+        lockNodes = Set("x", "y")
+      )
+      .|.expandInto("(x)-[r:R]->(y)")
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+
+    assertNotRewritten(before)
+  }
+
+  test("should not rewrite if ON CREATE reference something that is not related to relationships") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.merge(
+        Seq.empty,
+        Seq(createRelationship("r", "x", "R", "y")),
+        onMatch = Seq(setNodeProperty("x", "prop", "true")),
+        lockNodes = Set("x", "y")
+      )
+      .|.expandInto("(x)-[r:R]->(y)")
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+
+    assertNotRewritten(before)
+  }
+
+  private def assertNotRewritten(p: LogicalPlan): Unit = {
+    rewrite(p) should equal(p)
+  }
+
+  private def rewrite(p: LogicalPlan): LogicalPlan =
+    p.endoRewrite(mergeRewriter)
+}

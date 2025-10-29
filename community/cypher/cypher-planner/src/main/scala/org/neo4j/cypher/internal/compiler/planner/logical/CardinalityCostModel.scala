@@ -90,6 +90,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanExtension
 import org.neo4j.cypher.internal.logical.plans.LogicalUnaryPlan
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.NodeByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByIdSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
@@ -551,6 +552,8 @@ object CardinalityCostModel {
       case e: OptionalExpand if e.mode == ExpandInto => EXPAND_INTO_COST
 
       case e: Expand if e.mode == ExpandInto => EXPAND_INTO_COST
+
+      case _: MergeInto => EXPAND_INTO_COST
 
       case e: VarExpand if e.expansionMode == ExpandInto => EXPAND_INTO_COST
 

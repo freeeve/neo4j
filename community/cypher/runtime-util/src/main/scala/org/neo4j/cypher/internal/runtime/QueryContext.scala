@@ -39,6 +39,8 @@ import org.neo4j.internal.kernel.api.DefaultCloseListenable
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.KernelReadTracer
 import org.neo4j.internal.kernel.api.Locks
+import org.neo4j.internal.kernel.api.MutatingEntityCursor
+import org.neo4j.internal.kernel.api.MutatingEntityCursor.MutationCallback
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.NodeLabelIndexCursor
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
@@ -116,7 +118,9 @@ import scala.collection.immutable.ArraySeq
  * The driver for this was clarifying who is responsible for ensuring query isolation. By exposing a query concept in
  * the core layer, we can move that responsibility outside of the scope of cypher.
  */
-trait QueryContext extends ReadQueryContext with WriteQueryContext
+trait QueryContext extends ReadQueryContext with WriteQueryContext with MutationCallback {
+  override def onMutation(nodesCreated: Int, relationshipsCreated: Int, propertiesCreated: Int): Unit = {}
+}
 
 trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable {
   type ProcedureIterator = ResourceRawIterator[Array[AnyValue], ProcedureException]
@@ -154,6 +158,8 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
   def relationshipTypeIndexCursor(): RelationshipTypeIndexCursor
 
   def traversalCursor(): RelationshipTraversalCursor
+
+  def propertyCursor(): PropertyCursor
 
   def scanCursor(): RelationshipScanCursor
 
@@ -549,6 +555,18 @@ trait WriteQueryContext extends IndexProviderContext {
   def createNodeId(labels: Array[Int]): Long
 
   def createRelationshipId(start: Long, end: Long, relType: Int): Long
+
+  def mergeInto(
+    nodeCursor: NodeCursor,
+    traversalCursor: RelationshipTraversalCursor,
+    propertyCursor: PropertyCursor,
+    source: Long,
+    relType: Int,
+    direction: SemanticDirection,
+    target: Long,
+    onMatch: IntObjectMap[Value],
+    onCreate: IntObjectMap[Value]
+  ): MutatingEntityCursor
 
   def getOrCreateRelTypeId(relTypeName: String): Int
 

@@ -178,6 +178,7 @@ import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.NestedPlanCollectExpression
@@ -2912,6 +2913,37 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   ): IMPL = {
     appendAtCurrentIndent(UnaryOperator(source =>
       FusedMerge(source, nodes, relationships, onMatch, onCreate, lockNodes.map(varFor))(_)
+    ))
+  }
+
+  def mergeInto(
+    pattern: String,
+    onMatch: Seq[(String, String)] = Seq.empty,
+    onCreate: Seq[(String, String)] = Seq.empty
+  ): IMPL = {
+    val p = patternParser.parse(pattern)
+    newRelationship(varFor(p.relName))
+    newNode(varFor(p.from))
+    newNode(varFor(p.to))
+    if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot mergeInto from a variable pattern")
+    if (p.relTypes.length != 1)
+      throw new UnsupportedOperationException("MergeInto pattern must contain single relationship type")
+
+    appendAtCurrentIndent(UnaryOperator(source =>
+      MergeInto(
+        source,
+        varFor(p.relName),
+        varFor(p.from),
+        p.dir,
+        p.relTypes.head,
+        varFor(p.to),
+        onMatch.map {
+          case (k, v) => PropertyKeyName(k)(pos) -> parseExpression(v)
+        },
+        onCreate.map {
+          case (k, v) => PropertyKeyName(k)(pos) -> parseExpression(v)
+        }
+      )(_)
     ))
   }
 
