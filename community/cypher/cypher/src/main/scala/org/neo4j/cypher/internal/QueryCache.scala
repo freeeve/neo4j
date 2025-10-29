@@ -511,7 +511,7 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
 
       result
     } catch {
-      case e: Exception =>
+      case e: Throwable =>
         // In case there is a `beingRecomputed`, we need to complete it with the thrown exception,
         // to wake up other Threads.
         if (beingRecomputed != null) {
