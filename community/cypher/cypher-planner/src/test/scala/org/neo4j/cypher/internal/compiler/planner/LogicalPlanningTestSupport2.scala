@@ -132,6 +132,7 @@ object LogicalPlanningTestSupport2 extends MockitoSugar {
   val pushdownPropertyReads: Boolean = true
   val compressAnonymousVariables: Boolean = true
   val deduplicateNames: Boolean = true
+  val allowSubqueryExpressionDuplicationInCnfNormalizer: Boolean = false
 
   sealed trait QueryGraphSolverSetup {
     def queryGraphSolver(): QueryGraphSolver
@@ -209,11 +210,16 @@ object LogicalPlanningTestSupport2 extends MockitoSugar {
     parsingConfig: ParsingConfig,
     pushdownPropertyReads: Boolean = pushdownPropertyReads,
     compressAnonymousVariables: Boolean = compressAnonymousVariables,
-    deduplicateNames: Boolean = deduplicateNames
+    deduplicateNames: Boolean = deduplicateNames,
+    allowSubqueryDuplicationInCnfNormalizer: Boolean = allowSubqueryExpressionDuplicationInCnfNormalizer
   ): Transformer[PlannerContext, BaseState, LogicalPlanState] = {
     val p1 = parsing(parsingConfig) andThen
       prepareForCaching andThen
-      planPipeLine(pushdownPropertyReads = pushdownPropertyReads, semanticFeatures = parsingConfig.semanticFeatures)
+      planPipeLine(
+        pushdownPropertyReads = pushdownPropertyReads,
+        semanticFeatures = parsingConfig.semanticFeatures,
+        allowSubqueryDuplicationInCnf = allowSubqueryDuplicationInCnfNormalizer
+      )
     p1 andThen
       If((_: LogicalPlanState) => compressAnonymousVariables)(
         CompressAnonymousVariables

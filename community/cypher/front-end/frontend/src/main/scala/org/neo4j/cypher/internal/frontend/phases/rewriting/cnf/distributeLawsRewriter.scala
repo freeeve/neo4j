@@ -17,14 +17,18 @@
 package org.neo4j.cypher.internal.frontend.phases.rewriting.cnf
 
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.expressions.And
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.distributeLawsRewriter.conversionLimit
+import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
+import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
+import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.distributeLawsRewriter.DNF_CONVERSION_LIMIT
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.distributeLawsRewriter.dnfCounts
-import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.distributeLawsRewriter.step
 import org.neo4j.cypher.internal.rewriting.AstRewritingMonitor
 import org.neo4j.cypher.internal.rewriting.conditions.AndRewrittenToAnds
 import org.neo4j.cypher.internal.rewriting.conditions.AndsAboveOrs
@@ -42,14 +46,17 @@ import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.topDownWithParent
 
-case class distributeLawsRewriter(cancellationChecker: CancellationChecker)(implicit monitor: AstRewritingMonitor)
+case class distributeLawsRewriter(
+  subqueryDuplicationAllowed: Boolean,
+  cancellationChecker: CancellationChecker
+)(implicit monitor: AstRewritingMonitor)
     extends Rewriter {
 
   def apply(that: AnyRef): AnyRef = {
     instance(that)
   }
 
-  private val instance = topDownWithParent(
+  private val instance: Rewriter = topDownWithParent(
     RewriterWithParent.lift {
       case (or: Or, _) => rewriteOrIfSmallEnough(or)
     },
@@ -61,6 +68,15 @@ case class distributeLawsRewriter(cancellationChecker: CancellationChecker)(impl
     cancellationChecker
   )
 
+  private val step: Rewriter = Rewriter.lift {
+    case p @ Or(exp1, And(exp2, exp3)) if allowedToDuplicate(exp1) =>
+      And(Or(exp1, exp2)(p.position), Or(exp1.endoRewrite(copyVariables), exp3)(p.position))(p.position)
+    case p @ Or(And(exp1, exp2), exp3) if allowedToDuplicate(exp3) =>
+      And(Or(exp1, exp3)(p.position), Or(exp2, exp3.endoRewrite(copyVariables))(p.position))(p.position)
+  }
+
+  private val rewriteOrRepeatedly: Rewriter = repeatWithSizeLimit(bottomUp(step))(monitor)
+
   private def rewriteOrIfSmallEnough(or: Or): AnyRef = {
     if (dnfCounts(or) <= conversionLimit(or)) {
       rewriteOrRepeatedly(or)
@@ -70,18 +86,29 @@ case class distributeLawsRewriter(cancellationChecker: CancellationChecker)(impl
     }
   }
 
-  private val rewriteOrRepeatedly: Rewriter = repeatWithSizeLimit(bottomUp(step))(monitor)
+  private def conversionLimit(ast: AnyRef): Int = {
+    lazy val containsExpensiveExpressions = ast.folder.treeExists {
+      // duplicating too many pattern expressions can result in a very long planning time
+      case _: PatternExpression |
+        _: ExistsExpression => true
+    }
+    if (subqueryDuplicationAllowed && containsExpensiveExpressions)
+      DNF_CONVERSION_LIMIT / 2
+    else
+      DNF_CONVERSION_LIMIT
+  }
+
+  private def allowedToDuplicate(expr: Expression): Boolean = {
+    subqueryDuplicationAllowed || !expr.folder.treeExists {
+      case _: PatternExpression | _: FullSubqueryExpression => true
+    }
+  }
 }
 
-case object distributeLawsRewriter extends CnfPhase {
+object distributeLawsRewriter {
   // converting from DNF to CNF is exponentially expensive, so we only do it for a small amount of clauses
   // see https://en.wikipedia.org/wiki/Conjunctive_normal_form#Conversion_into_CNF
   val DNF_CONVERSION_LIMIT = 8
-
-  override def instance(from: BaseState, context: BaseContext): Rewriter = {
-    implicit val monitor: AstRewritingMonitor = context.monitors.newMonitor[AstRewritingMonitor]()
-    distributeLawsRewriter(context.cancellationChecker)
-  }
 
   private[cnf] def dnfCounts(or: Or): Int =
     or.folder.treeFold(0) {
@@ -98,24 +125,13 @@ case object distributeLawsRewriter extends CnfPhase {
         // Ands nested under some other AST nodes, e.g. a Not.
         acc => SkipChildren(acc)
     }
+}
 
-  private def conversionLimit(ast: AnyRef): Int = {
-    val containsExpensiveExpressions = ast.folder.treeExists {
-      // duplicating too many pattern expressions can result in a very long planning time
-      case _: PatternExpression |
-        _: ExistsExpression => true
-    }
-    if (containsExpensiveExpressions)
-      distributeLawsRewriter.DNF_CONVERSION_LIMIT / 2
-    else
-      distributeLawsRewriter.DNF_CONVERSION_LIMIT
-  }
+case object DistributeLawsRewriterPhase extends CnfPhase {
 
-  private val step = Rewriter.lift {
-    case p @ Or(exp1, And(exp2, exp3)) =>
-      And(Or(exp1, exp2)(p.position), Or(exp1.endoRewrite(copyVariables), exp3)(p.position))(p.position)
-    case p @ Or(And(exp1, exp2), exp3) =>
-      And(Or(exp1, exp3)(p.position), Or(exp2, exp3.endoRewrite(copyVariables))(p.position))(p.position)
+  override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig)
+    : Transformer[BaseContext, BaseState, BaseState] = {
+    DistributeLawsRewriterTransformer(planPipelineConfig.allowSubqueryDuplicationInCnf)
   }
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
@@ -127,4 +143,18 @@ case object distributeLawsRewriter extends CnfPhase {
   override def postConditions: Set[StepSequencer.Condition] = Set(AndsAboveOrs)
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
+}
+
+case class DistributeLawsRewriterTransformer(subqueryDuplicationAllowed: Boolean)
+    extends StatementRewriter
+    with StepSequencer.Step {
+
+  override def instance(from: BaseState, context: BaseContext): Rewriter = {
+    implicit val monitor: AstRewritingMonitor = context.monitors.newMonitor[AstRewritingMonitor]()
+    distributeLawsRewriter(subqueryDuplicationAllowed, context.cancellationChecker)
+  }
+
+  override def preConditions: Set[StepSequencer.Condition] = DistributeLawsRewriterPhase.preConditions
+  override def postConditions: Set[StepSequencer.Condition] = DistributeLawsRewriterPhase.postConditions
+  override def invalidatedConditions: Set[StepSequencer.Condition] = DistributeLawsRewriterPhase.invalidatedConditions
 }

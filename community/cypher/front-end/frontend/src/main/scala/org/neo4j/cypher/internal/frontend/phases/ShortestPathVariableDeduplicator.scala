@@ -20,7 +20,6 @@ import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.semantics.Scope
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
@@ -31,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
 import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
+import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
@@ -53,10 +53,8 @@ case object ShortestPathVariableDeduplicator extends Phase[BaseContext, BaseStat
     with DefaultPostCondition
     with PlanPipelineTransformerFactory {
 
-  override def getTransformer(
-    pushdownPropertyReads: Boolean,
-    semanticFeatures: Seq[SemanticFeature]
-  ): Transformer[_ <: BaseContext, _ <: BaseState, BaseState] = this
+  override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig)
+    : Transformer[_ <: BaseContext, _ <: BaseState, BaseState] = this
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
     val renamings = mutable.Map.empty[Ref[LogicalVariable], LogicalVariable]

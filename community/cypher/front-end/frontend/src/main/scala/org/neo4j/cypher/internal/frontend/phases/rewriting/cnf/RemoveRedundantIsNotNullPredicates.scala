@@ -48,7 +48,7 @@ import org.neo4j.cypher.internal.util.topDownWithParent
  * MATCH (n) WHERE n.prop = $param OR EXISTS {...}
  * }}}
  */
-case object RemoveRedundantIsNotNullPredicates extends CnfPhase with DefaultPostCondition {
+case object RemoveRedundantIsNotNullPredicates extends CnfPhaseRewriter with DefaultPostCondition {
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     NormalizePredicates.completed,

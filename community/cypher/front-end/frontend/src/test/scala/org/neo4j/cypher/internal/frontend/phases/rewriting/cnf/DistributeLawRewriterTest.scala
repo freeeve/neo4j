@@ -22,9 +22,13 @@ import org.mockito.Mockito.calls
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.patternExpression
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.varFor
+import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.DistributeLawRewriterTest.existsExpr
+import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.DistributeLawRewriterTest.exprWithCount
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.distributeLawsRewriter.dnfCounts
 import org.neo4j.cypher.internal.rewriting.AstRewritingMonitor
 import org.neo4j.cypher.internal.rewriting.PredicateTestSupport
@@ -36,11 +40,16 @@ import scala.annotation.tailrec
 
 class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport {
 
-  override def rewriter: Rewriter = getRewriterAndMonitor._1
+  override def rewriter: Rewriter = getRewriterAndMonitor()._1
 
-  private def getRewriterAndMonitor: (Rewriter, AstRewritingMonitor) = {
+  private def rewriterWithSubqueryDuplication: Rewriter = getRewriterAndMonitor(subqueryDuplicationAllowed = true)._1
+
+  private def getRewriterAndMonitor(subqueryDuplicationAllowed: Boolean = false): (Rewriter, AstRewritingMonitor) = {
     val monitor: AstRewritingMonitor = mock[AstRewritingMonitor]
-    val rewriter: Rewriter = distributeLawsRewriter(CancellationChecker.neverCancelled())(monitor)
+    val rewriter: Rewriter = distributeLawsRewriter(
+      subqueryDuplicationAllowed = subqueryDuplicationAllowed,
+      cancellationChecker = CancellationChecker.neverCancelled()
+    )(monitor)
     (rewriter, monitor)
   }
 
@@ -72,7 +81,7 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
     // given
     val start = or(and(P, Q), and(Q, R))
     val fullOr = combineUntilLimit(start, distributeLawsRewriter.DNF_CONVERSION_LIMIT - 1)
-    val (rewriter, monitor) = getRewriterAndMonitor
+    val (rewriter, monitor) = getRewriterAndMonitor()
 
     // when
     val result = rewriter.apply(fullOr)
@@ -86,7 +95,7 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
     // given
     val start = or(and(P, Q), and(Q, R))
     val fullOr = combineUntilLimit(start, distributeLawsRewriter.DNF_CONVERSION_LIMIT - 2)
-    val (rewriter, monitor) = getRewriterAndMonitor
+    val (rewriter, monitor) = getRewriterAndMonitor()
 
     // when
     val result = rewriter.apply(fullOr)
@@ -100,7 +109,7 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
     // given
     val start = or(and(P, Q), and(Q, R))
     val fullOr = combineUntilLimit(start, 2)
-    val (rewriter, monitor) = getRewriterAndMonitor
+    val (rewriter, monitor) = getRewriterAndMonitor()
 
     // when
     val result = rewriter.apply(fullOr)
@@ -118,7 +127,7 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
     val start2 = or(and(S, Q), and(Q, R))
     val fullOr2 = combineUntilLimit(start2, distributeLawsRewriter.DNF_CONVERSION_LIMIT - 2)
     val fullExp = and(fullOr1, fullOr2)
-    val (rewriter, monitor) = getRewriterAndMonitor
+    val (rewriter, monitor) = getRewriterAndMonitor()
 
     // when
     val result = rewriter.apply(fullExp)
@@ -140,7 +149,7 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
     // Create an expression that is (empirically determined to be) larger than the fully rewritten fullOr
     val largeOtherExpression = nots(P, 1000)
     val fullExp = and(fullOr, largeOtherExpression)
-    val (rewriter, monitor) = getRewriterAndMonitor
+    val (rewriter, monitor) = getRewriterAndMonitor()
 
     // when
     rewriter.apply(fullExp)
@@ -152,7 +161,7 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
   test("should rewrite small expression containing pattern expressions") {
     val pat = patternExpression(varFor("a"), varFor("b"))
     val exp = combineUntilLimit(and(P, pat), limit = 2)
-    val (rewriter, monitor) = getRewriterAndMonitor
+    val (rewriter, monitor) = getRewriterAndMonitor()
 
     rewriter.apply(exp)
     verify(monitor, never()).abortedRewritingDueToLargeDNF(exp)
@@ -161,7 +170,7 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
   test("should abort rewriting larger expression containing pattern expressions") {
     val pat = patternExpression(varFor("a"), varFor("b"))
     val exp = combineUntilLimit(and(P, pat), limit = 4)
-    val (rewriter, monitor) = getRewriterAndMonitor
+    val (rewriter, monitor) = getRewriterAndMonitor(subqueryDuplicationAllowed = true)
 
     rewriter.apply(exp)
     verify(monitor).abortedRewritingDueToLargeDNF(exp)
@@ -174,7 +183,7 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
     val start = or(and(P, Q), and(Q, R))
     val fullOr = combineUntilLimit(start, distributeLawsRewriter.DNF_CONVERSION_LIMIT - 2)
     val fullExp = and(fullOr, patternExpression(varFor("a"), varFor("b")))
-    val (rewriter, monitor) = getRewriterAndMonitor
+    val (rewriter, monitor) = getRewriterAndMonitor()
 
     // when
     val result = rewriter.apply(fullExp)
@@ -182,6 +191,38 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
     // When attempting to convert the expression, we still hit the size limit in `repeatWithSizeLimit` and will abort
     result should be(fullExp)
     verify(monitor).abortedRewriting(fullOr)
+  }
+
+  test("should not duplicate EXISTS expression on LHS of OR") {
+    val original = or(existsExpr, and(Q, R))
+    original <=> original
+  }
+
+  test("should not duplicate EXISTS expression on RHS of OR") {
+    val original = or(and(Q, R), existsExpr)
+    original <=> original
+  }
+
+  test("should not duplicate COUNT expression on LHS of OR") {
+    val original = or(exprWithCount, and(Q, R))
+    original <=> original
+  }
+
+  test("should not duplicate COUNT expression on RHS of OR") {
+    val original = or(and(Q, R), exprWithCount)
+    original <=> original
+  }
+
+  test("should duplicate EXISTS if subquery duplication is allowed") {
+    val original = or(existsExpr, and(Q, R))
+    rewriterWithSubqueryDuplication.apply(original) shouldEqual
+      and(or(existsExpr, Q), or(existsExpr, R))
+  }
+
+  test("should duplicate COUNT if subquery duplication is allowed") {
+    val original = or(exprWithCount, and(Q, R))
+    rewriterWithSubqueryDuplication.apply(original) shouldEqual
+      and(or(exprWithCount, Q), or(exprWithCount, R))
   }
 
   // Tests for dnfCounts
@@ -234,4 +275,16 @@ class DistributeLawRewriterTest extends CypherFunSuite with PredicateTestSupport
       nots(not(start), limit - 1)
     else
       start
+}
+
+object DistributeLawRewriterTest extends AstConstructionTestSupport {
+
+  private val existsExpr: ExistsExpression =
+    simpleExistsExpression(pattern = patternForMatch(nodePat()), maybeWhere = None)
+
+  private val exprWithCount =
+    greaterThan(
+      simpleCountExpression(pattern = patternForMatch(nodePat()), maybeWhere = None),
+      literal(1)
+    )
 }

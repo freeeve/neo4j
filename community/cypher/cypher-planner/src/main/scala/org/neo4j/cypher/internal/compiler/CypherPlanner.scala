@@ -93,13 +93,23 @@ case class CypherPlanner[Context <: PlannerContext](
       Some(context.config.targetsComposite),
       parsingConfig.queryRouterForCompositeEnabled
     )
+
+    val allowSubqueryDuplication = context.config.allowDuplicatingSubqueryExpressionsInCnfNormalizer()
+
     val pipeLine =
       if (plannerConfig.planSystemCommands)
         systemPipeLine
       else if (context.debugOptions.toStringEnabled) {
-        planPipeLine(semanticFeatures = features) andThen DebugPrinter
+        planPipeLine(
+          semanticFeatures = features,
+          allowSubqueryDuplicationInCnf = allowSubqueryDuplication
+        ) andThen
+          DebugPrinter
       } else
-        planPipeLine(semanticFeatures = features)
+        planPipeLine(
+          semanticFeatures = features,
+          allowSubqueryDuplicationInCnf = allowSubqueryDuplication
+        )
 
     pipeLine.transform(state, context)
   }
@@ -390,5 +400,12 @@ class CypherPlannerConfiguration(
       !GraphDatabaseInternalSettings.planning_selector_candidates_maximum.dynamic()
     )
     () => config.selectorCandidatesMaximum
+  }
+
+  val allowDuplicatingSubqueryExpressionsInCnfNormalizer: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.allow_duplicating_subquery_expressions_in_cnf_normalizer.dynamic()
+    )
+    () => config.allowDuplicatingSubqueryExpressionsInCnfNormalizer
   }
 }

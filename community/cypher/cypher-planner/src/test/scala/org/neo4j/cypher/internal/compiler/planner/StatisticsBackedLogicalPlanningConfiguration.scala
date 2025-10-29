@@ -1751,7 +1751,8 @@ class StatisticsBackedLogicalPlanningConfiguration(
     val finalState = LogicalPlanningTestSupport2
       .pipeLine(
         parsingConfig = parsingConfig,
-        deduplicateNames = options.deduplicateNames
+        deduplicateNames = options.deduplicateNames,
+        allowSubqueryDuplicationInCnfNormalizer = cc.allowDuplicatingSubqueryExpressionsInCnfNormalizer
       )
       .transform(state, context)
     if (options.printNotifications) {

@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting.SemanticAnalysisPossible
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
@@ -144,10 +145,9 @@ case object SemanticAnalysis extends StepSequencer.Step with ParsePipelineTransf
   /**
    * Transformer for the plan pipeline
    */
-  override def getTransformer(
-    pushdownPropertyReads: Boolean,
-    semanticFeatures: Seq[SemanticFeature]
-  ): Transformer[BaseContext, BaseState, BaseState] = ifSemanticsNotUpToDate(warn = Some(false), semanticFeatures)
+  override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig)
+    : Transformer[BaseContext, BaseState, BaseState] =
+    ifSemanticsNotUpToDate(warn = Some(false), planPipelineConfig.semanticFeatures)
 
   def ifSemanticsNotUpToDate(
     warn: Option[Boolean],

@@ -1251,6 +1251,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
 
     @Internal
     @Description(
+            "Feature flag to allow/disallow duplicating of subquery expressions (e.g. EXISTS {}) in CNFNormalizer.")
+    public static final Setting<Boolean> allow_duplicating_subquery_expressions_in_cnf_normalizer = newBuilder(
+                    "internal.cypher.allow_duplicating_subquery_expressions_in_cnf_normalizer", BOOL, false)
+            .build();
+
+    @Internal
+    @Description(
             "By default, the sharded property database is disabled. This setting is a feature toggle behind which sharded property database is developed.")
     public static final Setting<Boolean> spd_enabled = newBuilder(
                     "internal.dbms.sharded_property_database.enabled", BOOL, false)

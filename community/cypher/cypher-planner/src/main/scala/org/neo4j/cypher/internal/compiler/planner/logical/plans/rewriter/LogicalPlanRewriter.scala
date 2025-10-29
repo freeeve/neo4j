@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.phases.CompilationContains
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanCondition
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
@@ -31,6 +30,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.SortPredicatesBy
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.LOGICAL_PLANNING
 import org.neo4j.cypher.internal.frontend.phases.Phase
+import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
@@ -223,10 +223,7 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
     SortPredicatesBySelectivity.completed
   )
 
-  override def getTransformer(
-    pushdownPropertyReads: Boolean,
-    semanticFeatures: Seq[SemanticFeature]
-  ): LogicalPlanRewriter = this
+  override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig): LogicalPlanRewriter = this
 
   /**
    * Special case for rewriting Trails with two Filters:

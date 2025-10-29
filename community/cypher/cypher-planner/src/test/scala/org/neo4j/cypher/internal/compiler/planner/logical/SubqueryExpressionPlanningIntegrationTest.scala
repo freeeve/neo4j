@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
@@ -57,6 +58,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.crea
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createPattern
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationshipExpression
+import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
@@ -69,6 +71,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlanAstConstructionTestSup
 import org.neo4j.cypher.internal.logical.plans.NestedPlanGetByNameExpression
 import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
+import org.neo4j.cypher.internal.logical.plans.SelectOrSemiApply
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
@@ -3756,6 +3759,106 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       case Selection(Ands(SetExtractor(Ors(predicates))), _) =>
         predicates.size shouldBe 7
     }
+  }
+
+  test("should solve ORed EXISTS subquery once") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(100)
+      .setRelationshipCardinality("()-[:REL]-()", 10)
+      .build()
+
+    val q =
+      """
+        |MATCH (a)-->(b)
+        |WHERE (a.prop > 123 AND b.otherProp STARTS WITH 'hello') OR EXISTS {
+        |  (a)-->(a)
+        |}
+        |RETURN *
+      """.stripMargin
+
+    val plan = planner.plan(q).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .selectOrSemiApply("b.otherProp STARTS WITH 'hello' AND a.prop > 123")
+      .|.expandInto("(a)-[]->(a)")
+      .|.argument("a")
+      .allRelationshipsScan("(a)-[]->(b)")
+      .build()
+  }
+
+  test("should solve ORed COUNT subquery once") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(100)
+      .setRelationshipCardinality("()-[:REL]-()", 10)
+      .build()
+
+    val q =
+      """
+        |MATCH (a)-->(b)
+        |WHERE (a.prop > 123 AND b.otherProp STARTS WITH 'hello') OR COUNT {
+        |  (a)-->(a)
+        |} > a.x
+        |RETURN *
+      """.stripMargin
+
+    val plan = planner.plan(q).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("b.otherProp STARTS WITH 'hello' AND a.prop > 123 OR a.x < anon_0")
+      .apply()
+      .|.aggregation(Seq(), Seq("count(*) AS anon_0"))
+      .|.expandInto("(a)-[]->(a)")
+      .|.argument("a")
+      .allRelationshipsScan("(a)-[]->(b)")
+      .build()
+  }
+
+  test("should solve ORed EXISTS subquery twice if subquery duplicating is allowed") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(100)
+      .setRelationshipCardinality("()-[:REL]-()", 10)
+      .withSetting(
+        GraphDatabaseInternalSettings.allow_duplicating_subquery_expressions_in_cnf_normalizer,
+        Boolean.box(true)
+      )
+      .build()
+
+    val q =
+      """
+        |MATCH (a)-->(b)
+        |WHERE (a.prop > 123 AND b.otherProp STARTS WITH 'hello') OR EXISTS {
+        |  (a)-->(a)
+        |}
+        |RETURN *
+      """.stripMargin
+
+    val plan = planner.plan(q).stripProduceResults
+    plan.folder.findAllByClass[SelectOrSemiApply].size shouldBe 2
+  }
+
+  test("should solve ORed COUNT subquery twice if subquery duplicating is allowed") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(100)
+      .setRelationshipCardinality("()-[:REL]-()", 10)
+      .withSetting(
+        GraphDatabaseInternalSettings.allow_duplicating_subquery_expressions_in_cnf_normalizer,
+        Boolean.box(true)
+      )
+      .build()
+
+    val q =
+      """
+        |MATCH (a)-->(b)
+        |WHERE (a.prop > 123 AND b.otherProp STARTS WITH 'hello') OR COUNT {
+        |  (a)-->(a)
+        |} > a.x
+        |RETURN *
+      """.stripMargin
+
+    val plan = planner.plan(q).stripProduceResults
+    plan.folder.findAllByClass[Aggregation].size shouldBe 2
   }
 
   test("should plan sub-query predicates independently from other predicates") {

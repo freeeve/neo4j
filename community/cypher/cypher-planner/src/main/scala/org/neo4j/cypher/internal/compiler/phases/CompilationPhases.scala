@@ -61,6 +61,7 @@ import org.neo4j.cypher.internal.frontend.phases.SetSemanticsNotUpToDate
 import org.neo4j.cypher.internal.frontend.phases.ShortestPathVariableDeduplicator
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
+import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.isolateAggregation
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
@@ -156,15 +157,20 @@ object CompilationPhases extends FrontEndCompilationPhases {
   // Phase 3
   def planPipeLine(
     pushdownPropertyReads: Boolean = true,
-    semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures
-  ): Transformer[PlannerContext, BaseState, LogicalPlanState] =
+    semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
+    allowSubqueryDuplicationInCnf: Boolean
+  ): Transformer[PlannerContext, BaseState, LogicalPlanState] = {
+    val planPipelineConfig =
+      PlanPipelineTransformerConfig(pushdownPropertyReads, semanticFeatures, allowSubqueryDuplicationInCnf)
+
     SetSemanticsNotUpToDate andThen
       SchemaCommandPlanBuilder andThen
       If((s: LogicalPlanState) => s.maybeLogicalPlan.isEmpty)(
         Chainer.chainTransformers(
-          orderedPlanPipelineSteps.map(_.getCheckedTransformer(pushdownPropertyReads, semanticFeatures))
+          orderedPlanPipelineSteps.map(_.getCheckedTransformer(planPipelineConfig))
         ).asInstanceOf[Transformer[PlannerContext, BaseState, LogicalPlanState]]
       )
+  }
 
   // Alternative Phase 3
   def systemPipeLine: Transformer[PlannerContext, BaseState, LogicalPlanState] =

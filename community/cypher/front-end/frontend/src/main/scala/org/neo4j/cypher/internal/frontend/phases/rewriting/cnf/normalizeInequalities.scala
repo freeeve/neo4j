@@ -32,7 +32,7 @@ import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 import org.neo4j.cypher.internal.util.topDown
 
-case object normalizeInequalities extends Rewriter with CnfPhase with DefaultPostCondition {
+case object normalizeInequalities extends Rewriter with CnfPhaseRewriter with DefaultPostCondition {
 
   override def apply(that: AnyRef): AnyRef = instance(that)
 

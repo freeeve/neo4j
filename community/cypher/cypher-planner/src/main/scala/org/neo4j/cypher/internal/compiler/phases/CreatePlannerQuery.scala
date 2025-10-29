@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
+import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer.PredicatesInCNF
 import org.neo4j.cypher.internal.ir.PlannerQuery
@@ -105,9 +106,7 @@ case object CreatePlannerQuery extends StepSequencer.Step with PlanPipelineTrans
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty
 
-  override def getTransformer(
-    pushdownPropertyReads: Boolean,
-    semanticFeatures: Seq[SemanticFeature]
-  ): Transformer[BaseContext, BaseState, LogicalPlanState] =
-    CreatePlannerQuery(semanticFeatures.toSet)
+  override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig)
+    : Transformer[BaseContext, BaseState, LogicalPlanState] =
+    CreatePlannerQuery(planPipelineConfig.semanticFeatures.toSet)
 }

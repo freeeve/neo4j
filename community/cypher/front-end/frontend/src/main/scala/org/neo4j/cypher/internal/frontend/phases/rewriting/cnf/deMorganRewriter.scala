@@ -53,7 +53,7 @@ case class deMorganRewriter()(implicit monitor: AstRewritingMonitor) extends Rew
   private val instance: Rewriter = repeatWithSizeLimit(bottomUp(step))(monitor)
 }
 
-case object deMorganRewriter extends CnfPhase {
+case object deMorganRewriter extends CnfPhaseRewriter {
 
   override def instance(from: BaseState, context: BaseContext): Rewriter = {
     implicit val monitor: AstRewritingMonitor = context.monitors.newMonitor[AstRewritingMonitor]()

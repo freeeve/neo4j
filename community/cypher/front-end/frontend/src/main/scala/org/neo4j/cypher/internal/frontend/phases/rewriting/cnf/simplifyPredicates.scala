@@ -34,7 +34,6 @@ import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
 import org.neo4j.cypher.internal.rewriting.conditions.AndRewrittenToAnds
 import org.neo4j.cypher.internal.rewriting.conditions.OrRewrittenToOrs
@@ -129,7 +128,7 @@ case class simplifyPredicates(semanticState: SemanticState, cancellationChecker:
   }
 }
 
-case object simplifyPredicates extends StepSequencer.Step with PlanPipelineTransformerFactory with CnfPhase {
+case object simplifyPredicates extends CnfPhaseRewriter {
 
   object SetExtractor {
     def unapplySeq[T](s: Set[T]): Option[Seq[T]] = Some(s.toSeq)

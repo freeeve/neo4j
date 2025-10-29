@@ -33,7 +33,7 @@ import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.helpers.fixedPoint
 import org.neo4j.cypher.internal.util.inSequence
 
-case object flattenBooleanOperators extends CnfPhase {
+case object flattenBooleanOperators extends CnfPhaseRewriter {
 
   private val firstStep: Rewriter = Rewriter.lift {
     case p @ And(lhs, rhs) => Ands(ListSet(lhs, rhs))(p.position)

@@ -67,7 +67,7 @@ case class normalizeSargablePredicatesRewriter(semanticTable: SemanticTable) ext
   def apply(that: AnyRef): AnyRef = instance().apply(that)
 }
 
-case object normalizeSargablePredicates extends CnfPhase {
+case object normalizeSargablePredicates extends CnfPhaseRewriter {
 
   override def preConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
 
