@@ -25,12 +25,13 @@ import javax.ws.rs.ext.Provider;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.server.queryapi.QueryMimeTypes;
 import org.neo4j.server.queryapi.response.format.View;
+import org.neo4j.server.queryapi.tx.TransactionManager;
 
 @Provider
-@Produces(QueryMimeTypes.PLAIN_JSON)
-public class PlainJsonDriverAutoCommitResultWriter extends AbstractDriverResultWriter {
-
-    PlainJsonDriverAutoCommitResultWriter(@Context InternalLog log) {
-        super(log, View.PLAIN_JSON);
+@Produces({QueryMimeTypes.TYPED_JSON_V1x1})
+public class TypedJsonTxManagingResultWriterV11 extends AbstractTxManagingResultWriter {
+    public TypedJsonTxManagingResultWriterV11(
+            @Context InternalLog logger, @Context TransactionManager transactionManager) {
+        super(logger, View.TYPED_JSON_V1x1, transactionManager);
     }
 }

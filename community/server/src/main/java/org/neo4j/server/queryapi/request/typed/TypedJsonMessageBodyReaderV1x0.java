@@ -17,19 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.exception;
+package org.neo4j.server.queryapi.request.typed;
 
-import java.util.List;
-import javax.ws.rs.core.Response;
-import org.neo4j.gqlstatus.GqlHelper;
-import org.neo4j.kernel.api.exceptions.Status;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.ext.Provider;
+import org.neo4j.server.queryapi.QueryMimeTypes;
+import org.neo4j.server.queryapi.request.DefaultRequestModule;
+import org.neo4j.server.queryapi.response.format.View;
 
-public class UnknownTypeException extends QueryApiException {
-    public UnknownTypeException(String value, List<String> expectedValueTypeList, String actual) {
-        super(
-                String.format("Type %s is not supported as a column value", actual),
-                GqlHelper.getGql22G03_22N01(value, expectedValueTypeList, actual),
-                Status.Request.Invalid,
-                Response.Status.BAD_REQUEST);
+@Provider
+@Consumes({QueryMimeTypes.TYPED_JSON, QueryMimeTypes.TYPED_JSON_V1x0})
+public class TypedJsonMessageBodyReaderV1x0 extends AbstractTypedJsonMessageBodyReader {
+
+    public TypedJsonMessageBodyReaderV1x0() {
+        super(new DefaultRequestModule(View.TYPED_JSON));
     }
 }

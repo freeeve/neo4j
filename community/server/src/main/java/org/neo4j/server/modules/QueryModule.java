@@ -26,13 +26,16 @@ import org.neo4j.server.queryapi.QueryResource;
 import org.neo4j.server.queryapi.metrics.QueryAPIMetricsFilter;
 import org.neo4j.server.queryapi.metrics.QueryAPIMetricsMonitor;
 import org.neo4j.server.queryapi.request.JsonMessageBodyReader;
-import org.neo4j.server.queryapi.request.TypedJsonMessageBodyReader;
+import org.neo4j.server.queryapi.request.typed.TypedJsonMessageBodyReaderV1x0;
+import org.neo4j.server.queryapi.request.typed.TypedJsonMessageBodyReaderV1x1;
 import org.neo4j.server.queryapi.response.PlainJsonDriverAutoCommitResultWriter;
 import org.neo4j.server.queryapi.response.PlainJsonTxManagingResultWriter;
 import org.neo4j.server.queryapi.response.TypedJsonBookmarkWriter;
 import org.neo4j.server.queryapi.response.TypedJsonDriverAutoCommitResultWriter;
+import org.neo4j.server.queryapi.response.TypedJsonDriverAutoCommitResultWriterV11;
 import org.neo4j.server.queryapi.response.TypedJsonTxInfoWriter;
 import org.neo4j.server.queryapi.response.TypedJsonTxManagingResultWriter;
+import org.neo4j.server.queryapi.response.TypedJsonTxManagingResultWriterV11;
 import org.neo4j.server.queryapi.response.error.ErrorResponseWriter;
 import org.neo4j.server.queryapi.response.error.InternalServerExceptionMapper;
 import org.neo4j.server.queryapi.response.error.Neo4jExceptionMapper;
@@ -75,12 +78,15 @@ public class QueryModule implements ServerModule {
                 QueryResource.class,
                 PlainJsonDriverAutoCommitResultWriter.class,
                 TypedJsonDriverAutoCommitResultWriter.class,
+                TypedJsonDriverAutoCommitResultWriterV11.class,
                 PlainJsonTxManagingResultWriter.class,
                 TypedJsonTxManagingResultWriter.class,
+                TypedJsonTxManagingResultWriterV11.class,
                 TypedJsonTxInfoWriter.class,
                 TypedJsonBookmarkWriter.class,
                 JsonMessageBodyReader.class,
-                TypedJsonMessageBodyReader.class,
+                TypedJsonMessageBodyReaderV1x0.class,
+                TypedJsonMessageBodyReaderV1x1.class,
                 Neo4jExceptionMapper.class,
                 QueryApiExceptionMapper.class,
                 WebApplicationExceptionMapper.class,

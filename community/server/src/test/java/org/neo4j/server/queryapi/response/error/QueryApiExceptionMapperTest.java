@@ -27,7 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.server.queryapi.exception.QueryApiException;
-import org.neo4j.server.queryapi.exception.UnknownTypeException;
+import org.neo4j.server.queryapi.exception.UnsupportedTypeException;
 
 class QueryApiExceptionMapperTest {
 
@@ -52,7 +52,7 @@ class QueryApiExceptionMapperTest {
     }
 
     private static Arguments unknownTypeExceptionFixture() {
-        var unknownTypeException = new UnknownTypeException("[1, 2, 3]", List.of("String", "Number"), "VECTOR");
+        var unknownTypeException = new UnsupportedTypeException("[1, 2, 3]", List.of("String", "Number"), "VECTOR");
         return Arguments.of(unknownTypeException, Response.Status.BAD_REQUEST);
     }
 }

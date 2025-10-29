@@ -27,10 +27,10 @@ import org.neo4j.server.queryapi.QueryMimeTypes;
 import org.neo4j.server.queryapi.response.format.View;
 
 @Provider
-@Produces(QueryMimeTypes.PLAIN_JSON)
-public class PlainJsonDriverAutoCommitResultWriter extends AbstractDriverResultWriter {
+@Produces({QueryMimeTypes.TYPED_JSON_V1x1})
+public class TypedJsonDriverAutoCommitResultWriterV11 extends AbstractDriverResultWriter {
 
-    PlainJsonDriverAutoCommitResultWriter(@Context InternalLog log) {
-        super(log, View.PLAIN_JSON);
+    public TypedJsonDriverAutoCommitResultWriterV11(@Context InternalLog log) {
+        super(log, View.TYPED_JSON_V1x1);
     }
 }

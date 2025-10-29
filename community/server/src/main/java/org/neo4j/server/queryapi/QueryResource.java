@@ -39,8 +39,18 @@ import org.neo4j.server.queryapi.request.AccessMode;
 import org.neo4j.server.queryapi.request.QueryRequest;
 
 @Path(QueryResource.ROOT_PATH)
-@Produces({QueryMimeTypes.UNTYPED_JSON, QueryMimeTypes.TYPED_JSON, QueryMimeTypes.TYPED_JSON_V1x0})
-@Consumes({QueryMimeTypes.UNTYPED_JSON, QueryMimeTypes.TYPED_JSON, QueryMimeTypes.TYPED_JSON_V1x0})
+@Produces({
+    QueryMimeTypes.PLAIN_JSON,
+    QueryMimeTypes.TYPED_JSON,
+    QueryMimeTypes.TYPED_JSON_V1x0,
+    QueryMimeTypes.TYPED_JSON_V1x1
+})
+@Consumes({
+    QueryMimeTypes.PLAIN_JSON,
+    QueryMimeTypes.TYPED_JSON,
+    QueryMimeTypes.TYPED_JSON_V1x0,
+    QueryMimeTypes.TYPED_JSON_V1x1
+})
 public class QueryResource {
 
     public static final String NAME = "query";

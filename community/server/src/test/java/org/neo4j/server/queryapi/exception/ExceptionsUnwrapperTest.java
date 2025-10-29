@@ -83,7 +83,7 @@ class ExceptionsUnwrapperTest {
     }
 
     private static Arguments queryApiExceptionFixture(int wrappedTimes) {
-        var queryApiFixture = new UnknownTypeException("[1, 2]", List.of("String"), "Vector");
+        var queryApiFixture = new UnsupportedTypeException("[1, 2]", List.of("String"), "Vector");
         var exception = (Exception) queryApiFixture;
 
         for (int i = 0; i < wrappedTimes; i++) {

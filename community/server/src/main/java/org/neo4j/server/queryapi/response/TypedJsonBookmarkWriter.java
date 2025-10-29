@@ -36,7 +36,7 @@ import org.neo4j.server.queryapi.response.format.QueryAPICodec;
 import org.neo4j.server.queryapi.response.format.View;
 
 @Provider
-@Produces({QueryMimeTypes.TYPED_JSON, QueryMimeTypes.TYPED_JSON_V1x0})
+@Produces({QueryMimeTypes.TYPED_JSON, QueryMimeTypes.TYPED_JSON_V1x0, QueryMimeTypes.TYPED_JSON_V1x1})
 public class TypedJsonBookmarkWriter implements MessageBodyWriter<QueryResponseBookmarks> {
 
     private final JsonFactory jsonFactory;

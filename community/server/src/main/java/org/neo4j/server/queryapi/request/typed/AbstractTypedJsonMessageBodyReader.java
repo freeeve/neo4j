@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.request;
+package org.neo4j.server.queryapi.request.typed;
 
 import static org.neo4j.server.queryapi.request.JsonMessageBodyReader.readQueryRequestFromStream;
 
@@ -27,22 +27,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyReader;
-import javax.ws.rs.ext.Provider;
-import org.neo4j.server.queryapi.QueryMimeTypes;
+import org.neo4j.server.queryapi.request.DefaultRequestModule;
+import org.neo4j.server.queryapi.request.QueryRequest;
 
-@Provider
-@Consumes({QueryMimeTypes.TYPED_JSON, QueryMimeTypes.TYPED_JSON_V1x0})
-public class TypedJsonMessageBodyReader implements MessageBodyReader<QueryRequest> {
+public abstract class AbstractTypedJsonMessageBodyReader implements MessageBodyReader<QueryRequest> {
     private final JsonMapper jsonMapper;
 
-    public TypedJsonMessageBodyReader() {
+    protected AbstractTypedJsonMessageBodyReader(DefaultRequestModule defaultRequestModule) {
         this.jsonMapper = JsonMapper.builder()
-                .addModule(new DefaultRequestModule())
+                .addModule(defaultRequestModule)
                 .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
                 .build();
     }

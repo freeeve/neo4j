@@ -19,45 +19,18 @@
  */
 package org.neo4j.server.queryapi.response;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 import org.neo4j.logging.InternalLog;
-import org.neo4j.server.http.cypher.format.DefaultJsonFactory;
 import org.neo4j.server.queryapi.QueryMimeTypes;
-import org.neo4j.server.queryapi.request.AutoCommitResultContainer;
-import org.neo4j.server.queryapi.response.format.QueryAPICodec;
 import org.neo4j.server.queryapi.response.format.View;
 
 @Provider
 @Produces({QueryMimeTypes.TYPED_JSON, QueryMimeTypes.TYPED_JSON_V1x0})
 public class TypedJsonDriverAutoCommitResultWriter extends AbstractDriverResultWriter {
 
-    private final JsonFactory jsonFactory;
-
     public TypedJsonDriverAutoCommitResultWriter(@Context InternalLog log) {
-        super(log);
-        this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.TYPED_JSON));
-    }
-
-    @Override
-    public void writeTo(
-            AutoCommitResultContainer result,
-            Class<?> type,
-            Type genericType,
-            Annotation[] annotations,
-            MediaType mediaType,
-            MultivaluedMap<String, Object> httpHeaders,
-            OutputStream entityStream)
-            throws IOException, WebApplicationException {
-        writeDriverResult(jsonFactory, result, entityStream);
+        super(log, View.TYPED_JSON);
     }
 }

@@ -32,14 +32,19 @@ import org.neo4j.driver.internal.value.BooleanValue;
 import org.neo4j.driver.internal.value.ListValue;
 import org.neo4j.driver.internal.value.MapValue;
 import org.neo4j.driver.internal.value.NullValue;
-import org.neo4j.server.queryapi.exception.UnknownTypeException;
-import org.neo4j.server.queryapi.response.format.CypherTypes;
+import org.neo4j.driver.internal.value.VectorValue;
+import org.neo4j.server.queryapi.exception.UnsupportedTypeException;
 import org.neo4j.server.queryapi.response.format.Fieldnames;
+import org.neo4j.server.queryapi.response.format.View;
+import org.neo4j.server.queryapi.types.CypherTypes;
 
 public class ValueDeserializer extends StdDeserializer<Value> {
 
-    public ValueDeserializer() {
+    private final View view;
+
+    public ValueDeserializer(View view) {
         super(Value.class);
+        this.view = view;
     }
 
     @Override
@@ -72,20 +77,19 @@ public class ValueDeserializer extends StdDeserializer<Value> {
                     } else {
                         throw new JsonParseException("Expected 'null' value");
                     }
-
+                } else if (typeString.equals(CypherTypes.Vector.name()) && view.equals(View.TYPED_JSON_V1x1)) {
+                    var vectorValue = p.readValueAs(VectorValue.class);
+                    p.nextToken();
+                    return vectorValue;
                 } else {
                     var stringValue = p.getValueAsString();
                     var parser = CypherTypes.safeValueOf(typeString)
                             .map(CypherTypes::getReader)
                             .orElseThrow(() ->
-                                    new UnknownTypeException(stringValue, CypherTypes.getTypeNames(), typeString));
+                                    new UnsupportedTypeException(stringValue, CypherTypes.getTypeNames(), typeString));
 
-                    if (parser != null) {
-                        p.nextToken();
-                        return parser.apply(stringValue);
-                    } else {
-                        throw new JsonParseException(format("Type %s is not a valid parameter type.", typeString));
-                    }
+                    p.nextToken();
+                    return parser.apply(stringValue);
                 }
             } else {
                 throw new JsonParseException(format("Expecting field %s", Fieldnames.CYPHER_VALUE));

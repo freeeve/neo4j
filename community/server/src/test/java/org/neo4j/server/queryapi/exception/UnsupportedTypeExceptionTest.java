@@ -28,7 +28,7 @@ import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
-class UnknownTypeExceptionTest {
+class UnsupportedTypeExceptionTest {
     private static final String VALUE = "[1, 2, 3]";
     private static final List<String> SUPPORTED_TYPES = List.of("String", "Integer", "Long", "Double");
     private static final String TYPE = "Vector";
@@ -37,14 +37,14 @@ class UnknownTypeExceptionTest {
     void getMessage() throws Exception {
         var exception = subject();
 
-        Assertions.assertEquals("Type Vector is not supported as a column value", exception.getMessage());
+        Assertions.assertEquals("Type Vector is not supported.", exception.getMessage());
     }
 
     @Test
     void legacyMessage() throws Exception {
         var exception = subject();
 
-        Assertions.assertEquals("Type Vector is not supported as a column value", exception.legacyMessage());
+        Assertions.assertEquals("Type Vector is not supported.", exception.legacyMessage());
     }
 
     @Test
@@ -76,7 +76,7 @@ class UnknownTypeExceptionTest {
                 exception.gqlStatusObject());
     }
 
-    private static UnknownTypeException subject() {
-        return new UnknownTypeException(VALUE, SUPPORTED_TYPES, TYPE);
+    private static UnsupportedTypeException subject() {
+        return new UnsupportedTypeException(VALUE, SUPPORTED_TYPES, TYPE);
     }
 }

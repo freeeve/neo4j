@@ -24,24 +24,25 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyWriter;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.server.http.cypher.format.DefaultJsonFactory;
 import org.neo4j.server.http.cypher.format.api.ConnectionException;
 import org.neo4j.server.queryapi.exception.ExceptionsUnwrapper;
 import org.neo4j.server.queryapi.request.AutoCommitResultContainer;
+import org.neo4j.server.queryapi.response.format.QueryAPICodec;
+import org.neo4j.server.queryapi.response.format.View;
 
 abstract class AbstractDriverResultWriter implements MessageBodyWriter<AutoCommitResultContainer> {
-
     private final InternalLog log;
+    private final JsonFactory jsonFactory;
 
-    public AbstractDriverResultWriter(InternalLog log) {
+    public AbstractDriverResultWriter(InternalLog log, View view) {
         this.log = log;
-    }
-
-    @Override
-    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
-        return AutoCommitResultContainer.class.isAssignableFrom(type);
+        this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(view));
     }
 
     public void writeDriverResult(JsonFactory factory, AutoCommitResultContainer result, OutputStream outputStream)
@@ -62,5 +63,23 @@ abstract class AbstractDriverResultWriter implements MessageBodyWriter<AutoCommi
         } finally {
             jsonGenerator.flush();
         }
+    }
+
+    @Override
+    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
+        return AutoCommitResultContainer.class.isAssignableFrom(type);
+    }
+
+    @Override
+    public void writeTo(
+            AutoCommitResultContainer result,
+            Class<?> type,
+            Type genericType,
+            Annotation[] annotations,
+            MediaType mediaType,
+            MultivaluedMap<String, Object> httpHeaders,
+            OutputStream entityStream)
+            throws IOException, WebApplicationException {
+        writeDriverResult(jsonFactory, result, entityStream);
     }
 }

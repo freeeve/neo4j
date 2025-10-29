@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.response.format;
+package org.neo4j.server.queryapi.types;
 
 import java.time.LocalDate;
 import java.time.OffsetTime;
@@ -101,7 +101,12 @@ public enum CypherTypes {
 
     Relationship,
 
-    Path;
+    Path,
+
+    Vector,
+
+    Unsupported(null, Value::toString),
+    ;
 
     private final String value;
 

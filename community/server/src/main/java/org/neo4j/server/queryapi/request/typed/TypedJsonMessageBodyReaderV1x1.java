@@ -17,20 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.response;
+package org.neo4j.server.queryapi.request.typed;
 
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.ext.Provider;
-import org.neo4j.logging.InternalLog;
 import org.neo4j.server.queryapi.QueryMimeTypes;
+import org.neo4j.server.queryapi.request.DefaultRequestModule;
 import org.neo4j.server.queryapi.response.format.View;
 
 @Provider
-@Produces(QueryMimeTypes.PLAIN_JSON)
-public class PlainJsonDriverAutoCommitResultWriter extends AbstractDriverResultWriter {
+@Consumes({QueryMimeTypes.TYPED_JSON_V1x1})
+public class TypedJsonMessageBodyReaderV1x1 extends AbstractTypedJsonMessageBodyReader {
 
-    PlainJsonDriverAutoCommitResultWriter(@Context InternalLog log) {
-        super(log, View.PLAIN_JSON);
+    public TypedJsonMessageBodyReaderV1x1() {
+        super(new DefaultRequestModule(View.TYPED_JSON_V1x1));
     }
 }

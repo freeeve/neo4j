@@ -17,20 +17,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.response;
+package org.neo4j.queryapi;
 
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.ext.Provider;
-import org.neo4j.logging.InternalLog;
-import org.neo4j.server.queryapi.QueryMimeTypes;
-import org.neo4j.server.queryapi.response.format.View;
+import java.util.List;
+import org.junit.jupiter.api.BeforeAll;
+import org.neo4j.queryapi.testclient.QueryContentType;
 
-@Provider
-@Produces(QueryMimeTypes.PLAIN_JSON)
-public class PlainJsonDriverAutoCommitResultWriter extends AbstractDriverResultWriter {
+public class QueryResourceTypedV1x1ParametersIT extends AbstractQueryResourceTypedParametersIT {
+    @BeforeAll
+    static void setup() {
+        beforeAll(
+                QueryContentType.TYPED_V1_1,
+                List.of(
+                        QueryContentType.TYPED_V1_1,
+                        QueryContentType.TYPED_V1_0,
+                        QueryContentType.TYPED,
+                        QueryContentType.UNTYPED));
+    }
 
-    PlainJsonDriverAutoCommitResultWriter(@Context InternalLog log) {
-        super(log, View.PLAIN_JSON);
+    @Override
+    protected QueryContentType contentType() {
+        return QueryContentType.TYPED_V1_1;
     }
 }

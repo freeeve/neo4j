@@ -60,7 +60,10 @@ import org.neo4j.driver.types.Relationship;
 import org.neo4j.driver.types.Type;
 import org.neo4j.driver.types.TypeSystem;
 import org.neo4j.driver.types.Vector;
-import org.neo4j.server.queryapi.exception.UnknownTypeException;
+import org.neo4j.server.queryapi.exception.UnsupportedTypeException;
+import org.neo4j.server.queryapi.response.format.vector.VectorRenderFactory;
+import org.neo4j.server.queryapi.types.CypherTypes;
+import org.neo4j.server.queryapi.types.CypherVectorTypes;
 import org.neo4j.values.storable.DurationValue;
 
 /**
@@ -273,31 +276,48 @@ public final class DefaultResponseModule extends SimpleModule {
                 4326, "http://spatialreference.org/ref/epsg/%d/ogcwkt/",
                 4979, "http://spatialreference.org/ref/epsg/%d/ogcwkt/");
 
-        private final Map<Type, CypherTypes> typeToNames;
+        private final Map<Type, CypherTypes> stringTypes;
+        private final Map<Type, CypherTypes> supportedTypes;
 
         ValueSerializer() {
             super(Value.class);
-            this.typeToNames = new HashMap<>();
-            typeToNames.put(typeSystem.BYTES(), CypherTypes.Base64);
-            typeToNames.put(typeSystem.BOOLEAN(), CypherTypes.Boolean);
-            typeToNames.put(typeSystem.INTEGER(), CypherTypes.Integer);
-            typeToNames.put(typeSystem.NULL(), CypherTypes.Null);
-            typeToNames.put(typeSystem.FLOAT(), CypherTypes.Float);
-            typeToNames.put(typeSystem.STRING(), CypherTypes.String);
-            typeToNames.put(typeSystem.DATE(), CypherTypes.Date);
-            typeToNames.put(typeSystem.TIME(), CypherTypes.Time);
-            typeToNames.put(typeSystem.LOCAL_TIME(), CypherTypes.LocalTime);
-            typeToNames.put(typeSystem.DATE_TIME(), CypherTypes.DateTime);
-            typeToNames.put(typeSystem.LOCAL_DATE_TIME(), CypherTypes.LocalDateTime);
-            typeToNames.put(typeSystem.DURATION(), CypherTypes.Duration);
-            typeToNames.put(typeSystem.POINT(), CypherTypes.Point);
+            // The value which are serialized as strings
+            this.stringTypes = new HashMap<>();
+            stringTypes.put(typeSystem.BYTES(), CypherTypes.Base64);
+            stringTypes.put(typeSystem.BOOLEAN(), CypherTypes.Boolean);
+            stringTypes.put(typeSystem.INTEGER(), CypherTypes.Integer);
+            stringTypes.put(typeSystem.NULL(), CypherTypes.Null);
+            stringTypes.put(typeSystem.FLOAT(), CypherTypes.Float);
+            stringTypes.put(typeSystem.STRING(), CypherTypes.String);
+            stringTypes.put(typeSystem.DATE(), CypherTypes.Date);
+            stringTypes.put(typeSystem.TIME(), CypherTypes.Time);
+            stringTypes.put(typeSystem.LOCAL_TIME(), CypherTypes.LocalTime);
+            stringTypes.put(typeSystem.DATE_TIME(), CypherTypes.DateTime);
+            stringTypes.put(typeSystem.LOCAL_DATE_TIME(), CypherTypes.LocalDateTime);
+            stringTypes.put(typeSystem.DURATION(), CypherTypes.Duration);
+            stringTypes.put(typeSystem.POINT(), CypherTypes.Point);
+            if (view.equals(View.TYPED_JSON_V1x1)) {
+                stringTypes.put(typeSystem.UNSUPPORTED(), CypherTypes.Unsupported);
+            }
+
+            // all the supported values
+            this.supportedTypes = new HashMap<>(stringTypes);
+            supportedTypes.put(typeSystem.RELATIONSHIP(), CypherTypes.Relationship);
+            supportedTypes.put(typeSystem.NODE(), CypherTypes.Node);
+            supportedTypes.put(typeSystem.PATH(), CypherTypes.Path);
+            supportedTypes.put(typeSystem.LIST(), CypherTypes.List);
+            supportedTypes.put(typeSystem.MAP(), CypherTypes.Map);
+
+            if (!view.equals(View.TYPED_JSON)) {
+                supportedTypes.put(typeSystem.VECTOR(), CypherTypes.Vector);
+            }
         }
 
         @Override
         public void serialize(Value value, JsonGenerator json, SerializerProvider serializers) throws IOException {
-
+            var isTypedJson = view.equals(View.TYPED_JSON) || view.equals(View.TYPED_JSON_V1x1);
             if (value.hasType(typeSystem.LIST())) {
-                if (view.equals(View.TYPED_JSON)) {
+                if (isTypedJson) {
                     json.writeStartObject();
                     json.writeStringField(Fieldnames.CYPHER_TYPE, CypherTypes.List.getValue());
                     json.writeFieldName(Fieldnames.CYPHER_VALUE);
@@ -311,13 +331,13 @@ public final class DefaultResponseModule extends SimpleModule {
                 }
                 json.writeEndArray();
 
-                if (view.equals(View.TYPED_JSON)) {
+                if (isTypedJson) {
                     json.writeEndObject();
                 }
             } else if (value.hasType(typeSystem.MAP())
                     && !(value.hasType(typeSystem.NODE()) || value.hasType(typeSystem.RELATIONSHIP()))) {
 
-                if (view.equals(View.TYPED_JSON)) {
+                if (isTypedJson) {
                     json.writeStartObject();
                     json.writeStringField(Fieldnames.CYPHER_TYPE, CypherTypes.Map.getValue());
                     json.writeFieldName(Fieldnames.CYPHER_VALUE);
@@ -328,12 +348,12 @@ public final class DefaultResponseModule extends SimpleModule {
                     serialize(value.get(key), json, serializers);
                 }
                 json.writeEndObject();
-                if (view.equals(View.TYPED_JSON)) {
+                if (isTypedJson) {
                     json.writeEndObject();
                 }
             } else if (view == View.PLAIN_JSON) {
                 renderSimpleValue(value, json, serializers);
-            } else if (view == View.TYPED_JSON) {
+            } else if (isTypedJson) {
                 renderNewFormat(value, json, serializers);
             }
         }
@@ -341,8 +361,8 @@ public final class DefaultResponseModule extends SimpleModule {
         private void renderNewFormat(Value value, JsonGenerator json, SerializerProvider serializers)
                 throws IOException {
 
-            if (typeToNames.containsKey(value.type())) {
-                var cypherType = typeToNames.get(value.type());
+            if (stringTypes.containsKey(value.type())) {
+                var cypherType = stringTypes.get(value.type());
                 json.writeStartObject();
                 if (value.hasType(typeSystem.DATE_TIME())) {
                     if (value.asZonedDateTime().getZone().normalized() instanceof ZoneOffset) {
@@ -352,7 +372,7 @@ public final class DefaultResponseModule extends SimpleModule {
                     }
                     json.writeStringField(
                             Fieldnames.CYPHER_VALUE,
-                            typeToNames.get(value.type()).getWriter().apply(value));
+                            stringTypes.get(value.type()).getWriter().apply(value));
                 } else {
                     json.writeStringField(Fieldnames.CYPHER_TYPE, cypherType.getValue());
                     json.writeFieldName(Fieldnames.CYPHER_VALUE);
@@ -384,13 +404,91 @@ public final class DefaultResponseModule extends SimpleModule {
                 writeNode(path.end(), json, serializers, view);
                 json.writeEndArray();
                 json.writeEndObject();
-
+            } else if (value.hasType(typeSystem.VECTOR()) && view.equals(View.TYPED_JSON_V1x1)) {
+                renderVectorInTypeJsonV1x1(value, json);
             } else {
-                throw new UnknownTypeException(
-                        value.toString(),
-                        typeToNames.keySet().stream().map(Type::name).toList(),
-                        value.type().name());
+                if (!supportedTypes.containsKey(typeSystem.UNSUPPORTED())) {
+                    throw new UnsupportedTypeException(
+                            value.toString(),
+                            supportedTypes.keySet().stream().map(Type::name).toList(),
+                            value.type().name());
+                }
+
+                renderUnsupportedType(
+                        json,
+                        String.format(
+                                "Type \"%s\" is not supported in the current MimeType.",
+                                value.type().name()));
             }
+        }
+
+        private void renderVectorInTypeJsonV1x1(Value value, JsonGenerator json) throws IOException {
+            var vectorRenderFactory = new VectorRenderFactory(json);
+            var vector = value.as(Vector.class);
+            switch (vector) {
+                case Int8Vector byteVector -> {
+                    try (var render = vectorRenderFactory.newVectorRender(CypherVectorTypes.INT8)) {
+                        var arr = byteVector.toArray();
+                        for (var n : arr) {
+                            render.renderCoordinate(n);
+                        }
+                    }
+                }
+                case Int16Vector int16Vector -> {
+                    try (var render = vectorRenderFactory.newVectorRender(CypherVectorTypes.INT16)) {
+                        var arr = int16Vector.toArray();
+                        for (var n : arr) {
+                            render.renderCoordinate(n);
+                        }
+                    }
+                }
+                case Int32Vector int32Vector -> {
+                    try (var render = vectorRenderFactory.newVectorRender(CypherVectorTypes.INT32)) {
+                        var arr = int32Vector.toArray();
+                        for (var n : arr) {
+                            render.renderCoordinate(n);
+                        }
+                    }
+                }
+                case Int64Vector int64Vector -> {
+                    try (var render = vectorRenderFactory.newVectorRender(CypherVectorTypes.INT64)) {
+                        var arr = int64Vector.toArray();
+                        for (var n : arr) {
+                            render.renderCoordinate(n);
+                        }
+                    }
+                }
+                case Float32Vector float32Vector -> {
+                    try (var render = vectorRenderFactory.newVectorRender(CypherVectorTypes.FLOAT32)) {
+                        var arr = float32Vector.toArray();
+                        for (var n : arr) {
+                            render.renderCoordinate(n);
+                        }
+                    }
+                }
+                case Float64Vector float64Vector -> {
+                    try (var render = vectorRenderFactory.newVectorRender(CypherVectorTypes.FLOAT64)) {
+                        var arr = float64Vector.toArray();
+                        for (var n : arr) {
+                            render.renderCoordinate(n);
+                        }
+                    }
+                }
+                default ->
+                    renderUnsupportedType(
+                            json,
+                            String.format(
+                                    "Vector of type \"%s\" is not supported in the current MimeType.",
+                                    value.type().name()));
+            }
+        }
+
+        private void renderUnsupportedType(JsonGenerator json, String message) throws IOException {
+            json.writeStartObject();
+            json.writeStringField(Fieldnames.CYPHER_TYPE, CypherTypes.Unsupported.getValue());
+            json.writeFieldName(Fieldnames.CYPHER_VALUE);
+            json.writeString(message);
+            json.writeEndObject();
         }
 
         private void renderPoint(Value value, JsonGenerator json, boolean newFormat) throws IOException {
@@ -482,9 +580,9 @@ public final class DefaultResponseModule extends SimpleModule {
                 writeVector(json, vector);
                 json.writeEndArray();
             } else {
-                throw new UnknownTypeException(
+                throw new UnsupportedTypeException(
                         value.toString(),
-                        typeToNames.keySet().stream().map(Type::name).toList(),
+                        stringTypes.keySet().stream().map(Type::name).toList(),
                         value.type().name());
             }
         }
@@ -547,9 +645,10 @@ public final class DefaultResponseModule extends SimpleModule {
         private void writeNode(Node node, JsonGenerator json, SerializerProvider serializers, View view)
                 throws IOException {
 
+            var isTyped = view.equals(View.TYPED_JSON) || view.equals(View.TYPED_JSON_V1x1);
             json.writeStartObject();
 
-            if (view.equals(View.TYPED_JSON)) {
+            if (isTyped) {
                 json.writeStringField(Fieldnames.CYPHER_TYPE, CypherTypes.Node.name());
                 json.writeFieldName(Fieldnames.CYPHER_VALUE);
                 json.writeStartObject();
@@ -567,7 +666,7 @@ public final class DefaultResponseModule extends SimpleModule {
 
             json.writeEndObject();
 
-            if (view.equals(View.TYPED_JSON)) {
+            if (isTyped) {
                 json.writeEndObject();
             }
         }
@@ -575,10 +674,10 @@ public final class DefaultResponseModule extends SimpleModule {
         private void writeRelationship(
                 Relationship relationship, JsonGenerator json, SerializerProvider serializers, View view)
                 throws IOException {
-
+            var isTyped = view.equals(View.TYPED_JSON) || view.equals(View.TYPED_JSON_V1x1);
             json.writeStartObject();
 
-            if (view.equals(View.TYPED_JSON)) {
+            if (isTyped) {
                 json.writeStringField(Fieldnames.CYPHER_TYPE, CypherTypes.Relationship.name());
                 json.writeFieldName(Fieldnames.CYPHER_VALUE);
                 json.writeStartObject();
@@ -592,7 +691,7 @@ public final class DefaultResponseModule extends SimpleModule {
             writeEntityProperties(View.properties(view), relationship, json, serializers);
             json.writeEndObject();
 
-            if (view.equals(View.TYPED_JSON)) {
+            if (isTyped) {
                 json.writeEndObject();
             }
         }

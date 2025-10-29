@@ -24,11 +24,14 @@ import java.util.Map;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.internal.value.ListValue;
 import org.neo4j.driver.internal.value.MapValue;
+import org.neo4j.driver.internal.value.VectorValue;
+import org.neo4j.server.queryapi.response.format.View;
 
 public class DefaultRequestModule extends SimpleModule {
-    public DefaultRequestModule() {
+    public DefaultRequestModule(View view) {
         this.addDeserializer(Map.class, new ParameterDeserializer());
-        this.addDeserializer(Value.class, new ValueDeserializer());
+        this.addDeserializer(Value.class, new ValueDeserializer(view));
+        this.addDeserializer(VectorValue.class, new VectorValueDeserializer());
         this.addDeserializer(ListValue.class, new ListValueDeserializer());
         this.addDeserializer(MapValue.class, new MapValueDeserializer());
     }

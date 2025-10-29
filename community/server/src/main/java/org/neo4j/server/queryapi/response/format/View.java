@@ -21,7 +21,9 @@ package org.neo4j.server.queryapi.response.format;
 
 public enum View {
     PLAIN_JSON,
-    TYPED_JSON;
+    TYPED_JSON,
+    TYPED_JSON_V1x1,
+    ;
 
     public static String labels(View view) {
         if (view.equals(PLAIN_JSON)) {

@@ -22,7 +22,8 @@ package org.neo4j.queryapi.testclient;
 public enum QueryContentType {
     UNTYPED("application/json"),
     TYPED("application/vnd.neo4j.query"),
-    TYPED_V1_0("application/vnd.neo4j.query.v1.0");
+    TYPED_V1_0("application/vnd.neo4j.query.v1.0"),
+    TYPED_V1_1("application/vnd.neo4j.query.v1.1");
 
     private final String mimeType;
 
