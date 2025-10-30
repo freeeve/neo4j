@@ -243,6 +243,10 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `n` not defined.")
   }
 
+  test("""SHOW USERS YIELD user ORDER BY bar ASCENDING""".stripMargin) {
+    error("42N62", "Variable `bar` not defined.")
+  }
+
   test("""MATCH (n {p: 1})-[:R]->({p: n.p})
          |RETURN n""".stripMargin) {
     passes()
@@ -431,6 +435,14 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   }
 
   test("""CALL (x) { RETURN 1 AS x } RETURN x""".stripMargin) {
+    error("42N62", "Variable `x` not defined.")
+  }
+
+  test("""CREATE LOOKUP INDEX FOR (n) ON EACH labels(x)""".stripMargin) {
+    error("42N62", "Variable `x` not defined.")
+  }
+
+  test("""CREATE FULLTEXT INDEX FOR (n:Label) ON EACH [x.prop]""".stripMargin) {
     error("42N62", "Variable `x` not defined.")
   }
 
@@ -1067,6 +1079,67 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |  RETURN this0 AS x
          |}
          |RETURN 1 AS data""".stripMargin) {
+    passes()
+  }
+
+  test("SHOW TRANSACTIONS foo") {
+    error("42N62", "Variable `foo` not defined.")
+  }
+
+  test("SHOW TRANSACTIONS YIELD nope") {
+    error("42N62", "Variable `nope` not defined.")
+  }
+
+  test("SHOW TRANSACTIONS YIELD connectionId") {
+    passes()
+  }
+
+  test("SHOW TRANSACTIONS WHERE database <> 'system'") {
+    passes()
+  }
+
+  test("SHOW TRANSACTIONS") {
+    passes()
+  }
+
+  test("""SHOW TRANSACTION 'neo4j-transaction-2'
+         |YIELD transactionId
+         |TERMINATE TRANSACTION transactionId
+         |YIELD message, transactionId AS txId, username
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""SHOW TRANSACTION
+         |YIELD transactionId AS name
+         |SHOW PROCEDURES
+         |YIELD name
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `name` already declared.")
+  }
+
+  test("""SHOW TRANSACTION
+         |YIELD transactionId AS name
+         |SHOW PROCEDURES
+         |YIELD mode AS name
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `name` already declared.")
+  }
+
+  test("""SHOW INDEXES
+         |YIELD type, entityType
+         |SHOW RANGE INDEXES
+         |YIELD name AS range
+         |RETURN *
+         |ORDER BY type, entityType""".stripMargin) {
+    passes()
+  }
+
+  test("""CREATE CONSTRAINT FOR (n:Label) REQUIRE n.prop IS UNIQUE""".stripMargin) {
+    passes()
+  }
+
+  test("""CREATE INDEX FOR (n:Person) ON (n.firstName)""".stripMargin) {
     passes()
   }
 }

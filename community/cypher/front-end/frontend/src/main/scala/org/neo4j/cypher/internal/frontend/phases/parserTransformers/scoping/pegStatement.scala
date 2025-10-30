@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.NextStatement
+import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.TopLevelBraces
@@ -86,8 +87,8 @@ object pegStatement {
         }
       case TopLevelBraces(query, _) => apply(query, incoming)
 
-      // TODO other query forms and admin commands
       case command: AdministrationCommand => pegCommand(command, incoming)
+      case command: SchemaCommand         => pegCommand(command, incoming)
 
       /**
        * To make match exhaustive

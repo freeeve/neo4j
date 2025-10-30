@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Delete
@@ -34,6 +35,7 @@ import org.neo4j.cypher.internal.ast.ParsedAsLet
 import org.neo4j.cypher.internal.ast.ParsedAsLimit
 import org.neo4j.cypher.internal.ast.ParsedAsOrderBy
 import org.neo4j.cypher.internal.ast.ParsedAsSkip
+import org.neo4j.cypher.internal.ast.ParsedAsYield
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Remove
@@ -292,6 +294,8 @@ object pegClause {
 
       // TODO other clause, specifically admin clauses
 
+      case command: CommandClause => pegCommand(command, incoming)
+
       /**
        * To make match exhaustive
        */
@@ -308,7 +312,7 @@ object pegClause {
     val (isWith, distinct, projectionType, items, orderByOpt, whereOpt, withTypeOpt) =
       projectionClause match {
         case With(distinct, ReturnItems(projectionType, items, _), orderByOpt, _, _, whereOpt, withType) =>
-          (true, distinct, projectionType, items, orderByOpt, whereOpt, Some(withType))
+          (withType != ParsedAsYield, distinct, projectionType, items, orderByOpt, whereOpt, Some(withType))
         case Return(distinct, ReturnItems(projectionType, items, _), orderByOpt, _, _, _, _, _) =>
           (false, distinct, projectionType, items, orderByOpt, None, None)
         case Yield(ReturnItems(projectionType, items, _), orderByOpt, _, _, whereOpt) =>
@@ -340,11 +344,15 @@ object pegClause {
       // NOTE: this could also be "variableItems.map(...)" depending on how we like to think about constants pass through
       val projectionItemScopes =
         items.map(item => pegExpression(item.expression, projectionItemIncoming))
-      val sortItemIncoming = incoming.replaceWith(notShadowed union newVariables.toSet).constantChildContext()
+      val subclauseIncoming = projectionClause match {
+        case _: Yield => newVariables.toSet union includedIncomingVariables
+        case _        => notShadowed union newVariables.toSet
+      }
+      val sortItemIncoming = incoming.replaceWith(subclauseIncoming).constantChildContext()
       val sortItemScopes = orderByOpt.map(_.sortItems).getOrElse(Seq.empty).map(item =>
         pegExpression(item.expression, sortItemIncoming)
       )
-      val whereExpIncoming = incoming.replaceWith(notShadowed union newVariables.toSet).constantChildContext()
+      val whereExpIncoming = incoming.replaceWith(subclauseIncoming).constantChildContext()
       val whereExpScopes = whereOpt.map(w => Seq(w.expression)).getOrElse(Seq.empty).map(expression =>
         pegExpression(expression, whereExpIncoming)
       )

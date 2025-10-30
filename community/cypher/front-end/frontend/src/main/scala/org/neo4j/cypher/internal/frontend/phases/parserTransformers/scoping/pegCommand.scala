@@ -17,10 +17,20 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AdministrationCommand
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
+import org.neo4j.cypher.internal.ast.CommandClause
+import org.neo4j.cypher.internal.ast.CommandClauseWithNames
+import org.neo4j.cypher.internal.ast.CreateConstraint
+import org.neo4j.cypher.internal.ast.CreateIndex
+import org.neo4j.cypher.internal.ast.CreateLookupIndex
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.ReadAdministrationCommand
+import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.WaitableAdministrationCommand
 import org.neo4j.cypher.internal.ast.WriteAdministrationCommand
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.util.ASTNode
 
 object pegCommand {
@@ -44,6 +54,10 @@ object pegCommand {
           TableResult(defaultCols)
         )
 
+        val graphSelectionScope = read.useGraph.map(gs =>
+          pegExpression(gs.graphReference, declaringScope.outgoing)
+        )
+
         val yieldOrWhereScopes = read.yieldOrWhere match {
           case Some(Left((yieldClause, None))) =>
             Seq(pegClause(yieldClause, declaringScope.outgoing))
@@ -60,7 +74,7 @@ object pegCommand {
         }
 
         val hasYield = read.yields.isDefined
-        val children = declaringScope +: yieldOrWhereScopes
+        val children = Seq(Some(declaringScope), graphSelectionScope, yieldOrWhereScopes).flatten
         val outgoing = if (hasYield) children.last.outgoing else children.head.outgoing
         val result = if (hasYield) children.last.result else children.head.result
 
@@ -71,20 +85,154 @@ object pegCommand {
        */
       case wait: WaitableAdministrationCommand if c.language == CypherVersion.Cypher5 =>
         val defaultCols = wait.returnColumns
+        val outgoing = incoming.amendedWith(defaultCols.toSet)
+        val graphSelectionScope = wait.useGraph.map(gs =>
+          pegExpression(gs.graphReference, outgoing)
+        )
         incoming.resultScope(
-          incoming.amendedWith(defaultCols.toSet),
+          outgoing,
           TableResult(defaultCols),
-          WorkingScope.noChildren,
+          graphSelectionScope.toSeq,
           None,
           Declarations(Seq.empty, defaultCols)
         )
-      case _: WriteAdministrationCommand =>
-        incoming.omittedResultScope(RegularContext.unit, Seq.empty)
+      case write: WriteAdministrationCommand =>
+        val graphSelectionScope = write.useGraph.map(gs =>
+          pegExpression(gs.graphReference, incoming)
+        )
+        incoming.omittedResultScope(RegularContext.unit, graphSelectionScope.toSeq)
+
+    }
+  }
+
+  def apply(command: SchemaCommand, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
+    implicit val astNode: ASTNode = command
+    command match {
+
+      /**
+       * Schema Commands
+       */
+      case ci: CreateLookupIndex =>
+        val graphSelectionScope = ci.useGraph.map(gs =>
+          pegExpression(gs.graphReference, incoming)
+        )
+        val partsIncoming = incoming.amendedWithConstant(ci.variable)
+        val functionScope = pegExpression(ci.function, partsIncoming)
+        val propertiesScopes = ci.properties.map(p => pegExpression(p, partsIncoming))
+        val children = graphSelectionScope ++ Seq(functionScope) ++ propertiesScopes
+        incoming.omittedResultScope(RegularContext.unit, children.toSeq)
+      case ci: CreateIndex =>
+        val graphSelectionScope = ci.useGraph.map(gs =>
+          pegExpression(gs.graphReference, incoming)
+        )
+        val propertiesScopes = ci.properties.map(p => pegExpression(p, incoming.amendedWithConstant(ci.variable)))
+        incoming.omittedResultScope(RegularContext.unit, (graphSelectionScope ++ propertiesScopes).toSeq)
+
+      case cc: CreateConstraint =>
+        val graphSelectionScope = cc.useGraph.map(gs =>
+          pegExpression(gs.graphReference, incoming)
+        )
+        val partsIncoming = incoming.amendedWithConstant(cc.variable)
+        val propertiesScopes = cc.properties.map(p => pegExpression(p, partsIncoming))
+        incoming.omittedResultScope(RegularContext.unit, (graphSelectionScope ++ propertiesScopes).toSeq)
+
+      case agt: AlterCurrentGraphType =>
+        val graphSelectionScope =
+          agt.useGraph.map(gs => pegExpression(gs.graphReference, incoming))
+        val graphTypeScope = None
+
+        incoming.omittedResultScope(RegularContext.unit, graphTypeScope.toSeq ++ graphSelectionScope)
+      case schemaCommand: SchemaCommand =>
+        val graphSelectionScope = schemaCommand.useGraph.map(gs =>
+          pegExpression(gs.graphReference, incoming)
+        )
+        incoming.omittedResultScope(RegularContext.unit, graphSelectionScope.toSeq)
 
       /**
        * To make match exhaustive
        */
       case _ => UnexpectedAstNodeScopingError(astNode, incoming)
     }
+  }
+
+  def apply(command: CommandClause, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
+    implicit val astNode: ASTNode = command
+    command match {
+
+      /**
+       * Show and terminate command clauses
+       */
+      case cmd: CommandClauseWithNames =>
+        scopeCommandClause(cmd, incoming, Some(cmd.names))
+      case cmd: CommandClause =>
+        scopeCommandClause(cmd, incoming, None)
+
+      /**
+       * To make match exhaustive
+       */
+      case _ => UnexpectedAstNodeScopingError(astNode, incoming)
+    }
+  }
+
+  private def scopeCommandClause(
+    command: CommandClause,
+    incoming: RegularContext,
+    namesOpt: Option[Either[List[String], Expression]]
+  )(implicit c: PegContext): WorkingScope = {
+    val defaultCols = command.getFilteredColumns(c.semanticFeatures)
+    val declaringCommand = command.getClauseWithoutSubclauses
+    val commandScope = StatementScope(
+      declaringCommand,
+      RegularContext.unit,
+      Set.empty,
+      Declarations(constants = Seq.empty, variables = defaultCols),
+      outgoing = incoming.amendedWith(defaultCols.toSet),
+      result = TableResult(defaultCols)
+    )
+
+    val incomingWithDefaults = commandScope.outgoing
+      .amendedWithConstant(incoming.constants)
+      .amendedWith(incoming.variables)
+
+    val namesScope = namesOpt.flatMap {
+      case Right(expr) => Some(pegExpression(expr, incomingWithDefaults.constantChildContext()))
+      case Left(_)     => None
+    }
+    // TODO the YieldWith is parsed as an additive project, thus the yield always declares a new variable
+    //  we enforce a FreeProjection in this case to get the expected behavior,
+    //  as the yield is not a separate clause from the command in this context.
+    //  I find this yield - with implementation wierd.
+    val yieldScope = command.yieldWith.map(yW =>
+      pegClause(
+        yW.copy(returnItems =
+          yW.returnItems.copy(
+            projectionType = if (command.yieldAll) AdditiveProjection else FreeProjection,
+            command.yieldItems.map(_.toReturnItem)
+          )(yW.returnItems.position)
+        )(yW.position),
+        incomingWithDefaults
+      )
+    )
+
+    val outgoingFromInner = yieldScope.getOrElse(commandScope).outgoing
+    val outgoing = outgoingFromInner
+      .amendedWithConstant(incoming.constants)
+      .amendedWith(incoming.variables)
+
+    val whereScope =
+      command.where.map(w =>
+        pegExpression(w.expression, outgoing.constantChildContext())
+      )
+    val children = Seq(commandScope) ++ namesScope ++ yieldScope ++ whereScope
+    val result = TableResult(outgoing.variables.toSeq)
+    val declarations = Declarations(Seq.empty, outgoingFromInner.variables.toSeq)
+
+    incoming.resultScope(
+      outgoing,
+      result,
+      children,
+      None,
+      declarations
+    )(command)
   }
 }

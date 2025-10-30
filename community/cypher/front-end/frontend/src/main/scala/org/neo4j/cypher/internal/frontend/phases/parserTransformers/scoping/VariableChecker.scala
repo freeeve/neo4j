@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CreateOrInsert
@@ -102,6 +103,8 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
           incoming.checkIfVariablesAreAlreadyDeclaredAsConstant((constants ++ variables).toSet)
         // redeclaration of variables
         val redeclarationOfVariables = astNode match {
+          case _: CommandClause =>
+            incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
           case pc: ProjectionClause if pc.returnItems.projectionType == StrictlyAdditiveProjection =>
             incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
           case _: UnresolvedCall => incoming.checkIfVariablesHaveMultipleDeclarations(variables)

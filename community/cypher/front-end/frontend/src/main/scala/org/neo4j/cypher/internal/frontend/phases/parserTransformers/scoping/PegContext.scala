@@ -23,5 +23,5 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 case class PegContext(
   anonVarGen: AnonymousVariableNameGenerator,
   language: CypherVersion,
-  semanticFeatures: Seq[SemanticFeature]
+  semanticFeatures: Set[SemanticFeature]
 )

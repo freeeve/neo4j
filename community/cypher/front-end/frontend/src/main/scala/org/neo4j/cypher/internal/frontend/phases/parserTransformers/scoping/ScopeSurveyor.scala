@@ -50,7 +50,7 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
     val workingContextOfStatement = scope(
       from.statement(),
       RegularContext.unit,
-      PegContext(anonVarGen, context.cypherVersion, context.semanticFeatures)
+      PegContext(anonVarGen, context.cypherVersion, context.semanticFeatures.toSet)
     )
     from.withWorkingScope(workingContextOfStatement)
   }

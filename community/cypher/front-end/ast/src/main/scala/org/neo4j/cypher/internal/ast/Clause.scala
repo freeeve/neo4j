@@ -2371,6 +2371,9 @@ case class ScopeClauseSubqueryCall(
 sealed trait CommandClause extends Clause with SemanticAnalysisTooling {
   def unfilteredColumns: DefaultOrAllShowColumns
 
+  def getFilteredColumns(features: Set[SemanticFeature]): Seq[LogicalVariable] =
+    unfilteredColumns.columns.map(_.variable)
+
   // Yielded columns or yield *
   def yieldItems: List[CommandResultItem]
   def yieldAll: Boolean
@@ -2391,6 +2394,7 @@ sealed trait CommandClause extends Clause with SemanticAnalysisTooling {
 
   def yieldWith: Option[With]
   def moveOutWith: CommandClause
+  def getClauseWithoutSubclauses: CommandClause
 }
 
 object CommandClause {
@@ -2453,6 +2457,10 @@ case class CommandResultItem(originalName: String, aliasedVariable: LogicalVaria
         ))
       })
   }
+
+  def toReturnItem: ReturnItem = {
+    AliasedReturnItem(Variable(originalName)(position, isIsolated = false), aliasedVariable)(position)
+  }
 }
 
 // Column name together with the column type
@@ -2508,6 +2516,9 @@ case class ShowIndexesClause(
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
+
+  override def getClauseWithoutSubclauses: CommandClause =
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
 }
 
 object ShowIndexesClause {
@@ -2592,6 +2603,22 @@ case class ShowConstraintsClause(
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
+
+  override def getClauseWithoutSubclauses: CommandClause =
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+
+  override def getFilteredColumns(features: Set[SemanticFeature]): Seq[LogicalVariable] =
+    if (!features(SemanticFeature.GraphTypes)) {
+      def filterOutGraphTypeColumns(name: String) =
+        Seq(ShowConstraintsClause.enforcedLabelColumn, ShowConstraintsClause.classificationColumn).contains(name)
+
+      val filteredUnfilteredColumns =
+        unfilteredColumns.columns.filterNot { s: ShowColumn => filterOutGraphTypeColumns(s.name) }
+
+      filteredUnfilteredColumns.map(_.variable)
+    } else {
+      unfilteredColumns.columns.map(_.variable)
+    }
 
   // Don't want to declare the graph type columns without the feature flag enabled
   override def clauseSpecificSemanticCheck: SemanticCheck = fromState { s =>
@@ -2688,6 +2715,9 @@ case class ShowCurrentGraphTypeClause(
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
+  override def getClauseWithoutSubclauses: CommandClause =
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+
   override def clauseSpecificSemanticCheck: SemanticCheck =
     requireFeatureSupport("`SHOW CURRENT GRAPH TYPE`", SemanticFeature.GraphTypes, position) chain
       super.clauseSpecificSemanticCheck
@@ -2733,6 +2763,9 @@ case class ShowProceduresClause(
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
+
+  override def getClauseWithoutSubclauses: CommandClause =
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
 }
 
 object ShowProceduresClause {
@@ -2812,6 +2845,9 @@ case class ShowFunctionsClause(
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
+
+  override def getClauseWithoutSubclauses: CommandClause =
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
 }
 
 object ShowFunctionsClause {
@@ -2893,6 +2929,9 @@ case class ShowTransactionsClause(
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
+
+  override def getClauseWithoutSubclauses: CommandClause =
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
 }
 
 object ShowTransactionsClause {
@@ -3032,6 +3071,9 @@ case class TerminateTransactionsClause(
   override def moveWhereToProjection: CommandClause = this
 
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
+
+  override def getClauseWithoutSubclauses: CommandClause =
+    copy(yieldItems = List.empty, yieldWith = None)(position)
 }
 
 object TerminateTransactionsClause {
@@ -3089,6 +3131,9 @@ case class ShowSettingsClause(
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
+
+  override def getClauseWithoutSubclauses: CommandClause =
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
 
   override def clauseSpecificSemanticCheck: SemanticCheck = {
     requireFeatureSupport(
