@@ -165,6 +165,8 @@ final class SharedExecutorBasedCaffeineCacheFactory(
   @VisibleForTesting
   private[cache] def backingCache(kind: String): Option[BackingCache[_, _]] = backingCacheByKind.get(kind)
 
+  // Note, estimated size is less correct in this implementation when using ttl and soft cache.
+  // See SharedCachePropertyTest.
   class SharedCacheFactoryForKind(kind: String) extends CaffeineCacheFactory {
     override protected def executor: Executor = self.executor
 
