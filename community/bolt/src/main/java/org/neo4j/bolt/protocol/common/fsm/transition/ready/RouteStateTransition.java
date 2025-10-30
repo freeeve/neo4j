@@ -54,12 +54,14 @@ public final class RouteStateTransition extends SimpleImpersonationStateTransiti
             throw new CapabilityViolationStateTransitionException("Routing is not supported on this connector");
         }
 
+        boolean isDefaultDatabase = false;
         var databaseName = message.getDatabaseName();
         if (databaseName == null) {
             // TODO: Since the home database may change throughout the lifetime of the
             //       connection, we will need to re-resolve the target database. Ideally we
             //       should always be aware of the target database.
             ctx.connection().resolveDefaultDatabase();
+            isDefaultDatabase = true;
             databaseName = ctx.connection().selectedDefaultDatabase();
         }
 
@@ -69,7 +71,7 @@ public final class RouteStateTransition extends SimpleImpersonationStateTransiti
             var result = ctx.connection()
                     .connector()
                     .routingService()
-                    .route(databaseName, user, message.getRequestContext());
+                    .route(databaseName, user, message.getRequestContext(), isDefaultDatabase);
 
             routingTable = RoutingResultFormat.buildMap(result);
         } catch (RoutingException ex) {

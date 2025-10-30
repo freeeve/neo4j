@@ -96,7 +96,7 @@ public final class GetRoutingTableProcedure implements CallableProcedure {
         var routingContext = extractRoutingContext(input);
 
         try {
-            var result = routingService.route(databaseName, user, routingContext);
+            var result = routingService.route(databaseName, user, routingContext, false);
             log.info(
                     "Routing result for database %s and routing context %s is %s",
                     databaseName, routingContext, result);

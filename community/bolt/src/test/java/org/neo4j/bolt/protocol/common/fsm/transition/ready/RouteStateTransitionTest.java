@@ -89,7 +89,7 @@ class RouteStateTransitionTest extends AbstractStateTransitionTest<RouteMessage,
 
         Mockito.doReturn(routingTable)
                 .when(this.routingService)
-                .route(Mockito.anyString(), Mockito.any(), Mockito.notNull());
+                .route(Mockito.anyString(), Mockito.any(), Mockito.notNull(), Mockito.anyBoolean());
     }
 
     @Override
@@ -122,7 +122,12 @@ class RouteStateTransitionTest extends AbstractStateTransitionTest<RouteMessage,
 
                     Assertions.assertThat(targetState).isEqualTo(this.initialState());
 
-                    Mockito.verify(this.routingService).route(databaseName, username, request.getRequestContext());
+                    Mockito.verify(this.routingService)
+                            .route(
+                                    databaseName,
+                                    username,
+                                    request.getRequestContext(),
+                                    parameters.databaseName == null);
                     Mockito.verify(this.responseHandler).onRoutingTable(Mockito.eq(databaseName), Mockito.notNull());
                 }));
     }
@@ -133,7 +138,7 @@ class RouteStateTransitionTest extends AbstractStateTransitionTest<RouteMessage,
 
         Mockito.doThrow(new RoutingException(null, General.UnknownError, "Something went wrong!"))
                 .when(this.routingService)
-                .route(Mockito.any(), Mockito.any(), Mockito.any());
+                .route(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.anyBoolean());
 
         Assertions.assertThatExceptionOfType(InternalStateTransitionException.class)
                 .isThrownBy(() -> this.transition.process(this.context, request, this.responseHandler))

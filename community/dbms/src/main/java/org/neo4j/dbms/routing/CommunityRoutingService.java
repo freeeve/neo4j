@@ -54,7 +54,8 @@ public class CommunityRoutingService implements RoutingService {
     }
 
     @Override
-    public RoutingResult route(String databaseName, String user, MapValue routingContext) throws RoutingException {
+    public RoutingResult route(String databaseName, String user, MapValue routingContext, boolean isDefaultDatabase)
+            throws RoutingException {
         if (databaseName == null || databaseName.isEmpty() || databaseName.isBlank()) {
             databaseName = defaultDatabaseResolver.defaultDatabase(user);
         }

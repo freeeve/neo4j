@@ -108,7 +108,8 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
     }
 
     @Override
-    public RoutingResult route(String databaseName, String user, MapValue routingContext) throws RoutingException {
+    public RoutingResult route(String databaseName, String user, MapValue routingContext, boolean isDefaultDatabase)
+            throws RoutingException {
         assertNotInPanic();
         var databaseReference = extractDatabaseReference(databaseName, user);
         assertDatabaseExists(databaseReference);

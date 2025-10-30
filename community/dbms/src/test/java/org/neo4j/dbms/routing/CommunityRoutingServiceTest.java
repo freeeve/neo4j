@@ -69,10 +69,10 @@ class CommunityRoutingServiceTest {
         setupDatabase(true);
 
         // when
-        service.route(null, null, MapValue.EMPTY);
-        service.route("", null, MapValue.EMPTY);
-        service.route(" ", null, MapValue.EMPTY);
-        service.route(null, userName, MapValue.EMPTY);
+        service.route(null, null, MapValue.EMPTY, false);
+        service.route("", null, MapValue.EMPTY, false);
+        service.route(" ", null, MapValue.EMPTY, false);
+        service.route(null, userName, MapValue.EMPTY, false);
 
         // then
         verify(defaultDatabaseResolver, times(3)).defaultDatabase(null);
@@ -86,7 +86,7 @@ class CommunityRoutingServiceTest {
         var service = createService(enabledConfig);
 
         // when / then
-        assertThatThrownBy(() -> service.route(dbName, null, MapValue.EMPTY))
+        assertThatThrownBy(() -> service.route(dbName, null, MapValue.EMPTY, false))
                 .isInstanceOf(RoutingException.class)
                 .hasMessageContaining("database does not exist");
         verify(databaseContextProvider).getDatabaseContext(dbName);
@@ -99,7 +99,7 @@ class CommunityRoutingServiceTest {
         setupDatabase(false);
 
         // when / then
-        assertThatThrownBy(() -> service.route(dbName, null, MapValue.EMPTY))
+        assertThatThrownBy(() -> service.route(dbName, null, MapValue.EMPTY, false))
                 .isInstanceOf(RoutingException.class)
                 .hasMessageContaining("database is unavailable");
         verify(databaseContextProvider).getDatabaseContext(dbName);
@@ -112,7 +112,7 @@ class CommunityRoutingServiceTest {
         setupDatabase(true);
 
         // when / then
-        assertThatThrownBy(() -> service.route(dbName, null, MapValue.EMPTY))
+        assertThatThrownBy(() -> service.route(dbName, null, MapValue.EMPTY, false))
                 .isInstanceOf(RoutingException.class)
                 .hasMessageContaining("Bolt is not enabled");
         verify(databaseContextProvider).getDatabaseContext(dbName);
@@ -133,7 +133,7 @@ class CommunityRoutingServiceTest {
         setupDatabase(true);
 
         // when
-        var result = service.route(dbName, null, MapValue.EMPTY);
+        var result = service.route(dbName, null, MapValue.EMPTY, false);
 
         // then
         assertThat(result.ttlMillis()).isEqualTo(ttl.toMillis());
@@ -154,7 +154,8 @@ class CommunityRoutingServiceTest {
                                 null,
                                 VirtualValues.map(
                                         new String[] {RoutingTableServiceHelpers.ADDRESS_CONTEXT_KEY},
-                                        new AnyValue[] {value})))
+                                        new AnyValue[] {value}),
+                                false))
                         .isInstanceOf(RoutingException.class)
                         .hasMessageContaining("value could not be parsed"));
     }
@@ -206,7 +207,7 @@ class CommunityRoutingServiceTest {
         var context = VirtualValues.map(
                 new String[] {RoutingTableServiceHelpers.ADDRESS_CONTEXT_KEY},
                 new AnyValue[] {Values.utf8Value(providedAddress)});
-        var result = service.route(dbName, null, context);
+        var result = service.route(dbName, null, context, false);
 
         // then
         assertAddress(result, exceptedAddress);

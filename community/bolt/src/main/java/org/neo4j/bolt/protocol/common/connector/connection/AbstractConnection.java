@@ -571,9 +571,9 @@ public abstract class AbstractConnection implements ConnectionHandle {
             throw new IllegalStateException("Cannot resolve default database: Connection has not been authenticated");
         }
 
-        var db = this.connector()
-                .defaultDatabaseResolver()
-                .defaultDatabase(this.loginContext().subject().executingUser());
+        var defaultDatabaseResolver = this.connector().defaultDatabaseResolver();
+        var db = defaultDatabaseResolver.defaultDatabase(
+                this.loginContext().subject().executingUser());
 
         String previousDatabase;
         if (loginContext.impersonating()) {

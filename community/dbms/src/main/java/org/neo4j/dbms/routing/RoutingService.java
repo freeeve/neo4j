@@ -22,5 +22,6 @@ package org.neo4j.dbms.routing;
 import org.neo4j.values.virtual.MapValue;
 
 public interface RoutingService {
-    RoutingResult route(String databaseName, String user, MapValue routingContext) throws RoutingException;
+    RoutingResult route(String databaseName, String user, MapValue routingContext, boolean isDefaultDatabase)
+            throws RoutingException;
 }
