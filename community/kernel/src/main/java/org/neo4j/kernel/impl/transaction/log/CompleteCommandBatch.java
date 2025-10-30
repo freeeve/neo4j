@@ -160,14 +160,15 @@ public class CompleteCommandBatch implements CommandBatch {
     @Override
     public String toString(boolean includeCommands) {
         String basic = format(
-                "%s[timeStarted:%d, latestCommittedTxWhenStarted:%d, timeCommitted:%d, lease:%d, consensusIndex:%d, commands.length:%d",
+                "%s[timeStarted:%d, latestCommittedTxWhenStarted:%d, timeCommitted:%d, lease:%d, consensusIndex:%d, commands.length:%d, leases:%s",
                 getClass().getSimpleName(),
                 timeStarted,
                 latestCommittedTxWhenStarted,
                 timeCommitted,
                 leaseId,
                 consensusIndex,
-                commands.size());
+                commands.size(),
+                leases);
         if (!includeCommands) {
             return basic;
         }
