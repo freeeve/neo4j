@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.transaction.log;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import org.neo4j.io.fs.ChannelNativeAccessor;
 import org.neo4j.io.fs.DelegatingStoreChannel;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
@@ -135,7 +136,7 @@ public class PhysicalLogVersionedStoreChannel extends DelegatingStoreChannel<Sto
     @Override
     public void close() throws IOException {
         if (!raw) {
-            nativeChannelAccessor.evictFromSystemCache(this, version);
+            nativeChannelAccessor.evictFromSystemCache(this, path);
         }
         databaseTracer.closeLogFile(path);
         super.close();

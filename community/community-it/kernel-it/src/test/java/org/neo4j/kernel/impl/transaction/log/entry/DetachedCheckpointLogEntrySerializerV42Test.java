@@ -23,7 +23,7 @@ import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.internal.helpers.Numbers.safeCastIntToShort;
 import static org.neo4j.io.ByteUnit.kibiBytes;
-import static org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor.EMPTY_ACCESSOR;
+import static org.neo4j.io.fs.ChannelNativeAccessor.EMPTY_ACCESSOR;
 import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer.writeLogEntryHeader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.DETACHED_CHECK_POINT;

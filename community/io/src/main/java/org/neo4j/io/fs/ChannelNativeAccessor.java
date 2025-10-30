@@ -17,27 +17,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log;
+package org.neo4j.io.fs;
 
-import org.neo4j.io.fs.StoreChannel;
+import java.nio.file.Path;
 
 public interface ChannelNativeAccessor {
     ChannelNativeAccessor EMPTY_ACCESSOR = new EmptyChannelNativeAccessor();
 
-    void adviseSequentialAccessAndKeepInCache(StoreChannel storeChannel, long version);
+    @FunctionalInterface
+    interface OutOfDiskHandler {
+        void handle(String error);
+    }
 
-    void evictFromSystemCache(StoreChannel storeChannel, long version);
+    void adviseSequentialAccessAndKeepInCache(StoreChannel storeChannel, Path file);
 
-    void preallocateSpace(StoreChannel storeChannel, long version);
+    void evictFromSystemCache(StoreChannel storeChannel, Path file);
+
+    void preallocateSpace(StoreChannel storeChannel, long bytes, Path file);
 
     class EmptyChannelNativeAccessor implements ChannelNativeAccessor {
         @Override
-        public void adviseSequentialAccessAndKeepInCache(StoreChannel storeChannel, long version) {}
+        public void adviseSequentialAccessAndKeepInCache(StoreChannel storeChannel, Path file) {}
 
         @Override
-        public void evictFromSystemCache(StoreChannel storeChannel, long version) {}
+        public void evictFromSystemCache(StoreChannel storeChannel, Path file) {}
 
         @Override
-        public void preallocateSpace(StoreChannel storeChannel, long version) {}
+        public void preallocateSpace(StoreChannel storeChannel, long bytes, Path file) {}
     }
 }

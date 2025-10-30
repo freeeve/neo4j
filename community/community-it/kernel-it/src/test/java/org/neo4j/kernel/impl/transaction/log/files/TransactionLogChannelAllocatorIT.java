@@ -46,6 +46,7 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.internal.nativeimpl.AbsentNativeAccess;
 import org.neo4j.internal.nativeimpl.LinuxNativeAccess;
 import org.neo4j.internal.nativeimpl.NativeAccess;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
@@ -55,7 +56,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
-import org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogSegments;
@@ -112,10 +112,10 @@ class TransactionLogChannelAllocatorIT {
         }
 
         var logHeaderCache = new LogHeaderCache(10);
-        var logFileContext = createLogFileContext();
         var nativeChannelAccessor = new AdviseCountingChannelNativeAccessor();
-        var channelAllocator =
-                new TransactionLogChannelAllocator(logFileContext, fileHelper, logHeaderCache, nativeChannelAccessor);
+        var logFileContext = createLogFileContext(nativeChannelAccessor);
+        var channelAllocator = new TransactionLogChannelAllocator(
+                logFileContext, fileHelper, logHeaderCache, logFileContext.rotationThreshold());
         try (var ignored = channelAllocator.openLogChannel(1, true)) {
             assertEquals(0, nativeChannelAccessor.getCallCounter());
         }
@@ -139,10 +139,10 @@ class TransactionLogChannelAllocatorIT {
         }
 
         var logHeaderCache = new LogHeaderCache(10);
-        var logFileContext = createLogFileContext();
         var nativeChannelAccessor = new AdviseCountingChannelNativeAccessor();
-        var channelAllocator =
-                new TransactionLogChannelAllocator(logFileContext, fileHelper, logHeaderCache, nativeChannelAccessor);
+        var logFileContext = createLogFileContext(nativeChannelAccessor);
+        var channelAllocator = new TransactionLogChannelAllocator(
+                logFileContext, fileHelper, logHeaderCache, logFileContext.rotationThreshold());
         try (var ignored = channelAllocator.openLogChannel(1)) {
             assertEquals(1, nativeChannelAccessor.getCallCounter());
         }
@@ -161,16 +161,15 @@ class TransactionLogChannelAllocatorIT {
     @EnabledOnOs(OS.LINUX)
     void failToPreallocateFileWithOutOfDiskSpaceError() throws IOException {
         var logFileContext = createLogFileContext(getUnavailableBytes(), new PreallocationFailingChannelNativeAccess());
-        var nativeChannelAccessor = new LogFileChannelNativeAccessor(fileSystem, logFileContext);
         var unreasonableAllocator = new TransactionLogChannelAllocator(
-                logFileContext, fileHelper, new LogHeaderCache(10), nativeChannelAccessor);
+                logFileContext, fileHelper, new LogHeaderCache(10), logFileContext.rotationThreshold());
         try (var channel = assertDoesNotThrow(() -> unreasonableAllocator.createLogChannel(
                 10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER))) {}
 
         assertThat(logProvider.serialize())
                 .containsSequence(
                         "Warning! System is running out of disk space. "
-                                + "Failed to preallocate log file since disk does not have enough space left. Please provision more space to avoid that.");
+                                + "Failed to preallocate file since disk does not have enough space left. Please provision more space to avoid that.");
         assertThat(config.get(GraphDatabaseSettings.read_only_databases)).contains(DEFAULT_DATABASE_NAME);
     }
 
@@ -179,15 +178,14 @@ class TransactionLogChannelAllocatorIT {
     void failToPreallocateFileWithOutOfDiskSpaceErrorAndDisabledFailover() throws IOException {
         config.setDynamic(dynamic_read_only_failover, false, "test");
         var logFileContext = createLogFileContext(getUnavailableBytes(), new PreallocationFailingChannelNativeAccess());
-        var nativeChannelAccessor = new LogFileChannelNativeAccessor(fileSystem, logFileContext);
         var unreasonableAllocator = new TransactionLogChannelAllocator(
-                logFileContext, fileHelper, new LogHeaderCache(10), nativeChannelAccessor);
+                logFileContext, fileHelper, new LogHeaderCache(10), logFileContext.rotationThreshold());
         try (PhysicalLogVersionedStoreChannel channel = unreasonableAllocator.createLogChannel(
                 10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)) {
             assertEquals(EMPTY_LOG_FILE_SIZE, channel.size());
             assertThat(logProvider.serialize())
                     .containsSequence(
-                            "Warning! System is running out of disk space. Failed to preallocate log file since disk does "
+                            "Warning! System is running out of disk space. Failed to preallocate file since disk does "
                                     + "not have enough space left. Please provision more space to avoid that.")
                     .containsSequence(
                             "Dynamic switchover to read-only mode is disabled. The database will continue execution in the current mode.");
@@ -222,12 +220,16 @@ class TransactionLogChannelAllocatorIT {
     private TransactionLogChannelAllocator createLogFileAllocator() {
         LogHeaderCache logHeaderCache = new LogHeaderCache(10);
         var logFileContext = createLogFileContext();
-        var nativeChannelAccessor = new LogFileChannelNativeAccessor(fileSystem, logFileContext);
-        return new TransactionLogChannelAllocator(logFileContext, fileHelper, logHeaderCache, nativeChannelAccessor);
+        return new TransactionLogChannelAllocator(
+                logFileContext, fileHelper, logHeaderCache, logFileContext.rotationThreshold());
     }
 
     private TransactionLogFilesContext createLogFileContext() {
         return createLogFileContext(ROTATION_THRESHOLD, NativeAccessProvider.getNativeAccess());
+    }
+
+    private TransactionLogFilesContext createLogFileContext(NativeAccess nativeAccess) {
+        return createLogFileContext(ROTATION_THRESHOLD, nativeAccess);
     }
 
     private TransactionLogFilesContext createLogFileContext(long rotationThreshold, NativeAccess nativeAccess) {
@@ -257,12 +259,13 @@ class TransactionLogChannelAllocatorIT {
                 256);
     }
 
-    private static class AdviseCountingChannelNativeAccessor extends ChannelNativeAccessor.EmptyChannelNativeAccessor {
+    private static class AdviseCountingChannelNativeAccessor extends AbsentNativeAccess {
         private long callCounter;
 
         @Override
-        public void adviseSequentialAccessAndKeepInCache(StoreChannel storeChannel, long version) {
+        public NativeCallResult tryAdviseSequentialAccess(int fd) {
             callCounter++;
+            return NativeCallResult.SUCCESS;
         }
 
         public long getCallCounter() {

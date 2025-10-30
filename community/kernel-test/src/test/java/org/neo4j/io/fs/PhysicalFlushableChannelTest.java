@@ -61,10 +61,10 @@ import org.neo4j.kernel.impl.api.tracer.DefaultDatabaseTracer;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
-import org.neo4j.kernel.impl.transaction.log.files.LogFileChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.memory.LocalMemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
@@ -80,7 +80,7 @@ class PhysicalFlushableChannelTest {
     @Inject
     private TestDirectory directory;
 
-    private final LogFileChannelNativeAccessor nativeChannelAccessor = mock(LogFileChannelNativeAccessor.class);
+    private final StoreChannelNativeAccessor nativeChannelAccessor = mock(StoreChannelNativeAccessor.class);
     private final DatabaseTracer databaseTracer = DatabaseTracer.NULL;
 
     @Test

@@ -24,12 +24,12 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSP
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
+import org.neo4j.io.fs.ChannelNativeAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
@@ -55,7 +55,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     private final long maxFileSize;
     private final LogHeaderFactory logHeaderFactory;
     private final LogFilesPruner logFilesPruner;
-    private final LogFilesPreAllocator logFilesPreAllocator;
+    private final ChannelNativeAccessor channelNativeAccessor;
     private LogChannelContext<StoreChannel> currentWriteChannel;
     private EnvelopeWriteChannel appendingChannel;
 
@@ -69,12 +69,12 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             int totalSegments,
             MemoryTracker memoryTracker,
             PruneStrategy pruneStrategy,
-            LogFilesPreAllocator logFilesPreAllocator) {
+            ChannelNativeAccessor channelNativeAccessor) {
         if (totalSegments < MINIMUM_SEGMENTS) {
             throw new IllegalArgumentException(
                     String.format("Must have at least %d segments. Got %d", MINIMUM_SEGMENTS, totalSegments));
         }
-        this.logFilesPreAllocator = logFilesPreAllocator;
+        this.channelNativeAccessor = channelNativeAccessor;
         this.logHeaderFactory = logHeaderFactory;
         this.logsRepository = new LogsRepository(fs, directory, baseFileName);
         this.segmentBlockSize = segmentBlockSize;
@@ -326,7 +326,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     private LogChannelContext<StoreChannel> createNewStoreChannel(long version, LogHeader logHeader)
             throws IOException {
         var logChannelCtx = logsRepository.createWriteChannel(version);
-        logFilesPreAllocator.preAllocateLogFile(logChannelCtx, maxFileSize);
+        channelNativeAccessor.preallocateSpace(logChannelCtx.channel(), maxFileSize, logChannelCtx.path());
         logChannelCtx.channel().position(0);
         LogFormat.writeLogHeader(logChannelCtx.channel(), logHeader, memoryTracker);
         logChannelCtx.channel().flush(); // ensure header and metadata is flushed to disk

@@ -28,9 +28,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.kernel.DatabaseVersion;
+import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.logging.NullLogProvider;
@@ -101,7 +103,8 @@ class SegmentBinarySearchTest {
                 totalSegments,
                 EmptyMemoryTracker.INSTANCE,
                 pruneStrategy,
-                new LogFilesPreAllocator(NullLogProvider.getInstance()));
+                new StoreChannelNativeAccessor(
+                        fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}));
     }
 
     /**

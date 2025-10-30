@@ -51,7 +51,7 @@ import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadAheadLogChannel;
-import org.neo4j.kernel.impl.transaction.log.files.LogFileChannelNativeAccessor;
+import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -68,7 +68,7 @@ class ReadAheadLogChannelTest {
     @Inject
     private TestDirectory directory;
 
-    private final LogFileChannelNativeAccessor nativeChannelAccessor = mock(LogFileChannelNativeAccessor.class);
+    private final StoreChannelNativeAccessor nativeChannelAccessor = mock(StoreChannelNativeAccessor.class);
     private final DatabaseTracer databaseTracer = DatabaseTracer.NULL;
 
     @Test

@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
+import java.util.concurrent.atomic.AtomicLong;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
@@ -35,6 +36,6 @@ public class CheckpointLogChannelAllocator extends TransactionLogChannelAllocato
                 logFilesContext,
                 fileHelper,
                 new LogHeaderCache(1),
-                new CheckpointFileChannelNativeAccessor(logFilesContext));
+                new AtomicLong(logFilesContext.getCheckpointRotationThreshold()));
     }
 }

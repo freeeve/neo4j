@@ -25,8 +25,10 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEAD
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.DatabaseVersion;
+import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.logging.NullLogProvider;
@@ -104,7 +106,8 @@ class LogFileBinarySearchTest {
                 EmptyMemoryTracker.INSTANCE,
                 (currentEntry, currentOffset, currentLogFile) ->
                         pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile),
-                new LogFilesPreAllocator(NullLogProvider.getInstance()));
+                new StoreChannelNativeAccessor(
+                        fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}));
     }
 
     /**

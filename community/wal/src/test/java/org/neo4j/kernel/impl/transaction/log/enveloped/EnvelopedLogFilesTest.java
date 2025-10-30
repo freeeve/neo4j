@@ -34,10 +34,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.internal.helpers.collection.Pair;
+import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
+import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.EnvelopeType;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
@@ -120,7 +122,8 @@ class EnvelopedLogFilesTest {
                 EmptyMemoryTracker.INSTANCE,
                 (currentEntry, currentOffset, currentLogFile) ->
                         pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile),
-                new LogFilesPreAllocator(NullLogProvider.getInstance()));
+                new StoreChannelNativeAccessor(
+                        fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}));
     }
 
     @AfterEach

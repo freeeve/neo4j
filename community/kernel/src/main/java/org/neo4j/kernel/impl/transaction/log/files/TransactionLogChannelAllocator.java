@@ -20,24 +20,32 @@
 package org.neo4j.kernel.impl.transaction.log.files;
 
 import static java.lang.String.format;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.dynamic_read_only_failover;
+import static org.neo4j.configuration.GraphDatabaseSettings.read_only_databases;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.writeLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import org.neo4j.configuration.Config;
+import org.neo4j.io.fs.ChannelNativeAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
-import org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.LogFileCreateEvent;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.entry.IncompleteLogHeaderException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
+import org.neo4j.logging.InternalLog;
 
 public class TransactionLogChannelAllocator {
     private final TransactionLogFilesContext logFilesContext;
@@ -46,18 +54,24 @@ public class TransactionLogChannelAllocator {
     private final LogHeaderCache logHeaderCache;
     private final ChannelNativeAccessor nativeChannelAccessor;
     private final DatabaseTracer databaseTracer;
+    private final AtomicLong rotationThreshold;
 
     public TransactionLogChannelAllocator(
             TransactionLogFilesContext logFilesContext,
             TransactionLogFilesHelper fileHelper,
             LogHeaderCache logHeaderCache,
-            ChannelNativeAccessor nativeChannelAccessor) {
+            AtomicLong rotationThreshold) {
         this.logFilesContext = logFilesContext;
         this.fileSystem = logFilesContext.getFileSystem();
         this.databaseTracer = logFilesContext.getDatabaseTracers().getDatabaseTracer();
         this.fileHelper = fileHelper;
         this.logHeaderCache = logHeaderCache;
-        this.nativeChannelAccessor = nativeChannelAccessor;
+        this.nativeChannelAccessor = new StoreChannelNativeAccessor(
+                logFilesContext.fileSystem(),
+                logFilesContext.getNativeAccess(),
+                logFilesContext.getLogProvider(),
+                new TransactionLogOutOfDiskHandler(logFilesContext));
+        this.rotationThreshold = rotationThreshold;
     }
 
     public PhysicalLogVersionedStoreChannel createLogChannel(
@@ -189,7 +203,7 @@ public class TransactionLogChannelAllocator {
                     databaseTracer,
                     raw);
             if (!raw) {
-                nativeChannelAccessor.adviseSequentialAccessAndKeepInCache(rawChannel, version);
+                nativeChannelAccessor.adviseSequentialAccessAndKeepInCache(rawChannel, fileToOpen);
             }
             return versionedStoreChannel;
         } catch (NoSuchFileException cause) {
@@ -225,9 +239,9 @@ public class TransactionLogChannelAllocator {
         boolean fileExist = fileSystem.fileExists(file);
         StoreChannel storeChannel = fileSystem.write(file);
         if (fileExist) {
-            nativeChannelAccessor.adviseSequentialAccessAndKeepInCache(storeChannel, version);
+            nativeChannelAccessor.adviseSequentialAccessAndKeepInCache(storeChannel, file);
         } else if (logFilesContext.getTryPreallocateTransactionLogs().get()) {
-            nativeChannelAccessor.preallocateSpace(storeChannel, version);
+            nativeChannelAccessor.preallocateSpace(storeChannel, rotationThreshold.get(), file);
         }
         return new AllocatedFile(file, storeChannel);
     }
@@ -239,9 +253,41 @@ public class TransactionLogChannelAllocator {
             throw new NoSuchFileException(file.toAbsolutePath().toString());
         }
         StoreChannel storeChannel = fileSystem.write(file);
-        nativeChannelAccessor.adviseSequentialAccessAndKeepInCache(storeChannel, version);
+        nativeChannelAccessor.adviseSequentialAccessAndKeepInCache(storeChannel, file);
         return new AllocatedFile(file, storeChannel);
     }
 
     private record AllocatedFile(Path path, StoreChannel storeChannel) {}
+
+    private static class TransactionLogOutOfDiskHandler implements ChannelNativeAccessor.OutOfDiskHandler {
+        private final InternalLog log;
+        private final Config config;
+        private final String databaseName;
+
+        public TransactionLogOutOfDiskHandler(TransactionLogFilesContext logFilesContext) {
+            this.log = logFilesContext.getLogProvider().getLog(getClass());
+            this.config = logFilesContext.config();
+            this.databaseName = logFilesContext.getDatabaseName();
+        }
+
+        @Override
+        public void handle(String error) {
+            log.error(
+                    "Warning! System is running out of disk space. Failed to preallocate file since disk does not have enough space left. "
+                            + "Please provision more space to avoid that. Allocation failure details: " + error);
+            if (config.get(dynamic_read_only_failover)) {
+                log.error("Switching database to read only mode.");
+                markDatabaseReadOnly();
+            } else {
+                log.error(
+                        "Dynamic switchover to read-only mode is disabled. The database will continue execution in the current mode.");
+            }
+        }
+
+        private void markDatabaseReadOnly() {
+            Set<String> readOnlyDatabases = new HashSet<>(config.get(read_only_databases));
+            readOnlyDatabases.add(databaseName);
+            config.setDynamic(read_only_databases, readOnlyDatabases, "Dynamic failover to read-only mode.");
+        }
+    }
 }
