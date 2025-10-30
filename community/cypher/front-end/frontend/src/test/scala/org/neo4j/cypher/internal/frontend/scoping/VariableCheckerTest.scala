@@ -407,7 +407,12 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   test("""UNWIND [1, 2, 3] AS x
          |RETURN SUM(x) AS s
          |  ORDER BY x ASCENDING""".stripMargin) {
-    error("42N62", "Variable `x` not defined.")
+    passes()
+  }
+
+  test("""MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
+         |RETURN a.name, {foo: a.name='Andres', kids: collect(child.name)}""".stripMargin) {
+    passes()
   }
 
   test("""UNWIND [1, 2, 3] AS x
@@ -419,7 +424,8 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   test("""LET a = 10
          |UNWIND [1, 2, 3] AS x
          |RETURN a, SUM(x / a) + x * 5 AS s""".stripMargin) {
-    error("42N62", "Variable `x` not defined.")
+    // Ambiguous aggregation
+    passes()
   }
 
   test("""LET a = 10
@@ -431,7 +437,8 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   test("""LET a = 10
          |UNWIND [1, 2, 3] AS x
          |RETURN a AS x, SUM(x / a) + x * 5 AS s""".stripMargin) {
-    error("42N62", "Variable `x` not defined.")
+    // Ambiguous aggregation
+    passes()
   }
 
   test("""CALL (x) { RETURN 1 AS x } RETURN x""".stripMargin) {
@@ -462,7 +469,7 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   test("""MATCH (a)-[r]->+(b)
          |WHERE allReduce(acc = 0, rel IN r | acc + rel.prop, rel.prop = 5)
          |RETURN a, b""".stripMargin) {
-    error("42N62", "Variable `rel` not defined.")
+    passes()
   }
 
   test(
@@ -662,6 +669,16 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N59", "Variable `a` already declared.")
   }
 
+  test("""WITH "%s" AS g
+         |CALL() {
+         |  USE graph.byName(g)
+         |  WITH 2 AS x
+         |  RETURN *
+         |}
+         |RETURN x""".stripMargin) {
+    error("42N62", "Variable `g` not defined.")
+  }
+
   test("""MATCH ((a)--(b))+, (x WHERE size(a) = 2)
          |RETURN *""".stripMargin) {
     passes()
@@ -799,6 +816,42 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
       "42N07",
       "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
     )
+  }
+
+  test("""WITH 1 AS x
+         |CALL {
+         |  USE mega.graph1
+         |  WITH 2 AS x
+         |  RETURN *
+         |}
+         |RETURN x""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""WITH 1 AS x
+         |CALL () {
+         |  USE mega.graph1
+         |  WITH 2 AS x
+         |  RETURN *
+         |}
+         |RETURN x""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""WITH "%s" AS g
+         |CALL(g) {
+         |  USE graph.byName(g)
+         |  WITH 2 AS x
+         |  RETURN *
+         |}
+         |RETURN x""".stripMargin) {
+    passes()
   }
 
   /**

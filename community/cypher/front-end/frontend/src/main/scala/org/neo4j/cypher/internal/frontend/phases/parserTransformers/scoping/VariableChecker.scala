@@ -25,9 +25,11 @@ import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.ProjectionClause
+import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
+import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.StrictlyAdditiveProjection
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.TopLevelBraces
@@ -295,18 +297,31 @@ case object VariableASTChecker extends Phase[BaseContext, BaseState, BaseState] 
 
   val checks: Seq[PartialFunction[ASTNode, Seq[SemanticError]]] = Seq(
     {
-      case ImportingWithSubqueryCall(ns: NextStatement, _, _) =>
-        Seq(SemanticError.invalidUseOfOldCall("NEXT", ns.position))
-      case ImportingWithSubqueryCall(tlb: TopLevelBraces, _, _) =>
-        Seq(SemanticError.invalidUseOfOldCall("{ ... }", tlb.position))
-      case ImportingWithSubqueryCall(cqw: ConditionalQueryWhen, _, _) =>
-        Seq(SemanticError.invalidUseOfOldCall("WHEN ... THEN ...", cqw.position))
+      case ImportingWithSubqueryCall(query, _, _) =>
+        def findIllegalCombination(query: Query): Seq[SemanticError] = {
+          query match {
+            case _: SingleQuery => Seq.empty
+            case ns: NextStatement =>
+              Seq(SemanticError.invalidUseOfOldCall("NEXT", ns.position))
+            case tlb: TopLevelBraces =>
+              Seq(SemanticError.invalidUseOfOldCall("{ ... }", tlb.position))
+            case cqw: ConditionalQueryWhen =>
+              Seq(SemanticError.invalidUseOfOldCall("WHEN ... THEN ...", cqw.position))
+            case u: Union =>
+              findIllegalCombination(u.rhs) ++ findIllegalCombination(u.lhs)
+            case _ => Seq.empty
+          }
+        }
+        findIllegalCombination(query)
     },
     {
       case li: ReturnItems =>
         li.items.filter(item => item.alias.isEmpty).map(i => {
           SemanticError.unaliasedReturnItem("WITH OR MAYBE RETURN", i.position)
         })
+    },
+    {
+      case sq: ImportingWithSubqueryCall => sq.innerQuery.invalidImportingWith
     }
   )
 

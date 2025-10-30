@@ -125,6 +125,8 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
    */
   def checkImportingWith: SemanticCheck
 
+  def invalidImportingWith: Seq[SemanticError]
+
   /**
    * True if this query part starts with an importing WITH (has incoming arguments)
    */
@@ -136,25 +138,29 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
   def importColumns: Seq[LogicalVariable]
 
   /**
-   * Returns the query stripped from importing WITH responsible for top-level importing.
+   * Returns the query stripped from importing WITH responsible for top-level importing and a USE graph clause.
    *
    * Example:
    *
+   * USE neo4j
    * WITH x
-   * RETURN x
+   * RETURN x AS y
    * UNION
+   * USE neo4j
    * WITH x
-   * CALL { WITH x RETURN x AS y }
-   * RETURN y AS x
+   * CALL { USE neo4j WITH x RETURN x AS y }
+   * RETURN y
    *
    * returns as
    *
-   * RETURN x
+   * RETURN x AS y
    * UNION
    * CALL { WITH x RETURN x AS y }
-   * RETURN y AS x
+   * RETURN y
    */
-  def withoutImportingWith: Query
+  def withoutImportingWithAndGraphSelection: Option[Query]
+
+  def getGraphSelections: Seq[GraphSelection]
 
   /**
    * Return a copy of this query where the mapping function f is applied
@@ -212,8 +218,9 @@ sealed trait PartQuery extends Query {
   override def finalScope(scope: Scope): Scope =
     if (scope.children.size < 1) Scope.empty else scope.children.last
 
-  override def withoutImportingWith: PartQuery
+  override def withoutImportingWithAndGraphSelection: Option[PartQuery]
 
+  override def getGraphSelections: Seq[GraphSelection]
 }
 
 case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extends PartQuery {
@@ -248,7 +255,14 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     case _ => Seq.empty
   }
 
-  override def withoutImportingWith: SingleQuery = SingleQuery(partitionedClauses.clausesExceptImportingWith)(position)
+  override def withoutImportingWithAndGraphSelection: Option[SingleQuery] = {
+    Option.when(
+      partitionedClauses.clausesExceptImportingWithAndInitialGraphSelection.nonEmpty
+    )(SingleQuery(partitionedClauses.clausesExceptImportingWithAndInitialGraphSelection)(position))
+  }
+
+  override def getGraphSelections: Seq[GraphSelection] =
+    partitionedClauses.initialGraphSelection.toSeq
 
   private def leadingNonImportingWith: Option[With] =
     if (partitionedClauses.importingWith.isDefined)
@@ -305,6 +319,30 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     semanticCheckAbstract(clauses, checkClauses(_, None, context), canOmitReturnClause = canOmitReturn)
 
   override def checkImportingWith: SemanticCheck = partitionedClauses.importingWith.foldSemanticCheck(_.semanticCheck)
+
+  override def invalidImportingWith: Seq[SemanticError] = leadingNonImportingWith.map { wth =>
+    def err(keyword: String): Seq[SemanticError] =
+      Seq(SemanticError.invalidImportingWithKeyword(keyword, wth.position))
+
+    val invalidValues = wth.returnItems.items.find(!_.isPassThrough)
+    if (invalidValues.nonEmpty) {
+      val value = invalidValues.head
+      val aliasString = if (value.alias.nonEmpty) s" AS ${value.alias.get.name}" else ""
+      val expression = ExpressionStringifier.apply().apply(value.expression)
+      val input = expression + aliasString
+      Seq(SemanticError.invalidImportingWithAliasOrExpression(input, wth.position))
+    } else if (wth.distinct) {
+      err("DISTINCT")
+    } else if (wth.orderBy.isDefined) {
+      err("ORDER BY")
+    } else if (wth.where.isDefined) {
+      err("WHERE")
+    } else if (wth.skip.isDefined) {
+      err("SKIP")
+    } else if (wth.limit.isDefined) {
+      err("LIMIT")
+    } else Seq.empty[SemanticError]
+  }.getOrElse(Seq.empty[SemanticError])
 
   override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck = {
     def importVariables: SemanticCheck =
@@ -738,9 +776,6 @@ object SingleQuery {
     lazy val leadingGraphSelection: Option[GraphSelection] =
       initialGraphSelection.orElse(subsequentGraphSelection)
 
-    lazy val clausesExceptImportingWith: Seq[Clause] =
-      leadingGraphSelection.toSeq ++ clausesExceptImportingWithAndLeadingGraphSelection
-
     lazy val clausesExceptImportingWithAndInitialGraphSelection: Seq[Clause] =
       subsequentGraphSelection.toSeq ++ clausesExceptImportingWithAndLeadingGraphSelection
 
@@ -865,10 +900,14 @@ case class TopLevelBraces(
     query.semanticCheckInContext(TopLevelBraces) chain recordCurrentScope(this)
 
   override def checkImportingWith: SemanticCheck = query.checkImportingWith
-
+  override def invalidImportingWith: Seq[SemanticError] = query.invalidImportingWith
   override def importColumns: Seq[LogicalVariable] = query.importColumns
 
-  override def withoutImportingWith: TopLevelBraces = TopLevelBraces(query.withoutImportingWith, use)(position)
+  override def withoutImportingWithAndGraphSelection: Option[TopLevelBraces] =
+    query.withoutImportingWithAndGraphSelection.map(q => TopLevelBraces(q, use)(position))
+
+  override def getGraphSelections: Seq[GraphSelection] =
+    query.getGraphSelections ++ use
 
   override def isCorrelated: Boolean = query.isCorrelated
 
@@ -969,6 +1008,9 @@ sealed trait Union extends Query {
   override def checkImportingWith: SemanticCheck =
     SemanticCheck.nestedCheck(lhs.checkImportingWith) chain
       rhs.checkImportingWith
+
+  override def invalidImportingWith: Seq[SemanticError] =
+    lhs.invalidImportingWith ++ rhs.invalidImportingWith
 
   override def isCorrelated: Boolean = lhs.isCorrelated || rhs.isCorrelated
 
@@ -1160,7 +1202,16 @@ final case class UnionAll(lhs: Query, rhs: PartQuery)(
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
 
-  override def withoutImportingWith: UnionAll = UnionAll(lhs.withoutImportingWith, rhs.withoutImportingWith)(position)
+  override def withoutImportingWithAndGraphSelection: Option[UnionAll] = {
+    val lhsOpt = lhs.withoutImportingWithAndGraphSelection
+    val rhsOpt = rhs.withoutImportingWithAndGraphSelection
+    lhsOpt.zip(rhsOpt).map {
+      case (lhs, rhs) => UnionAll(lhs, rhs)(position)
+    }
+  }
+
+  override def getGraphSelections: Seq[GraphSelection] =
+    lhs.getGraphSelections ++ rhs.getGraphSelections
 }
 
 final case class UnionDistinct(lhs: Query, rhs: PartQuery)(
@@ -1170,8 +1221,16 @@ final case class UnionDistinct(lhs: Query, rhs: PartQuery)(
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
 
-  override def withoutImportingWith: UnionDistinct =
-    UnionDistinct(lhs.withoutImportingWith, rhs.withoutImportingWith)(position)
+  override def withoutImportingWithAndGraphSelection: Option[UnionDistinct] = {
+    val lhsOpt = lhs.withoutImportingWithAndGraphSelection
+    val rhsOpt = rhs.withoutImportingWithAndGraphSelection
+    lhsOpt.zip(rhsOpt).map {
+      case (lhs, rhs) => UnionDistinct(lhs, rhs)(position)
+    }
+  }
+
+  override def getGraphSelections: Seq[GraphSelection] =
+    lhs.getGraphSelections ++ rhs.getGraphSelections
 }
 
 final case class ProjectingUnionAll(lhs: Query, rhs: PartQuery, unionMappings: List[UnionMapping])(
@@ -1181,8 +1240,16 @@ final case class ProjectingUnionAll(lhs: Query, rhs: PartQuery, unionMappings: L
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
 
-  override def withoutImportingWith: ProjectingUnionAll =
-    ProjectingUnionAll(lhs.withoutImportingWith, rhs.withoutImportingWith, unionMappings)(position)
+  override def withoutImportingWithAndGraphSelection: Option[ProjectingUnionAll] = {
+    val lhsOpt = lhs.withoutImportingWithAndGraphSelection
+    val rhsOpt = rhs.withoutImportingWithAndGraphSelection
+    lhsOpt.zip(rhsOpt).map {
+      case (lhs, rhs) => ProjectingUnionAll(lhs, rhs, unionMappings)(position)
+    }
+  }
+
+  override def getGraphSelections: Seq[GraphSelection] =
+    lhs.getGraphSelections ++ rhs.getGraphSelections
 }
 
 final case class ProjectingUnionDistinct(lhs: Query, rhs: PartQuery, unionMappings: List[UnionMapping])(
@@ -1192,8 +1259,16 @@ final case class ProjectingUnionDistinct(lhs: Query, rhs: PartQuery, unionMappin
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
 
-  override def withoutImportingWith: ProjectingUnionDistinct =
-    ProjectingUnionDistinct(lhs.withoutImportingWith, rhs.withoutImportingWith, unionMappings)(position)
+  override def withoutImportingWithAndGraphSelection: Option[ProjectingUnionDistinct] = {
+    val lhsOpt = lhs.withoutImportingWithAndGraphSelection
+    val rhsOpt = rhs.withoutImportingWithAndGraphSelection
+    lhsOpt.zip(rhsOpt).map {
+      case (lhs, rhs) => ProjectingUnionDistinct(lhs, rhs, unionMappings)(position)
+    }
+  }
+
+  override def getGraphSelections: Seq[GraphSelection] =
+    lhs.getGraphSelections ++ rhs.getGraphSelections
 }
 
 // Predicate is None for Else branch
@@ -1247,8 +1322,10 @@ case class ConditionalQueryBranch(predicate: Option[Expression], query: PartQuer
 
   def wrapInnerQuery: ConditionalQueryBranch = this.copy(query = query.singleQuery)(position)
 
-  def withoutImportingWith: ConditionalQueryBranch =
-    ConditionalQueryBranch(predicate, query.withoutImportingWith)(position)
+  def withoutImportingWith: Option[ConditionalQueryBranch] =
+    query.withoutImportingWithAndGraphSelection.map(q => ConditionalQueryBranch(predicate, q)(position))
+
+  def getGraphSelections: Seq[GraphSelection] = query.getGraphSelections
 }
 
 case object ConditionalQueryWhen extends UnaliasedNotAllowed {
@@ -1362,14 +1439,25 @@ case class ConditionalQueryWhen(
   override def checkImportingWith: SemanticCheck =
     allBranches.foldSemanticCheck(_.query.checkImportingWith)
 
+  override def invalidImportingWith: Seq[SemanticError] = allBranches.flatMap(_.query.invalidImportingWith)
+
   override def isCorrelated: Boolean =
     allBranches.exists(_.query.isCorrelated)
 
   override def importColumns: Seq[LogicalVariable] =
     allBranches.flatMap(_.query.importColumns)
 
-  override def withoutImportingWith: ConditionalQueryWhen =
-    ConditionalQueryWhen(allBranches.map(_.withoutImportingWith), default.map(_.withoutImportingWith))(position)
+  override def withoutImportingWithAndGraphSelection: Option[ConditionalQueryWhen] = {
+    if (allBranches.exists(_.withoutImportingWith.isDefined)) {
+      Some(ConditionalQueryWhen(
+        branches.map(_.withoutImportingWith.get),
+        default.map(_.withoutImportingWith.get)
+      )(position))
+    } else None
+  }
+
+  override def getGraphSelections: Seq[GraphSelection] =
+    (allBranches.map(_.getGraphSelections) ++ default.map(_.getGraphSelections)).flatten
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(branches.map(_.mapEachSingleQuery(f, nextFirst)), default.map(_.mapEachSingleQuery(f, nextFirst)))(position)
@@ -1393,11 +1481,20 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
 
   override def checkImportingWith: SemanticCheck = queries.foldSemanticCheck(_.checkImportingWith)
 
+  override def invalidImportingWith: Seq[SemanticError] = queries.flatMap(_.invalidImportingWith)
+
   override def isCorrelated: Boolean = queries.exists(_.isCorrelated)
 
   override def importColumns: Seq[LogicalVariable] = queries.flatMap(_.importColumns)
 
-  override def withoutImportingWith: NextStatement = NextStatement(queries.map(_.withoutImportingWith))(position)
+  override def withoutImportingWithAndGraphSelection: Option[NextStatement] = {
+    if (queries.exists(_.withoutImportingWithAndGraphSelection.isDefined)) {
+      Some(NextStatement(queries.map(_.withoutImportingWithAndGraphSelection.get))(position))
+    } else None
+  }
+
+  override def getGraphSelections: Seq[GraphSelection] =
+    queries.flatMap(_.getGraphSelections)
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query = {
     if (nextFirst)

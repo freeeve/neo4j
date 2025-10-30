@@ -171,7 +171,8 @@ object pegExpression {
         ) =>
         val reductionStepResult =
           apply(reductionStep, incoming.amendedWithConstant(Set(accumulator, reductionStepVariable)))
-        val predicateResult = apply(predicate, incoming.amendedWithConstant(Set(accumulator)))
+        val predicateResult =
+          apply(predicate, incoming.amendedWithConstant(Set(accumulator, reductionStepVariable)))
         val initResult = apply(init, incoming)
         val listResult = apply(list, incoming)
 

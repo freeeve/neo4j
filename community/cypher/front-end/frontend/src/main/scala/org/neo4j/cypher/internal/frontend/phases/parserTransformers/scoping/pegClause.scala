@@ -86,17 +86,23 @@ object pegClause {
       case call @ ImportingWithSubqueryCall(query, inTransactionsParameters, _) =>
         val importedVariableSet: Set[LogicalVariable] =
           if (query.isCorrelated && query.importColumns.isEmpty) incoming.variables else query.importColumns.toSet
+        val graphSelectionScopes = query.getGraphSelections.map(gs =>
+          pegExpression(gs.graphReference, incoming.constantChildContext())
+        )
         val innerQueryIncoming = RegularContext(constants = unitVariables, variables = importedVariableSet)
-        val innerQuery = query.withoutImportingWith
-        scopeInlineSubquery(
+        val innerQuery = query.withoutImportingWithAndGraphSelection
+        val scope = if (innerQuery.isDefined) scopeInlineSubquery(
           call,
           incoming,
           importedVariableSet,
           innerQueryIncoming,
-          innerQuery,
+          innerQuery.get,
           inTransactionsParameters
         )
+        else StatementScope(call, incoming, Set.empty, Declarations.noDeclarations, RegularContext.unit)
+        scope.withChildren(scope.children ++ graphSelectionScopes)
 
+      // TODO is this taking the USE clause in to consideration correctly
       case call @ ScopeClauseSubqueryCall(innerQuery, isImportingAll, importedVariables, inTransactionsParameters, _) =>
         val importedVariableSet: Set[LogicalVariable] = importedVariables.toSet
         val innerQueryIncoming =
@@ -162,15 +168,14 @@ object pegClause {
         val declared = Declarations(Seq.empty, Seq(variable))
         incoming.noResultScope(outgoing = incoming.amendedWith(variable), children, declared = declared)
 
-      case Match(_, _, pattern, _, whereOpt, _) => // TODO implement checking for search here
+      case Match(_, _, pattern, hints, whereOpt, _) => // TODO implement checking for search here
         val patternScope = pegPattern(pattern, incoming.constantChildContext())
+        val subclauseIncoming = incoming.amendedWith(patternScope.outgoing.variables).constantChildContext()
+        val hintsScopes = hints.flatMap(h => h.variables.map(pegExpression(_, subclauseIncoming)))
         val whereScopeOpt = whereOpt.map(where =>
-          pegExpression(
-            where.expression,
-            incoming.amendedWith(patternScope.outgoing.variables).constantChildContext()
-          )
+          pegExpression(where.expression, subclauseIncoming)
         )
-        val children = Seq(Some(patternScope), whereScopeOpt).flatten
+        val children = Seq(Some(patternScope), hintsScopes, whereScopeOpt).flatten
         val referenced = Some(WorkingScope.referencedInChildren(children) intersect incoming.constantsAndVariables)
         val declared = patternScope.declared
         val outgoing = incoming.amendedWith(patternScope.outgoing.variables diff incoming.constants)
@@ -406,7 +411,7 @@ object pegClause {
       }
       val aggregationItemScopes =
         aggregationItems.map(item =>
-          pegExpression(item.expression, aggregationItemIncoming)
+          pegExpression(item.expression, aggregationItemIncoming.constantChildContext())
         )
       val referencedInAggregationItems = WorkingScope.referencedInChildren(aggregationItemScopes)
       val newVariablesFromAggregation = returnItemAliases(aggregationItems)
@@ -424,7 +429,7 @@ object pegClause {
       }
       val sortItemScopes =
         orderByOpt.map(_.sortItems).getOrElse(Seq.empty).map(item =>
-          pegExpression(item.expression, sortItemIncoming)
+          pegExpression(item.expression, sortItemIncoming.constantChildContext())
         )
       val referencedInSortItems = WorkingScope.referencedInChildren(sortItemScopes)
 
@@ -438,7 +443,7 @@ object pegClause {
         RegularContext(constants, variables)
       }
       val whereExpScopes = whereOpt.map(w => Seq(w.expression)).getOrElse(Seq.empty).map(expression =>
-        pegExpression(expression, whereExpIncoming)
+        pegExpression(expression, whereExpIncoming.constantChildContext())
       )
       val referencedInWhereExp = WorkingScope.referencedInChildren(whereExpScopes)
 

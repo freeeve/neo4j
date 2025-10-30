@@ -2692,7 +2692,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedResult.TableResult("s"),
           ExpectedWorkingScope(
             Ast("SUM(x)"),
-            Incoming(variables = Set("x")),
+            Incoming(constants = Set("x")),
             Referenced(Set("x")),
             ExpectedWorkingScope.varExp("x", Set("x"))
           )
@@ -2726,13 +2726,13 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedResult.TableResult("s"),
           ExpectedWorkingScope(
             Ast("SUM(x)"),
-            Incoming(variables = Set("x")),
+            Incoming(constants = Set("x")),
             Referenced(Set("x")),
             ExpectedWorkingScope.varExp("x", Set("x"))
           ),
           ExpectedWorkingScope(
             Ast("COUNT(1)"),
-            Incoming(constants = Set("s"), variables = Set("x")),
+            Incoming(constants = Set("s", "x")),
             ExpectedWorkingScope.constExp("1", Set("s", "x"))
           )
         )
@@ -2765,11 +2765,11 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedResult.TableResult("s"),
           ExpectedWorkingScope(
             Ast("SUM(x)"),
-            Incoming(variables = Set("x")),
+            Incoming(constants = Set("x")),
             Referenced(Set("x")),
             ExpectedWorkingScope.varExp("x", Set("x"))
           ),
-          ExpectedWorkingScope.varExp("s", Set("s"), Set("x"))
+          ExpectedWorkingScope.varExp("s", Set("s", "x"))
         )
       )
     )
@@ -2807,11 +2807,11 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedWorkingScope.varExp("a", Set("a", "x")),
           ExpectedWorkingScope(
             Ast("SUM(x / a) + a * 5"),
-            Incoming(constants = Set("a"), variables = Set("x")),
+            Incoming(constants = Set("a", "x")),
             Referenced(Set("a", "x")),
             ExpectedWorkingScope(
               Ast("SUM(x / a)"),
-              Incoming(constants = Set("a"), variables = Set("x")),
+              Incoming(constants = Set("a", "x")),
               Referenced(Set("a", "x")),
               ExpectedWorkingScope(
                 Ast("x / a"),
@@ -2821,7 +2821,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 ExpectedWorkingScope.varExp("a", Set("a", "x"))
               )
             ),
-            ExpectedWorkingScope.varExp("a", Set("a"), Set("x"))
+            ExpectedWorkingScope.varExp("a", Set("a", "x"))
           )
         )
       )
@@ -2909,11 +2909,11 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedWorkingScope.varExp("a", Set("a", "x")),
           ExpectedWorkingScope(
             Ast("SUM(x / a) + a * 5"),
-            Incoming(constants = Set("a"), variables = Set("x")),
+            Incoming(constants = Set("a", "x")),
             Referenced(Set("a", "x")),
             ExpectedWorkingScope(
               Ast("SUM(x / a)"),
-              Incoming(constants = Set("a"), variables = Set("x")),
+              Incoming(constants = Set("a", "x")),
               Referenced(Set("a", "x")),
               ExpectedWorkingScope(
                 Ast("x / a"),
@@ -2923,15 +2923,15 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 ExpectedWorkingScope.varExp("a", Set("a", "x"))
               )
             ),
-            ExpectedWorkingScope.varExp("a", Set("a"), Set("x"))
+            ExpectedWorkingScope.varExp("a", Set("a", "x"))
           ),
           ExpectedWorkingScope(
             Ast("-1 * MAX(a * x) - a"),
-            Incoming(constants = Set("a", "s"), variables = Set("x")),
+            Incoming(constants = Set("a", "s", "x")),
             Referenced(Set("a", "x")),
             ExpectedWorkingScope(
               Ast("MAX(a * x)"),
-              Incoming(constants = Set("a", "s"), variables = Set("x")),
+              Incoming(constants = Set("a", "s", "x")),
               Referenced(Set("a", "x")),
               ExpectedWorkingScope(
                 Ast("a * x"),
@@ -2941,7 +2941,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 ExpectedWorkingScope.varExp("x", Set("a", "x", "s"))
               )
             ),
-            ExpectedWorkingScope.varExp("a", Set("a", "s"), Set("x"))
+            ExpectedWorkingScope.varExp("a", Set("a", "s", "x"))
           )
         )
       )
@@ -2983,11 +2983,11 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedWorkingScope.varExp("a", Set("a", "x")),
           ExpectedWorkingScope(
             Ast("SUM(x / a) + a * 5"),
-            Incoming(constants = Set("a"), variables = Set("x")),
+            Incoming(constants = Set("a", "x")),
             Referenced(Set("a", "x")),
             ExpectedWorkingScope(
               Ast("SUM(x / a)"),
-              Incoming(constants = Set("a"), variables = Set("x")),
+              Incoming(constants = Set("a", "x")),
               Referenced(Set("a", "x")),
               ExpectedWorkingScope(
                 Ast("x / a"),
@@ -2997,16 +2997,16 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 ExpectedWorkingScope.varExp("a", Set("a", "x"))
               )
             ),
-            ExpectedWorkingScope.varExp("a", Set("a"), Set("x"))
+            ExpectedWorkingScope.varExp("a", Set("a", "x"))
           ),
           ExpectedWorkingScope(
             Ast("s * MAX(a * x) - a"),
-            Incoming(constants = Set("a", "s"), variables = Set("x")),
+            Incoming(constants = Set("a", "s", "x")),
             Referenced(Set("a", "s", "x")),
-            ExpectedWorkingScope.varExp("s", Set("a", "s"), Set("x")),
+            ExpectedWorkingScope.varExp("s", Set("a", "s", "x")),
             ExpectedWorkingScope(
               Ast("MAX(a * x)"),
-              Incoming(constants = Set("a", "s"), variables = Set("x")),
+              Incoming(constants = Set("a", "s", "x")),
               Referenced(Set("a", "x")),
               ExpectedWorkingScope(
                 Ast("a * x"),
@@ -3016,7 +3016,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 ExpectedWorkingScope.varExp("x", Set("a", "x", "s"))
               )
             ),
-            ExpectedWorkingScope.varExp("a", Set("a", "s"), Set("x"))
+            ExpectedWorkingScope.varExp("a", Set("a", "s", "x"))
           )
         )
       )
@@ -3058,11 +3058,11 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedWorkingScope.varExp("a", Set("a", "x")),
           ExpectedWorkingScope(
             Ast("SUM(x / a) + a * 5"),
-            Incoming(constants = Set("a"), variables = Set("x")),
+            Incoming(constants = Set("a", "x")),
             Referenced(Set("a", "x")),
             ExpectedWorkingScope(
               Ast("SUM(x / a)"),
-              Incoming(constants = Set("a"), variables = Set("x")),
+              Incoming(constants = Set("a", "x")),
               Referenced(Set("a", "x")),
               ExpectedWorkingScope(
                 Ast("x / a"),
@@ -3072,16 +3072,16 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 ExpectedWorkingScope.varExp("a", Set("a", "x"))
               )
             ),
-            ExpectedWorkingScope.varExp("a", Set("a"), Set("x"))
+            ExpectedWorkingScope.varExp("a", Set("a", "x"))
           ),
           ExpectedWorkingScope(
             Ast("s * MAX(g * x) - a"),
-            Incoming(constants = Set("a", "g", "s"), variables = Set("x")),
+            Incoming(constants = Set("a", "g", "s", "x")),
             Referenced(Set("a", "g", "s", "x")),
-            ExpectedWorkingScope.varExp("s", Set("a", "g", "s"), Set("x")),
+            ExpectedWorkingScope.varExp("s", Set("a", "g", "s", "x")),
             ExpectedWorkingScope(
               Ast("MAX(g * x)"),
-              Incoming(constants = Set("a", "g", "s"), variables = Set("x")),
+              Incoming(constants = Set("a", "g", "s", "x")),
               Referenced(Set("g", "x")),
               ExpectedWorkingScope(
                 Ast("g * x"),
@@ -3091,7 +3091,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 ExpectedWorkingScope.varExp("x", Set("a", "g", "x", "s"))
               )
             ),
-            ExpectedWorkingScope.varExp("a", Set("a", "g", "s"), Set("x"))
+            ExpectedWorkingScope.varExp("a", Set("a", "g", "s", "x"))
           )
         )
       )
@@ -3151,15 +3151,15 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedResult.TableResult("s"),
               ExpectedWorkingScope(
                 Ast("COUNT(x) * a"),
-                Incoming(constants = Set("a"), variables = Set("x")),
+                Incoming(constants = Set("a", "x")),
                 Referenced(Set("a", "x")),
                 ExpectedWorkingScope(
                   Ast("COUNT(x)"),
-                  Incoming(constants = Set("a"), variables = Set("x")),
+                  Incoming(constants = Set("a", "x")),
                   Referenced(Set("x")),
                   ExpectedWorkingScope.varExp("x", Set("a", "x"))
                 ),
-                ExpectedWorkingScope.varExp("a", Set("a"), Set("x"))
+                ExpectedWorkingScope.varExp("a", Set("a", "x"))
               )
             )
           )
@@ -3173,7 +3173,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedWorkingScope.varExp("a", Set("a", "s")),
           ExpectedWorkingScope(
             Ast("AVG(s)"),
-            Incoming(constants = Set("a"), variables = Set("s")),
+            Incoming(constants = Set("a", "s")),
             Referenced(Set("s")),
             ExpectedWorkingScope.varExp("s", Set("a", "s"))
           )
@@ -3221,6 +3221,57 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               Referenced(Set("prefix", "word")),
               ExpectedWorkingScope.varExp("word", incomingConstants = Set("prefix", "word")),
               ExpectedWorkingScope.varExp("prefix", incomingConstants = Set("prefix", "word"))
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""LET a = 10
+         |RETURN allReduce(acc = 0, x IN [1, 3, a] | acc + x, acc < 10) AS red""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET a = 10
+              |RETURN allReduce(acc = 0, x IN [1, 3, a] | acc + x, acc < 10) AS red""".stripMargin),
+        Outgoing(variables = Set("red")),
+        ExpectedResult.TableResult("red"),
+        ExpectedWorkingScope(
+          Ast("LET a = 10"),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope.constExp("10")
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN allReduce(acc = 0, x IN [1, 3, a] | acc + x, acc < 10) AS red"),
+          Incoming(variables = Set("a")),
+          Referenced(Set("a")),
+          Outgoing(variables = Set("red")),
+          ExpectedResult.TableResult("red"),
+          ExpectedWorkingScope(
+            Ast("allReduce(acc = 0, x IN [1, 3, a] | acc + x, acc < 10)"),
+            Incoming(constants = Set("a")),
+            Referenced(Set("a")),
+            Declared(constants = Seq("acc", "x")),
+            ExpectedWorkingScope.constExp("0", Set("a")),
+            ExpectedWorkingScope(
+              Ast("[1, 3, a]"),
+              Incoming(constants = Set("a")),
+              Referenced(Set("a")),
+              ExpectedWorkingScope.varExp("a", Set("a"))
+            ),
+            ExpectedWorkingScope(
+              Ast("acc + x"),
+              Incoming(constants = Set("a", "acc", "x")),
+              Referenced(Set("acc", "x")),
+              ExpectedWorkingScope.varExp("acc", Set("a", "acc", "x")),
+              ExpectedWorkingScope.varExp("x", Set("a", "acc", "x"))
+            ),
+            ExpectedWorkingScope(
+              Ast("acc < 10"),
+              Incoming(constants = Set("a", "acc", "x")),
+              Referenced(Set("acc")),
+              ExpectedWorkingScope.varExp("acc", Set("a", "acc", "x"))
             )
           )
         )
@@ -3335,7 +3386,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedWorkingScope.varExp("suspended", Set("suspended", "user")),
           ExpectedWorkingScope(
             Ast("count(user)"),
-            Incoming(constants = Set("suspended"), variables = Set("user")),
+            Incoming(constants = Set("suspended", "user")),
             Referenced(Set("user")),
             ExpectedWorkingScope.varExp("user", Set("suspended", "user"))
           )

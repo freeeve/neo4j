@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast.prettifier
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.IsNormalized
 import org.neo4j.cypher.internal.ast.IsNotNormalized
 import org.neo4j.cypher.internal.ast.IsNotTyped
@@ -387,6 +388,8 @@ private class DefaultExpressionStringifier(
       case functionInvocation: UserDefinedFunctionInvocation =>
         // noinspection RedundantDefaultArgument
         stringify(functionInvocation.asUnresolvedFunction, shouldBacktickEmpty, isCaseExpression = false)
+
+      case graphReference: GraphReference => noEagerConsumption(graphReference.print)
 
       case Property(m, k) =>
         noEagerConsumption(
