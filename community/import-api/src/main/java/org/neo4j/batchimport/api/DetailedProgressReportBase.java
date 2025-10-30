@@ -156,6 +156,22 @@ public class DetailedProgressReportBase {
                 case DELETE -> numDeleted.increment();
             }
         }
+
+        /**
+         * Decrements the creation count. Used to factor duplicates out of the statistics.
+         */
+        public void unregister() {
+            unregister(1L);
+        }
+
+        /**
+         * Decrements the creation count. Used to factor duplicates out of the statistics.
+         *
+         * @param amount the number of created entities to unregister.
+         */
+        public void unregister(long amount) {
+            numCreated.add(amount * -1L);
+        }
     }
 
     public static class Timer {
