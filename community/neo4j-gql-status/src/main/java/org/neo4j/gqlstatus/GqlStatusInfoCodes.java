@@ -2342,8 +2342,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_25N17(
             new GqlStatus("25N17"),
-            "The operation { %s } requires an implicit transaction.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            "The attempted operation requires an implicit transaction.",
+            new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
             "implicit transaction required",

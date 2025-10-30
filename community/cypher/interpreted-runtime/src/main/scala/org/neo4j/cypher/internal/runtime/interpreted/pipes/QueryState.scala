@@ -223,8 +223,7 @@ class QueryState(
   def withNewTransaction(concurrentAccess: Boolean): QueryState = {
     if (query.getTransactionType != KernelTransaction.Type.IMPLICIT) {
       throw requireImplicitTransaction(
-        "A query with 'CALL { ... } IN TRANSACTIONS' can only be executed in an implicit transaction, " + "but tried to execute in an explicit transaction.",
-        "CALL { ... } IN TRANSACTIONS"
+        "A query with 'CALL { ... } IN TRANSACTIONS' can only be executed in an implicit transaction, " + "but tried to execute in an explicit transaction."
       )
     }
     val newQuery = query.contextWithNewTransaction()

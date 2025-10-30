@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -35,9 +34,8 @@ public final class GQLExceptionsHelper {
         throw new UnsupportedOperationException("Don't instantiate this class");
     }
 
-    public static TransactionFailureException requireImplicitTransaction(String message, String operation) {
+    public static TransactionFailureException requireImplicitTransaction(String message) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N17)
-                .withParam(GqlParams.StringParam.msg, operation)
                 .build();
         return new TransactionFailureException(gql, message, Status.Transaction.TransactionStartFailed);
     }
