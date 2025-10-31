@@ -662,6 +662,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
     @Override
     public void delete(Long version) throws IOException {
+        logHeaderCache.clear();
         fileSystem.deleteFile(getLogFileForVersion(version));
         try {
             versionTracker.logDeleted(version);
