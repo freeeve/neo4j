@@ -962,7 +962,7 @@ class PatternScopeSurveyorTest extends VariableCheckingTestSuite {
                 Declared(variables = Seq("r")),
                 Outgoing(variables = Set("r")),
                 ExpectedResult.TableResult("r"),
-                ExpectedWorkingScope.constExp("R")
+                ExpectedWorkingScope.constExp("R", Set("n", "m", "p", "r"))
               ),
               ExpectedWorkingScope(
                 Ast("""(m)""".stripMargin),

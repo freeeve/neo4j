@@ -198,9 +198,11 @@ object pegPattern {
         incoming.resultScope(TableResult(columns), children, declared, boundVariables)
 
       case RelationshipPattern(variableOpt, labelExpressionOpt, varLengthOpt, propertiesOpt, predicateOpt, _) =>
-        val varLengthIncoming =
-          if (varLengthOpt.isEmpty) incoming
-          else PatternIncomingContext.unit
+        // TODO What does varLengthOpt = Some(None) entail for this behavior
+        //  why should this be unit in varLengthPatterns
+        val varLengthIncoming = incoming
+//          if (varLengthOpt.isEmpty || varLengthOpt.get.isEmpty) incoming
+//          else PatternIncomingContext.unit
         val predicateIncoming =
           variableOpt.map(v => varLengthIncoming.amendedWithTopologicalConstant(v)).getOrElse(
             varLengthIncoming

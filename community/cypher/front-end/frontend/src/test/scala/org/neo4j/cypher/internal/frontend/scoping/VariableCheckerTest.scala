@@ -525,6 +525,24 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test("""MATCH (a:P)
+         |RETURN
+         |  CASE COLLECT { CALL (a) { RETURN a.p AS p } RETURN p }[0]
+         |    WHEN > 2 THEN '> 2'
+         |    ELSE 'else'
+         |  END AS res
+         |ORDER BY res""".stripMargin) {
+    passes()
+  }
+
+  test(
+    """MATCH SHORTEST $one (p = ((start)((a)-[r:R]->(b))+(end))
+      |  WHERE length(p) > 3)
+      |RETURN p""".stripMargin
+  ) {
+    passes()
+  }
+
   /**
    * Variable already declared
    */
@@ -677,6 +695,14 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |}
          |RETURN x""".stripMargin) {
     error("42N62", "Variable `g` not defined.")
+  }
+
+  test("""MATCH (a)-[* {propA: a.prop, propB: b.prop}]-(b) RETURN a, b""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (a)-[*..4 {propA: a.prop, propB: b.prop}]-(b) RETURN a, b""".stripMargin) {
+    passes()
   }
 
   test("""MATCH ((a)--(b))+, (x WHERE size(a) = 2)
@@ -854,6 +880,29 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (b)
+         |  LET a = b
+         |  RETURN a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (b)
+         |  RETURN b
+         |  NEXT
+         |  MATCH (b)
+         |  RETURN b AS a
+         |}""".stripMargin) {
+    passes()
+  }
+
   /**
    * Multiple return columns
    */
@@ -965,6 +1014,18 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
       |  RETURN 3 AS y, 2 as z
       |}
       |RETURN x, y""".stripMargin
+  ) {
+    error(
+      "42N39",
+      "error: syntax error or access rule violation - incompatible return column names. All UNION subqueries must have the same return column names. Use `AS` to ensure columns have the same name."
+    )
+  }
+
+  test(
+    """CALL db.labels() YIELD label
+      |UNION
+      |CALL db.labels() YIELD label
+      |RETURN label""".stripMargin
   ) {
     error(
       "42N39",
@@ -1090,6 +1151,34 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N59", "Variable `c` already declared.")
   }
 
+  test(
+    """CREATE (n), (n)
+      |RETURN 1 as one""".stripMargin
+  ) {
+    error("42N59", "Variable `n` already declared.")
+  }
+
+  test(
+    """CREATE (n), (n)-[:R]->(n)
+      |RETURN 1 as one""".stripMargin
+  ) {
+    passes()
+  }
+
+  test(
+    """CREATE (n)-[:R]->(n)
+      |RETURN 1 as one""".stripMargin
+  ) {
+    passes()
+  }
+
+  test(
+    """MATCH (n), (n)
+      |RETURN 1 as one""".stripMargin
+  ) {
+    passes()
+  }
+
   test("""FOREACH(v IN [null] | CREATE ({property: v}))""".stripMargin) {
     passes()
   }
@@ -1115,7 +1204,36 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   }
 
   test("""MATCH (a)
-         |
+         |CALL (*) {
+         |  MATCH (b)
+         |  RETURN b AS a
+         |  UNION
+         |  MATCH (a)
+         |  RETURN a
+         |}
+         |RETURN *""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
+         |CALL (a) {
+         |  MATCH (b)
+         |  RETURN b AS a
+         |  UNION
+         |  MATCH (a)
+         |  RETURN a
+         |}
+         |RETURN *""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
          |RETURN COLLECT {
          |  MATCH (a)
          |  RETURN a

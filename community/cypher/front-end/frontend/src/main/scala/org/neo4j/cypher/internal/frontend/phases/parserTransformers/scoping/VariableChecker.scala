@@ -37,11 +37,13 @@ import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.With
+import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
+import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
@@ -88,12 +90,30 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
       case StatementScope(_: CreateOrInsert | _: Merge, _, ref, declared, _, _, _) if declared.isEmpty =>
         ref.map(v => SemanticError.variableAlreadyDeclared(v.name, v.position)).toSeq
       case StatementScope(_: CreateOrInsert | _: Merge, _, _, _, _, _, children) => children.flatMap { workingScope =>
-          workingScope.folder.treeCollect {
+          val fold = workingScope.folder.treeFold((Seq.empty[SemanticError], false)) {
+            case ExpressionScope(_: FullSubqueryExpression, _, _, _, _) => acc => SkipChildren(acc)
             case PatternScope(RelationshipPattern(Some(variable), _, _, _, _, _), _, referenced, _, _, _)
               if referenced.exists(_.name == variable.name) =>
-              SemanticError.variableAlreadyDeclared(variable.name, variable.position)
+              acc =>
+                TraverseChildren((
+                  acc._1 ++ Seq(SemanticError.variableAlreadyDeclared(variable.name, variable.position)),
+                  acc._2
+                ))
+            case PatternScope(_: RelationshipChain, _, _, _, _, _) =>
+              acc => TraverseChildren((acc._1, true))
+            case PatternScope(NodePattern(Some(variable), _, _, _), _, referenced, _, _, _)
+              if referenced.exists(_.name == variable.name) =>
+              acc =>
+                if (!acc._2)
+                  TraverseChildren((
+                    acc._1 ++ Seq(SemanticError.variableAlreadyDeclared(variable.name, variable.position)),
+                    acc._2
+                  ))
+                else TraverseChildren(acc)
           }
+          fold._1
         }
+
     },
     {
       case StatementScope(astNode, incoming, ref, d @ Declarations(constants, variables), _, _, children)
@@ -147,6 +167,8 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
     {
       case StatementScope(w: With, _, _, Declarations(_, variables), _, _, _) =>
         findMultipleDeclarationsIn(variables, w)
+      case StatementScope(y: Yield, _, _, _, _, TableResult(columns), _) =>
+        findMultipleDeclarationsIn(columns, y)
       case StatementScope(r: Return, _, _, _, _, TableResult(columns), _) =>
         findMultipleDeclarationsIn(columns, r)
     },
