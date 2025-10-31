@@ -19,33 +19,40 @@
  */
 package org.neo4j.server;
 
-import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.SettingValueParsers.FALSE;
 import static org.neo4j.configuration.SettingValueParsers.TRUE;
 import static org.neo4j.io.fs.FileSystemUtils.readLines;
 import static org.neo4j.server.AbstractNeoWebServer.NEO4J_IS_STARTING_MESSAGE;
+import static org.neo4j.test.conditions.Conditions.containsAtLeastTheseLines;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.regex.Pattern;
-import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.DependencyResolver;
+import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.connectors.HttpConnector;
 import org.neo4j.configuration.connectors.HttpsConnector;
+import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.log4j.LogConfig;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.test.ports.PortAuthority;
 import org.neo4j.test.server.ExclusiveWebContainerTestBase;
 
 class StartupLoggingIT extends ExclusiveWebContainerTestBase {
@@ -75,6 +82,45 @@ class StartupLoggingIT extends ExclusiveWebContainerTestBase {
                         info("Started."),
                         info("Stopping..."),
                         info("Stopped.")));
+    }
+
+    @Test
+    void shouldLogFailuresToSystemErr() throws InterruptedException, IOException {
+        // A sister test for EnterpriseBootstrapper lives in com.neo4j.server.enterprise.EnterpriseBootstrapperIT
+        // GIVEN
+        CommunityBootstrapper bootstrapper = new CommunityBootstrapper();
+        ByteArrayOutputStream sysErr = new ByteArrayOutputStream();
+        System.setErr(new PrintStream(sysErr));
+        int port = PortAuthority.allocatePort();
+        Config.Builder configBuilder = Config.newBuilder()
+                .setDefaults(GraphDatabaseSettings.SERVER_DEFAULTS)
+                .set(HttpConnector.listen_address, new SocketAddress("localhost", port));
+        Config config = configBuilder.build();
+
+        // WHEN - The port to be used by the Neo4j webserver is already occupied
+        CountDownLatch latch = new CountDownLatch(1);
+        Thread otherProcessThatHasPort = new Thread(() -> {
+            try (ServerSocket s = new ServerSocket(port, 0, InetAddress.getByName(null))) {
+                latch.countDown();
+                s.accept();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        otherProcessThatHasPort.start();
+
+        // WHEN - We attempt to create the Neo4j webserver
+        latch.await();
+        bootstrapper.start(testDirectory.homePath(), config, true);
+
+        // THEN - Errors have been written to the correct System.err stream
+        sysErr.flush();
+        List<String> sysErrMsgs = List.of(sysErr.toString().split("\n"));
+        assertThat(sysErrMsgs)
+                .satisfies(containsAtLeastTheseLines(
+                        Pattern.compile("Failed to start Neo4j on localhost:\\d{1,6}."),
+                        // This exception can vary depending on environment. We only care that one is reported.
+                        Pattern.compile(".*Exception: .*")));
     }
 
     private static DependencyResolver getDependencyResolver(DatabaseManagementService managementService) {
@@ -108,29 +154,6 @@ class StartupLoggingIT extends ExclusiveWebContainerTestBase {
                 GraphDatabaseInternalSettings.databases_root_path.name(),
                 testDirectory.absolutePath().toString());
         return properties;
-    }
-
-    private static Condition<? super List<? extends String>> containsAtLeastTheseLines(
-            Pattern... expectedLinePatterns) {
-        return new Condition<>(
-                lines -> {
-                    if (expectedLinePatterns.length > lines.size()) {
-                        return false;
-                    }
-
-                    for (int i = 0, e = 0; i < lines.size(); i++) {
-                        String line = lines.get(i);
-                        while (!expectedLinePatterns[e].matcher(line).matches()) {
-                            if (++i >= lines.size()) {
-                                return false;
-                            }
-                            line = lines.get(i);
-                        }
-                        e++;
-                    }
-                    return true;
-                },
-                "Expected: " + asList(expectedLinePatterns));
     }
 
     private static Pattern info(String messagePattern) {

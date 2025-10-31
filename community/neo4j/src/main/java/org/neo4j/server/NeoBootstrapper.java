@@ -47,12 +47,14 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.graphdb.facade.GraphDatabaseDependencies;
+import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.os.OsBeanUtil;
 import org.neo4j.kernel.impl.pagecache.ConfiguringPageCacheFactory;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.internal.Version;
+import org.neo4j.kernel.lifecycle.LifecycleException;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.log4j.Log4jLogProvider;
 import org.neo4j.logging.log4j.Neo4jLoggerContext;
@@ -75,6 +77,7 @@ public abstract class NeoBootstrapper implements Bootstrapper {
     public static final int INVALID_CONFIGURATION_ERROR_CODE = 3;
     public static final int LICENSE_NOT_ACCEPTED_ERROR_CODE = 4;
     private static final String NEO4J_SLF4J_PROVIDER = "org.neo4j.server.logging.slf4j.SLF4JLogBridge";
+    private static final String FAILED_TO_START_MESSAGE = "Failed to start Neo4j on %s.";
     private static final boolean USE_NEO4J_SLF4J_PROVIDER =
             FeatureToggles.flag(Bootstrapper.class, "useNeo4jSlf4jProvider", false);
 
@@ -123,10 +126,6 @@ public abstract class NeoBootstrapper implements Bootstrapper {
             Map<String, String> configOverrides,
             boolean expandCommands,
             boolean daemonMode) {
-        addShutdownHook();
-        installSignalHandlers();
-        SystemLogger.installErrorListener();
-
         Config.Builder configBuilder = Config.newBuilder()
                 .commandExpansion(expandCommands)
                 .setDefaults(GraphDatabaseSettings.SERVER_DEFAULTS)
@@ -139,6 +138,15 @@ public abstract class NeoBootstrapper implements Bootstrapper {
                     configFile.getParent().toAbsolutePath());
         }
         Config config = configBuilder.build();
+
+        return start(homeDir, config, daemonMode);
+    }
+
+    @VisibleForTesting
+    public final int start(Path homeDir, Config config, boolean daemonMode) {
+        addShutdownHook();
+        installSignalHandlers();
+        SystemLogger.installErrorListener();
 
         HeapDumpDiagnostics.INSTANCE.START_TIME = Instant.now().toString();
         HeapDumpDiagnostics.INSTANCE.NEO4J_VERSION = Version.getNeo4jVersion();
@@ -183,14 +191,13 @@ public abstract class NeoBootstrapper implements Bootstrapper {
             SystemLogger.installStdRedirects(userLogProvider);
         }
 
-        try (daemonOut;
-                daemonErr) {
+        try (daemonOut) {
             serverAddress = config.get(HttpConnector.listen_address).toString();
             serverLocation = config.get(databases_root_path).toString();
 
             log.info("Starting...");
             databaseManagementService = createNeo(config, daemonMode, dependencies);
-            if (daemonMode) {
+            if (daemonErr != null) {
                 // Signal parent process we are ready to detach
                 daemonErr.println(Environment.FULLY_FLEDGED);
             }
@@ -200,17 +207,28 @@ public abstract class NeoBootstrapper implements Bootstrapper {
             return OK;
         } catch (ServerStartupException e) {
             e.describeTo(log);
+            String errMsg = format(FAILED_TO_START_MESSAGE, serverAddress);
+            daemonErrPrint(daemonErr, errMsg, e);
             return WEB_SERVER_STARTUP_ERROR_CODE;
         } catch (TransactionFailureException tfe) {
-            log.error(
-                    format(
-                            "Failed to start Neo4j on %s. Another process may be using databases at location: %s",
-                            serverAddress, serverLocation),
-                    tfe);
+            String errMsg = format(
+                    FAILED_TO_START_MESSAGE + "Another process may be using databases at location: %s",
+                    serverAddress,
+                    serverLocation);
+            log.error(errMsg, tfe);
+            daemonErrPrint(daemonErr, errMsg, tfe);
             return GRAPH_DATABASE_STARTUP_ERROR_CODE;
         } catch (Exception e) {
-            log.error(format("Failed to start Neo4j on %s.", serverAddress), e);
+            String errMsg = format(FAILED_TO_START_MESSAGE, serverAddress);
+            log.error(errMsg, e);
+            daemonErrPrint(daemonErr, errMsg, e);
             return WEB_SERVER_STARTUP_ERROR_CODE;
+        } finally {
+            // We handle this in the finally block, rather than by letting the try-with-resources do it automatically.
+            // This is because try-with-resources closes the underlying System.err stream before it can print the error.
+            if (daemonErr != null) {
+                daemonErr.close();
+            }
         }
     }
 
@@ -419,6 +437,13 @@ public abstract class NeoBootstrapper implements Bootstrapper {
             userLogFileStream = outProvider;
             log = outProvider.getLog(getClass());
             startupLog.replayInto(log);
+        }
+    }
+
+    private void daemonErrPrint(PrintStream daemonErr, String errMsg, Exception e) {
+        if (daemonErr != null) {
+            daemonErr.println(errMsg);
+            daemonErr.println(Exceptions.findCauseOrSuppressed(e.getCause(), t -> !(t instanceof LifecycleException)));
         }
     }
 

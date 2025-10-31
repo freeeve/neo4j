@@ -19,9 +19,13 @@
  */
 package org.neo4j.test.conditions;
 
+import static java.util.Arrays.asList;
+
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import org.assertj.core.api.Condition;
 import org.neo4j.internal.helpers.collection.Iterables;
 
@@ -78,5 +82,27 @@ public final class Conditions {
 
     public static <T extends Collection<?>> Condition<T> sizeCondition(int expectedSize) {
         return new Condition<>(v -> v.size() == expectedSize, "Size should be equal to " + expectedSize);
+    }
+
+    public static Condition<? super List<? extends String>> containsAtLeastTheseLines(Pattern... expectedLinePatterns) {
+        return new Condition<>(
+                lines -> {
+                    if (expectedLinePatterns.length > lines.size()) {
+                        return false;
+                    }
+
+                    for (int i = 0, e = 0; i < lines.size(); i++) {
+                        String line = lines.get(i);
+                        while (!expectedLinePatterns[e].matcher(line).matches()) {
+                            if (++i >= lines.size()) {
+                                return false;
+                            }
+                            line = lines.get(i);
+                        }
+                        e++;
+                    }
+                    return true;
+                },
+                "Expected: " + asList(expectedLinePatterns));
     }
 }
