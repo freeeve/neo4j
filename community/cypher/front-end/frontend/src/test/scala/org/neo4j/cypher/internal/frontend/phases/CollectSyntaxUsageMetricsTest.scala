@@ -165,7 +165,7 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.FILTER_CLAUSE) should be(1)
   }
 
-  testVersionsExcept5("should find Importing with") { version =>
+  testVersionsExcept5("should find Importing with correlated") { version =>
     val stats = runPipeline(
       version,
       """
@@ -180,6 +180,24 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     )
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LET_CLAUSE) should be(1)
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY_CORRELATED) should be(1)
+  }
+
+  testVersionsExcept5("should find Importing with uncorrelated") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |
+        |LET x = 1
+        |CALL {
+        |   RETURN 1 AS y
+        |}
+        |RETURN y
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LET_CLAUSE) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY_UNCORRELATED) should be(1)
   }
 
   testVersionsExcept5("should find Scope clause") { version =>

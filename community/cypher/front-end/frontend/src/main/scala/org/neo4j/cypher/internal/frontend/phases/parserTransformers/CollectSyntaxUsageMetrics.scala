@@ -80,8 +80,13 @@ case object CollectSyntaxUsageMetrics
         increaseMetric(SyntaxUsageMetricKey.LET_CLAUSE)
       case ParsedAsFilter =>
         increaseMetric(SyntaxUsageMetricKey.FILTER_CLAUSE)
-      case _: ImportingWithSubqueryCall =>
+      case sq: ImportingWithSubqueryCall =>
         increaseMetric(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY)
+        if (sq.isCorrelated) {
+          increaseMetric(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY_CORRELATED)
+        } else {
+          increaseMetric(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY_UNCORRELATED)
+        }
       case _: ScopeClauseSubqueryCall =>
         increaseMetric(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY)
       case _: ConditionalQueryWhen =>
