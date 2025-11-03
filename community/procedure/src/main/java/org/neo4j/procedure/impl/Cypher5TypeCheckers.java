@@ -40,6 +40,7 @@ import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTMap;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTNumber;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTString;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTTime;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTVector;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -79,6 +80,7 @@ import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
 
@@ -166,6 +168,7 @@ public class Cypher5TypeCheckers {
         registerType(LocalTimeValue.class, new DefaultValueConverter(NTLocalTime));
         registerType(TemporalAmount.class, new DefaultValueConverter(NTDuration));
         registerType(DurationValue.class, new DefaultValueConverter(NTDuration));
+        registerType(VectorValue.class, new DefaultValueConverter(NTVector));
     }
 
     TypeChecker checkerFor(Type javaType) throws ProcedureException {

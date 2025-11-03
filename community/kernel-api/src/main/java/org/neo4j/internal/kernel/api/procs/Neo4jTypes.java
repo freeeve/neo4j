@@ -46,6 +46,7 @@ public final class Neo4jTypes {
     public static final TimeType NTTime = new TimeType();
     public static final LocalTimeType NTLocalTime = new LocalTimeType();
     public static final DurationType NTDuration = new DurationType();
+    public static final VectorType NTVector = new VectorType();
 
     private Neo4jTypes() {}
 
@@ -218,6 +219,12 @@ public final class Neo4jTypes {
     public static class DurationType extends AnyType {
         public DurationType() {
             super("DURATION");
+        }
+    }
+
+    public static class VectorType extends AnyType {
+        public VectorType() {
+            super("VECTOR");
         }
     }
 }

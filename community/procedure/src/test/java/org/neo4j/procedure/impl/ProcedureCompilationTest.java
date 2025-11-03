@@ -103,6 +103,7 @@ import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
 
@@ -835,6 +836,10 @@ public class ProcedureCompilationTest {
         return in;
     }
 
+    public VectorValue testMethod(VectorValue in) {
+        return in;
+    }
+
     private Map<Type, Method> typeMaps() {
         Map<Type, Method> methodHashMap = new HashMap<>();
         methodHashMap.put(String.class, method("testMethod", String.class));
@@ -870,6 +875,7 @@ public class ProcedureCompilationTest {
         methodHashMap.put(IntegralValue.class, method("testMethod", IntegralValue.class));
         methodHashMap.put(TextValue.class, method("testMethod", TextValue.class));
         methodHashMap.put(DurationValue.class, method("testMethod", DurationValue.class));
+        methodHashMap.put(VectorValue.class, method("testMethod", VectorValue.class));
 
         // safety check, make sure we are testing all types
         Set<Type> types = new Cypher5TypeCheckers().allTypes();

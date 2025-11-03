@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.internal.kernel.api.procs.DefaultParameterValue
@@ -97,6 +98,7 @@ object procsHelpers {
     case Neo4jTypes.NTGeometry      => CTGeometry
     case Neo4jTypes.NTMap           => CTMap
     case Neo4jTypes.NTAny           => CTAny
+    case Neo4jTypes.NTVector        => CTVector
     case t => throw new IllegalArgumentException(s"Could not find a valid mapping for the type $t")
   }
 

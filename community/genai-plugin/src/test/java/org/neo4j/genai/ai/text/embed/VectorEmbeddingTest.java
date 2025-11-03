@@ -458,27 +458,33 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                 .map(m -> m.get("name").toString())
                 .sorted()
                 .collect(Collectors.joining("', '", "'", "'."));
+        final var expectedFunctionSignature =
+                "ai.text.embed(resource :: STRING, provider :: STRING, configuration = {} :: MAP) :: VECTOR";
         final var showFuncQuery =
                 """
-                        SHOW FUNCTIONS YIELD name, argumentDescription
+                        SHOW FUNCTIONS YIELD name, argumentDescription, signature
                         WHERE name = 'ai.text.embed'
                         RETURN *
                         """;
         assertThat(db.executeTransactionally(showFuncQuery, Map.of(), consume()))
                 .singleElement(map(String.class, Object.class))
+                .containsEntry("signature", expectedFunctionSignature)
                 .extracting("argumentDescription", InstanceOfAssertFactories.LIST)
                 .filteredOn(d -> d instanceof Map map && "provider".equals(map.get("name")))
                 .singleElement(map(String.class, Object.class))
                 .containsEntry("description", "The identifier of the provider: " + expectedProviders);
 
+        final var expectedProcedureSignature =
+                "ai.text.embedBatch(resources :: LIST<STRING>, provider :: STRING, configuration = {} :: MAP) :: (index :: INTEGER, resource :: STRING, vector :: VECTOR)";
         final var showProcQuery =
                 """
-                        SHOW PROCEDURES YIELD name, argumentDescription
+                        SHOW PROCEDURES YIELD name, argumentDescription, signature
                         WHERE name = 'ai.text.embedBatch'
                         RETURN *
                         """;
         assertThat(db.executeTransactionally(showProcQuery, Map.of(), consume()))
                 .singleElement(map(String.class, Object.class))
+                .containsEntry("signature", expectedProcedureSignature)
                 .extracting("argumentDescription", InstanceOfAssertFactories.LIST)
                 .filteredOn(d -> d instanceof Map map && "provider".equals(map.get("name")))
                 .singleElement(map(String.class, Object.class))
