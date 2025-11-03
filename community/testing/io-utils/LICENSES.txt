@@ -7,14 +7,11 @@ Apache Software License, Version 2.0
   Apache Commons Codec
   Apache Commons Lang
   Apache Commons Text
-  Byte Buddy (without dependencies)
-  Byte Buddy agent
   Caffeine cache
   Java Native Access
   JSpecify annotations
   Netty/Common
   org.apiguardian:apiguardian-api
-  org.opentest4j:opentest4j
 ------------------------------------------------------------------------------
 
                                  Apache License
@@ -390,12 +387,7 @@ This Agreement is governed by the laws of the State of New York and the intellec
 
 ------------------------------------------------------------------------------
 Eclipse Public License v2.0
-  JUnit Jupiter (Aggregator)
-  JUnit Jupiter API
   JUnit Jupiter Engine
-  JUnit Jupiter Params
-  JUnit Platform Commons
-  JUnit Platform Engine API
 ------------------------------------------------------------------------------
 
 Eclipse Public License - v 2.0
@@ -675,35 +667,6 @@ version(s), and exceptions or additional permissions here}."
   look for such a notice.
 
   You may add additional accurate notices of copyright ownership.
-
-
-------------------------------------------------------------------------------
-MIT License
-  mockito-core
-------------------------------------------------------------------------------
-
-The MIT License
-
-Copyright (c) <year> <copyright holders>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
 
 
 

@@ -29,14 +29,11 @@ Apache Software License, Version 2.0
   Apache Commons Codec
   Apache Commons Lang
   Apache Commons Text
-  Byte Buddy (without dependencies)
-  Byte Buddy agent
   Caffeine cache
   Java Native Access
   JSpecify annotations
   Netty/Common
   org.apiguardian:apiguardian-api
-  org.opentest4j:opentest4j
 
 BSD License
   asm
@@ -55,15 +52,7 @@ Eclipse Public License - v 1.0
   Eclipse Collections Main Library
 
 Eclipse Public License v2.0
-  JUnit Jupiter (Aggregator)
-  JUnit Jupiter API
   JUnit Jupiter Engine
-  JUnit Jupiter Params
-  JUnit Platform Commons
-  JUnit Platform Engine API
-
-MIT License
-  mockito-core
 
 Dependencies with multiple licenses
 -----------------------------------
