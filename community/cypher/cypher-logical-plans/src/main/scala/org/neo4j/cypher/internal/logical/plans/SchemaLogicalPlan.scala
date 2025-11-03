@@ -90,6 +90,17 @@ case class CreateFulltextIndex(
   override def lhs: Option[LogicalPlan] = source
 }
 
+case class CreateVectorIndex(
+  source: Option[DoNothingIfExistsForVectorIndex],
+  entityNames: Either[List[LabelName], List[RelTypeName]],
+  propertyKeyNames: List[PropertyKeyName],
+  additionalPropertyKeyNames: List[PropertyKeyName],
+  name: Option[Either[String, Parameter]],
+  options: Options
+)(implicit idGen: IdGen) extends SchemaLogicalPlan(idGen) {
+  override def lhs: Option[LogicalPlan] = source
+}
+
 case class DropIndexOnName(
   name: Either[String, Parameter],
   ifExists: Boolean
@@ -115,6 +126,14 @@ case class DoNothingIfExistsForLookupIndex(
 case class DoNothingIfExistsForFulltextIndex(
   entityNames: Either[List[LabelName], List[RelTypeName]],
   propertyKeyNames: List[PropertyKeyName],
+  name: Option[Either[String, Parameter]],
+  options: Options
+)(implicit idGen: IdGen) extends SchemaLogicalPlan(idGen)
+
+case class DoNothingIfExistsForVectorIndex(
+  entityNames: Either[List[LabelName], List[RelTypeName]],
+  propertyKeyNames: List[PropertyKeyName],
+  additionalPropertyKeyNames: List[PropertyKeyName],
   name: Option[Either[String, Parameter]],
   options: Options
 )(implicit idGen: IdGen) extends SchemaLogicalPlan(idGen)

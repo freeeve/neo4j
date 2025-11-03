@@ -303,28 +303,6 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             options
           )(pos(grandparent))
         }
-      case Cypher25Parser.VECTOR =>
-        if (isNode) {
-          val label = labelOrRelType.asInstanceOf[LabelName]
-          CreateIndex.createVectorNodeIndex(
-            variable,
-            label,
-            propertyList,
-            indexName,
-            existsDo,
-            options
-          )(pos(grandparent))
-        } else {
-          val relType = labelOrRelType.asInstanceOf[RelTypeName]
-          CreateIndex.createVectorRelationshipIndex(
-            variable,
-            relType,
-            propertyList,
-            indexName,
-            existsDo,
-            options
-          )(pos(grandparent))
-        }
     }
   }
 
@@ -335,7 +313,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
     val existsDo = ifExistsDo(grandparent.REPLACE() != null, ctx.EXISTS() != null)
     val options = astOpt[Options](ctx.commandOptions(), NoOptions)
     val indexName = astOpt[Either[String, Parameter]](ctx.symbolicNameOrStringParameter())
-    val nodePattern = ctx.fulltextNodePattern()
+    val nodePattern = ctx.multiLabelNodePattern()
     val isNode = nodePattern != null
     val propertyList = ctx.enclosedPropertyList().ast[Seq[Property]]().toList
     ctx.ast = if (isNode) {
@@ -349,7 +327,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
         options
       )(pos(grandparent))
     } else {
-      val (variable, relTypes) = ctx.fulltextRelPattern().ast[(Variable, List[RelTypeName])]()
+      val (variable, relTypes) = ctx.multiRelTypeRelPattern().ast[(Variable, List[RelTypeName])]()
       CreateIndex.createFulltextRelationshipIndex(
         variable,
         relTypes,
@@ -361,14 +339,50 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
     }
   }
 
-  def exitFulltextNodePattern(ctx: Cypher25Parser.FulltextNodePatternContext): Unit = {
+  final override def exitCreateVectorIndex(
+    ctx: Cypher25Parser.CreateVectorIndexContext
+  ): Unit = {
+    val grandparent = ctx.getParent.getParent.asInstanceOf[CreateCommandContext]
+    val existsDo = ifExistsDo(grandparent.REPLACE() != null, ctx.EXISTS() != null)
+    val options = astOpt[Options](ctx.commandOptions(), NoOptions)
+    val indexName = astOpt[Either[String, Parameter]](ctx.symbolicNameOrStringParameter())
+    val nodePattern = ctx.multiLabelNodePattern()
+    val isNode = nodePattern != null
+    val propertyList = ctx.propertyList().ast[ArraySeq[Property]]().toList
+    val additionalPropertiesList = astOpt[Seq[Property]](ctx.withProperties(), Seq.empty).toList
+    ctx.ast = if (isNode) {
+      val (variable, labels) = nodePattern.ast[(Variable, List[LabelName])]()
+      CreateIndex.createVectorNodeIndex(
+        variable,
+        labels,
+        propertyList,
+        additionalPropertiesList,
+        indexName,
+        existsDo,
+        options
+      )(pos(grandparent))
+    } else {
+      val (variable, relTypes) = ctx.multiRelTypeRelPattern().ast[(Variable, List[RelTypeName])]()
+      CreateIndex.createVectorRelationshipIndex(
+        variable,
+        relTypes,
+        propertyList,
+        additionalPropertiesList,
+        indexName,
+        existsDo,
+        options
+      )(pos(grandparent))
+    }
+  }
+
+  def exitMultiLabelNodePattern(ctx: Cypher25Parser.MultiLabelNodePatternContext): Unit = {
     ctx.ast = (
       ctx.variable().ast[Variable](),
       astSeqPositioned[LabelName, String](ctx.symbolicNameString(), LabelName.apply).toList
     )
   }
 
-  def exitFulltextRelPattern(ctx: Cypher25Parser.FulltextRelPatternContext): Unit = {
+  def exitMultiRelTypeRelPattern(ctx: Cypher25Parser.MultiRelTypeRelPatternContext): Unit = {
     ctx.ast = (
       ctx.variable().ast[Variable](),
       astSeqPositioned[RelTypeName, String](ctx.symbolicNameString(), RelTypeName.apply).toList

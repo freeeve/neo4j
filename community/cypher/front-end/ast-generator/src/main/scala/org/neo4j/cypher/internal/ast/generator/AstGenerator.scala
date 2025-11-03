@@ -2484,6 +2484,10 @@ class AstGenerator(
     props <- oneOrMore(_variableProperty)
   } yield props
 
+  def _maybeEmptyListOfProperties: Gen[List[Property]] = for {
+    props <- zeroOrMore(_variableProperty)
+  } yield props
+
   def _cypherTypeName: Gen[CypherType] = for {
     _type <- oneOf(allCypherTypeNamesFromReflection)
   } yield _type
@@ -2606,6 +2610,7 @@ class AstGenerator(
     relType <- _relTypeName
     types <- _listOfRelTypes
     props <- _listOfProperties
+    additionalProps <- if (usesCypher5) const(List.empty) else _maybeEmptyListOfProperties
     name <- option(_nameAsEither)
     ifExistsDo <- _ifExistsDo
     options <- _optionsMapAsEitherOrNone
@@ -2711,20 +2716,23 @@ class AstGenerator(
         options,
         use
       )(pos)
-    vectorNodeIndex = CreateIndex.createVectorNodeIndex(
-      variable,
-      labelName,
-      props,
-      name,
-      ifExistsDo,
-      options,
-      use
-    )(pos)
+    vectorNodeIndex =
+      CreateIndex.createVectorNodeIndex(
+        variable,
+        if (usesCypher5) List(labelName) else labels,
+        props,
+        additionalProps,
+        name,
+        ifExistsDo,
+        options,
+        use
+      )(pos)
     vectorRelIndex =
       CreateIndex.createVectorRelationshipIndex(
         variable,
-        relType,
+        if (usesCypher5) List(relType) else types,
         props,
+        additionalProps,
         name,
         ifExistsDo,
         options,

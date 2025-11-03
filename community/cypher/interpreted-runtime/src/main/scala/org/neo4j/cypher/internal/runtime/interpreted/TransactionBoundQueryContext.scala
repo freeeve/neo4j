@@ -317,13 +317,16 @@ sealed class TransactionBoundQueryContext(
     provider: Option[IndexProviderDescriptor],
     indexConfig: IndexConfig
   ): IndexDescriptor = {
-    val descriptor = SchemaDescriptors.forSemanticSearch(entityType, entityIds.toArray, propertyKeyIds.toArray)
-    val prototype =
-      provider.map(p => IndexPrototype.forSchema(descriptor, p)).getOrElse(IndexPrototype.forSchema(descriptor))
-        .withIndexType(IndexType.FULLTEXT)
-        .withIndexConfig(indexConfig)
-    val namedPrototype = name.map(n => prototype.withName(n)).getOrElse(prototype)
-    addIndexRule(descriptor, namedPrototype)
+    val (descriptor, prototype) = getSemanticIndexDescriptorAndPrototype(
+      IndexType.FULLTEXT,
+      entityIds,
+      entityType,
+      propertyKeyIds,
+      name,
+      provider,
+      indexConfig
+    )
+    addIndexRule(descriptor, prototype)
   }
 
   override def addTextIndexRule(
@@ -353,17 +356,25 @@ sealed class TransactionBoundQueryContext(
   }
 
   override def addVectorIndexRule(
-    entityId: Int,
+    entityIds: List[Int],
     entityType: EntityType,
     propertyKeyIds: Seq[Int],
+    additionalPropertyKeyIds: Seq[Int],
     name: Option[String],
     provider: Option[IndexProviderDescriptor],
     indexConfig: IndexConfig
   ): IndexDescriptor = {
-    val (descriptor, prototype) =
-      getIndexDescriptorAndPrototype(IndexType.VECTOR, entityId, entityType, propertyKeyIds, name, provider)
-    val prototypeWithConfig = prototype.withIndexConfig(indexConfig)
-    addIndexRule(descriptor, prototypeWithConfig)
+    val (descriptor, prototype) = getSemanticIndexDescriptorAndPrototype(
+      IndexType.VECTOR,
+      entityIds,
+      entityType,
+      // Kernel only sees it as a single list with the vector property first
+      propertyKeyIds ++ additionalPropertyKeyIds,
+      name,
+      provider,
+      indexConfig
+    )
+    addIndexRule(descriptor, prototype)
   }
 
   private def getIndexDescriptorAndPrototype(
@@ -381,6 +392,24 @@ sealed class TransactionBoundQueryContext(
     val prototype = provider.map(p => IndexPrototype.forSchema(descriptor, p)).getOrElse(
       IndexPrototype.forSchema(descriptor)
     ).withIndexType(indexType)
+    val namedPrototype = name.map(n => prototype.withName(n)).getOrElse(prototype)
+    (descriptor, namedPrototype)
+  }
+
+  private def getSemanticIndexDescriptorAndPrototype(
+    indexType: IndexType,
+    entityIds: List[Int],
+    entityType: EntityType,
+    propertyKeyIds: Seq[Int],
+    name: Option[String],
+    provider: Option[IndexProviderDescriptor],
+    indexConfig: IndexConfig
+  ): (SchemaDescriptor, IndexPrototype) = {
+    val descriptor = SchemaDescriptors.forSemanticSearch(entityType, entityIds.toArray, propertyKeyIds.toArray)
+    val prototype =
+      provider.map(p => IndexPrototype.forSchema(descriptor, p)).getOrElse(IndexPrototype.forSchema(descriptor))
+        .withIndexType(indexType)
+        .withIndexConfig(indexConfig)
     val namedPrototype = name.map(n => prototype.withName(n)).getOrElse(prototype)
     (descriptor, namedPrototype)
   }
@@ -974,13 +1003,23 @@ private[internal] class TransactionBoundReadQueryContext(
     Iterators.single(transactionalContext.schemaRead.index(descriptor))
   }
 
-  override def fulltextIndexReference(
+  override def semanticIndexReference(
+    indexType: IndexType,
     entityIds: List[Int],
     entityType: EntityType,
     properties: Int*
   ): IndexDescriptor = {
     val descriptor = SchemaDescriptors.forSemanticSearch(entityType, entityIds.toArray, properties.toArray)
-    Iterators.single(transactionalContext.schemaRead.index(descriptor))
+    val indexes = transactionalContext.schemaRead.index(descriptor)
+
+    // Return the wanted index type if it exists
+    while (indexes.hasNext) {
+      val i = indexes.next()
+      if (i.getIndexType.equals(indexType)) return i
+    }
+
+    // No such index existed, throw same exception type that Iterators.single gives if no index exists
+    throw new NoSuchElementException(s"No such ${indexType.toString.toLowerCase(Locale.ROOT)} index exists.")
   }
 
   override def indexReferences(

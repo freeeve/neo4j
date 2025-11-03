@@ -319,9 +319,10 @@ object StaticEvaluation {
     ): IndexDescriptor = notAvailable()
 
     override def addVectorIndexRule(
-      entityId: Int,
+      entityIds: List[Int],
       entityType: EntityType,
       propertyKeyIds: Seq[Int],
+      additionalPropertyKeyIds: Seq[Int],
       name: Option[String],
       provider: Option[IndexProviderDescriptor],
       indexConfig: IndexConfig
@@ -360,7 +361,8 @@ object StaticEvaluation {
 
     override def lookupIndexReference(entityType: EntityType): IndexDescriptor = notAvailable()
 
-    override def fulltextIndexReference(
+    override def semanticIndexReference(
+      indexType: IndexType,
       entityIds: List[Int],
       entityType: EntityType,
       properties: Int*

@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.ast.CreateFulltextIndex
 import org.neo4j.cypher.internal.ast.CreateLookupIndex
 import org.neo4j.cypher.internal.ast.CreateSingleLabelPropertyIndex
+import org.neo4j.cypher.internal.ast.CreateVectorIndex
 import org.neo4j.cypher.internal.ast.DropConstraintOnName
 import org.neo4j.cypher.internal.ast.DropIndexOnName
 import org.neo4j.cypher.internal.ast.IfExistsDo
@@ -39,7 +40,6 @@ import org.neo4j.cypher.internal.ast.RangeCreateIndex
 import org.neo4j.cypher.internal.ast.RelationshipPropertyExistence
 import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
 import org.neo4j.cypher.internal.ast.TextCreateIndex
-import org.neo4j.cypher.internal.ast.VectorCreateIndex
 import org.neo4j.cypher.internal.expressions.ElementTypeName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Parameter
@@ -149,6 +149,30 @@ class SchemaCommandConverter(
             indexConfig(config)
           )
       }
+    case index @ CreateVectorIndex(_, entityNames, properties, _, indexName, _, ifExistsDo, options) =>
+      // TODO: This ignores any additional properties or labels for the vector index
+      val config =
+        validateOptions(options, CreateVectorIndexOptionsConverter(providerContext, latestVectorIndexVersion))
+      val desc = index.entityIndexDescription
+      val name = indexName.map(n => checkName(n, desc + " name")).orNull
+      entityNames match {
+        case Left(labels) =>
+          new NodeVector(
+            name,
+            tokenName(labels.head),
+            singleProperty(properties),
+            ifNotExists(ifExistsDo),
+            indexConfig(config)
+          )
+        case Right(types) =>
+          new RelationshipVector(
+            name,
+            tokenName(types.head),
+            singleProperty(properties),
+            ifNotExists(ifExistsDo),
+            indexConfig(config)
+          )
+      }
     case index @ CreateSingleLabelPropertyIndex(
         _,
         elementName,
@@ -210,26 +234,6 @@ class SchemaCommandConverter(
             )
           } else {
             new RelationshipPoint(
-              name,
-              entityName,
-              singleProperty(properties),
-              ifNotExists(ifExistsDo),
-              indexConfig(config)
-            )
-          }
-        case VectorCreateIndex =>
-          val config =
-            validateOptions(options, CreateVectorIndexOptionsConverter(providerContext, latestVectorIndexVersion))
-          if (isNode) {
-            new NodeVector(
-              name,
-              entityName,
-              singleProperty(properties),
-              ifNotExists(ifExistsDo),
-              indexConfig(config)
-            )
-          } else {
-            new RelationshipVector(
               name,
               entityName,
               singleProperty(properties),

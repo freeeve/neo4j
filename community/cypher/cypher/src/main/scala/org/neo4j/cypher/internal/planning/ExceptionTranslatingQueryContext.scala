@@ -172,8 +172,13 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
   override def lookupIndexReference(entityType: EntityType): IndexDescriptor =
     translateException(tokenNameLookup, inner.lookupIndexReference(entityType))
 
-  override def fulltextIndexReference(entityIds: List[Int], entityType: EntityType, properties: Int*): IndexDescriptor =
-    translateException(tokenNameLookup, inner.fulltextIndexReference(entityIds, entityType, properties: _*))
+  override def semanticIndexReference(
+    indexType: IndexType,
+    entityIds: List[Int],
+    entityType: EntityType,
+    properties: Int*
+  ): IndexDescriptor =
+    translateException(tokenNameLookup, inner.semanticIndexReference(indexType, entityIds, entityType, properties: _*))
 
   override def nodeIndexSeek(
     index: IndexReadSession,
@@ -742,16 +747,25 @@ class ExceptionTranslatingQueryContext(override val inner: QueryContext)
     )
 
   override def addVectorIndexRule(
-    entityId: Int,
+    entityIds: List[Int],
     entityType: EntityType,
     propertyKeyIds: Seq[Int],
+    additionalPropertyKeyIds: Seq[Int],
     name: Option[String],
     provider: Option[IndexProviderDescriptor],
     indexConfig: IndexConfig
   ): IndexDescriptor =
     translateException(
       tokenNameLookup,
-      inner.addVectorIndexRule(entityId, entityType, propertyKeyIds, name, provider, indexConfig)
+      inner.addVectorIndexRule(
+        entityIds,
+        entityType,
+        propertyKeyIds,
+        additionalPropertyKeyIds,
+        name,
+        provider,
+        indexConfig
+      )
     )
 
   override def dropIndexRule(name: String): Unit =

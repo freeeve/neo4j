@@ -403,11 +403,36 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     val fulltextRelIndexInfo =
       IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List(relType, relType2), List(prop, prop2))
 
+    val vectorNodeIndexDescriptor =
+      IndexPrototype.forSchema(
+        SchemaDescriptors.forSemanticSearch(EntityType.NODE, Array(0, 1), Array(0, 1)),
+        AllIndexProviderDescriptors.VECTOR_V3_DESCRIPTOR
+      )
+        .withIndexType(IndexType.VECTOR)
+        .withName("index04")
+        .withIndexConfig(vectorConfig(VectorIndexVersion.V3_0)) // emulating the actual config
+        .materialise(4)
+    val vectorRelIndexDescriptor =
+      IndexPrototype.forSchema(
+        SchemaDescriptors.forSemanticSearch(EntityType.RELATIONSHIP, Array(0, 1), Array(0, 1, 2)),
+        AllIndexProviderDescriptors.VECTOR_V3_DESCRIPTOR
+      )
+        .withIndexType(IndexType.VECTOR)
+        .withName("index05")
+        .withIndexConfig(vectorConfig(VectorIndexVersion.V3_0)) // emulating the actual config
+        .materialise(5)
+    val vectorNodeIndexInfo =
+      IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List(label, label2), List(prop, prop2))
+    val vectorRelIndexInfo =
+      IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List(relType, relType2), List(prop, prop2, prop3))
+
     when(ctx.getAllIndexes()).thenReturn(Map(
       rangeNodeIndexDescriptor -> rangeNodeIndexInfo,
       rangeRelIndexDescriptor -> rangeRelIndexInfo,
       fulltextNodeIndexDescriptor -> fulltextNodeIndexInfo,
-      fulltextRelIndexDescriptor -> fulltextRelIndexInfo
+      fulltextRelIndexDescriptor -> fulltextRelIndexInfo,
+      vectorNodeIndexDescriptor -> vectorNodeIndexInfo,
+      vectorRelIndexDescriptor -> vectorRelIndexInfo
     ))
   }
 
@@ -473,7 +498,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       resultMap(ShowIndexesClause.failureMessageColumn) should be(Values.stringValue(expected))
     )
     createStatement.foreach(expected =>
-      resultMap(ShowIndexesClause.createStatementColumn) should be(Values.stringValue(expected))
+      resultMap(ShowIndexesClause.createStatementColumn) should be(Values.stringOrNoValue(expected))
     )
   }
 
@@ -836,7 +861,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 4
+    result should have size 6
     checkResult(
       result.head,
       name = "index00",
@@ -876,6 +901,28 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       createStatement =
         // Index config is empty as we did not set up anything in the mocking
         s"CREATE FULLTEXT INDEX `index03` FOR ()-[r:`$relType`|`$relType2`]-() ON EACH [r.`$prop`, r.`$prop2`] OPTIONS {indexConfig: {}}"
+    )
+    checkResult(
+      result(4),
+      name = "index04",
+      indexType = "VECTOR",
+      entityType = "NODE",
+      labelsOrTypes = List(label, label2),
+      properties = List(prop, prop2),
+      createStatement =
+        s"CREATE VECTOR INDEX `index04` FOR (n:`$label`|`$label2`) ON (n.`$prop`) WITH [n.`$prop2`] " +
+          s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V3_0)}}"
+    )
+    checkResult(
+      result(5),
+      name = "index05",
+      indexType = "VECTOR",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType, relType2),
+      properties = List(prop, prop2, prop3),
+      createStatement =
+        s"CREATE VECTOR INDEX `index05` FOR ()-[r:`$relType`|`$relType2`]-() ON (r.`$prop`) WITH [r.`$prop2`, r.`$prop3`] " +
+          s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V3_0)}}"
     )
   }
 
@@ -888,7 +935,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 4
+    result should have size 6
     checkResult(
       result.head,
       name = "index00",
@@ -928,6 +975,24 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       createStatement =
         // Index config is empty as we did not set up anything in the mocking
         s"CREATE FULLTEXT INDEX `index03` FOR ()-[r:`$relType`|`$relType2`]-() ON EACH [r.`$prop`, r.`$prop2`] OPTIONS {indexConfig: {}}"
+    )
+    checkResult(
+      result(4),
+      name = "index04",
+      indexType = "VECTOR",
+      entityType = "NODE",
+      labelsOrTypes = List(label, label2),
+      properties = List(prop, prop2),
+      createStatement = Some(null)
+    )
+    checkResult(
+      result(5),
+      name = "index05",
+      indexType = "VECTOR",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType, relType2),
+      properties = List(prop, prop2, prop3),
+      createStatement = Some(null)
     )
   }
 

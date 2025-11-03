@@ -205,6 +205,12 @@ trait DdlBuilder extends Cypher25ParserListener {
       .map { case (e, p) => Property(e, p)(e.position) }
   }
 
+  final override def exitWithProperties(
+    ctx: Cypher25Parser.WithPropertiesContext
+  ): Unit = {
+    ctx.ast = ctx.enclosedPropertyList().ast
+  }
+
   // Admin command contexts (ordered as in parser file)
 
   final override def exitAlterCommand(

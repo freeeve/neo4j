@@ -99,6 +99,7 @@ class ShowCommandTestBase extends CypherFunSuite {
   protected lazy val relType2: String = "REL_TYPE_2"
   protected lazy val prop: String = "prop"
   protected lazy val prop2: String = "prop2"
+  protected lazy val prop3: String = "prop3"
   protected lazy val labelDescriptor: LabelSchemaDescriptor = SchemaDescriptors.forLabel(0, 0)
   protected lazy val relTypeDescriptor: RelationTypeSchemaDescriptor = SchemaDescriptors.forRelType(0, 0)
 

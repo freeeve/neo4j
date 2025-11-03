@@ -2132,32 +2132,39 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
   }
 
-  // vector loop (relationship currently fails in semantic checking with a nicer error)
+  // vector loop
   Seq(
-    ("(n1:Person)", vectorNodeIndex: CreateIndexFunction),
-    ("()-[n1:R]-()", vectorRelIndex: CreateIndexFunction),
-    ("()-[n1:R]->()", vectorRelIndex: CreateIndexFunction),
-    ("()<-[n1:R]-()", vectorRelIndex: CreateIndexFunction)
+    ("(n1:Person)", true, List("Person"), true),
+    ("(n1:Person|Colleague|Friend)", true, List("Person", "Colleague", "Friend"), false),
+    ("()-[n1:R]-()", false, List("R"), true),
+    ("()-[n1:R|S]->()", false, List("R", "S"), false)
   ).foreach {
-    case (pattern, createIndex: CreateIndexFunction) =>
+    case (pattern, isNodeIndex: Boolean, labelsOrTypes: List[String], availableInCypher5: Boolean) =>
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"USE neo4j CREATE VECTOR INDEX FOR $pattern ON (n2.name)") {
         assertAstVersionBased(
           fromCypher5 =>
-            createIndex(
+            vectorIndex(
+              isNodeIndex,
               List(prop("n2", "name")),
+              List.empty,
+              labelsOrTypes,
               None,
               posN2(testName),
               ast.IfExistsThrowError,
@@ -2165,150 +2172,246 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ).withGraph(
               Some(use(List("neo4j"), !fromCypher5))
             ),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
+        )
+      }
+
+      test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) WITH [n3.prop1, n4.prop2]") {
+        assertAst(
+          vectorIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            List(prop("n3", "prop1"), prop("n4", "prop2")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
+          comparePosition = false,
+          supportedInCypher5 = false
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name, n3.age)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name"), prop("n3", "age")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index FOR $pattern ON (n2.name)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name"), prop("n3", "age")),
+            List.empty,
+            labelsOrTypes,
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX `$$my_index` FOR $pattern ON (n2.name)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             Some("$my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
+        )
+      }
+
+      test(s"CREATE VECTOR INDEX my_index FOR $pattern ON (n2.name) WITH [n3.prop1, n4.prop2, n5.prop3, n6.prop1]") {
+        assertAst(
+          vectorIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            List(prop("n3", "prop1"), prop("n4", "prop2"), prop("n5", "prop3"), prop("n6", "prop1")),
+            labelsOrTypes,
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
+          comparePosition = false,
+          supportedInCypher5 = false
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX FOR $pattern ON (n2.name)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsReplace,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name"), prop("n3", "age")),
+            List.empty,
+            labelsOrTypes,
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsReplace,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX IF NOT EXISTS FOR $pattern ON (n2.name)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX IF NOT EXISTS FOR $pattern ON (n2.name, n3.age)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name"), prop("n3", "age")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsDoNothing,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
+        )
+      }
+
+      test(s"CREATE VECTOR INDEX IF NOT EXISTS FOR $pattern ON (n2.name) WITH [n3.prop1]") {
+        assertAst(
+          vectorIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            List(prop("n3", "prop1")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
+          comparePosition = false,
+          supportedInCypher5 = false
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsDoNothing,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'vector-1.0'}") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map("indexProvider" -> literalString("vector-1.0")))(pos)
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
@@ -2316,8 +2419,11 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'vector-1.0', indexConfig : {`vector.dimensions`: 50, `vector.similarity_function`: 'euclidean' }}"
       ) {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsThrowError,
@@ -2329,7 +2435,8 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
               )
             ))(pos)
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
@@ -2337,8 +2444,11 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {`vector.dimensions`: 50, `vector.similarity_function`: 'cosine' }, indexProvider : 'vector-1.0'}"
       ) {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsThrowError,
@@ -2350,7 +2460,8 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
               )
             ))(pos)
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
@@ -2358,8 +2469,11 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {`vector.dimensions`: 50, `vector.similarity_function`: 'cosine' }}"
       ) {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsThrowError,
@@ -2368,110 +2482,149 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
               "vector.similarity_function" -> literalString("cosine")
             )))(pos)
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS $$options") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsParam(parameter("options", CTMap))(pos)
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {nonValidOption : 42}") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             None,
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))(pos)
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index FOR $pattern ON (n2.name) OPTIONS {}") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name")),
+            List.empty,
+            labelsOrTypes,
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map.empty)(pos)
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX $$my_index FOR $pattern ON (n.name)") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n", "name")),
+            List.empty,
+            labelsOrTypes,
             Some(Right(stringParam("my_index"))),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos),
-          comparePosition = false
+          comparePosition = false,
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON n2.name") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name", posN2(testName))),
+            List.empty,
+            labelsOrTypes,
             None,
             posN1(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
-          )(defaultPos)
+          )(defaultPos),
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index FOR $pattern ON n2.name") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name", posN2(testName))),
+            List.empty,
+            labelsOrTypes,
             Some(Left("my_index")),
             posN1(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
-          )(defaultPos)
+          )(defaultPos),
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX IF NOT EXISTS FOR $pattern ON n2.name") {
         assertAst(
-          createIndex(
+          vectorIndex(
+            isNodeIndex,
             List(prop("n2", "name", posN2(testName))),
+            List.empty,
+            labelsOrTypes,
             None,
             posN1(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions
-          )(defaultPos)
+          )(defaultPos),
+          supportedInCypher5 = availableInCypher5
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON n2.name, n3.age") {
-        failsParsing[ast.Statements].withSyntaxErrorContaining(
-          "Invalid input ',': expected 'OPTIONS' or <EOF>"
-        )
+        failsParsing[ast.Statements].in {
+          case Cypher5 if !availableInCypher5 => _.withSyntaxErrorContaining("Invalid input")
+          case Cypher5 => _.withSyntaxErrorContaining("Invalid input ',': expected 'OPTIONS' or <EOF>")
+          case _       => _.withSyntaxErrorContaining("Invalid input ',': expected 'OPTIONS', 'WITH' or <EOF> ")
+        }
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n.name) {indexProvider : 'vector-1.0'}") {
-        failsParsing[ast.Statements].withSyntaxErrorContaining("Invalid input '{': expected 'OPTIONS' or <EOF>")
+        failsParsing[ast.Statements].in {
+          case Cypher5 if !availableInCypher5 => _.withSyntaxErrorContaining("Invalid input")
+          case Cypher5 => _.withSyntaxErrorContaining("Invalid input '{': expected 'OPTIONS' or <EOF>")
+          case _       => _.withSyntaxErrorContaining("Invalid input '{': expected 'OPTIONS', 'WITH' or <EOF>")
+
+        }
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n.name) OPTIONS") {
-        failsParsing[ast.Statements].withMessageStart("Invalid input ''")
+        failsParsing[ast.Statements].in {
+          case Cypher5 if !availableInCypher5 => _.withSyntaxErrorContaining("Invalid input")
+          case _                              => _.withSyntaxErrorContaining("Invalid input ''")
+        }
       }
   }
 
@@ -3000,6 +3153,43 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     )
   }
 
+  test("CREATE VECTOR INDEX FOR (n1:Person|) ON (n2.name)") {
+    // missing second label
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
+      case _ => _.withSyntaxError(
+          """Invalid input ')': expected an identifier (line 1, column 36 (offset: 35))
+            |"CREATE VECTOR INDEX FOR (n1:Person|) ON (n2.name)"
+            |                                    ^""".stripMargin
+        )
+    }
+
+  }
+
+  test("CREATE VECTOR INDEX FOR (n1:Person) ON (n2.name) WITH") {
+    // missing additional properties
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected '[' (line 1, column 54 (offset: 53))
+            |"CREATE VECTOR INDEX FOR (n1:Person) ON (n2.name) WITH"
+            |                                                      ^""".stripMargin
+        )
+    }
+  }
+
+  test("CREATE VECTOR INDEX FOR (n1:Person) ON (n2.name) WITH []") {
+    // with empty additional properties list
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
+      case _ => _.withSyntaxError(
+          """Invalid input ']': expected a variable name (line 1, column 56 (offset: 55))
+            |"CREATE VECTOR INDEX FOR (n1:Person) ON (n2.name) WITH []"
+            |                                                        ^""".stripMargin
+        )
+    }
+  }
+
   test("CREATE VECTOR INDEX FOR ()-[n1]-() ON (n2.name)") {
     // missing relationship type
     failsParsing[ast.Statements].withSyntaxError(
@@ -3093,6 +3283,43 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         |"CREATE VECTOR INDEX FOR ()-[n1:R]-(n2:A) ON (n2.name)"
         |                                    ^""".stripMargin
     )
+  }
+
+  test("CREATE VECTOR INDEX FOR ()-[n1:R|]-() ON (n2.name)") {
+    // missing second relationship type
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
+      case _ => _.withSyntaxError(
+          """Invalid input ']': expected an identifier (line 1, column 34 (offset: 33))
+            |"CREATE VECTOR INDEX FOR ()-[n1:R|]-() ON (n2.name)"
+            |                                  ^""".stripMargin
+        )
+    }
+
+  }
+
+  test("CREATE VECTOR INDEX FOR ()-[n1:R]-() ON (n2.name) WITH") {
+    // missing additional properties
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected '[' (line 1, column 55 (offset: 54))
+            |"CREATE VECTOR INDEX FOR ()-[n1:R]-() ON (n2.name) WITH"
+            |                                                       ^""".stripMargin
+        )
+    }
+  }
+
+  test("CREATE VECTOR INDEX FOR ()-[n1:R]-() ON (n2.name) WITH []") {
+    // with empty additional properties list
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
+      case _ => _.withSyntaxError(
+          """Invalid input ']': expected a variable name (line 1, column 57 (offset: 56))
+            |"CREATE VECTOR INDEX FOR ()-[n1:R]-() ON (n2.name) WITH []"
+            |                                                         ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE LOOKUP INDEX FOR n1 ON EACH labels(n2)") {
@@ -3767,8 +3994,26 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       options
     )
 
+  private def vectorIndex(
+    isNodeIndex: Boolean,
+    props: List[Property],
+    additionalProps: List[Property],
+    labelOrTypes: List[String],
+    name: Option[Either[String, Parameter]],
+    varPos: InputPosition,
+    ifExistsDo: ast.IfExistsDo,
+    options: ast.Options
+  ): InputPosition => ast.CreateIndex =
+    if (isNodeIndex) {
+      vectorNodeIndex(props, additionalProps, labelOrTypes, name, varPos, ifExistsDo, options)
+    } else {
+      vectorRelIndex(props, additionalProps, labelOrTypes, name, varPos, ifExistsDo, options)
+    }
+
   private def vectorNodeIndex(
     props: List[Property],
+    additionalProps: List[Property],
+    labels: List[String],
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
@@ -3776,8 +4021,9 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createVectorNodeIndex(
       varFor("n1", varPos),
-      LabelName("Person")(increasePos(varPos, 3)),
+      labels.map(labelName(_)),
       props,
+      additionalProps,
       name,
       ifExistsDo,
       options
@@ -3785,6 +4031,8 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   private def vectorRelIndex(
     props: List[Property],
+    additionalProps: List[Property],
+    types: List[String],
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
@@ -3792,8 +4040,9 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createVectorRelationshipIndex(
       varFor("n1", varPos),
-      RelTypeName("R")(increasePos(varPos, 3)),
+      types.map(relTypeName(_)),
       props,
+      additionalProps,
       name,
       ifExistsDo,
       options

@@ -77,6 +77,10 @@ object SemanticFeature {
     override def name: String = "new vector type"
   }
 
+  case object VectorSingleStageFilteringEnabled extends SemanticFeature with FeatureToString {
+    override def name: String = "vector single stage filtering"
+  }
+
   case object VectorSearch extends SemanticFeature with FeatureToString {
     override def name: String = "vector search in Cypher"
   }
@@ -112,6 +116,7 @@ object SemanticFeature {
     ExperimentalCypherVersions,
     RelationshipPropertyValueAccessRules,
     VectorType,
+    VectorSingleStageFilteringEnabled,
     VectorSearch,
     ScopeQueries,
     ShardedPropertyDatabase,

@@ -380,6 +380,24 @@ trait GraphIcing {
       )
     }
 
+    def createNodeVectorIndexExtended(
+      labels: List[String],
+      property: String,
+      additionalProperties: List[String],
+      maybeName: Option[String] = None,
+      maybeSettings: Option[VectorIndexSettings] = None
+    ): IndexDefinition = {
+      val pattern = s"(e:${labels.map(l => s"`$l`").mkString("|")})"
+      createVectorIndex(
+        pattern,
+        property,
+        additionalProperties,
+        () => getVectorIndex(labels, property, additionalProperties, isNodeIndex = true),
+        maybeName,
+        maybeSettings
+      )
+    }
+
     def createRelationshipVectorIndex(
       relType: String,
       property: String,
@@ -392,6 +410,24 @@ trait GraphIcing {
         Seq(property),
         IndexType.VECTOR,
         maybeConfig = getVectorIndexSettings(maybeSettings)
+      )
+    }
+
+    def createRelationshipVectorIndexExtended(
+      relTypes: List[String],
+      property: String,
+      additionalProperties: List[String],
+      maybeName: Option[String] = None,
+      maybeSettings: Option[VectorIndexSettings] = None
+    ): IndexDefinition = {
+      val pattern = s"()-[e:${relTypes.map(r => s"`$r`").mkString("|")}]-()"
+      createVectorIndex(
+        pattern,
+        property,
+        additionalProperties,
+        () => getVectorIndex(relTypes, property, additionalProperties, isNodeIndex = false),
+        maybeName,
+        maybeSettings
       )
     }
 
@@ -410,6 +446,33 @@ trait GraphIcing {
               NameUtil.escapeBackticks(setting) -> pp.value()
           })(Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER))
       }
+    }
+
+    private def createVectorIndex(
+      pattern: String,
+      property: String,
+      additionalProperties: List[String],
+      getIndex: () => IndexDefinition,
+      maybeName: Option[String],
+      maybeSettings: Option[VectorIndexSettings]
+    ): IndexDefinition = {
+      val nameString = maybeName.map(n => s" `$n`").getOrElse("")
+      val maybeConfig = getVectorIndexSettings(maybeSettings)
+      withTx(tx => {
+        val addPropsString =
+          if (additionalProperties.nonEmpty) additionalProperties.map(p => s"e.`$p`").mkString("WITH [", ",", "]")
+          else ""
+        tx.execute(
+          // Multiple labels/relTypes and additional properties fails to parse in Cypher 5
+          s"""CYPHER 25
+             |CREATE VECTOR INDEX$nameString
+             |FOR $pattern ON (e.`$property`)
+             |$addPropsString
+             |${optionsString(None, maybeConfig)}""".stripMargin
+        )
+      })
+      awaitIndexesOnline()
+      getIndex()
     }
 
     // Create label/prop index help methods
@@ -573,6 +636,14 @@ trait GraphIcing {
     def getFulltextIndex(entities: List[String], props: List[String], isNodeIndex: Boolean): IndexDefinition =
       getMaybeFulltextIndex(entities, props, isNodeIndex).get
 
+    def getVectorIndex(
+      entities: List[String],
+      property: String,
+      additionalProperties: List[String],
+      isNodeIndex: Boolean
+    ): IndexDefinition =
+      getMaybeVectorIndex(entities, property, additionalProperties, isNodeIndex).get
+
     def getMaybeNodeIndex(
       label: String,
       properties: Seq[String],
@@ -611,6 +682,20 @@ trait GraphIcing {
           id.isNodeIndex == isNodeIndex &&
           getEntities(id).equals(entities) &&
           id.getPropertyKeys.asScala.toList.equals(props)
+      )
+    })
+
+    def getMaybeVectorIndex(
+      entities: List[String],
+      property: String,
+      additionalProperties: List[String],
+      isNodeIndex: Boolean
+    ): Option[IndexDefinition] = withTx(tx => {
+      tx.schema().getIndexes().asScala.find(id =>
+        id.getIndexType.equals(IndexType.VECTOR) &&
+          id.isNodeIndex == isNodeIndex &&
+          getEntities(id).equals(entities) &&
+          id.getPropertyKeys.asScala.toList.equals(property +: additionalProperties)
       )
     })
 

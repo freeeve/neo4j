@@ -431,9 +431,11 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitCreateFulltextIndex(Cypher25Parser.CreateFulltextIndexContext ctx);
 
-    void exitFulltextNodePattern(Cypher25Parser.FulltextNodePatternContext ctx);
+    void exitCreateVectorIndex(Cypher25Parser.CreateVectorIndexContext ctx);
 
-    void exitFulltextRelPattern(Cypher25Parser.FulltextRelPatternContext ctx);
+    void exitMultiLabelNodePattern(Cypher25Parser.MultiLabelNodePatternContext ctx);
+
+    void exitMultiRelTypeRelPattern(Cypher25Parser.MultiRelTypeRelPatternContext ctx);
 
     void exitCreateLookupIndex(Cypher25Parser.CreateLookupIndexContext ctx);
 
@@ -446,6 +448,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
     void exitPropertyList(Cypher25Parser.PropertyListContext ctx);
 
     void exitEnclosedPropertyList(Cypher25Parser.EnclosedPropertyListContext ctx);
+
+    void exitWithProperties(Cypher25Parser.WithPropertiesContext ctx);
 
     void exitAlterCurrentGraphType(Cypher25Parser.AlterCurrentGraphTypeContext ctx);
 

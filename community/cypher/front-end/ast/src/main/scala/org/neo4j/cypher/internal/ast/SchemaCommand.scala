@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
@@ -89,14 +90,17 @@ sealed trait CreateIndex extends SchemaCommand {
   def ifExistsDo: IfExistsDo
   def options: Options
 
+  // Vector indexes have two lists of properties to be checked, so it overrides this to add both it's lists
+  protected def propertiesForSemanticCheck: List[Property] = properties
+
   override def semanticCheck: SemanticCheck = ifExistsDo match {
     case IfExistsInvalidSyntax | IfExistsReplace =>
       SemanticCheck.error(SemanticError.badCommandWithOrReplace("create index", "CREATE INDEX", position))
     case _ =>
       val ctType = if (isNodeIndex) CTNode else CTRelationship
       declareVariable(variable, ctType) chain
-        SemanticExpressionCheck.simple(properties) chain
-        semanticCheckFold(properties) {
+        SemanticExpressionCheck.simple(propertiesForSemanticCheck) chain
+        semanticCheckFold(propertiesForSemanticCheck) {
           property =>
             when(!property.map.isInstanceOf[Variable]) {
               // This is unreachable, the parser only produces variables for Property for CreateIndex/Constraint
@@ -296,19 +300,20 @@ object CreateIndex {
 
   def createVectorNodeIndex(
     variable: Variable,
-    label: LabelName,
+    labels: List[LabelName],
     properties: List[Property],
+    additionalProperties: List[Property],
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
-    CreateSingleLabelPropertyIndexCommand(
+    CreateVectorIndexCommand(
       variable,
-      entityName = label,
+      entityNames = Left(labels),
       properties,
+      additionalProperties,
       name,
-      indexType = VectorCreateIndex,
       ifExistsDo,
       options,
       useGraph
@@ -316,19 +321,20 @@ object CreateIndex {
 
   def createVectorRelationshipIndex(
     variable: Variable,
-    relType: RelTypeName,
+    relTypes: List[RelTypeName],
     properties: List[Property],
+    additionalProperties: List[Property],
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
-    CreateSingleLabelPropertyIndexCommand(
+    CreateVectorIndexCommand(
       variable,
-      entityName = relType,
+      entityNames = Right(relTypes),
       properties,
+      additionalProperties,
       name,
-      indexType = VectorCreateIndex,
       ifExistsDo,
       options,
       useGraph
@@ -402,6 +408,65 @@ object CreateFulltextIndex {
     Some((c.variable, c.entityNames, c.properties, c.name, c.indexType, c.ifExistsDo, c.options))
 }
 
+sealed trait CreateVectorIndex extends CreateIndex {
+  def entityNames: Either[List[LabelName], List[RelTypeName]]
+  def additionalProperties: List[Property]
+  override def propertiesForSemanticCheck: List[Property] = properties ++ additionalProperties
+
+  override val indexType: CreateIndexType = VectorCreateIndex
+
+  val (isNodeIndex: Boolean, entityIndexDescription: String) = entityNames match {
+    case Left(_)  => (true, indexType.nodeDescription)
+    case Right(_) => (false, indexType.relDescription)
+  }
+
+  private def checkMultiLabelAdditionalPropertyFeatureFlag: SemanticCheck = {
+
+    def checkFlag = requireFeatureSupport(
+      "Vector indexes with multiple labels, relationship types or properties",
+      VectorSingleStageFilteringEnabled,
+      position
+    )
+
+    entityNames match {
+      case Left(labels) if labels.size > 1      => checkFlag
+      case Right(relTypes) if relTypes.size > 1 => checkFlag
+      case _ if additionalProperties.nonEmpty   => checkFlag
+      case _                                    => SemanticCheck.success
+    }
+  }
+
+  override def semanticCheck: SemanticCheck =
+    checkMultiLabelAdditionalPropertyFeatureFlag chain
+      options.checkOptionsForSchema(entityIndexDescription) chain
+      checkSingleProperty(indexType.allDescription, properties) chain
+      super.semanticCheck
+}
+
+object CreateVectorIndex {
+
+  def unapply(c: CreateVectorIndex): Some[(
+    Variable,
+    Either[List[LabelName], List[RelTypeName]],
+    List[Property],
+    List[Property],
+    Option[Either[String, Parameter]],
+    CreateIndexType,
+    IfExistsDo,
+    Options
+  )] =
+    Some((
+      c.variable,
+      c.entityNames,
+      c.properties,
+      c.additionalProperties,
+      c.name,
+      c.indexType,
+      c.ifExistsDo,
+      c.options
+    ))
+}
+
 sealed trait CreateLookupIndex extends CreateIndex {
   def function: FunctionInvocation
 
@@ -466,6 +531,22 @@ private case class CreateFulltextIndexCommand(
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
 
   override def withName(name: Option[Either[String, Parameter]]): CreateFulltextIndexCommand =
+    copy(name = name)(position)
+}
+
+private case class CreateVectorIndexCommand(
+  variable: Variable,
+  entityNames: Either[List[LabelName], List[RelTypeName]],
+  properties: List[Property],
+  additionalProperties: List[Property],
+  override val name: Option[Either[String, Parameter]],
+  ifExistsDo: IfExistsDo,
+  options: Options,
+  useGraph: Option[GraphSelection] = None
+)(val position: InputPosition) extends CreateVectorIndex {
+  override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
+
+  override def withName(name: Option[Either[String, Parameter]]): CreateVectorIndexCommand =
     copy(name = name)(position)
 }
 

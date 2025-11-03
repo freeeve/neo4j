@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.Reparses
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
+import org.neo4j.dbms.database.DbmsRuntimeVersion
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.RuntimeUnsupportedException
@@ -38,6 +39,7 @@ import org.neo4j.graphdb.schema.IndexSettingImpl.VECTOR_DIMENSIONS
 import org.neo4j.graphdb.schema.IndexSettingImpl.VECTOR_SIMILARITY_FUNCTION
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.schema.AllIndexProviderDescriptors
+import org.neo4j.kernel.KernelVersion
 import org.neo4j.kernel.impl.api.index.IndexingService
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -69,7 +71,14 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
   override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
     GraphDatabaseInternalSettings.graph_type_enabled -> java.lang.Boolean.TRUE,
     GraphDatabaseInternalSettings.dependent_constraints_enabled -> java.lang.Boolean.TRUE,
-    GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints -> java.lang.Boolean.TRUE
+    GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints -> java.lang.Boolean.TRUE,
+    GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> java.lang.Boolean.TRUE,
+    GraphDatabaseInternalSettings.latest_kernel_version -> java.lang.Byte.valueOf(
+      KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING.version
+    ),
+    GraphDatabaseInternalSettings.latest_runtime_version -> Integer.valueOf(
+      DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion
+    )
   )
 
   // Index commands
@@ -168,6 +177,21 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
         VECTOR_DIMENSIONS.getSettingName -> 50,
         VECTOR_SIMILARITY_FUNCTION.getSettingName -> "COSINE"
       ))
+    ).queryStatistics()
+
+    // THEN
+    statistics should be(QueryStatistics(indexesAdded = 1))
+
+    graph.indexExists(indexName) should be(true)
+    graph.getIndexTypeByName(indexName) should be(IndexType.VECTOR)
+  }
+
+  test("Create multi-label vector index with additional properties") {
+    // This test only applies to Cypher 25 as it will not parse in Cypher 5
+
+    // WHEN
+    val statistics = execute(
+      s"CYPHER 25 CREATE VECTOR INDEX $indexName FOR (n:Label|Label2) ON n.vectorProp WITH [n.additionalProp]"
     ).queryStatistics()
 
     // THEN

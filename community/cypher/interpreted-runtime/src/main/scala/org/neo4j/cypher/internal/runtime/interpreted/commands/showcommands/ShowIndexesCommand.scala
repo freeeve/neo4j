@@ -195,7 +195,7 @@ case class ShowIndexesCommand(
             failureMessageColumn -> Values.stringValue(indexInfo.indexStatus.failureMessage)
           // The statement to recreate the index
           case `createStatementColumn` =>
-            createStatementColumn -> Values.stringValue(
+            createStatementColumn -> Values.stringOrNoValue(
               createIndexStatement(
                 indexDescriptor.getName,
                 indexType,
@@ -347,17 +347,46 @@ object ShowIndexesCommand {
           case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
         }
       case IndexType.VECTOR =>
-        val settingsValidator = VectorIndexVersion.fromDescriptor(provider).indexSettingValidator
-        val vectorIndexConfig = settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(indexConfig))
-        val vectorConfig = configAsString(vectorIndexConfig.config)
-        val optionsString = optionsAsString(vectorConfig)
+        if (returnCypher5Values && (labelsOrTypes.size > 1 || properties.size > 1)) null
+        else {
+          // Kernel only sees it as a single list with the vector property first
+          val (vectorProperty, additionalProperties) = (properties.head, properties.tail)
+          val labelsOrTypesWithBars = asEscapedString(labelsOrTypes, barStringJoiner)
+          val settingsValidator = VectorIndexVersion.fromDescriptor(provider).indexSettingValidator
+          val vectorIndexConfig =
+            settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(indexConfig))
+          val vectorConfig = configAsString(vectorIndexConfig.config)
+          val optionsString = optionsAsString(vectorConfig)
 
-        entityType match {
-          case EntityType.NODE =>
-            createNodeIndexCommand("VECTOR", name, labelsOrTypes, properties, Some(optionsString))
-          case EntityType.RELATIONSHIP =>
-            createRelIndexCommand("VECTOR", name, labelsOrTypes, properties, Some(optionsString))
-          case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
+          entityType match {
+            case EntityType.NODE =>
+              val escapedNodeVectorProperties = asEscapedString(List(vectorProperty), propStringJoiner)
+              val escapedNodeAdditionalProperties = if (additionalProperties.nonEmpty)
+                Some(asEscapedString(additionalProperties, propStringJoiner))
+              else None
+              val additionalPropertiesString = escapedNodeAdditionalProperties.map(n => s" WITH [$n]").getOrElse("")
+              createIndexCommand(
+                "VECTOR",
+                name,
+                s"(n$labelsOrTypesWithBars)",
+                s"($escapedNodeVectorProperties)$additionalPropertiesString",
+                Some(optionsString)
+              )
+            case EntityType.RELATIONSHIP =>
+              val escapedRelVectorProperties = asEscapedString(List(vectorProperty), relPropStringJoiner)
+              val escapedRelAdditionalProperties = if (additionalProperties.nonEmpty)
+                Some(asEscapedString(additionalProperties, relPropStringJoiner))
+              else None
+              val additionalPropertiesString = escapedRelAdditionalProperties.map(n => s" WITH [$n]").getOrElse("")
+              createIndexCommand(
+                "VECTOR",
+                name,
+                s"()-[r$labelsOrTypesWithBars]-()",
+                s"($escapedRelVectorProperties)$additionalPropertiesString",
+                Some(optionsString)
+              )
+            case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
+          }
         }
       case IndexType.LOOKUP =>
         entityType match {

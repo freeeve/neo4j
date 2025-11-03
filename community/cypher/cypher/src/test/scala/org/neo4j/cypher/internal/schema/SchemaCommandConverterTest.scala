@@ -2707,8 +2707,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
   ): ast.CreateIndex =
     ast.CreateIndex.createVectorNodeIndex(
       v,
-      label,
+      List(label),
       props,
+      List.empty,
       name,
       ifExistsDo,
       options
@@ -2722,8 +2723,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
   ): ast.CreateIndex =
     ast.CreateIndex.createVectorRelationshipIndex(
       v,
-      relType,
+      List(relType),
       props,
+      List.empty,
       name,
       ifExistsDo,
       options

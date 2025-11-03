@@ -1131,7 +1131,7 @@ createIndex
    : RANGE INDEX createIndex_
    | TEXT INDEX createIndex_
    | POINT INDEX createIndex_
-   | VECTOR INDEX createIndex_
+   | VECTOR INDEX createVectorIndex
    | LOOKUP INDEX createLookupIndex
    | FULLTEXT INDEX createFulltextIndex
    | INDEX createIndex_
@@ -1142,14 +1142,18 @@ createIndex_
    ;
 
 createFulltextIndex
-   : symbolicNameOrStringParameter? (IF NOT EXISTS)? FOR (fulltextNodePattern | fulltextRelPattern) ON EACH LBRACKET enclosedPropertyList RBRACKET commandOptions?
+   : symbolicNameOrStringParameter? (IF NOT EXISTS)? FOR (multiLabelNodePattern | multiRelTypeRelPattern) ON EACH LBRACKET enclosedPropertyList RBRACKET commandOptions?
    ;
 
-fulltextNodePattern
+createVectorIndex
+   : symbolicNameOrStringParameter? (IF NOT EXISTS)? FOR (multiLabelNodePattern | multiRelTypeRelPattern) ON propertyList withProperties? commandOptions?
+   ;
+
+multiLabelNodePattern
    : LPAREN variable COLON symbolicNameString (BAR symbolicNameString)* RPAREN
    ;
 
-fulltextRelPattern
+multiRelTypeRelPattern
    : LPAREN RPAREN leftArrow? arrowLine LBRACKET variable COLON symbolicNameString (BAR symbolicNameString)* RBRACKET arrowLine rightArrow? LPAREN RPAREN
    ;
 
@@ -1175,6 +1179,10 @@ propertyList
 
 enclosedPropertyList
    : variable property (COMMA variable property)*
+   ;
+
+withProperties
+   : WITH LBRACKET enclosedPropertyList RBRACKET
    ;
 
 // Graph Type Specification

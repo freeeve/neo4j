@@ -332,10 +332,12 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_createIndex_ -> exitCreateIndex_((Cypher25Parser.CreateIndex_Context) ctx);
             case Cypher25Parser.RULE_createFulltextIndex ->
                 exitCreateFulltextIndex((Cypher25Parser.CreateFulltextIndexContext) ctx);
-            case Cypher25Parser.RULE_fulltextNodePattern ->
-                exitFulltextNodePattern((Cypher25Parser.FulltextNodePatternContext) ctx);
-            case Cypher25Parser.RULE_fulltextRelPattern ->
-                exitFulltextRelPattern((Cypher25Parser.FulltextRelPatternContext) ctx);
+            case Cypher25Parser.RULE_createVectorIndex ->
+                exitCreateVectorIndex((Cypher25Parser.CreateVectorIndexContext) ctx);
+            case Cypher25Parser.RULE_multiLabelNodePattern ->
+                exitMultiLabelNodePattern((Cypher25Parser.MultiLabelNodePatternContext) ctx);
+            case Cypher25Parser.RULE_multiRelTypeRelPattern ->
+                exitMultiRelTypeRelPattern((Cypher25Parser.MultiRelTypeRelPatternContext) ctx);
             case Cypher25Parser.RULE_createLookupIndex ->
                 exitCreateLookupIndex((Cypher25Parser.CreateLookupIndexContext) ctx);
             case Cypher25Parser.RULE_lookupIndexNodePattern ->
@@ -346,6 +348,7 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_propertyList -> exitPropertyList((Cypher25Parser.PropertyListContext) ctx);
             case Cypher25Parser.RULE_enclosedPropertyList ->
                 exitEnclosedPropertyList((Cypher25Parser.EnclosedPropertyListContext) ctx);
+            case Cypher25Parser.RULE_withProperties -> exitWithProperties((Cypher25Parser.WithPropertiesContext) ctx);
             case Cypher25Parser.RULE_alterCurrentGraphType ->
                 exitAlterCurrentGraphType((Cypher25Parser.AlterCurrentGraphTypeContext) ctx);
             case Cypher25Parser.RULE_graphTypeSpecification ->

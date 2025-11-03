@@ -69,10 +69,12 @@ import org.neo4j.cypher.internal.logical.plans.CreateConstraint
 import org.neo4j.cypher.internal.logical.plans.CreateFulltextIndex
 import org.neo4j.cypher.internal.logical.plans.CreateIndex
 import org.neo4j.cypher.internal.logical.plans.CreateLookupIndex
+import org.neo4j.cypher.internal.logical.plans.CreateVectorIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForConstraint
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForFulltextIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForLookupIndex
+import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForVectorIndex
 import org.neo4j.cypher.internal.logical.plans.DropConstraintOnName
 import org.neo4j.cypher.internal.logical.plans.DropIndexOnName
 import org.neo4j.cypher.internal.logical.plans.EmptyNodeElementTypeReference
@@ -944,7 +946,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
   test("CreateVectorIndex") {
     assertGood(
       attach(
-        CreateIndex(None, IndexType.VECTOR, label("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        CreateVectorIndex(
+          None,
+          Left(List(label("Label"))),
+          List(key("prop")),
+          List.empty,
+          Some(Left("indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -957,17 +966,17 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
     )
 
     assertGood(
-      attach(CreateIndex(None, IndexType.VECTOR, label("Label"), List(key("prop")), None, NoOptions), 1.0),
+      attach(CreateVectorIndex(None, Left(List(label("Label"))), List(key("prop")), List.empty, None, NoOptions), 1.0),
       planDescription(id, "CreateIndex", Seq.empty, Seq(details("VECTOR INDEX FOR (:Label) ON (prop)")), Set.empty)
     )
 
     assertGood(
       attach(
-        CreateIndex(
+        CreateVectorIndex(
           None,
-          IndexType.VECTOR,
-          label("Label"),
+          Left(List(label("Label1"), label("Label2"))),
           List(key("prop")),
+          List.empty,
           Some(Right(parameter("indexName", CTString))),
           OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
         ),
@@ -977,18 +986,26 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         id,
         "CreateIndex",
         Seq.empty,
-        Seq(details("""VECTOR INDEX $indexName FOR (:Label) ON (prop) OPTIONS {indexProvider: "vector-1.0"}""")),
+        Seq(
+          details("""VECTOR INDEX $indexName FOR (:Label1|Label2) ON (prop) OPTIONS {indexProvider: "vector-1.0"}""")
+        ),
         Set.empty
       )
     )
 
     assertGood(
       attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(label("Label"), List(key("prop")), IndexType.VECTOR, None, NoOptions)),
-          IndexType.VECTOR,
-          label("Label"),
+        CreateVectorIndex(
+          Some(DoNothingIfExistsForVectorIndex(
+            Left(List(label("Label"))),
+            List(key("prop")),
+            List.empty,
+            None,
+            NoOptions
+          )),
+          Left(List(label("Label"))),
           List(key("prop")),
+          List.empty,
           None,
           NoOptions
         ),
@@ -1013,7 +1030,49 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        CreateIndex(None, IndexType.VECTOR, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        CreateVectorIndex(
+          Some(DoNothingIfExistsForVectorIndex(
+            Left(List(label("Label"))),
+            List(key("prop")),
+            List(key("prop2")),
+            None,
+            NoOptions
+          )),
+          Left(List(label("Label"))),
+          List(key("prop")),
+          List(key("prop2")),
+          None,
+          NoOptions
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("VECTOR INDEX FOR (:Label) ON (prop) WITH [prop2]")),
+            Set.empty
+          )
+        ),
+        Seq(details("VECTOR INDEX FOR (:Label) ON (prop) WITH [prop2]")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateVectorIndex(
+          None,
+          Right(List(relType("Label"))),
+          List(key("prop")),
+          List.empty,
+          Some(Left("indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -1026,23 +1085,33 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
     )
 
     assertGood(
-      attach(CreateIndex(None, IndexType.VECTOR, relType("Label"), List(key("prop")), None, NoOptions), 1.0),
+      attach(
+        CreateVectorIndex(
+          None,
+          Right(List(relType("Label1"))),
+          List(key("prop")),
+          List(key("prop2"), key("prop3")),
+          None,
+          NoOptions
+        ),
+        1.0
+      ),
       planDescription(
         id,
         "CreateIndex",
         Seq.empty,
-        Seq(details("VECTOR INDEX FOR ()-[:Label]-() ON (prop)")),
+        Seq(details("VECTOR INDEX FOR ()-[:Label1]-() ON (prop) WITH [prop2, prop3]")),
         Set.empty
       )
     )
 
     assertGood(
       attach(
-        CreateIndex(
+        CreateVectorIndex(
           None,
-          IndexType.VECTOR,
-          relType("Label"),
+          Right(List(relType("Label"))),
           List(key("prop")),
+          List.empty,
           Some(Left("indexName")),
           OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
         ),
@@ -1061,11 +1130,17 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(relType("Label"), List(key("prop")), IndexType.VECTOR, None, NoOptions)),
-          IndexType.VECTOR,
-          relType("Label"),
+        CreateVectorIndex(
+          Some(DoNothingIfExistsForVectorIndex(
+            Right(List(relType("Label"))),
+            List(key("prop")),
+            List.empty,
+            None,
+            NoOptions
+          )),
+          Right(List(relType("Label"))),
           List(key("prop")),
+          List.empty,
           None,
           NoOptions
         ),
@@ -1090,11 +1165,46 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        CreateIndex(
-          None,
-          IndexType.VECTOR,
-          label("Label"),
+        CreateVectorIndex(
+          Some(DoNothingIfExistsForVectorIndex(
+            Right(List(relType("Label1"), relType("Label2"))),
+            List(key("prop")),
+            List.empty,
+            None,
+            NoOptions
+          )),
+          Right(List(relType("Label1"), relType("Label2"))),
           List(key("prop")),
+          List.empty,
+          None,
+          NoOptions
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("VECTOR INDEX FOR ()-[:Label1|Label2]-() ON (prop)")),
+            Set.empty
+          )
+        ),
+        Seq(details("VECTOR INDEX FOR ()-[:Label1|Label2]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateVectorIndex(
+          None,
+          Left(List(label("Label"))),
+          List(key("prop")),
+          List.empty,
           Some(Left("indexName")),
           OptionsParam(parameter("options", CTMap))(pos)
         ),

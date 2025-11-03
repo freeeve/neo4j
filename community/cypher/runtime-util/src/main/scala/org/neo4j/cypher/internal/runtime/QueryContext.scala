@@ -171,7 +171,12 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
 
   def lookupIndexReference(entityType: EntityType): IndexDescriptor
 
-  def fulltextIndexReference(entityIds: List[Int], entityType: EntityType, properties: Int*): IndexDescriptor
+  def semanticIndexReference(
+    indexType: IndexType,
+    entityIds: List[Int],
+    entityType: EntityType,
+    properties: Int*
+  ): IndexDescriptor
 
   def getIndexUsageStatistics(index: IndexDescriptor): IndexUsageStats
 
@@ -623,9 +628,10 @@ trait WriteQueryContext extends IndexProviderContext {
   ): IndexDescriptor
 
   def addVectorIndexRule(
-    entityId: Int,
+    entityIds: List[Int],
     entityType: EntityType,
     propertyKeyIds: Seq[Int],
+    additionalPropertyKeyIds: Seq[Int],
     name: Option[String],
     provider: Option[IndexProviderDescriptor],
     indexConfig: IndexConfig

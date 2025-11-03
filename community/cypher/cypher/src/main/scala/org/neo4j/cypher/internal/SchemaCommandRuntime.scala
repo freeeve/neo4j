@@ -41,10 +41,12 @@ import org.neo4j.cypher.internal.logical.plans.CreateConstraint
 import org.neo4j.cypher.internal.logical.plans.CreateFulltextIndex
 import org.neo4j.cypher.internal.logical.plans.CreateIndex
 import org.neo4j.cypher.internal.logical.plans.CreateLookupIndex
+import org.neo4j.cypher.internal.logical.plans.CreateVectorIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForConstraint
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForFulltextIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForLookupIndex
+import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForVectorIndex
 import org.neo4j.cypher.internal.logical.plans.DropConstraintOnName
 import org.neo4j.cypher.internal.logical.plans.DropIndexOnName
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -65,7 +67,6 @@ import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.graphdb.schema.IndexType.POINT
 import org.neo4j.graphdb.schema.IndexType.RANGE
 import org.neo4j.graphdb.schema.IndexType.TEXT
-import org.neo4j.graphdb.schema.IndexType.VECTOR
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.values.storable.StringValue
@@ -340,8 +341,8 @@ object CommunitySchemaCommandRuntime extends SchemaCommandRuntime {
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
-    // CREATE FULLTEXT INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON EACH (n.prop) [OPTIONS {...}]
-    // CREATE FULLTEXT INDEX [name] [IF NOT EXISTS] FOR ()-[n:TYPE]-() ON EACH (n.prop) [OPTIONS {...}]
+    // CREATE FULLTEXT INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON EACH [n.prop] [OPTIONS {...}]
+    // CREATE FULLTEXT INDEX [name] [IF NOT EXISTS] FOR ()-[n:TYPE]-() ON EACH [n.prop] [OPTIONS {...}]
     case CreateFulltextIndex(source, entityNames, props, name, options) => context =>
         SchemaExecutionPlan(
           "CreateIndex",
@@ -367,12 +368,19 @@ object CommunitySchemaCommandRuntime extends SchemaCommandRuntime {
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
-    // CREATE VECTOR INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) OPTIONS {...}
-    // CREATE VECTOR INDEX [name] [IF NOT EXISTS] FOR ()-[n:TYPE]-() ON (n.prop) OPTIONS {...}
-    case CreateIndex(source, VECTOR, entityName, props, name, options) => context =>
+    // CREATE VECTOR INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) [WITH [n.addProp]] [OPTIONS {...}]
+    // CREATE VECTOR INDEX [name] [IF NOT EXISTS] FOR ()-[n:TYPE]-() ON (n.prop) [WITH [n.addProp]] [OPTIONS {...}]
+    case CreateVectorIndex(source, entityNames, props, additionalProps, name, options) => context =>
         SchemaExecutionPlan(
           "CreateIndex",
-          IndexCommandPlanner.createVectorIndex(entityName, props, name, options, context.cypherVersion),
+          IndexCommandPlanner.createVectorIndex(
+            entityNames,
+            props,
+            additionalProps,
+            name,
+            options,
+            context.cypherVersion
+          ),
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
@@ -407,6 +415,21 @@ object CommunitySchemaCommandRuntime extends SchemaCommandRuntime {
           IndexCommandPlanner.doNothingIfExistsForFulltext(
             entityNames,
             propertyKeyNames,
+            name,
+            options,
+            context.cypherVersion
+          ),
+          None
+        )
+
+    case DoNothingIfExistsForVectorIndex(entityNames, propertyKeyNames, additionalPropertyKeyNames, name, options) =>
+      context =>
+        SchemaExecutionPlan(
+          "DoNothingIfExist",
+          IndexCommandPlanner.doNothingIfExistsForVector(
+            entityNames,
+            propertyKeyNames,
+            additionalPropertyKeyNames,
             name,
             options,
             context.cypherVersion

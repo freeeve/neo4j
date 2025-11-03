@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.ast.CreateFulltextIndex
 import org.neo4j.cypher.internal.ast.CreateLookupIndex
 import org.neo4j.cypher.internal.ast.CreateSingleLabelPropertyIndex
+import org.neo4j.cypher.internal.ast.CreateVectorIndex
 import org.neo4j.cypher.internal.ast.DropConstraintOnName
 import org.neo4j.cypher.internal.ast.DropIndexOnName
 import org.neo4j.cypher.internal.ast.EdgeType
@@ -49,7 +50,6 @@ import org.neo4j.cypher.internal.ast.PointCreateIndex
 import org.neo4j.cypher.internal.ast.PropertyType
 import org.neo4j.cypher.internal.ast.RangeCreateIndex
 import org.neo4j.cypher.internal.ast.TextCreateIndex
-import org.neo4j.cypher.internal.ast.VectorCreateIndex
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
@@ -98,16 +98,15 @@ case object SchemaCommandPlanBuilder extends Phase[PlannerContext, BaseState, Lo
       case DropConstraintOnName(name, ifExists, _) =>
         Some(plans.DropConstraintOnName(name, ifExists))
 
-      // CREATE [POINT| RANGE | TEXT | VECTOR] INDEX ...
+      // CREATE [POINT| RANGE | TEXT] INDEX ...
       case CreateSingleLabelPropertyIndex(_, entityName, props, name, astIndexType, ifExistsDo, options) =>
         val indexType = astIndexType match {
           case PointCreateIndex    => IndexType.POINT
           case _: RangeCreateIndex => IndexType.RANGE
           case TextCreateIndex     => IndexType.TEXT
-          case VectorCreateIndex   => IndexType.VECTOR
           case it =>
             throw new IllegalStateException(
-              s"Did not expect index type ${it.command} here: only point, range, text or vector indexes."
+              s"Did not expect index type ${it.command} here: only point, range or text indexes."
             )
         }
         val propKeys = props.map(_.propertyKey)
@@ -137,6 +136,17 @@ case object SchemaCommandPlanBuilder extends Phase[PlannerContext, BaseState, Lo
           case _ => None
         }
         Some(plans.CreateFulltextIndex(source, entityNames, propKeys, name, options))
+
+      // CREATE VECTOR INDEX ...
+      case CreateVectorIndex(_, entityNames, props, additionalProps, name, _, ifExistsDo, options) =>
+        val propKeys = props.map(_.propertyKey)
+        val additionalPropsKeys = additionalProps.map(_.propertyKey)
+        val source = ifExistsDo match {
+          case IfExistsDoNothing =>
+            Some(plans.DoNothingIfExistsForVectorIndex(entityNames, propKeys, additionalPropsKeys, name, options))
+          case _ => None
+        }
+        Some(plans.CreateVectorIndex(source, entityNames, propKeys, additionalPropsKeys, name, options))
 
       // DROP INDEX name [IF EXISTS]
       case DropIndexOnName(name, ifExists, _) =>

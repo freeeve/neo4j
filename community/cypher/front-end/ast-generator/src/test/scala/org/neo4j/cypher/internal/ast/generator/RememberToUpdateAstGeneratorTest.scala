@@ -79,6 +79,7 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.ast.CreateLookupIndexCommand",
     "org.neo4j.cypher.internal.ast.CreatePropertyTypeConstraint",
     "org.neo4j.cypher.internal.ast.CreateSingleLabelPropertyIndexCommand",
+    "org.neo4j.cypher.internal.ast.CreateVectorIndexCommand",
     "org.neo4j.cypher.internal.ast.ExternalAuth",
     "org.neo4j.cypher.internal.ast.InputDataStream",
     "org.neo4j.cypher.internal.ast.NativeAuth",

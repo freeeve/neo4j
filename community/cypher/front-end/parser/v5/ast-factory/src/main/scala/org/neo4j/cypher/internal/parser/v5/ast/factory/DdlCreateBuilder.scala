@@ -316,8 +316,9 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
           val label = labelOrRelType.asInstanceOf[LabelName]
           CreateIndex.createVectorNodeIndex(
             variable,
-            label,
+            List(label),
             propertyList,
+            List.empty,
             indexName,
             existsDo,
             options
@@ -326,8 +327,9 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
           val relType = labelOrRelType.asInstanceOf[RelTypeName]
           CreateIndex.createVectorRelationshipIndex(
             variable,
-            relType,
+            List(relType),
             propertyList,
+            List.empty,
             indexName,
             existsDo,
             options

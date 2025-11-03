@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.ast.CreateRemoteDatabaseAlias
 import org.neo4j.cypher.internal.ast.CreateRole
 import org.neo4j.cypher.internal.ast.CreateSingleLabelPropertyIndex
 import org.neo4j.cypher.internal.ast.CreateUser
+import org.neo4j.cypher.internal.ast.CreateVectorIndex
 import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
 import org.neo4j.cypher.internal.ast.DatabaseName
@@ -429,6 +430,30 @@ case class Prettifier(
         }
         val propertiesString = properties.map(propertyToString).mkString("[", ", ", "]")
         s"${startOfCommand}FOR $pattern ON EACH $propertiesString${stringifyOptions(options)(expr)}"
+
+      case CreateVectorIndex(
+          Variable(variable),
+          entityNames,
+          properties,
+          additionalProperties,
+          name,
+          indexType,
+          ifExistsDo,
+          options
+        ) =>
+        val startOfCommand = getStartOfCommand(name, ifExistsDo, indexType.command)
+        val pattern = entityNames match {
+          case Left(labels) =>
+            val labelPattern = labels.map(l => backtickEmpty(l.name)).mkString(":", "|", "")
+            s"(${backtickEmpty(variable)}$labelPattern)"
+          case Right(relTypes) =>
+            val relTypePattern = relTypes.map(r => backtickEmpty(r.name)).mkString(":", "|", "")
+            s"()-[${backtickEmpty(variable)}$relTypePattern]-()"
+        }
+        val additionalPropertiesString =
+          if (additionalProperties.nonEmpty) additionalProperties.map(propertyToString).mkString(" WITH [", ", ", "]")
+          else ""
+        s"${startOfCommand}FOR $pattern ON ${propertiesToString(properties)}$additionalPropertiesString${stringifyOptions(options)(expr)}"
 
       case DropIndexOnName(name, ifExists, _) =>
         val ifExistsString = if (ifExists) " IF EXISTS" else ""

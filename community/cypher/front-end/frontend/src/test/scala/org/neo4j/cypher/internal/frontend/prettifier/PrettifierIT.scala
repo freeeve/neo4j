@@ -751,8 +751,6 @@ class PrettifierIT extends CypherFunSuite {
   )
 
   def indexCommandTests(): Seq[Test] = Seq[Test](
-    // index commands
-
     // default type
 
     "create INDEX FOR (n:A) ON (n.p)" ->
@@ -867,8 +865,8 @@ class PrettifierIT extends CypherFunSuite {
     "create RANGE INDEX IF not EXISTS FOR ()-[n:R]-() ON (n.p)" ->
       "CREATE RANGE INDEX IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)",
     "create RANGE INDEX foo IF not EXISTS FOR ()-[n:R]-() ON (n.p)" ->
-      "CREATE RANGE INDEX foo IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)",
-
+      "CREATE RANGE INDEX foo IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)"
+  ) ++ Seq[Test](
     // lookup
 
     "CREATE lookup INDEX FOR (n) ON each labels(n)" ->
@@ -892,8 +890,8 @@ class PrettifierIT extends CypherFunSuite {
     "CREATE OR REPLACE lookup INDEX foo FOR ()-[r]-() ON type(r) OPTIONS {}" ->
       "CREATE OR REPLACE LOOKUP INDEX foo FOR ()-[r]-() ON EACH type(r) OPTIONS {}",
     "CREATE LOOKUP index FOR ()-[r]-() ON each type(r) OPtiONS {nonValidOption : 42, `backticks.stays.when.needed`: 'theAnswer'}" ->
-      """CREATE LOOKUP INDEX FOR ()-[r]-() ON EACH type(r) OPTIONS {nonValidOption: 42, `backticks.stays.when.needed`: "theAnswer"}""",
-
+      """CREATE LOOKUP INDEX FOR ()-[r]-() ON EACH type(r) OPTIONS {nonValidOption: 42, `backticks.stays.when.needed`: "theAnswer"}"""
+  ) ++ Seq[Test](
     // fulltext
 
     "create FULLTEXT INDEX FOR (n:A) ON EACH [n.p]" ->
@@ -949,8 +947,8 @@ class PrettifierIT extends CypherFunSuite {
     "create FULLTEXT INDEX IF not EXISTS FOR ()-[n:R]-() ON EACH [n.p]" ->
       "CREATE FULLTEXT INDEX IF NOT EXISTS FOR ()-[n:R]-() ON EACH [n.p]",
     "create FULLTEXT INDEX foo IF not EXISTS FOR ()-[n:R]-() ON EACH [n.p]" ->
-      "CREATE FULLTEXT INDEX foo IF NOT EXISTS FOR ()-[n:R]-() ON EACH [n.p]",
-
+      "CREATE FULLTEXT INDEX foo IF NOT EXISTS FOR ()-[n:R]-() ON EACH [n.p]"
+  ) ++ Seq[Test](
     // text
 
     "create TEXT INDEX FOR (n:A) ON (n.p)" ->
@@ -1010,8 +1008,8 @@ class PrettifierIT extends CypherFunSuite {
     "create TEXT INDEX IF not EXISTS FOR ()-[n:R]-() ON (n.p)" ->
       "CREATE TEXT INDEX IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)",
     "create TEXT INDEX foo IF not EXISTS FOR ()-[n:R]-() ON (n.p)" ->
-      "CREATE TEXT INDEX foo IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)",
-
+      "CREATE TEXT INDEX foo IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)"
+  ) ++ Seq[Test](
     // point
 
     "create POINT INDEX FOR (n:A) ON (n.p)" ->
@@ -1071,8 +1069,8 @@ class PrettifierIT extends CypherFunSuite {
     "create POINT INDEX IF not EXISTS FOR ()-[n:R]-() ON (n.p)" ->
       "CREATE POINT INDEX IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)",
     "create POINT INDEX foo IF not EXISTS FOR ()-[n:R]-() ON (n.p)" ->
-      "CREATE POINT INDEX foo IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)",
-
+      "CREATE POINT INDEX foo IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)"
+  ) ++ Seq[Test](
     // vector
 
     "create VECTOR INDEX FOR (n:A) ON (n.p)" ->
@@ -1105,6 +1103,18 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE VECTOR INDEX IF NOT EXISTS FOR (n:A) ON (n.p)",
     "create VECTOR INDEX foo IF not EXISTS FOR (n:A) ON (n.p)" ->
       "CREATE VECTOR INDEX foo IF NOT EXISTS FOR (n:A) ON (n.p)",
+    FailsInCypher5(
+      "CREATE VECTOR INDEX foo FOR (n:A|B) ON (n.p)",
+      "CREATE VECTOR INDEX foo FOR (n:A|B) ON (n.p)"
+    ),
+    FailsInCypher5(
+      "CREATE VECTOR INDEX foo FOR (n:A) ON (n.p) WITH [n.x, n. y]",
+      "CREATE VECTOR INDEX foo FOR (n:A) ON (n.p) WITH [n.x, n.y]"
+    ),
+    FailsInCypher5(
+      "CREATE VECTOR INDEX foo FOR (n:`A`|B | C) ON n.p WITH [n.x]",
+      "CREATE VECTOR INDEX foo FOR (n:A|B|C) ON (n.p) WITH [n.x]"
+    ),
     "create VECTOR INDEX FOR ()-[n:R]->() ON (n.p)" ->
       "CREATE VECTOR INDEX FOR ()-[n:R]-() ON (n.p)",
     "create VECTOR INDEX FOR ()<-[n:R]-() ON (n.p1, n.p2, n.p3)" ->
@@ -1135,7 +1145,19 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE VECTOR INDEX IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)",
     "create VECTOR INDEX foo IF not EXISTS FOR ()-[n:R]-() ON (n.p)" ->
       "CREATE VECTOR INDEX foo IF NOT EXISTS FOR ()-[n:R]-() ON (n.p)",
-
+    FailsInCypher5(
+      "CREATE VECTOR INDEX FOR ()-[r:R|S |T| `U`]->() ON ( r.p )",
+      "CREATE VECTOR INDEX FOR ()-[r:R|S|T|U]-() ON (r.p)"
+    ),
+    FailsInCypher5(
+      "CREATE VECTOR INDEX FOR ()<-[r:R]-() ON (r.p) WITH [r.x]",
+      "CREATE VECTOR INDEX FOR ()-[r:R]-() ON (r.p) WITH [r.x]"
+    ),
+    FailsInCypher5(
+      "CREATE VECTOR INDEX FOR ()-[r:R|S|T|U]-() ON r.p WITH [r.x, r.y,r.z]",
+      "CREATE VECTOR INDEX FOR ()-[r:R|S|T|U]-() ON (r.p) WITH [r.x, r.y, r.z]"
+    )
+  ) ++ Seq[Test](
     // drop
 
     "drop INDEX foo" ->

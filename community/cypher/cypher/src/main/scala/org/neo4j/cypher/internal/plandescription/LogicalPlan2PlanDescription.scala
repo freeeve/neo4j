@@ -122,6 +122,7 @@ import org.neo4j.cypher.internal.logical.plans.CreateConstraint
 import org.neo4j.cypher.internal.logical.plans.CreateFulltextIndex
 import org.neo4j.cypher.internal.logical.plans.CreateIndex
 import org.neo4j.cypher.internal.logical.plans.CreateLookupIndex
+import org.neo4j.cypher.internal.logical.plans.CreateVectorIndex
 import org.neo4j.cypher.internal.logical.plans.DeleteExpression
 import org.neo4j.cypher.internal.logical.plans.DeleteNode
 import org.neo4j.cypher.internal.logical.plans.DeletePath
@@ -145,6 +146,7 @@ import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForConstraint
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForFulltextIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForLookupIndex
+import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForVectorIndex
 import org.neo4j.cypher.internal.logical.plans.DropConstraintOnName
 import org.neo4j.cypher.internal.logical.plans.DropIndexOnName
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
@@ -1453,6 +1455,23 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
+      case DoNothingIfExistsForVectorIndex(entityNames, propertyKeyNames, additionalPropertyKeyNames, nameOption, _) =>
+        PlanDescriptionImpl(
+          id,
+          s"DoNothingIfExists(INDEX)",
+          children,
+          Seq(Details(vectorIndexInfo(
+            nameOption,
+            entityNames,
+            propertyKeyNames,
+            additionalPropertyKeyNames,
+            NoOptions
+          ))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
       case CreateIndex(
           _,
           indexType,
@@ -1499,6 +1518,24 @@ case class LogicalPlan2PlanDescription(
           "CreateIndex",
           children,
           Seq(Details(fulltextIndexInfo(nameOption, entityNames, propertyKeyNames, options))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case CreateVectorIndex(
+          _,
+          entityNames,
+          propertyKeyNames,
+          additionalPropertyKeyNames,
+          nameOption,
+          options
+        ) => // Can be both a leaf plan and a middle plan so need to be in both places
+        PlanDescriptionImpl(
+          id,
+          "CreateIndex",
+          children,
+          Seq(Details(vectorIndexInfo(nameOption, entityNames, propertyKeyNames, additionalPropertyKeyNames, options))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -2764,6 +2801,24 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
+      case CreateVectorIndex(
+          _,
+          entityNames,
+          propertyKeyNames,
+          additionalPropertyKeyNames,
+          nameOption,
+          options
+        ) => // Can be both a leaf plan and a middle plan so need to be in both places
+        PlanDescriptionImpl(
+          id,
+          "CreateIndex",
+          children,
+          Seq(Details(vectorIndexInfo(nameOption, entityNames, propertyKeyNames, additionalPropertyKeyNames, options))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
       case CreateConstraint(
           _,
           constraintType,
@@ -3955,6 +4010,28 @@ case class LogicalPlan2PlanDescription(
         pretty"()-[$innerPattern]-()"
     }
     indexInfoString("FULLTEXT", nameOption, pattern, pretty"EACH $propertyString", options)
+  }
+
+  private def vectorIndexInfo(
+    nameOption: Option[Either[String, Parameter]],
+    entityNames: Either[List[LabelName], List[RelTypeName]],
+    properties: Seq[PropertyKeyName],
+    additionalProperties: Seq[PropertyKeyName],
+    options: Options
+  ): PrettyString = {
+    val propertyString = properties.map(asPrettyString(_)).mkPrettyString("(", SEPARATOR, ")")
+    val additionalPropertiesString = if (additionalProperties.nonEmpty)
+      additionalProperties.map(asPrettyString(_)).mkPrettyString(" WITH [", SEPARATOR, "]")
+    else pretty""
+    val pattern = entityNames match {
+      case Left(labels) =>
+        val innerPattern = labels.map(l => asPrettyString(l.name)).mkPrettyString(":", "|", "")
+        pretty"($innerPattern)"
+      case Right(relTypes) =>
+        val innerPattern = relTypes.map(r => asPrettyString(r.name)).mkPrettyString(":", "|", "")
+        pretty"()-[$innerPattern]-()"
+    }
+    indexInfoString("VECTOR", nameOption, pattern, pretty"$propertyString$additionalPropertiesString", options)
   }
 
   private def lookupIndexInfo(

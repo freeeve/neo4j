@@ -310,14 +310,23 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     singleDbHit(inner.addPointIndexRule(entityId, entityType, propertyKeyIds, name, provider, indexConfig))
 
   override def addVectorIndexRule(
-    entityId: Int,
+    entityIds: List[Int],
     entityType: EntityType,
     propertyKeyIds: Seq[Int],
+    additionalPropertyKeyIds: Seq[Int],
     name: Option[String],
     provider: Option[IndexProviderDescriptor],
     indexConfig: IndexConfig
   ): IndexDescriptor =
-    singleDbHit(inner.addVectorIndexRule(entityId, entityType, propertyKeyIds, name, provider, indexConfig))
+    singleDbHit(inner.addVectorIndexRule(
+      entityIds,
+      entityType,
+      propertyKeyIds,
+      additionalPropertyKeyIds,
+      name,
+      provider,
+      indexConfig
+    ))
 
   override def dropIndexRule(name: String): Unit = singleDbHit(inner.dropIndexRule(name))
 
@@ -356,8 +365,13 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
   override def lookupIndexReference(entityType: EntityType): IndexDescriptor =
     singleDbHit(inner.lookupIndexReference(entityType))
 
-  override def fulltextIndexReference(entityIds: List[Int], entityType: EntityType, properties: Int*): IndexDescriptor =
-    singleDbHit(inner.fulltextIndexReference(entityIds, entityType, properties: _*))
+  override def semanticIndexReference(
+    indexType: IndexType,
+    entityIds: List[Int],
+    entityType: EntityType,
+    properties: Int*
+  ): IndexDescriptor =
+    singleDbHit(inner.semanticIndexReference(indexType, entityIds, entityType, properties: _*))
 
   override def nodeIndexSeek(
     index: IndexReadSession,

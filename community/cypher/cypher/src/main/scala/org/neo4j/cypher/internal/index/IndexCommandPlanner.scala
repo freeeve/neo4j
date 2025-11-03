@@ -190,8 +190,9 @@ object IndexCommandPlanner {
     }
 
   def createVectorIndex(
-    entityName: ElementTypeName,
+    entityNames: Either[List[LabelName], List[RelTypeName]],
     props: List[PropertyKeyName],
+    additionalProps: List[PropertyKeyName],
     name: Option[Either[String, Parameter]],
     options: Options,
     cypherVersion: CypherVersion
@@ -208,9 +209,18 @@ object IndexCommandPlanner {
           case ParsedWithNotifications(CreateIndexWithFullOptions(provider, config), notifications) =>
             (provider, config, notifications)
         }
-      val (entityId, entityType) = getEntityInfo(entityName, ctx)
+      val (entityIds, entityType) = getMultipleEntityInfo(entityNames, ctx)
       val propertyKeyIds = props.map(p => propertyToId(ctx)(p).id)
-      ctx.addVectorIndexRule(entityId, entityType, propertyKeyIds, indexName, indexProvider, indexConfig)
+      val additionalPropertyKeyIds = additionalProps.map(p => propertyToId(ctx)(p).id)
+      ctx.addVectorIndexRule(
+        entityIds,
+        entityType,
+        propertyKeyIds,
+        additionalPropertyKeyIds,
+        indexName,
+        indexProvider,
+        indexConfig
+      )
       SuccessResult(notifications)
     }
 
@@ -260,7 +270,7 @@ object IndexCommandPlanner {
         )
       case it =>
         throw new IllegalStateException(
-          s"Did not expect index type $it here: only point, range, text or vector indexes."
+          s"Did not expect index type $it here: only point, range or text indexes."
         )
     }
     (ctx, params) => {
@@ -318,7 +328,12 @@ object IndexCommandPlanner {
 
       val (entityIds, entityType) = getMultipleEntityInfo(entityNames, ctx)
       val propertyKeyIds = propertyKeyNames.map(p => propertyToId(ctx)(p).id)
-      val existingIndexDescriptor = Try(ctx.fulltextIndexReference(entityIds, entityType, propertyKeyIds: _*))
+      val existingIndexDescriptor = Try(ctx.semanticIndexReference(
+        schema.IndexType.FULLTEXT,
+        entityIds,
+        entityType,
+        propertyKeyIds: _*
+      ))
       if (existingIndexDescriptor.isSuccess) {
         // Notify on pre-existing index, replace potential parameter names with their actual value
         val indexDescription = fulltextIndexInfo(indexName, entityNames, propertyKeyNames, options)
@@ -332,6 +347,60 @@ object IndexCommandPlanner {
       } else if (indexName.exists(ctx.indexExists)) {
         // Notify on pre-existing index, replace potential parameter names with their actual value
         val indexDescription = fulltextIndexInfo(indexName, entityNames, propertyKeyNames, options)
+        val conflictingIndex = existingIndexInfo(ctx, () => ctx.getIndexInformation(indexName.get))
+
+        val notification = IndexOrConstraintAlreadyExistsNotification(
+          s"CREATE $indexDescription",
+          conflictingIndex
+        )
+        IgnoredResult(Set(notification) ++ optionConverterNotifications)
+      } else {
+        SuccessResult(optionConverterNotifications)
+      }
+    }
+
+  def doNothingIfExistsForVector(
+    entityNames: Either[List[LabelName], List[RelTypeName]],
+    propertyKeyNames: List[PropertyKeyName],
+    additionalPropertyKeyNames: List[PropertyKeyName],
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      // Assert correct options to get errors even if matching index already exists
+      val optionConverterNotifications = CreateVectorIndexOptionsConverter(indexContext(ctx), vectorIndexVersion(ctx))
+        .convert(cypherVersion, options, params)
+        .toOptionNotification
+        ._2
+
+      val (entityIds, entityType) = getMultipleEntityInfo(entityNames, ctx)
+      val propertyKeyIds = propertyKeyNames.map(p => propertyToId(ctx)(p).id)
+      val additionalPropertyKeyIds = additionalPropertyKeyNames.map(p => propertyToId(ctx)(p).id)
+      // Kernel only sees it as a single list with the vector property first
+      val allPropertyKeyIds = propertyKeyIds ++ additionalPropertyKeyIds
+      val existingIndexDescriptor = Try(ctx.semanticIndexReference(
+        schema.IndexType.VECTOR,
+        entityIds,
+        entityType,
+        allPropertyKeyIds: _*
+      ))
+      if (existingIndexDescriptor.isSuccess) {
+        // Notify on pre-existing index, replace potential parameter names with their actual value
+        val indexDescription =
+          vectorIndexInfo(indexName, entityNames, propertyKeyNames, additionalPropertyKeyNames, options)
+        val conflictingIndex = existingIndexInfo(ctx, () => ctx.getIndexInformation(existingIndexDescriptor.get))
+
+        val notification = IndexOrConstraintAlreadyExistsNotification(
+          s"CREATE $indexDescription",
+          conflictingIndex
+        )
+        IgnoredResult(Set(notification) ++ optionConverterNotifications)
+      } else if (indexName.exists(ctx.indexExists)) {
+        // Notify on pre-existing index, replace potential parameter names with their actual value
+        val indexDescription =
+          vectorIndexInfo(indexName, entityNames, propertyKeyNames, additionalPropertyKeyNames, options)
         val conflictingIndex = existingIndexInfo(ctx, () => ctx.getIndexInformation(indexName.get))
 
         val notification = IndexOrConstraintAlreadyExistsNotification(
@@ -431,6 +500,28 @@ object IndexCommandPlanner {
     pretty"FULLTEXT INDEX$name IF NOT EXISTS FOR $pattern ON EACH $propertyString${prettyOptions(options)}".prettifiedString
   }
 
+  private def vectorIndexInfo(
+    nameOption: Option[String],
+    entityNames: Either[List[LabelName], List[RelTypeName]],
+    properties: Seq[PropertyKeyName],
+    additionalProperties: Seq[PropertyKeyName],
+    options: Options
+  ): String = {
+    val name = getPrettyName(nameOption)
+    val pattern = entityNames match {
+      case Left(labels) =>
+        val innerPattern = labels.map(l => asPrettyString(l.name)).mkPrettyString("e:", "|", "")
+        pretty"($innerPattern)"
+      case Right(relTypes) =>
+        val innerPattern = relTypes.map(r => asPrettyString(r.name)).mkPrettyString("e:", "|", "")
+        pretty"()-[$innerPattern]-()"
+    }
+    val propertyString = getPrettyPropertyPattern(properties, "(", ")")
+    val additionalPropertiesString =
+      if (additionalProperties.nonEmpty) getPrettyPropertyPattern(additionalProperties, " WITH [", "]") else pretty""
+    pretty"VECTOR INDEX$name IF NOT EXISTS FOR $pattern ON $propertyString$additionalPropertiesString${prettyOptions(options)}".prettifiedString
+  }
+
   private def lookupIndexInfo(
     nameOption: Option[String],
     entityType: EntityType,
@@ -463,8 +554,18 @@ object IndexCommandPlanner {
           val pattern = if (isNode) pretty"($innerPattern)" else pretty"()-[$innerPattern]-()"
           val propertyString = getPrettyPropertyPattern(properties, "[", "]")
           (pattern, pretty"EACH $propertyString")
+        case schema.IndexType.VECTOR =>
+          val innerPattern = entityNames.map(e => asPrettyString(e)).mkPrettyString("e:", "|", "")
+          val pattern = if (isNode) pretty"($innerPattern)" else pretty"()-[$innerPattern]-()"
+          // Kernel only sees it as a single list with the vector property first
+          val (vectorProperty, additionalProperties) = (properties.head, properties.tail)
+          val propertyString = getPrettyPropertyPattern(List(vectorProperty), "(", ")")
+          val additionalPropertiesString =
+            if (additionalProperties.nonEmpty) getPrettyPropertyPattern(additionalProperties, " WITH [", "]")
+            else pretty""
+          (pattern, pretty"$propertyString$additionalPropertiesString")
         case _ =>
-          // indexes have exactly one label/relType, unless FULLTEXT or LOOKUP which is handled above
+          // indexes have exactly one label/relType, unless FULLTEXT, LOOKUP or VECTOR which is handled above
           val pattern = getPrettyEntityPattern(isNode, entityNames.head)
           val propertyString = getPrettyPropertyPattern(properties, "(", ")")
           (pattern, propertyString)

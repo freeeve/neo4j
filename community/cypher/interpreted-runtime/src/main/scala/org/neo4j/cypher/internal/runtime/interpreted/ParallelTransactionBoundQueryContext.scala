@@ -153,9 +153,10 @@ object ParallelTransactionBoundQueryContext {
     ): IndexDescriptor = unsupported()
 
     override def addVectorIndexRule(
-      entityId: Int,
+      entityIds: List[Int],
       entityType: EntityType,
       propertyKeyIds: Seq[Int],
+      additionalPropertyKeyIds: Seq[Int],
       name: Option[String],
       provider: Option[IndexProviderDescriptor],
       indexConfig: IndexConfig
