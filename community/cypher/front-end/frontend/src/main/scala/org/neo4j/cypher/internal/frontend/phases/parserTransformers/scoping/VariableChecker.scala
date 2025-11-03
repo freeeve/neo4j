@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -55,10 +56,12 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.Foldable
 import org.neo4j.cypher.internal.util.Foldable.FoldingBehavior
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenNewAccForSiblings
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.StepSequencer
 
 case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] with StepSequencer.Step {
@@ -224,37 +227,68 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
     }
   )
 
-  case class Acc(scopeContext: String, errors: Seq[SemanticError]) {
+  sealed trait ReturnContext
+  case object Unopinionated extends ReturnContext
+  sealed trait Opinionated extends ReturnContext
+  case object SubqueryExpression extends Opinionated
+  case object NextStatement extends Opinionated
+
+  case class Acc(scopeContext: ReturnContext, errors: Seq[SemanticError]) {
     def apply(errors: Seq[SemanticError]): Acc = copy(errors = this.errors ++ errors)
     def apply(errors: SemanticError): Acc = copy(errors = this.errors :+ errors)
-    def inContext(context: String): Acc = copy(scopeContext = context)
+    def inContext(context: ReturnContext): Acc = copy(scopeContext = context)
     def resetToIncoming(incoming: Acc): Acc = copy(scopeContext = incoming.scopeContext)
   }
 
   case object Acc {
-    def init: Acc = Acc("SingleQuery", Seq.empty)
+    def init: Acc = Acc(Unopinionated, Seq.empty)
   }
 
   private val checksUsingAcc: Seq[PartialFunction[(Acc, WorkingScope), Acc]] = Seq(
     // invalid use of RETURN *
     {
-      case (acc, ExpressionScope(_: FullSubqueryExpression, _, _, _, _)) =>
-        acc.inContext("SubqueryExpression")
-      case (acc @ Acc("SubqueryExpression", _), StatementScope(Return.WithStar(r), in, _, _, _, _, _)) =>
-        if (in.constantsAndVariables.isEmpty) acc(SemanticError.invalidUseOfReturnStar(r.position))
-        else acc
+      case (acc @ Acc(SubqueryExpression, _), StatementScope(Return.WithStar(r), in, _, _, _, _, _))
+        if in.constantsAndVariables.isEmpty => acc(SemanticError.invalidUseOfReturnStar(r.position))
+      case (acc @ Acc(_: Opinionated, _), StatementScope(r @ Return(_, ri, _, _, _, _, _, _), in, _, _, _, _, _)) =>
+        acc(getAliasesShadowingConstants(ri.items, in, r.position))
       case (acc, StatementScope(Return.WithStar(r), in, _, _, _, _, _))
         if in.isVariablesEmpty =>
         acc(SemanticError.invalidUseOfReturnStar(r.position))
     }
   )
 
+  private def getAliasesShadowingConstants(
+    items: Seq[ReturnItem],
+    in: RegularContext,
+    pos: InputPosition
+  ): Seq[SemanticError] =
+    items
+      .filter(i => !i.isPassThrough && i.alias.isDefined && in.constants.contains(i.alias.get))
+      .map(i => SemanticError.variableAlreadyDeclaredInOuterScope(i.name, pos))
+
   private def collectSemanticErrorsWithAcc(workingScope: WorkingScope) = workingScope.folder.treeFold(Acc.init) {
-    case ws: WorkingScope => acc =>
-        val updatedAcc = checksUsingAcc.foldLeft(acc) { case (acc, check) =>
+    case ExpressionScope(_: FullSubqueryExpression, _, _, _, _) => acc =>
+        TraverseChildren(acc.inContext(SubqueryExpression))
+    case StatementScope(_: NextStatement, _, _, _, _, _, children) => acc =>
+        val trunkAcc = folderWorkingScopes(children.dropRight(1), acc.inContext(NextStatement))
+        val tailAcc = folderWorkingScopes(children.tail, acc)
+        SkipChildren(Acc(tailAcc.scopeContext, trunkAcc.errors ++ tailAcc.errors))
+    case ws: WorkingScope => _folderWorkingScopes(ws)
+  }
+
+  private def folderWorkingScopes(target: Foldable, acc: Acc) =
+    target.folder.treeFold(acc) {
+      case ws: WorkingScope => _folderWorkingScopes(ws)
+    }
+
+  private def _folderWorkingScopes(ws: WorkingScope): Acc => FoldingBehavior[Acc] = {
+    acc =>
+      TraverseChildrenNewAccForSiblings[Acc](
+        checksUsingAcc.foldLeft(acc) { case (acc, check) =>
           check.applyOrElse((acc, ws), (_: (Acc, WorkingScope)) => acc)
-        }
-        TraverseChildrenNewAccForSiblings(updatedAcc, siblingAcc => siblingAcc.resetToIncoming(acc))
+        },
+        siblingAcc => siblingAcc.resetToIncoming(acc)
+      )
   }
 
   // this collects all errors it can find

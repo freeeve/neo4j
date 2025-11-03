@@ -844,6 +844,60 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     )
   }
 
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (b)
+         |  LET a = b
+         |  RETURN a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (b)
+         |  RETURN b AS a
+         |  NEXT
+         |  MATCH (a)
+         |  RETURN a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (b)
+         |  RETURN b AS a
+         |  NEXT
+         |  MATCH (a)
+         |  RETURN a.p AS p
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (b)
+         |  RETURN b
+         |  NEXT
+         |  MATCH (b)
+         |  RETURN b AS a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
   test("""WITH 1 AS x
          |CALL {
          |  USE mega.graph1
