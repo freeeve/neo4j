@@ -315,14 +315,24 @@ object pegClause {
   )(implicit c: PegContext): WorkingScope = {
     implicit val astNode: ASTNode = projectionClause
 
-    val (isWith, distinct, projectionType, items, orderByOpt, whereOpt, withTypeOpt) =
+    val (isWith, distinct, projectionType, items, orderByOpt, skipOpt, limitOpt, whereOpt, withTypeOpt) =
       projectionClause match {
-        case With(distinct, ReturnItems(projectionType, items, _), orderByOpt, _, _, whereOpt, withType) =>
-          (withType != ParsedAsYield, distinct, projectionType, items, orderByOpt, whereOpt, Some(withType))
-        case Return(distinct, ReturnItems(projectionType, items, _), orderByOpt, _, _, _, _, _) =>
-          (false, distinct, projectionType, items, orderByOpt, None, None)
-        case Yield(ReturnItems(projectionType, items, _), orderByOpt, _, _, whereOpt) =>
-          (false, false, projectionType, items, orderByOpt, whereOpt, None)
+        case With(distinct, ReturnItems(projectionType, items, _), orderByOpt, skipOpt, limitOpt, whereOpt, withType) =>
+          (
+            withType != ParsedAsYield,
+            distinct,
+            projectionType,
+            items,
+            orderByOpt,
+            skipOpt,
+            limitOpt,
+            whereOpt,
+            Some(withType)
+          )
+        case Return(distinct, ReturnItems(projectionType, items, _), orderByOpt, skipOpt, limitOpt, _, _, _) =>
+          (false, distinct, projectionType, items, orderByOpt, skipOpt, limitOpt, None, None)
+        case Yield(ReturnItems(projectionType, items, _), orderByOpt, skipOpt, limitOpt, whereOpt) =>
+          (false, false, projectionType, items, orderByOpt, skipOpt, limitOpt, whereOpt, None)
       }
     val variableItems = withTypeOpt match {
       case Some(DefaultWith) => items.filterNot(ri =>
@@ -363,9 +373,21 @@ object pegClause {
         pegExpression(expression, whereExpIncoming)
       )
 
-      val children = projectionItemScopes ++ sortItemScopes ++ whereExpScopes
+      val skipExpIncoming = incoming.replaceWith(subclauseIncoming).constantChildContext()
+      val skipExpScopes = skipOpt.map(s => Seq(s.expression)).getOrElse(Seq.empty).map(expression =>
+        pegExpression(expression, skipExpIncoming)
+      )
+
+      val limitExpIncoming = incoming.replaceWith(subclauseIncoming).constantChildContext()
+      val limitExpScopes = limitOpt.map(s => Seq(s.expression)).getOrElse(Seq.empty).map(expression =>
+        pegExpression(expression, limitExpIncoming)
+      )
+
+      val children = projectionItemScopes ++ sortItemScopes ++ whereExpScopes ++ skipExpScopes ++ limitExpScopes
       val resultColumns = includedIncomingVariables.toSeq ++ newVariables
-      val referencedInChildren = WorkingScope.referencedInChildren(projectionItemScopes ++ whereExpScopes) union
+      val referencedInChildren = WorkingScope.referencedInChildren(
+        projectionItemScopes ++ whereExpScopes ++ skipExpScopes ++ limitExpScopes
+      ) union
         (WorkingScope.referencedInChildren(sortItemScopes) intersect notShadowed)
       val starNotReferencing =
         (withTypeOpt contains ParsedAsOrderBy) ||
@@ -446,15 +468,26 @@ object pegClause {
       val whereExpScopes = whereOpt.map(w => Seq(w.expression)).getOrElse(Seq.empty).map(expression =>
         pegExpression(expression, whereExpIncoming.constantChildContext())
       )
-      val referencedInWhereExp = WorkingScope.referencedInChildren(whereExpScopes)
+
+      val skipExpScopes = skipOpt.map(s => Seq(s.expression)).getOrElse(Seq.empty).map(expression =>
+        pegExpression(expression, whereExpIncoming.constantChildContext())
+      )
+
+      val limitExpScopes = limitOpt.map(s => Seq(s.expression)).getOrElse(Seq.empty).map(expression =>
+        pegExpression(expression, whereExpIncoming.constantChildContext())
+      )
+
+      val referencedInSubclauseExps =
+        WorkingScope.referencedInChildren(whereExpScopes ++ skipExpScopes ++ limitExpScopes)
 
       val referenced = Some(referencedInGroupingItems union referencedInAggregationItems union (
         referencedInSortItems intersect (notShadowedGroupingKeyVariables union notShadowedAggregationVariables)
       ) union (
-        referencedInWhereExp intersect (notShadowedGroupingKeyVariables union notShadowedAggregationVariables)
+        referencedInSubclauseExps intersect (notShadowedGroupingKeyVariables union notShadowedAggregationVariables)
       ))
       val resultColumns = includedIncomingVariables.toSeq ++ returnItemAliases(items) // to maintain order
-      val children = groupingItemScopes ++ aggregationItemScopes ++ sortItemScopes ++ whereExpScopes
+      val children =
+        groupingItemScopes ++ aggregationItemScopes ++ sortItemScopes ++ whereExpScopes ++ skipExpScopes ++ limitExpScopes
 
       if (isWith) {
         // WITH
@@ -483,7 +516,7 @@ object pegClause {
 
     val innerQueryScope = pegStatement(innerQuery, innerQueryIncoming)
     val (inTransactionsChildren, declaredInTransactionsVariables) =
-      scopeInTransactionParameters(inTransactionsParameters)
+      scopeInTransactionParameters(inTransactionsParameters, incoming.constantChildContext())
     val (outgoing, declaredVariables) = innerQueryScope.result match {
       case TableResult(columns) => (incoming.amendedWith((columns ++ declaredInTransactionsVariables).toSet), columns)
       case TableResultWithNotYetKnownColumns => (incoming.amendedWith(declaredInTransactionsVariables.toSet), Seq.empty)
@@ -502,7 +535,8 @@ object pegClause {
   }
 
   @inline private def scopeInTransactionParameters(
-    inTransactionsParameters: Option[InTransactionsParameters]
+    inTransactionsParameters: Option[InTransactionsParameters],
+    incoming: RegularContext
   )(implicit c: PegContext)
     : (Seq[WorkingScope], Seq[LogicalVariable]) = {
     inTransactionsParameters match {
@@ -510,16 +544,16 @@ object pegClause {
       case Some(InTransactionsParameters(batchParams, concurrencyParams, errorParams, reportParams)) =>
         val batchParamsChild = batchParams.toSeq.map {
           case InTransactionsBatchParameters(batchSize) =>
-            pegExpression(batchSize, RegularContext.unit)
+            pegExpression(batchSize, incoming)
         }
         val concurrencyParamsChild = concurrencyParams.toSeq.flatMap {
           case InTransactionsConcurrencyParameters(Some(concurrency)) =>
-            Some(pegExpression(concurrency, RegularContext.unit))
+            Some(pegExpression(concurrency, incoming))
           case _ => None
         }
         val errorParamsChild = errorParams.toSeq.flatMap {
           case InTransactionsErrorParameters(_, Some(InTransactionsRetryParameters(Some(timeout)))) =>
-            Some(pegExpression(timeout, RegularContext.unit))
+            Some(pegExpression(timeout, incoming))
           case _ => None
         }
         val reportVariable = reportParams.toSeq.map {

@@ -1967,8 +1967,8 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               )
             )
           ),
-          ExpectedWorkingScope.constExp("2 + 3"),
-          ExpectedWorkingScope.constExp("2.5")
+          ExpectedWorkingScope.constExp("2 + 3", Set("a", "b")),
+          ExpectedWorkingScope.constExp("2.5", Set("a", "b"))
         ),
         ExpectedWorkingScope(
           Ast("RETURN a, x"),
@@ -2055,8 +2055,8 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               )
             )
           ),
-          ExpectedWorkingScope.constExp("2 + 3"),
-          ExpectedWorkingScope.constExp("2.5")
+          ExpectedWorkingScope.constExp("2 + 3", Set("a", "b")),
+          ExpectedWorkingScope.constExp("2.5", Set("a", "b"))
         ),
         ExpectedWorkingScope(
           Ast("RETURN a, x"),
@@ -2142,8 +2142,8 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               )
             )
           ),
-          ExpectedWorkingScope.constExp("2 + 3"),
-          ExpectedWorkingScope.constExp("2.5")
+          ExpectedWorkingScope.constExp("2 + 3", Set("a", "b")),
+          ExpectedWorkingScope.constExp("2.5", Set("a", "b"))
         ),
         ExpectedWorkingScope(
           Ast("RETURN a, r"),
@@ -2232,8 +2232,8 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               )
             )
           ),
-          ExpectedWorkingScope.constExp("2 + 3"),
-          ExpectedWorkingScope.constExp("2.5")
+          ExpectedWorkingScope.constExp("2 + 3", Set("a", "b")),
+          ExpectedWorkingScope.constExp("2.5", Set("a", "b"))
         ),
         ExpectedWorkingScope(
           Ast("RETURN a, r"),
@@ -2664,7 +2664,8 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           Outgoing(variables = Set("n")),
           ExpectedResult.TableResult("n"),
           ExpectedWorkingScope.varExp("n", Set("query", "n", "score")),
-          ExpectedWorkingScope.varExp("score", Set("query", "n", "score"))
+          ExpectedWorkingScope.varExp("score", Set("query", "n", "score")),
+          ExpectedWorkingScope.constExp("3", Set("query", "n", "score"))
         )
       )
     )

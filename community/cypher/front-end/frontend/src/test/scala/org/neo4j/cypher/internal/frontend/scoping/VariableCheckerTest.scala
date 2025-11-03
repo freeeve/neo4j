@@ -101,7 +101,7 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |  RETURN a * x AS x
          |} IN TRANSACTIONS OF 2 + a ROWS ON ERROR RETRY FOR 2.5 SECONDS
          |RETURN a, x""".stripMargin) {
-    error("42N62", "Variable `a` not defined.")
+    passes()
   }
 
   test("""LET a = 10
@@ -112,7 +112,7 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |  RETURN a * x AS x
          |} IN TRANSACTIONS OF 2 + a ROWS ON ERROR RETRY FOR 2.5 SECONDS
          |RETURN a, x""".stripMargin) {
-    error("42N62", "Variable `a` not defined.")
+    passes()
   }
 
   test("""LET a = 10
@@ -122,7 +122,7 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |  RETURN a * x AS x
          |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY FOR a + 1 SECONDS
          |RETURN a, x""".stripMargin) {
-    error("42N62", "Variable `a` not defined.")
+    passes()
   }
 
   test("""LET a = 10
@@ -133,7 +133,7 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |  RETURN a * x AS x
          |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY FOR a + 1 SECONDS
          |RETURN a, x""".stripMargin) {
-    error("42N62", "Variable `a` not defined.")
+    passes()
   }
 
   test("""LET a = 10
@@ -1311,6 +1311,18 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   }
 
   test("""CREATE INDEX FOR (n:Person) ON (n.firstName)""".stripMargin) {
+    passes()
+  }
+
+  test("""WITH 1 AS x
+         |RETURN x AS name
+         |LIMIT x""".stripMargin) {
+    passes()
+  }
+
+  test("""WITH 1 AS x
+         |RETURN x AS name
+         |SKIP x""".stripMargin) {
     passes()
   }
 }
