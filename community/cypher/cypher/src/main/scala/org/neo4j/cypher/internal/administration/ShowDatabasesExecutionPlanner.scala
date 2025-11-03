@@ -185,10 +185,8 @@ case class ShowDatabasesExecutionPlanner(
       s"""UNWIND $$`$accessibleDbsKey` AS props
            |MATCH (d:$DATABASE)<-[:$TARGETS]-(dn:$DATABASE_NAME $nameFilter)
            |WITH d, dn, props
-           |OPTIONAL MATCH (d)<-[:$TARGETS]-(a:$DATABASE_NAME)
-           |WITH a, d, dn, props ORDER BY a.$DISPLAY_NAME_PROPERTY
            |WITH dn.$DISPLAY_NAME_PROPERTY as name,
-           |collect(a) as aliases,
+           |props.$ALIASES_COL as $ALIASES_COL,
            |props.$CONSTITUENTS_COL as $CONSTITUENTS_COL,
            |props.$ACCESS_COL as $ACCESS_COL,
            |props.$ADDRESS_COL as $ADDRESS_COL,
@@ -207,7 +205,7 @@ case class ShowDatabasesExecutionPlanner(
            |
            |WITH name AS $NAME_COL,
            |type,
-           |[alias in aliases WHERE NOT (dbNameProperty = alias.$NAME_PROPERTY AND alias.$NAMESPACE_PROPERTY = '$DEFAULT_NAMESPACE') | alias.$DISPLAY_NAME_PROPERTY] as $ALIASES_COL,
+           |$ALIASES_COL,
            |$ACCESS_COL,
            |$ADDRESS_COL,
            |$ROLE_COL,

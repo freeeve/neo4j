@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.administration.topology
 
 import org.neo4j.cypher.internal.ast.ShowDatabase.ACCESS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.ADDRESS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.ALIASES_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CONSTITUENTS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_PRIMARIES_COUNT_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_SECONDARIES_COUNT_COL
@@ -41,6 +42,7 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.TYPE_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.WRITER_COL
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
+import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.ListValueBuilder
 import org.neo4j.values.virtual.VirtualValues
 
@@ -55,9 +57,8 @@ object DatabaseDetailsMapper {
     homeDatabase: String
   ): AnyValue = {
     val databaseDetails = showDatabaseResult.details
-    val lvb = ListValueBuilder.newListBuilder()
-    showDatabaseResult.constituents.foreach(const => lvb.add(Values.stringValue(const)))
-    val constituentValue = lvb.build()
+    val constituentValue = buildStringListValue(showDatabaseResult.constituents)
+    val aliasesValue = buildStringListValue(showDatabaseResult.aliases)
 
     VirtualValues.map(
       Array(
@@ -80,7 +81,8 @@ object DatabaseDetailsMapper {
         REPLICATION_LAG_COL,
         SHARD_TX_LAG_COL,
         OPTIONS_COL,
-        CONSTITUENTS_COL
+        CONSTITUENTS_COL,
+        ALIASES_COL
       ),
       Array(
         Values.stringValue(databaseDetails.namedDatabaseId().name()),
@@ -107,8 +109,15 @@ object DatabaseDetailsMapper {
             databaseDetails.options().asScala.view.mapValues(v => Values.stringValue(v)).toMap[String, AnyValue].asJava
           VirtualValues.fromMap(valueOptions, valueOptions.size, 0)
         },
-        constituentValue
+        constituentValue,
+        aliasesValue
       )
     )
+  }
+
+  def buildStringListValue(strings: Seq[String]): ListValue = {
+    val lvb = ListValueBuilder.newListBuilder()
+    strings.foreach(const => lvb.add(Values.stringValue(const)))
+    lvb.build()
   }
 }

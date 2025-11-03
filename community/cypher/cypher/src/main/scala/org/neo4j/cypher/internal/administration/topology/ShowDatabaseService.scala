@@ -31,10 +31,14 @@ import org.neo4j.internal.kernel.api.security.SecurityContext
 import org.neo4j.kernel.database.DatabaseIdFactory
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
+import org.neo4j.kernel.database.DatabaseReferenceImpl.Composite
+import org.neo4j.kernel.database.DatabaseReferenceImpl.GraphShard
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.kernel.database.DefaultDatabaseResolver
 import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.values.virtual.MapValue
+
+import java.util.UUID
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.SetHasAsJava
@@ -50,7 +54,8 @@ case class ShowDatabaseServiceContext(
 
 case class ShowDatabaseResult(
   details: DatabaseDetails,
-  constituents: Seq[String]
+  constituents: Seq[String],
+  aliases: Seq[String]
 )
 
 class ShowDatabaseService(
@@ -93,6 +98,7 @@ class ShowDatabaseService(
     filteredReferences: Set[DatabaseReference],
     context: ShowDatabaseServiceContext
   ): Seq[ShowDatabaseResult] = {
+    val allReferences = referenceResolver.getAllDatabaseReferences.asScala
 
     val filteredReferencesWithShards: Set[DatabaseReference] = filteredReferences.flatMap {
       case db: DatabaseReferenceImpl.VirtualSPD =>
@@ -102,7 +108,7 @@ class ShowDatabaseService(
       case db => Set(db)
     }
 
-    val allDbInfos: Set[ShowDatabaseResult] = lookupDbInfos(filteredReferencesWithShards, context)
+    val allDbInfos: Set[ShowDatabaseResult] = lookupDbInfos(filteredReferencesWithShards, allReferences, context)
 
     val accessibleDatabases = filteredReferences.collect {
       case db
@@ -134,7 +140,8 @@ class ShowDatabaseService(
         graphShardInfos.map(databaseInfo =>
           ShowDatabaseResult(
             databaseDetailsForGraphShard(databaseInfo.details, status, statusMessage, spdId),
-            Seq.empty
+            Seq.empty,
+            aliasesForReference(allReferences, databaseInfo.details.namedDatabaseId().databaseId().uuid())
           )
         )
     }.toList.flatten
@@ -172,13 +179,17 @@ class ShowDatabaseService(
 
   private def lookupDbInfos(
     references: Set[DatabaseReference],
+    allReferences: Iterable[DatabaseReference],
     context: ShowDatabaseServiceContext
   ): Set[ShowDatabaseResult] = {
 
-    val dbids: Map[NamedDatabaseId, Seq[String]] = references.map {
-      case db: DatabaseReferenceImpl.Composite => (db.namedDatabaseId(), db.constituents().asScala.map(_.name()).toSeq)
-      case db                                  => (db.namedDatabaseId(), Seq.empty)
-    }.toMap
+    val dbids: Map[NamedDatabaseId, (Seq[String], Seq[String])] = references.map {
+      case db: DatabaseReferenceImpl.Composite =>
+        (db.namedDatabaseId(), (db.constituents().asScala.map(_.name()).toSeq, Seq.empty))
+      // aliases should go on the virtual db so a GraphShard has no aliases
+      case db: GraphShard => (db.namedDatabaseId(), (Seq.empty, Seq.empty))
+      case db             => (db.namedDatabaseId(), (Seq.empty, aliasesForReference(allReferences, db.id())))
+    }.toMap[NamedDatabaseId, (Seq[String], Seq[String])]
 
     val details = infoService.databases(
       context.transaction,
@@ -186,11 +197,16 @@ class ShowDatabaseService(
       context.detailLevel
     )
 
-    details.asScala.map(d =>
-      ShowDatabaseResult(
-        d,
-        dbids.getOrElse(d.namedDatabaseId(), Seq.empty)
-      )
-    )
+    details.asScala.map(d => {
+      val (constituents, aliases) = dbids.getOrElse(d.namedDatabaseId(), (Seq.empty, Seq.empty))
+      ShowDatabaseResult(d, constituents, aliases)
+    })
   }.toSet
+
+  private def aliasesForReference(references: Iterable[DatabaseReference], databaseUuid: UUID): Seq[String] = {
+    references.collect {
+      case comp: Composite => aliasesForReference(comp.constituents().asScala, databaseUuid)
+      case ref if !ref.isPrimary && ref.id() == databaseUuid => Seq(ref.name())
+    }.flatten.toSeq.sorted
+  }
 }
