@@ -62,15 +62,15 @@ final class Lucene10ValueFields {
             return getClass().getSimpleName() + " <" + name + ':' + getBoolValue() + '>';
         }
 
-        public static TermQuery newExactQuery(String field, boolean value) {
+        static TermQuery newExactQuery(String field, boolean value) {
             Term term = new Term(field, value ? TRUE : FALSE);
             return new TermQuery(term);
         }
 
-        public static Query newRangeQuery(String field, boolean lowerValueInclusive, boolean upperValueInclusive) {
+        static Query newRangeQuery(String field, boolean lowerValueInclusive, boolean upperValueInclusive) {
             Preconditions.checkArgument(
                     lowerValueInclusive == false || upperValueInclusive == true,
-                    "upper bound for boolean range cannot be lower than lower bound");
+                    "Upper bound for boolean range cannot be lower than the lower bound");
             if (lowerValueInclusive) {
                 // range from [true, true]
                 return newExactQuery(field, true);
@@ -110,7 +110,7 @@ final class Lucene10ValueFields {
         }
 
         static Query newExactQuery(String field, long value) {
-            Preconditions.requireNonNull(field, "field cannot be null");
+            Preconditions.requireNonNull(field, "Field cannot be null");
             byte[] encodedValue = longToBytes(value);
             return new PointRangeQuery(field, encodedValue, encodedValue, 1) {
                 @Override
@@ -121,10 +121,10 @@ final class Lucene10ValueFields {
         }
 
         static Query newRangeQuery(String field, long lowerValueInclusive, long upperValueInclusive) {
-            Preconditions.requireNonNull(field, "field cannot be null");
+            Preconditions.requireNonNull(field, "Field cannot be null");
             Preconditions.checkArgument(
                     lowerValueInclusive <= upperValueInclusive,
-                    "upper bound for integral range cannot be lower than lower bound");
+                    "Upper bound for integral range cannot be lower than the lower bound");
             return new PointRangeQuery(field, longToBytes(lowerValueInclusive), longToBytes(upperValueInclusive), 1) {
                 @Override
                 protected String toString(int dimension, byte[] value) {
@@ -151,7 +151,7 @@ final class Lucene10ValueFields {
 
         @Override
         public BytesRef binaryValue() {
-            return new BytesRef(longToBytes((Long) fieldsData));
+            return new BytesRef(doubleToBytes((Double) fieldsData));
         }
 
         @Override
@@ -161,7 +161,7 @@ final class Lucene10ValueFields {
 
         @Override
         public void setLongValue(long value) {
-            throw new IllegalArgumentException("cannot change value type from Double to Long");
+            throw new IllegalArgumentException("Cannot change value type from Double to Long");
         }
 
         @Override
@@ -170,7 +170,7 @@ final class Lucene10ValueFields {
         }
 
         static Query newExactQuery(String field, double value) {
-            Preconditions.requireNonNull(field, "field cannot be null");
+            Preconditions.requireNonNull(field, "Field cannot be null");
             byte[] encodedValue = doubleToBytes(value);
             return new PointRangeQuery(field, encodedValue, encodedValue, 1) {
                 @Override
@@ -184,8 +184,12 @@ final class Lucene10ValueFields {
         static Query newRangeQuery(String field, double lowerValueInclusive, double upperValueInclusive) {
             Preconditions.requireNonNull(field, "field cannot be null");
             Preconditions.checkArgument(
+                    !Double.isNaN(lowerValueInclusive), "NaN is not a valid lower bound for a range");
+            Preconditions.checkArgument(
+                    !Double.isNaN(upperValueInclusive), "NaN is not a valid upper bound for a range");
+            Preconditions.checkArgument(
                     Double.compare(lowerValueInclusive, upperValueInclusive) <= 0,
-                    "upper bound for floating range cannot be lower than lower bound");
+                    "Upper bound for floating range cannot be lower than the lower bound");
             return new PointRangeQuery(
                     field, doubleToBytes(lowerValueInclusive), doubleToBytes(upperValueInclusive), 1) {
                 @Override

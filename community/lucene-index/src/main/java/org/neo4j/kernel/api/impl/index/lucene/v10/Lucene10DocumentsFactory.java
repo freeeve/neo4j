@@ -103,32 +103,7 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
 
         for (int i = 1; i < values.length; i++) {
             Value value = values[i];
-            IndexableField field =
-                    switch (value) {
-                        case BooleanValue bv ->
-                            new BooleanField(vectorDocumentStructure.booleanValueKeyFor(i), bv.booleanValue());
-                        case ByteValue bv ->
-                            new SingleLongField(vectorDocumentStructure.integralValueKeyFor(i), bv.intValue());
-                        case ShortValue sv ->
-                            new SingleLongField(vectorDocumentStructure.integralValueKeyFor(i), sv.intValue());
-                        case IntValue iv ->
-                            new SingleLongField(vectorDocumentStructure.integralValueKeyFor(i), iv.value());
-                        case LongValue lv ->
-                            new SingleLongField(vectorDocumentStructure.integralValueKeyFor(i), lv.value());
-                        case FloatValue fv ->
-                            new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(i), fv.value());
-                        case DoubleValue dv ->
-                            new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(i), dv.value());
-                        case TextValue tv ->
-                            new StringField(vectorDocumentStructure.textValueKeyFor(i), tv.stringValue(), Store.NO);
-                        case TemporalValue<?, ?> tv ->
-                            new LongPoint(
-                                    vectorDocumentStructure.temporalValueKeyFor(i),
-                                    tv.getLong(ChronoField.EPOCH_DAY),
-                                    tv.getLong(ChronoField.NANO_OF_DAY),
-                                    tv.getLong(ChronoField.OFFSET_SECONDS));
-                        default -> null;
-                    };
+            IndexableField field = indexableField(vectorDocumentStructure, i, value);
             if (field == null) {
                 // value type not supported for metadata filter
                 continue;
@@ -153,5 +128,39 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
         private TrigramField(String name, TokenStream tokenStream) {
             super(name, tokenStream, TYPE);
         }
+    }
+
+    /**
+     *
+     * @param vectorDocumentStructure used to infer the name of the index field
+     * @param index {@code i}-th field in the index filter parameters
+     * @param value to index the document with
+     * @return a Lucene indexable field, or null if the input {@code value} is null
+     */
+    static IndexableField indexableField(VectorDocumentStructure vectorDocumentStructure, int index, Value value) {
+        return switch (value) {
+            case BooleanValue bv ->
+                new BooleanField(vectorDocumentStructure.booleanValueKeyFor(index), bv.booleanValue());
+            case ByteValue bv -> new SingleLongField(vectorDocumentStructure.integralValueKeyFor(index), bv.intValue());
+            case ShortValue sv ->
+                new SingleLongField(vectorDocumentStructure.integralValueKeyFor(index), sv.intValue());
+            case IntValue iv -> new SingleLongField(vectorDocumentStructure.integralValueKeyFor(index), iv.value());
+            case LongValue lv -> new SingleLongField(vectorDocumentStructure.integralValueKeyFor(index), lv.value());
+            case FloatValue fv -> new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(index), fv.value());
+            case DoubleValue dv ->
+                new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(index), dv.value());
+            case TextValue tv ->
+                new StringField(vectorDocumentStructure.textValueKeyFor(index), tv.stringValue(), Store.NO);
+            case TemporalValue<?, ?> tv ->
+                new LongPoint(
+                        vectorDocumentStructure.temporalValueKeyFor(index),
+                        tv.getLong(ChronoField.EPOCH_DAY),
+                        tv.getLong(ChronoField.NANO_OF_DAY),
+                        tv.getLong(ChronoField.OFFSET_SECONDS));
+            case null -> null;
+            default ->
+                throw new IllegalArgumentException(String.format(
+                        "Unsupported value type: %s for vector index field %d", value.getTypeName(), index));
+        };
     }
 }

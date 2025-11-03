@@ -24,6 +24,8 @@ import static org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Utils.loadAnalyze
 
 import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
+import org.neo4j.exceptions.InternalException;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
@@ -158,6 +160,13 @@ public class Lucene9QueryContext implements LuceneQueryContext {
             VectorDocumentStructure documentStructure, float[] query, int k) {
         assignSingle(new KnnFloatVectorQuery(documentStructure.vectorValueKeyFor(query.length), query, k));
         return this;
+    }
+
+    @Override
+    public LuceneQueryContext approximateNearestNeighbors(
+            VectorDocumentStructure documentStructure, float[] query, int k, PropertyIndexQuery... filterQueries) {
+        throw InternalException.internalError(
+                getClass().getSimpleName(), "Single stage filter is not supported in this index");
     }
 
     public Query build() {

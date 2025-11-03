@@ -44,6 +44,7 @@ import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
@@ -156,6 +157,14 @@ public class Lucene10QueryContext implements LuceneQueryContext {
     public Lucene10QueryContext approximateNearestNeighbors(
             VectorDocumentStructure documentStructure, float[] query, int k) {
         assignSingle(new KnnFloatVectorQuery(documentStructure.vectorValueKeyFor(query.length), query, k));
+        return this;
+    }
+
+    @Override
+    public Lucene10QueryContext approximateNearestNeighbors(
+            VectorDocumentStructure documentStructure, float[] query, int k, PropertyIndexQuery... filterQueries) {
+        var filters = Lucene10FilterQueryBuilder.build(documentStructure, 1, filterQueries);
+        assignSingle(new KnnFloatVectorQuery(documentStructure.vectorValueKeyFor(query.length), query, k, filters));
         return this;
     }
 
