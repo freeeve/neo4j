@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.store.cursor;
 
-import static org.neo4j.internal.helpers.Numbers.safeCastIntToShort;
 import static org.neo4j.util.FeatureToggles.flag;
 
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
@@ -29,7 +28,7 @@ import org.neo4j.storageengine.api.cursor.CursorType;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 
 public abstract class AbstractCachedStoreCursors implements StoreCursors {
-    private static final boolean CHECK_READ_CURSORS =
+    protected static final boolean CHECK_READ_CURSORS =
             flag(AbstractCachedStoreCursors.class, "CHECK_READ_CURSORS", false);
     protected CursorContext cursorContext;
     private final int numTypes;
@@ -48,12 +47,12 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
         resetCursors();
     }
 
-    private void resetCursors() {
+    protected void resetCursors() {
         for (int i = 0; i < cursorsByType.length; i++) {
             PageCursor pageCursor = cursorsByType[i];
             if (pageCursor != null) {
                 if (CHECK_READ_CURSORS) {
-                    checkReadCursor(pageCursor, safeCastIntToShort(i));
+                    checkReadCursor(pageCursor, i, "");
                 }
                 pageCursor.close();
             }
@@ -63,7 +62,7 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
 
     @Override
     public PageCursor readCursor(CursorType type) {
-        short value = type.value();
+        int value = type.value();
         var cursor = cursorsByType[value];
         if (cursor == null) {
             cursor = createReadCursor(type);
@@ -83,10 +82,10 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
         return new PageCursor[numTypes];
     }
 
-    private static void checkReadCursor(PageCursor pageCursor, short type) {
+    protected static void checkReadCursor(PageCursor pageCursor, int type, String prefix) {
         if (pageCursor.getRawCurrentFile() == null) {
-            throw new IllegalStateException("Read cursor " + ReflectionToStringBuilder.toString(pageCursor)
-                    + " with type: " + type + " is closed outside of owning store cursors.");
+            throw new IllegalStateException("%sRead cursor %s with type: %d is closed outside of owning store cursors."
+                    .formatted(prefix, ReflectionToStringBuilder.toString(pageCursor), type));
         }
     }
 }

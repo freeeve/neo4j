@@ -23,5 +23,5 @@ public interface CursorType {
     /**
      * @return A storage-engine unique value for this specific cursor type
      */
-    short value();
+    int value();
 }
