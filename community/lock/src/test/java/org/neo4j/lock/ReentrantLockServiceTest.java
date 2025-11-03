@@ -149,6 +149,55 @@ class ReentrantLockServiceTest {
         race.goUnchecked();
     }
 
+    @Test
+    void shouldWorkWithClientAbstraction() throws Exception {
+        // given
+        try (var t2 = new OtherThreadExecutor("T2");
+                var client1 = locks.newClient()) {
+            client1.acquireNodeLock(123, EXCLUSIVE);
+            var lockFuture = t2.executeDontWait(() -> {
+                try (var client2 = locks.newClient()) {
+                    client2.acquireNodeLock(123, EXCLUSIVE);
+                }
+                return null;
+            });
+            t2.waitUntilWaiting();
+            client1.close();
+            lockFuture.get();
+        }
+    }
+
+    @Test
+    void shouldWorkWithClientAbstractionAndCustomLocks() throws Exception {
+        // given
+        try (var t2 = new OtherThreadExecutor("T2");
+                var client1 = locks.newClient()) {
+            for (int i = 0; i < 10; i++) {
+                client1.acquireCustomLock(9, 10, SHARED);
+            }
+            var lockFuture = t2.executeDontWait(() -> {
+                try (var client2 = locks.newClient()) {
+                    client2.acquireCustomLock(9, 10, EXCLUSIVE);
+                }
+                return null;
+            });
+            t2.waitUntilWaiting();
+            client1.close();
+            lockFuture.get();
+        }
+    }
+
+    @Test
+    void shouldAllowHighAcquisitionCountForLockClients() {
+        // given
+        try (var client = locks.newClient()) {
+            // when/then (not throwing an error from ReentrantReadWriteLock)
+            for (int i = 0; i < 100_000; i++) {
+                client.acquireCustomLock(23, 45, SHARED);
+            }
+        }
+    }
+
     private void assertLock(Lock lock, long id, int writeLockCount, int readLockCount) {
         String lockToString = lock.toString();
         assertThat(lockToString).contains("[id=" + id + "]");

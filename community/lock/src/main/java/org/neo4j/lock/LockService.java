@@ -42,11 +42,81 @@ package org.neo4j.lock;
  * @see ReentrantLockService for implementation details.
  */
 public interface LockService {
+    /**
+     * Acquires a lock of the given type on a node. Blocking call.
+     * @param nodeId the node ID to lock.
+     * @param type the type of the lock.
+     * @return the acquired lock.
+     */
     Lock acquireNodeLock(long nodeId, LockType type);
 
+    /**
+     * Acquires a lock of the given type on a relationship. Blocking call.
+     * @param relationshipId the relationship ID to lock.
+     * @param type the type of the lock.
+     * @return the acquired lock.
+     */
     Lock acquireRelationshipLock(long relationshipId, LockType type);
 
+    /**
+     * Acquires a lock (a custom lock other than an e.g. node or relationship lock) of the given resource type and
+     * lock type. Blocking call.
+     * @param resourceType the resource type of the lock.
+     * @param type the type of the lock.
+     * @return the acquired lock.
+     */
     Lock acquireCustomLock(int resourceType, long id, LockType type);
+
+    /**
+     * @return a new client that can be used to acquire locks. This adds convenience to "naked" lock acquisition calls
+     * such as {@link #acquireNodeLock(long, LockType)} by removing the need to manage the returned {@link Lock}
+     * instances.
+     */
+    Client newClient();
+
+    interface Client extends AutoCloseable {
+        /**
+         * Acquires a lock of the given type on a node. Blocking call.
+         * @param nodeId the node ID to lock.
+         * @param type the type of the lock.
+         */
+        void acquireNodeLock(long nodeId, LockType type);
+
+        /**
+         * Acquires a lock of the given type on a relationship. Blocking call.
+         * @param relationshipId the relationship ID to lock.
+         * @param type the type of the lock.
+         */
+        void acquireRelationshipLock(long relationshipId, LockType type);
+
+        /**
+         * Acquires a lock (a custom lock other than an e.g. node or relationship lock) of the given resource type and
+         * lock type. Blocking call.
+         * @param resourceType the resource type of the lock.
+         * @param type the type of the lock.
+         */
+        void acquireCustomLock(int resourceType, long id, LockType type);
+
+        /**
+         * Closes this client and releases all locks it has acquired.
+         */
+        @Override
+        void close();
+    }
+
+    Client NO_CLIENT = new Client() {
+        @Override
+        public void acquireNodeLock(long nodeId, LockType type) {}
+
+        @Override
+        public void acquireRelationshipLock(long relationshipId, LockType type) {}
+
+        @Override
+        public void acquireCustomLock(int resourceType, long id, LockType type) {}
+
+        @Override
+        public void close() {}
+    };
 
     Lock NO_LOCK = new Lock() {
         @Override
@@ -72,8 +142,8 @@ public interface LockService {
         }
 
         @Override
-        public String toString() {
-            return "NO_LOCK_SERVICE";
+        public Client newClient() {
+            return NO_CLIENT;
         }
     };
 }

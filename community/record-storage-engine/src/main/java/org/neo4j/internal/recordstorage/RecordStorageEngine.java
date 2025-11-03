@@ -106,7 +106,6 @@ import org.neo4j.kernel.impl.store.stats.RecordDatabaseEntityCounters;
 import org.neo4j.kernel.impl.store.stats.StoreEntityCounters;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
-import org.neo4j.lock.LockGroup;
 import org.neo4j.lock.LockService;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.LockType;
@@ -556,17 +555,13 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
     @Override
     public void lockRecoveryCommands(
-            CommandBatch commands, LockService lockService, LockGroup lockGroup, TransactionApplicationMode mode)
-            throws IOException {
+            CommandBatch commands, LockService.Client lockService, TransactionApplicationMode mode) throws IOException {
         handleRecordStorageCommands(
-                commands,
-                c -> c.lockForRecovery(lockService, lockGroup, mode),
-                c -> lockIndexUpdateCommand(lockService, lockGroup, c));
+                commands, c -> c.lockForRecovery(lockService, mode), c -> lockIndexUpdateCommand(lockService, c));
     }
 
-    private static void lockIndexUpdateCommand(LockService lockService, LockGroup lockGroup, IndexUpdateCommand<?> c) {
-        lockGroup.add(lockService.acquireCustomLock(
-                Command.RECOVERY_LOCK_TYPE_SCHEMA_RULE, c.getIndexId(), LockType.EXCLUSIVE));
+    private static void lockIndexUpdateCommand(LockService.Client lockService, IndexUpdateCommand<?> c) {
+        lockService.acquireCustomLock(Command.RECOVERY_LOCK_TYPE_SCHEMA_RULE, c.getIndexId(), LockType.EXCLUSIVE);
     }
 
     @Override

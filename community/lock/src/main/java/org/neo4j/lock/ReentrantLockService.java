@@ -21,6 +21,8 @@ package org.neo4j.lock;
 
 import static java.util.concurrent.locks.LockSupport.parkNanos;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,11 +34,6 @@ import org.neo4j.util.VisibleForTesting;
  */
 public class ReentrantLockService implements LockService {
     private final ConcurrentMap<LockedEntity, LockInstance> locks = new ConcurrentHashMap<>();
-
-    @VisibleForTesting
-    int lockCount() {
-        return locks.size();
-    }
 
     @Override
     public Lock acquireNodeLock(long nodeId, LockType type) {
@@ -51,6 +48,50 @@ public class ReentrantLockService implements LockService {
     @Override
     public Lock acquireCustomLock(int resourceType, long id, LockType type) {
         return acquire(new CustomLockedEntity(resourceType, id), type);
+    }
+
+    @Override
+    public Client newClient() {
+        return new ReentrantLockClient();
+    }
+
+    private class ReentrantLockClient implements LockService.Client {
+        private final LockGroup locks = new LockGroup();
+        private final Set<LockKey> locallyAcquiredLocks = new HashSet<>();
+
+        @Override
+        public void acquireNodeLock(long nodeId, LockType type) {
+            var key = new LockKey(new LockedNode(nodeId), type);
+            if (locallyAcquiredLocks.add(key)) {
+                locks.add(ReentrantLockService.this.acquireNodeLock(nodeId, type));
+            }
+        }
+
+        @Override
+        public void acquireRelationshipLock(long relationshipId, LockType type) {
+            var key = new LockKey(new LockedRelationship(relationshipId), type);
+            if (locallyAcquiredLocks.add(key)) {
+                locks.add(ReentrantLockService.this.acquireRelationshipLock(relationshipId, type));
+            }
+        }
+
+        @Override
+        public void acquireCustomLock(int resourceType, long id, LockType type) {
+            var key = new LockKey(new CustomLockedEntity(resourceType, id), type);
+            if (locallyAcquiredLocks.add(key)) {
+                locks.add(ReentrantLockService.this.acquireCustomLock(resourceType, id, type));
+            }
+        }
+
+        @Override
+        public void close() {
+            locks.close();
+        }
+    }
+
+    @VisibleForTesting
+    int lockCount() {
+        return locks.size();
     }
 
     private Lock acquire(LockedEntity key, LockType type) {
@@ -106,6 +147,8 @@ public class ReentrantLockService implements LockService {
     private record LockedRelationship(long id) implements LockedEntity {}
 
     private record CustomLockedEntity(int type, long id) implements LockedEntity {}
+
+    private record LockKey(LockedEntity key, LockType type) {}
 
     private record LockInstance(ReentrantReadWriteLock lock, AtomicInteger usage) {
         private static final int DEAD = -1;

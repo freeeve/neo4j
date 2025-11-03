@@ -57,7 +57,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
-import org.neo4j.lock.LockGroup;
 import org.neo4j.lock.LockService;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.LockType;
@@ -158,14 +157,11 @@ class ParallelRecoveryVisitorTest {
         RecoveryControllableStorageEngine storageEngine = new RecoveryControllableStorageEngine() {
             @Override
             public void lockRecoveryCommands(
-                    CommandBatch commands,
-                    LockService lockService,
-                    LockGroup lockGroup,
-                    TransactionApplicationMode mode) {
+                    CommandBatch commands, LockService.Client lockService, TransactionApplicationMode mode) {
                 if (idOf(commands) == 5) {
                     barrier.release();
                 }
-                super.lockRecoveryCommands(commands, lockService, lockGroup, RECOVERY);
+                super.lockRecoveryCommands(commands, lockService, RECOVERY);
             }
 
             @Override
@@ -252,12 +248,9 @@ class ParallelRecoveryVisitorTest {
         var storageEngine = new RecoveryControllableStorageEngine() {
             @Override
             public void lockRecoveryCommands(
-                    CommandBatch commands,
-                    LockService lockService,
-                    LockGroup lockGroup,
-                    TransactionApplicationMode mode) {
+                    CommandBatch commands, LockService.Client lockService, TransactionApplicationMode mode) {
                 assertThat(Thread.currentThread()).isNotEqualTo(mainRecoveryThread);
-                super.lockRecoveryCommands(commands, lockService, lockGroup, mode);
+                super.lockRecoveryCommands(commands, lockService, mode);
             }
 
             @Override
@@ -290,12 +283,9 @@ class ParallelRecoveryVisitorTest {
         var storageEngine = new RecoveryControllableStorageEngine() {
             @Override
             public void lockRecoveryCommands(
-                    CommandBatch commands,
-                    LockService lockService,
-                    LockGroup lockGroup,
-                    TransactionApplicationMode mode) {
+                    CommandBatch commands, LockService.Client lockService, TransactionApplicationMode mode) {
                 assertThat(Thread.currentThread()).isNotEqualTo(mainRecoveryThread);
-                super.lockRecoveryCommands(commands, lockService, lockGroup, mode);
+                super.lockRecoveryCommands(commands, lockService, mode);
             }
 
             @Override
@@ -347,7 +337,7 @@ class ParallelRecoveryVisitorTest {
             return LATEST_KERNEL_VERSION;
         }
 
-        abstract void lock(LockService lockService, LockGroup lockGroup);
+        abstract void lock(LockService.Client lockService);
     }
 
     private static class CommandRelatedToNode extends RecoveryTestBaseCommand {
@@ -358,8 +348,8 @@ class ParallelRecoveryVisitorTest {
         }
 
         @Override
-        void lock(LockService lockService, LockGroup lockGroup) {
-            lockGroup.add(lockService.acquireNodeLock(nodeId, LockType.EXCLUSIVE));
+        void lock(LockService.Client lockService) {
+            lockService.acquireNodeLock(nodeId, LockType.EXCLUSIVE);
         }
     }
 
@@ -382,8 +372,8 @@ class ParallelRecoveryVisitorTest {
 
         @Override
         public void lockRecoveryCommands(
-                CommandBatch commands, LockService lockService, LockGroup lockGroup, TransactionApplicationMode mode) {
-            commands.forEach(cmd -> ((RecoveryTestBaseCommand) cmd).lock(lockService, lockGroup));
+                CommandBatch commands, LockService.Client lockService, TransactionApplicationMode mode) {
+            commands.forEach(cmd -> ((RecoveryTestBaseCommand) cmd).lock(lockService));
             lockOrder[lockOrderCursor.getAndIncrement()] = idOf(commands);
         }
 

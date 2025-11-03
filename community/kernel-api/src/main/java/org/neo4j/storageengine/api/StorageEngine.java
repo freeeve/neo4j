@@ -34,7 +34,6 @@ import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.store.stats.StoreEntityCounters;
 import org.neo4j.kernel.lifecycle.Lifecycle;
-import org.neo4j.lock.LockGroup;
 import org.neo4j.lock.LockService;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.ResourceLocker;
@@ -125,11 +124,9 @@ public interface StorageEngine extends ReadableStorageEngine, Lifecycle {
      *
      * @param commands whose records may need locking for safe parallel recovery.
      * @param lockService used to acquire locks on records during recovery
-     * @param lockGroup collection of acquired locks
      * @param mode used in this case to distinguish between RECOVERY and REVERSE_RECOVERY
      */
-    void lockRecoveryCommands(
-            CommandBatch commands, LockService lockService, LockGroup lockGroup, TransactionApplicationMode mode)
+    void lockRecoveryCommands(CommandBatch commands, LockService.Client lockService, TransactionApplicationMode mode)
             throws IOException;
 
     /**
