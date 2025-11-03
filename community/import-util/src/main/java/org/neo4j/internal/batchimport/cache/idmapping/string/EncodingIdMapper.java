@@ -255,7 +255,7 @@ public class EncodingIdMapper implements IdMapper {
 
     @Override
     public void remove(Object inputId, long actualId, Group group) {
-        dataCache.set(actualId, GAP_VALUE);
+        trackerCache.markAsDuplicate(actualId);
     }
 
     private long encode(Object inputId) {
@@ -854,7 +854,9 @@ public class EncodingIdMapper implements IdMapper {
                                 leftEq ? mid - 1 : mid, rightEq ? mid + 1 : mid, midValue, inputId, x, groupId);
                     }
                     // This is the only value here, let's do a simple comparison with correct group id and return
-                    return groupOf(dataIndex) == groupId ? dataIndex : ID_NOT_FOUND;
+                    return groupOf(dataIndex) == groupId && !trackerCache.isMarkedAsDuplicate(dataIndex)
+                            ? dataIndex
+                            : ID_NOT_FOUND;
                 case LT:
                     low = mid + 1;
                     break;
