@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.NodePattern
+import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
@@ -213,6 +214,13 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
                 ))
             }
           }
+    },
+    // Unbound Variables In Pattern Expression
+    {
+      case ExpressionScope(_: PatternExpression, incoming, ref, _, _) =>
+        ref.filter(!incoming.constants.contains(_)).map(v =>
+          SemanticError.unboundVariablesInPatternExpression(v.name, v.position)
+        ).toSeq
     }
   )
 
