@@ -356,7 +356,7 @@ public class ProcedureRegistry {
                 ProcedureHolder.copyOf(ref.procedures),
                 ProcedureHolder.copyOf(ref.functions),
                 ProcedureHolder.copyOf(ref.aggregationFunctions),
-                Map.copyOf(ref.shadowedNames));
+                copyShadowedNames(ref.shadowedNames));
     }
 
     /**
@@ -406,5 +406,13 @@ public class ProcedureRegistry {
 
     private void addShadowedName(String name, QueryLanguage scope) {
         shadowedNames.get(scope).add(name);
+    }
+
+    private static Map<QueryLanguage, Set<String>> copyShadowedNames(Map<QueryLanguage, Set<String>> shadowedNames) {
+        Map<QueryLanguage, Set<String>> map = new HashMap<>();
+        for (var scope : QueryLanguage.values()) {
+            map.put(scope, Set.copyOf(shadowedNames.get(scope)));
+        }
+        return Collections.unmodifiableMap(map);
     }
 }
