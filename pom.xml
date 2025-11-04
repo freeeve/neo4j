@@ -591,19 +591,23 @@
           </executions>
           <configuration>
             <strictCheck>true</strictCheck>
-            <header>${license-text.header}</header>
-            <includes>
-              <include>src/**/*.java</include>
-              <include>src/**/*.js</include>
-              <include>src/**/*.scala</include>
-              <include>src/**/*.xml</include>
-              <include>src/**/*.feature</include>
-              <include>src/**/*.g4</include>
-            </includes>
-            <excludes>
-              <exclude>**/cypher-shell/*</exclude>
-              <exclude>**/apoc/*</exclude>
-            </excludes>
+            <licenseSets>
+              <licenseSet>
+                <header>${license-text.header}</header>
+                <includes>
+                  <include>src/**/*.java</include>
+                  <include>src/**/*.js</include>
+                  <include>src/**/*.scala</include>
+                  <include>src/**/*.xml</include>
+                  <include>src/**/*.feature</include>
+                  <include>src/**/*.g4</include>
+                </includes>
+                <excludes>
+                  <exclude>**/cypher-shell/*</exclude>
+                  <exclude>**/apoc/*</exclude>
+                </excludes>
+              </licenseSet>
+            </licenseSets>
             <mapping>
               <java>SLASHSTAR_STYLE</java>
               <scala>SLASHSTAR_STYLE</scala>
