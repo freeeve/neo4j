@@ -31,10 +31,10 @@ import java.util.Arrays;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.exceptions.UnspecifiedKernelException;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageNodeCursor;
@@ -131,6 +131,17 @@ public abstract sealed class TransactionToIndexUpdateVisitor extends TxStateVisi
 
     @Override
     public void close() throws KernelException {
-        IOUtils.closeAllUnchecked(super::close, indexUpdatesState, nodeCursor);
+        AutoCloseable superClose = super::close;
+        //noinspection EmptyTryBlock
+        try (nodeCursor;
+                indexUpdatesState;
+                superClose) {
+            // superClose is closed first, any exception from other entries will be added as suppressed to the
+            // exception from superClose
+        } catch (KernelException ke) {
+            throw ke;
+        } catch (Exception e) {
+            throw UnspecifiedKernelException.unknownError(e);
+        }
     }
 }
