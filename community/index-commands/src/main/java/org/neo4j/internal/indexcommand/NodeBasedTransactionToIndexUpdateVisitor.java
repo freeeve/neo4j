@@ -26,10 +26,10 @@ import static org.neo4j.token.api.TokenConstants.ANY_RELATIONSHIP_TYPE;
 import org.eclipse.collections.api.factory.primitive.ObjectIntMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.exceptions.UnspecifiedKernelException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.RelationshipSelection;
@@ -124,7 +124,18 @@ public final class NodeBasedTransactionToIndexUpdateVisitor extends TransactionT
 
     @Override
     public void close() throws KernelException {
-        IOUtils.closeAllUnchecked(super::close, relationshipCursor);
+        // exception from super.close is the main exception and should not be wrapped as IOUtils.closeAllUnchecked does
+        AutoCloseable superClose = super::close;
+        //noinspection EmptyTryBlock
+        try (relationshipCursor;
+                superClose) {
+            // superClose is closed first, any exception from the relationshipCursor will be added as suppressed to the
+            // exception from superClose
+        } catch (KernelException ke) {
+            throw ke;
+        } catch (Exception e) {
+            throw UnspecifiedKernelException.unknownError(e);
+        }
     }
 
     private int findTypeToRemove(long id, int type) {
