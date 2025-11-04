@@ -2216,21 +2216,29 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private void assertNoConflictingConstraints(
             ConstraintDescriptor constraint, List<ConstraintDescriptor> constraintsWithSameSchema)
             throws ConflictingConstraintException, AlreadyConstrainedException {
-        List<ConstraintDescriptor> potentialConflicts;
+        List<ConstraintDescriptor> potentialConflicts = new ArrayList<>();
+        Iterator<ConstraintDescriptor> allConstraintsItr = schemaRead.constraintsGetAll();
         if (constraint.isNodeLabelExistenceConstraint()) {
-            Iterator<ConstraintDescriptor> allConstraintsItr = schemaRead.constraintsGetAll();
-            potentialConflicts = new ArrayList<>();
             while (allConstraintsItr.hasNext()) {
                 ConstraintDescriptor otherConstraint = allConstraintsItr.next();
-                if (otherConstraint.isNodeLabelExistenceConstraint()) {
-                    // Collect all other node label existence constraints as potential conflicts,
+                if (otherConstraint.graphTypeDependence() == GraphTypeDependence.DEPENDENT) {
+                    // Collect all other dependent constraints as potential conflicts,
                     // since they may conflict with each other.
                     potentialConflicts.add(otherConstraint);
                 }
             }
         } else {
             // Check all constraints with the same schema as the new constraint
-            potentialConflicts = constraintsWithSameSchema;
+            potentialConflicts.addAll(constraintsWithSameSchema);
+            if (constraint.graphTypeDependence() == GraphTypeDependence.DEPENDENT) {
+                // Check all node label existence constraints, since they may be using the same label
+                while (allConstraintsItr.hasNext()) {
+                    ConstraintDescriptor otherConstraint = allConstraintsItr.next();
+                    if (otherConstraint.isNodeLabelExistenceConstraint()) {
+                        potentialConflicts.add(otherConstraint);
+                    }
+                }
+            }
         }
         for (ConstraintDescriptor maybeConflictingConstraints : potentialConflicts) {
             // Do equal check first because ConflictingConstraint is a relaxation of equals

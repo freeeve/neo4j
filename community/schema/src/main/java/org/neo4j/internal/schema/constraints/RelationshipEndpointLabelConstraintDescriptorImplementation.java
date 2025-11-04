@@ -35,7 +35,7 @@ import org.neo4j.internal.schema.SchemaNameUtil;
 import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.string.Mask;
 
-final class RelationshipEndpointLabelConstraintDescriptorImplementation
+final class RelationshipEndpointLabelConstraintDescriptorImplementation extends ConstraintDescriptorAdaptor
         implements RelationshipEndpointLabelConstraintDescriptor {
     private final long id;
     private final int endpointLabelId;
@@ -81,118 +81,8 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation
     }
 
     @Override
-    public boolean enforcesUniqueness() {
-        return false;
-    }
-
-    @Override
-    public boolean enforcesPropertyExistence() {
-        return false;
-    }
-
-    @Override
-    public boolean enforcesPropertyType() {
-        return false;
-    }
-
-    @Override
-    public boolean isPropertyTypeConstraint() {
-        return false;
-    }
-
-    @Override
     public boolean isRelationshipEndpointLabelConstraint() {
         return true;
-    }
-
-    @Override
-    public boolean isNodeLabelExistenceConstraint() {
-        return false;
-    }
-
-    @Override
-    public boolean isNodePropertyTypeConstraint() {
-        return false;
-    }
-
-    @Override
-    public boolean isRelationshipPropertyTypeConstraint() {
-        return false;
-    }
-
-    @Override
-    public TypeConstraintDescriptor asPropertyTypeConstraint() {
-        throw conversionException(TypeConstraintDescriptor.class);
-    }
-
-    @Override
-    public boolean isPropertyExistenceConstraint() {
-        return false;
-    }
-
-    @Override
-    public boolean isRelationshipPropertyExistenceConstraint() {
-        return false;
-    }
-
-    @Override
-    public boolean isNodePropertyExistenceConstraint() {
-        return false;
-    }
-
-    @Override
-    public ExistenceConstraintDescriptor asPropertyExistenceConstraint() {
-        throw conversionException(ExistenceConstraintDescriptor.class);
-    }
-
-    @Override
-    public boolean isUniquenessConstraint() {
-        return false;
-    }
-
-    @Override
-    public boolean isNodeUniquenessConstraint() {
-        return false;
-    }
-
-    @Override
-    public boolean isRelationshipUniquenessConstraint() {
-        return false;
-    }
-
-    @Override
-    public UniquenessConstraintDescriptor asUniquenessConstraint() {
-        throw conversionException(UniquenessConstraintDescriptor.class);
-    }
-
-    @Override
-    public boolean isNodeKeyConstraint() {
-        return false;
-    }
-
-    @Override
-    public boolean isRelationshipKeyConstraint() {
-        return false;
-    }
-
-    @Override
-    public boolean isIndexBackedConstraint() {
-        return false;
-    }
-
-    @Override
-    public IndexBackedConstraintDescriptor asIndexBackedConstraint() {
-        throw conversionException(IndexBackedConstraintDescriptor.class);
-    }
-
-    @Override
-    public boolean isKeyConstraint() {
-        return false;
-    }
-
-    @Override
-    public KeyConstraintDescriptor asKeyConstraint() {
-        throw conversionException(KeyConstraintDescriptor.class);
     }
 
     @Override
@@ -219,11 +109,6 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation
     @Override
     public RelationshipEndpointLabelConstraintDescriptor asRelationshipEndpointLabelConstraint() {
         return this;
-    }
-
-    @Override
-    public NodeLabelExistenceConstraintDescriptor asNodeLabelExistenceConstraint() {
-        throw conversionException(NodeLabelExistenceConstraintDescriptor.class);
     }
 
     @Override
@@ -321,11 +206,6 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation
                 tokenNameLookup.labelGetName(endpointLabelId),
                 endpointType,
                 mask);
-    }
-
-    private IllegalStateException conversionException(Class<? extends ConstraintDescriptor> targetType) {
-        return new IllegalStateException("Cannot cast this schema to a " + targetType
-                + " because it does not match that structure: " + this + ".");
     }
 
     @Override

@@ -31,7 +31,7 @@ public class ConstraintDescriptorFactory {
     private ConstraintDescriptorFactory() {}
 
     public static ExistenceConstraintDescriptor existsForSchema(SchemaDescriptor schema, boolean isDependent) {
-        return ConstraintDescriptorImplementation.makeExistsConstraint(schema, isDependent);
+        return ExistenceConstraintDescriptorImplementation.makeExistsConstraint(schema, isDependent);
     }
 
     public static UniquenessConstraintDescriptor uniqueForSchema(SchemaDescriptor schema) {
@@ -52,7 +52,7 @@ public class ConstraintDescriptorFactory {
 
     public static TypeConstraintDescriptor typeForSchema(
             SchemaDescriptor schema, PropertyTypeSet allowedTypes, boolean isDependent) {
-        return ConstraintDescriptorImplementation.makePropertyTypeConstraint(schema, allowedTypes, isDependent);
+        return TypeConstraintDescriptorImplementation.makePropertyTypeConstraint(schema, allowedTypes, isDependent);
     }
 
     public static RelationshipEndpointLabelConstraintDescriptor relationshipEndpointLabelForSchema(
