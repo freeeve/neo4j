@@ -24,8 +24,8 @@ import java.nio.file.Path;
 import org.neo4j.io.fs.FileSystemAbstraction;
 
 public class LogFilesMatcher {
-    private final TransactionLogFilesHelper checkpointFilesHelper;
-    private final TransactionLogFilesHelper transactionLogFilesHelper;
+    private final SequentialFilesHelper checkpointFilesHelper;
+    private final SequentialFilesHelper transactionLogFilesHelper;
 
     public LogFilesMatcher(FileSystemAbstraction fileSystem, Path logFilesDirectory) {
         this.transactionLogFilesHelper = TransactionLogFilesHelper.forTransactions(fileSystem, logFilesDirectory);
@@ -33,11 +33,11 @@ public class LogFilesMatcher {
     }
 
     public Path[] getCheckpointLogFiles() throws IOException {
-        return checkpointFilesHelper.getMatchedFiles();
+        return checkpointFilesHelper.getFiles();
     }
 
     public Path[] getTransactionLogFiles() throws IOException {
-        return transactionLogFilesHelper.getMatchedFiles();
+        return transactionLogFilesHelper.getFiles();
     }
 
     public boolean hasAnyLogFiles() {
@@ -50,6 +50,6 @@ public class LogFilesMatcher {
     }
 
     public boolean isLogFile(Path file) {
-        return transactionLogFilesHelper.isLogFile(file) || checkpointFilesHelper.isLogFile(file);
+        return transactionLogFilesHelper.isSequentialFile(file) || checkpointFilesHelper.isSequentialFile(file);
     }
 }

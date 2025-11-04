@@ -82,7 +82,7 @@ class TransactionLogChannelAllocatorIT {
     @Inject
     private FileSystemAbstraction fileSystem;
 
-    private TransactionLogFilesHelper fileHelper;
+    private SequentialFilesHelper fileHelper;
     private TransactionLogChannelAllocator fileAllocator;
     private final AssertableLogProvider logProvider = new AssertableLogProvider();
     private final Config config = Config.defaults();
@@ -96,7 +96,7 @@ class TransactionLogChannelAllocatorIT {
 
     @Test
     void rawChannelDoesNotTryToAdviseOnFileContent() throws IOException {
-        Path path = fileHelper.getLogFileForVersion(1);
+        Path path = fileHelper.getFileForVersion(1);
         try (var storeChannel = fileSystem.write(path)) {
             writeLogHeader(
                     storeChannel,
@@ -123,7 +123,7 @@ class TransactionLogChannelAllocatorIT {
 
     @Test
     void defaultChannelTryToAdviseOnFileContent() throws IOException {
-        Path path = fileHelper.getLogFileForVersion(1);
+        Path path = fileHelper.getFileForVersion(1);
         try (StoreChannel storeChannel = fileSystem.write(path)) {
             writeLogHeader(
                     storeChannel,
@@ -203,7 +203,7 @@ class TransactionLogChannelAllocatorIT {
 
     @Test
     void openExistingFileDoesNotPerformAnyAllocations() throws IOException {
-        Path file = fileHelper.getLogFileForVersion(11);
+        Path file = fileHelper.getFileForVersion(11);
         fileSystem.write(file).close();
 
         TransactionLogChannelAllocator fileAllocator = createLogFileAllocator();

@@ -62,6 +62,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogVersionVisitor;
 import org.neo4j.kernel.impl.transaction.log.files.RangeLogVersionVisitor;
+import org.neo4j.kernel.impl.transaction.log.files.SequentialFilesHelper;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
@@ -77,7 +78,7 @@ import org.neo4j.util.VisibleForTesting;
 public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFile {
     private volatile DetachedCheckpointAppender checkpointAppender;
     private final DetachedLogTailScanner logTailScanner;
-    private final TransactionLogFilesHelper fileHelper;
+    private final SequentialFilesHelper fileHelper;
     private final TransactionLogChannelAllocator channelAllocator;
     private final LogFiles logFiles;
     private final TransactionLogFilesContext context;
@@ -316,17 +317,17 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
     @Override
     public Path getCurrentFile() throws IOException {
-        return fileHelper.getLogFileForVersion(getCurrentLogVersion());
+        return fileHelper.getFileForVersion(getCurrentLogVersion());
     }
 
     @Override
     public Path getLogFileForVersion(long logVersion) {
-        return fileHelper.getLogFileForVersion(logVersion);
+        return fileHelper.getFileForVersion(logVersion);
     }
 
     @Override
     public Path[] getMatchedFiles() throws IOException {
-        return fileHelper.getMatchedFiles();
+        return fileHelper.getFiles();
     }
 
     @Override
@@ -340,7 +341,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
     @Override
     public long getLogVersion(Path checkpointLogFile) {
-        return TransactionLogFilesHelper.getLogVersion(checkpointLogFile);
+        return SequentialFilesHelper.getVersion(checkpointLogFile);
     }
 
     @Override
@@ -408,8 +409,8 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
     private <V extends LogVersionVisitor> V visitLogFiles(V visitor) {
         try {
-            for (Path file : fileHelper.getMatchedFiles()) {
-                visitor.visit(file, TransactionLogFilesHelper.getLogVersion(file));
+            for (Path file : fileHelper.getFiles()) {
+                visitor.visit(file, SequentialFilesHelper.getVersion(file));
             }
             return visitor;
         } catch (IOException e) {

@@ -52,6 +52,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.SequentialFilesHelper;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -216,10 +217,10 @@ public class LogFormatSwitchRecoveryIT {
         fileSystem.deleteRecursively(databaseAndSnapshot.layout.databaseDirectory());
         fileSystem.copyRecursively(databaseAndSnapshot.snapshot, databaseAndSnapshot.layout.databaseDirectory());
         // kill all checkpoints
-        TransactionLogFilesHelper checkpointMatcher = TransactionLogFilesHelper.forCheckpoints(
+        SequentialFilesHelper checkpointMatcher = TransactionLogFilesHelper.forCheckpoints(
                 fileSystem, databaseAndSnapshot.layout.getTransactionLogsDirectory());
         fileSystem.deleteRecursively(
-                databaseAndSnapshot.layout.getTransactionLogsDirectory(), checkpointMatcher::isLogFile);
+                databaseAndSnapshot.layout.getTransactionLogsDirectory(), checkpointMatcher::isSequentialFile);
     }
 
     private void verifyRecovery(String dbName, boolean allowCorruption) throws Exception {

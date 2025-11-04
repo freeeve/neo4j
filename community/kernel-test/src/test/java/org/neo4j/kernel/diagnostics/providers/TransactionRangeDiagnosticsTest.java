@@ -47,6 +47,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v50.LogEntryDetachedCheckpoin
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
+import org.neo4j.kernel.impl.transaction.log.files.SequentialFilesHelper;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
 import org.neo4j.kernel.impl.transaction.log.files.VersionedFile;
@@ -257,11 +258,11 @@ class TransactionRangeDiagnosticsTest {
             long lowVersion, long highVersion, long headerAppendIndex) {
         return transactionLogs -> {
             when(transactionLogs.getLogRangeInfo()).thenReturn(new LogRangeInfo(lowVersion, null, highVersion, null));
-            TransactionLogFilesHelper helper = TransactionLogFilesHelper.forTransactions(fs, directory.homePath());
+            SequentialFilesHelper helper = TransactionLogFilesHelper.forTransactions(fs, directory.homePath());
             for (long version = lowVersion; version <= highVersion; version++) {
                 when(transactionLogs.hasAnyEntries(version)).thenReturn(true);
                 when(transactionLogs.versionExists(version)).thenReturn(true);
-                Path logFile = helper.getLogFileForVersion(version);
+                Path logFile = helper.getFileForVersion(version);
                 try (StoreChannel write = fs.write(logFile)) {
                     write.writeAll(ByteBuffer.wrap("Some text to mock a tx log file".getBytes()));
                 }
@@ -276,7 +277,7 @@ class TransactionRangeDiagnosticsTest {
                                 LATEST_KERNEL_VERSION));
             }
 
-            when(transactionLogs.getMatchedFiles()).thenReturn(helper.getMatchedFiles());
+            when(transactionLogs.getMatchedFiles()).thenReturn(helper.getFiles());
         };
     }
 

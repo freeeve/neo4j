@@ -98,7 +98,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     private final AtomicReference<ThreadLink> threadLinkHead = new AtomicReference<>(ThreadLink.END);
     private final Lock forceLock = new ReentrantLock();
     private final AtomicLong rotateAtSize;
-    private final TransactionLogFilesHelper fileHelper;
+    private final SequentialFilesHelper fileHelper;
     private final TransactionLogFilesContext context;
     private final LogVersionBridge readerLogVersionBridge;
     private final MemoryTracker memoryTracker;
@@ -489,12 +489,12 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
     @Override
     public long getLogVersion(Path file) {
-        return TransactionLogFilesHelper.getLogVersion(file);
+        return SequentialFilesHelper.getVersion(file);
     }
 
     @Override
     public Path getLogFileForVersion(long version) {
-        return fileHelper.getLogFileForVersion(version);
+        return fileHelper.getFileForVersion(version);
     }
 
     @Override
@@ -552,7 +552,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     @Override
     public void accept(LogVersionVisitor visitor) {
         try {
-            for (Path file : fileHelper.getMatchedFiles()) {
+            for (Path file : fileHelper.getFiles()) {
                 visitor.visit(file, getLogVersion(file));
             }
         } catch (IOException e) {
@@ -585,16 +585,16 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
     @Override
     public Path[] getMatchedFiles() throws IOException {
-        return fileHelper.getMatchedFiles();
+        return fileHelper.getFiles();
     }
 
     @Override
     public void combine(Path additionalLogFilesDirectory) throws IOException {
         long highestLogVersion = getLogRangeInfo().highestVersion();
         var logHelper = TransactionLogFilesHelper.forTransactions(fileSystem, additionalLogFilesDirectory);
-        for (Path matchedFile : logHelper.getMatchedFiles()) {
+        for (Path matchedFile : logHelper.getFiles()) {
             long newFileVersion = ++highestLogVersion;
-            Path newFileName = fileHelper.getLogFileForVersion(newFileVersion);
+            Path newFileName = fileHelper.getFileForVersion(newFileVersion);
             fileSystem.renameFile(matchedFile, newFileName);
             try (StoreChannel channel = fileSystem.write(newFileName)) {
                 LogHeader logHeader = readLogHeader(fileSystem, newFileName, memoryTracker);

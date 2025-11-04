@@ -19,8 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
-import static org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopedFilePattern.VERSION_SUFFIX;
-
 import java.io.IOException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -28,18 +26,16 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Set;
-import java.util.regex.Pattern;
 import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.kernel.impl.transaction.log.files.SequentialFilesHelper;
 
 public class LogsRepository {
     static final long BASE_VERSION = 0;
     private final FileSystemAbstraction fs;
     private final Path directory;
-    private final String baseName;
-
-    private final Pattern pattern;
+    private final SequentialFilesHelper sequentialFilesHelper;
 
     public LogsRepository(FileSystemAbstraction fs, Path directory, String baseName) {
         if (fs.fileExists(directory) && !fs.isDirectory(directory)) {
@@ -47,8 +43,7 @@ public class LogsRepository {
         }
         this.fs = fs;
         this.directory = directory;
-        this.baseName = baseName;
-        this.pattern = EnvelopedFilePattern.envelopedFilePattern(baseName);
+        sequentialFilesHelper = new SequentialFilesHelper(fs, directory, baseName);
     }
 
     public LogChannelContext<StoreChannel> openReadChannel(long version) throws IOException {
@@ -81,7 +76,7 @@ public class LogsRepository {
         var listLogFiles = listLogFiles(reverse);
         // delete files in order; from the desired end or to the desired beginning.
         for (Path path : listLogFiles) {
-            var version = getVersion(path.getFileName().toString());
+            long version = SequentialFilesHelper.getVersion(path);
             if (range.isWithinRange(version)) {
                 fs.deleteFile(path);
             } else {
@@ -93,7 +88,7 @@ public class LogsRepository {
 
     long[] logVersions(boolean reversed) throws IOException {
         return Arrays.stream(listLogFiles(reversed))
-                .mapToLong(path -> getVersion(path.getFileName().toString()))
+                .mapToLong(SequentialFilesHelper::getVersion)
                 .toArray();
     }
 
@@ -113,29 +108,18 @@ public class LogsRepository {
         return listLogFiles(false).length == 0;
     }
 
-    private Long getVersion(String fileName) {
-        var matcher = pattern.matcher(fileName);
-        if (!matcher.matches()) {
-            throw new IllegalStateException("Unexpected file with no version. Got " + fileName);
-        }
-        return Long.parseLong(matcher.group("VERSION"));
-    }
-
     private Path[] listLogFiles(boolean reverse) throws IOException {
-        Comparator<Path> comparator = (o1, o2) -> getVersion(o1.getFileName().toString())
-                .compareTo(getVersion(o2.getFileName().toString()));
+        Comparator<Path> comparator = Comparator.comparingLong(SequentialFilesHelper::getVersion);
         if (reverse) {
             comparator = comparator.reversed();
         }
-        var paths = fs.listFiles(
-                directory,
-                entry -> pattern.matcher(entry.getFileName().toString()).matches());
+        Path[] paths = sequentialFilesHelper.getFiles();
         Arrays.sort(paths, comparator);
         return paths;
     }
 
     Path pathFor(long version) {
-        return directory.resolve(baseName + VERSION_SUFFIX + version);
+        return sequentialFilesHelper.getFileForVersion(version);
     }
 
     void initialise() throws IOException {

@@ -959,7 +959,7 @@ class TransactionLogFileTest {
             throws IOException {
 
         var filesHelper = TransactionLogFilesHelper.forTransactions(fileSystem, filePath);
-        try (StoreChannel storeChannel = fileSystem.write(filesHelper.getLogFileForVersion(version))) {
+        try (StoreChannel storeChannel = fileSystem.write(filesHelper.getFileForVersion(version))) {
             LogFormat logFormat = LogFormat.fromKernelVersion(kernelVersion);
             LogHeader logHeader = logFormat.newHeader(
                     version, lastAppendIndex, LogHeader.UNKNOWN_TERM, STORE_ID, 256, BASE_TX_CHECKSUM, kernelVersion);

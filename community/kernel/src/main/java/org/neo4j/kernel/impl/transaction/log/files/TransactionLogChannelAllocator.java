@@ -50,7 +50,7 @@ import org.neo4j.logging.InternalLog;
 public class TransactionLogChannelAllocator {
     private final TransactionLogFilesContext logFilesContext;
     private final FileSystemAbstraction fileSystem;
-    private final TransactionLogFilesHelper fileHelper;
+    private final SequentialFilesHelper fileHelper;
     private final LogHeaderCache logHeaderCache;
     private final ChannelNativeAccessor nativeChannelAccessor;
     private final DatabaseTracer databaseTracer;
@@ -58,7 +58,7 @@ public class TransactionLogChannelAllocator {
 
     public TransactionLogChannelAllocator(
             TransactionLogFilesContext logFilesContext,
-            TransactionLogFilesHelper fileHelper,
+            SequentialFilesHelper fileHelper,
             LogHeaderCache logHeaderCache,
             AtomicLong rotationThreshold) {
         this.logFilesContext = logFilesContext;
@@ -176,7 +176,7 @@ public class TransactionLogChannelAllocator {
     }
 
     public PhysicalLogVersionedStoreChannel openLogChannel(long version, boolean raw) throws IOException {
-        Path fileToOpen = fileHelper.getLogFileForVersion(version);
+        Path fileToOpen = fileHelper.getFileForVersion(version);
 
         if (!fileSystem.fileExists(fileToOpen)) {
             throw new NoSuchFileException(fileToOpen.toAbsolutePath().toString());
@@ -223,7 +223,7 @@ public class TransactionLogChannelAllocator {
     }
 
     public LogHeader readLogHeaderForVersion(long version) throws IOException {
-        Path fileToOpen = fileHelper.getLogFileForVersion(version);
+        Path fileToOpen = fileHelper.getFileForVersion(version);
 
         if (!fileSystem.fileExists(fileToOpen)) {
             throw new NoSuchFileException(fileToOpen.toAbsolutePath().toString());
@@ -235,7 +235,7 @@ public class TransactionLogChannelAllocator {
     }
 
     private AllocatedFile allocateFile(long version) throws IOException {
-        Path file = fileHelper.getLogFileForVersion(version);
+        Path file = fileHelper.getFileForVersion(version);
         boolean fileExist = fileSystem.fileExists(file);
         StoreChannel storeChannel = fileSystem.write(file);
         if (fileExist) {
@@ -247,7 +247,7 @@ public class TransactionLogChannelAllocator {
     }
 
     private AllocatedFile allocateExistingFile(long version) throws IOException {
-        Path file = fileHelper.getLogFileForVersion(version);
+        Path file = fileHelper.getFileForVersion(version);
         boolean fileExist = fileSystem.fileExists(file);
         if (!fileExist) {
             throw new NoSuchFileException(file.toAbsolutePath().toString());

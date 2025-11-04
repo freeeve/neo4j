@@ -20,9 +20,9 @@
 package org.neo4j.kernel.impl.transaction.log.files;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 import static org.neo4j.kernel.KernelVersionProviders.fixed;
@@ -231,9 +231,9 @@ class TransactionLogFilesTest {
         final Path file = Path.of("wrong");
 
         // when
-        RuntimeException exception =
-                assertThrows(RuntimeException.class, () -> logFiles.getLogFile().getLogVersion(file));
-        assertEquals("Invalid log file '" + file.getFileName() + "'", exception.getMessage());
+        assertThatCode(() -> logFiles.getLogFile().getLogVersion(file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid sequential file 'wrong'");
     }
 
     @Test
@@ -243,7 +243,9 @@ class TransactionLogFilesTest {
         final Path file = Path.of(getVersionedLogFileName("aa", "A"));
 
         // when
-        assertThrows(NumberFormatException.class, () -> logFiles.getLogFile().getLogVersion(file));
+        assertThatCode(() -> logFiles.getLogFile().getLogVersion(file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("does not have a valid version suffix");
     }
 
     @Test
