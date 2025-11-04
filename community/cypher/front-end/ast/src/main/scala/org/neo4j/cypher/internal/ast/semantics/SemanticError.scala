@@ -667,6 +667,18 @@ object SemanticError {
     )
   }
 
+  def invalidEntityReference(entity: String, pos: InputPosition, msg: String): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I58)
+        .atPosition(pos.offset, pos.line, pos.column)
+        .withParam(GqlParams.StringParam.expr, entity)
+        .build())
+      .build()
+
+    new SemanticError(gql, msg, pos)
+  }
+
   def invalidEntityReference(entity: String, clause: String, pos: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(pos.offset, pos.line, pos.column)
@@ -2064,29 +2076,6 @@ object SemanticError {
     "A pattern expression should only be used in order to test the existence of a pattern. " +
       "It can no longer be used inside the function size(), an alternative is to replace size() with COUNT {}."
 
-  def duplicateVariableDefinitionUnknown(
-    clause: String,
-    varName: String,
-    position: InputPosition
-  ): SemanticError =
-    duplicateVariableDefinition(
-      clause,
-      s"The variable '$varName' is referencing an entity that is created in the same $clause clause which is not allowed. " + "Please only reference variables created in earlier clauses.",
-      position
-    )
-
-  def duplicateVariableDefinitionKnown(
-    clause: String,
-    varName: String,
-    typ: String,
-    position: InputPosition
-  ): SemanticError =
-    duplicateVariableDefinition(
-      clause,
-      s"The $typ variable '$varName' is referencing a $typ that is created in the same $clause clause which is not allowed. " + "Please only reference variables created in earlier clauses.",
-      position
-    )
-
   def labelIdentifyingAndImplied(labels: List[String], position: InputPosition): SemanticError = SemanticError(
     ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
@@ -2151,17 +2140,6 @@ object SemanticError {
       position
     )
   }
-
-  private def duplicateVariableDefinition(
-    clause: String,
-    legacyMessage: String,
-    position: InputPosition
-  ): SemanticError =
-    SemanticError(
-      GqlHelper.getGql42001_42N68(clause, position.offset, position.line, position.column),
-      legacyMessage,
-      position
-    )
 }
 
 final case class FeatureError(

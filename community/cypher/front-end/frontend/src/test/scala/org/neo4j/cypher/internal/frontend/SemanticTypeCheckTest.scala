@@ -332,13 +332,17 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
     for (query <- queries.disallowedNode) {
       withClue(s"Failing query: $query") {
         runPipeline(cypherVersion, query).map(e => e.msg) should
-          contain(MessageUtilProvider.createSelfReferenceError("a", "Node", clause))
+          contain(
+            s"Creating an entity (a) and referencing that entity in a property definition in the same $clause is not allowed. Only reference variables created in earlier clauses."
+          )
       }
     }
     for (query <- queries.disallowedRel) {
       withClue(s"Failing query: $query") {
         runPipeline(cypherVersion, query).map(e => e.msg) should
-          contain(MessageUtilProvider.createSelfReferenceError("a", "Relationship", clause))
+          contain(
+            s"Creating an entity (a) and referencing that entity in a property definition in the same $clause is not allowed. Only reference variables created in earlier clauses."
+          )
       }
     }
 

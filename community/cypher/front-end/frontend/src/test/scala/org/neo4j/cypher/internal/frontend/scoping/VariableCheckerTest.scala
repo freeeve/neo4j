@@ -196,30 +196,9 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `x` not defined.")
   }
 
-  test("""CREATE (n {p: n.p})
-         |RETURN n""".stripMargin) {
-    error("42N62", "Variable `n` not defined.")
-  }
-
-  test("""CREATE (n {p: n.q})
-         |RETURN n""".stripMargin) {
-    error("42N62", "Variable `n` not defined.", CypherVersion.Cypher5)
-  }
-
-  test("""CREATE (a:A {p: a.q})-[r:R {p: a.q}]->(b:B {p: a.q})
-         |RETURN a""".stripMargin) {
-    error("42N62", "Variable `a` not defined.", CypherVersion.Cypher5)
-  }
-
   test("""CREATE (a:A), (a)-[r:R {p: a.t}]->(b:B {p: a.q})
          |RETURN a""".stripMargin) {
     passes(CypherVersion.Cypher5)
-  }
-
-  test("""CREATE (a:A), (a)-[r:R {p: a.q}]->(b:B {p: a.q})
-         |RETURN a""".stripMargin) {
-    // Should fail with 42I58 in the future
-    error("42N62", "Variable `a` not defined.", CypherVersion.Cypher25)
   }
 
   test("""CREATE (a:A {p: 1})-[r:R {p: 1}]->(b:B {p: 1}), (c:C)-[s:S {p: a.p+b.p+r.p}]->(d:D)
@@ -227,29 +206,13 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes(CypherVersion.Cypher5)
   }
 
-  test("""CREATE (a:A {p: 2})-[r:R {p: 1}]->(b:B {p: 1}), (c:C)-[s:S {p: a.p+b.p+r.p}]->(d:D)
-         |RETURN a""".stripMargin) {
-    // Should fail with 42I58 in the future
-    error("42N62", "Variable `a` not defined.", CypherVersion.Cypher25)
-  }
-
   test("""MATCH (n {p: n.p})
          |RETURN n""".stripMargin) {
     passes()
   }
 
-  test("""CREATE (n {p: 1})-[:R]->({p: n.p})
-         |RETURN n""".stripMargin) {
-    error("42N62", "Variable `n` not defined.")
-  }
-
   test("""SHOW USERS YIELD user ORDER BY bar ASCENDING""".stripMargin) {
     error("42N62", "Variable `bar` not defined.")
-  }
-
-  test("""MATCH (n {p: 1})-[:R]->({p: n.p})
-         |RETURN n""".stripMargin) {
-    passes()
   }
 
   test("""MATCH (n {p: 1})-[r:R WHERE r.p > 1]->()
@@ -257,37 +220,13 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
-  test("""CREATE (n {p: n.p})-[:R]->({p: 1})
+  test("""MATCH (n {p: 1})-[:R]->({p: n.p})
          |RETURN n""".stripMargin) {
-    error("42N62", "Variable `n` not defined.")
-  }
-
-  test("""CREATE (n {p: 1}), ({p: n.p})
-         |RETURN n""".stripMargin) {
-    error("42N62", "Variable `n` not defined.")
-  }
-
-  test("""CREATE (n)-[r:R {p: 1}]->({p: r.p})
-         |RETURN n""".stripMargin) {
-    error("42N62", "Variable `r` not defined.")
-  }
-
-  test("""CREATE (n)-[r:R {p: 1}]->(), ({p: r.p})
-         |RETURN n""".stripMargin) {
-    error("42N62", "Variable `r` not defined.")
-  }
-
-  test("""CREATE p = (n)-[r:R {p: 1}]->(), ({p: length(p)})
-         |RETURN n""".stripMargin) {
-    error("42N62", "Variable `p` not defined.")
+    passes()
   }
 
   test("""CREATE (n:$all("A" + x) {p: 1})""".stripMargin) {
     error("42N62", "Variable `x` not defined.")
-  }
-
-  test("""CREATE (n {p: 1})-[:R]->(:$all("A" + n.p) {p: 1})""".stripMargin) {
-    error("42N62", "Variable `n` not defined.")
   }
 
   test("""RETURN 1 AS b
@@ -1210,11 +1149,6 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |}
          |RETURN count(*) as count""".stripMargin) {
     passes()
-  }
-
-  test("""CREATE (a {prop: 1}), ({prop: a.prop})""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42N62", "Variable `a` not defined.")
   }
 
   test("""MATCH (a)

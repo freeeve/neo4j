@@ -204,7 +204,7 @@ object SelfReferenceCheckWithinPatternPart extends VariableReferenceCheck {
     semanticTable: SemanticTable
   ): Seq[SemanticError] = {
     findSelfReferenceVariablesWithinPatternParts(pattern, semanticTable)
-      .map(createError(clause, _, semanticTable))
+      .map(createError(clause, _))
       .toSeq
   }
 
@@ -219,22 +219,9 @@ object SelfReferenceCheckWithinPatternPart extends VariableReferenceCheck {
 
   private def createError(
     clause: UpdateClause,
-    variable: LogicalVariable,
-    semanticTable: SemanticTable
+    variable: LogicalVariable
   ): SemanticError = {
-    semanticTable.typeFor(variable).typeInfo.map(_.toShortString) match {
-      case Some(typ) => SemanticError.duplicateVariableDefinitionKnown(
-          clause.name,
-          variable.name,
-          typ,
-          clause.position
-        )
-      case None => SemanticError.duplicateVariableDefinitionUnknown(
-          clause.name,
-          variable.name,
-          clause.position
-        )
-    }
+    SemanticError.invalidEntityReference(variable.name, clause.name, variable.position)
   }
 }
 

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
@@ -79,16 +80,6 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
   }
 
   private val checks: Seq[PartialFunction[WorkingScope, Seq[SemanticError]]] = Seq(
-    // variable not defined
-    {
-      case ExpressionScope(variable: LogicalVariable, incoming, _, _, _)
-        if !(incoming.constants contains variable) =>
-        Seq(SemanticError.variableNotDefined(variable.name, variable.position))
-      case StatementScope(ScopeClauseSubqueryCall(_, false, imports, _, _), incoming, _, _, _, _, _)
-        if imports.nonEmpty =>
-        imports.filter(v => !incoming.allSymbols.exists(_.name == v.name))
-          .flatMap(v => Seq(SemanticError.variableNotDefined(v.name, v.position)))
-    },
     // variable already declared
     {
       case StatementScope(_: CreateOrInsert | _: Merge, _, ref, declared, _, _, _) if declared.isEmpty =>
@@ -234,27 +225,49 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
   case object SubqueryExpression extends Opinionated
   case object NextStatement extends Opinionated
 
-  case class Acc(scopeContext: ReturnContext, errors: Seq[SemanticError]) {
+  sealed trait VariableContext
+  case object Default extends VariableContext
+  case class UpdatingPattern(topology: Set[LogicalVariable], ast: Clause) extends VariableContext
+
+  case class Acc(scopeContext: ReturnContext, variableContext: VariableContext, errors: Seq[SemanticError]) {
     def apply(errors: Seq[SemanticError]): Acc = copy(errors = this.errors ++ errors)
     def apply(errors: SemanticError): Acc = copy(errors = this.errors :+ errors)
-    def inContext(context: ReturnContext): Acc = copy(scopeContext = context)
+    def inReturnContext(context: ReturnContext): Acc = copy(scopeContext = context)
+    def inVariableContext(context: VariableContext): Acc = copy(variableContext = context)
     def resetToIncoming(incoming: Acc): Acc = copy(scopeContext = incoming.scopeContext)
   }
 
   case object Acc {
-    def init: Acc = Acc(Unopinionated, Seq.empty)
+    def init: Acc = Acc(Unopinionated, Default, Seq.empty)
   }
 
   private val checksUsingAcc: Seq[PartialFunction[(Acc, WorkingScope), Acc]] = Seq(
     // invalid use of RETURN *
     {
-      case (acc @ Acc(SubqueryExpression, _), StatementScope(Return.WithStar(r), in, _, _, _, _, _))
+      case (acc @ Acc(SubqueryExpression, _, _), StatementScope(Return.WithStar(r), in, _, _, _, _, _))
         if in.constantsAndVariables.isEmpty => acc(SemanticError.invalidUseOfReturnStar(r.position))
-      case (acc @ Acc(_: Opinionated, _), StatementScope(r @ Return(_, ri, _, _, _, _, _, _), in, _, _, _, _, _)) =>
+      case (acc @ Acc(_: Opinionated, _, _), StatementScope(r @ Return(_, ri, _, _, _, _, _, _), in, _, _, _, _, _)) =>
         acc(getAliasesShadowingConstants(ri.items, in, r.position))
       case (acc, StatementScope(Return.WithStar(r), in, _, _, _, _, _))
         if in.isVariablesEmpty =>
         acc(SemanticError.invalidUseOfReturnStar(r.position))
+    },
+    // variable not defined
+    {
+      case (acc @ Acc(_, UpdatingPattern(topo, c), _), ExpressionScope(variable: LogicalVariable, incoming, ref, _, _))
+        if !(incoming.constants contains variable) =>
+        if (topo contains variable) {
+          acc(SemanticError.invalidEntityReference(variable.name, c.name, variable.position))
+        } else {
+          acc(SemanticError.variableNotDefined(variable.name, variable.position))
+        }
+      case (acc, ExpressionScope(variable: LogicalVariable, incoming, _, _, _))
+        if !(incoming.constants contains variable) =>
+        acc(SemanticError.variableNotDefined(variable.name, variable.position))
+      case (acc, StatementScope(ScopeClauseSubqueryCall(_, false, imports, _, _), incoming, _, _, _, _, _))
+        if imports.nonEmpty =>
+        acc(imports.filter(v => !incoming.allSymbols.exists(_.name == v.name))
+          .flatMap(v => Seq(SemanticError.variableNotDefined(v.name, v.position))))
     }
   )
 
@@ -269,11 +282,21 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
 
   private def collectSemanticErrorsWithAcc(workingScope: WorkingScope) = workingScope.folder.treeFold(Acc.init) {
     case ExpressionScope(_: FullSubqueryExpression, _, _, _, _) => acc =>
-        TraverseChildren(acc.inContext(SubqueryExpression))
+        TraverseChildren(acc.inReturnContext(SubqueryExpression))
     case StatementScope(_: NextStatement, _, _, _, _, _, children) => acc =>
-        val trunkAcc = folderWorkingScopes(children.dropRight(1), acc.inContext(NextStatement))
+        val trunkAcc = folderWorkingScopes(children.dropRight(1), acc.inReturnContext(NextStatement))
         val tailAcc = folderWorkingScopes(children.tail, acc)
-        SkipChildren(Acc(tailAcc.scopeContext, trunkAcc.errors ++ tailAcc.errors))
+        SkipChildren(Acc(tailAcc.scopeContext, tailAcc.variableContext, trunkAcc.errors ++ tailAcc.errors))
+    case StatementScope(c: CreateOrInsert, _, _, declared, _, _, _) => acc =>
+        TraverseChildrenNewAccForSiblings(
+          acc.inVariableContext(UpdatingPattern(declared.variables.toSet, c)),
+          _acc => _acc.inVariableContext(acc.variableContext)
+        )
+    case StatementScope(c: Merge, _, _, declared, _, _, _) => acc =>
+        TraverseChildrenNewAccForSiblings(
+          acc.inVariableContext(UpdatingPattern(declared.variables.toSet, c)),
+          _acc => _acc.inVariableContext(acc.variableContext)
+        )
     case ws: WorkingScope => _folderWorkingScopes(ws)
   }
 

@@ -246,6 +246,11 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     })
   }
 
+  def errorAllVersions(
+    expectedGqlStatusCode: String,
+    msgContains: String
+  ): Unit = error(expectedGqlStatusCode, msgContains, versions = CypherVersion.values())
+
   def error(
     expectedGqlStatusCode: String,
     msgContains: String,
