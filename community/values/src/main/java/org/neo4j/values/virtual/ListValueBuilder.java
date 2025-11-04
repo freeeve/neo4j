@@ -66,10 +66,10 @@ public abstract class ListValueBuilder {
     protected long estimatedHeapSize;
     protected ValueRepresentation valueRepresentation;
 
-    public final void add(AnyValue value) {
+    public final ListValueBuilder add(AnyValue value) {
         estimatedHeapSize += value.estimatedHeapUsage();
         valueRepresentation = valueRepresentation.coerce(value.valueRepresentation());
-        internalAdd(value);
+        return internalAdd(value);
     }
 
     public final void add(AnyValue value, HeapEstimatorCache heapEstimatorCache) {
@@ -80,7 +80,7 @@ public abstract class ListValueBuilder {
 
     public abstract ListValue build();
 
-    protected abstract void internalAdd(AnyValue value);
+    protected abstract ListValueBuilder internalAdd(AnyValue value);
 
     private static class FixedSizeListValueBuilder extends ListValueBuilder {
         private final AnyValue[] values;
@@ -97,8 +97,9 @@ public abstract class ListValueBuilder {
         }
 
         @Override
-        public void internalAdd(AnyValue value) {
+        public ListValueBuilder internalAdd(AnyValue value) {
             values[index++] = value;
+            return this;
         }
     }
 
@@ -124,8 +125,9 @@ public abstract class ListValueBuilder {
         }
 
         @Override
-        public void internalAdd(AnyValue value) {
+        public ListValueBuilder internalAdd(AnyValue value) {
             values.add(value);
+            return this;
         }
     }
 

@@ -77,14 +77,13 @@ class ExtremeValuesLibrary {
     };
     static final Value[] EXTREME_CHAR =
             new Value[] {Values.charValue(Character.MAX_VALUE), Values.charValue(Character.MIN_VALUE)};
-    static final Value[] EXTREME_STRING =
-            new Value[] {Values.stringValue(MAX_CODE_POINT_STRING), Values.stringValue("")};
+    static final Value[] EXTREME_STRING = new Value[] {Values.utf8Value(MAX_CODE_POINT_STRING), Values.utf8Value("")};
     static final Value[] EXTREME_STRING_ALPHANUMERIC =
-            new Value[] {Values.stringValue(MAX_ALPHA_NUMERIC_CODE_POINT_STRING), Values.stringValue("")};
+            new Value[] {Values.utf8Value(MAX_ALPHA_NUMERIC_CODE_POINT_STRING), Values.utf8Value("")};
     static final Value[] EXTREME_STRING_ASCII =
-            new Value[] {Values.stringValue(MAX_ASCII_CODE_POINT_STRING), Values.stringValue("")};
+            new Value[] {Values.utf8Value(MAX_ASCII_CODE_POINT_STRING), Values.utf8Value("")};
     static final Value[] EXTREME_STRING_BMP =
-            new Value[] {Values.stringValue(MAX_BMP_CODE_POINT_STRING), Values.stringValue("")};
+            new Value[] {Values.utf8Value(MAX_BMP_CODE_POINT_STRING), Values.utf8Value("")};
     static final Value[] EXTREME_LOCAL_DATE_TIME =
             new Value[] {LocalDateTimeValue.MIN_VALUE, LocalDateTimeValue.MAX_VALUE};
     static final Value[] EXTREME_DATE = new Value[] {DateValue.MIN_VALUE, DateValue.MAX_VALUE};

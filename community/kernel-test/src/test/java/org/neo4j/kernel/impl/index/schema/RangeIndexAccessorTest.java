@@ -48,6 +48,7 @@ import org.eclipse.collections.impl.factory.Sets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -69,6 +70,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.RandomValues;
@@ -234,6 +236,16 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
             expectIndexOrder(allValues, reader, IndexOrder.ASCENDING, exists);
             expectIndexOrder(allValues, reader, IndexOrder.DESCENDING, exists);
         }
+    }
+
+    // This is a particular instance of `shouldSeeAllEntriesBetweenSpecificValues` that previously failed.
+    // We keep it here with a fixed seed and slimmer value type candidates to ensure we don't regress.
+    @RandomSupport.Seed(1758870311927L)
+    @ParameterizedTest
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void regressionTestWithSeed(boolean fromBeginning, boolean toEnd) throws Exception {
+        var valueTypeCandidates = new ValueType[] {ValueType.STRING_ARRAY};
+        shouldSeeAllEntriesBetweenSpecificValues(fromBeginning, toEnd, valueTypeCandidates);
     }
 
     @Test

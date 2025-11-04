@@ -36,7 +36,7 @@ public class ListSerializationTest {
                 "[..., 876.111, 567890.345678, 1.11, ...]",
                 ValueRepresentation.serializeList(mySeq, new DoubleValue(567890.345678)));
         String[] shortValues = {"abcd", "12-34"};
-        var shortSeq = new StringArray(shortValues);
+        var shortSeq = Values.stringArray(shortValues);
         assertEquals(
                 "['abcd', '12-34']",
                 ValueRepresentation.serializeList(shortSeq, new StringWrappingStringValue("abcd")));

@@ -241,6 +241,20 @@ public final class PrimitiveArrayValues {
         return true;
     }
 
+    public static boolean equals(char[] a, StringValue[] b) {
+        if (a.length != b.length) {
+            return false;
+        }
+
+        for (int i = 0; i < a.length; i++) {
+            StringValue str = b[i];
+            if (str == null || str.length() != 1 || str.stringValue().charAt(0) != a[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // NON-TYPED COMPARISON
 
     public static boolean equalsObject(byte[] a, Object b) {

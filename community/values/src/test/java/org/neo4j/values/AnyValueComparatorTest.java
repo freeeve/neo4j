@@ -65,6 +65,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.PointValue;
+import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
@@ -76,6 +77,12 @@ import org.neo4j.values.virtual.VirtualValueTestUtil;
 class AnyValueComparatorTest {
     private final AnyValueComparator comparator =
             new AnyValueComparator(Values.COMPARATOR, VirtualValueGroup::compareTo);
+
+    private byte[] utf8Str1 = {
+        -17, -80, -72, -16, -91, -107, -81, -16, -105, -73, -83, -16, -93, -89, -86, -16, -95, -103, -87, -16, -82, -86,
+        -101, -16, -91, -128, -109
+    };
+    byte[] utf8Str2 = {-12, -113, -65, -65};
 
     private final Object[] objs = new Object[] {
         // MAP LIKE TYPES
@@ -257,6 +264,27 @@ class AnyValueComparatorTest {
                 }
             }
         }
+    }
+
+    // NOTE: These values are not added to the `Object[] objs`, since
+    // there is inconsistent ordering between UTF8StringValue and CharValue.
+    // This is a different issue, that was decided not to fix in the past.
+    @Test
+    void shouldOrderUTF8StringValuesCorrectlyAmongstThemselves() {
+        Value val1 = Values.utf8Value(utf8Str1);
+        Value val2 = Values.utf8Value(utf8Str2);
+
+        int cmpVal = signum(compare(comparator, val1, val2));
+        assertThat(cmpVal).isEqualTo(-1);
+    }
+
+    @Test
+    void shouldOrderUTF8StringArrayValuesCorrectlyAmongstThemselves() {
+        Value val1 = Values.stringArray(Values.utf8Value(utf8Str1));
+        Value val2 = Values.stringArray(Values.utf8Value(utf8Str2));
+
+        int cmpVal = signum(compare(comparator, val1, val2));
+        assertThat(cmpVal).isEqualTo(-1);
     }
 
     @Test

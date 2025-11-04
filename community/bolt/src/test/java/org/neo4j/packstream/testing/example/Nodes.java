@@ -48,6 +48,8 @@ public final class Nodes {
             nodeValue(1003L, "n3", stringArray("Person"), VirtualValues.map(new String[] {"name"}, new AnyValue[] {
                 stringValue("Carol")
             }));
-    public static final NodeValue DAVE = nodeValue(
-            1004L, "n4", stringArray(), VirtualValues.map(new String[] {"name"}, new AnyValue[] {stringValue("Dave")}));
+    public static final NodeValue DAVE =
+            nodeValue(1004L, "n4", Values.EMPTY_TEXT_ARRAY, VirtualValues.map(new String[] {"name"}, new AnyValue[] {
+                stringValue("Dave")
+            }));
 }

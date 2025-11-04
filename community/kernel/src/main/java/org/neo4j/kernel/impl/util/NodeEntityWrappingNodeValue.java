@@ -67,7 +67,7 @@ public class NodeEntityWrappingNodeValue extends NodeValue implements WrappingEn
                 }
                 // If it isn't a transient error then the node was deleted in the current transaction and we should
                 // write an 'empty' node.
-                l = Values.stringArray();
+                l = Values.EMPTY_TEXT_ARRAY;
                 p = VirtualValues.EMPTY_MAP;
                 isDeleted = true;
             }

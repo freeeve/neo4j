@@ -28,6 +28,7 @@ import static org.neo4j.values.storable.DurationValue.duration;
 import static org.neo4j.values.storable.LocalDateTimeValue.localDateTime;
 import static org.neo4j.values.storable.LocalTimeValue.localTime;
 import static org.neo4j.values.storable.TimeValue.time;
+import static org.neo4j.values.storable.Values.EMPTY_TEXT_ARRAY;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.storable.Values.booleanArray;
 import static org.neo4j.values.storable.Values.booleanValue;
@@ -77,9 +78,9 @@ import org.neo4j.values.virtual.VirtualRelationshipValue;
 
 class ValueMapperTest {
     private static Stream<AnyValue> parameters() {
-        NodeValue node1 = node(1, stringArray(), EMPTY_MAP);
-        NodeValue node2 = node(2, stringArray(), EMPTY_MAP);
-        NodeValue node3 = node(3, stringArray(), EMPTY_MAP);
+        NodeValue node1 = node(1, EMPTY_TEXT_ARRAY, EMPTY_MAP);
+        NodeValue node2 = node(2, EMPTY_TEXT_ARRAY, EMPTY_MAP);
+        NodeValue node3 = node(3, EMPTY_TEXT_ARRAY, EMPTY_MAP);
         RelationshipValue relationship1 = rel(100, node1, node2, stringValue("ONE"), EMPTY_MAP);
         RelationshipValue relationship2 = rel(200, node2, node2, stringValue("TWO"), EMPTY_MAP);
         return Stream.of(

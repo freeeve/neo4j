@@ -1251,7 +1251,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
         if (value instanceof TextArray stringArray) {
             int sumOfStrings = 0;
             for (int i = 0; i < stringArray.intSize(); i++) {
-                String string = stringArray.stringValue(i);
+                String string = stringArray.stringValue(i).stringValue();
                 sumOfStrings += 2 + string.getBytes(UTF_8).length;
             }
             int totalTextArraySize = normalArrayOverhead + sumOfStrings;

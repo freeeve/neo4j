@@ -21,7 +21,6 @@ package org.neo4j.values.storable;
 
 import static java.lang.String.format;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
-import static org.neo4j.memory.HeapEstimator.sizeOf;
 import static org.neo4j.memory.HeapEstimator.sizeOfObjectArray;
 import static org.neo4j.values.storable.NoValue.NO_VALUE;
 import static org.neo4j.values.utils.ValueMath.HASH_CONSTANT;
@@ -35,9 +34,9 @@ import org.neo4j.values.ValueMapper;
 public class StringArray extends TextArray {
     private static final long SHALLOW_SIZE = shallowSizeOfInstance(StringArray.class);
 
-    private final String[] value;
+    private final StringValue[] value;
 
-    StringArray(String[] value) {
+    StringArray(StringValue[] value) {
         assert value != null;
         this.value = value;
     }
@@ -48,7 +47,7 @@ public class StringArray extends TextArray {
     }
 
     @Override
-    public String stringValue(int offset) {
+    public StringValue stringValue(int offset) {
         return value[offset];
     }
 
@@ -72,18 +71,15 @@ public class StringArray extends TextArray {
     }
 
     @Override
-    public boolean equals(String[] x) {
+    public boolean equals(StringValue[] x) {
         return Arrays.equals(value, x);
     }
 
     @Override
     protected int computeHashToMemoize() {
         int result = 1;
-        for (String element : value) {
-            result = HASH_CONSTANT * result
-                    + (element == null
-                            ? NO_VALUE.hashCode()
-                            : Values.stringValue(element).hashCode());
+        for (StringValue element : value) {
+            result = HASH_CONSTANT * result + (element == null ? NO_VALUE.hashCode() : element.hashCode());
         }
         return result;
     }
@@ -91,8 +87,8 @@ public class StringArray extends TextArray {
     @Override
     public long updateHash(HashFunction hashFunction, long hash) {
         hash = hashFunction.update(hash, value.length);
-        for (String s : value) {
-            hash = StringWrappingStringValue.updateHash(hashFunction, hash, s);
+        for (StringValue s : value) {
+            hash = StringWrappingStringValue.updateHash(hashFunction, hash, s.stringValue());
         }
         return hash;
     }
@@ -104,13 +100,17 @@ public class StringArray extends TextArray {
 
     @Override
     public String[] asObjectCopy() {
-        return Arrays.copyOf(value, value.length);
+        String[] copied = new String[value.length];
+        for (int i = 0; i < value.length; i++) {
+            copied[i] = value[i] == null ? null : value[i].stringValue();
+        }
+        return copied;
     }
 
     @Override
     @Deprecated
     public String[] asObject() {
-        return value;
+        return asObjectCopy();
     }
 
     @Override
@@ -129,7 +129,8 @@ public class StringArray extends TextArray {
 
     @Override
     public Value value(int offset) {
-        return Values.stringOrNoValue(stringValue(offset));
+        var stringValue = stringValue(offset);
+        return stringValue == null ? NO_VALUE : stringValue;
     }
 
     @Override
@@ -139,7 +140,12 @@ public class StringArray extends TextArray {
 
     @Override
     public String toString() {
-        return format("%s%s", getTypeName(), Arrays.toString(value));
+        return format(
+                "%s%s",
+                getTypeName(),
+                Arrays.toString(Arrays.stream(value)
+                        .map(s -> s == null ? "null" : s.stringValue())
+                        .toArray()));
     }
 
     @Override
@@ -151,7 +157,9 @@ public class StringArray extends TextArray {
     public long estimatedHeapUsage() {
         int length = value.length;
         return SHALLOW_SIZE
-                + (length == 0 ? 0 : sizeOfObjectArray(sizeOf(value[0]), length)); // Use first element as probe
+                + (length == 0
+                        ? 0
+                        : sizeOfObjectArray(value[0].estimatedHeapUsage(), length)); // Use first element as probe
     }
 
     @Override
@@ -162,17 +170,25 @@ public class StringArray extends TextArray {
     @Override
     public ArrayValue copyWithAppended(AnyValue added) {
         assert hasCompatibleType(added) : "Incompatible types";
-        String[] newArray = Arrays.copyOf(value, value.length + 1);
-        newArray[value.length] = ((TextValue) added).stringValue();
+        StringValue[] newArray = Arrays.copyOf(value, value.length + 1);
+        switch (added) {
+            case StringValue sv -> newArray[value.length] = sv;
+            case TextValue tv -> newArray[value.length] = Values.stringValue(tv.stringValue());
+            default -> throw new IllegalStateException("Unreachable");
+        }
         return new StringArray(newArray);
     }
 
     @Override
     public ArrayValue copyWithPrepended(AnyValue prepended) {
         assert hasCompatibleType(prepended) : "Incompatible types";
-        String[] newArray = new String[value.length + 1];
+        StringValue[] newArray = new StringValue[value.length + 1];
         System.arraycopy(value, 0, newArray, 1, value.length);
-        newArray[0] = ((TextValue) prepended).stringValue();
+        switch (prepended) {
+            case StringValue sv -> newArray[0] = sv;
+            case TextValue tv -> newArray[0] = Values.stringValue(tv.stringValue());
+            default -> throw new IllegalStateException("Unreachable");
+        }
         return new StringArray(newArray);
     }
 }

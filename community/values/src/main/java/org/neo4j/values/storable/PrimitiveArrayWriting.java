@@ -97,6 +97,14 @@ public final class PrimitiveArrayWriting {
         writer.endArray();
     }
 
+    public static <E extends Exception> void writeTo(ValueWriter<E> writer, StringValue[] values) throws E {
+        writer.beginArray(values.length, ValueWriter.ArrayType.STRING);
+        for (StringValue x : values) {
+            x.writeTo(writer);
+        }
+        writer.endArray();
+    }
+
     public static <E extends Exception> void writeTo(ValueWriter<E> writer, Point[] values) throws E {
         writer.beginArray(values.length, ValueWriter.ArrayType.POINT);
         for (Point x : values) {

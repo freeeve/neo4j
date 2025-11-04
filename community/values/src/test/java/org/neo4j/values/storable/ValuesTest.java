@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.values.storable.DurationValue.duration;
 import static org.neo4j.values.storable.LocalTimeValue.localTime;
 import static org.neo4j.values.storable.TimeValue.time;
+import static org.neo4j.values.storable.Values.EMPTY_TEXT_ARRAY;
 import static org.neo4j.values.storable.Values.booleanArray;
 import static org.neo4j.values.storable.Values.booleanValue;
 import static org.neo4j.values.storable.Values.byteArray;
@@ -92,7 +93,7 @@ class ValuesTest {
         assertEqual(floatArray(new float[] {}), floatArray(new float[] {}));
         assertEqual(doubleArray(new double[] {}), doubleArray(new double[] {}));
         assertEqual(charArray(new char[] {}), charArray(new char[] {}));
-        assertEqual(stringArray(), stringArray());
+        assertEqual(EMPTY_TEXT_ARRAY, EMPTY_TEXT_ARRAY);
 
         assertEqual(booleanArray(new boolean[] {true}), booleanArray(new boolean[] {true}));
         assertEqual(byteArray(new byte[] {1}), byteArray(new byte[] {1}));

@@ -57,7 +57,7 @@ public abstract class NumberArray extends ArrayValue implements VectorCandidate 
     }
 
     @Override
-    public final boolean equals(String[] x) {
+    public final boolean equals(StringValue[] x) {
         return false;
     }
 

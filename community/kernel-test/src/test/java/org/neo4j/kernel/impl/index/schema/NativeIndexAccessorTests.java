@@ -411,6 +411,11 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         var valueTypeCandidates = Arrays.stream(valueCreatorUtil.supportedTypes())
                 .filter(type -> type != ValueType.STRING_ARRAY)
                 .toArray(ValueType[]::new);
+        shouldSeeAllEntriesBetweenSpecificValues(fromBeginning, toEnd, valueTypeCandidates);
+    }
+
+    protected void shouldSeeAllEntriesBetweenSpecificValues(
+            boolean fromBeginning, boolean toEnd, ValueType[] valueTypeCandidates) throws IndexEntryConflictException {
         var updates = someUpdatesSingleType(valueTypeCandidates);
         processAll(updates);
 

@@ -117,7 +117,9 @@ class PrettyPrinterTest {
     void shouldHandleNodeValueWithoutLabels() {
         // Given
         NodeValue node = node(
-                42L, Values.stringArray(), props("foo", intValue(42), "bar", list(intValue(1337), stringValue("baz"))));
+                42L,
+                Values.EMPTY_TEXT_ARRAY,
+                props("foo", intValue(42), "bar", list(intValue(1337), stringValue("baz"))));
         PrettyPrinter printer = new PrettyPrinter();
 
         // When
@@ -143,7 +145,7 @@ class PrettyPrinterTest {
     @Test
     void shouldHandleNodeValueWithoutLabelsNorProperties() {
         // Given
-        NodeValue node = node(42L, Values.stringArray(), EMPTY_MAP);
+        NodeValue node = node(42L, Values.EMPTY_TEXT_ARRAY, EMPTY_MAP);
         PrettyPrinter printer = new PrettyPrinter();
 
         // When
@@ -223,7 +225,7 @@ class PrettyPrinterTest {
     @Test
     void shouldHandleRelationshipValueWithoutLabelsNorProperties() {
         // Given
-        NodeValue node = node(42L, Values.stringArray(), EMPTY_MAP);
+        NodeValue node = node(42L, Values.EMPTY_TEXT_ARRAY, EMPTY_MAP);
         PrettyPrinter printer = new PrettyPrinter();
 
         // When

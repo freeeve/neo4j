@@ -21,6 +21,7 @@ package org.neo4j.values.storable;
 
 import static java.lang.Integer.signum;
 import static java.lang.String.format;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.values.storable.CoordinateReferenceSystem.CARTESIAN;
 import static org.neo4j.values.storable.CoordinateReferenceSystem.CARTESIAN_3D;
@@ -52,6 +53,12 @@ import org.junit.jupiter.api.Test;
 
 public class ValueComparisonTest {
     private static final Comparator<Value> comparator = Values.COMPARATOR;
+
+    private byte[] utf8Str1 = {
+        -17, -80, -72, -16, -91, -107, -81, -16, -105, -73, -83, -16, -93, -89, -86, -16, -95, -103, -87, -16, -82, -86,
+        -101, -16, -91, -128, -109
+    };
+    byte[] utf8Str2 = {-12, -113, -65, -65};
 
     private final Object[] objs = new Object[] {
         // ARRAYS
@@ -363,6 +370,27 @@ public class ValueComparisonTest {
                                 left, right, i, j));
             }
         }
+    }
+
+    // NOTE: These values are not added to the `Object[] objs`, since
+    // there is inconsistent ordering between UTF8StringValue and CharValue.
+    // This is a different issue, that was decided not to fix in the past.
+    @Test
+    void shouldOrderUTF8StringValuesCorrectlyAmongstThemselves() {
+        Value val1 = Values.utf8Value(utf8Str1);
+        Value val2 = Values.utf8Value(utf8Str2);
+
+        int cmpVal = signum(compare(comparator, val1, val2));
+        assertThat(cmpVal).isEqualTo(-1);
+    }
+
+    @Test
+    void shouldOrderUTF8StringArrayValuesCorrectlyAmongstThemselves() {
+        Value val1 = Values.stringArray(Values.utf8Value(utf8Str1));
+        Value val2 = Values.stringArray(Values.utf8Value(utf8Str2));
+
+        int cmpVal = signum(compare(comparator, val1, val2));
+        assertThat(cmpVal).isEqualTo(-1);
     }
 
     private static <T> int compare(Comparator<T> comparator, T left, T right) {

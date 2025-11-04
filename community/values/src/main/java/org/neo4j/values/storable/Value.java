@@ -105,7 +105,7 @@ public abstract class Value extends AnyValue {
         return false;
     }
 
-    public boolean equals(String[] x) {
+    public boolean equals(StringValue[] x) {
         return false;
     }
 

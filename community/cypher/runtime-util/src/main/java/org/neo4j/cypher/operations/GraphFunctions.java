@@ -44,7 +44,7 @@ public final class GraphFunctions {
                 .filter(constituent -> securityContext.databaseAccessMode().canAccessDatabase(constituent))
                 .map(constituent -> constituent.fullName().name())
                 .toArray(String[]::new);
-        return Values.arrayValue(graphNames, false);
+        return Values.stringArray(graphNames);
     }
 
     public static DatabaseReference graphByName(

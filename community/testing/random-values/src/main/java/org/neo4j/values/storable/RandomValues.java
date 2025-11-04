@@ -1163,13 +1163,22 @@ public class RandomValues {
         return booleans;
     }
 
+    private static TextArray stringArrayAsTextArray(String[] array) {
+        StringValue[] values = new StringValue[array.length];
+        for (int i = 0; i < array.length; i++) {
+            String s = array[i];
+            values[i] = s == null ? null : Values.utf8Value(s);
+        }
+        return Values.stringArray(values);
+    }
+
     /**
      * @return the next {@link TextArray} containing strings with only alpha-numeric characters.
      * @see RandomValues
      */
     public TextArray nextAlphaNumericTextArray() {
         String[] array = nextAlphaNumericStringArrayRaw(minArray(), maxArray(), minString(), maxString());
-        return Values.stringArray(array);
+        return stringArrayAsTextArray(array);
     }
 
     /**
@@ -1191,7 +1200,7 @@ public class RandomValues {
      */
     private TextArray nextAsciiTextArray() {
         String[] array = nextArray(String[]::new, () -> nextStringRaw(this::asciiCodePoint), minArray(), maxArray());
-        return Values.stringArray(array);
+        return stringArrayAsTextArray(array);
     }
 
     /**
@@ -1204,7 +1213,7 @@ public class RandomValues {
                 () -> nextStringRaw(minString(), maxString(), this::bmpCodePoint),
                 minArray(),
                 maxArray());
-        return Values.stringArray(array);
+        return stringArrayAsTextArray(array);
     }
 
     /**
@@ -1212,7 +1221,7 @@ public class RandomValues {
      */
     public TextArray nextTextArray() {
         String[] array = nextStringArrayRaw(minArray(), maxArray(), minString(), maxString());
-        return Values.stringArray(array);
+        return stringArrayAsTextArray(array);
     }
 
     /**

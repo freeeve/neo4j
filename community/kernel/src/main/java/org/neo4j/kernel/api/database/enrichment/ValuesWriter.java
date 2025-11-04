@@ -301,7 +301,7 @@ public record ValuesWriter(WriteEnrichmentChannel channel) implements AnyValueWr
 
         writeInteger(labels.intSize());
         for (var i = 0; i < labels.intSize(); i++) {
-            writeString(labels.stringValue(i));
+            labels.stringValue(i).writeTo(this);
         }
 
         beginMap(properties.size());

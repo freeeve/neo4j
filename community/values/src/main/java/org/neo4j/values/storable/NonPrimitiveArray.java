@@ -36,7 +36,7 @@ public abstract class NonPrimitiveArray<T extends Comparable<? super T>> extends
     }
 
     @Override
-    public final boolean equals(String[] x) {
+    public final boolean equals(StringValue[] x) {
         return false;
     }
 

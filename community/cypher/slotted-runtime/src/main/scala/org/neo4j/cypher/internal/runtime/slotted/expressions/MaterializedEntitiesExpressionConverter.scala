@@ -192,7 +192,7 @@ case class MaterializedEntityHasLabel(entity: commands.expressions.Expression, l
 
       var i = 0
       while (i < node.labels().intSize()) {
-        if (node.labels().stringValue(i).equals(label.name)) {
+        if (node.labels().stringValue(i).stringValue().equals(label.name)) {
           return IsTrue
         }
 
@@ -247,7 +247,7 @@ case class MaterializedEntityHasLabelOrType(entity: commands.expressions.Express
     case node: NodeValue =>
       var i = 0
       while (i < node.labels().intSize()) {
-        if (node.labels().stringValue(i).equals(labelOrType)) {
+        if (node.labels().stringValue(i).stringValue().equals(labelOrType)) {
           return IsTrue
         }
 

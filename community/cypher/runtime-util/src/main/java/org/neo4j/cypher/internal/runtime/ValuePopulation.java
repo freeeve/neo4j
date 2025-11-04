@@ -38,6 +38,7 @@ import org.neo4j.kernel.impl.util.RelationshipEntityWrappingValue;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.values.AnyValue;
+import org.neo4j.values.storable.StringValue;
 import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.ValueRepresentation;
 import org.neo4j.values.storable.Values;
@@ -318,9 +319,12 @@ public final class ValuePopulation {
     }
 
     public static TextArray labels(DbAccess dbAccess, TokenSet labelsTokens) {
-        String[] labels = new String[labelsTokens.numberOfTokens()];
+        // This is used immediately before encoding these labels for bolt.
+        // This uses UTF-8 encoding, so we do it here already to skip
+        // encoding the labels first as UTF-16 and than as UTF-8 again.
+        StringValue[] labels = new StringValue[labelsTokens.numberOfTokens()];
         for (int i = 0; i < labels.length; i++) {
-            labels[i] = dbAccess.nodeLabelName(labelsTokens.token(i));
+            labels[i] = Values.utf8Value(dbAccess.nodeLabelName(labelsTokens.token(i)));
         }
         return Values.stringArray(labels);
     }

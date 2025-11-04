@@ -182,9 +182,14 @@ public enum ValuesReader {
     }
 
     public static String readJavaString(ByteBuffer buffer) {
+        final var bytes = readUTF8(buffer);
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    private static byte[] readUTF8(ByteBuffer buffer) {
         final var bytes = new byte[buffer.getInt()];
         buffer.get(bytes, 0, bytes.length);
-        return new String(bytes, StandardCharsets.UTF_8);
+        return bytes;
     }
 
     private static ByteValue readByte(ByteBuffer buffer) {
@@ -297,9 +302,9 @@ public enum ValuesReader {
 
     private static TextArray readStringArray(ByteBuffer buffer) {
         final var length = buffer.getInt();
-        final var values = new String[length];
+        final var values = new StringValue[length];
         for (var i = 0; i < length; i++) {
-            values[i] = readJavaString(buffer);
+            values[i] = Values.utf8Value(readUTF8(buffer));
         }
         return Values.stringArray(values);
     }

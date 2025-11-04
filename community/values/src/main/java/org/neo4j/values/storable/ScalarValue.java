@@ -71,7 +71,7 @@ public abstract class ScalarValue extends Value {
     }
 
     @Override
-    public final boolean equals(String[] x) {
+    public final boolean equals(StringValue[] x) {
         return false;
     }
 

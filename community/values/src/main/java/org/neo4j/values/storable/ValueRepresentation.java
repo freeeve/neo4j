@@ -153,10 +153,10 @@ public enum ValueRepresentation {
     UTF16_TEXT(ValueGroup.TEXT, true) {
         @Override
         public ArrayValue arrayOf(SequenceValue values) {
-            String[] strings = new String[values.intSize()];
+            StringValue[] strings = new StringValue[values.intSize()];
             int i = 0;
             for (AnyValue value : values) {
-                strings[i++] = ((TextValue) value).stringValue();
+                strings[i++] = ((TextValue) value).asStringValue();
             }
             return Values.stringArray(strings);
         }
@@ -172,10 +172,10 @@ public enum ValueRepresentation {
     UTF8_TEXT(ValueGroup.TEXT, true) {
         @Override
         public ArrayValue arrayOf(SequenceValue values) {
-            String[] strings = new String[values.intSize()];
+            StringValue[] strings = new StringValue[values.intSize()];
             int i = 0;
             for (AnyValue value : values) {
-                strings[i++] = ((TextValue) value).stringValue();
+                strings[i++] = ((TextValue) value).asStringValue();
             }
             return Values.stringArray(strings);
         }

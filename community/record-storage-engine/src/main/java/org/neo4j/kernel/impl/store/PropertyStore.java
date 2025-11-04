@@ -62,6 +62,7 @@ import org.neo4j.string.UTF8;
 import org.neo4j.util.BitBuffer;
 import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
+import org.neo4j.values.storable.StringValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
@@ -706,12 +707,13 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
         byte typeId = buffer.get();
         if (typeId == PropertyType.STRING.intValue()) {
             int arrayLength = buffer.getInt();
-            String[] result = new String[arrayLength];
+            StringValue[] result = new StringValue[arrayLength];
 
             for (int i = 0; i < arrayLength; i++) {
                 int byteLength = buffer.getInt();
-                result[i] = UTF8.decode(buffer.array(), buffer.position(), byteLength);
-                buffer.position(buffer.position() + byteLength);
+                byte[] bytes = new byte[byteLength];
+                buffer.get(bytes);
+                result[i] = Values.utf8Value(bytes);
             }
             return Values.stringArray(result);
         } else if (typeId == PropertyType.GEOMETRY.intValue()) {

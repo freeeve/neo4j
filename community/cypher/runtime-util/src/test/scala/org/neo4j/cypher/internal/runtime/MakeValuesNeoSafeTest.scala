@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime
 
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.CypherTypeException
+import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.booleanArray
 import org.neo4j.values.storable.Values.booleanValue
 import org.neo4j.values.storable.Values.byteArray
@@ -49,7 +50,7 @@ class MakeValuesNeoSafeTest extends CypherFunSuite {
   }
 
   test("empty collection in is empty array") {
-    makeValueNeoSafe(list()) should equal(stringArray())
+    makeValueNeoSafe(list()) should equal(Values.EMPTY_TEXT_ARRAY)
   }
 
   test("retains type of primitive arrays") {
@@ -67,7 +68,7 @@ class MakeValuesNeoSafeTest extends CypherFunSuite {
   }
 
   test("string arrays work") {
-    makeValueNeoSafe(stringArray()) should equal(stringArray())
+    makeValueNeoSafe(Values.EMPTY_TEXT_ARRAY) should equal(Values.EMPTY_TEXT_ARRAY)
   }
 
   test("mixed types are not ok") {

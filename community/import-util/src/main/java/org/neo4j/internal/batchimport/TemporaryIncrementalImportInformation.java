@@ -538,7 +538,7 @@ public class TemporaryIncrementalImportInformation implements Closeable {
                 final var typedData = (TextArray) value;
                 output.writeInt(typedData.intSize());
                 for (var i = 0; i < typedData.intSize(); i++) {
-                    output.writeUTF(typedData.stringValue(i));
+                    output.writeUTF(typedData.stringValue(i).stringValue());
                 }
             }
 

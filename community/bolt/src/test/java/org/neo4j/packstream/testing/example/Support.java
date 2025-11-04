@@ -33,7 +33,7 @@ public final class Support {
 
     private Support() {}
 
-    static final TextArray NO_LABELS = Values.stringArray();
+    static final TextArray NO_LABELS = Values.EMPTY_TEXT_ARRAY;
     static final MapValue NO_PROPERTIES = VirtualValues.EMPTY_MAP;
 
     // Helper to produce literal list of nodes

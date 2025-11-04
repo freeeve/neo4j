@@ -217,8 +217,8 @@ abstract class InputWithMaterializedEntitiesTest[CONTEXT <: RuntimeContext](
 
   test("relationship 'type' function") {
     val (startNode, endNode) = givenGraph {
-      val startNode = nodeValue(1, "1", Values.stringArray(), MapValue.EMPTY)
-      val endNode = nodeValue(2, "2", Values.stringArray(), MapValue.EMPTY)
+      val startNode = nodeValue(1, "1", Values.EMPTY_TEXT_ARRAY, MapValue.EMPTY)
+      val endNode = nodeValue(2, "2", Values.EMPTY_TEXT_ARRAY, MapValue.EMPTY)
       (startNode, endNode)
     }
 
@@ -271,7 +271,7 @@ abstract class InputWithMaterializedEntitiesTest[CONTEXT <: RuntimeContext](
   private def createNode(id: Long, label: String, properties: Map[String, Any]): NodeValue = {
     val labelValue =
       if (label == null) {
-        Values.stringArray()
+        Values.EMPTY_TEXT_ARRAY
       } else {
         Values.stringArray(label)
       }

@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.neo4j.values.storable.NoValue.NO_VALUE;
+import static org.neo4j.values.storable.Values.EMPTY_TEXT_ARRAY;
 import static org.neo4j.values.storable.Values.booleanArray;
 import static org.neo4j.values.storable.Values.byteArray;
 import static org.neo4j.values.storable.Values.charArray;
@@ -126,7 +127,7 @@ class ListTest {
         assertEqualValues(list(), intArray(new int[] {}));
         assertEqualValues(list(), longArray(new long[] {}));
         assertEqualValues(list(), shortArray(new short[] {}));
-        assertEqualValues(list(), stringArray());
+        assertEqualValues(list(), EMPTY_TEXT_ARRAY);
 
         // actual values to test the equality
         assertEqualValues(list(true), booleanArray(new boolean[] {true}));
@@ -209,7 +210,7 @@ class ListTest {
         assertNotEqual(list(1, null), list(2, 3));
 
         assertEqualWithNoValues(list(NO_VALUE), stringArray(new String[] {null}));
-        assertEqualWithNoValues(list(null, null), stringArray(null, null));
+        assertEqualWithNoValues(list(null, null), stringArray((String) null, null));
         assertEqualWithNoValues(list("hi", null), stringArray("hi", null));
     }
 

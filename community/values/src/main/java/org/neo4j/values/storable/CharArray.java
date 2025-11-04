@@ -59,7 +59,7 @@ public final class CharArray extends TextArray {
     }
 
     @Override
-    public boolean equals(String[] x) {
+    public boolean equals(StringValue[] x) {
         return PrimitiveArrayValues.equals(value, x);
     }
 
@@ -83,8 +83,8 @@ public final class CharArray extends TextArray {
     }
 
     @Override
-    public String stringValue(int offset) {
-        return Character.toString(value[offset]);
+    public StringValue stringValue(int offset) {
+        return Values.stringValue(Character.toString(value[offset]));
     }
 
     @Override

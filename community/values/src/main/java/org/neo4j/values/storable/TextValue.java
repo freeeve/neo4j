@@ -29,11 +29,22 @@ import org.neo4j.values.ValueMapper;
 import org.neo4j.values.virtual.ListValue;
 
 public abstract class TextValue extends HashMemoizingScalarValue {
-    static final ListValue EMPTY_SPLIT = fromArray(stringArray("", ""));
+    // Not a constant, because we instantiate a subclass and that would lead to classloading issues.
+    static ListValue emptySplit() {
+        return fromArray(stringArray("", ""));
+    }
 
     TextValue() {}
 
+    /**
+     * @return the java String representation of this TextValue.
+     */
     public abstract String stringValue();
+
+    /**
+     * @return converts this TextValue to a StringValue. If this is already a StringValue, it is returned as-is.
+     */
+    public abstract StringValue asStringValue();
 
     /**
      * The length of a TextValue is the number of Unicode code points in the text.

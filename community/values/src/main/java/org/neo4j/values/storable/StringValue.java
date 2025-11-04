@@ -72,7 +72,7 @@ public abstract class StringValue extends TextValue {
         // is exactly the value, in cypher we expect two empty arrays
         // where as java returns an empty array
         if (separator.equals(asString)) {
-            return EMPTY_SPLIT;
+            return emptySplit();
         } else if (separator.isEmpty()) {
             return splitOnEmptySeparator(asString);
         }
@@ -97,7 +97,7 @@ public abstract class StringValue extends TextValue {
         // is exactly the value, in cypher we expect two empty arrays
         // where as java returns an empty array
         if (separators.stream().anyMatch(sep -> sep.equals(asString))) {
-            return EMPTY_SPLIT;
+            return emptySplit();
         } else if (separators.stream().anyMatch(String::isEmpty)) {
             String reduced = asString;
             for (var sep : separators) {
@@ -283,6 +283,11 @@ public abstract class StringValue extends TextValue {
     }
 
     @Override
+    public StringValue asStringValue() {
+        return this;
+    }
+
+    @Override
     public String prettyPrint() {
         return format("'%s'", value());
     }
@@ -305,7 +310,7 @@ public abstract class StringValue extends TextValue {
         return value instanceof StringValue;
     }
 
-    static final TextValue EMPTY = new StringValue() {
+    static final StringValue EMPTY = new StringValue() {
         @Override
         protected int computeHashToMemoize() {
             return 0;

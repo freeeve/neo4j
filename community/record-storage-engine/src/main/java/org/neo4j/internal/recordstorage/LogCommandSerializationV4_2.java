@@ -50,6 +50,7 @@ import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.kernel.impl.store.record.SchemaRecord;
 import org.neo4j.string.UTF8;
 import org.neo4j.util.Preconditions;
+import org.neo4j.values.storable.StringValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueWriter;
 import org.neo4j.values.storable.Values;
@@ -437,12 +438,12 @@ class LogCommandSerializationV4_2 extends LogCommandSerialization {
                         return Values.doubleArray(array);
                     }
                     case STRING: {
-                        String[] array = new String[arraySize];
+                        StringValue[] array = new StringValue[arraySize];
                         for (int i = 0; i < arraySize; i++) {
                             int size = channel.getInt();
                             byte[] bytes = new byte[size];
                             channel.get(bytes, size);
-                            array[i] = UTF8.decode(bytes);
+                            array[i] = Values.utf8Value(bytes);
                         }
                         return Values.stringArray(array);
                     }

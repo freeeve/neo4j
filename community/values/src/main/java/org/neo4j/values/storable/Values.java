@@ -73,7 +73,7 @@ public final class Values {
     public static final Value MAX_STRING = Values.booleanValue(false);
     public static final BooleanValue TRUE = Values.booleanValue(true);
     public static final BooleanValue FALSE = Values.booleanValue(false);
-    public static final TextValue EMPTY_STRING = StringValue.EMPTY;
+    public static final StringValue EMPTY_STRING = StringValue.EMPTY;
     public static final DoubleValue E = Values.doubleValue(Math.E);
     public static final DoubleValue PI = Values.doubleValue(Math.PI);
     public static final DoubleValue NaN = Values.doubleValue(Double.NaN);
@@ -87,7 +87,7 @@ public final class Values {
     public static final ArrayValue EMPTY_LONG_ARRAY = Values.longArray(ArrayUtils.EMPTY_LONG_ARRAY);
     public static final ArrayValue EMPTY_FLOAT_ARRAY = Values.floatArray(ArrayUtils.EMPTY_FLOAT_ARRAY);
     public static final ArrayValue EMPTY_DOUBLE_ARRAY = Values.doubleArray(ArrayUtils.EMPTY_DOUBLE_ARRAY);
-    public static final TextArray EMPTY_TEXT_ARRAY = Values.stringArray();
+    public static final TextArray EMPTY_TEXT_ARRAY = new StringArray(new StringValue[0]);
 
     private Values() {}
 
@@ -141,7 +141,7 @@ public final class Values {
 
     // DIRECT FACTORY METHODS
 
-    public static TextValue utf8Value(String value) {
+    public static StringValue utf8Value(String value) {
         return utf8Value(value.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -149,15 +149,15 @@ public final class Values {
         return value == null ? NO_VALUE : utf8Value(value);
     }
 
-    public static TextValue utf8Value(byte[] bytes) {
+    public static StringValue utf8Value(byte[] bytes) {
         return bytes.length == 0 ? EMPTY_STRING : utf8Value(bytes, 0, bytes.length);
     }
 
-    public static TextValue utf8Value(byte[] bytes, int offset, int length) {
+    public static StringValue utf8Value(byte[] bytes, int offset, int length) {
         return length == 0 ? EMPTY_STRING : new UTF8StringValue(bytes, offset, length);
     }
 
-    public static TextValue stringValue(String value) {
+    public static StringValue stringValue(String value) {
         return value.isEmpty() ? EMPTY_STRING : new StringWrappingStringValue(value);
     }
 
@@ -209,7 +209,21 @@ public final class Values {
         return new FloatValue(value);
     }
 
+    /**
+     * This method creates a copy of the input and converts all strings to StringValue.
+     * It is preferable to use {@link #stringArray(StringValue...)} if you already have StringValues.
+     */
     public static TextArray stringArray(String... value) {
+        StringValue[] values = new StringValue[value.length];
+        for (int i = 0; i < value.length; i++) {
+            String s = value[i];
+            values[i] = s == null ? null : stringValue(s);
+        }
+
+        return new StringArray(values);
+    }
+
+    public static TextArray stringArray(StringValue... value) {
         return new StringArray(value);
     }
 
@@ -488,7 +502,19 @@ public final class Values {
 
     public static ArrayValue arrayValue(Object[] value, boolean copyDefensively) {
         return switch (value) {
-            case String[] array -> stringArray(copyDefensively ? copy(array, new String[array.length]) : array);
+            case String[] array -> {
+                if (copyDefensively) {
+                    // If we copy anyway, we might as well make them all UTF-8
+                    StringValue[] copy = new StringValue[value.length];
+                    for (int i = 0; i < value.length; i++) {
+                        String s = array[i];
+                        copy[i] = s == null ? null : utf8Value(s);
+                    }
+                    yield stringArray(copy);
+                } else {
+                    yield stringArray(array);
+                }
+            }
             case Byte[] array -> byteArray(copy(array, new byte[array.length]));
             case Long[] array -> longArray(copy(array, new long[array.length]));
             case Integer[] array -> intArray(copy(array, new int[array.length]));
