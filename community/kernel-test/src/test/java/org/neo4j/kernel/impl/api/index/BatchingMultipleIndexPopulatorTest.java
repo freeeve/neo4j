@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.api.index;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -169,6 +170,8 @@ public class BatchingMultipleIndexPopulatorTest {
         batchingPopulator.queueConcurrentUpdate(update1, CursorContext.NULL_CONTEXT);
         batchingPopulator.queueConcurrentUpdate(update2, CursorContext.NULL_CONTEXT);
         batchingPopulator.queueConcurrentUpdate(update3, CursorContext.NULL_CONTEXT);
+
+        await().atMost(10, TimeUnit.SECONDS).until(batchingPopulator::needToApplyExternalUpdates);
 
         batchingPopulator.applyExternalUpdates(42);
 

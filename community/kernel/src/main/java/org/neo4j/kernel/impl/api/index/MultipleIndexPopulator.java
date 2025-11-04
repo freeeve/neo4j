@@ -456,9 +456,9 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             return;
         }
 
-        // index updates for the entry are guaranted to come from transactions that observe exact previous version of
+        // index updates for the entry are guaranteed to come from transactions that observe exact previous version of
         // the entry
-        // in concurrent updates queue we only preserve comitting transaction id and use unbounded visibility here,
+        // in concurrent updates queue we only preserve commiting transaction id and use unbounded visibility here,
         // so index updater can correctly process entries and merge them if needed.
         // this is especially important for token indexes where one tree entry represents multiple entities
         try (var populatorContext = cursorContext.createUnboundedReadRelatedContext(EXTERNAL_UPDATES_QUEUE_TAG);
