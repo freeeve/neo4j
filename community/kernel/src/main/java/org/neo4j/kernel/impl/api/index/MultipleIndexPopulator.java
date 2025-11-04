@@ -682,7 +682,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             if (awaitHorizon && populationOngoing) {
                 // scan is completed, population should allow horizon to progress further to avoid deadlock with the
                 // next statement
-                populationHorizon = Long.MAX_VALUE;
+                populationHorizon = highestClosedTxAtPopulationStart;
                 // In multiversion database index must remain pouplating until everything that was added into index
                 // through the store scan is visible by any current and future transactions.
                 // To achieve this we remember highestEverSeen transaction at population start and don't flip until

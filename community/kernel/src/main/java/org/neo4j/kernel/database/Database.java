@@ -1345,8 +1345,6 @@ public class Database extends AbstractDatabase {
     }
 
     private static boolean isNotMultiVersioned(DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId) {
-        String formatName = databaseConfig.get(db_format);
-
         return namedDatabaseId.isSystemDatabase()
                 || !databaseConfig.get(db_format).contains("multiversion");
     }
