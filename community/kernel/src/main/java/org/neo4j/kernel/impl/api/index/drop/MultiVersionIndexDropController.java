@@ -23,10 +23,14 @@ import static org.neo4j.scheduler.Group.STORAGE_MAINTENANCE;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.eclipse.collections.impl.factory.Multimaps;
+import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.index.IndexProvider;
@@ -44,30 +48,40 @@ public final class MultiVersionIndexDropController extends LifecycleAdapter impl
     private final ConcurrentLinkedDeque<IndexDropRequest> asyncDeleteQueue;
     private final JobScheduler jobScheduler;
     private final IndexingService indexingService;
+    private final IndexMonitor monitor;
     private final TransactionVisibilityProvider transactionVisibilityProvider;
     private final Log log;
     private JobHandle<?> asyncDropJobHandle;
     private final FileSystemAbstraction fs;
+    private final Duration maintenanceInterval;
 
     public MultiVersionIndexDropController(
             JobScheduler jobScheduler,
             TransactionVisibilityProvider visibilityProvider,
             IndexingService indexingService,
             FileSystemAbstraction fs,
-            LogProvider logProvider) {
+            LogProvider logProvider,
+            IndexMonitor monitor,
+            Config config) {
         this.jobScheduler = jobScheduler;
         this.indexingService = indexingService;
+        this.monitor = monitor;
         this.asyncDeleteQueue = new ConcurrentLinkedDeque<>();
         this.transactionVisibilityProvider = visibilityProvider;
         this.fs = fs;
         this.log = logProvider.getLog(MultiVersionIndexDropController.class);
+        this.maintenanceInterval = config.get(GraphDatabaseInternalSettings.async_index_drop_maintenance_interval);
     }
 
     @Override
     public void start() {
         cleanupLeftOvers();
-        asyncDropJobHandle =
-                jobScheduler.scheduleRecurring(STORAGE_MAINTENANCE, this::dropIndexes, 1, 1, TimeUnit.MINUTES);
+        asyncDropJobHandle = jobScheduler.scheduleRecurring(
+                STORAGE_MAINTENANCE,
+                this::maintenance,
+                maintenanceInterval.toSeconds(),
+                maintenanceInterval.toSeconds(),
+                TimeUnit.SECONDS);
     }
 
     private void cleanupLeftOvers() {
@@ -123,17 +137,12 @@ public final class MultiVersionIndexDropController extends LifecycleAdapter impl
                 new IndexDropRequest(descriptor, transactionVisibilityProvider.youngestObservableHorizon()));
         // if we have lots of indexes hanging there schedule cleanup directly
         if (asyncDeleteQueue.size() > TRIGGER_THRESHOLD) {
-            jobScheduler.schedule(STORAGE_MAINTENANCE, this::dropIndexes);
+            jobScheduler.schedule(STORAGE_MAINTENANCE, this::maintenance);
         }
     }
 
-    @VisibleForTesting
-    ConcurrentLinkedDeque<IndexDropRequest> getAsyncDeleteQueue() {
-        return asyncDeleteQueue;
-    }
-
-    @VisibleForTesting
-    synchronized void dropIndexes() {
+    @Override
+    public synchronized void maintenance() {
         long oldestBoundary = transactionVisibilityProvider.oldestObservableHorizon();
 
         var request = asyncDeleteQueue.peek();
@@ -146,6 +155,11 @@ public final class MultiVersionIndexDropController extends LifecycleAdapter impl
                 request = null;
             }
         }
+    }
+
+    @VisibleForTesting
+    ConcurrentLinkedDeque<IndexDropRequest> getAsyncDeleteQueue() {
+        return asyncDeleteQueue;
     }
 
     private void safeIndexDrop(IndexDropRequest request) {

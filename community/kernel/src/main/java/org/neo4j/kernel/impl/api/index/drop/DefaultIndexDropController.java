@@ -34,4 +34,7 @@ public final class DefaultIndexDropController extends LifecycleAdapter implement
     public void dropIndex(IndexDescriptor descriptor) {
         indexingService.internalIndexDrop(descriptor);
     }
+
+    @Override
+    public void maintenance() {}
 }

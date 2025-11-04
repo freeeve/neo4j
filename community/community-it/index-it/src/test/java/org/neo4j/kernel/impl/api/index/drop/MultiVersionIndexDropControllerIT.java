@@ -31,9 +31,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.index.IndexProvider;
@@ -94,14 +96,16 @@ class MultiVersionIndexDropControllerIT {
                 new TestTransactionVisibilityProvider(10, 100),
                 indexingService,
                 fileSystem,
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                IndexMonitor.NO_MONITOR,
+                Config.defaults());
         indexDropController.start();
 
         for (IndexDescriptor indexDescriptor : indexDescriptors) {
             indexDropController.dropIndex(indexDescriptor);
         }
 
-        indexDropController.dropIndexes();
+        indexDropController.maintenance();
 
         assertThat(indexDropController.getAsyncDeleteQueue()).hasSize(3);
 
@@ -136,7 +140,9 @@ class MultiVersionIndexDropControllerIT {
                         new AtomicStateLongSupplier(oldestValue), new ArrayStateLongSupplier(new long[] {10, 20, 30})),
                 indexingService,
                 fileSystem,
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                IndexMonitor.NO_MONITOR,
+                Config.defaults());
 
         indexDropController.start();
 
@@ -145,19 +151,19 @@ class MultiVersionIndexDropControllerIT {
         }
 
         // nothing was dropped
-        indexDropController.dropIndexes();
+        indexDropController.maintenance();
         assertThat(indexDropController.getAsyncDeleteQueue()).hasSize(3);
 
         oldestValue.set(11);
 
         // one index is dropped now
-        indexDropController.dropIndexes();
+        indexDropController.maintenance();
         assertThat(indexDropController.getAsyncDeleteQueue()).hasSize(2);
 
         oldestValue.set(22);
 
         // two indexes dropped
-        indexDropController.dropIndexes();
+        indexDropController.maintenance();
         assertThat(indexDropController.getAsyncDeleteQueue()).hasSize(1);
 
         var directoryStructure = indexProvider.directoryStructure();
@@ -186,20 +192,26 @@ class MultiVersionIndexDropControllerIT {
 
         AssertableLogProvider logProvider = new AssertableLogProvider();
         indexDropController = new MultiVersionIndexDropController(
-                jobScheduler, new TestTransactionVisibilityProvider(11, 10), indexingService, fileSystem, logProvider);
+                jobScheduler,
+                new TestTransactionVisibilityProvider(11, 10),
+                indexingService,
+                fileSystem,
+                logProvider,
+                IndexMonitor.NO_MONITOR,
+                Config.defaults());
         indexDropController.start();
 
         for (IndexDescriptor indexDescriptor : indexDescriptors) {
             indexDropController.dropIndex(indexDescriptor);
         }
-        indexDropController.dropIndexes();
+        indexDropController.maintenance();
         assertThat(indexDropController.getAsyncDeleteQueue()).hasSize(0);
         LogAssertions.assertThat(logProvider).doesNotContainMessage("Exception on multi version index async drop.");
 
         for (IndexDescriptor indexDescriptor : indexDescriptors) {
             indexDropController.dropIndex(indexDescriptor);
         }
-        indexDropController.dropIndexes();
+        indexDropController.maintenance();
 
         assertThat(indexDropController.getAsyncDeleteQueue()).hasSize(0);
         LogAssertions.assertThat(logProvider).containsMessages("Exception on multi version index async drop.");
@@ -226,7 +238,9 @@ class MultiVersionIndexDropControllerIT {
                         new AtomicStateLongSupplier(oldestValue), new ArrayStateLongSupplier(new long[] {6, 7, 8})),
                 indexingService,
                 fileSystem,
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                IndexMonitor.NO_MONITOR,
+                Config.defaults());
 
         indexDropController.start();
 
@@ -234,7 +248,7 @@ class MultiVersionIndexDropControllerIT {
             indexDropController.dropIndex(indexDescriptor);
             oldestValue.incrementAndGet();
         }
-        indexDropController.dropIndexes();
+        indexDropController.maintenance();
 
         assertThat(indexDropController.getAsyncDeleteQueue()).hasSize(1);
     }

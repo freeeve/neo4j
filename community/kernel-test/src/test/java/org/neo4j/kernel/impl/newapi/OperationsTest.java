@@ -93,7 +93,6 @@ import org.neo4j.kernel.api.exceptions.schema.DropConstraintFailureException;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
-import org.neo4j.kernel.impl.api.index.IndexingProvidersService;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
@@ -231,19 +230,17 @@ abstract class OperationsTest {
         when(provider.getProviderDescriptor()).thenReturn(providerDescriptor);
         when(provider.getMinimumRequiredVersion()).thenReturn(KernelVersion.EARLIEST);
 
-        IndexingProvidersService indexingProvidersService = mock(IndexingProvidersService.class);
-        when(indexingProvidersService.getFulltextProvider())
-                .thenAnswer(inv -> fulltextProvider.getProviderDescriptor());
-        when(indexingProvidersService.getDefaultProvider()).thenAnswer(inv -> rangeProvider.getProviderDescriptor());
-        when(indexingProvidersService.validateIndexPrototype(any(IndexPrototype.class)))
-                .thenAnswer(i -> i.getArguments()[0]);
+        var indexingService = mock(IndexingService.class);
+        when(indexingService.getFulltextProvider()).thenAnswer(inv -> fulltextProvider.getProviderDescriptor());
+        when(indexingService.getDefaultProvider()).thenAnswer(inv -> rangeProvider.getProviderDescriptor());
+        when(indexingService.validateIndexPrototype(any(IndexPrototype.class))).thenAnswer(i -> i.getArguments()[0]);
         List.of(fulltextProvider, rangeProvider, provider).forEach(indexProvider -> {
             IndexProviderDescriptor descriptor = indexProvider.getProviderDescriptor();
             String name = descriptor.name();
-            when(indexingProvidersService.indexProviderByName(name)).thenReturn(descriptor);
-            when(indexingProvidersService.getIndexProvider(descriptor)).thenReturn(indexProvider);
+            when(indexingService.indexProviderByName(name)).thenReturn(descriptor);
+            when(indexingService.getIndexProvider(descriptor)).thenReturn(indexProvider);
         });
-        when(indexingProvidersService.completeConfiguration(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(indexingService.completeConfiguration(any())).thenAnswer(inv -> inv.getArgument(0));
 
         operations = new Operations(
                 kernelRead,
@@ -259,7 +256,7 @@ abstract class OperationsTest {
                 cursors,
                 constraintIndexCreator,
                 mock(ConstraintSemantics.class),
-                indexingProvidersService,
+                indexingService,
                 Config.defaults(Map.of(
                         GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints,
                         true)),

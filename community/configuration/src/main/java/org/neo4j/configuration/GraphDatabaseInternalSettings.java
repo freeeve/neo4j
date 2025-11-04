@@ -1879,6 +1879,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     "internal.dbms.routing_address_rewriting_client_regex", STRING, null)
             .build();
 
+    @Internal
+    @Description("Set the frequency and offset for reporting index usage statistics.")
+    public static final Setting<Duration> async_index_drop_maintenance_interval = newBuilder(
+                    "internal.dbms.index.async_index_drop_maintenance_interval", DURATION, ofMinutes(1))
+            .addConstraint(resolution(ChronoUnit.SECONDS))
+            .build();
+
     // Helper method
     public static HeapEstimatorCacheConfig extractCustomHeapEstimatorCacheConfig(Config config) {
         return new HeapEstimatorCacheConfig(

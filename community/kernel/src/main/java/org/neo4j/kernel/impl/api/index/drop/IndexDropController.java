@@ -25,4 +25,6 @@ import org.neo4j.kernel.lifecycle.Lifecycle;
 public sealed interface IndexDropController extends Lifecycle
         permits DefaultIndexDropController, MultiVersionIndexDropController {
     void dropIndex(IndexDescriptor descriptor);
+
+    void maintenance();
 }

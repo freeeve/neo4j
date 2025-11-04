@@ -216,17 +216,28 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
         this.transactionVisibilityProvider = multiversion ? transactionVisibilityProvider : EMPTY_VISIBILITY_PROVIDER;
         this.storeView = indexStoreViewFactory.createTokenIndexStoreView(indexMapRef::getIndexProxy);
         this.kernelVersionProvider = kernelVersionProvider;
-        this.indexDropController = createIndexDropController(internalLogProvider, transactionVisibilityProvider, fs);
+        this.indexDropController =
+                createIndexDropController(internalLogProvider, transactionVisibilityProvider, fs, monitor, config);
     }
 
     private IndexDropController createIndexDropController(
             InternalLogProvider internalLogProvider,
             TransactionVisibilityProvider transactionVisibilityProvider,
-            FileSystemAbstraction fs) {
+            FileSystemAbstraction fs,
+            IndexMonitor monitor,
+            Config config) {
         return multiversion && !EMPTY_VISIBILITY_PROVIDER.equals(transactionVisibilityProvider)
                 ? new MultiVersionIndexDropController(
-                        jobScheduler, transactionVisibilityProvider, this, fs, internalLogProvider)
+                        jobScheduler, transactionVisibilityProvider, this, fs, internalLogProvider, monitor, config)
                 : new DefaultIndexDropController(this);
+    }
+
+    public IndexDropController getIndexDropController() {
+        return indexDropController;
+    }
+
+    public void indexDropMaintenance() {
+        indexDropController.maintenance();
     }
 
     /**

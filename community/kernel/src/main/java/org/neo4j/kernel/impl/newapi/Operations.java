@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.newapi;
 
 import static java.lang.String.format;
-import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 import static org.apache.commons.lang3.ArrayUtils.contains;
 import static org.apache.commons.lang3.ArrayUtils.indexOf;
 import static org.apache.commons.lang3.ArrayUtils.remove;
@@ -160,7 +159,7 @@ import org.neo4j.kernel.api.exceptions.schema.UniquePropertyValueValidationExcep
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
-import org.neo4j.kernel.impl.api.index.IndexingProvidersService;
+import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.locking.ResourceIds;
@@ -201,7 +200,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private final DefaultPooledCursors cursors;
     private final ConstraintIndexCreator constraintIndexCreator;
     private final ConstraintSemantics constraintSemantics;
-    private final IndexingProvidersService indexProviders;
+    private final IndexingService indexingService;
     private final MemoryTracker memoryTracker;
     private final boolean additionLockVerification;
     private final boolean dependentConstraintsEnabled;
@@ -233,7 +232,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             DefaultPooledCursors cursors,
             ConstraintIndexCreator constraintIndexCreator,
             ConstraintSemantics constraintSemantics,
-            IndexingProvidersService indexProviders,
+            IndexingService indexingService,
             Config config,
             MemoryTracker memoryTracker,
             AccessModeProvider accessModeProvider,
@@ -252,7 +251,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         this.cursors = cursors;
         this.constraintIndexCreator = constraintIndexCreator;
         this.constraintSemantics = constraintSemantics;
-        this.indexProviders = indexProviders;
+        this.indexingService = indexingService;
         this.memoryTracker = memoryTracker;
         this.additionLockVerification = config.get(additional_lock_verification);
         this.dependentConstraintsEnabled = config.get(GraphDatabaseInternalSettings.dependent_constraints_enabled);
@@ -1878,19 +1877,19 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public IndexProviderDescriptor indexProviderByName(String providerName) {
         ktx.assertOpen();
-        return indexProviders.indexProviderByName(providerName);
+        return indexingService.indexProviderByName(providerName);
     }
 
     @Override
     public IndexType indexTypeByProviderName(String providerName) {
         ktx.assertOpen();
-        return indexProviders.indexTypeByProviderName(providerName);
+        return indexingService.indexTypeByProviderName(providerName);
     }
 
     @Override
     public List<IndexProviderDescriptor> indexProvidersByType(IndexType indexType) {
         ktx.assertOpen();
-        return indexProviders.indexProvidersByType(indexType);
+        return indexingService.indexProvidersByType(indexType);
     }
 
     @Override
@@ -2000,11 +1999,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     }
 
     private IndexDescriptor indexDoCreate(IndexPrototype prototype) {
-        prototype = indexProviders.validateIndexPrototype(prototype);
+        prototype = indexingService.validateIndexPrototype(prototype);
         TransactionState transactionState = ktx.txState();
         long schemaRecordId = commandCreationContext.reserveSchema();
+        // in mvcc we need to ensure that index drop queue is processed to avoid race when index id is reused
+        indexingService.indexDropMaintenance();
         IndexDescriptor index = prototype.materialise(schemaRecordId);
-        index = indexProviders.completeConfiguration(index);
+        index = indexingService.completeConfiguration(index);
         transactionState.indexDoAdd(index);
         return index;
     }
@@ -2017,12 +2018,12 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         if (alwaysUseLatestIndexProvider || prototype.getIndexProvider() == AllIndexProviderDescriptors.UNDECIDED) {
             return prototype.withIndexProvider(
                     switch (prototype.getIndexType()) {
-                        case LOOKUP -> indexProviders.getTokenIndexProvider();
-                        case FULLTEXT -> indexProviders.getFulltextProvider();
-                        case TEXT -> indexProviders.getTextIndexProvider();
-                        case RANGE -> indexProviders.getDefaultProvider();
-                        case POINT -> indexProviders.getPointIndexProvider();
-                        case VECTOR -> indexProviders.getVectorIndexProvider();
+                        case LOOKUP -> indexingService.getTokenIndexProvider();
+                        case FULLTEXT -> indexingService.getFulltextProvider();
+                        case TEXT -> indexingService.getTextIndexProvider();
+                        case RANGE -> indexingService.getDefaultProvider();
+                        case POINT -> indexingService.getPointIndexProvider();
+                        case VECTOR -> indexingService.getVectorIndexProvider();
                     });
         }
 

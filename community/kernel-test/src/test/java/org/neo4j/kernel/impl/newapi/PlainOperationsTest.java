@@ -96,7 +96,7 @@ import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
-import org.neo4j.kernel.impl.api.index.IndexingProvidersService;
+import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.locking.LockManager;
@@ -977,7 +977,7 @@ public class PlainOperationsTest extends OperationsTest {
                 mock(DefaultPooledCursors.class),
                 mock(ConstraintIndexCreator.class),
                 mock(ConstraintSemantics.class),
-                mock(IndexingProvidersService.class),
+                mock(IndexingService.class),
                 Config.defaults(),
                 EmptyMemoryTracker.INSTANCE,
                 () -> StaticAccessMode.FULL,
@@ -1025,7 +1025,7 @@ public class PlainOperationsTest extends OperationsTest {
                 cursors,
                 mock(ConstraintIndexCreator.class),
                 mock(ConstraintSemantics.class),
-                mock(IndexingProvidersService.class),
+                mock(IndexingService.class),
                 Config.defaults(),
                 EmptyMemoryTracker.INSTANCE,
                 () -> StaticAccessMode.FULL,
@@ -1070,7 +1070,7 @@ public class PlainOperationsTest extends OperationsTest {
                 mock(DefaultPooledCursors.class),
                 mock(ConstraintIndexCreator.class),
                 mock(ConstraintSemantics.class),
-                mock(IndexingProvidersService.class),
+                mock(IndexingService.class),
                 Config.defaults(),
                 EmptyMemoryTracker.INSTANCE,
                 () -> StaticAccessMode.FULL,
@@ -1099,11 +1099,10 @@ public class PlainOperationsTest extends OperationsTest {
         IndexProviderDescriptor indexProviderDescriptor = mock(IndexProviderDescriptor.class);
         IndexProvider indexProvider = mock(IndexProvider.class);
         when(indexProvider.getMinimumRequiredVersion()).thenReturn(KernelVersion.EARLIEST);
-        IndexingProvidersService indexingProvidersService = mock(IndexingProvidersService.class);
-        when(indexingProvidersService.getDefaultProvider()).thenReturn(indexProviderDescriptor);
-        when(indexingProvidersService.getIndexProvider(any())).thenReturn(indexProvider);
-        when(indexingProvidersService.validateIndexPrototype(any(IndexPrototype.class)))
-                .thenAnswer(i -> i.getArguments()[0]);
+        var indexingService = mock(IndexingService.class);
+        when(indexingService.getDefaultProvider()).thenReturn(indexProviderDescriptor);
+        when(indexingService.getIndexProvider(any())).thenReturn(indexProvider);
+        when(indexingService.validateIndexPrototype(any(IndexPrototype.class))).thenAnswer(i -> i.getArguments()[0]);
         KernelSchemaRead kernelSchemaRead = mock(KernelSchemaRead.class);
         when(kernelSchemaRead.index(any(), any())).thenReturn(IndexDescriptor.NO_INDEX);
         when(kernelSchemaRead.indexGetForName(any())).thenReturn(IndexDescriptor.NO_INDEX);
@@ -1122,7 +1121,7 @@ public class PlainOperationsTest extends OperationsTest {
                 mock(DefaultPooledCursors.class),
                 mock(ConstraintIndexCreator.class),
                 mock(ConstraintSemantics.class),
-                indexingProvidersService,
+                indexingService,
                 Config.defaults(),
                 EmptyMemoryTracker.INSTANCE,
                 () -> StaticAccessMode.FULL,
