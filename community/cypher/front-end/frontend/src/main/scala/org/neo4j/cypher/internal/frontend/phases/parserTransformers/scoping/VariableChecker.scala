@@ -210,6 +210,7 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
               case (TableResult(tailCols), TableResult(headCols))
                 if tailCols.map(_.name).toSet != headCols.map(_.name).toSet =>
                 Seq(SemanticError.incompatibleWhenReturnColumns(ConditionalQueryWhen.name, x.astNode.position))
+              case (res1, res2) if res1.getClass == res2.getClass => Seq()
               case _ =>
                 Seq(SemanticError.incompatibleSubqueryType(
                   ConditionalQueryWhen.name,

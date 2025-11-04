@@ -844,60 +844,6 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     )
   }
 
-  test("""MATCH (a)
-         |RETURN EXISTS {
-         |  MATCH (b)
-         |  LET a = b
-         |  RETURN a
-         |}""".stripMargin) {
-    error(
-      "42N07",
-      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
-    )
-  }
-
-  test("""MATCH (a)
-         |RETURN EXISTS {
-         |  MATCH (b)
-         |  RETURN b AS a
-         |  NEXT
-         |  MATCH (a)
-         |  RETURN a
-         |}""".stripMargin) {
-    error(
-      "42N07",
-      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
-    )
-  }
-
-  test("""MATCH (a)
-         |RETURN EXISTS {
-         |  MATCH (b)
-         |  RETURN b AS a
-         |  NEXT
-         |  MATCH (a)
-         |  RETURN a.p AS p
-         |}""".stripMargin) {
-    error(
-      "42N07",
-      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
-    )
-  }
-
-  test("""MATCH (a)
-         |RETURN EXISTS {
-         |  MATCH (b)
-         |  RETURN b
-         |  NEXT
-         |  MATCH (b)
-         |  RETURN b AS a
-         |}""".stripMargin) {
-    error(
-      "42N07",
-      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
-    )
-  }
-
   test("""WITH 1 AS x
          |CALL {
          |  USE mega.graph1
@@ -954,7 +900,10 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |  MATCH (b)
          |  RETURN b AS a
          |}""".stripMargin) {
-    passes()
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
   }
 
   /**
@@ -1006,6 +955,17 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |WHEN false THEN RETURN 2 AS x
          |ELSE FINISH""".stripMargin) {
     error("42N3A", "incompatible conditional query.")
+  }
+
+  test("""WHEN true THEN CREATE()
+         |WHEN false THEN RETURN 2 AS x
+         |ELSE FINISH""".stripMargin) {
+    error("42N3A", "incompatible conditional query.")
+  }
+
+  test("""WHEN true THEN RETURN 2 AS y, 3 AS x
+         |WHEN false THEN RETURN 2 AS x, 5 AS y""".stripMargin) {
+    passes()
   }
 
   /**
