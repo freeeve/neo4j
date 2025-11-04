@@ -1945,20 +1945,21 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 }
             }
 
-            if (singleStageFilteringEnabled
-                    && (schema.getEntityTokenIds().length > 1 || schema.getPropertyIds().length > 1)) {
-                assertSupportedInVersion(
-                        KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING,
-                        "Failed to create metadata filter vector index.");
+            if ((schema.getEntityTokenIds().length > 1 || schema.getPropertyIds().length > 1)) {
+                if (singleStageFilteringEnabled) {
+                    assertSupportedInVersion(
+                            KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING,
+                            "Failed to create metadata filter vector index.");
+                } else {
+                    throw new UnsupportedOperationException(
+                            "Composite indexes are not supported for " + indexType.name() + " index type.");
+                }
             }
         }
 
         assertValidDescriptor(schema, INDEX_CREATION);
 
-        if ((indexType == IndexType.TEXT
-                        || indexType == IndexType.POINT
-                        || indexType == IndexType.VECTOR && !singleStageFilteringEnabled)
-                && schema.getPropertyIds().length > 1) {
+        if ((indexType == IndexType.TEXT || indexType == IndexType.POINT) && schema.getPropertyIds().length > 1) {
             throw new UnsupportedOperationException(
                     "Composite indexes are not supported for " + indexType.name() + " index type.");
         }
@@ -2290,9 +2291,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                                 == constraint.asIndexBackedConstraint().indexType()
                         && droppedIndex.schema().equals(constraint.schema())) {
                     throw new UnsupportedOperationException(format(
-                            "Trying to create constraint '%s' in same transaction as dropping '%s'. "
-                                    + "This is not supported because the constraint is backed by an index similar to the dropped index. "
-                                    + "Please drop index in a separate transaction before creating the index backed constraint.",
+                            "Trying to create constraint '%s' in same transaction as dropping '%s'. This is not"
+                                    + " supported because the constraint is backed by an index similar to the dropped"
+                                    + " index. Please drop index in a separate transaction before creating the index"
+                                    + " backed constraint.",
                             constraint.getName(), droppedIndex.getName()));
                 }
             }
