@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -215,11 +214,11 @@ public class TextCompletionTest implements GenAITestExtension {
                 .containsEntry("result", "Jag tog korven! (%s)".formatted(args.provider()));
     }
 
-    @Disabled // Enable when procedures are not internal
     @Test
-    void completionDocsAreUpToDate() {
+    void docsAreUpToDate() {
         final var expectedProviders = EXPECTED_PROVIDERS.stream()
                 .map(m -> m.get("name").toString())
+                .sorted()
                 .collect(Collectors.joining("', '", "'", "'."));
         final var showFuncQuery =
                 """

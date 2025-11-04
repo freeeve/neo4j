@@ -36,7 +36,6 @@ import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.procedure.QueryLanguageScope;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
-import org.neo4j.procedure.Internal;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 import org.neo4j.procedure.Sensitive;
@@ -45,6 +44,11 @@ import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 
 public class VectorEmbedding {
+    private static final String CONF_DESC =
+            "Provider specific configuration, use `CALL ai.text.embed.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.";
+    private static final String PROVIDER_DESC =
+            "The identifier of the provider: 'Azure-OpenAI', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.";
+
     @Context
     public Providers providers;
 
@@ -54,38 +58,20 @@ public class VectorEmbedding {
     @Context
     public HttpService httpService;
 
-    @Internal
     @Procedure(name = "ai.text.embed.providers")
     @Description("Lists the available vector embedding providers.")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
-    public Stream<ProviderRow> listEncodingProviders() {
+    public Stream<ProviderRow> listProviders() {
         return providers.providers().stream().map(ProviderRow::from).sorted(Comparator.comparing(ProviderRow::name));
     }
 
-    @Internal
     @UserFunction(name = "ai.text.embed")
     @Description("Encode a given resource as a vector using the named provider.")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     public VectorValue encode(
             @Name(value = "resource", description = "The object to transform into an embedding.") String resource,
-            @Name(
-                            value = "provider",
-                            description =
-                                    "The identifier of the provider: 'Azure-OpenAI', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.")
-                    String providerName,
-            @Sensitive
-                    @Name(
-                            value = "configuration",
-                            defaultValue = "{}",
-                            description =
-                                    """
-                            VertexAI: {token :: STRING, projectId :: STRING, model :: STRING, region :: STRING, taskType :: STRING, title :: STRING }
-
-                            OpenAI: {token :: STRING, model :: STRING, dimensions :: INTEGER}
-
-                            AzureOpenAI: {token :: STRING, resource :: STRING, deployment :: STRING, dimensions :: INTEGER}
-
-                            AmazonBedrock: {accessKeyId :: STRING, secretAccessKey :: STRING, model :: STRING, region :: STRING}""")
+            @Name(value = "provider", description = PROVIDER_DESC) String providerName,
+            @Sensitive @Name(value = "configuration", defaultValue = "{}", description = CONF_DESC)
                     MapValue configuration) {
         requireNonNull(providerName, "'provider' must not be null");
         requireNonNull(configuration, "'configuration' must not be null");
@@ -99,7 +85,6 @@ public class VectorEmbedding {
         }
     }
 
-    @Internal
     @Procedure(name = "ai.text.embedBatch")
     @Description(
             """
@@ -113,13 +98,8 @@ public class VectorEmbedding {
     public Stream<InternalBatchRow> encode(
             @Name(value = "resources", description = "The object to transform into an embedding.")
                     List<String> resources,
-            @Name(
-                            value = "provider",
-                            description =
-                                    "The identifier of the provider: 'Azure-OpenAI', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.")
-                    String providerName,
-            @Sensitive
-                    @Name(value = "configuration", defaultValue = "{}", description = "The provider specific settings.")
+            @Name(value = "provider", description = PROVIDER_DESC) String providerName,
+            @Sensitive @Name(value = "configuration", defaultValue = "{}", description = CONF_DESC)
                     MapValue configuration) {
         requireNonNull(resources, "'resources' must not be null");
         requireNonNull(providerName, "'provider' must not be null");

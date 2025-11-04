@@ -31,7 +31,6 @@ import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.procedure.QueryLanguageScope;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
-import org.neo4j.procedure.Internal;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 import org.neo4j.procedure.Sensitive;
@@ -40,7 +39,9 @@ import org.neo4j.values.virtual.MapValue;
 
 public class TextCompletion {
     private static final String CONF_DESC =
-            "Provider specific configuration, use `CALL ai.text.completion.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the vendor request.";
+            "Provider specific configuration, use `CALL ai.text.completion.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.";
+    private static final String PROVIDER_DESC =
+            "The identifier of the provider: 'Azure-OpenAI', 'Bedrock-Nova', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.";
 
     @Context
     public Providers providers;
@@ -48,13 +49,12 @@ public class TextCompletion {
     @Context
     public Monitors monitors;
 
-    @Internal // Internal until the final name and signature is decided. Update completionDocsAreUpToDate when removing.
     @UserFunction(name = "ai.text.completion")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
-    @Description("Complete the specified prompt.")
+    @Description("Generate text based on the specified prompt.")
     public String complete(
-            @Name(value = "prompt", description = "The prompt to complete.") String prompt,
-            @Name(value = "provider", description = "The identifier of the provider: 'OpenAI'.") String providerName,
+            @Name(value = "prompt", description = "The prompt to generate text from.") String prompt,
+            @Name(value = "provider", description = PROVIDER_DESC) String providerName,
             @Sensitive @Name(value = "configuration", defaultValue = "{}", description = CONF_DESC)
                     MapValue configuration) {
         requireNonNull(providerName, "'provider' must not be null");
@@ -64,11 +64,10 @@ public class TextCompletion {
         return prompt == null ? null : provider.complete(prompt);
     }
 
-    @Internal // Internal until the final name and signature is decided. Update completionDocsAreUpToDate when removing.
     @Procedure(name = "ai.text.completion.providers")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     @Description("Lists the available text completion providers.")
-    public Stream<ProviderRow> listCompletionProviders() {
+    public Stream<ProviderRow> listProviders() {
         return providers.providers().stream().map(ProviderRow::from);
     }
 

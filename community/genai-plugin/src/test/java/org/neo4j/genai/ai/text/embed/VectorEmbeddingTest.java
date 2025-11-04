@@ -34,7 +34,6 @@ import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -451,7 +450,6 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                 .hasMessageMatching(".*'(token|accessKeyId|secretAccessKey)' is expected to have been set");
     }
 
-    @Disabled // Enable when procedures are not internal
     @Test
     void embeddingDocsAreUpToDate() {
         final var expectedProviders = EXPECTED_PROVIDERS.stream()
