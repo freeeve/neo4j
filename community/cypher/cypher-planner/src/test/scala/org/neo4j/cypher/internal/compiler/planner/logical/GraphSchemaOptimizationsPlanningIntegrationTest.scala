@@ -19,15 +19,17 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.ast.Ast.cachedNodeProp
 import org.neo4j.cypher.internal.ast.Ast.hasLabels
 import org.neo4j.cypher.internal.ast.Ast.prop
-import org.neo4j.cypher.internal.ast.Ast.propEquality
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
+import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
 import org.neo4j.cypher.internal.logical.plans.GetValue
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.schema.EndpointType
@@ -1105,9 +1107,10 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     val query = "MATCH (n:Actor:Person:X:Y)-[:R]->(m:X:Y) RETURN n.name AS result"
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .projection("n.name AS result")
+      .projection("cacheN[n.name] AS result")
       .filter("m:X") // m:X implies m:Y
       .expandAll("(n)-[:R]->(m)")
+      .cacheProperties("cacheNFromStore[n.name]")
       .filter("n:X") // n:X implies n:Y
       .nodeByLabelScan("n", "Actor") // n:Actor implies n:Person
       .build()
@@ -1154,9 +1157,10 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .projection("n.name AS result")
       .filter(
         hasLabels("m", "Y"),
-        propEquality("n", "birthYear", prop("m", "birthYear"))
+        Equals(cachedNodeProp("n", "birthYear"), prop("m", "birthYear"))(InputPosition.NONE)
       ) // n:X does NOT imply m:Y
       .expandAll("(n)-[:R]->(m)")
+      .cacheProperties("cacheNFromStore[n.birthYear]")
       .filter("n:X") // n:X implies n:Y
       .nodeByLabelScan("n", "Actor") // n:Actor implies n:Person
       .build()
@@ -1170,9 +1174,10 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     val query = "MATCH (n:Actor:Person:Y)-[:R]->(m:X:Y) RETURN n.name AS result"
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .projection("n.name AS result")
+      .projection("cacheN[n.name] AS result")
       .filter("m:X") // m:X implies m:Y
       .expandAll("(n)-[:R]->(m)")
+      .cacheProperties("cacheNFromStore[n.name]")
       .filter("n:Y") // m:X does NOT implies n:Y
       .nodeByLabelScan("n", "Actor") // n:Actor implies n:Person
       .build()
@@ -1895,6 +1900,51 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .nodeByLabelScan("a", "A").withCardinality(10)
 
     actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
+  }
+
+  test("Prune implied label from node label constraints during cardinality estimation of relationship patterns") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("A", 1000)
+      .setLabelCardinality("B", 1500)
+      .setLabelCardinality("C", 90)
+      .addNodeLabelConstraint(constrainedLabel = "A", impliedLabel = "B")
+      .setAllNodesCardinality(10000)
+      .setRelationshipCardinality("()-[:R]->()", 250)
+      .setRelationshipCardinality("(:C)-[:R]->()", 220)
+      .setRelationshipCardinality("()-[:R]->(:A)", 180)
+      .setRelationshipCardinality("()-[:R]->(:B)", 190)
+      .setRelationshipCardinality("(:C)-[:R]->(:A)", 180)
+      .setRelationshipCardinality("(:C)-[:R]->(:B)", 190)
+      .build()
+
+    val query = "MATCH (:C)-[r:R]->(:A&B) RETURN r"
+
+    // When we do not know that A implies B, we assume independence:
+    // |(:C)-[:R]->(A)| * |(B)|/|(n)| = 180 * 1500/10000 = 27
+    // |(:C)-[:R]->(B)| * |(A)|/|(n)| = 190 * 1000/10000 = 19
+    //                  ^ independence assumption
+
+    // Without realizing that B is implied by A, we would incorrectly apply the independence assumption.
+    // Which would lead to underestimating the cardinality.
+
+    planner.planState(query) should haveSamePlanAndCardinalitiesAsBuilder(
+      planner.planBuilder()
+        // Without pruning the implied label B, this would get the cardinality 19.
+        .produceResults("r").withCardinality(180)
+        .filter("anon_1:A").withCardinality(180)
+        .expandAll("(anon_0)-[r:R]->(anon_1)").withCardinality(220)
+        .nodeByLabelScan("anon_0", "C").withCardinality(90)
+    )
+
+    val queryWithoutImpliedB = "MATCH (:C)-[r:R]->(:A) RETURN r"
+    planner.planState(queryWithoutImpliedB) should haveSamePlanAndCardinalitiesAsBuilder(
+      planner.planBuilder()
+        // Without pruning the implied label B, this would get the cardinality 19.
+        .produceResults("r").withCardinality(180)
+        .filter("anon_1:A").withCardinality(180)
+        .expandAll("(anon_0)-[r:R]->(anon_1)").withCardinality(220)
+        .nodeByLabelScan("anon_0", "C").withCardinality(90)
+    )
   }
 
   // Cardinality estimation tests end

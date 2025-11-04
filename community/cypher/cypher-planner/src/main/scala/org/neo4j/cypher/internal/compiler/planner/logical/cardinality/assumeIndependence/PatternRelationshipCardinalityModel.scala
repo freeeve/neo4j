@@ -148,7 +148,8 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
    * replace the approximation for [:R]->(:A:B) with the exact value for [:R]->(:B).
    *
    * Thus, when estimating the cardinality of a relationship, we can remove the implied labels
-   * from relationship endpoint constraints.
+   * from relationship endpoint constraints (e.q., type R implies label A)
+   * and node label constraints (e.g., label B implies label A).
    */
   private def reduceLabelInfoByImplied(
     context: QueryGraphCardinalityContext,
@@ -157,10 +158,12 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
     toNode: LogicalVariable,
     relationshipTypes: Seq[RelTypeName],
     relationshipDirection: SemanticDirection
-  ): LabelInfo =
+  ): LabelInfo = {
+    val labelInfoWithoutImpliedLabelsByNodeLabelConstraints =
+      context.graphSchemaOptimizations.pruneImpliedLabels(labelInfo)
     context.graphSchemaOptimizations
       .implicationsFromRelationship(fromNode, toNode, relationshipTypes, relationshipDirection)
-      .foldLeft(labelInfo) {
+      .foldLeft(labelInfoWithoutImpliedLabelsByNodeLabelConstraints) {
         case (labelInfo, (variable, labelName)) =>
           labelInfo.get(variable) match {
             case Some(knownLabels) if knownLabels.contains(labelName) =>
@@ -169,6 +172,7 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
               labelInfo
           }
       }
+  }
 
   def getEmptyPathPatternCardinality(
     context: QueryGraphCardinalityContext,
