@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher
 
+import org.junit.jupiter.api.Assumptions
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.QueryStatistics
@@ -442,6 +443,10 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
   }
 
   test("Create node property type constraint") {
+    Assumptions.assumeTrue(
+      expectedShardCount == 0,
+      "Skipping test because node property type constraints are supported in SPD"
+    )
     // WHEN
     val exception = the[CypherExecutionException] thrownBy {
       execute(s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS :: INT")
@@ -463,6 +468,10 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
   }
 
   test("Create relationship property type constraint") {
+    Assumptions.assumeTrue(
+      expectedShardCount == 0,
+      "Skipping test because relationship property type constraints are supported in SPD"
+    )
     // WHEN
     val exception = the[CypherExecutionException] thrownBy {
       execute(s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS :: INT")
