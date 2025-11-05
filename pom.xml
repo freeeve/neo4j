@@ -209,7 +209,7 @@
     <antlr.version>4.13.2</antlr.version> <!-- You MUST re-generate the parsers after changing this value! -->
     <error_prone.version>2.42.0</error_prone.version>
     <protobuf.version>4.32.1</protobuf.version>
-    <teavm.version>0.12.3</teavm.version>
+    <teavm.version>0.13.0</teavm.version>
     <javapoet.version>1.13.0</javapoet.version>
     <grpc.version>1.76.0</grpc.version>
     <testcontainers.version>1.21.3</testcontainers.version>
