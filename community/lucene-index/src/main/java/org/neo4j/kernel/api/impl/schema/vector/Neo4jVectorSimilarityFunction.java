@@ -23,6 +23,7 @@ import static org.apache.lucene.util.VectorUtil.cosine;
 import static org.apache.lucene.util.VectorUtil.dotProduct;
 import static org.apache.lucene.util.VectorUtil.squareDistance;
 
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.values.VectorCandidate;
 
@@ -139,7 +140,8 @@ public enum Neo4jVectorSimilarityFunction implements VectorSimilarityFunction {
     public float[] toValidVector(VectorCandidate candidate) {
         float[] vector = maybeToValidVector(candidate);
         if (vector == null) {
-            throw new IllegalArgumentException(invalidReason + ". Provided: " + candidate);
+            throw InvalidArgumentException.invalidVectorCoordinate(
+                    invalidReason + ". Provided: " + candidate, candidate.prettyPrint());
         }
         return vector;
     }

@@ -1388,6 +1388,13 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, gql.getMessage());
     }
 
+    public static InvalidArgumentException invalidVectorCoordinate(String msg, String got) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBG)
+                .withParam(GqlParams.StringParam.value, got)
+                .build();
+        return new InvalidArgumentException(gql, msg);
+    }
+
     public static InvalidArgumentException listTooLarge(long size, long maxSize) {
         var gql = GqlHelper.getGql22003_22N03("list size", "INTEGER", 0, maxSize, String.valueOf(size));
         return new InvalidArgumentException(
@@ -1429,5 +1436,21 @@ public class InvalidArgumentException extends Neo4jException {
                 .withParam(GqlParams.StringParam.context, context)
                 .build();
         return new InvalidArgumentException(gql, msg);
+    }
+
+    public static InvalidArgumentException wrongIndexType(
+            String indexName, String expectedIndexType, String actualIndexType) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NCG)
+                .withParam(GqlParams.StringParam.idx, indexName)
+                .withParam(GqlParams.StringParam.idxType1, expectedIndexType)
+                .withParam(GqlParams.StringParam.idxType2, actualIndexType)
+                .build();
+        return new InvalidArgumentException(gql, gql.getMessage());
+    }
+
+    public static InvalidArgumentException integerNonNullOutOfBounds(
+            String legacyMst, String component, Number lower, Number upper, String input) {
+        var gql = GqlHelper.getGql22003_22N03(component, "INTEGER NOT NULL", lower, upper, input);
+        return new InvalidArgumentException(gql, legacyMst);
     }
 }

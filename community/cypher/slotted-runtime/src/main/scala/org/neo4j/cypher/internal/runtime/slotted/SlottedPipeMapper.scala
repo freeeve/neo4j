@@ -102,6 +102,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexEndsWithScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NonFuseable
 import org.neo4j.cypher.internal.logical.plans.Optional
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
@@ -298,6 +299,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeIndexContainsScanSlot
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeIndexEndsWithScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeIndexScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeIndexSeekSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeVectorIndexSearchSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodesByLabelScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.OptionalExpandAllSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.OptionalExpandIntoSlottedPipe
@@ -344,6 +346,7 @@ import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.ShortestPathCommonEndNodesForbiddenException.shortestPathCommonEndNodes
+import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.values.storable.Values
@@ -424,6 +427,15 @@ class SlottedPipeMapper(
           convertExpressions(valueExpr),
           slots,
           indexOrder
+        )(id)
+
+      case NodeVectorIndexSearch(node, label, properties, score, indexName, vector, limit, _, _) =>
+        NodeVectorIndexSearchSlottedPipe(
+          slots.longOffset(node.name),
+          score.map(s => slots.refOffset(s.name)),
+          convertExpressions(vector),
+          convertExpressions(limit),
+          indexRegistrator.registerNamedQueryIndex(indexName, IndexType.VECTOR, label, properties)
         )(id)
 
       case NodeIndexSeek(column, label, properties, valueExpr, _, indexOrder, indexType, _) =>

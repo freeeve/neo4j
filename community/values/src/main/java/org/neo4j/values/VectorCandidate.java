@@ -44,6 +44,16 @@ public interface VectorCandidate {
     int dimensions();
 
     /**
+     * Like toString but should give the canonical string representation
+     */
+    String prettyPrint();
+
+    /**
+     * @return the canonical representation of the type name
+     */
+    String getTypeName();
+
+    /**
      * Returns a VectorCandidate if the provided value can be converted to a vector candidate, otherwise null.
      */
     static VectorCandidate maybeFrom(AnyValue candidate) {
@@ -82,6 +92,16 @@ public interface VectorCandidate {
         @Override
         public String toString() {
             return sequence.toString();
+        }
+
+        @Override
+        public String prettyPrint() {
+            return sequence.prettyPrint();
+        }
+
+        @Override
+        public String getTypeName() {
+            return sequence.getTypeName();
         }
     }
 }

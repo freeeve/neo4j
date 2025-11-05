@@ -93,6 +93,8 @@ public class GqlParams {
         idxOrConstr(new IDENT()), // Index or constraint name
         idxOrConstrPat(new STRLIT()), // Index or constraint pattern
         idxType(new VERBATIM()), // Index type (e.g,, text, vector, ...)
+        idxType1(new VERBATIM()), // Index type (e.g,, text, vector, ...)
+        idxType2(new VERBATIM()), // Index type (e.g,, text, vector, ...)
         input(new STRLIT()), // Piece of input
         input1(new STRLIT()),
         input2(new STRLIT()),

@@ -42,6 +42,7 @@ import static org.neo4j.values.SequenceValue.IterationPreference.RANDOM_ACCESS;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.virtual.VirtualValues.EMPTY_LIST;
 
+import java.util.List;
 import java.util.Map;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.cypher.internal.runtime.DbAccess;
@@ -51,8 +52,12 @@ import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
+import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.SettingsAccessor;
+import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.SequenceValue;
+import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.DateTimeValue;
@@ -145,6 +150,42 @@ public final class CypherCoercions {
             return NO_VALUE;
         }
         throw cantCoerce(value, "Path");
+    }
+
+    public static float[] validateAndConvertVectorIndexQuery(IndexDescriptor index, AnyValue query) {
+        if (query instanceof VectorCandidate vectorCandidate) {
+            return validateAndConvertVectorIndexQuery(index, vectorCandidate);
+        } else {
+            VectorCandidate vectorCandidate = VectorCandidate.maybeFrom(query);
+            if (vectorCandidate != null) {
+                return validateAndConvertVectorIndexQuery(index, vectorCandidate);
+            }
+            throw CypherTypeException.invalidType(
+                    query.prettyPrint(),
+                    List.of("LIST<INTEGER NOT NULL | FLOAT NOT NULL>", "VECTOR"),
+                    query.getTypeName(),
+                    "LIST<INTEGER NOT NULL | FLOAT NOT NULL>, VECTOR");
+        }
+    }
+
+    public static float[] validateAndConvertVectorIndexQuery(IndexDescriptor index, VectorCandidate query) {
+        final var version = VectorIndexVersion.fromDescriptor(index.getIndexProvider());
+        final var vectorIndexConfig = version.indexSettingValidator()
+                .trustIsValidToVectorIndexConfig(new SettingsAccessor.IndexConfigAccessor(index.getIndexConfig()));
+
+        final var dimensions = vectorIndexConfig.dimensions();
+        if (dimensions.isPresent() && query.dimensions() != dimensions.getAsInt()) {
+            throw CypherTypeException.wrongVectorDimension(
+                    "Index query vector has %d dimensions, but indexed vectors have %d."
+                            .formatted(query.dimensions(), dimensions.getAsInt()),
+                    query.prettyPrint(),
+                    query.getTypeName(),
+                    dimensions.getAsInt(),
+                    query.dimensions());
+        }
+
+        final var similarityFunction = vectorIndexConfig.similarityFunction();
+        return similarityFunction.toValidVector(query);
     }
 
     public static AnyValue asIntegralValueOrNull(AnyValue value) {

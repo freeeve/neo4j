@@ -85,6 +85,10 @@ public interface SequenceValue extends Iterable<AnyValue> {
 
     ListValue reverse(); // SequenceValue does not extend AnyValue so ListValue is a better return type
 
+    String prettyPrint();
+
+    String getTypeName();
+
     default boolean equals(SequenceValue other) {
         if (other == null) {
             return false;

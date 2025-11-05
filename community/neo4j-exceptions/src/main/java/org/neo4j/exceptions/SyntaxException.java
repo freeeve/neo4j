@@ -101,6 +101,16 @@ public class SyntaxException extends Neo4jException {
         return new SyntaxException(gql, legacyMessage, input, offset);
     }
 
+    public static SyntaxException invalidInput(String input, List<String> expected) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I06)
+                        .withParam(GqlParams.StringParam.input, input)
+                        .withParam(GqlParams.ListParam.valueList, expected)
+                        .build())
+                .build();
+        return new SyntaxException(gql, String.format("Invalid input %s, expected one of: %s", input, expected));
+    }
+
     public static SyntaxException wrongNumberOfArguments(
             int expectedCount, int actualCount, String name, String signature, String legacyMessage) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)

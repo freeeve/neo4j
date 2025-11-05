@@ -95,6 +95,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NodeLogicalLeafPlan
+import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NonFuseable
 import org.neo4j.cypher.internal.logical.plans.NonPipelined
 import org.neo4j.cypher.internal.logical.plans.NonPipelinedStreaming
@@ -714,6 +715,10 @@ class SingleQuerySlotAllocator private[physicalplanning] (
    */
   private def allocateLeaf(lp: LogicalPlan, nullable: Boolean, slots: SlotConfigurationBuilder): Unit =
     lp match {
+      case leaf: NodeVectorIndexSearch =>
+        slots.newLong(leaf.idName, nullable, CTNode)
+        leaf.score.foreach(slots.newReference(_, nullable, CTInteger))
+
       case MultiNodeIndexSeek(leafPlans) =>
         leafPlans.foreach { p =>
           allocateLeaf(p, nullable, slots)

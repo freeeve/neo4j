@@ -1864,6 +1864,32 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "nodeVectorIndexSearch",
+    new TestPlanBuilder()
+      .produceResults("x", "y")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        "y",
+        "L",
+        Seq("prop"),
+        "'rhsIndex'",
+        "[1, 2, 3]",
+        "10",
+        score = "score",
+        argumentIds = Set("x")
+      )
+      .nodeVectorIndexSearch(
+        "x",
+        "L",
+        Seq("prop"),
+        "'lhsIndex'",
+        "[1, 2, 3]",
+        "10"
+      )
+      .build()
+  )
+
+  testPlan(
     "pointBoundingBoxNodeIndexSeek",
     new TestPlanBuilder()
       .produceResults("x", "y")

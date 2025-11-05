@@ -122,6 +122,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexEndsWithScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NonFuseable
 import org.neo4j.cypher.internal.logical.plans.NonPipelined
 import org.neo4j.cypher.internal.logical.plans.NonPipelinedStreaming
@@ -307,6 +308,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeIndexScanPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeIndexSeekPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeLeftOuterHashJoinPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeRightOuterHashJoinPipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeVectorIndexSearchPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NonPipelinedStreamingTestPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NonPipelinedTestPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.OptionalExpandAllPipe
@@ -388,6 +390,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.InternalException
+import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
@@ -1048,6 +1051,15 @@ case class InterpretedPipeMapper(
           buildExpression(valueExpr),
           indexOrder
         )(id = id)
+
+      case NodeVectorIndexSearch(node, label, properties, score, indexName, vector, limit, _, _) =>
+        NodeVectorIndexSearchPipe(
+          node.name,
+          score.map(_.name),
+          buildExpression(vector),
+          buildExpression(limit),
+          indexRegistrator.registerNamedQueryIndex(indexName, IndexType.VECTOR, label, properties)
+        )(id)
 
       case ShowIndexes(indexType, columns, yields, _, _) =>
         CommandPipe(ShowIndexesCommand(indexType, columns, yields, cypherVersion))(id)

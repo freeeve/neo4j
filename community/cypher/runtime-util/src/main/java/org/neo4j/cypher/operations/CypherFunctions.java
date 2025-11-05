@@ -2819,6 +2819,14 @@ public final class CypherFunctions {
         }
     }
 
+    public static int asNonNegativeIntExact(AnyValue value) {
+        int result = asIntExact(value, null, null, true);
+        if (result < 0) {
+            throw InvalidArgumentException.countNotPosInt(result);
+        }
+        return result;
+    }
+
     public static int asIntExact(AnyValue value) {
         return asIntExact(value, null, null, true);
     }
@@ -2846,7 +2854,8 @@ public final class CypherFunctions {
             if (contextForErrorMessage != null) {
                 errorMsg = contextForErrorMessage.get() + ": " + errorMsg;
             }
-            throw new IllegalArgumentException(errorMsg);
+            throw InvalidArgumentException.integerNonNullOutOfBounds(
+                    errorMsg, "LIMIT", 0, Integer.MAX_VALUE, value.prettyPrint());
         }
         return intValue;
     }

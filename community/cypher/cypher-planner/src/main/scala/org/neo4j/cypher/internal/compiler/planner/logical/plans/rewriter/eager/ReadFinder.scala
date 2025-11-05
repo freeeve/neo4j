@@ -138,6 +138,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexEndsWithScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.Optional
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
 import org.neo4j.cypher.internal.logical.plans.OrderedAggregation
@@ -488,6 +489,9 @@ object ReadFinder {
           _
         ) =>
         processNodeIndexPlan(node, labelName, Seq(property))
+
+      case search: NodeVectorIndexSearch =>
+        processNodeIndexPlan(search.idName, search.label.name, search.properties)
 
       case NodeByIdSeek(varName, _, _) =>
         // We could avoid eagerness when we have IdSeeks with a single ID.

@@ -167,6 +167,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NonFuseable
 import org.neo4j.cypher.internal.logical.plans.Optional
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
@@ -934,6 +935,32 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Seq.empty,
         Seq(details("node WHERE elementId(node) = \"some-id\"")),
         Set("node")
+      )
+    )
+  }
+
+  test("NodeVectorIndexSearch") {
+    assertGood(
+      attach(
+        NodeVectorIndexSearch(
+          varFor("n"),
+          LabelToken("Label", LabelId(0)),
+          Seq(IndexedProperty(PropertyKeyToken("prop", PropertyKeyId(0)), DoNotGetValue, NODE_TYPE)),
+          None,
+          "vectorIndex",
+          listOf(literalInt(1), literalInt(2)),
+          literalInt(5),
+          None,
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "NodeVectorIndexSearch",
+        Seq.empty,
+        Seq(details("SEARCH n IN VECTOR INDEX vectorIndex FOR [1, 2] LIMIT 5")),
+        Set("n")
       )
     )
   }

@@ -803,10 +803,22 @@ trait GraphCreation[CONTEXT <: RuntimeContext] {
     }
   }
 
+  def nodeIndex(name: String, indexType: IndexType, labels: Seq[String], properties: String*): Unit = {
+    nodeIndex(labels) { creator =>
+      properties.foldLeft(creator.withIndexType(indexType).withName(name)) { case (newCreator, prop) =>
+        newCreator.on(prop)
+      }
+    }
+  }
+
   def nodeIndex(label: String)(f: IndexCreator => IndexCreator): Unit = {
+    nodeIndex(Seq(label))(f)
+  }
+
+  def nodeIndex(labels: Seq[String])(f: IndexCreator => IndexCreator): Unit = {
     runtimeTestSupport.restartTx()
     try {
-      f(runtimeTestSupport.tx.schema().indexFor(Label.label(label))).create()
+      f(runtimeTestSupport.tx.schema().indexFor(labels.map(label => Label.label(label)): _*)).create()
     } finally {
       runtimeTestSupport.restartTx()
     }

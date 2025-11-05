@@ -34,6 +34,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.neo4j.common.EntityType;
+import org.neo4j.cypher.operations.CypherCoercions;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Label;
@@ -56,7 +57,6 @@ import org.neo4j.internal.kernel.api.ValueIndexCursor;
 import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
-import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -255,21 +255,6 @@ public class VectorIndexProcedures {
         entity.setProperty(propKey, EUCLIDEAN.toValidVector(vector));
     }
 
-    private static float[] validateAndConvertQuery(IndexDescriptor index, VectorCandidate query) {
-        final var version = VectorIndexVersion.fromDescriptor(index.getIndexProvider());
-        final var vectorIndexConfig = version.indexSettingValidator()
-                .trustIsValidToVectorIndexConfig(new IndexConfigAccessor(index.getIndexConfig()));
-
-        final var dimensions = vectorIndexConfig.dimensions();
-        if (dimensions.isPresent() && query.dimensions() != dimensions.getAsInt()) {
-            throw new IllegalArgumentException("Index query vector has %d dimensions, but indexed vectors have %d."
-                    .formatted(query.dimensions(), dimensions.getAsInt()));
-        }
-
-        final var similarityFunction = vectorIndexConfig.similarityFunction();
-        return similarityFunction.toValidVector(query);
-    }
-
     private IndexDescriptor getValidIndex(String name) {
         final var index = ktx.schemaRead().indexGetForName(name);
         if (index == IndexDescriptor.NO_INDEX || index.getIndexType() != IndexType.VECTOR) {
@@ -381,7 +366,7 @@ public class VectorIndexProcedures {
         abstract Stream<NEIGHBOR> stream(CURSOR cursor, int k);
 
         Stream<NEIGHBOR> query(int k, VectorCandidate query) throws KernelException {
-            final var validatedQuery = validateAndConvertQuery(index, query);
+            final var validatedQuery = CypherCoercions.validateAndConvertVectorIndexQuery(index, query);
             final var cursor = cursor(ktx.cursors(), ktx.cursorContext(), ktx.memoryTracker());
             seek(
                     ktx.dataRead(),

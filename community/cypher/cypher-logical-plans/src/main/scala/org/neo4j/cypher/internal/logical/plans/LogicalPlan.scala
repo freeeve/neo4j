@@ -3621,6 +3621,44 @@ case class PartitionedNodeIndexScan(
     copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
 }
 
+case class NodeVectorIndexSearch(
+  idName: LogicalVariable,
+  label: LabelToken,
+  properties: Seq[IndexedProperty],
+  score: Option[LogicalVariable],
+  indexName: String,
+  vector: Expression,
+  limit: Expression,
+  maybeFilter: Option[QueryExpression[Expression]],
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends NodeIndexLeafPlan(idGen) with StableLeafPlan {
+  override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName ++ score
+
+  override def usedVariables: Set[LogicalVariable] =
+    vector.dependencies ++ limit.dependencies ++ vector.dependencies ++ maybeFilter.map(
+      _.expressions.flatMap(_.dependencies)
+    ).getOrElse(Set.empty)
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): NodeVectorIndexSearch =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): NodeVectorIndexSearch =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def copyWithoutGettingValues: NodeVectorIndexSearch =
+    copy(properties = properties.map(_.copy(getValueFromIndex = DoNotGetValue)))(SameId(this.id))
+
+  override def withMappedProperties(f: IndexedProperty => IndexedProperty): NodeVectorIndexSearch =
+    copy(properties = properties.map(f))(SameId(this.id))
+
+  override def indexType: IndexType = IndexType.VECTOR
+
+  override def indexOrder: IndexOrder = IndexOrderNone
+}
+
 /**
  * For every node with the given label and property values, produces rows with that node.
  */

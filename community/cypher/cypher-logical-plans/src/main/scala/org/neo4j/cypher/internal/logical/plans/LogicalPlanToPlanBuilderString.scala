@@ -1688,6 +1688,28 @@ object LogicalPlanToPlanBuilderString {
           indexType,
           supportPartitionedScan = false
         )
+      case NodeVectorIndexSearch(
+          idName,
+          labelToken,
+          properties,
+          score,
+          indexName,
+          vector,
+          limit,
+          None,
+          argumentIds
+        ) =>
+        params(
+          idName,
+          labelToken.name.quoted,
+          seqParam(properties.map(_.propertyKeyToken.name.quoted)),
+          indexName.quoted,
+          vector.quoted,
+          limit.quoted,
+          score.map(_.name.quoted).getOrElse("".quoted),
+          argumentIds
+        )
+
       case RollUpApply(_, _, collectionName, variableToCollect) => params(collectionName, variableToCollect)
       case ForeachApply(_, _, variable, expression)             => params(variable, expression.quoted)
       case ConditionalApply(_, _, items)                        => spread(items)

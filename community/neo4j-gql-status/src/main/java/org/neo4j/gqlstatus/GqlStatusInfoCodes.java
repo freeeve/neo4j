@@ -2180,6 +2180,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "graph type constraint not supported",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NCG(
+            new GqlStatus("22NCG"),
+            "Expected the index { %s } to be a { %s } index but was a { %s } index.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.idx, GqlParams.StringParam.idxType1, GqlParams.StringParam.idxType2
+            },
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "wrong index type",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             "",

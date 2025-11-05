@@ -192,6 +192,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
+import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NonFuseable
 import org.neo4j.cypher.internal.logical.plans.NonPipelined
 import org.neo4j.cypher.internal.logical.plans.NonPipelinedStreaming
@@ -2258,6 +2259,49 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def multiNodeIndexSeekOperator(seeks: (IMPL => IdGen => NodeIndexLeafPlan)*): IMPL = {
     val planBuilder = (idGen: IdGen) => {
       MultiNodeIndexSeek(seeks.map(_(this)(idGen).asInstanceOf[NodeIndexSeekLeafPlan]))(idGen)
+    }
+    appendAtCurrentIndent(LeafOperator(planBuilder))
+  }
+
+  def nodeVectorIndexSearch(
+    node: String,
+    labelName: String,
+    properties: Seq[String],
+    indexName: String,
+    vector: Any,
+    limit: Any,
+    score: String = "",
+    argumentIds: Set[String] = Set.empty
+  ): IMPL = {
+    val labelToken = resolver.getLabelId(labelName)
+    val label = LabelToken(labelName, LabelId(labelToken))
+    val propIDs = properties
+      .map(p =>
+        IndexedProperty(
+          PropertyKeyToken(PropertyKeyName(p)(NONE), PropertyKeyId(resolver.getPropertyKeyId(p))),
+          DoNotGetValue,
+          NODE_TYPE
+        )
+      )
+
+    def compile(e: Any): Expression = e match {
+      case s: String     => parseExpression(s)
+      case e: Expression => e
+      case _             => throw new IllegalStateException("Must be a string or an expression")
+    }
+
+    val planBuilder = (idGen: IdGen) => {
+      NodeVectorIndexSearch(
+        varFor(node),
+        label,
+        propIDs,
+        if (score.isEmpty) None else Some(varFor(score)),
+        indexName,
+        compile(vector),
+        compile(limit),
+        None,
+        argumentIds.map(varFor)
+      )(idGen)
     }
     appendAtCurrentIndent(LeafOperator(planBuilder))
   }

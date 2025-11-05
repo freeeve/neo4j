@@ -201,6 +201,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexEndsWithScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NullifyMetadata
 import org.neo4j.cypher.internal.logical.plans.Optional
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
@@ -678,6 +679,28 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
+      case NodeVectorIndexSearch(
+          idName,
+          _,
+          _,
+          _,
+          indexName,
+          vector,
+          limit,
+          _,
+          _
+        ) =>
+        val prettyDetails =
+          pretty"SEARCH ${asPrettyString(idName)} IN VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)} LIMIT ${asPrettyString(limit)}"
+        PlanDescriptionImpl(
+          id,
+          "NodeVectorIndexSearch",
+          Seq.empty,
+          Seq(Details(prettyDetails)),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
       case p @ NodeIndexSeek(idName, label, properties, valueExpr, _, _, indexType, _) =>
         val (indexMode, indexDesc) = getNodeIndexDescriptions(
           idName.name,

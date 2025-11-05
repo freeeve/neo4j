@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexedProperty
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.NameId
 import org.neo4j.cypher.internal.util.RelTypeId
+import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal
 import org.neo4j.internal.helpers.collection.Iterators
@@ -33,6 +34,8 @@ import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.internal.kernel.api.TokenReadSession
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.SchemaDescriptors
+
+import java.util.Locale
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -54,7 +57,15 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
     registerQueryIndex(indexType, label, Seq(property))
 
   def registerQueryIndex(indexType: IndexType, label: LabelToken, properties: collection.Seq[IndexedProperty]): Int =
-    registerQueryIndex(indexType, label.nameId, properties)
+    registerQueryIndex(indexType, label.nameId, properties, None)
+
+  def registerNamedQueryIndex(
+    indexName: String,
+    indexType: IndexType,
+    label: LabelToken,
+    properties: collection.Seq[IndexedProperty]
+  ): Int =
+    registerQueryIndex(indexType, label.nameId, properties, Some(indexName))
 
   def registerQueryIndex(indexType: IndexType, typeToken: RelationshipTypeToken, property: IndexedProperty): Int =
     registerQueryIndex(indexType, typeToken, Seq(property))
@@ -64,17 +75,19 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
     relationshipTypeToken: RelationshipTypeToken,
     properties: collection.Seq[IndexedProperty]
   ): Int =
-    registerQueryIndex(indexType, relationshipTypeToken.nameId, properties)
+    registerQueryIndex(indexType, relationshipTypeToken.nameId, properties, None)
 
   private def registerQueryIndex(
     indexType: IndexType,
     tokenNameId: NameId,
-    properties: collection.Seq[IndexedProperty]
+    properties: collection.Seq[IndexedProperty],
+    name: Option[String]
   ): Int = {
     val reference = InternalIndexReference(
       tokenNameId,
       properties.map(_.propertyKeyToken.nameId.id),
-      internal.schema.IndexType.fromPublicApi(indexType)
+      internal.schema.IndexType.fromPublicApi(indexType),
+      name
     )
     val index = indexReferences.indexOf(reference)
     if (index > 0) {
@@ -89,17 +102,29 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
   def result(): QueryIndexes = {
     val indexes =
       indexReferences.map {
-        case InternalIndexReference(LabelId(token), properties, indexType) =>
+        case InternalIndexReference(LabelId(token), properties, indexType, None) =>
           schemaRead.indexForSchemaAndIndexTypeNonTransactional(
             SchemaDescriptors.forLabel(token, properties.toSeq: _*),
             indexType
           )
 
-        case InternalIndexReference(RelTypeId(token), properties, indexType) =>
+        case InternalIndexReference(RelTypeId(token), properties, indexType, None) =>
           schemaRead.indexForSchemaAndIndexTypeNonTransactional(
             SchemaDescriptors.forRelType(token, properties.toSeq: _*),
             indexType
           )
+
+        case InternalIndexReference(_, _, indexType, Some(name)) =>
+          val index = schemaRead.indexGetForName(name)
+          schemaRead.assertIndexExists(index)
+          if (index.getIndexType != indexType) {
+            throw InvalidArgumentException.wrongIndexType(
+              name,
+              IndexType.VECTOR.name().toLowerCase(Locale.ROOT),
+              index.getIndexType.name().toLowerCase(Locale.ROOT)
+            )
+          }
+          index
 
         case _ => throw new IllegalStateException()
       }.toArray
@@ -126,7 +151,8 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
   private case class InternalIndexReference(
     token: NameId,
     properties: collection.Seq[Int],
-    indexType: internal.schema.IndexType
+    indexType: internal.schema.IndexType,
+    name: Option[String]
   )
   private case class InternalTokenReference(token: NameId)
 }
