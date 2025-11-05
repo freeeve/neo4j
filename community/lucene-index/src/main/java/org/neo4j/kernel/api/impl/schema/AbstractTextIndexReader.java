@@ -49,11 +49,11 @@ public abstract class AbstractTextIndexReader extends AbstractLuceneIndexReader 
     @Override
     protected IndexProgressor indexProgressor(
             LuceneQueryFactory queryFactory,
-            PropertyIndexQuery predicate,
             IndexQueryConstraints constraints,
-            EntityValueClient client) {
+            EntityValueClient client,
+            PropertyIndexQuery... predicates) {
         LuceneIndexSearcher searcher = getIndexSearcher();
-        LuceneQueryContext queryContext = queryFactory.createQuery(searcher, predicate, constraints, descriptor);
+        LuceneQueryContext queryContext = queryFactory.createQuery(searcher, constraints, descriptor, predicates);
         try {
             return searcher.searchDocValues(queryContext, entityIdFieldKey(), client);
         } catch (IOException e) {

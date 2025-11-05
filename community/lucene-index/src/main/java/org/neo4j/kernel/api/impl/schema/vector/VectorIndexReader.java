@@ -108,6 +108,13 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
     }
 
     @Override
+    public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
+        validatePrimaryPredicate(predicates[0]);
+        validateFilteredQueryPredicates(predicates);
+    }
+
+    @Override
     public PropertyIndexQuery validateSingleQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         final var predicate = super.validateSingleQuery(constraints, predicates);
@@ -119,6 +126,31 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
             }
         }
         return predicate;
+    }
+
+    private void validateFilteredQueryPredicates(PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
+
+        for (int i = 1; i < predicates.length; i++) {
+
+            var predicate = predicates[i];
+            if (predicate != null) {
+
+                var type = predicate.type();
+                switch (type) {
+                    case EXACT, RANGE -> {
+                        // Each filter predicate is independent of others;
+                        // so we can support arbitrary combinations range and exact predicates
+                    }
+                    case null, default ->
+                        throw invalidVectorQueryFilter(
+                                msg -> IndexNotApplicableKernelException.indexNotApplicable(
+                                        log, descriptor.getName(), msg),
+                                predicate,
+                                predicates);
+                }
+            }
+        }
     }
 
     private IndexQueryConstraints adjustedConstraints(
@@ -134,16 +166,16 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
     @Override
     protected IndexProgressor indexProgressor(
             LuceneQueryFactory queryFactory,
-            PropertyIndexQuery predicate,
             IndexQueryConstraints constraints,
-            EntityValueClient client) {
+            EntityValueClient client,
+            PropertyIndexQuery... predicates) {
         ValuesIterator iterator;
         if (searchers.isEmpty()) {
             iterator = ValuesIterator.EMPTY;
         } else {
             iterator = searchLucene(
                     queryFactory.createQuery(
-                            searchers.getFirst().getIndexSearcher(), predicate, constraints, descriptor),
+                            searchers.getFirst().getIndexSearcher(), constraints, descriptor, predicates),
                     constraints);
         }
         return new LuceneScoredEntityIndexProgressor(iterator, client, constraints);

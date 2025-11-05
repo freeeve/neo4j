@@ -71,7 +71,7 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
         queryContext.monitor().queried(descriptor);
         usageTracker.queried();
 
-        final var progressor = indexProgressor(queryFactory, predicate, constraints, client);
+        final var progressor = indexProgressor(queryFactory, constraints, client, predicates);
         final var needStoreFilter = needStoreFilter(predicate);
         client.initializeQuery(descriptor, progressor, false, needStoreFilter, constraints, predicate);
     }
@@ -85,11 +85,15 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
                     predicates);
         }
 
-        final var predicate = predicates[0];
-        if (!descriptor.getCapability().isQuerySupported(predicate.type(), predicate.valueCategory())) {
+        validatePrimaryPredicate(predicates[0]);
+    }
+
+    protected void validatePrimaryPredicate(PropertyIndexQuery primaryPredicate)
+            throws IndexNotApplicableKernelException {
+        if (!descriptor.getCapability().isQuerySupported(primaryPredicate.type(), primaryPredicate.valueCategory())) {
             throw invalidQuery(
                     msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
-                    predicate);
+                    primaryPredicate);
         }
     }
 
@@ -114,11 +118,33 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
         return constructor.apply("Index query not supported for %s index. Query: %s".formatted(indexType, predicate));
     }
 
+    protected <E extends Exception> E invalidVectorQueryProperty(
+            Function<String, E> constructor, PropertyIndexQuery invalidPredicate, PropertyIndexQuery... predicates) {
+        final var indexType = descriptor.getIndexType();
+        return constructor.apply(("Tried to query a %s index with a query property which is not part of the index. "
+                        + "Invalid property predicate was: %s. "
+                        + "Query was: %s ")
+                .formatted(indexType, invalidPredicate, Arrays.toString(predicates)));
+    }
+
+    protected <E extends Exception> E invalidVectorQueryFilter(
+            Function<String, E> constructor, PropertyIndexQuery invalidPredicate, PropertyIndexQuery... predicates) {
+        final var indexType = descriptor.getIndexType();
+        return constructor.apply(
+                ("Tried to query a %s index with a query predicate which is not an accepted filter type (must be "
+                                + "an exact query"
+                                + " or a range query). "
+                                + "Invalid filter type was: %s. "
+                                + "Invalid predicate was: %s. "
+                                + "Index query was: %s ")
+                        .formatted(indexType, invalidPredicate.type(), invalidPredicate, Arrays.toString(predicates)));
+    }
+
     protected abstract IndexProgressor indexProgressor(
             LuceneQueryFactory query,
-            PropertyIndexQuery predicate,
             IndexQueryConstraints constraints,
-            IndexProgressor.EntityValueClient client);
+            IndexProgressor.EntityValueClient client,
+            PropertyIndexQuery... predicates);
 
     protected abstract String entityIdFieldKey();
 

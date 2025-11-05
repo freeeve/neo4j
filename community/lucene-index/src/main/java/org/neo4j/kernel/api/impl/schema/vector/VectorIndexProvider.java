@@ -194,16 +194,20 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
     record IgnoreStrategy(VectorIndexVersion version, OptionalInt dimensions) implements IndexUpdateIgnoreStrategy {
         @Override
         public boolean ignore(Value... values) {
-            if (values.length != 1) {
+            if (values.length < 1) {
                 return true;
             }
 
+            // Vector value
             final var value = values[0];
-            if (!version.acceptsValueInstanceType(value)) {
+            if (!version.acceptsValueInstanceType(value) || hasInvalidDimensions(VectorCandidate.maybeFrom(value))) {
                 return true;
             }
 
-            final var candidate = VectorCandidate.maybeFrom(value);
+            return false;
+        }
+
+        private boolean hasInvalidDimensions(VectorCandidate candidate) {
             return candidate == null
                     || dimensions.isPresent() && candidate.dimensions() != dimensions.getAsInt()
                     || dimensions.isEmpty()

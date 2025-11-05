@@ -32,9 +32,9 @@ public abstract class LuceneQueryFactory {
 
     public abstract LuceneQueryContext createQuery(
             LuceneIndexSearcher searcher,
-            PropertyIndexQuery predicate,
             IndexQueryConstraints constraints,
-            IndexDescriptor descriptor);
+            IndexDescriptor descriptor,
+            PropertyIndexQuery... predicates);
 
     public static class TextQueryFactory extends LuceneQueryFactory {
         public static final LuceneQueryFactory INSTANCE = new TextQueryFactory();
@@ -44,9 +44,10 @@ public abstract class LuceneQueryFactory {
         @Override
         public LuceneQueryContext createQuery(
                 LuceneIndexSearcher searcher,
-                PropertyIndexQuery predicate,
                 IndexQueryConstraints constraints,
-                IndexDescriptor descriptor) {
+                IndexDescriptor descriptor,
+                PropertyIndexQuery... predicates) {
+            var predicate = predicates[0];
             return switch (predicate.type()) {
                 case ALL_ENTRIES -> searcher.newQueryContext().matchAll();
                 case EXACT ->
@@ -78,9 +79,10 @@ public abstract class LuceneQueryFactory {
         @Override
         public LuceneQueryContext createQuery(
                 LuceneIndexSearcher searcher,
-                PropertyIndexQuery predicate,
                 IndexQueryConstraints constraints,
-                IndexDescriptor descriptor) {
+                IndexDescriptor descriptor,
+                PropertyIndexQuery... predicates) {
+            var predicate = predicates[0];
             return switch (predicate.type()) {
                 case ALL_ENTRIES -> searcher.newQueryContext().matchAll();
                 case EXACT -> {
@@ -118,9 +120,10 @@ public abstract class LuceneQueryFactory {
         @Override
         public LuceneQueryContext createQuery(
                 LuceneIndexSearcher searcher,
-                PropertyIndexQuery predicate,
                 IndexQueryConstraints constraints,
-                IndexDescriptor descriptor) {
+                IndexDescriptor descriptor,
+                PropertyIndexQuery... predicates) {
+            var predicate = predicates[0];
             return switch (predicate.type()) {
                 case ALL_ENTRIES -> searcher.newQueryContext().matchAll();
                 case NEAREST_NEIGHBORS -> {
@@ -130,9 +133,20 @@ public abstract class LuceneQueryFactory {
                             constraints.limit().orElse(Integer.MAX_VALUE));
                     final var effectiveK = k + constraints.skip().orElse(0);
 
-                    yield searcher.newQueryContext()
-                            .approximateNearestNeighbors(
-                                    documentStructure, nearestNeighborsPredicate.query(), Math.toIntExact(effectiveK));
+                    if (predicates.length > 1) {
+                        yield searcher.newQueryContext()
+                                .approximateNearestNeighbors(
+                                        documentStructure,
+                                        nearestNeighborsPredicate.query(),
+                                        Math.toIntExact(effectiveK),
+                                        predicates);
+                    } else {
+                        yield searcher.newQueryContext()
+                                .approximateNearestNeighbors(
+                                        documentStructure,
+                                        nearestNeighborsPredicate.query(),
+                                        Math.toIntExact(effectiveK));
+                    }
                 }
                 default -> throw invalidQuery(descriptor, predicate);
             };
