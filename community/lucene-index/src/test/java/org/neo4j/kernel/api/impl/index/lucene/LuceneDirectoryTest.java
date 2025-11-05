@@ -32,9 +32,12 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Set;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.AssertableLogProvider.Level;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -44,90 +47,88 @@ public class LuceneDirectoryTest {
 
     @ParameterizedTest
     @EnumSource(LuceneContext.class)
-    void shouldLogMergesWhenScheduled(LuceneContext luceneContext) throws IOException {
+    void shouldLogMergesWhenScheduled(LuceneContext luceneContext) throws IOException, InterruptedException {
         var logProvider = new AssertableLogProvider();
 
         try (var directoryFactory = luceneContext.directoryFactory();
                 var directory = directoryFactory.inMemoryDirectory()) {
 
-            var indexWriterConfig = new LuceneIndexWriterConfig(new KeywordAnalyzer());
-            indexWriterConfig
-                    .setLogProvider(logProvider)
-                    .setMergingParameters(1.0, 0.1, 32, 1024); // merge factor 1024 to avoid merges during indexing
-
-            try (var indexWriter = directory.newWriter(indexWriterConfig)) {
-
-                var documentsFactory = luceneContext.documentsFactory();
-
-                for (String id : List.of("1", "2")) {
-                    var doc = documentsFactory.newDocument();
-                    doc.addStringField("id", id, true);
-                    indexWriter.addDocument(doc);
-                    indexWriter.commit();
-                }
-
-                indexWriter.forceMerge(1);
-            }
+            runTest(logProvider, luceneContext, directory, iw -> iw.forceMerge(1));
         }
 
         assertThat(logProvider)
                 .forLevel(Level.DEBUG)
-                .containsMessages("starting merge")
-                .containsMessages("merging 2 documents")
-                .containsMessages("finishing merge");
+                .containsMessagesEventually(500, "starting merge")
+                .containsMessagesEventually(500, "merging 2 documents")
+                .containsMessagesEventually(500, "finishing merge");
     }
 
     @TempDir
     Path tmpDir;
 
+    @DisabledOnOs(OS.WINDOWS)
     @ParameterizedTest
     @EnumSource(LuceneContext.class)
-    void shouldLogMergeErrors(LuceneContext luceneContext) throws IOException {
+    void shouldLogMergeErrors(LuceneContext luceneContext) throws IOException, InterruptedException {
+        class RemovePermissions extends SimpleFileVisitor<Path> {
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                Files.setPosixFilePermissions(dir, Set.of());
+                return super.postVisitDirectory(dir, exc);
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                Files.setPosixFilePermissions(file, Set.of());
+                return super.visitFile(file, attrs);
+            }
+        }
+
         var logProvider = new AssertableLogProvider();
 
         try (var directoryFactory = luceneContext.directoryFactory();
                 var directory = directoryFactory.openPersistent(tmpDir)) {
 
-            var indexWriterConfig = new LuceneIndexWriterConfig(new KeywordAnalyzer());
-            indexWriterConfig
-                    .setLogProvider(logProvider)
-                    .setMergingParameters(1.0, 0.1, 32, 1024); // merge factor 1024 to avoid merges during indexing
-
-            try (var indexWriter = directory.newWriter(indexWriterConfig)) {
-
-                var documentsFactory = luceneContext.documentsFactory();
-
-                for (String id : List.of("1", "2")) {
-                    var doc = documentsFactory.newDocument();
-                    doc.addStringField("id", id, true);
-                    indexWriter.addDocument(doc);
-                    indexWriter.commit();
-                }
-
-                // remove file permissions so that merging will fail
-                Files.walkFileTree(tmpDir, new SimpleFileVisitor<>() {
-                    @Override
-                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                        Files.setPosixFilePermissions(dir, Set.of());
-                        return super.postVisitDirectory(dir, exc);
-                    }
-
-                    @Override
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        Files.setPosixFilePermissions(file, Set.of());
-                        return super.visitFile(file, attrs);
-                    }
-                });
-
-                assertThatThrownBy(() -> indexWriter.forceMerge(1)).hasRootCauseInstanceOf(AccessDeniedException.class);
-            }
+            assertThatThrownBy(() -> runTest(logProvider, luceneContext, directory, iw -> {
+                        // remove file permissions so that merging will fail
+                        Files.walkFileTree(tmpDir, new RemovePermissions());
+                        iw.forceMerge(1);
+                    }))
+                    .hasRootCauseInstanceOf(AccessDeniedException.class);
         }
 
-        assertThat(logProvider).forLevel(Level.ERROR).containsMessages("failed");
+        assertThat(logProvider).forLevel(Level.ERROR).containsMessagesEventually(500, "failed");
         assertThat(logProvider)
                 .forLevel(Level.DEBUG)
-                .containsMessages("starting merge")
-                .containsMessages("finishing merge")
+                .containsMessagesEventually(500, "starting merge")
+                .containsMessagesEventually(500, "finishing merge")
                 .doesNotContainMessage("merging 2 documents");
+    }
+
+    private static void runTest(
+            AssertableLogProvider logProvider,
+            LuceneContext luceneContext,
+            LuceneDirectory directory,
+            ThrowingConsumer<LuceneIndexWriter, ? extends IOException> testBlock)
+            throws IOException {
+
+        var indexWriterConfig = new LuceneIndexWriterConfig(new KeywordAnalyzer());
+        indexWriterConfig
+                .setLogProvider(logProvider)
+                .setMergingParameters(1.0, 32, 32, 1024); // parameters to avoid merge during indexing
+
+        try (var indexWriter = directory.newWriter(indexWriterConfig)) {
+
+            var documentsFactory = luceneContext.documentsFactory();
+
+            for (String id : List.of("1", "2")) {
+                var doc = documentsFactory.newDocument();
+                doc.addStringField("id", id, true);
+                indexWriter.addDocument(doc);
+                indexWriter.commit();
+            }
+
+            testBlock.accept(indexWriter);
+        }
     }
 }
