@@ -31,10 +31,12 @@ import java.util.function.IntPredicate;
 public abstract class PropertySelection {
     public static final int UNKNOWN_NUMBER_OF_KEYS = -1;
 
-    private final boolean keysOnly;
+    protected final boolean fallbackKeysOnly;
+    protected final IntPredicate valueSelection;
 
-    protected PropertySelection(boolean keysOnly) {
-        this.keysOnly = keysOnly;
+    protected PropertySelection(boolean keysOnly, IntPredicate valueSelection) {
+        this.fallbackKeysOnly = keysOnly;
+        this.valueSelection = valueSelection;
     }
 
     /**
@@ -64,11 +66,11 @@ public abstract class PropertySelection {
     public abstract boolean test(int key);
 
     /**
-     * A hint that the creator of this selection isn't interested in the actual values, only the existence of the keys.
-     * @return {@code true} if only keys will be extracted where this selection is used, otherwise {@code false} if also values will be extracted.
+     * @param key the key ID to check whether its value should be read and included in the selection.
+     * @return whether to include the value for the given key in this selection.
      */
-    public boolean isKeysOnly() {
-        return keysOnly;
+    public boolean includeValue(int key) {
+        return valueSelection == null ? !fallbackKeysOnly : valueSelection.test(key);
     }
 
     /**
@@ -89,7 +91,7 @@ public abstract class PropertySelection {
 
     @Override
     public String toString() {
-        return String.format("Property%sSelection", keysOnly ? "Key" : "");
+        return String.format("Property%sSelection", fallbackKeysOnly ? "Key" : "");
     }
 
     /**
@@ -104,12 +106,25 @@ public abstract class PropertySelection {
 
     /**
      * Creates a {@link PropertySelection} with its criteria based on the given {@code keys}.
+     * Will include values for all the given keys.
      *
      * @param keys one or more keys that should be part of the created selection.
      * @return a {@link PropertySelection} instance with the given {@code keys} as its criteria.
      */
     public static PropertySelection selection(int... keys) {
-        return selection(false, keys);
+        return multiSelection(false, null, keys);
+    }
+
+    /**
+     * Creates a {@link PropertySelection} with its criteria based on the given {@code keys}.
+     *
+     * @param valueSelection which values for the given keys to include.
+     * If {@code null} then all values for the selected keys will be included.
+     * @param keys one or more keys that should be part of the created selection.
+     * @return a {@link PropertySelection} instance with the given {@code keys} as its criteria.
+     */
+    public static PropertySelection selection(IntPredicate valueSelection, int... keys) {
+        return multiSelection(false, valueSelection, keys);
     }
 
     /**
@@ -120,21 +135,28 @@ public abstract class PropertySelection {
      * @return a {@link PropertySelection} instance with the given {@code keys} as its criteria.
      */
     public static PropertySelection onlyKeysSelection(int... keys) {
-        return selection(true, keys);
+        return multiSelection(true, null, keys);
     }
 
-    private static PropertySelection selection(boolean keysOnly, int[] keys) {
+    private static PropertySelection multiSelection(boolean fallbackKeysOnly, IntPredicate valueSelection, int[] keys) {
         if (keys == null) {
-            return keysOnly ? ALL_PROPERTY_KEYS : ALL_PROPERTIES;
+            if (valueSelection == null) {
+                return fallbackKeysOnly ? ALL_PROPERTY_KEYS : ALL_PROPERTIES;
+            }
+            return allProperties(fallbackKeysOnly, valueSelection);
         }
         if (keys.length == 0) {
             return NO_PROPERTIES;
         }
         if (keys.length == 1) {
             int key = keys[0];
-            return key == NO_TOKEN ? NO_PROPERTIES : SingleKey.singleKey(keysOnly, key);
+            if (valueSelection == null) {
+                return key == NO_TOKEN ? NO_PROPERTIES : SingleKey.singleKey(fallbackKeysOnly, key);
+            } else {
+                return SingleKey.singleKey(!valueSelection.test(key), key);
+            }
         }
-        return new MultipleKeys(keysOnly, keys);
+        return new MultipleKeys(fallbackKeysOnly, valueSelection, keys);
     }
 
     private static class SingleKey extends PropertySelection {
@@ -149,17 +171,17 @@ public abstract class PropertySelection {
             }
         }
 
-        private static PropertySelection singleKey(boolean keysOnly, int key) {
+        private static PropertySelection singleKey(boolean fallbackKeysOnly, int key) {
             if (key < LOW_ID_THRESHOLD && key >= 0) {
-                return keysOnly ? SINGLE_LOW_ID_KEY_SELECTIONS[key] : SINGLE_LOW_ID_SELECTIONS[key];
+                return fallbackKeysOnly ? SINGLE_LOW_ID_KEY_SELECTIONS[key] : SINGLE_LOW_ID_SELECTIONS[key];
             }
-            return new SingleKey(keysOnly, key);
+            return new SingleKey(fallbackKeysOnly, key);
         }
 
         private final int key;
 
         private SingleKey(boolean keysOnly, int key) {
-            super(keysOnly);
+            super(keysOnly, null);
             this.key = key;
         }
 
@@ -220,8 +242,8 @@ public abstract class PropertySelection {
     private static class MultipleKeys extends PropertySelection {
         private final int[] keys;
 
-        private MultipleKeys(boolean keysOnly, int[] keys) {
-            super(keysOnly);
+        private MultipleKeys(boolean fallbackKeysOnly, IntPredicate valueSelection, int[] keys) {
+            super(fallbackKeysOnly, valueSelection);
             this.keys = cloneAndCleanUp(keys);
         }
 
@@ -291,7 +313,7 @@ public abstract class PropertySelection {
             if (t == keys.length) {
                 return this;
             }
-            return PropertySelection.selection(isKeysOnly(), Arrays.copyOf(newKeys, t));
+            return PropertySelection.multiSelection(fallbackKeysOnly, valueSelection, Arrays.copyOf(newKeys, t));
         }
 
         @Override
@@ -315,8 +337,8 @@ public abstract class PropertySelection {
     private static class AllExcept extends PropertySelection {
         private final IntPredicate excluded;
 
-        AllExcept(boolean keysOnly, IntPredicate excluded) {
-            super(keysOnly);
+        AllExcept(boolean fallbackKeysOnly, IntPredicate valueSelection, IntPredicate excluded) {
+            super(fallbackKeysOnly, valueSelection);
             this.excluded = excluded;
         }
 
@@ -352,7 +374,7 @@ public abstract class PropertySelection {
 
         @Override
         public PropertySelection excluding(IntPredicate filter) {
-            return new AllExcept(isKeysOnly(), excluded.or(filter));
+            return new AllExcept(fallbackKeysOnly, valueSelection, excluded.or(filter));
         }
 
         @Override
@@ -368,9 +390,9 @@ public abstract class PropertySelection {
         }
     }
 
-    public static final PropertySelection ALL_PROPERTIES = allProperties(false);
-    public static final PropertySelection ALL_PROPERTY_KEYS = allProperties(true);
-    public static final PropertySelection NO_PROPERTIES = new PropertySelection(true) {
+    public static final PropertySelection ALL_PROPERTIES = allProperties(false, null);
+    public static final PropertySelection ALL_PROPERTY_KEYS = allProperties(true, null);
+    public static final PropertySelection NO_PROPERTIES = new PropertySelection(true, null) {
         @Override
         public boolean isLimited() {
             return true;
@@ -407,8 +429,8 @@ public abstract class PropertySelection {
         }
     };
 
-    private static PropertySelection allProperties(boolean keysOnly) {
-        return new PropertySelection(keysOnly) {
+    private static PropertySelection allProperties(boolean keysOnly, IntPredicate valueSelection) {
+        return new PropertySelection(keysOnly, valueSelection) {
             @Override
             public boolean isLimited() {
                 return false;
@@ -441,7 +463,7 @@ public abstract class PropertySelection {
 
             @Override
             public PropertySelection excluding(IntPredicate filter) {
-                return new AllExcept(isKeysOnly(), filter);
+                return new AllExcept(fallbackKeysOnly, valueSelection, filter);
             }
 
             @Override

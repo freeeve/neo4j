@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.factory.primitive.IntLists;
+import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.junit.jupiter.api.Test;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -125,6 +126,22 @@ class PropertySelectionTest {
         // then
         assertThat(selection.lowestKey()).isEqualTo(IntStream.of(keys).min().getAsInt());
         assertThat(selection.highestKey()).isEqualTo(IntStream.of(keys).max().getAsInt());
+    }
+
+    @Test
+    void shouldSelectSpecificValuesToInclude() {
+        // given
+        var keys = random.selection(new int[] {0, 1, 2, 3, 4, 5}, 1, 6, false);
+        var values = IntSets.immutable.of(random.selection(keys, 1, keys.length, false));
+
+        // when
+        var selection = PropertySelection.selection(values::contains, keys);
+
+        // then
+        for (int key : keys) {
+            assertThat(selection.test(key)).isTrue();
+            assertThat(selection.includeValue(key)).isEqualTo(values.contains(key));
+        }
     }
 
     private int[] sprinkleWithNullTokens(int[] keys) {
