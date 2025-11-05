@@ -41,6 +41,7 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,13 +51,13 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
@@ -494,14 +495,7 @@ public class EncodingIdMapperTest {
         for (int i = 0; i < groupCount; i++) {
             groups.getOrCreate("Group " + i);
         }
-        try (var mapper = mapper(
-                encoder,
-                Radix.LONG,
-                EncodingIdMapper.NO_MONITOR,
-                ParallelSort.DEFAULT,
-                numberOfCollisions ->
-                        new LongCollisionValues(NumberArrayFactories.OFF_HEAP, numberOfCollisions, INSTANCE),
-                processors)) {
+        try (var mapper = mapper(encoder, Radix.LONG, EncodingIdMapper.NO_MONITOR, ParallelSort.DEFAULT, processors)) {
             IdMapper.Setter setter = mapper.newSetter();
             Function<Long, Integer> nodeIdToGroupId = nodeId -> toIntExact(nodeId / idsPerGroup);
             PropertyValueLookup ids = r -> new PropertyValueLookup.Lookup() {
@@ -751,7 +745,7 @@ public class EncodingIdMapperTest {
                 return ParallelSort.DEFAULT.dataValue(dataValue);
             }
         };
-        try (IdMapper idMapper = mapper(encoder, Radix.LONG, NO_MONITOR, comparator, autoDetect(encoder), nThreads)) {
+        try (IdMapper idMapper = mapper(encoder, Radix.LONG, NO_MONITOR, comparator, nThreads)) {
             IdMapper.Setter setter = idMapper.newSetter();
             int count = nThreads * 1_000;
             MutableLong nextNodeId = new MutableLong();
@@ -831,7 +825,41 @@ public class EncodingIdMapperTest {
         }
     }
 
-    private PropertyValueLookup mapValues(Map<Long, String> data) {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldHandleCollisionValuesWithMixedValueType(boolean includeStringVersionsToo) throws Exception {
+        // given
+        var group = groups.getOrCreate("Group");
+        Map<Long, Object> data = new HashMap<>();
+        long nextNodeId = 1L;
+        data.put(nextNodeId++, 1231756L);
+        data.put(nextNodeId++, 714838505L);
+        if (includeStringVersionsToo) {
+            for (long nodeId : data.keySet().toArray(Long[]::new)) {
+                data.put(nextNodeId++, String.valueOf(data.get(nodeId)));
+            }
+        }
+        try (var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1)) {
+            // when
+            try (var setter = idMapper.newSetter()) {
+                for (long nodeId : data.keySet()) {
+                    setter.put(data.get(nodeId), nodeId, group);
+                }
+            }
+            idMapper.prepare(
+                    mapValues(data), Collector.STRICT, ProgressMonitorFactory.NONE, LongSets.immutable.empty());
+
+            // then
+            try (var getter = idMapper.newGetter()) {
+                for (long nodeId : data.keySet()) {
+                    var value = data.get(nodeId);
+                    assertThat(getter.get(value, group)).isEqualTo(nodeId);
+                }
+            }
+        }
+    }
+
+    private PropertyValueLookup mapValues(Map<Long, ?> data) {
         return r -> new PropertyValueLookup.Lookup() {
             @Override
             public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
@@ -874,7 +902,6 @@ public class EncodingIdMapperTest {
                 monitor,
                 RANDOM_TRACKER_FACTORY,
                 groups,
-                autoDetect(encoder),
                 10_000,
                 processors,
                 ParallelSort.DEFAULT,
@@ -886,7 +913,6 @@ public class EncodingIdMapperTest {
             Factory<Radix> radix,
             EncodingIdMapper.Monitor monitor,
             ParallelSort.Comparator comparator,
-            LongFunction<CollisionValues> collisionValuesFactory,
             int processors) {
         return new EncodingIdMapper(
                 NumberArrayFactories.OFF_HEAP,
@@ -896,7 +922,6 @@ public class EncodingIdMapperTest {
                 monitor,
                 RANDOM_TRACKER_FACTORY,
                 groups,
-                collisionValuesFactory,
                 1_000,
                 processors,
                 comparator,
@@ -912,12 +937,6 @@ public class EncodingIdMapperTest {
             data.add(bySystem);
         }
         return data.stream();
-    }
-
-    private static LongFunction<CollisionValues> autoDetect(Encoder encoder) {
-        return numberOfCollisions -> encoder instanceof LongEncoder
-                ? new LongCollisionValues(NumberArrayFactories.OFF_HEAP, numberOfCollisions, INSTANCE)
-                : new StringCollisionValues(NumberArrayFactories.OFF_HEAP, numberOfCollisions, INSTANCE);
     }
 
     private static final TrackerFactory RANDOM_TRACKER_FACTORY = (arrayFactory, size) -> currentTimeMillis() % 2 == 0

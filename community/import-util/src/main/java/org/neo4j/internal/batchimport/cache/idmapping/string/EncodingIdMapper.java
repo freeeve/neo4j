@@ -35,7 +35,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.stream.LongStream;
 import org.eclipse.collections.api.iterator.LongIterator;
@@ -53,6 +52,7 @@ import org.neo4j.internal.batchimport.Utils;
 import org.neo4j.internal.batchimport.cache.ByteArray;
 import org.neo4j.internal.batchimport.cache.LongArray;
 import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
+import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
 import org.neo4j.internal.batchimport.cache.idmapping.string.ParallelSort.Comparator;
@@ -174,7 +174,6 @@ public class EncodingIdMapper implements IdMapper {
     private final ReadableGroups groups;
 
     private long numberOfCollisions;
-    private final LongFunction<CollisionValues> collisionValuesFactory;
     private CollisionValues collisionValues;
     private long numberOfDuplicates;
 
@@ -186,7 +185,6 @@ public class EncodingIdMapper implements IdMapper {
             Monitor monitor,
             TrackerFactory trackerFactory,
             ReadableGroups groups,
-            LongFunction<CollisionValues> collisionValuesFactory,
             int chunkSize,
             int processorsForParallelWork,
             Comparator comparator,
@@ -195,7 +193,6 @@ public class EncodingIdMapper implements IdMapper {
         this.monitor = monitor;
         this.cacheFactory = cacheFactory;
         this.trackerFactory = trackerFactory;
-        this.collisionValuesFactory = collisionValuesFactory;
         this.comparator = comparator;
         this.processorsForParallelWork = max(processorsForParallelWork, 1);
         this.strictNodeCheck = strictNodeCheck;
@@ -570,7 +567,8 @@ public class EncodingIdMapper implements IdMapper {
         numberOfCollisions = LongStream.of(numCollisionsPerWorker).sum();
         collisionNodeIdCache =
                 cacheFactory.newByteArray(pessimisticNumberOfCollisions, new byte[COLLISION_ENTRY_SIZE], memoryTracker);
-        collisionValues = collisionValuesFactory.apply(pessimisticNumberOfCollisions);
+        collisionValues =
+                new CollisionValues(NumberArrayFactories.OFF_HEAP, pessimisticNumberOfCollisions, memoryTracker);
         radix.initialize(numberOfCollisions);
         runInParallel("build collision info", highestSetIndex + 1, partition -> () -> {
             int workerId = partition.partitionId();

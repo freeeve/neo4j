@@ -36,7 +36,7 @@ public class StringEncoder implements Encoder {
         return hash != 0 ? hash : 1; // We cannot return 0 because that is a special value
     }
 
-    static String convertToString(Object any) {
+    private static String convertToString(Object any) {
         if (any instanceof String string) {
             return string;
         }

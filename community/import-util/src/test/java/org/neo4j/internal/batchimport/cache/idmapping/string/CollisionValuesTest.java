@@ -19,17 +19,21 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.internal.batchimport.cache.BufferFactories.fileBacked;
 import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
@@ -43,7 +47,7 @@ import org.neo4j.values.storable.RandomValues;
 
 @TestDirectoryExtension
 @RandomSupportExtension
-class StringCollisionValuesTest {
+class CollisionValuesTest {
     @Inject
     private RandomSupport random;
 
@@ -58,13 +62,17 @@ class StringCollisionValuesTest {
                 .reset();
     }
 
-    private static Stream<BiFunction<FileSystemAbstraction, Path, NumberArrayFactory>> data() {
-        return Stream.of(
-                (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.OFF_HEAP,
-                (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.OFF_HEAP,
-                (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.AUTO_WITHOUT_SWAP,
-                (FileSystemAbstraction fs, Path homePath) ->
-                        NumberArrayFactories.fromBufferFactory(fileBacked(fs, homePath)));
+    private static Stream<Arguments> data() {
+        List<Arguments> arguments = new ArrayList<>();
+        arguments.add(Arguments.of(Named.of("OFF_HEAP", (BiFunction<FileSystemAbstraction, Path, NumberArrayFactory>)
+                (fs, homePath) -> NumberArrayFactories.OFF_HEAP)));
+        arguments.add(
+                Arguments.of(Named.of("AUTO_WITHOUT_SWAP", (BiFunction<FileSystemAbstraction, Path, NumberArrayFactory>)
+                        (fs, homePath) -> NumberArrayFactories.AUTO_WITHOUT_SWAP)));
+        arguments.add(
+                Arguments.of(Named.of("AUTO_WITH_SWAP", (BiFunction<FileSystemAbstraction, Path, NumberArrayFactory>)
+                        (fs, homePath) -> NumberArrayFactories.fromBufferFactory(fileBacked(fs, homePath)))));
+        return arguments.stream();
     }
 
     @ParameterizedTest
@@ -72,7 +80,7 @@ class StringCollisionValuesTest {
     void shouldStoreAndLoadStrings(BiFunction<FileSystemAbstraction, Path, NumberArrayFactory> factory) {
         // given
         try (NumberArrayFactory arrayFactory = factory.apply(testDirectory.getFileSystem(), testDirectory.homePath());
-                StringCollisionValues values = new StringCollisionValues(arrayFactory, 10_000, INSTANCE)) {
+                CollisionValues values = new CollisionValues(arrayFactory, 10_000, INSTANCE)) {
             // when
             long[] offsets = new long[100];
             String[] strings = new String[offsets.length];
@@ -84,7 +92,7 @@ class StringCollisionValuesTest {
 
             // then
             for (int i = 0; i < offsets.length; i++) {
-                assertEquals(strings[i], values.get(offsets[i]));
+                assertThat(values.get(offsets[i])).isEqualTo(strings[i]);
             }
         }
     }
@@ -94,7 +102,7 @@ class StringCollisionValuesTest {
     void shouldMoveOverToNextChunkOnNearEnd(BiFunction<FileSystemAbstraction, Path, NumberArrayFactory> factory) {
         // given
         try (NumberArrayFactory arrayFactory = factory.apply(testDirectory.getFileSystem(), testDirectory.homePath());
-                StringCollisionValues values = new StringCollisionValues(arrayFactory, 10_000, INSTANCE)) {
+                CollisionValues values = new CollisionValues(arrayFactory, 10_000, INSTANCE)) {
             char[] chars = new char[PAGE_SIZE - 3];
             Arrays.fill(chars, 'a');
 
@@ -106,9 +114,52 @@ class StringCollisionValuesTest {
 
             // then
             String readString = (String) values.get(offset);
-            assertEquals(string, readString);
+            assertThat(readString).isEqualTo(string);
             String readSecondString = (String) values.get(secondOffset);
-            assertEquals(secondString, readSecondString);
+            assertThat(readSecondString).isEqualTo(secondString);
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("data")
+    void shouldStoreAndLoadLongs(BiFunction<FileSystemAbstraction, Path, NumberArrayFactory> factory) {
+        // given
+        try (NumberArrayFactory arrayFactory = factory.apply(testDirectory.getFileSystem(), testDirectory.homePath());
+                CollisionValues values = new CollisionValues(arrayFactory, 100, INSTANCE)) {
+            // when
+            long[] offsets = new long[100];
+            long[] longs = new long[offsets.length];
+            for (int i = 0; i < offsets.length; i++) {
+                long value = random.nextLong(Long.MAX_VALUE);
+                offsets[i] = values.add(value);
+                longs[i] = value;
+            }
+
+            // then
+            for (int i = 0; i < offsets.length; i++) {
+                assertThat((long) values.get(offsets[i])).isEqualTo(longs[i]);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("data")
+    void shouldStoreAndLoadMixedStringsAndLongs(BiFunction<FileSystemAbstraction, Path, NumberArrayFactory> factory) {
+        // given
+        try (NumberArrayFactory arrayFactory = factory.apply(testDirectory.getFileSystem(), testDirectory.homePath());
+                CollisionValues values = new CollisionValues(arrayFactory, 100, INSTANCE)) {
+            // when
+            long[] offsets = new long[100];
+            Object[] data = new Object[offsets.length];
+            for (int i = 0; i < offsets.length; i++) {
+                data[i] = random.nextBoolean() ? random.nextLong(Long.MAX_VALUE) : random.nextAlphaNumericString();
+                offsets[i] = values.add(data[i]);
+            }
+
+            // then
+            for (int i = 0; i < offsets.length; i++) {
+                assertThat(values.get(offsets[i])).isEqualTo(data[i]);
+            }
         }
     }
 }

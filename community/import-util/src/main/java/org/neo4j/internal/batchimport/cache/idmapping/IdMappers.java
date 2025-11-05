@@ -40,11 +40,9 @@ import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
 import org.neo4j.internal.batchimport.cache.idmapping.cuckoo.CuckooIdMapper;
 import org.neo4j.internal.batchimport.cache.idmapping.cuckoo.StringCuckooIdMapper;
 import org.neo4j.internal.batchimport.cache.idmapping.string.EncodingIdMapper;
-import org.neo4j.internal.batchimport.cache.idmapping.string.LongCollisionValues;
 import org.neo4j.internal.batchimport.cache.idmapping.string.LongEncoder;
 import org.neo4j.internal.batchimport.cache.idmapping.string.ParallelSort;
 import org.neo4j.internal.batchimport.cache.idmapping.string.Radix;
-import org.neo4j.internal.batchimport.cache.idmapping.string.StringCollisionValues;
 import org.neo4j.internal.batchimport.cache.idmapping.string.StringEncoder;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -156,7 +154,6 @@ public final class IdMappers {
                 NO_MONITOR,
                 dynamic(memoryTracker),
                 groups,
-                numberOfCollisions -> new StringCollisionValues(cacheFactory, numberOfCollisions, memoryTracker),
                 goodChunkSize(estimatedNumberOfNodes),
                 EncodingIdMapper.defaultNumberOfSortWorkers(),
                 ParallelSort.DEFAULT,
@@ -187,7 +184,6 @@ public final class IdMappers {
                 NO_MONITOR,
                 dynamic(memoryTracker),
                 groups,
-                numberOfCollisions -> new LongCollisionValues(cacheFactory, numberOfCollisions, memoryTracker),
                 goodChunkSize(estimatedNumberOfNodes),
                 EncodingIdMapper.defaultNumberOfSortWorkers(),
                 ParallelSort.DEFAULT,

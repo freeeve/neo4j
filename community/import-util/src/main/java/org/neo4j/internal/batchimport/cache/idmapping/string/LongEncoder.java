@@ -45,7 +45,7 @@ public class LongEncoder implements Encoder {
         return returnVal;
     }
 
-    static long convertToLong(Object value) {
+    private static long convertToLong(Object value) {
         if (value instanceof Number) {
             return ((Number) value).longValue();
         }
