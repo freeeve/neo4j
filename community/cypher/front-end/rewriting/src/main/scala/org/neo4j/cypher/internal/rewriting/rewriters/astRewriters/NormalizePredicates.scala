@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.rewriting.conditions.AndRewrittenToAnds
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
@@ -87,7 +87,7 @@ case class NormalizePredicates(normalizer: PredicateNormalizer) extends Rewriter
         where = newWhere
       )(m.position)
 
-    case part @ PatternPartWithSelector(_: SelectiveSelector, _) =>
+    case part @ PrefixedPatternPart(_: SelectiveSelector, _, _) =>
       part.element match {
         case path: ParenthesizedPath =>
           val predicates = normalizer.extractAllFrom(path.part.element) ++ path.optionalWhereClause

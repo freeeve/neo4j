@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.ast.test.util.Parses
 import org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -790,7 +790,7 @@ class SearchParserTest extends AstParsingTestBase {
         optional = false,
         matchMode = RepeatableElements()(pos),
         Pattern.ForMatch(Seq(
-          PatternPartWithSelector(
+          PrefixedPatternPart(
             selector = anyShortestPathSelector(1),
             part = PathPatternPart(relationshipChain(
               nodePat(Some("n")),

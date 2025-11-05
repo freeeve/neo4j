@@ -48,7 +48,7 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern.ForMatch
 import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelationshipChain
@@ -1429,7 +1429,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
                   Match(
                     optional = false,
                     MatchMode.DifferentRelationships(implicitlyCreated = true)(p),
-                    ForMatch(List(PatternPartWithSelector(
+                    ForMatch(List(PrefixedPatternPart(
                       AllPaths()(p),
                       PathPatternPart(
                         element match {

@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
@@ -44,7 +44,7 @@ case object AddVarLengthPredicates extends AddRelationshipPredicates[Relationshi
       val relationships = collectNodeConnections(pattern)
       val newWhere = withPredicates(matchClause, relationships, where)
       matchClause.copy(where = newWhere)(matchClause.position)
-    case part @ PatternPartWithSelector(_: SelectiveSelector, _) =>
+    case part @ PrefixedPatternPart(_: SelectiveSelector, _, _) =>
       rewriteSelectivePatternPart(part)
   })
 
@@ -56,7 +56,7 @@ case object AddVarLengthPredicates extends AddRelationshipPredicates[Relationshi
       case _: ShortestPathsPatternPart =>
         acc => SkipChildren(acc)
 
-      case PatternPartWithSelector(_: SelectiveSelector, _) =>
+      case PrefixedPatternPart(_: SelectiveSelector, _, _) =>
         acc => SkipChildren(acc)
 
       case RelationshipChain(_, rel @ RelationshipPattern(_, _, Some(_), _, _, _), _) =>

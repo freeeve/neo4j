@@ -89,9 +89,9 @@ import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.Pow
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertySelector
@@ -277,7 +277,7 @@ trait ExpressionBuilder extends Cypher5ParserListener {
     val p = pos(ctx)
     val pattern = astChild[PatternPart](ctx, 1) match {
       case nonPrefixedPatternPart: NonPrefixedPatternPart => nonPrefixedPatternPart
-      case ps: PatternPartWithSelector =>
+      case ps: PrefixedPatternPart =>
         val pathPatternKind = if (ctx.quantifier() == null) "parenthesized" else "quantified"
         throw exceptionFactory.unsupportedPathSelectorInPathPattern(
           ps.selector.prettified,
@@ -762,8 +762,8 @@ trait ExpressionBuilder extends Cypher5ParserListener {
     if (regQuery != null) regQuery.ast[Query]()
     else {
       val patternParts = patternList.ast[ArraySeq[PatternPart]]().map {
-        case p: PatternPartWithSelector => p
-        case p: NonPrefixedPatternPart  => PatternPartWithSelector(PatternPart.AllPaths()(p.position), p)
+        case p: PrefixedPatternPart    => p
+        case p: NonPrefixedPatternPart => PrefixedPatternPart(PatternPart.AllPaths()(p.position), p)
       }
       val patternPos = patternParts.head.position
       val where = astOpt[Where](whereClause)

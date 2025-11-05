@@ -52,7 +52,7 @@ import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.CountedSelector
 import org.neo4j.cypher.internal.expressions.PatternPart.ShortestGroups
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
@@ -150,7 +150,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
 
   def declareVariables(ctx: SemanticContext)(part: PatternPart): SemanticCheck =
     part match {
-      case PatternPartWithSelector(_, part) =>
+      case PrefixedPatternPart(_, _, part) =>
         declareVariables(ctx)(part)
 
       case x: NamedPatternPart =>
@@ -174,7 +174,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
 
   def check(ctx: SemanticContext)(part: PatternPart): SemanticCheck =
     part match {
-      case x: PatternPartWithSelector =>
+      case x: PrefixedPatternPart =>
         checkSelectorCount(x.selector) ifOkChain {
           val normalised = x.modifyElement {
             // sub-path assignment is fair game in selective path patterns, we can check it as if it was anonymous
@@ -401,7 +401,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       case p @ ParenthesizedPath(patternPart, where) =>
         def checkContainedPatterns: SemanticCheck =
           // patternPart at this point is known to be an AnonymousPatternPart, as we have matched NamedPatternPart above
-          // An AnonymousPatternPart can currently only be a ShortestPathsPatternPart or a PatternPartWithSelector.
+          // An AnonymousPatternPart can currently only be a ShortestPathsPatternPart or a PrefixedPatternPart.
           patternPart match {
             case shortestPaths: ShortestPathsPatternPart =>
               SemanticError.shortestPathInsideParenthesizedPathPattern(shortestPaths.name, shortestPaths.position)

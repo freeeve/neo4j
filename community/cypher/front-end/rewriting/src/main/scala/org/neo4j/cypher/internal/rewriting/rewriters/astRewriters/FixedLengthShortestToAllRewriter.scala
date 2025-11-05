@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.expressions.PatternPart.AllShortestPaths
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
 import org.neo4j.cypher.internal.expressions.PatternPart.Selector
 import org.neo4j.cypher.internal.expressions.PatternPart.ShortestGroups
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactory
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -56,9 +56,9 @@ case object FixedLengthShortestToAllRewriter extends StepSequencer.Step with Def
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
 
   val instance: Rewriter = topDown(Rewriter.lift {
-    case p @ PatternPartWithSelector(sel @ AllShortest(), part) if part.isFixedLength =>
+    case p @ PrefixedPatternPart(sel @ AllShortest(), _, part) if part.isFixedLength =>
       p.copy(selector = AllPaths()(sel.position))
-    case p @ PatternPartWithSelector(sel: SelectiveSelector, SingleNode()) =>
+    case p @ PrefixedPatternPart(sel: SelectiveSelector, _, SingleNode()) =>
       p.copy(selector = AllPaths()(sel.position))
   })
 

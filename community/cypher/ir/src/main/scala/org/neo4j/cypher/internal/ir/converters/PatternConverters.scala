@@ -32,7 +32,7 @@ import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
@@ -61,7 +61,7 @@ class PatternConverters(anonymousVariableNameGenerator: AnonymousVariableNameGen
   def convertPattern(pattern: Pattern.ForMatch): PathPatterns =
     PathPatterns(pattern.patternParts.toList.map(convertPatternPart))
 
-  private def convertPatternPart(patternPart: PatternPartWithSelector): PathPattern =
+  private def convertPatternPart(patternPart: PrefixedPatternPart): PathPattern =
     patternPart.part match {
       case NamedPatternPart(variable, anonymousPatternPart) =>
         convertAnonymousPatternPart(patternPart.selector, Some(variable), anonymousPatternPart)

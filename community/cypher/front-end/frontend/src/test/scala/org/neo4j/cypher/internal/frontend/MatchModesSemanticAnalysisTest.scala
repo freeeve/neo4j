@@ -56,6 +56,10 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
     )
   }
 
+  private val legacyShortestWithGpmFeaturesErrorMsg =
+    "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST'), explicit match modes " +
+      "('e.g. DIFFERENT RELATIONSHIPS') or explicit path modes ('e.g. ACYCLIC') is not allowed."
+
   test("REPEATABLE ELEMENTS (c5)") {
     // explicit match mode is not supported in Cypher 5
     run(disabledCypherVersions = Set(CypherVersion.Cypher25)).hasError(
@@ -301,7 +305,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   test("REPEATABLE ELEMENTS shortestPath((a)-->(b))") {
     run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 26, 1, 27),
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      legacyShortestWithGpmFeaturesErrorMsg,
       p(26, 1, 27)
     )
   }
@@ -309,7 +313,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   test("DIFFERENT RELATIONSHIPS shortestPath((a)-->(b))") {
     run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 30, 1, 31),
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      legacyShortestWithGpmFeaturesErrorMsg,
       p(30, 1, 31)
     )
   }
@@ -317,7 +321,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   test("REPEATABLE ELEMENTS allShortestPaths((a)-->(b))") {
     run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql42001_42I39("allShortestPaths", 26, 1, 27),
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      legacyShortestWithGpmFeaturesErrorMsg,
       p(26, 1, 27)
     )
   }
@@ -325,7 +329,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   test("REPEATABLE ELEMENTS (a)-->(b) WHERE shortestPath((a)-->(b)) IS NOT NULL") {
     run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 42, 1, 43),
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      legacyShortestWithGpmFeaturesErrorMsg,
       p(42, 1, 43)
     )
   }
@@ -333,7 +337,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   test("REPEATABLE ELEMENTS (a)-->(b) WHERE EXISTS { MATCH shortestPath((a)-->(b)) }") {
     run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 57, 1, 58),
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      legacyShortestWithGpmFeaturesErrorMsg,
       p(57, 1, 58)
     )
   }
@@ -341,7 +345,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   test("CALL { MATCH REPEATABLE ELEMENTS (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN * } RETURN *") {
     run(testName, disabledVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 49, 1, 50),
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      legacyShortestWithGpmFeaturesErrorMsg,
       p(49, 1, 50)
     )
   }

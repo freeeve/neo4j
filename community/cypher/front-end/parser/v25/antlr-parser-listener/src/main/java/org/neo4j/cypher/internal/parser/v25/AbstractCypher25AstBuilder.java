@@ -126,9 +126,11 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_shortestPathPattern ->
                 exitShortestPathPattern((Cypher25Parser.ShortestPathPatternContext) ctx);
             case Cypher25Parser.RULE_patternElement -> exitPatternElement((Cypher25Parser.PatternElementContext) ctx);
-            case Cypher25Parser.RULE_selector -> exitSelector((Cypher25Parser.SelectorContext) ctx);
+            case Cypher25Parser.RULE_pathPatternPrefix ->
+                exitPathPatternPrefix((Cypher25Parser.PathPatternPrefixContext) ctx);
             case Cypher25Parser.RULE_nonNegativeIntegerSpecification ->
                 exitNonNegativeIntegerSpecification((Cypher25Parser.NonNegativeIntegerSpecificationContext) ctx);
+            case Cypher25Parser.RULE_pathMode -> exitPathMode((Cypher25Parser.PathModeContext) ctx);
             case Cypher25Parser.RULE_groupToken -> exitGroupToken((Cypher25Parser.GroupTokenContext) ctx);
             case Cypher25Parser.RULE_pathToken -> exitPathToken((Cypher25Parser.PathTokenContext) ctx);
             case Cypher25Parser.RULE_pathPatternNonEmpty ->

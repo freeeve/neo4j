@@ -51,7 +51,7 @@ import org.neo4j.cypher.internal.expressions.Pattern.ForMatch
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
@@ -254,7 +254,7 @@ class MiscParserTest extends AstParsingTestBase {
         Match(
           optional = false,
           DifferentRelationships(implicitlyCreated = true)(InputPosition(0, 1, 1)),
-          ForMatch(List(PatternPartWithSelector(
+          ForMatch(List(PrefixedPatternPart(
             AllPaths()(InputPosition(11, 1, 12)),
             PathPatternPart(NodePattern(Some(varFor("m")), None, None, None)(InputPosition(11, 1, 12)))
           )))(InputPosition(11, 1, 12)),
@@ -421,11 +421,11 @@ class MiscParserTest extends AstParsingTestBase {
           optional = false,
           DifferentRelationships(implicitlyCreated = true)(pos),
           ForMatch(Seq(
-            PatternPartWithSelector(
+            PrefixedPatternPart(
               AllPaths()(pos),
               PathPatternPart(NodePattern(Some(varFor("src")), Some(Leaf(LabelName("A")(pos))), None, None)(pos))
             ),
-            PatternPartWithSelector(
+            PrefixedPatternPart(
               AllPaths()(pos),
               PathPatternPart(NodePattern(Some(varFor("dst")), Some(Leaf(LabelName("D")(pos))), None, None)(pos))
             )

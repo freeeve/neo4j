@@ -53,7 +53,7 @@ import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern.ForMatch
 import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.Variable
@@ -632,7 +632,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
                   Match(
                     optional = false,
                     MatchMode.DifferentRelationships(implicitlyCreated = true)(pos),
-                    ForMatch(List(PatternPartWithSelector(
+                    ForMatch(List(PrefixedPatternPart(
                       AllPaths()(pos),
                       PathPatternPart(NodePattern(Some(varFor("n")), None, None, None)(pos))
                     )))(pos),
@@ -664,7 +664,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
                   Match(
                     optional = false,
                     MatchMode.DifferentRelationships(implicitlyCreated = true)(pos),
-                    ForMatch(List(PatternPartWithSelector(
+                    ForMatch(List(PrefixedPatternPart(
                       AllPaths()(pos),
                       PathPatternPart(NodePattern(Some(varFor("n")), None, None, None)(pos))
                     )))(pos),

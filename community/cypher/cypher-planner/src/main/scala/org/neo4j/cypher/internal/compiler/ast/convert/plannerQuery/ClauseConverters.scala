@@ -81,7 +81,7 @@ import org.neo4j.cypher.internal.expressions.Null
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -552,7 +552,7 @@ object ClauseConverters extends LabelExpressionConversion {
       // MATCH (a)-[r]-(b) MATCH SHORTEST (()--())+ ()-[r]-() (()--())+
       val previousPatternVars = acc.currentQueryGraph.coveredIdsForPatterns
       val currentStrictInteriorVarsAndDependencies = clause.pattern.patternParts.view.collect {
-        case spp @ PatternPartWithSelector(_: SelectiveSelector, _) =>
+        case spp @ PrefixedPatternPart(_: SelectiveSelector, _, _) =>
           spp.strictInteriorVariables ++ spp.dependencies
       }.flatten.toSet
       val hasInteriorOrDependencyReferringToPreviouslyBoundVar =

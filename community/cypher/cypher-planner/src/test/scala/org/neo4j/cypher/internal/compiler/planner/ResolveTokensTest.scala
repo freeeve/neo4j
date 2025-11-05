@@ -41,7 +41,7 @@ import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipChain
@@ -321,8 +321,8 @@ object ResolveTokensTest {
 
     def unapply(pattern: Pattern.ForMatch): Option[NonPrefixedPatternPart] = {
       pattern match {
-        case Pattern.ForMatch(Seq(PatternPartWithSelector(PatternPart.AllPaths(), part))) => Some(part)
-        case _                                                                            => None
+        case Pattern.ForMatch(Seq(PrefixedPatternPart(PatternPart.AllPaths(), _, part))) => Some(part)
+        case _                                                                           => None
       }
     }
   }

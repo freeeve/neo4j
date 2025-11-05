@@ -491,6 +491,10 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathFactor
 import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
+import org.neo4j.cypher.internal.expressions.PathMode
+import org.neo4j.cypher.internal.expressions.PathMode.Acyclic
+import org.neo4j.cypher.internal.expressions.PathMode.Trail
+import org.neo4j.cypher.internal.expressions.PathMode.Walk
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternComprehension
@@ -503,9 +507,9 @@ import org.neo4j.cypher.internal.expressions.PatternPart.AnyPath
 import org.neo4j.cypher.internal.expressions.PatternPart.AnyShortestPath
 import org.neo4j.cypher.internal.expressions.PatternPart.Selector
 import org.neo4j.cypher.internal.expressions.PatternPart.ShortestGroups
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.Pow
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.ProcedureOutput
 import org.neo4j.cypher.internal.expressions.Property
@@ -1478,14 +1482,26 @@ class AstGenerator(
       _namedPatternPart
     )
 
-  def _patternPartWithSelector: Gen[PatternPartWithSelector] =
+  def _prefixedPatternPart: Gen[PrefixedPatternPart] =
     for {
       part <- _nonPrefixedPatternPart
       selector <- _selector
-    } yield PatternPartWithSelector(selector, part)
+      pathMode <- _pathMode
+    } yield PrefixedPatternPart(selector, pathMode, part)
+
+  def _pathMode: Gen[PathMode] =
+    if (usesCypher5)
+      const(Walk(implicitlyCreated = true)(pos))
+    else
+      oneOf(
+        Walk(implicitlyCreated = true)(pos),
+        Walk()(pos),
+        Trail()(pos),
+        Acyclic()(pos)
+      )
 
   def _patternForMatch: Gen[Pattern.ForMatch] = for {
-    parts <- oneOrMore(_patternPartWithSelector)
+    parts <- oneOrMore(_prefixedPatternPart)
   } yield Pattern.ForMatch(parts)(pos)
 
   def _patternForUpdate: Gen[Pattern.ForUpdate] = for {

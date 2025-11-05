@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AllowClauseWithMixedLabelSyntax
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.PathModes
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.error
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
@@ -72,6 +73,7 @@ import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
+import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.MatchMode.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.MatchMode.MatchMode
 import org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements
@@ -83,11 +85,13 @@ import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
+import org.neo4j.cypher.internal.expressions.PathMode
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.Selector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -160,7 +164,7 @@ sealed trait Clause extends ASTNode with SemanticCheckable with SemanticAnalysis
       ) chain
       when(shouldRunQPPChecks) {
         checkIfMixingLegacyVarLengthWithQPPs chain
-          checkIfMixingLegacyShortestWithPathSelectorOrMatchMode
+          checkIfMixingLegacyShortestWithGpmFeatures
       }
 
   protected def shouldRunQPPChecks: Boolean = true
@@ -360,10 +364,10 @@ sealed trait Clause extends ASTNode with SemanticCheckable with SemanticAnalysis
     }
   }
 
-  private def checkIfMixingLegacyShortestWithPathSelectorOrMatchMode: SemanticCheck = {
+  private def checkIfMixingLegacyShortestWithGpmFeatures: SemanticCheck = {
     val legacyShortest = this.folder.findAllByClass[ShortestPathsPatternPart]
 
-    val hasPathSelectorOrMatchMode = this.folder.treeFold(false) {
+    val hasClashingGpmFeature = this.folder.treeFold(false) {
       case s: Selector if s.isSelective => _ => SkipChildren(true)
       case DifferentRelationships(true) =>
         // Allow implicit match mode
@@ -371,10 +375,15 @@ sealed trait Clause extends ASTNode with SemanticCheckable with SemanticAnalysis
       case _: MatchMode =>
         // Forbid explicit match mode
         _ => SkipChildren(true)
+      case pathMode: PathMode if !pathMode.implicitlyCreated =>
+        // Forbid explicit path mode
+        _ => SkipChildren(true)
+      // We should traverse into subqeries to implement CIP-40 correctly.
+      // We don't, because changing this would break backwards compatibility.
       case _ => acc => if (acc) SkipChildren(acc) else TraverseChildren(acc)
     }
 
-    when(hasPathSelectorOrMatchMode) {
+    when(hasClashingGpmFeature) {
       legacyShortest.foldSemanticCheck { legacyVarLengthRelationship =>
         val fun = if (legacyVarLengthRelationship.single) "shortestPath" else "allShortestPaths"
         error(SemanticError.invalidUseOfShortestPath(fun, legacyVarLengthRelationship.position))
@@ -759,6 +768,7 @@ case class Match(
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
     noImplicitJoinsInQuantifiedPathPatterns chain
+      checkPathModes chain
       SemanticPatternCheck.check(
         Pattern.SemanticContext.Match,
         pattern,
@@ -1060,6 +1070,53 @@ case class Match(
       Seq.empty
     }
   }
+
+  private def checkPathModes: SemanticCheck =
+    whenState(_.features.contains(PathModes))(
+      thenBranch = checkMatchModePathModeCompatibility chain checkNoPathModeMixing,
+      elseBranch = checkPathModeFeatureNotUsed
+    )
+
+  private def checkMatchModePathModeCompatibility: SemanticCheck =
+    matchMode match {
+      case _: MatchMode.RepeatableElements =>
+        val semanticErrors = pattern.patternParts.flatMap {
+          case PrefixedPatternPart(_, _: PathMode.Walk, _) =>
+            None
+          case PrefixedPatternPart(_, pathMode, _) =>
+            Some(SemanticError.unsupportedMatchModePathModeCombination(pathMode.prettified, pathMode.position))
+        }
+        SemanticCheck.error(semanticErrors)
+      case _ =>
+        SemanticCheck.success
+    }
+
+  private def checkNoPathModeMixing: SemanticCheck = {
+    val pathModes = pattern.patternParts.collect {
+      case PrefixedPatternPart(_, pathMode, _) => pathMode.prettified
+    }.toSet
+
+    when(pathModes.size > 1) {
+      SemanticCheck.error(SemanticError.unsupportedPathModeMixing(pathModes, pattern.position))
+    }
+  }
+
+  private def checkPathModeFeatureNotUsed =
+    if (explicitPathModeExists) {
+      requireFeatureSupport(
+        s"Explicit use of path modes WALK, TRAIL and ACYCLIC",
+        SemanticFeature.PathModes,
+        pattern.position
+      )
+    } else {
+      SemanticCheck.success
+    }
+
+  private def explicitPathModeExists: Boolean =
+    pattern.patternParts.exists {
+      case PrefixedPatternPart(_, pathMode, _) if !pathMode.implicitlyCreated => true
+      case _                                                                  => false
+    }
 
   private def checkHints: SemanticCheck = SemanticCheck.fromFunctionWithContext { (semanticState, context) =>
     def getMissingEntityKindError(variable: String, labelOrRelTypeName: String, hint: UserHint): String = {

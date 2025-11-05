@@ -104,6 +104,10 @@ object SemanticFeature {
     override def name: String = "Allow mixing old and new label expression syntax in clauses"
   }
 
+  case object PathModes extends SemanticFeature with FeatureToString {
+    override def name: String = "path modes"
+  }
+
   private val allSemanticFeatures = Set(
     MultipleDatabases,
     MultipleGraphs,
@@ -120,7 +124,8 @@ object SemanticFeature {
     VectorSearch,
     ScopeQueries,
     ShardedPropertyDatabase,
-    AllowClauseWithMixedLabelSyntax
+    AllowClauseWithMixedLabelSyntax,
+    PathModes
   )
 
   def fromString(str: String): SemanticFeature =

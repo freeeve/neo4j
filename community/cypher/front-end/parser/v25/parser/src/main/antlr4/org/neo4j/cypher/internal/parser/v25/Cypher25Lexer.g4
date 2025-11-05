@@ -107,6 +107,10 @@ ACTIVE
    : A C T I V E
    ;
 
+ACYCLIC
+   : A C Y C L I C
+   ;
+
 ADD
    : A D D
    ;
@@ -1264,6 +1268,10 @@ TOPOLOGY
    : T O P O L O G Y
    ;
 
+TRAIL
+    : T R A I L
+    ;
+
 TRAILING
    : T R A I L I N G
    ;
@@ -1363,6 +1371,10 @@ VERTEX
 WAIT
    : W A I T
    ;
+
+WALK
+    : W A L K
+    ;
 
 WHEN
    : W H E N

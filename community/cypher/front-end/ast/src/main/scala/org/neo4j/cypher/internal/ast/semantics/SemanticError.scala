@@ -1659,7 +1659,8 @@ object SemanticError {
     val gql = GqlHelper.getGql42001_42I39(fun, position.offset, position.line, position.column)
     SemanticError(
       gql,
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST'), " +
+        "explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') or explicit path modes ('e.g. ACYCLIC') is not allowed.",
       position
     )
   }
@@ -1686,6 +1687,24 @@ object SemanticError {
     SemanticError(
       gql,
       s"Match modes such as `$matchMode` are not supported in Cypher 5.",
+      position
+    )
+  }
+
+  def unsupportedMatchModePathModeCombination(pathMode: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N60(pathMode, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      s"REPEATABLE ELEMENTS with $pathMode path mode is not supported.",
+      position
+    )
+  }
+
+  def unsupportedPathModeMixing(pathModes: Set[String], position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N61(pathModes.toList.asJava, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      s"Mixing path modes ${pathModes.mkString(", ")} in the same graph pattern is not supported.",
       position
     )
   }

@@ -29,8 +29,8 @@ import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelationshipChain
@@ -64,15 +64,32 @@ private class DefaultPatternStringifier(expr: ExpressionStringifier) extends Pat
   override def apply(p: PatternPart): String = p match {
     case allPaths: PathPatternPart => apply(allPaths.element)
 
-    case withSelector: PatternPartWithSelector => withSelector.selector match {
-        case AllPaths() => apply(withSelector.part)
-        case selector =>
-          withSelector.part match {
-            case NamedPatternPart(variable, patternPart) =>
-              s"${expr(variable)} = ${selector.prettified} ${apply(patternPart)}"
-            case part: AnonymousPatternPart => s"${selector.prettified} ${apply(part)}"
-          }
-      }
+    case withSelector: PrefixedPatternPart =>
+      // canonical order is:
+      // p = SHORTEST ACYCLIC PATH GROUPS (a)--(b)
+      val (pathVariable, patternPart) =
+        withSelector.part match {
+          case NamedPatternPart(variable, patternPart) => (Some(expr(variable)), patternPart)
+          case part: AnonymousPatternPart              => (None, part)
+        }
+
+      val pathModePrettified =
+        Option.when(!withSelector.pathMode.implicitlyCreated) {
+          withSelector.pathMode.prettified
+        }
+      val (selectorPrefix, selectorSuffix) =
+        withSelector.selector match {
+          case AllPaths() => (None, None)
+          case selector   => (Some(selector.prettifiedPrefix), Some(selector.prettifiedSuffix))
+        }
+
+      Seq(
+        pathVariable.map(path => s"$path ="),
+        selectorPrefix,
+        pathModePrettified,
+        selectorSuffix,
+        Some(apply(patternPart))
+      ).flatten.mkString(" ")
 
     case shortestPaths: ShortestPathsPatternPart => s"${shortestPaths.name}(${apply(shortestPaths.element)})"
 

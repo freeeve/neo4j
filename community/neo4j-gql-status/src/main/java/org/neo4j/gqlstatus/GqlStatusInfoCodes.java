@@ -2863,7 +2863,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I39(
             new GqlStatus("42I39"),
-            "Mixing the { %s } function with path selectors or explicit match modes is not allowed.",
+            "Mixing the { %s } function with path selectors, explicit match modes or "
+                    + "explicit path modes is not allowed.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3636,6 +3637,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "variable already defined",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42N60(
+            new GqlStatus("42N60"),
+            "REPEATABLE ELEMENTS with { %s } path mode is not supported.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.pathMode},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "unsupported combination of match mode and path mode",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42N61(
+            new GqlStatus("42N61"),
+            "Mixing { %s } in the same graph pattern is not supported. Split the pattern into separate MATCH clauses instead.",
+            new GqlParams.GqlParam[] {GqlParams.ListParam.pathModes},
+            Map.of(GqlParams.ListParam.pathModes, GqlParams.JoinStyle.ANDED),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "unsupported mixing of different path modes",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N62(
             new GqlStatus("42N62"),

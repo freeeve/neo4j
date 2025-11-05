@@ -34,7 +34,7 @@ import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
@@ -342,7 +342,7 @@ class CollectExpressionParserTest extends AstParsingTestBase with LegacyAstParsi
           optional = false,
           matchMode = MatchMode.default(pos),
           Pattern.ForMatch(Seq(
-            PatternPartWithSelector(
+            PrefixedPatternPart(
               PatternPart.AllPaths()(pos),
               NamedPatternPart(
                 varFor("pt"),

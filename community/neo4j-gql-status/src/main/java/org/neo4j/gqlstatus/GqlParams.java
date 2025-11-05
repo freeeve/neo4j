@@ -114,6 +114,7 @@ public class GqlParams {
         param1(new PARAM()),
         param2(new PARAM()),
         pat(new STRLIT()), // Pattern | '(:Person)'
+        pathMode(new VERBATIM()), // A GPM path mode
         port(new IDENT()), // Port name
         pred(new STRLIT()), // Predicate | 'x < 3'
         preparserInput1(new STRLIT()), // Piece of preparser input
@@ -224,6 +225,7 @@ public class GqlParams {
         namespaceList(new NELIST().withInner(StringParam.namespace.processor)), // Comma-separated list of namespaces
         optionList(new NELIST().withInner(StringParam.option.processor)), // Comma-separated list of option names
         paramList(new NELIST().withInner(StringParam.param.processor)), // Parameter list | $name, $age
+        pathModes(new NELIST().withInner(StringParam.pathMode.processor)), // Comma-separated list of GPM path modes
         portList(new NELIST().withInner(StringParam.port.processor)), // Comma-separated list of port names
         predList(new NELIST()
                 .withInner(StringParam.pred.processor)), // Comma-separated list of predicates | 'x < 3', 'y > 4'

@@ -34,7 +34,7 @@ import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.functions.Exists
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
@@ -159,9 +159,7 @@ case object PatternToQueryConverter {
     maybeWhere: Option[Where],
     position: InputPosition
   ): Query = {
-    val pattern = Pattern.ForMatch(Seq(
-      PatternPartWithSelector(PatternPart.AllPaths()(position), PatternPart(patternElement))
-    ))(position)
+    val pattern = Pattern.ForMatch(Seq(PrefixedPatternPart(PatternPart(patternElement))(position)))(position)
 
     SingleQuery(
       Seq(

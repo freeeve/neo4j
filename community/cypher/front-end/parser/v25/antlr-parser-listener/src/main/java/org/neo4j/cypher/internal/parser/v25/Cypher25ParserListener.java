@@ -157,9 +157,11 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitPatternElement(Cypher25Parser.PatternElementContext ctx);
 
-    void exitSelector(Cypher25Parser.SelectorContext ctx);
+    void exitPathPatternPrefix(Cypher25Parser.PathPatternPrefixContext ctx);
 
     void exitNonNegativeIntegerSpecification(Cypher25Parser.NonNegativeIntegerSpecificationContext ctx);
+
+    void exitPathMode(Cypher25Parser.PathModeContext ctx);
 
     void exitGroupToken(Cypher25Parser.GroupTokenContext ctx);
 

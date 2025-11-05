@@ -32,8 +32,8 @@ import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -280,7 +280,7 @@ class QuantifiedPathPatternInMatchParserTest extends AstParsingTestBase {
         optional = false,
         matchMode = MatchMode.default(pos),
         Pattern.ForMatch(Seq(
-          PatternPartWithSelector(
+          PrefixedPatternPart(
             PatternPart.AllPaths()(pos),
             NamedPatternPart(
               varFor("p"),

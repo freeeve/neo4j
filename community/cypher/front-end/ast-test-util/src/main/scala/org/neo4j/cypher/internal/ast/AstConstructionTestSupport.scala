@@ -98,6 +98,7 @@ import org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.Multiply
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.NaN
+import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NilPathStep
 import org.neo4j.cypher.internal.expressions.NodePathStep
@@ -119,6 +120,7 @@ import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.PathFactor
 import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
+import org.neo4j.cypher.internal.expressions.PathMode
 import org.neo4j.cypher.internal.expressions.PathStep
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternAtom
@@ -127,9 +129,9 @@ import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.Selector
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.Pow
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -1242,11 +1244,33 @@ trait AstConstructionTestSupport {
     Match(
       optional = false,
       matchMode = matchMode,
-      Pattern.ForMatch(Seq(PatternPartWithSelector(selector, PatternPart(pattern))))(pos),
+      Pattern.ForMatch(Seq(PrefixedPatternPart(selector, PatternPart(pattern))))(pos),
       Seq(),
       where,
       None
     )(pos)
+
+  def match_pathPatternPrefix(
+    pathMode: PathMode,
+    pattern: PatternElement,
+    selector: Selector = PatternPart.AllPaths()(pos),
+    matchMode: MatchMode = MatchMode.default(pos),
+    where: Option[Where] = None,
+    pathVariable: Option[String] = None
+  ): Match = {
+    val patternPart =
+      pathVariable
+        .map(variable => NamedPatternPart(varFor(variable), PatternPart(pattern))(pos))
+        .getOrElse(PatternPart(pattern))
+    Match(
+      optional = false,
+      matchMode = matchMode,
+      Pattern.ForMatch(Seq(PrefixedPatternPart(selector, pathMode, patternPart)))(pos),
+      Seq(),
+      where,
+      None
+    )(pos)
+  }
 
   def repeatableElementsMatchMode(): MatchMode.RepeatableElements = MatchMode.RepeatableElements()(pos)
 
@@ -1613,8 +1637,8 @@ trait AstConstructionTestSupport {
 
   implicit class NonPrefixedPatternPartOps(part: NonPrefixedPatternPart) {
 
-    def withAllPathsSelector: PatternPartWithSelector =
-      PatternPartWithSelector(allPathsSelector(), part)
+    def withAllPathsSelector: PrefixedPatternPart =
+      PrefixedPatternPart(allPathsSelector(), part)
   }
 
   def increasePos(position: InputPosition, inc: Int): InputPosition = {

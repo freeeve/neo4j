@@ -33,8 +33,7 @@ import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternComprehension
-import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.SimplePattern
 import org.neo4j.cypher.internal.expressions.Variable
@@ -109,9 +108,8 @@ case class ReplacePatternComprehensionWithCollectSubquery(
           (PathPatternPart(pattern.element), (x: Expression) => x)
       }
 
-      val patternForMatch = Pattern.ForMatch(Seq(
-        PatternPartWithSelector(AllPaths()(pattern.position), patternPart)
-      ))(pattern.position)
+      val patternForMatch =
+        Pattern.ForMatch(Seq(PrefixedPatternPart(patternPart)(pattern.position)))(pattern.position)
 
       val where = predicate.map(p => Where(replaceNamedPathVar(p))(p.position))
 

@@ -29,13 +29,13 @@ import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
-class PatternPartWithSelectorParserTest extends AstParsingTestBase {
+class PrefixedPatternPartParserTest extends AstParsingTestBase {
 
   private val selectors = Map(
     "ALL" -> allPathsSelector(),
@@ -91,7 +91,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
             optional = false,
             matchMode = MatchMode.default(pos),
             Pattern.ForMatch(Seq(
-              PatternPartWithSelector(
+              PrefixedPatternPart(
                 astNode,
                 PatternPart(relationshipChain(nodePat(Some("a")), relPat(Some("r")), nodePat(Some("b"))))
               )
@@ -114,7 +114,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                 optional = false,
                 matchMode = MatchMode.default(pos),
                 Pattern.ForMatch(Seq(
-                  PatternPartWithSelector(
+                  PrefixedPatternPart(
                     astNode,
                     PatternPart(relationshipChain(nodePat(Some("a")), relPat(Some("r1")), nodePat(Some("b"))))
                   )
@@ -137,7 +137,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
           Match(
             optional = false,
             matchMode = MatchMode.default(pos),
-            Pattern.ForMatch(Seq(PatternPartWithSelector(
+            Pattern.ForMatch(Seq(PrefixedPatternPart(
               selector = astNode,
               part = NamedPatternPart(
                 varFor("path"),
@@ -170,7 +170,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
               Match(
                 optional = false,
                 matchMode = MatchMode.default(pos),
-                Pattern.ForMatch(Seq(PatternPartWithSelector(
+                Pattern.ForMatch(Seq(PrefixedPatternPart(
                   selector = astNode,
                   part = NamedPatternPart(
                     varFor("path"),
@@ -205,7 +205,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
             optional = false,
             matchMode = MatchMode.default(pos),
             Pattern.ForMatch(Seq(
-              PatternPartWithSelector(
+              PrefixedPatternPart(
                 selector = astNode,
                 part = PathPatternPart(QuantifiedPath(
                   PathPatternPart(
@@ -234,7 +234,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                 optional = false,
                 matchMode = MatchMode.default(pos),
                 Pattern.ForMatch(Seq(
-                  PatternPartWithSelector(
+                  PrefixedPatternPart(
                     selector = astNode,
                     part = PathPatternPart(QuantifiedPath(
                       PathPatternPart(
@@ -264,7 +264,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
             optional = true,
             matchMode = MatchMode.default(pos),
             Pattern.ForMatch(Seq(
-              PatternPartWithSelector(
+              PrefixedPatternPart(
                 selector = astNode,
                 part = PathPatternPart(
                   relationshipChain(nodePat(Some("a")), relPat(Some("r")), nodePat(Some("b")))
@@ -289,7 +289,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                 optional = true,
                 matchMode = MatchMode.default(pos),
                 Pattern.ForMatch(Seq(
-                  PatternPartWithSelector(
+                  PrefixedPatternPart(
                     selector = astNode,
                     part = PathPatternPart(
                       relationshipChain(nodePat(Some("a")), relPat(Some("r1")), nodePat(Some("b")))
@@ -319,7 +319,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                     optional = false,
                     matchMode = MatchMode.default(pos),
                     Pattern.ForMatch(Seq(
-                      PatternPartWithSelector(
+                      PrefixedPatternPart(
                         selector = astNode,
                         part = PathPatternPart(relationshipChain(
                           nodePat(Some("a")),
@@ -355,7 +355,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                         optional = false,
                         matchMode = MatchMode.default(pos),
                         Pattern.ForMatch(Seq(
-                          PatternPartWithSelector(
+                          PrefixedPatternPart(
                             selector = astNode,
                             part = PathPatternPart(relationshipChain(
                               nodePat(Some("a")),
@@ -392,7 +392,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                     optional = false,
                     matchMode = MatchMode.default(pos),
                     Pattern.ForMatch(Seq(
-                      PatternPartWithSelector(
+                      PrefixedPatternPart(
                         selector = astNode,
                         part = PathPatternPart(relationshipChain(
                           nodePat(Some("a")),
@@ -428,7 +428,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                         optional = false,
                         matchMode = MatchMode.default(pos),
                         Pattern.ForMatch(Seq(
-                          PatternPartWithSelector(
+                          PrefixedPatternPart(
                             selector = astNode,
                             part = PathPatternPart(relationshipChain(
                               nodePat(Some("a")),
@@ -463,7 +463,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                 optional = false,
                 matchMode = MatchMode.default(pos),
                 Pattern.ForMatch(Seq(
-                  PatternPartWithSelector(
+                  PrefixedPatternPart(
                     selector = astNode,
                     part =
                       PathPatternPart(relationshipChain(nodePat(Some("a")), relPat(Some("r")), nodePat(Some("b"))))
@@ -493,7 +493,7 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
                     optional = false,
                     matchMode = MatchMode.default(pos),
                     Pattern.ForMatch(Seq(
-                      PatternPartWithSelector(
+                      PrefixedPatternPart(
                         selector = astNode,
                         part =
                           PathPatternPart(relationshipChain(nodePat(Some("a")), relPat(Some("r1")), nodePat(Some("b"))))

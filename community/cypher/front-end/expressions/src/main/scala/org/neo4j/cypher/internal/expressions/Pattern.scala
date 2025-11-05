@@ -41,7 +41,7 @@ sealed trait Pattern extends ASTNode {
 
 object Pattern {
 
-  final case class ForMatch(patternParts: Seq[PatternPartWithSelector])(val position: InputPosition) extends Pattern
+  final case class ForMatch(patternParts: Seq[PrefixedPatternPart])(val position: InputPosition) extends Pattern
 
   final case class ForUpdate(patternParts: Seq[NonPrefixedPatternPart])(val position: InputPosition) extends Pattern
       with HasMappableExpressions[ForUpdate] {
@@ -111,7 +111,8 @@ sealed abstract class PatternPart extends ASTNode {
 
 sealed trait NonPrefixedPatternPart extends PatternPart with HasMappableExpressions[NonPrefixedPatternPart]
 
-case class PatternPartWithSelector(selector: Selector, part: NonPrefixedPatternPart) extends PatternPart {
+case class PrefixedPatternPart(selector: Selector, pathMode: PathMode, part: NonPrefixedPatternPart)
+    extends PatternPart {
   override def position: InputPosition = part.position
   override def allVariables: Set[LogicalVariable] = part.allVariables
   override def pathVariable: Option[LogicalVariable] = part.pathVariable
@@ -122,7 +123,7 @@ case class PatternPartWithSelector(selector: Selector, part: NonPrefixedPatternP
 
   def isSelective: Boolean = selector.isSelective
 
-  def modifyElement(f: PatternElement => PatternElement): PatternPartWithSelector = {
+  def modifyElement(f: PatternElement => PatternElement): PrefixedPatternPart = {
     def replaceInAnonymous(app: AnonymousPatternPart): AnonymousPatternPart = app match {
       case p: PathPatternPart          => p.copy(element = f(p.element))
       case s: ShortestPathsPatternPart => s.copy(element = f(s.element))(s.position)
@@ -136,10 +137,19 @@ case class PatternPartWithSelector(selector: Selector, part: NonPrefixedPatternP
     copy(part = replaceInNonPrefixed(part))
   }
 
-  def replaceElement(newElement: PatternElement): PatternPartWithSelector =
+  def replaceElement(newElement: PatternElement): PrefixedPatternPart =
     modifyElement(_ => newElement)
 
   override def containsDynamicPattern: Boolean = element.containsDynamicPattern
+}
+
+object PrefixedPatternPart {
+
+  def apply(part: NonPrefixedPatternPart)(position: InputPosition): PrefixedPatternPart =
+    PrefixedPatternPart(PatternPart.AllPaths()(position), PathMode.Walk(implicitlyCreated = true)(position), part)
+
+  def apply(selector: Selector, part: NonPrefixedPatternPart): PrefixedPatternPart =
+    PrefixedPatternPart(selector, PathMode.Walk(implicitlyCreated = true)(selector.position), part)
 }
 
 case class NamedPatternPart(variable: Variable, patternPart: AnonymousPatternPart)(val position: InputPosition)
@@ -210,7 +220,9 @@ object PatternPart {
     PathPatternPart(element)
 
   sealed trait Selector extends ASTNode {
-    def prettified: String
+    def prettified: String = s"$prettifiedPrefix $prettifiedSuffix"
+    def prettifiedPrefix: String
+    def prettifiedSuffix: String
 
     def isSelective: Boolean
   }
@@ -227,14 +239,19 @@ object PatternPart {
       extends SelectiveSelector
       with CountedSelector {
 
-    override def prettified: String = count match {
-      case Left(n)  => s"ANY ${n.value} PATHS"
-      case Right(p) => s"ANY $$${p.name} PATHS"
+    override def prettifiedPrefix: String = count match {
+      case Left(n)  => s"ANY ${n.value}"
+      case Right(p) => s"ANY $$${p.name}"
     }
+
+    override def prettifiedSuffix: String = "PATHS"
   }
 
   case class AllPaths()(val position: InputPosition) extends Selector {
-    override def prettified: String = "ALL PATHS"
+    override def prettifiedPrefix: String = "ALL"
+
+    override def prettifiedSuffix: String = "PATHS"
+
     override def isSelective: Boolean = false
   }
 
@@ -245,14 +262,18 @@ object PatternPart {
       extends SelectiveSelector
       with CountedSelector {
 
-    override def prettified: String = count match {
-      case Left(n)  => s"SHORTEST ${n.value} PATHS"
-      case Right(p) => s"SHORTEST $$${p.name} PATHS"
+    override def prettifiedPrefix: String = count match {
+      case Left(n)  => s"SHORTEST ${n.value}"
+      case Right(p) => s"SHORTEST $$${p.name}"
     }
+
+    override def prettifiedSuffix: String = "PATHS"
   }
 
   case class AllShortestPaths()(val position: InputPosition) extends SelectiveSelector {
-    override def prettified: String = "ALL SHORTEST PATHS"
+    override def prettifiedPrefix: String = "ALL SHORTEST"
+
+    override def prettifiedSuffix: String = "PATHS"
   }
 
   case class ShortestGroups(count: Either[
@@ -262,10 +283,12 @@ object PatternPart {
       extends SelectiveSelector
       with CountedSelector {
 
-    override def prettified: String = count match {
-      case Left(n)  => s"SHORTEST ${n.value} PATH GROUPS"
-      case Right(p) => s"SHORTEST $$${p.name} PATH GROUPS"
+    override def prettifiedPrefix: String = count match {
+      case Left(n)  => s"SHORTEST ${n.value}"
+      case Right(p) => s"SHORTEST $$${p.name}"
     }
+
+    override def prettifiedSuffix: String = "PATH GROUPS"
   }
 }
 

@@ -304,7 +304,7 @@ insertPatternList
    ;
 
 pattern
-   : (variable EQ)? selector? anonymousPattern
+   : (variable EQ)? pathPatternPrefix? anonymousPattern
    ;
 
 insertPattern
@@ -331,18 +331,23 @@ patternElement
    : (nodePattern (relationshipPattern quantifier? nodePattern)* | parenthesizedPath)+
    ;
 
-selector
-   : ANY SHORTEST pathToken?                                         # AnyShortestPath
-   | ALL SHORTEST pathToken?                                         # AllShortestPath
-   | ANY nonNegativeIntegerSpecification? pathToken?                 # AnyPath
-   | ALL pathToken?                                                  # AllPath
-   | SHORTEST nonNegativeIntegerSpecification? pathToken? groupToken # ShortestGroup
-   | SHORTEST nonNegativeIntegerSpecification pathToken?             # AnyShortestPath
+pathPatternPrefix
+   : pathMode pathToken?                                                       # AllPath
+   | ANY SHORTEST pathMode? pathToken?                                         # AnyShortestPath
+   | ALL SHORTEST pathMode? pathToken?                                         # AllShortestPath
+   | ANY nonNegativeIntegerSpecification? pathMode? pathToken?                 # AnyPath
+   | ALL pathMode? pathToken?                                                  # AllPath
+   | SHORTEST nonNegativeIntegerSpecification? pathMode? pathToken? groupToken # ShortestGroup
+   | SHORTEST nonNegativeIntegerSpecification pathMode? pathToken?             # AnyShortestPath
    ;
    
 nonNegativeIntegerSpecification
    : UNSIGNED_DECIMAL_INTEGER | parameter["INTEGER"]
    ;
+
+pathMode
+    : WALK | TRAIL | ACYCLIC
+    ;
 
 groupToken
    : GROUP | GROUPS
@@ -2063,6 +2068,7 @@ unescapedSymbolicNameString_
    : IDENTIFIER
    | ACCESS
    | ACTIVE
+   | ACYCLIC
    | ADD
    | ADMIN
    | ADMINISTRATOR
@@ -2322,6 +2328,7 @@ unescapedSymbolicNameString_
    | TIMEZONE
    | TO
    | TOPOLOGY
+   | TRAIL
    | TRAILING
    | TRANSACTION
    | TRANSACTIONS
@@ -2346,6 +2353,7 @@ unescapedSymbolicNameString_
    | VECTOR_NORM
    | VERTEX
    | WAIT
+   | WALK
    | WHEN
    | WHERE
    | WITH

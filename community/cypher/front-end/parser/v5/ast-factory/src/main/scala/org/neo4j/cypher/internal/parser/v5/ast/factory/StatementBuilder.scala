@@ -100,7 +100,7 @@ import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.ProcedureOutput
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -290,7 +290,7 @@ trait StatementBuilder extends Cypher5ParserListener {
     val patternList = ctx.patternList()
     val nonPrefixedPatternPartList = patternList.ast[ArraySeq[PatternPart]]().map {
       case p: NonPrefixedPatternPart => p
-      case p: PatternPartWithSelector =>
+      case p: PrefixedPatternPart =>
         val inputPosition = pos(patternList)
         val selector = p.selector.prettified
         val gql = GqlHelper.getGql42001_42I04(
@@ -375,8 +375,8 @@ trait StatementBuilder extends Cypher5ParserListener {
   final override def exitMatchClause(ctx: Cypher5Parser.MatchClauseContext): Unit = {
     val patternParts = ctx.patternList()
     val patternPartsWithSelector = patternParts.ast[ArraySeq[PatternPart]]().map {
-      case part: PatternPartWithSelector => part
-      case part: NonPrefixedPatternPart  => PatternPartWithSelector(PatternPart.AllPaths()(part.position), part)
+      case part: PrefixedPatternPart    => part
+      case part: NonPrefixedPatternPart => PrefixedPatternPart(PatternPart.AllPaths()(part.position), part)
       case other => throw new IllegalStateException(s"Expected pattern part but was ${other.getClass}")
     }
 
@@ -455,7 +455,7 @@ trait StatementBuilder extends Cypher5ParserListener {
     val patternPart = ctxChild(ctx, 1)
     val nonPrefixedPatternPart = patternPart.ast[PatternPart]() match {
       case p: NonPrefixedPatternPart => p
-      case p: PatternPartWithSelector =>
+      case p: PrefixedPatternPart =>
         val inputPosition = pos(patternPart)
         val selector = p.selector.prettified
         val gql = GqlHelper.getGql42001_42I04(
@@ -685,7 +685,7 @@ trait StatementBuilder extends Cypher5ParserListener {
       pattern = NamedPatternPart(astVariable, pattern.asInstanceOf[AnonymousPatternPart])(astVariable.position)
     }
     if (selector != null) {
-      pattern = PatternPartWithSelector(selector.ast(), pattern.asInstanceOf[NonPrefixedPatternPart])
+      pattern = PrefixedPatternPart(selector.ast(), pattern.asInstanceOf[NonPrefixedPatternPart])
     }
 
     ctx.ast = pattern

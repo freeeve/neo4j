@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
@@ -96,7 +96,7 @@ case object ShortestPathVariableDeduplicator extends Phase[BaseContext, BaseStat
 
     topDown(
       Rewriter.lift {
-        case p @ PatternPartWithSelector(_: SelectiveSelector, patternPart) =>
+        case p @ PrefixedPatternPart(_: SelectiveSelector, _, patternPart) =>
           val element = patternPart.element
 
           val rewrittenElement = element.endoRewrite(innerRewriter)

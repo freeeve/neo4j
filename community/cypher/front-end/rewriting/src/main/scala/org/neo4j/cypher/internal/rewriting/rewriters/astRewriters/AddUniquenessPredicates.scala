@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -79,7 +79,7 @@ case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnec
   })
 
   private val patternRewriter: Rewriter = bottomUp(Rewriter.lift {
-    case part @ PatternPartWithSelector(_: SelectiveSelector, _) =>
+    case part @ PrefixedPatternPart(_: SelectiveSelector, _, _) =>
       rewriteSelectivePatternPart(part)
     case qpp @ QuantifiedPath(patternPart, _, where, _) =>
       val relationships = collectNodeConnections(patternPart)
@@ -99,7 +99,7 @@ case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnec
       case _: ScopeExpression =>
         acc => SkipChildren(acc)
 
-      case PatternPartWithSelector(_: SelectiveSelector, _) =>
+      case PrefixedPatternPart(_: SelectiveSelector, _, _) =>
         acc => SkipChildren(acc)
 
       case qpp: QuantifiedPath =>

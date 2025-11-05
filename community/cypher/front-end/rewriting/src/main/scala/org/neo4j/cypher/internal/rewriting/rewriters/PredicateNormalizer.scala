@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.ScopeExpression
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -52,7 +52,7 @@ trait PredicateNormalizer {
     pattern.folder.treeFold(Vector.empty[Expression]) {
       case _: QuantifiedPath | _: ScopeExpression =>
         acc => SkipChildren(acc)
-      case PatternPartWithSelector(_: SelectiveSelector, _) =>
+      case PrefixedPatternPart(_: SelectiveSelector, _, _) =>
         acc => SkipChildren(acc)
       case patternElement: AnyRef if extract.isDefinedAt(patternElement) =>
         acc => TraverseChildren(acc ++ extract(patternElement))
@@ -64,9 +64,9 @@ trait PredicateNormalizer {
       topDown(
         Rewriter.lift(replace),
         stopper = {
-          case _: QuantifiedPath                                => true
-          case PatternPartWithSelector(_: SelectiveSelector, _) => true
-          case _                                                => false
+          case _: QuantifiedPath                               => true
+          case PrefixedPatternPart(_: SelectiveSelector, _, _) => true
+          case _                                               => false
         }
       )
     )

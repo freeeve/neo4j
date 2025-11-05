@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.expressions.PatternAtom
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
@@ -103,7 +103,7 @@ object pegPattern {
   )(implicit c: PegContext): PatternScope = {
     implicit val astNode: ASTNode = patternPart
     patternPart match {
-      case PatternPartWithSelector(selector, patternPart) =>
+      case PrefixedPatternPart(selector, _, patternPart) =>
         selector match {
           case AllPaths() => scopePatternPart(patternPart, incoming)
           case _ =>
@@ -283,7 +283,7 @@ object pegPattern {
   private def collectPathVariablesOfPatternPart(patternPart: PatternPart): Set[LogicalVariable] = {
     patternPart match {
       case NamedPatternPart(variable, _) => Set(variable)
-      case PatternPartWithSelector(_, patternPart) =>
+      case PrefixedPatternPart(_, _, patternPart) =>
         collectPathVariablesOfPatternPart(patternPart)
       case _ => Set.empty
     }
@@ -300,7 +300,7 @@ object pegPattern {
   @tailrec
   private def collectVisibleVariablesOfPatternPart(patternPart: PatternPart): Set[LogicalVariable] = {
     patternPart match {
-      case PatternPartWithSelector(_, patternPart) =>
+      case PrefixedPatternPart(_, _, patternPart) =>
         collectVisibleVariablesOfPatternPart(patternPart)
       case NamedPatternPart(_, patternPart) =>
         // the path variables are only visible after the match

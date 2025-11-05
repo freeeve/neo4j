@@ -164,6 +164,17 @@ class PrettifierIT extends CypherFunSuite {
     "unwind [1,2,3] AS x RETURN x" ->
       """UNWIND [1, 2, 3] AS x
         |RETURN x""".stripMargin,
+    "MATCH REPEATABLE ELEMENTS (a)-->(b)     rETuRN a" ->
+      """MATCH REPEATABLE ELEMENTS (a)-->(b)
+        |RETURN a""".stripMargin,
+    FailsInCypher5(
+      "MATCH REPEATABLE ELEMENTS acyclic (a)-->(b), trail (c)-->(d)",
+      "MATCH REPEATABLE ELEMENTS ACYCLIC (a)-->(b), TRAIL (c)-->(d)"
+    ),
+    FailsInCypher5(
+      "MATCH REPEATABLE ELEMENTS SHORTEST 25 acyclic PATH GROUPS (n)-->(m)",
+      "MATCH REPEATABLE ELEMENTS SHORTEST 25 ACYCLIC PATH GROUPS (n)-->(m)"
+    ),
     "mAtch all (a)-->(b)     rETuRN a" ->
       """MATCH (a)-->(b)
         |RETURN a""".stripMargin,

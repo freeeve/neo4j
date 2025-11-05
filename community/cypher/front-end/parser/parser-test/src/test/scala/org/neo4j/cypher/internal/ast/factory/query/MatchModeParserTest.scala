@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern.ForMatch
 import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
@@ -274,7 +274,7 @@ class MatchModeParserTest extends AstParsingTestBase with LegacyAstParsingTestSu
     parsesTo[Clause](Match(
       optional = false,
       RepeatableElements()(pos),
-      ForMatch(ArraySeq(PatternPartWithSelector(
+      ForMatch(ArraySeq(PrefixedPatternPart(
         AllPaths()(pos),
         NamedPatternPart(
           varFor("BINDINGS"),
@@ -295,7 +295,7 @@ class MatchModeParserTest extends AstParsingTestBase with LegacyAstParsingTestSu
     parsesTo[Clause](Match(
       optional = false,
       DifferentRelationships()(pos),
-      ForMatch(ArraySeq(PatternPartWithSelector(
+      ForMatch(ArraySeq(PrefixedPatternPart(
         AllPaths()(pos),
         NamedPatternPart(
           varFor("BINDINGS"),

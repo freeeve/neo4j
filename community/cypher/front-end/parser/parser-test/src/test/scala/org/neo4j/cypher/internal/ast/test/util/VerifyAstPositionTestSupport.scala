@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.ast.test.util.VerifyAstPositionTestSupport.find
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.ListSlice
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.Variable
@@ -88,7 +88,7 @@ object VerifyAstPositionTestSupport {
             _: RemovePropertyItem |
             _: LoadCSV |
             _: UseGraph |
-            _: PatternPartWithSelector |
+            _: PrefixedPatternPart |
             _: RelationshipChain |
             _: Yield |
             _: ContainerIndex |

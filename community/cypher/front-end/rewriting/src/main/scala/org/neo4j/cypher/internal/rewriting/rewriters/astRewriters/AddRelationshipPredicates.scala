@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.NoUnnamedNodesAndRelationships
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
@@ -63,7 +63,7 @@ trait AddRelationshipPredicates[NC] extends Step with DefaultPostCondition with 
     version: CypherVersion
   ): Rewriter = rewriter
 
-  protected def rewriteSelectivePatternPart(part: PatternPartWithSelector): PatternPartWithSelector =
+  protected def rewriteSelectivePatternPart(part: PrefixedPatternPart): PrefixedPatternPart =
     part.element match {
       case path: ParenthesizedPath =>
         val nodeConnections = collectNodeConnections(path.part.element)

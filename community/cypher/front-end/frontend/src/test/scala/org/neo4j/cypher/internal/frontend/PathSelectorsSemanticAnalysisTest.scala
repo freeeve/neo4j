@@ -209,10 +209,14 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
 
   // Mixing selective selectors with shortestPath/allShortestPaths is not allowed
   allSelectiveSelectors.foreach { selector =>
+    val errorNoLegacyShortestWithMatchOrPathMode =
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST'), " +
+        "explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') or explicit path modes ('e.g. ACYCLIC') is not allowed."
+
     test(s"MATCH $selector shortestPath((a)-->(b)) RETURN *") {
       run().hasError(
         GqlHelper.getGql42001_42I39("shortestPath", 7 + selector.length, 1, 8 + selector.length),
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        errorNoLegacyShortestWithMatchOrPathMode,
         p(7 + selector.length, 1, 8 + selector.length)
       )
     }
@@ -220,7 +224,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
     test(s"MATCH $selector allShortestPaths((a)-->(b)) RETURN *") {
       run().hasError(
         GqlHelper.getGql42001_42I39("allShortestPaths", 7 + selector.length, 1, 8 + selector.length),
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        errorNoLegacyShortestWithMatchOrPathMode,
         p(7 + selector.length, 1, 8 + selector.length)
       )
     }
@@ -228,7 +232,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
     test(s"MATCH $selector (a)-->(b) WHERE shortestPath((a)-->(b)) IS NOT NULL RETURN *") {
       run().hasError(
         GqlHelper.getGql42001_42I39("shortestPath", 23 + selector.length, 1, 24 + selector.length),
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        errorNoLegacyShortestWithMatchOrPathMode,
         p(23 + selector.length, 1, 24 + selector.length)
       )
     }
@@ -236,7 +240,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
     test(s"MATCH $selector (a)-->(b) WHERE EXISTS { MATCH shortestPath((a)-->(b)) } RETURN *") {
       run().hasError(
         GqlHelper.getGql42001_42I39("shortestPath", 38 + selector.length, 1, 39 + selector.length),
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        errorNoLegacyShortestWithMatchOrPathMode,
         p(38 + selector.length, 1, 39 + selector.length)
       )
     }
@@ -244,7 +248,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
     test(s"CALL { MATCH $selector (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN * } RETURN *") {
       run().hasError(
         GqlHelper.getGql42001_42I39("shortestPath", 30 + selector.length, 1, 31 + selector.length),
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        errorNoLegacyShortestWithMatchOrPathMode,
         p(30 + selector.length, 1, 31 + selector.length)
       )
     }

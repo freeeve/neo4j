@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.ir.ExhaustivePathPattern.NodeConnections
@@ -49,7 +49,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSupport {
 
-  private def convertPatternParts(patternParts: PatternPartWithSelector*): List[PathPattern] =
+  private def convertPatternParts(patternParts: PrefixedPatternPart*): List[PathPattern] =
     new PatternConverters(new AnonymousVariableNameGenerator())
       .convertPattern(Pattern.ForMatch(patternParts)(pos))
       .pathPatterns
@@ -127,7 +127,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: relationship pattern") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(a_r_b),
       selector = allPathsSelector()
     )
@@ -146,7 +146,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: invalid empty concatenation") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(pathConcatenation()),
       selector = allPathsSelector()
     )
@@ -157,7 +157,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: invalid concatenation starting with parenthesised path") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(pathConcatenation(parenthesizedPath(a_r_b))),
       selector = allPathsSelector()
     )
@@ -168,7 +168,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: single node in concatenation") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(pathConcatenation(nodePat(Some("start")))),
       selector = allPathsSelector()
     )
@@ -179,7 +179,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: concatenated path patterns") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(pathConcatenation(
         nodePat(Some("start")),
         quantifiedPath(a_r_b, plusQuantifier),
@@ -226,7 +226,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: missing simple pattern after quantified path pattern") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(pathConcatenation(
         nodePat(Some("start")),
         quantifiedPath(a_r_b, plusQuantifier)
@@ -240,7 +240,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: quantified path pattern concatenated with a parenthesised path pattern") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(pathConcatenation(
         nodePat(Some("start")),
         quantifiedPath(a_r_b, plusQuantifier),
@@ -255,7 +255,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: simple pattern concatenated with a parenthesised path pattern") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(pathConcatenation(
         nodePat(Some("start")),
         parenthesizedPath(a_r_b)
@@ -269,7 +269,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: invalid quantified path pattern outside concatenation") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(quantifiedPath(a_r_b, plusQuantifier)),
       selector = allPathsSelector()
     )
@@ -280,7 +280,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All paths: invalid parenthesised path pattern") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(parenthesizedPath(a_r_b)),
       selector = allPathsSelector()
     )
@@ -291,7 +291,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All shortest paths") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(longElement),
       selector = allShortestPathsSelector()
     )
@@ -308,7 +308,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   test("All shortest paths with selection") {
     val predicate = hasLabels("start", "Start")
 
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
@@ -326,7 +326,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All shortest: nested shortest var-length relationship") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = ShortestPathsPatternPart(a_r_b, single = true)(pos),
         optionalWhereClause = None
@@ -340,7 +340,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("All shortest: sub-path assignment") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = NamedPatternPart(
           variable = varFor("p"),
@@ -359,7 +359,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   test("Any path with selection") {
     val predicate = hasLabels("start", "Start")
 
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
@@ -379,7 +379,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   test("Any 2 paths") {
     val predicate = hasLabels("start", "Start")
 
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
@@ -399,7 +399,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   test("Any shortest path with selection") {
     val predicate = hasLabels("start", "Start")
 
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
@@ -419,7 +419,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   test("Shortest 2 paths") {
     val predicate = hasLabels("start", "Start")
 
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
@@ -440,7 +440,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   test("Shortest 1 group with selection") {
     val predicate = hasLabels("start", "Start")
 
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
@@ -460,7 +460,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   test("Shortest 2 path groups") {
     val predicate = hasLabels("start", "Start")
 
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
@@ -478,7 +478,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("shortest relationship pattern") {
-    val ast = PatternPartWithSelector(
+    val ast = PrefixedPatternPart(
       allPathsSelector(),
       NamedPatternPart(variable = varFor("p"), patternPart = shortestRelationship)(pos)
     )
@@ -526,7 +526,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
   }
 
   test("multiple pattern parts") {
-    val part1 = PatternPartWithSelector(
+    val part1 = PrefixedPatternPart(
       part = PathPatternPart(a_r_b),
       selector = allPathsSelector()
     )
@@ -541,7 +541,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
       )
     ))
 
-    val part2 = PatternPartWithSelector(
+    val part2 = PrefixedPatternPart(
       part = PathPatternPart(ParenthesizedPath(
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(hasLabels("start", "Start"))

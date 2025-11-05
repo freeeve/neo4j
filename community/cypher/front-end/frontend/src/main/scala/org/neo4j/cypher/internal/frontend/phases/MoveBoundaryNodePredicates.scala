@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.conditions.AndRewrittenToAnds
@@ -42,7 +42,7 @@ import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.topDown
 
 /**
- * Moves predicates from inside a PatternPartWithSelector into the surrounding Match clause,
+ * Moves predicates from inside a PrefixedPatternPart into the surrounding Match clause,
  * if the predicate only depends on arguments and boundary nodes.
  */
 case object MoveBoundaryNodePredicates extends StatementRewriter
@@ -65,7 +65,7 @@ case object MoveBoundaryNodePredicates extends StatementRewriter
   private val rewriter: Rewriter = topDown(Rewriter.lift {
     case matchClause @ Match(_, _, pattern @ Pattern.ForMatch(parts), _, where, _) =>
       val (newParts, extractedPredicates) = parts.map {
-        case patternPart @ PatternPartWithSelector(_: SelectiveSelector, part) =>
+        case patternPart @ PrefixedPatternPart(_: SelectiveSelector, _, part) =>
           val (newElement: PatternElement, extractedPredicates: ListSet[Expression]) = part.element match {
             case pp @ ParenthesizedPath(part, Some(where)) =>
               // The strict interior variables are not visible outside the path pattern.

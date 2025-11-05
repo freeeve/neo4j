@@ -93,14 +93,15 @@ import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathFactor
 import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
+import org.neo4j.cypher.internal.expressions.PathMode
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.Pow
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertySelector
@@ -276,6 +277,16 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     }
   }
 
+  final override def exitPathMode(ctx: Cypher25Parser.PathModeContext): Unit = {
+    val p = pos(ctx)
+    ctx.ast = nodeChildType(ctx, 0) match {
+      case Cypher25Parser.ACYCLIC => PathMode.Acyclic()(p)
+      case Cypher25Parser.TRAIL   => PathMode.Trail()(p)
+      case Cypher25Parser.WALK    => PathMode.Walk()(p)
+      case _                      => throw new IllegalStateException(s"Unexpected context $ctx")
+    }
+  }
+
   private def selectorCount(
     ctx: Cypher25Parser.NonNegativeIntegerSpecificationContext,
     p: InputPosition
@@ -285,19 +296,37 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       Left(PathLengthQuantifier("1")(p))
     )
 
-  final override def exitSelector(ctx: Cypher25Parser.SelectorContext): Unit = {
+  private def pathMode(ctx: Cypher25Parser.PathModeContext, p: InputPosition): PathMode =
+    astOpt[PathMode](ctx, PathMode.Walk(implicitlyCreated = true)(p))
+
+  final override def exitPathPatternPrefix(ctx: Cypher25Parser.PathPatternPrefixContext): Unit = {
     val p = pos(ctx)
     ctx.ast = ctx match {
-      case anyShortestCtx: Cypher25Parser.AnyShortestPathContext =>
-        PatternPart.AnyShortestPath(selectorCount(anyShortestCtx.nonNegativeIntegerSpecification(), p))(p)
-      case allShortestCtx: Cypher25Parser.AllShortestPathContext =>
-        PatternPart.AllShortestPaths()(pos(allShortestCtx))
-      case anyCtx: Cypher25Parser.AnyPathContext =>
-        PatternPart.AnyPath(selectorCount(anyCtx.nonNegativeIntegerSpecification(), p))(p)
-      case shortestGrpCtx: Cypher25Parser.ShortestGroupContext =>
-        PatternPart.ShortestGroups(selectorCount(shortestGrpCtx.nonNegativeIntegerSpecification(), p))(p)
-      case _: Cypher25Parser.AllPathContext =>
-        PatternPart.AllPaths()(p)
+      case c: Cypher25Parser.AnyShortestPathContext =>
+        (
+          PatternPart.AnyShortestPath(selectorCount(c.nonNegativeIntegerSpecification(), p))(p),
+          pathMode(c.pathMode(), p)
+        )
+      case c: Cypher25Parser.AllShortestPathContext =>
+        (
+          PatternPart.AllShortestPaths()(pos(c)),
+          pathMode(c.pathMode(), p)
+        )
+      case c: Cypher25Parser.AnyPathContext =>
+        (
+          PatternPart.AnyPath(selectorCount(c.nonNegativeIntegerSpecification(), p))(p),
+          pathMode(c.pathMode(), p)
+        )
+      case c: Cypher25Parser.ShortestGroupContext =>
+        (
+          PatternPart.ShortestGroups(selectorCount(c.nonNegativeIntegerSpecification(), p))(p),
+          pathMode(c.pathMode(), p)
+        )
+      case c: Cypher25Parser.AllPathContext =>
+        (
+          PatternPart.AllPaths()(p),
+          pathMode(c.pathMode(), p)
+        )
       case _ => throw new IllegalStateException(s"Unexpected context $ctx")
     }
   }
@@ -306,7 +335,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     val p = pos(ctx)
     val pattern = astChild[PatternPart](ctx, 1) match {
       case nonPrefixedPatternPart: NonPrefixedPatternPart => nonPrefixedPatternPart
-      case ps: PatternPartWithSelector =>
+      case ps: PrefixedPatternPart =>
         val pathPatternKind = if (ctx.quantifier() == null) "parenthesized" else "quantified"
         throw exceptionFactory.unsupportedPathSelectorInPathPattern(
           ps.selector.prettified,
@@ -838,8 +867,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     if (regQuery != null) regQuery.ast[Query]()
     else {
       val patternParts = patternList.ast[ArraySeq[PatternPart]]().map {
-        case p: PatternPartWithSelector => p
-        case p: NonPrefixedPatternPart  => PatternPartWithSelector(PatternPart.AllPaths()(p.position), p)
+        case p: PrefixedPatternPart    => p
+        case p: NonPrefixedPatternPart => PrefixedPatternPart(PatternPart.AllPaths()(p.position), p)
       }
       val patternPos = patternParts.head.position
       val where = astOpt[Where](whereClause)
