@@ -33,6 +33,7 @@ import java.util.function.Predicate;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.QueryLanguage;
+import org.neo4j.util.VisibleForTesting;
 
 /**
  * Simple in memory store for procedures.
@@ -47,7 +48,7 @@ class ProcedureHolder<T> {
     private final Map<QualifiedName, int[]> nameToEntries;
     private final Map<QualifiedName, int[]> caseInsensitiveName2Entries;
 
-    private static int UNUSED_REFERENCE = -1;
+    static final int UNUSED_REFERENCE = -1;
     private final List<Object> store;
 
     private static final Object TOMBSTONE = new Object() {
@@ -219,6 +220,7 @@ class ProcedureHolder<T> {
         return new QualifiedName(lowerCaseNamespace, lowercaseName);
     }
 
+    @VisibleForTesting
     public void unregister(QualifiedName name) {
         int[] entry = name2entry(name);
         if (entry == null) {
@@ -255,10 +257,18 @@ class ProcedureHolder<T> {
                 Map.copyOf(ref.nameToEntries), Map.copyOf(ref.caseInsensitiveName2Entries), List.copyOf(ref.store));
     }
 
-    private static boolean hasDifferentScopes(int[] entry, Set<QueryLanguage> scopes) {
+    static boolean hasDifferentScopes(int[] entry, Set<QueryLanguage> scopes) {
         for (var scope : QueryLanguage.ALL) {
-            if (entry[scope.ordinal()] != UNUSED_REFERENCE && !scopes.contains(scope)) {
-                return true;
+            if (scopes.contains(scope)) {
+                // If in scopes, then it must be in use to be the same.
+                if (entry[scope.ordinal()] == UNUSED_REFERENCE) {
+                    return true;
+                }
+            } else {
+                // If not in scopes, then it must not be in use to be the same.
+                if (entry[scope.ordinal()] != UNUSED_REFERENCE) {
+                    return true;
+                }
             }
         }
         return false;

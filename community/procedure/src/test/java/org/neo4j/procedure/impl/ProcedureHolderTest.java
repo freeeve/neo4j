@@ -26,7 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.function.Predicates;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.QueryLanguage;
@@ -221,5 +225,36 @@ class ProcedureHolderTest {
         procHolder.put(qn, QueryLanguage.ALL, value, false);
         assertThat(procHolder.getByKey(qn, QueryLanguage.CYPHER_5)).isEqualTo(value);
         assertThat(procHolder.getByKey(qn, QueryLanguage.CYPHER_25)).isEqualTo(value);
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void hasDifferentScopes(int[] entry, Set<QueryLanguage> scopes, boolean expected) {
+        assertThat(ProcedureHolder.hasDifferentScopes(entry, scopes)).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> hasDifferentScopes() {
+        var unused = ProcedureHolder.UNUSED_REFERENCE;
+        Set<QueryLanguage> none = Set.of();
+        var only_5 = Set.of(QueryLanguage.CYPHER_5);
+        var only_25 = Set.of(QueryLanguage.CYPHER_25);
+        var all = QueryLanguage.ALL;
+        return Stream.of(
+                Arguments.of(new int[] {unused, 81}, none, true),
+                Arguments.of(new int[] {unused, 81}, only_5, false),
+                Arguments.of(new int[] {unused, 81}, only_25, true),
+                Arguments.of(new int[] {unused, 81}, all, true),
+                Arguments.of(new int[] {81, unused}, none, true),
+                Arguments.of(new int[] {81, unused}, only_5, true),
+                Arguments.of(new int[] {81, unused}, only_25, false),
+                Arguments.of(new int[] {81, unused}, all, true),
+                Arguments.of(new int[] {unused, unused}, none, false),
+                Arguments.of(new int[] {unused, unused}, only_5, true),
+                Arguments.of(new int[] {unused, unused}, only_25, true),
+                Arguments.of(new int[] {unused, unused}, all, true),
+                Arguments.of(new int[] {81, 91}, none, true),
+                Arguments.of(new int[] {81, 91}, only_5, true),
+                Arguments.of(new int[] {81, 91}, only_25, true),
+                Arguments.of(new int[] {81, 91}, all, false));
     }
 }
