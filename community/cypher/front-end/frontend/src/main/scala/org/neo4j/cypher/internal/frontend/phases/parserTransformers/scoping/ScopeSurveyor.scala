@@ -37,6 +37,23 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 
+case class SurveyorNameGenerator() extends AnonymousVariableNameGenerator {
+  private var counter = 0
+  private val inc = 1
+
+  val generatorName = "SURVEYOR"
+  private val prefix = s"  $generatorName"
+
+  def anonymousVarName(counter: Int) =
+    s"$prefix$counter"
+
+  override def nextName: String = {
+    val result = anonymousVarName(counter)
+    counter += inc
+    result
+  }
+}
+
 /**
  * Produce a WorkingScope tree that makes it easy to check variable availability for the whole query
  */
@@ -46,7 +63,7 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
   val unitVariables: Set[LogicalVariable] = Set.empty[LogicalVariable]
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
-    val anonVarGen = new AnonymousVariableNameGenerator
+    val anonVarGen = SurveyorNameGenerator()
     val workingContextOfStatement = scope(
       from.statement(),
       RegularContext.unit,
