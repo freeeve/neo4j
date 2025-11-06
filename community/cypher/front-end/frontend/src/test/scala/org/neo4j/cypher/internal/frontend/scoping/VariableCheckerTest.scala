@@ -1274,6 +1274,10 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test("""FOREACH (x IN [1] | FOREACH(x IN [1] | CREATE() ))""") {
+    passes()
+  }
+
   test("""WITH 1 AS x CALL { WITH x USE graph.byName(x) RETURN 2 AS y } RETURN x""") {
     passes()
   }

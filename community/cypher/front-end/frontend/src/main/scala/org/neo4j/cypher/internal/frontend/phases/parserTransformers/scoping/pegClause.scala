@@ -282,12 +282,12 @@ object pegClause {
         incoming.forwardWithOmittedResult(children)
 
       case Foreach(variable, expression, updates) =>
-        val expressionIncoming = incoming.constantChildContext()
-        val expressionScope = pegExpression(expression, expressionIncoming)
+        val expressionIncoming = incoming
+        val expressionScope = pegExpression(expression, expressionIncoming.constantChildContext())
         val subqueryScope =
           pegStatement(
             SingleQuery(updates)(updates.head.position),
-            expressionIncoming.amendedWithConstant(variable)
+            expressionIncoming.amendedWith(variable)
           )
         val children = Seq(expressionScope, subqueryScope)
         val referenced = {

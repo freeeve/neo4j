@@ -1381,15 +1381,15 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedWorkingScope(
             Ast("""CREATE (n)
                   |SET n.p = a""".stripMargin),
-            Incoming(constants = Set("a")),
+            Incoming(variables = Set("a")),
             Referenced(Set("a")),
-            Outgoing(constants = Set("a"), variables = Set("n")),
+            Outgoing(constants = Set(), variables = Set("a", "n")),
             ExpectedResult.OmittedResult,
             ExpectedWorkingScope(
               Ast("CREATE (n)"),
-              Incoming(constants = Set("a")),
+              Incoming(variables = Set("a")),
               Declared(variables = Seq("n")),
-              Outgoing(constants = Set("a"), variables = Set("n")),
+              Outgoing(constants = Set(), variables = Set("a", "n")),
               ExpectedResult.OmittedResult,
               ExpectedWorkingScope(
                 Ast("(n)"),
@@ -1401,9 +1401,9 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
             ),
             ExpectedWorkingScope(
               Ast("SET n.p = a"),
-              Incoming(constants = Set("a"), variables = Set("n")),
+              Incoming(constants = Set(), variables = Set("a", "n")),
               Referenced(Set("a", "n")),
-              Outgoing(constants = Set("a"), variables = Set("n")),
+              Outgoing(constants = Set(), variables = Set("a", "n")),
               ExpectedResult.OmittedResult,
               ExpectedWorkingScope(
                 Ast("n.p"),
