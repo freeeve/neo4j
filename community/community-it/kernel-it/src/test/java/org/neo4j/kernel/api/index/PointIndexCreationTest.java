@@ -19,13 +19,15 @@
  */
 package org.neo4j.kernel.api.index;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.graphdb.Label.label;
+import static org.neo4j.graphdb.schema.IndexType.POINT;
 
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
+import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.TokenWrite;
@@ -71,10 +73,11 @@ public class PointIndexCreationTest {
         assertUnsupported(this::createCompositeRelPointIndexCoreAPI);
     }
 
-    private void assertUnsupported(Executable executable) {
-        var message =
-                assertThrows(UnsupportedOperationException.class, executable).getMessage();
-        assertThat(message).isEqualTo("Composite indexes are not supported for POINT index type.");
+    private void assertUnsupported(ThrowingCallable operation) {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(operation)
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll("A composite", POINT.name(), "index is not supported")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N31);
     }
 
     private void createPointIndex(String name, SchemaDescriptor schema) throws Exception {

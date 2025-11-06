@@ -47,6 +47,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
@@ -114,10 +116,14 @@ public class VectorIndexCreationTest {
                 return invalidVersions.notEmpty();
             }
 
-            private static void assertUnsupportedIndex(ThrowingCallable callable) {
-                assertThatThrownBy(callable)
-                        .isInstanceOf(UnsupportedOperationException.class)
-                        .hasMessageContainingAll("vector indexes with provider", "are not supported");
+            private static void assertUnsupportedIndex(ThrowingCallable operation) {
+                ErrorGqlStatusObjectAssertions.assertThatThrownBy(operation)
+                        .isInstanceOf(InvalidArgumentException.class)
+                        .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N31)
+                        .hasMessageContainingAll(
+                                "Creating a relationship vector index with provider",
+                                "is not supported in Neo4j",
+                                "Please use a newer index provider");
             }
         }
 
@@ -139,11 +145,11 @@ public class VectorIndexCreationTest {
                 assertUnsupportedComposite(() -> createVectorIndex(defaultSettings(), PROP_KEYS));
             }
 
-            private static void assertUnsupportedComposite(ThrowingCallable callable) {
-                assertThatThrownBy(callable)
-                        .isInstanceOf(UnsupportedOperationException.class)
-                        .hasMessageContainingAll(
-                                "Composite indexes are not supported for", IndexType.VECTOR.name(), "index type");
+            private static void assertUnsupportedComposite(ThrowingCallable operation) {
+                ErrorGqlStatusObjectAssertions.assertThatThrownBy(operation)
+                        .isInstanceOf(InvalidArgumentException.class)
+                        .hasMessageContainingAll("A composite", IndexType.VECTOR.name(), "index is not supported")
+                        .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N31);
             }
         }
 

@@ -35,10 +35,13 @@ import static org.neo4j.test.conditions.Conditions.condition;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -115,10 +118,11 @@ public class TextIndexIT {
         }
     }
 
-    private void assertUnsupported(Executable executable) {
-        var message =
-                assertThrows(UnsupportedOperationException.class, executable).getMessage();
-        assertThat(message).isEqualTo("Composite indexes are not supported for TEXT index type.");
+    private void assertUnsupported(ThrowingCallable operation) {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(operation)
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll("A composite", TEXT.name(), "index is not supported")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N31);
     }
 
     @Test

@@ -71,6 +71,8 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.DbmsRuntimeVersionProvider;
 import org.neo4j.exceptions.ConstraintViolationException;
+import org.neo4j.exceptions.InternalException;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.ThrowingLongConsumer;
 import org.neo4j.graphdb.Direction;
@@ -133,6 +135,7 @@ import org.neo4j.internal.schema.constraints.TypeConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.TypeRepresentation;
 import org.neo4j.internal.schema.constraints.UniquenessConstraintDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.AccessModeProvider;
@@ -194,6 +197,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private final CommandCreationContext commandCreationContext;
     private final DbmsRuntimeVersionProvider dbmsRuntimeVersionProvider;
     private final KernelVersionProvider kernelVersionProvider;
+    private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final StorageLocks storageLocks;
     private final KernelToken token;
     private final IndexTxStateUpdater updater;
@@ -241,6 +245,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         this.commandCreationContext = commandCreationContext;
         this.dbmsRuntimeVersionProvider = dbmsRuntimeVersionProvider;
         this.kernelVersionProvider = kernelVersionProvider;
+        this.binarySupportedKernelVersions = new BinarySupportedKernelVersions(config);
         this.storageLocks = storageLocks;
         this.schemaRead = schemaRead;
         this.accessModeProvider = accessModeProvider;
@@ -376,7 +381,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     long relationshipReference = rels.relationshipReference();
                     boolean deleted = relationshipDelete(relationshipReference);
                     if (additionLockVerification && !deleted) {
-                        throw new RuntimeException(
+                        throw InternalException.internalError(
+                                getClass().getSimpleName(),
                                 "Relationship chain modified even when node delete lock was held: " + rels);
                     }
                     deletedRelationships++;
@@ -400,7 +406,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         // relationship group of type 65535 but no relationship (because there is a guard for that
         // for some reason). Throwing here in the hopes of getting to the bottom of how this can ever happen
         if (relationshipType < 0) {
-            throw new IllegalArgumentException(
+            throw InternalException.internalError(
+                    getClass().getSimpleName(),
                     "Tried to create relationship with invalid type '%d' between nodes with ids '%d' and '%d'"
                             .formatted(relationshipType, sourceNode, targetNode));
         }
@@ -453,8 +460,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             try {
                 singleRelationship(relationship);
             } catch (EntityNotFoundException e) {
-                throw new IllegalStateException("Relationship " + relationship
-                        + " was created in this transaction, but was not found when deleting it");
+                throw InternalException.internalError(
+                        getClass().getSimpleName(),
+                        "Relationship " + relationship
+                                + " was created in this transaction, but was not found when deleting it");
             }
             updater.onDeleteUncreated(localRelationshipCursor, localPropertyCursor);
             txState.relationshipDoDeleteAddedInThisBatch(relationship);
@@ -805,8 +814,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 try {
                     singleNode(node);
                 } catch (EntityNotFoundException e) {
-                    throw new IllegalStateException("Node " + node
-                            + " was created in this transaction, but was not found when it was about to be deleted");
+                    throw InternalException.internalError(
+                            getClass().getSimpleName(),
+                            "Node " + node
+                                    + " was created in this transaction, but was not found when it was about to be deleted");
                 }
                 updater.onDeleteUncreated(localNodeCursor, localPropertyCursor);
                 state.nodeDoDelete(node);
@@ -1902,57 +1913,29 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         final SchemaDescriptor schema = prototype.schema();
         final IndexType indexType = prototype.getIndexType();
         if (indexType == IndexType.VECTOR) {
+            final IndexProviderDescriptor descriptor = prototype.getIndexProvider();
+            final VectorIndexVersion version = VectorIndexVersion.fromDescriptor(descriptor);
+
             switch (schema.entityType()) {
-                case NODE -> {
-                    final IndexProviderDescriptor descriptor = prototype.getIndexProvider();
-                    final VectorIndexVersion version = VectorIndexVersion.fromDescriptor(descriptor);
+                case NODE ->
                     assertSupportedInVersion(
-                            version.minimumRequiredKernelVersion(), "Failed to create node vector index.");
-                }
+                            version.minimumRequiredKernelVersion(),
+                            "Creating a node vector index with provider '%s'",
+                            descriptor.name());
+
                 case RELATIONSHIP -> {
-                    boolean supported = true;
-                    final IndexProviderDescriptor descriptor = prototype.getIndexProvider();
-                    final VectorIndexVersion version = VectorIndexVersion.fromDescriptor(descriptor);
-                    final StringBuilder unsupportedMessage =
-                            new StringBuilder().append("Failed to create relationship vector index.");
                     if (version == VectorIndexVersion.V1_0) {
-                        supported = false;
-                        final IndexProviderDescriptor latestDescriptor = VectorIndexVersion.latestSupportedVersion(
-                                        dbmsRuntimeVersionProvider.getVersion().kernelVersion())
-                                .descriptor();
-                        unsupportedMessage
-                                .append(" Relationship vector indexes with provider '")
-                                .append(descriptor.name())
-                                .append("' are not supported");
-
-                        if (!latestDescriptor.equals(descriptor)) {
-                            unsupportedMessage
-                                    .append(", use a newer vector index provider such as '")
-                                    .append(latestDescriptor.name())
-                                    .append('\'');
-                        }
-
-                        unsupportedMessage.append('.');
+                        throw InvalidArgumentException.unsupportedOperation(
+                                "Creating a relationship vector index with provider '%s'".formatted(descriptor.name()),
+                                "Neo4j. Please use a newer index provider.");
                     }
-
-                    final KernelVersion minimumSupportedVersion = KernelVersion.getForVersion((byte) Math.max(
+                    final KernelVersion minimumRequiredVersion = KernelVersion.getForVersion((byte) Math.max(
                             KernelVersion.VERSION_VECTOR_2_INTRODUCED.version(),
                             version.minimumRequiredKernelVersion().version()));
-                    supported &= checkSupportedInVersion(unsupportedMessage, minimumSupportedVersion);
-                    if (!supported) {
-                        throw new UnsupportedOperationException(unsupportedMessage.toString());
-                    }
-                }
-            }
-
-            if ((schema.getEntityTokenIds().length > 1 || schema.getPropertyIds().length > 1)) {
-                if (singleStageFilteringEnabled) {
                     assertSupportedInVersion(
-                            KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING,
-                            "Failed to create metadata filter vector index.");
-                } else {
-                    throw new UnsupportedOperationException(
-                            "Composite indexes are not supported for " + indexType.name() + " index type.");
+                            minimumRequiredVersion,
+                            "Creating a relationship vector index with provider '%s'",
+                            descriptor.name());
                 }
             }
         }
@@ -1960,8 +1943,17 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         assertValidDescriptor(schema, INDEX_CREATION);
 
         if ((indexType == IndexType.TEXT || indexType == IndexType.POINT) && schema.getPropertyIds().length > 1) {
-            throw new UnsupportedOperationException(
-                    "Composite indexes are not supported for " + indexType.name() + " index type.");
+            throw InvalidArgumentException.unsupportedOperation("A composite " + indexType.name() + " index", "Neo4j");
+        } else if (indexType == IndexType.VECTOR
+                && (schema.getEntityTokenIds().length > 1 || schema.getPropertyIds().length > 1)) {
+            if (singleStageFilteringEnabled) {
+                assertSupportedInVersion(
+                        KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING,
+                        "Creating a single stage filtering vector index");
+            } else {
+                throw InvalidArgumentException.unsupportedOperation(
+                        "A composite " + indexType.name() + " index", "Neo4j");
+            }
         }
 
         // valid config settings
@@ -1976,8 +1968,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                             Predicates.in(INDEX_SETTING_INTRODUCED_VERSIONS.keysView()),
                             INDEX_SETTING_INTRODUCED_VERSIONS::get)
                     .maxOptional()
-                    .ifPresent(kernelVersion -> assertSupportedInVersion(
-                            kernelVersion, "Failed to create vector index with provided settings."));
+                    .ifPresent(kernelVersion ->
+                            assertSupportedInVersion(kernelVersion, "Creating a vector index with provided settings"));
         }
 
         // ensure named
@@ -2098,7 +2090,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         if (schema.entityType() == RELATIONSHIP) {
             assertSupportedInVersion(
                     KernelVersion.VERSION_REL_UNIQUE_CONSTRAINTS_INTRODUCED,
-                    "Failed to create Relationship Uniqueness constraint.");
+                    "Creating a relationship uniqueness constraint");
         }
 
         exclusiveSchemaLock(schema);
@@ -2133,7 +2125,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     ConstraintWithNameAlreadyExistsException, AlreadyIndexedException, AlreadyConstrainedException {
         Optional<String> prototypeName = prototype.getName();
         if (prototypeName.isEmpty()) {
-            throw new IllegalStateException("Expected index to always have a name by this point");
+            throw InternalException.internalError(
+                    getClass().getSimpleName(), "Expected index to always have a name by this point");
         }
         String name = prototypeName.get();
 
@@ -2170,10 +2163,12 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private void assertNoBlockingSchemaRulesExists(ConstraintDescriptor constraint)
             throws EquivalentSchemaRuleAlreadyExistsException, IndexWithNameAlreadyExistsException,
                     ConstraintWithNameAlreadyExistsException, ConflictingConstraintException,
-                    AlreadyConstrainedException, AlreadyIndexedException, IncompatibleGraphTypeDependenceException {
+                    CreateConstraintFailureException, AlreadyConstrainedException, AlreadyIndexedException,
+                    IncompatibleGraphTypeDependenceException {
         final String name = constraint.getName();
         if (name == null) {
-            throw new IllegalStateException("Expected constraint to always have a name by this point");
+            throw InternalException.internalError(
+                    getClass().getSimpleName(), "Expected constraint to always have a name by this point");
         }
 
         final List<ConstraintDescriptor> constraintsWithSameSchema =
@@ -2265,7 +2260,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
     }
 
-    private void assertConstraintNotBackedBySimilarIndexDroppedInThisTx(ConstraintDescriptor constraint) {
+    private void assertConstraintNotBackedBySimilarIndexDroppedInThisTx(ConstraintDescriptor constraint)
+            throws CreateConstraintFailureException {
         // We cannot allow this because if we crash while new backing index
         // is being populated we will end up with two indexes on the same schema and type.
         if (constraint.isIndexBackedConstraint() && ktx.hasTxStateWithChanges()) {
@@ -2276,17 +2272,15 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         && constraint.schema().equals(droppedConstraint.schema())
                         && droppedConstraint.asIndexBackedConstraint().indexType()
                                 == constraint.asIndexBackedConstraint().indexType()) {
-                    throw new UnsupportedOperationException(format(
-                            "Trying to create constraint '%s' in same transaction as dropping '%s'. "
-                                    + "This is not supported because they are both backed by similar indexes. "
-                                    + "Please drop constraint in a separate transaction before creating the new one.",
-                            constraint.getName(), droppedConstraint.getName()));
+                    throw CreateConstraintFailureException.droppingSimilarConstraint(
+                            constraint, droppedConstraint, token);
                 }
             }
         }
     }
 
-    private void assertNoIndexSimilarToBackingIndexDroppedInSameTx(ConstraintDescriptor constraint) {
+    private void assertNoIndexSimilarToBackingIndexDroppedInSameTx(ConstraintDescriptor constraint)
+            throws CreateConstraintFailureException {
         // We cannot allow this because the internal transaction for the constraint index breaks the schema cache state
         // - the cache assumes there can only be one index per schema and index type. If the outer tx succeeds it would
         // be temporarily invalid, but if it rollbacks the schema cache is left in an invalid state and will fail any
@@ -2298,12 +2292,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 if (droppedIndex.getIndexType()
                                 == constraint.asIndexBackedConstraint().indexType()
                         && droppedIndex.schema().equals(constraint.schema())) {
-                    throw new UnsupportedOperationException(format(
-                            "Trying to create constraint '%s' in same transaction as dropping '%s'. This is not"
-                                    + " supported because the constraint is backed by an index similar to the dropped"
-                                    + " index. Please drop index in a separate transaction before creating the index"
-                                    + " backed constraint.",
-                            constraint.getName(), droppedIndex.getName()));
+                    throw CreateConstraintFailureException.droppingSimilarIndex(constraint, droppedIndex, token);
                 }
             }
         }
@@ -2332,36 +2321,40 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
     }
 
-    private void assertSupportedInVersion(KernelVersion minimumVersionForSupport, String message, Object... args) {
-        final var unsupportedMessage = new StringBuilder().append(message.formatted(args));
-        if (!checkSupportedInVersion(unsupportedMessage, minimumVersionForSupport)) {
-            throw new UnsupportedOperationException(unsupportedMessage.toString());
+    private void assertSupportedInVersion(KernelVersion minimumVersionForSupport, String operation, Object... args) {
+        final StringBuilder context = new StringBuilder();
+        if (!checkSupportedInVersion(context, minimumVersionForSupport)) {
+            throw InvalidArgumentException.unsupportedOperation(operation.formatted(args), context.toString());
         }
     }
 
-    private boolean checkSupportedInVersion(StringBuilder sb, KernelVersion minimumVersionForSupport) {
-        final var currentStoreVersion = kernelVersionProvider.kernelVersion();
+    private boolean checkSupportedInVersion(StringBuilder context, KernelVersion minimumVersionForSupport) {
+        final KernelVersion currentStoreVersion = kernelVersionProvider.kernelVersion();
         if (currentStoreVersion.isAtLeast(minimumVersionForSupport)) {
             // New or upgraded store, good to go
             return true;
         }
 
-        final var currentDbmsVersion = dbmsRuntimeVersionProvider.getVersion().kernelVersion();
+        final KernelVersion currentDbmsVersion =
+                dbmsRuntimeVersionProvider.getVersion().kernelVersion();
         if (currentDbmsVersion.isAtLeast(minimumVersionForSupport)) {
-            // Dbms runtime version is good, current transaction will trigger the upgrade transaction
-            // we will double-check the kernel version during commit
+            // Dbms runtime version is good, current transaction *should* trigger the upgrade transaction.
+            // We will double-check the kernel version during commit.
             return true;
         }
 
-        if (!sb.isEmpty()) {
-            sb.append(' ');
+        if (!context.isEmpty()) {
+            context.append(' ');
         }
-        sb.append("Version was ")
-                .append(currentDbmsVersion.name())
-                .append(", but required version for operation is ")
+        context.append(currentDbmsVersion.name())
+                .append(". Required version for operation is ")
                 .append(minimumVersionForSupport.name())
-                .append(". Please upgrade dbms using 'dbms.upgrade()'.");
-
+                .append(". Please upgrade DBMS");
+        if (binarySupportedKernelVersions.latestSupportedIsLessThan(
+                KernelVersion.VERSION_AUTOMATIC_SYSTEM_DB_UPGRADE_INTRODUCED)) {
+            context.append("using 'dbms.upgrade()'");
+        }
+        context.append('.');
         return false;
     }
 
@@ -2371,8 +2364,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         if (schema.entityType() == RELATIONSHIP) {
             assertSupportedInVersion(
-                    KernelVersion.VERSION_REL_UNIQUE_CONSTRAINTS_INTRODUCED,
-                    "Failed to create Relationship Key constraint.");
+                    KernelVersion.VERSION_REL_UNIQUE_CONSTRAINTS_INTRODUCED, "Creating a relationship key constraint");
         }
 
         exclusiveSchemaLock(schema);
@@ -2618,10 +2610,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             throws KernelException {
         ensureCursors();
         if (schema.getPropertyIds().length != 1) {
-            throw new UnsupportedOperationException("Composite property type constraints are not supported.");
+            throw InvalidArgumentException.unsupportedOperation("A composite property type constraint", "Neo4j");
         }
         assertSupportedInVersion(
-                KernelVersion.VERSION_TYPE_CONSTRAINTS_INTRODUCED, "Failed to create property type constraint.");
+                KernelVersion.VERSION_TYPE_CONSTRAINTS_INTRODUCED, "Creating a property type constraint");
 
         ConstraintDescriptor constraint =
                 lockAndValidatePropertyTypeConstraint(schema, name, propertyType, isDependent);
@@ -2652,7 +2644,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             // But the supported version is glorious future which effectively blocks the creation except for in tests
             assertSupportedInVersion(
                     KernelVersion.VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED,
-                    "Failed to create relationship endpoint constraint.");
+                    "Creating a relationship endpoint constraint");
         }
 
         RelationshipEndpointLabelConstraintDescriptor constraint =
@@ -2741,7 +2733,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             // But the supported version is glorious future which effectively blocks the creation except for in tests
             assertSupportedInVersion(
                     KernelVersion.VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED,
-                    "Failed to create label existence constraint.");
+                    "Creating a label existence constraint");
         }
 
         NodeLabelExistenceConstraintDescriptor constraint =
@@ -2825,14 +2817,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         if (isUnion || hasListType) {
             assertSupportedInVersion(
                     KernelVersion.VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED,
-                    "Failed to create property type constraint with %s.",
+                    "Creating a property type constraint with %s",
                     propertyType.userDescription());
         }
 
         if (TypeRepresentation.hasVectorTypes(propertyType)) {
             assertSupportedInVersion(
                     KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED,
-                    "Failed to create property type constraint with %s.",
+                    "Creating a property type constraint with %s",
                     propertyType.userDescription());
         }
 
@@ -2855,8 +2847,11 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             ConstraintDescriptor constraint =
                     constraintFunction.apply(descriptor).withName(name);
             if (!dependentConstraintsEnabled && constraint.graphTypeDependence() == GraphTypeDependence.DEPENDENT) {
-                throw new UnsupportedOperationException("Graph dependent constraints are not enabled, setting: "
-                        + GraphDatabaseInternalSettings.dependent_constraints_enabled.name());
+                throw InvalidArgumentException.unsupportedWithoutSetting(
+                        "A GraphType dependent constraint",
+                        "DBMS",
+                        GraphDatabaseInternalSettings.dependent_constraints_enabled.name(),
+                        Boolean.toString(true));
             }
             constraint = ensureConstraintHasName(constraint);
             exclusiveSchemaNameLock(constraint.getName());
@@ -2914,8 +2909,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public void createVectorStore(Vector.CoordinateType coordinateType, int dimensions) {
         ktx.assertOpen();
-        assertSupportedInVersion(
-                KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED, "Failed to create property vector store.");
+        assertSupportedInVersion(KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED, "Creating a vector property store");
         ktx.txState().createVectorStore(coordinateType, dimensions);
     }
 

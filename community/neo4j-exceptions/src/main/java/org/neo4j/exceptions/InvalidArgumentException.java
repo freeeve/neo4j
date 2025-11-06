@@ -1192,6 +1192,24 @@ public class InvalidArgumentException extends Neo4jException {
                 "Changing username is not supported when using an authentication or authentication provider apart from native.");
     }
 
+    public static InvalidArgumentException unsupportedWithoutSetting(
+            String concept, String settingScope, String settingName, String settingValue) {
+        var context = String.format("%s without configuration setting: %s=%s", settingScope, settingName, settingValue);
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N30)
+                .withParam(GqlParams.StringParam.item, concept)
+                .withParam(GqlParams.StringParam.context, context)
+                .build();
+        return new InvalidArgumentException(gql, concept + " is not supported in " + context);
+    }
+
+    public static InvalidArgumentException unsupportedOperation(String operation, String context) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N31)
+                .withParam(GqlParams.StringParam.feat, operation)
+                .withParam(GqlParams.StringParam.context, context)
+                .build();
+        return new InvalidArgumentException(gql, operation + " is not supported in " + context);
+    }
+
     public static InvalidArgumentException pbacNotSupportedWithSPD() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N71)
                 .withParam(GqlParams.StringParam.feat, "Property Based Access Control")

@@ -28,6 +28,7 @@ import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.EndpointType;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class CreateConstraintFailureException extends SchemaKernelException {
@@ -95,6 +96,32 @@ public class CreateConstraintFailureException extends SchemaKernelException {
                 .withParam(GqlParams.StringParam.edition, "community edition")
                 .build();
         return constraintCreationFailed(constraint, tokenNameLookup, null, causeMessage, gqlStatusCause);
+    }
+
+    public static CreateConstraintFailureException droppingSimilarConstraint(
+            ConstraintDescriptor constraint, ConstraintDescriptor droppedConstraint, TokenNameLookup tokenNameLookup) {
+        String cause = String.format(
+                "Trying to create constraint '%s' in same transaction as dropping '%s'. "
+                        + "This is not supported because they are both backed by similar indexes. "
+                        + "Please drop constraint in a separate transaction before creating the new one.",
+                constraint.getName(), droppedConstraint.getName());
+        ErrorGqlStatusObject gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N66)
+                .withParam(GqlParams.StringParam.constrDescrOrName, droppedConstraint.userDescription(tokenNameLookup))
+                .build();
+        return constraintCreationFailed(constraint, tokenNameLookup, null, cause, gql);
+    }
+
+    public static CreateConstraintFailureException droppingSimilarIndex(
+            ConstraintDescriptor constraint, IndexDescriptor droppedIndex, TokenNameLookup tokenNameLookup) {
+        String cause = String.format(
+                "Trying to create constraint '%s' in same transaction as dropping '%s'. "
+                        + "This is not supported because the constraint is backed by an index similar to the dropped index. "
+                        + "Please drop index in a separate transaction before creating the index backed constraint.",
+                constraint.getName(), droppedIndex.getName());
+        ErrorGqlStatusObject gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N73)
+                .withParam(GqlParams.StringParam.idxDescrOrName, droppedIndex.userDescription(tokenNameLookup))
+                .build();
+        return constraintCreationFailed(constraint, tokenNameLookup, null, cause, gql);
     }
 
     private static CreateConstraintFailureException constraintCreationFailed(

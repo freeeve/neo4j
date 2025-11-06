@@ -37,6 +37,10 @@ public final class BinarySupportedKernelVersions {
         return latestKernelVersionSupportedByBinaries.isAtLeast(version);
     }
 
+    public boolean latestSupportedIsLessThan(KernelVersion version) {
+        return latestKernelVersionSupportedByBinaries.isLessThan(version);
+    }
+
     public boolean latestSupportedIsLessThan(byte version) {
         return latestKernelVersionSupportedByBinaries.isLessThan(version);
     }

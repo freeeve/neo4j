@@ -19,7 +19,6 @@
  */
 package org.neo4j.graphdb;
 
-import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,6 +61,8 @@ import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.exceptions.CypherExecutionException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.function.ThrowingFunction;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.schema.AnyTokens;
 import org.neo4j.graphdb.schema.ConstraintCreator;
 import org.neo4j.graphdb.schema.ConstraintDefinition;
@@ -77,6 +78,7 @@ import org.neo4j.index.internal.gbptree.DynamicSizeUtil;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.IndexMonitor;
+import org.neo4j.internal.kernel.api.exceptions.schema.CreateConstraintFailureException;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
@@ -2640,17 +2642,23 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         // When
         try (Transaction tx = db.beginTx()) {
             tx.schema().getIndexByName(nameA).drop();
-            assertThatThrownBy(() -> tx.schema()
+            ErrorGqlStatusObjectAssertions.assertThatNonGqlThrownBy(() -> tx.schema()
                             .constraintFor(label)
                             .assertPropertyIsUnique(propertyKey)
                             .withName(nameB)
                             .create())
-                    .isInstanceOf(UnsupportedOperationException.class)
-                    .hasMessageContaining(format(
-                            "Trying to create constraint '%s' in same transaction as dropping '%s'. "
-                                    + "This is not supported because the constraint is backed by an index similar to the dropped index. "
-                                    + "Please drop index in a separate transaction before creating the index backed constraint.",
-                            nameB, nameA));
+                    .causeWithGqlStatus()
+                    .isInstanceOf(CreateConstraintFailureException.class)
+                    .hasGqlStatus(GqlStatusInfoCodes.STATUS_50N11)
+                    .hasMessageContainingAll(
+                            "Trying to create constraint",
+                            nameB,
+                            "in same transaction as dropping",
+                            nameA,
+                            "This is not supported because the constraint is backed by an index similar to the dropped index",
+                            "Please drop index in a separate transaction before creating the index backed constraint")
+                    .gqlCause()
+                    .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N73);
             // rollback
         }
     }

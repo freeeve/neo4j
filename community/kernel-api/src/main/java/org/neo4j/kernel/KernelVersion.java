@@ -91,6 +91,7 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_INDEX_USAGE_STATISTICS_INTRODUCED = V5_8;
     public static final KernelVersion VERSION_CDC_INTRODUCED = V5_8;
     public static final KernelVersion VERSION_TYPE_CONSTRAINTS_INTRODUCED = V5_9;
+    public static final KernelVersion VERSION_AUTOMATIC_SYSTEM_DB_UPGRADE_INTRODUCED = V5_9;
     public static final KernelVersion VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED =
             GLORIOUS_FUTURE;
     public static final KernelVersion VERSION_BLOCKFORMAT_INTRODUCED = V5_14;
