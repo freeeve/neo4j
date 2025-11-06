@@ -40,8 +40,10 @@ import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_EXPIRE
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_PROPERTY
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
+import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.Neo4jException
+import org.neo4j.exceptions.SecurityAdministrationException
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.internal.kernel.api.security.SecurityExceptionLogger
@@ -129,11 +131,13 @@ case class SetOwnPasswordExecutionPlanner(
           if (
             currentUser(p).isEmpty
           ) // This is true if the securityContext is AUTH_DISABLED (both for community and enterprise)
-            Some(ThrowException(new IllegalStateException(
+            Some(ThrowException(SecurityAdministrationException.unsupportedWithAuthDisabled(
+              "ALTER CURRENT USER SET PASSWORD",
               "User failed to alter their own password: Command not available with auth disabled."
             )))
           else // The 'current user' doesn't exist in the system graph
-            Some(ThrowException(new IllegalStateException(
+            Some(ThrowException(InternalException.internalError(
+              this.getClass.getSimpleName,
               s"User '${currentUser(p)}' failed to alter their own password: User does not exist."
             )))
         }),
@@ -161,7 +165,10 @@ case class SetOwnPasswordExecutionPlanner(
           params.updatedWith(renamedParameter, Values.byteArray(encodedPassword))
         }
         (renamedParameter, Values.NO_VALUE, convertPasswordParameters)
-      case _ => throw new IllegalStateException(s"Internal error when processing password.")
+      case _ => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Internal error when processing password."
+        )
     }
   }
 }

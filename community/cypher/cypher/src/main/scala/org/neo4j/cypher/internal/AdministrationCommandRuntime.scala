@@ -76,6 +76,7 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS_RELATIONSHIP
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
+import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.exceptions.ParameterWrongTypeException
@@ -189,7 +190,10 @@ object AdministrationCommandRuntime {
           (_, params) => convertPasswordParameters(params)
         )
 
-      case _ => throw new IllegalStateException(s"Internal error when processing password.")
+      case _ => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Internal error when processing password."
+        )
     }
 
   private[internal] def getValidPasswordParameter(params: MapValue, passwordParameter: String): Array[Byte] = {

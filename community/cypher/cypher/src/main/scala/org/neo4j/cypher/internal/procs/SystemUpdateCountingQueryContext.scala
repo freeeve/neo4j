@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.CountingQueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.CountingQueryContext.Counter
 import org.neo4j.cypher.internal.runtime.interpreted.DelegatingQueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext
+import org.neo4j.exceptions.InternalException
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.values.virtual.MapValue
 
@@ -38,11 +39,15 @@ class SystemUpdateCountingQueryContext(
   val kernelTransactionalContext: TransactionalContext = inner match {
     case ctx: ExceptionTranslatingQueryContext => ctx.inner match {
         case tqc: TransactionBoundQueryContext => tqc.transactionalContext.kernelTransactionalContext
-        case _ => throw new IllegalStateException(
+        case _ => throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            "System updating query context can only contain a transaction bound query context.",
             "System updating query context can only contain a transaction bound query context"
           )
       }
-    case _ => throw new IllegalStateException(
+    case _ => throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "System updating query context can only contain an exception translating query context.",
         "System updating query context can only contain an exception translating query context"
       )
   }
@@ -51,7 +56,11 @@ class SystemUpdateCountingQueryContext(
 
   override def addStatistics(statistics: QueryStatistics): Unit = {
     // For implementing this method, look at UpdateCountingQueryContext.addStatistics
-    throw new IllegalStateException("We don't expect to add statistics to the system updating query context")
+    throw InternalException.internalError(
+      this.getClass.getSimpleName,
+      "We don't expect to add statistics to the system updating query context.",
+      "We don't expect to add statistics to the system updating query context"
+    )
   }
 
   def withContextVars(newVars: MapValue): SystemUpdateCountingQueryContext = {

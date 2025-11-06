@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.ParameterName
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
+import org.neo4j.exceptions.InternalException
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
 import org.neo4j.kernel.database.DatabaseReferenceRepository
@@ -80,7 +81,11 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
 
     def assertAtMostOne(seq: Iterable[DatabaseReference]): Unit = {
       if (AssertionRunner.isAssertionsEnabled && seq.size > 1) {
-        throw new IllegalStateException("SHOW DATABASE by name should only return 0 or 1 databases")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "SHOW DATABASE by name should only return 0 or 1 databases.",
+          "SHOW DATABASE by name should only return 0 or 1 databases"
+        )
       }
     }
 

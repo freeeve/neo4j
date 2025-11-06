@@ -72,6 +72,7 @@ import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.GraphTypeDependence
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.internal.schema.constraints.TypeRepresentation
+import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
@@ -139,7 +140,11 @@ case class ShowConstraintsCommand(
         c =>
           c.`type`().equals(schema.ConstraintType.PROPERTY_TYPE) && c.schema.entityType.equals(EntityType.RELATIONSHIP)
       case AllConstraints => _ => true // Should keep all and not filter away any constraints
-      case c              => throw new IllegalStateException(s"Unknown constraint type: $c")
+      case c => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Unknown constraint type for show constraints. Missing case for constraint type: $c.",
+          s"Unknown constraint type: $c"
+        )
     }
 
     val relevantConstraints = constraints.filter {
@@ -253,7 +258,9 @@ case class ShowConstraintsCommand(
   ) = {
     if (constraintDescriptor.isIndexBackedConstraint) {
       val index = constraintInfo.maybeIndex.getOrElse(
-        throw new IllegalStateException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Expected to find an index for index backed constraint ${constraintDescriptor.getName}.",
           s"Expected to find an index for index backed constraint ${constraintDescriptor.getName}"
         )
       )
@@ -299,14 +306,20 @@ object ShowConstraintsCommand {
           case Some(typeSet) if TypeRepresentation.hasVectorTypes(typeSet) && returnCypher5Values => null
           case Some(typeSet) =>
             createNodeConstraintCommand(name, labelsOrTypes, properties, s"IS :: ${typeSet.userDescription()}")
-          case _ => throw new IllegalArgumentException(s"Expected a property type for $constraintType constraint.")
+          case _ => throw InvalidArgumentsException.internalError(
+              this.getClass.getSimpleName,
+              s"Expected a property type for $constraintType constraint."
+            )
         }
       case RelPropTypeConstraints =>
         maybePropertyType match {
           case Some(typeSet) if TypeRepresentation.hasVectorTypes(typeSet) && returnCypher5Values => null
           case Some(typeSet) =>
             createRelConstraintCommand(name, labelsOrTypes, properties, s"IS :: ${typeSet.userDescription()}")
-          case _ => throw new IllegalArgumentException(s"Expected a property type for $constraintType constraint.")
+          case _ => throw InvalidArgumentsException.internalError(
+              this.getClass.getSimpleName,
+              s"Expected a property type for $constraintType constraint."
+            )
         }
       case RelationshipSourceLabelConstraints =>
         // Should not get here as they are always dependent, but lets have the cases anyway for security
@@ -320,7 +333,8 @@ object ShowConstraintsCommand {
         // Should not get here as they are always dependent, but lets have the cases anyway for security
         // and if we ever want to add them as independent constraints as well
         null
-      case _ => throw new IllegalArgumentException(
+      case _ => throw InvalidArgumentsException.internalError(
+          this.getClass.getSimpleName,
           s"Did not expect constraint type ${constraintType.prettyPrint} for constraint create command."
         )
     }
@@ -351,7 +365,9 @@ object ShowConstraintsCommand {
           case EndpointType.END   => RelationshipTargetLabelConstraints
         }
       case (schema.ConstraintType.NODE_LABEL_EXISTENCE, EntityType.NODE) => NodeLabelExistenceConstraints
-      case _ => throw new IllegalStateException(
+      case _ => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Invalid constraint combination: ConstraintType $internalConstraintType, EntityType $entityType and EndpointType $endpointType.",
           s"Invalid constraint combination: ConstraintType $internalConstraintType, EntityType $entityType and EndpointType $endpointType."
         )
     }

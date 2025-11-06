@@ -101,6 +101,7 @@ import org.neo4j.cypher.internal.ast.StopDatabaseAction
 import org.neo4j.cypher.internal.ast.TerminateTransactionAction
 import org.neo4j.cypher.internal.ast.TraverseAction
 import org.neo4j.cypher.internal.ast.WriteAction
+import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.security
 
 object ActionMapper {
@@ -208,6 +209,10 @@ object ActionMapper {
 
     case AllDbmsAction => security.PrivilegeAction.DBMS_ACTIONS
 
-    case _ => throw new IllegalStateException(s"Cannot handle action: $action")
+    case _ => throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"Cannot handle action: $action.",
+        s"Cannot handle action: $action"
+      )
   }
 }

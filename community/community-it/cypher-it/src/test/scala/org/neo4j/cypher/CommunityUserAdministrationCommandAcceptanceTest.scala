@@ -22,6 +22,7 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.auth_enabled
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY
@@ -33,6 +34,7 @@ import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.exceptions.ParameterWrongTypeException
+import org.neo4j.exceptions.SecurityAdministrationException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.QueryExecutionException
@@ -2079,11 +2081,18 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
   }
 
   test("should fail when changing own password when AUTH DISABLED") {
-    the[IllegalStateException] thrownBy {
+    val exception = the[SecurityAdministrationException] thrownBy {
       // WHEN
       execute(s"ALTER CURRENT USER SET PASSWORD FROM '$password' TO '$newPassword'")
       // THEN
-    } should have message "User failed to alter their own password: Command not available with auth disabled."
+    }
+    exception should be(gqlException(
+      "User failed to alter their own password: Command not available with auth disabled.",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_51N2A,
+        "error: system configuration or operation exception - not supported with auth disabled. The command 'ALTER CURRENT USER SET PASSWORD' is not available with auth disabled."
+      )
+    ))
   }
 
   test("should fail when changing own password when not on system database") {

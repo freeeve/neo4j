@@ -45,6 +45,7 @@ import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL_DESCRIPTION
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
+import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
@@ -148,7 +149,8 @@ case class EnsureNodeExistsExecutionPlanner(
             s"Failed to $action the specified ${labelDescription.toLowerCase} '${show(value, p)}'",
             error
           )
-        case (error, p) => new IllegalStateException(
+        case (error, p) => InternalException.internalError(
+            this.getClass.getSimpleName,
             s"Failed to $action the specified ${labelDescription.toLowerCase} '${show(value, p)}'.",
             error
           ) // should not get here but need a default case

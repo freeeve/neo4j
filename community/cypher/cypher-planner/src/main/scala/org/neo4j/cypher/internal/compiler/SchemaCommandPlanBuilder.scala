@@ -61,6 +61,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.AdministrationPlannerName
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
+import org.neo4j.exceptions.InternalException
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 
@@ -105,7 +106,9 @@ case object SchemaCommandPlanBuilder extends Phase[PlannerContext, BaseState, Lo
           case _: RangeCreateIndex => IndexType.RANGE
           case TextCreateIndex     => IndexType.TEXT
           case it =>
-            throw new IllegalStateException(
+            throw InternalException.internalError(
+              this.getClass.getSimpleName,
+              s"Unexpected index type, expected point, range or text. Got: $it.",
               s"Did not expect index type ${it.command} here: only point, range or text indexes."
             )
         }

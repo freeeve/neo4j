@@ -61,6 +61,7 @@ import org.neo4j.cypher.internal.procs.SchemaExecutionResult
 import org.neo4j.cypher.internal.procs.SuccessResult
 import org.neo4j.cypher.internal.runtime.IndexInformation
 import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.exceptions.InternalException
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.graphdb.schema.IndexType.POINT
 import org.neo4j.graphdb.schema.IndexType.RANGE
@@ -269,7 +270,9 @@ object IndexCommandPlanner {
             CreateVectorIndexOptionsConverter(indexContext(ctx), vectorIndexVersion(ctx))
         )
       case it =>
-        throw new IllegalStateException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Unexpected index type, expected point, range or text. Got: $it.",
           s"Did not expect index type $it here: only point, range or text indexes."
         )
     }

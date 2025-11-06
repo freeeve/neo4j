@@ -47,4 +47,11 @@ public class SecurityAdministrationException extends CypherExecutionException {
                 .build();
         return new SecurityAdministrationException(gql, "Unsupported administration command: " + queryText);
     }
+
+    public static SecurityAdministrationException unsupportedWithAuthDisabled(String command, String oldMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N2A)
+                .withParam(GqlParams.StringParam.cmd, command)
+                .build();
+        return new SecurityAdministrationException(gql, oldMessage);
+    }
 }

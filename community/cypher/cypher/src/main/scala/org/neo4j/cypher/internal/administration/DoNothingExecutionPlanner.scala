@@ -51,6 +51,7 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
+import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
@@ -213,7 +214,8 @@ case class DoNothingExecutionPlanner(
         s"Failed to $operation the specified ${labelDescription.toLowerCase} '${show(name, p)}'",
         error
       )
-    case (error, p) => new IllegalStateException(
+    case (error, p) => InternalException.internalError(
+        this.getClass.getSimpleName,
         s"Failed to $operation the specified ${labelDescription.toLowerCase} '${show(name, p)}'.",
         error
       ) // should not get here but need a default case

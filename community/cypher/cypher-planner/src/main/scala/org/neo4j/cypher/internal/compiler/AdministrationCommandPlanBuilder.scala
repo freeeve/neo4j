@@ -180,6 +180,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY
+import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
@@ -403,7 +404,11 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           (userOptions.homeDatabase.nonEmpty, SetUserHomeDatabaseAction)
         ).collect { case (true, action) => action }
 
-        if (dbmsActions.isEmpty) throw new IllegalStateException("Alter user has nothing to do")
+        if (dbmsActions.isEmpty) throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "Alter user has nothing to do.",
+          "Alter user has nothing to do"
+        )
 
         val assertAllowed = plans.AssertAllowedDbmsActions(None, dbmsActions)
 

@@ -72,6 +72,7 @@ import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor
+import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
@@ -289,7 +290,8 @@ object ShowIndexesCommand {
             val predicate = if (returnCypher5Values) "IS RELATIONSHIP KEY" else "IS KEY"
             createRelConstraintCommand(name, labelsOrTypes, properties, predicate)
           case Some(_) =>
-            throw new IllegalArgumentException(
+            throw InvalidArgumentsException.internalError(
+              this.getClass.getSimpleName,
               "Expected an index or index backed constraint, found another constraint."
             )
           case None =>
@@ -298,7 +300,10 @@ object ShowIndexesCommand {
                 createNodeIndexCommand("RANGE", name, labelsOrTypes, properties)
               case EntityType.RELATIONSHIP =>
                 createRelIndexCommand("RANGE", name, labelsOrTypes, properties)
-              case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
+              case _ => throw InvalidArgumentsException.internalError(
+                  this.getClass.getSimpleName,
+                  s"Did not recognize entity type $entityType"
+                )
             }
         }
       case IndexType.FULLTEXT =>
@@ -325,7 +330,10 @@ object ShowIndexesCommand {
               s"EACH [$escapedRelProperties]",
               Some(optionsString)
             )
-          case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
+          case _ => throw InvalidArgumentsException.internalError(
+              this.getClass.getSimpleName,
+              s"Did not recognize entity type $entityType"
+            )
         }
       case IndexType.TEXT =>
         entityType match {
@@ -333,7 +341,10 @@ object ShowIndexesCommand {
             createNodeIndexCommand("TEXT", name, labelsOrTypes, properties)
           case EntityType.RELATIONSHIP =>
             createRelIndexCommand("TEXT", name, labelsOrTypes, properties)
-          case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
+          case _ => throw InvalidArgumentsException.internalError(
+              this.getClass.getSimpleName,
+              s"Did not recognize entity type $entityType"
+            )
         }
       case IndexType.POINT =>
         val pointConfig = configAsString(indexConfig)
@@ -344,7 +355,10 @@ object ShowIndexesCommand {
             createNodeIndexCommand("POINT", name, labelsOrTypes, properties, Some(optionsString))
           case EntityType.RELATIONSHIP =>
             createRelIndexCommand("POINT", name, labelsOrTypes, properties, Some(optionsString))
-          case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
+          case _ => throw InvalidArgumentsException.internalError(
+              this.getClass.getSimpleName,
+              s"Did not recognize entity type $entityType"
+            )
         }
       case IndexType.VECTOR =>
         if (returnCypher5Values && (labelsOrTypes.size > 1 || properties.size > 1)) null
@@ -385,7 +399,10 @@ object ShowIndexesCommand {
                 s"($escapedRelVectorProperties)$additionalPropertiesString",
                 Some(optionsString)
               )
-            case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
+            case _ => throw InvalidArgumentsException.internalError(
+                this.getClass.getSimpleName,
+                s"Did not recognize entity type $entityType"
+              )
           }
         }
       case IndexType.LOOKUP =>
@@ -394,9 +411,15 @@ object ShowIndexesCommand {
             createIndexCommand("LOOKUP", name, "(n)", "EACH labels(n)")
           case EntityType.RELATIONSHIP =>
             createIndexCommand("LOOKUP", name, "()-[r]-()", "EACH type(r)")
-          case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
+          case _ => throw InvalidArgumentsException.internalError(
+              this.getClass.getSimpleName,
+              s"Did not recognize entity type $entityType"
+            )
         }
-      case _ => throw new IllegalArgumentException(s"Did not recognize index type $indexType")
+      case _ => throw InvalidArgumentsException.internalError(
+          this.getClass.getSimpleName,
+          s"Did not recognize index type $indexType"
+        )
     }
   }
 }

@@ -4517,6 +4517,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "not supported by this server",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_51N2A(
+            new GqlStatus("51N2A"),
+            "The command { %s } is not available with auth disabled.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.cmd},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "not supported with auth disabled",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_51N30(
             new GqlStatus("51N30"),
             "{ %s } is not supported in { %s }.",

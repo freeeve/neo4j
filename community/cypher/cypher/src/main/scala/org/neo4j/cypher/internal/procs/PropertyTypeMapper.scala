@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
+import org.neo4j.exceptions.InternalException
 import org.neo4j.graphdb.Vector.CoordinateType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
@@ -114,7 +115,11 @@ object PropertyTypeMapper {
     case ListType(_: DurationType, _)      => LIST_DURATION
     case ListType(_: PointType, _)         => LIST_POINT
     case pt =>
-      throw new IllegalStateException(s"Invalid property type: ${pt.description}")
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"Invalid property type: ${pt.description}.",
+        s"Invalid property type: ${pt.description}"
+      )
   }
 
   // Will have InputPosition.NONE
@@ -164,7 +169,11 @@ object PropertyTypeMapper {
       case LIST_POINT =>
         ListType(PointType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
       case pt =>
-        throw new IllegalStateException(s"Invalid property type: ${pt.userDescription()}")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Invalid property type: ${pt.userDescription()}.",
+          s"Invalid property type: ${pt.userDescription()}"
+        )
     }
 
     if (cypherTypeList.size == 1) {

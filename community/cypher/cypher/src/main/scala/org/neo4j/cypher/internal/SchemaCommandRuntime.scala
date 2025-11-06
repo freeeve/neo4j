@@ -63,6 +63,7 @@ import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.CantCompileQueryException
+import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.graphdb.schema.IndexType.POINT
 import org.neo4j.graphdb.schema.IndexType.RANGE
@@ -127,11 +128,15 @@ object SchemaCommandRuntime {
       case label: LabelName     => (ctx.getOrCreateLabelId(label.name), EntityType.NODE)
       case relType: RelTypeName => (ctx.getOrCreateRelTypeId(relType.name), EntityType.RELATIONSHIP)
       case _: DynamicLabelExpression =>
-        throw new IllegalStateException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Unexpected Dynamic Labels when creating index or constraint.",
           s"Did not expect Dynamic Labels here"
         )
       case _: DynamicRelTypeExpression =>
-        throw new IllegalStateException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Unexpected Dynamic Relationships when creating index or constraint.",
           s"Did not expect Dynamic Relationships here"
         )
     }
@@ -151,12 +156,16 @@ object SchemaCommandRuntime {
     case label: LabelName     => pretty"(e:${asPrettyString(label)})"
     case relType: RelTypeName => pretty"()-[e:${asPrettyString(relType)}]-()"
     case _: DynamicLabelExpression =>
-      throw new IllegalStateException(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"Unexpected Dynamic Labels when creating index or constraint.",
         s"Did not expect Dynamic Labels here"
       )
     case _: DynamicRelTypeExpression =>
-      throw new IllegalStateException(
-        s"Did not expect Dynamic Labels here"
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"Unexpected Dynamic Relationships when creating index or constraint.",
+        s"Did not expect Dynamic Relationships here"
       )
   }
 
