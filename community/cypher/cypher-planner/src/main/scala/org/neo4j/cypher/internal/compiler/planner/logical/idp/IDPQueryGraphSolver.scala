@@ -31,6 +31,8 @@ import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOr
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.BestPlans
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.ExistsSubqueryPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.planShortestRelationships
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
@@ -200,20 +202,23 @@ case class IDPQueryGraphSolver(
     kit: QueryPlannerKit,
     parentQueryGraph: QueryGraph
   ): Seq[PlannedComponent] = {
-    def updatedContext(qg: QueryGraph) = {
-      val additionalParentPredicates =
-        parentQueryGraph.selections.flatPredicatesSet.diff(qg.selections.flatPredicatesSet)
+    def updatedContext(qg: QueryGraph): LogicalPlanningContext = {
+
+      def overlappingParentPredicatesGivenIds(ids: Set[LogicalVariable]): Set[Expression] = {
+        val qgPredicates = qg.selections.flatPredicatesSet
+        parentQueryGraph.selections.predicates.collect {
+          case p if p.dependencies.exists(ids) && !qgPredicates.contains(p.expr) => p.expr
+        }
+      }
 
       context
         .pipe { context =>
-          val overlappingPredicates =
-            additionalParentPredicates.filter(_.dependencies.exists(qg.allCoveredIds.contains))
+          val overlappingPredicates = overlappingParentPredicatesGivenIds(qg.allCoveredIds)
           context.withModifiedPlannerState(_.withOverlappingMulticomponentPredicates(overlappingPredicates))
         }
         .pipe { context =>
           if (context.staticComponents.planContext.databaseMode == DatabaseMode.SHARDED) {
-            val relatedPredicates =
-              additionalParentPredicates.filter(_.dependencies.exists(qg.dependencies.contains))
+            val relatedPredicates = overlappingParentPredicatesGivenIds(qg.dependencies)
             val propertyAccessInRelatedQueryQueryGraph =
               PropertyAccessHelper.findPropertyAccesses(relatedPredicates.toSeq)
             val updatedContextualPropertyAccess = context.plannerState.contextualPropertyAccess.copy(
