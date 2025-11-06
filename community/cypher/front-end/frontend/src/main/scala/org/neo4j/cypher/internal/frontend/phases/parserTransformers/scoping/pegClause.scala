@@ -294,7 +294,7 @@ object pegClause {
         incoming.noResultScope(incoming.amendedWith(vars), Seq.empty, declared = Declarations(Seq.empty, variables))
 
       case UseGraph(graphReference) =>
-        incoming.noResultScope(incoming, Seq(pegExpression(graphReference, incoming)))
+        incoming.noResultScope(incoming, Seq(pegExpression(graphReference, incoming.constantChildContext())))
 
       case projectionClause: ProjectionClause => scopeProjectionClause(projectionClause, incoming)
 

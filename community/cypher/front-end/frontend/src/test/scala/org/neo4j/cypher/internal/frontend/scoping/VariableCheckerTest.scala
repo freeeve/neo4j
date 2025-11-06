@@ -1273,4 +1273,8 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |SKIP x""".stripMargin) {
     passes()
   }
+
+  test("""WITH 1 AS x CALL { WITH x USE graph.byName(x) RETURN 2 AS y } RETURN x""") {
+    passes()
+  }
 }
