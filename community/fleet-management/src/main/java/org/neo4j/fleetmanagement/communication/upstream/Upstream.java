@@ -28,13 +28,16 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.Socket;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Objects;
+import javax.net.ssl.SSLSocketFactory;
 import org.neo4j.fleetmanagement.communication.Helpers;
 import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.topology.TopologyMapper;
 import org.neo4j.fleetmanagement.transactions.ITransactor;
 import org.neo4j.fleetmanagement.utils.TokenUtils;
+import org.neo4j.logging.Log;
 
 public class Upstream {
     public enum Endpoint {
@@ -54,13 +57,16 @@ public class Upstream {
     private ApiTokenGenerator apiTokenGenerator;
     private long generatedAt;
 
+    private final Log userLog;
+
     private volatile String apiToken;
 
-    public Upstream(ITransactor transactor) {
+    public Upstream(ITransactor transactor, Log userLog) {
         String customBaseUrl = System.getenv("FLEET_MANAGEMENT_API_BASE_URL");
         this.baseUrl = Objects.requireNonNullElse(customBaseUrl, "https://fleet-management-api.neo4j.io/api/v1");
 
         this.transactor = transactor;
+        this.userLog = userLog;
     }
 
     public void setToken(String token) throws IOException {
@@ -125,9 +131,27 @@ public class Upstream {
             return false;
         }
 
-        try (Socket soc = new Socket(url.getHost(), url.getPort())) {
-            soc.connect(new InetSocketAddress(url.getHost(), url.getPort()), 5000);
+        try (Socket soc = SSLSocketFactory.getDefault().createSocket()) {
+            soc.connect(new InetSocketAddress(url.getHost(), url.getDefaultPort()), 5000);
+        } catch (UnknownHostException ex) {
+            userLog.error(
+                    "Fleet manager failed to reach the API - UnknownHostException: Please verify that the server can connect to a DNS server",
+                    ex.getMessage());
+            return false;
         } catch (IOException ex) {
+            userLog.error(
+                    "Fleet manager failed to reach the API - IOException: Consider checking the connection and if failures continue, try again later.",
+                    ex.getMessage());
+            return false;
+        } catch (SecurityException ex) {
+            userLog.error(
+                    "Fleet manager failed to reach the API - SecurityException: A security manager exists and its checkConnect method doesn't allow connecting to the API.",
+                    ex.getMessage());
+            return false;
+        } catch (IllegalArgumentException ex) {
+            userLog.error(
+                    "Fleet manager failed to reach the API - IllegalArgumentException: Please verify access to the public internet e.g., check your proxy settings and firewall rules.",
+                    ex.getMessage());
             return false;
         }
         return true;

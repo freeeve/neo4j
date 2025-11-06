@@ -139,9 +139,9 @@ public class ConnectService extends BaseService {
         } catch (IOException e) {
             var errorMsg = "Fleet manager failed to connect to the API - IOException: " + e.getMessage();
 
-            if (!upstream.isReachable()) {
-                errorMsg = "Fleet manager failed to connect to the API - IOException: API is not reachable. "
-                        + "Consider checking the connection and if failures continue, try again later.";
+            if (upstream.isReachable()) {
+                errorMsg = "Fleet manager failed to connect to the API but API is confirmed reachable - IOException: "
+                        + e.getMessage();
             }
 
             this.userLog.error(errorMsg);
