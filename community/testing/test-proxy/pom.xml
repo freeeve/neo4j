@@ -16,6 +16,7 @@
     <properties>
         <moduleName>org.neo4j.test.proxy</moduleName>
         <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <name>Neo4j - Test proxy</name>
