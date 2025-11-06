@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
@@ -65,19 +66,7 @@ import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenNewAccForSiblings
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.StepSequencer
 
-case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] with StepSequencer.Step {
-
-  override def process(from: BaseState, context: BaseContext): BaseState = {
-    if (context.semanticFeatures contains ScopeQueries) {
-      val semanticsErrors = if (1 == 1) {
-        from.maybeWorkingScope.map(collectAll)
-      } else {
-        from.maybeWorkingScope.map(collectFirst)
-      }
-      semanticsErrors.foreach(errors => context.errorHandler(errors.toSeq))
-    }
-    from
-  }
+case class VariableChecker(version: CypherVersion) {
 
   private val checks: Seq[PartialFunction[WorkingScope, Seq[SemanticError]]] = Seq(
     // variable already declared
@@ -257,7 +246,9 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
       case (acc @ Acc(_, UpdatingPattern(topo, c), _), ExpressionScope(variable: LogicalVariable, incoming, ref, _, _))
         if !(incoming.constants contains variable) =>
         if (topo contains variable) {
-          acc(SemanticError.invalidEntityReference(variable.name, c.name, variable.position))
+          if (version != CypherVersion.Cypher5) {
+            acc(SemanticError.invalidEntityReference(variable.name, c.name, variable.position))
+          } else acc
         } else {
           acc(SemanticError.variableNotDefined(variable.name, variable.position))
         }
@@ -354,6 +345,21 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
     names.groupMapReduce(identity)(_ => 1)(_ + _).filter(_._2 > 1).map {
       _ => SemanticError.multipleReturnColumnsWithSameName(pc.returnItems.items.head.position)
     }.toSeq
+}
+
+case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] with StepSequencer.Step {
+
+  override def process(from: BaseState, context: BaseContext): BaseState = {
+    if (context.semanticFeatures contains ScopeQueries) {
+      val semanticsErrors = if (1 == 1) {
+        from.maybeWorkingScope.map(VariableChecker(context.cypherVersion).collectAll)
+      } else {
+        from.maybeWorkingScope.map(VariableChecker(context.cypherVersion).collectFirst)
+      }
+      semanticsErrors.foreach(errors => context.errorHandler(errors.toSeq))
+    }
+    from
+  }
 
   override val phase = CompilationPhase.VARIABLE_CHECK
 

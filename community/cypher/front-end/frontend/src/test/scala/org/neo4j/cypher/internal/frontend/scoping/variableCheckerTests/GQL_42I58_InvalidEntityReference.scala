@@ -164,4 +164,9 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
   test("""INSERT (a {prop: 1}), ({prop: a.prop})""".stripMargin) {
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
   }
+
+  test("""CREATE (b {prop: a.prop}), (a)""") {
+    passes(CypherVersion.Cypher5)
+    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  }
 }
