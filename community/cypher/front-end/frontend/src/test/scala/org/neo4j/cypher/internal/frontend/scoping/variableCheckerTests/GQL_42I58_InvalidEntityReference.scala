@@ -28,6 +28,14 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
     errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
   }
 
+  test("""CREATE (b)-[:A]->()-[:B]->({x: b.p}), (a)""") {
+    errorAllVersions("42I58", "Entity, 'b', cannot be created and referenced in the same clause.")
+  }
+
+  test("""CREATE ({x: b.p})-[:A]->()-[:B]->(b), (a)""") {
+    errorAllVersions("42I58", "Entity, 'b', cannot be created and referenced in the same clause.")
+  }
+
   test("""CREATE (a)-[r:REL]->(b {prop: r.prop})""") {
     errorAllVersions("42I58", "Entity, 'r', cannot be created and referenced in the same clause.")
   }
@@ -166,6 +174,11 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
   }
 
   test("""CREATE (b {prop: a.prop}), (a)""") {
+    passes(CypherVersion.Cypher5)
+    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  }
+
+  test("""CREATE ()-[:A]->()-[:B]->({x: a.p}), (a)""") {
     passes(CypherVersion.Cypher5)
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
   }

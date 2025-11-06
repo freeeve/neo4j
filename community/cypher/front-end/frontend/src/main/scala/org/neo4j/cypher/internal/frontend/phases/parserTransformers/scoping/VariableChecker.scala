@@ -216,13 +216,25 @@ case class VariableChecker(version: CypherVersion) {
 
   sealed trait VariableContext
   case object Default extends VariableContext
-  case class UpdatingPattern(topology: Set[LogicalVariable], ast: Clause) extends VariableContext
+
+  case class UpdatingPattern(topology: Set[LogicalVariable], patternVariables: Set[LogicalVariable], ast: Clause)
+      extends VariableContext
 
   case class Acc(scopeContext: ReturnContext, variableContext: VariableContext, errors: Seq[SemanticError]) {
     def apply(errors: Seq[SemanticError]): Acc = copy(errors = this.errors ++ errors)
     def apply(errors: SemanticError): Acc = copy(errors = this.errors :+ errors)
     def inReturnContext(context: ReturnContext): Acc = copy(scopeContext = context)
     def inVariableContext(context: VariableContext): Acc = copy(variableContext = context)
+
+    def withPatternVariables(vars: Set[LogicalVariable]): Acc = variableContext match {
+      case u: UpdatingPattern => copy(variableContext = u.copy(patternVariables = vars))
+      case Default            => this
+    }
+
+    def hasPatternVariables: Boolean = variableContext match {
+      case UpdatingPattern(_, vars, _) if vars.nonEmpty => true
+      case _                                            => false
+    }
     def resetToIncoming(incoming: Acc): Acc = copy(scopeContext = incoming.scopeContext)
   }
 
@@ -243,12 +255,15 @@ case class VariableChecker(version: CypherVersion) {
     },
     // variable not defined
     {
-      case (acc @ Acc(_, UpdatingPattern(topo, c), _), ExpressionScope(variable: LogicalVariable, incoming, ref, _, _))
+      case (
+          acc @ Acc(_, UpdatingPattern(topo, patternVariables, c), _),
+          ExpressionScope(variable: LogicalVariable, incoming, ref, _, _)
+        )
         if !(incoming.constants contains variable) =>
         if (topo contains variable) {
-          if (version != CypherVersion.Cypher5) {
+          if (!(patternVariables contains variable) && version == CypherVersion.Cypher5) acc
+          else
             acc(SemanticError.invalidEntityReference(variable.name, c.name, variable.position))
-          } else acc
         } else {
           acc(SemanticError.variableNotDefined(variable.name, variable.position))
         }
@@ -280,12 +295,22 @@ case class VariableChecker(version: CypherVersion) {
         SkipChildren(Acc(tailAcc.scopeContext, tailAcc.variableContext, trunkAcc.errors ++ tailAcc.errors))
     case StatementScope(c: CreateOrInsert, _, _, declared, _, _, _) => acc =>
         TraverseChildrenNewAccForSiblings(
-          acc.inVariableContext(UpdatingPattern(declared.variables.toSet, c)),
+          acc.inVariableContext(UpdatingPattern(declared.variables.toSet, Set.empty, c)),
           _acc => _acc.inVariableContext(acc.variableContext)
         )
     case StatementScope(c: Merge, _, _, declared, _, _, _) => acc =>
         TraverseChildrenNewAccForSiblings(
-          acc.inVariableContext(UpdatingPattern(declared.variables.toSet, c)),
+          acc.inVariableContext(UpdatingPattern(declared.variables.toSet, Set.empty, c)),
+          _acc => _acc.inVariableContext(acc.variableContext)
+        )
+    case PatternScope(_: RelationshipChain, _, _, Declarations(_, variables), _, _) => acc =>
+        TraverseChildrenNewAccForSiblings(
+          if (acc.hasPatternVariables) acc else acc.withPatternVariables(variables.toSet),
+          _acc => _acc.inVariableContext(acc.variableContext)
+        )
+    case PatternScope(_: NodePattern, _, _, Declarations(_, variables), _, _) => acc =>
+        TraverseChildrenNewAccForSiblings(
+          if (acc.hasPatternVariables) acc else acc.withPatternVariables(variables.toSet),
           _acc => _acc.inVariableContext(acc.variableContext)
         )
     case ws: WorkingScope => _folderWorkingScopes(ws)
