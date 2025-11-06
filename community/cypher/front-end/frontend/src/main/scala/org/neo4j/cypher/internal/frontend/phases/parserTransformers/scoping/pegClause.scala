@@ -69,6 +69,7 @@ import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor.unitVariables
 import org.neo4j.cypher.internal.util.ASTNode
 
@@ -117,8 +118,7 @@ object pegClause {
           inTransactionsParameters
         )
 
-      // named call
-      // Todo we need to handle resolved call as well
+      // unresolved named call
       case UnresolvedCall(_, _, declaredArguments, declaredResult, isStandalone, _, _) =>
         val children =
           declaredArguments.map(
@@ -163,6 +163,21 @@ object pegClause {
           case (false, _) =>
             incoming.omittedResultScope(incoming, children, referenced)
         }
+      // resolved named call
+      case ResolvedCall(signature, callArguments, callResults, _, _, _, _) =>
+        val children = callArguments.map(arg => pegExpression(arg, incoming.constantChildContext()))
+        val referenced = Some(WorkingScope.referencedInChildren(children))
+
+        val (declared, result) = signature.outputSignature match {
+          case Some(_) =>
+            val resultColumns = callResults.map(_.variable)
+            (Declarations(constants = Seq.empty, variables = resultColumns), TableResult(resultColumns))
+          case None => (Declarations.noDeclarations, OmittedResult)
+
+        }
+
+        incoming.resultScope(incoming.amendedWith(declared.variables.toSet), result, children, referenced, declared)
+
       // query clauses
       case Unwind(expression, variable) =>
         val children = Seq(pegExpression(expression, incoming.constantChildContext()))

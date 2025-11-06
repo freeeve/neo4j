@@ -156,6 +156,8 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = lastChild[AstRuleCtx](ctx).ast match {
       case sq @ SingleQuery(Seq(call: UnresolvedCall)) =>
         sq.copy(Seq(call.copy(isStandalone = true)(call.position)))(sq.position)
+      case sq @ SingleQuery(Seq(use: UseGraph, call: UnresolvedCall)) =>
+        sq.copy(Seq(use, call.copy(isStandalone = true)(call.position)))(sq.position)
       case q => q
     }
   }
