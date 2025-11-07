@@ -116,19 +116,29 @@ class PageIdRangeTest {
 
     @Test
     void shouldGiveConsecutiveIdsContinuousIdRange() {
-        var arrayIdRange = new ContinuousIdRange(0, 10, 120);
-        assertThat(arrayIdRange.consecutiveIds(2)).isEqualTo(0L);
-        assertThat(arrayIdRange.consecutiveIds(3)).isEqualTo(2L);
-        assertThat(arrayIdRange.nextId()).isEqualTo(5L);
+        var continuousIdRange = new ContinuousIdRange(0, 10, 120);
+        assertThat(continuousIdRange.consecutiveIds(2)).isEqualTo(0L);
+        assertThat(continuousIdRange.consecutiveIds(3)).isEqualTo(2L);
+        assertThat(continuousIdRange.nextId()).isEqualTo(5L);
     }
 
     @Test
     void shouldGiveNoIdWhenAskingForMoreThanAvailableContinuous() {
         // When not enough consecutive IDs are found
-        var arrayIdRange = new ContinuousIdRange(1, 4, 120);
+        var continuousIdRange = new ContinuousIdRange(1, 4, 120);
         // Then get NO_ID back
-        assertThat(arrayIdRange.consecutiveIds(5)).isEqualTo(IdGenerator.NO_ID);
+        assertThat(continuousIdRange.consecutiveIds(5)).isEqualTo(IdGenerator.NO_ID);
         // When asking for something that IS available
-        assertThat(arrayIdRange.consecutiveIds(4)).isEqualTo(1L);
+        assertThat(continuousIdRange.consecutiveIds(4)).isEqualTo(1L);
+    }
+
+    @Test
+    void exhaustContinuousRangeByConsecutiveRequests() {
+        var continuousIdRange = new ContinuousIdRange(127, 127, 127);
+        assertThat(continuousIdRange.consecutiveIds(126)).isEqualTo(127);
+        assertThat(continuousIdRange.hasNext()).isTrue();
+
+        assertThat(continuousIdRange.consecutiveIds(1)).isEqualTo(253);
+        assertThat(continuousIdRange.hasNext()).isFalse();
     }
 }
