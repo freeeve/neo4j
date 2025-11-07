@@ -134,6 +134,15 @@ case class VariableChecker(version: CypherVersion) {
           }
         }
         redeclarationOfConstants ++ redeclarationOfVariables ++ multipleDeclarations
+      case StatementScope(_: CommandClause, incoming, _, _, _, _, children) =>
+        val innerResult = children.last.result match {
+          case TableResult(columns) => columns
+          case _                    => Seq.empty
+        }
+        innerResult.filter(x => incoming.allSymbols.exists(_.name == x.name)).map(v =>
+          SemanticError.variableAlreadyDeclared(v.name, v.position)
+        )
+
       case PatternScope(NamedPatternPart(path, _), PatternScope.Topo(topo), _, Declarations(_, variables), _, _) =>
         (topo.filter(_.name == path.name) ++ variables.filter(x => x.name == path.name && x.position != path.position))
           .map(_ => SemanticError.variableAlreadyDeclared(path.name, path.position)).toSeq

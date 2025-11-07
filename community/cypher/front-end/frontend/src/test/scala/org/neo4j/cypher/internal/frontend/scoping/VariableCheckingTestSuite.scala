@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.NoResult
@@ -192,7 +193,8 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
   private def runQuery(
     query: String,
     version: CypherVersion,
-    skipVariableChecker: Boolean = false
+    skipVariableChecker: Boolean = false,
+    withPrepRewriting: Boolean = false
   ): Either[BaseState, Seq[SemanticError]] = {
     val context =
       new ErrorCollectingContext(version, isComposite = false, defaultDatabaseName, query, Seq(ScopeQueries)) {
@@ -200,6 +202,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       }
     val transformers =
       if (skipVariableChecker) Parse andThen ScopeSurveyor
+      else if (withPrepRewriting) Parse andThen PreparatoryRewriting andThen ScopeSurveyor andThen VariableChecker
       else Parse andThen ScopeSurveyor andThen VariableChecker
     val state = transformers.transform(initialStateWithQuery(query), context)
     if (context.errors.isEmpty) {
@@ -211,37 +214,41 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
 
   def passes(version: CypherVersion): Unit = passes(Array(version))
 
-  def passes(versions: Array[CypherVersion] = Array(CypherVersion.Cypher25)): Unit = {
+  def passes(versions: Array[CypherVersion] = Array(CypherVersion.Cypher25), withRewriting: Boolean = true): Unit = {
     val query = testName
+    val rewriteOptions = if (withRewriting) Seq(false, true) else Seq(false)
     versions.foreach(version => {
-      runQuery(query, version) match {
-        case Left(state) =>
-          state.maybeWorkingScope should not be empty
+      rewriteOptions.foreach(rewrite => {
+        val rewriteMsg = if (rewrite) " after rewrite" else ""
+        runQuery(query, version, withPrepRewriting = rewrite) match {
+          case Left(state) =>
+            state.maybeWorkingScope should not be empty
 
-          if (testLog) {
-            log.append(
-              s"""Version: $version
+            if (testLog) {
+              log.append(
+                s"""Version: $version $rewriteMsg
+                   |Query:
+                   |
+                   |$query
+                   |
+                   |passed without errors.
+                   |----------
+                   |""".stripMargin
+              )
+            }
+          case Right(semanticErrors) =>
+            fail(
+              s"""Version: $version $rewriteMsg
                  |Query:
                  |
                  |$query
                  |
-                 |passed without errors.
-                 |----------
-                 |""".stripMargin
+                 |is expected to be successful, but
+                 |
+                 |actually threw errors: ${pprint.apply(semanticErrors)}""".stripMargin
             )
-          }
-        case Right(semanticErrors) =>
-          fail(
-            s"""Version: $version
-               |Query:
-               |
-               |$query
-               |
-               |is expected to be successful, but
-               |
-               |actually threw errors: ${pprint.apply(semanticErrors)}""".stripMargin
-          )
-      }
+        }
+      })
 
     })
   }

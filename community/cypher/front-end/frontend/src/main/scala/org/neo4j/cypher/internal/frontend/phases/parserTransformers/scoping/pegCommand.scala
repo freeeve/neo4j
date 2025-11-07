@@ -17,8 +17,8 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AdministrationCommand
+import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.CommandClauseWithNames
@@ -27,10 +27,14 @@ import org.neo4j.cypher.internal.ast.CreateIndex
 import org.neo4j.cypher.internal.ast.CreateLookupIndex
 import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.ReadAdministrationCommand
+import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.WaitableAdministrationCommand
+import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.WriteAdministrationCommand
+import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 
 object pegCommand {
@@ -179,15 +183,17 @@ object pegCommand {
     incoming: RegularContext,
     namesOpt: Option[Either[List[String], Expression]]
   )(implicit c: PegContext): WorkingScope = {
-    val defaultCols = command.getFilteredColumns(c.semanticFeatures)
-    val declaringCommand = command.getClauseWithoutSubclauses
+    val (yieldWithOpt, yieldItems, yieldAll, whereOpt, position) =
+      (command.yieldWith, command.yieldItems, command.yieldAll, command.where, command.position)
+    val commandCols = command.getFilteredColumns(c.semanticFeatures)
+
     val commandScope = StatementScope(
-      declaringCommand,
+      command.getClauseWithoutSubclauses,
       RegularContext.unit,
       Set.empty,
-      Declarations(constants = Seq.empty, variables = defaultCols),
-      outgoing = incoming.amendedWith(defaultCols.toSet),
-      result = TableResult(defaultCols)
+      Declarations(constants = Seq.empty, variables = commandCols),
+      outgoing = incoming.amendedWith(commandCols.toSet),
+      result = TableResult(commandCols)
     )
 
     val incomingWithDefaults = commandScope.outgoing
@@ -198,41 +204,36 @@ object pegCommand {
       case Right(expr) => Some(pegExpression(expr, incomingWithDefaults.constantChildContext()))
       case Left(_)     => None
     }
-    // TODO the YieldWith is parsed as an additive project, thus the yield always declares a new variable
-    //  we enforce a FreeProjection in this case to get the expected behavior,
-    //  as the yield is not a separate clause from the command in this context.
-    //  I find this yield - with implementation wierd.
-    val yieldScope = command.yieldWith.map(yW =>
-      pegClause(
-        yW.copy(returnItems =
-          yW.returnItems.copy(
-            projectionType = if (command.yieldAll) AdditiveProjection else FreeProjection,
-            command.yieldItems.map(_.toReturnItem)
-          )(yW.returnItems.position)
-        )(yW.position),
-        incomingWithDefaults
-      )
-    )
+    val declared =
+      if (yieldAll || yieldItems.isEmpty) commandCols.map(v => AliasedReturnItem(v.copyId))
+      else yieldItems.flatMap(yi => Seq(yi.toReturnItem)).distinct
 
-    val outgoingFromInner = yieldScope.getOrElse(commandScope).outgoing
-    val outgoing = outgoingFromInner
+    val modifiedYield = yieldWithOpt match {
+      case Some(yW @ With(_, returnItems, _, _, _, _, _)) =>
+        yW.copy(returnItems =
+          returnItems.copy(projectionType = FreeProjection, items = declared)(returnItems.position)
+        )(yW.position)
+      case _ =>
+        Yield(ReturnItems(FreeProjection, declared)(position), None, None, None, whereOpt)(position)
+    }
+
+    val yieldScope = pegClause(modifiedYield, incomingWithDefaults)
+
+    val outgoing = yieldScope.outgoing
       .amendedWithConstant(incoming.constants)
       .amendedWith(incoming.variables)
 
-    val whereScope =
-      command.where.map(w =>
-        pegExpression(w.expression, outgoing.constantChildContext())
-      )
-    val children = Seq(commandScope) ++ namesScope ++ yieldScope ++ whereScope
-    val result = TableResult(outgoing.variables.toSeq)
-    val declarations = Declarations(Seq.empty, outgoingFromInner.variables.toSeq)
+    val whereScope = whereOpt.map(w => pegExpression(w.expression, outgoing.constantChildContext()))
 
-    incoming.resultScope(
-      outgoing,
-      result,
-      children,
-      None,
-      declarations
-    )(command)
+    val declaredWithIncoming =
+      declared
+        .filter(x => !incoming.variables.exists(_.name == x.name))
+        .map(r => r.alias.getOrElse(Variable(r.name)(r.position, isIsolated = false)))
+
+    val children = Seq(commandScope) ++ namesScope ++ Seq(yieldScope) ++ whereScope
+    val result = TableResult(outgoing.variables.toSeq)
+    val declarations = Declarations(Seq.empty, declaredWithIncoming)
+
+    incoming.resultScope(outgoing, result, children, None, declarations)(command)
   }
 }

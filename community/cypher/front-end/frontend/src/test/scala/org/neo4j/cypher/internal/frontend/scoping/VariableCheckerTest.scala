@@ -1213,6 +1213,14 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test("SHOW TRANSACTIONS YIELD connectionId WHERE connectionId <> 'system'") {
+    passes()
+  }
+
+  test("SHOW TRANSACTIONS YIELD * WHERE database <> 'system'") {
+    passes()
+  }
+
   test("SHOW TRANSACTIONS WHERE database <> 'system'") {
     passes()
   }
@@ -1227,22 +1235,6 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |YIELD message, transactionId AS txId, username
          |RETURN *""".stripMargin) {
     passes()
-  }
-
-  test("""SHOW TRANSACTION
-         |YIELD transactionId AS name
-         |SHOW PROCEDURES
-         |YIELD name
-         |RETURN *""".stripMargin) {
-    error("42N59", "Variable `name` already declared.")
-  }
-
-  test("""SHOW TRANSACTION
-         |YIELD transactionId AS name
-         |SHOW PROCEDURES
-         |YIELD mode AS name
-         |RETURN *""".stripMargin) {
-    error("42N59", "Variable `name` already declared.")
   }
 
   test("""SHOW INDEXES
@@ -1279,6 +1271,99 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   }
 
   test("""WITH 1 AS x CALL { WITH x USE graph.byName(x) RETURN 2 AS y } RETURN x""") {
+    passes()
+  }
+
+  test("""SHOW TRANSACTIONS
+         |YIELD username AS user, database, transactionId AS txId, status AS status
+         |ORDER BY username, txId, status
+         |WHERE username = $userParam AND txId IS NOT NULL AND status >= ''
+         |RETURN user, database, txId""".stripMargin) {
+    passes()
+  }
+
+  test("""SHOW TRANSACTIONS
+         |YIELD username AS user, database, transactionId AS txId, status AS status
+         |ORDER BY username, txId, status
+         |WHERE username = $userParam AND txId IS NOT NULL AND status >= ''
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""SHOW TRANSACTIONS "neo4j-transaction-2"
+         |YIELD transactionId
+         |TERMINATE TRANSACTIONS transactionId
+         |YIELD message, transactionId AS txId, username
+         |SHOW TRANSACTIONS txId
+         |YIELD username AS user
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""SHOW TRANSACTIONS "neo4j-transaction-2"
+         |YIELD transactionId
+         |TERMINATE TRANSACTIONS transactionId
+         |YIELD message, transactionId AS txId, username
+         |SHOW TRANSACTIONS txId
+         |YIELD username AS user
+         |WHERE username = ""
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test(
+    """SHOW TRANSACTIONS YIELD database
+      |SHOW TRANSACTIONS YIELD username
+      |WHERE database = "neo4j"
+      |RETURN *""".stripMargin
+  ) {
+    passes()
+  }
+
+  test("""SHOW TRANSACTIONS
+         |YIELD database AS db1
+         |  WHERE db1 <> "system"
+         |SHOW TRANSACTIONS
+         |YIELD database AS db2
+         |  WHERE db2 <> "system"
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""SHOW TRANSACTION
+         |TERMINATE TRANSACTION 'neo4j-transaction-3'
+         |YIELD transactionId
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `transactionId` already declared.")
+  }
+
+  test("""SHOW TRANSACTION
+         |YIELD transactionId AS txId, parameters AS params
+         |WHERE NOT isEmpty(parameters)
+         |SHOW FUNCTIONS
+         |YIELD name AS function
+         |ORDER BY name
+         |LIMIT 5
+         |SHOW INDEXES
+         |YIELD type AS indexType, entityType AS indexEntityType
+         |ORDER BY type
+         |WHERE entityType = 'NODE'
+         |SHOW CURRENT GRAPH TYPE
+         |YIELD specification AS spec
+         |WHERE specification <> ''
+         |TERMINATE TRANSACTION txId
+         |YIELD message AS status
+         |SHOW SETTING params.setting
+         |YIELD name AS setting, value
+         |ORDER BY name
+         |SHOW PROCEDURES
+         |YIELD name AS procedure, admin AS admin
+         |WHERE NOT admin AND name >= ''
+         |SHOW CONSTRAINTS
+         |YIELD name AS constraint, labelsOrTypes AS name
+         |ORDER BY name
+         |RETURN *
+         |LIMIT 1""".stripMargin) {
     passes()
   }
 }
