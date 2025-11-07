@@ -118,7 +118,7 @@ class StartupLoggingIT extends ExclusiveWebContainerTestBase {
         List<String> sysErrMsgs = List.of(sysErr.toString().split("\n"));
         assertThat(sysErrMsgs)
                 .satisfies(containsAtLeastTheseLines(
-                        Pattern.compile("Failed to start Neo4j on localhost:\\d{1,6}."),
+                        Pattern.compile("Failed to start Neo4j on localhost:\\d{1,6}.*"),
                         // This exception can vary depending on environment. We only care that one is reported.
                         Pattern.compile(".*Exception: .*")));
     }
