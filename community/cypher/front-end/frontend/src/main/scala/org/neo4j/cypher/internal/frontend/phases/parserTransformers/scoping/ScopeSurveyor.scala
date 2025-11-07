@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
+import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
@@ -34,8 +35,12 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
+import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
+import org.neo4j.cypher.internal.util.topDown
+
+import scala.util.matching.Regex
 
 case class SurveyorNameGenerator() extends AnonymousVariableNameGenerator {
   private var counter = 0
@@ -62,10 +67,17 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
 
   val unitVariables: Set[LogicalVariable] = Set.empty[LogicalVariable]
 
+  private val namespacing: Regex = """[ ]{2}(?<varName>.*)@\d+""".r
+
+  private val removeNamespacing: Rewriter = Rewriter.lift {
+    case v @ Variable(namespacing(varName)) => v.copy(name = varName)(v.position, v.isIsolated)
+  }
+
   override def process(from: BaseState, context: BaseContext): BaseState = {
     val anonVarGen = SurveyorNameGenerator()
+    val statement = from.statement().endoRewrite(topDown(removeNamespacing))
     val workingContextOfStatement = scope(
-      from.statement(),
+      statement,
       RegularContext.unit,
       PegContext(anonVarGen, context.cypherVersion, context.semanticFeatures.toSet)
     )
