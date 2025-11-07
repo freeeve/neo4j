@@ -24,6 +24,8 @@ import static java.util.Objects.nonNull;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -276,11 +278,22 @@ public class SyntaxException extends Neo4jException {
     }
 
     private static void buildErrorString(StringBuilder builder, String element, int currentOffset) {
+
+        var nbrOfCarriageReturnsBeforeError = 0;
+        var elementBeforeError = element.substring(0, currentOffset);
+        Pattern pattern = Pattern.compile("\r");
+        Matcher matcher = pattern.matcher(elementBeforeError);
+        while (matcher.find()) {
+            nbrOfCarriageReturnsBeforeError++;
+        }
+
         builder.append("\"")
-                .append(element.stripTrailing()) // removes potential \r at the end
+                .append(element.stripTrailing().replace("\r", "\\r")) // stripTrailing() removes potential \r at the end
                 .append("\"")
                 .append(lineSeparator())
-                .append(" ".repeat(currentOffset + 1)) // extra space to compensate for an opening quote
+                // extra space to compensate for an opening quote and printed out carriage returns as these have width
+                // two
+                .append(" ".repeat(currentOffset + 1 + nbrOfCarriageReturnsBeforeError))
                 .append('^');
     }
 }
