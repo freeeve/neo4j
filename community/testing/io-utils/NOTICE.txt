@@ -29,6 +29,7 @@ Apache Software License, Version 2.0
   Apache Commons Codec
   Apache Commons Lang
   Apache Commons Text
+  Byte Buddy (without dependencies)
   Caffeine cache
   Java Native Access
   JSpecify annotations
