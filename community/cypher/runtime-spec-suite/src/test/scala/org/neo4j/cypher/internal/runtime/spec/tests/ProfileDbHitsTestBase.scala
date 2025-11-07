@@ -707,18 +707,15 @@ abstract class ProfileDbHitsTestBase[CONTEXT <: RuntimeContext](
       .allNodeScan("x")
       .build()
 
-    val expected = if (hasFastRelationshipTo) {
-      sizeHint * (2 /*node lookup*/ + costOfExpandOneRel)
-    } else {
-      sizeHint * (2 /*node lookup*/ + (costOfExpandGetRelCursor + costOfExpandOneRel))
-    }
+    val expandConstantCost = if (hasFastRelationshipTo) 0 else 2
     val runtimeResult = profile(logicalQuery, runtime)
     consume(runtimeResult)
     // then
     val expectedExpandIntoDbHits = runtimeUsed match {
-      case Interpreted | Slotted | Pipelined => be(expected)
+      case Interpreted | Slotted | Pipelined =>
+        be(sizeHint * (expandConstantCost + (costOfExpandGetRelCursor + costOfExpandOneRel)))
       // caching results vary for parallel execution
-      case Parallel => be <= expected
+      case Parallel => be <= sizeHint * (expandConstantCost + (costOfExpandGetRelCursor + costOfExpandOneRel))
     }
 
     val queryProfile = runtimeResult.runtimeResult.queryProfile()
@@ -810,9 +807,10 @@ abstract class ProfileDbHitsTestBase[CONTEXT <: RuntimeContext](
     }
     val expectedLabelScanLHS = n + extraNodes + 1 + costOfLabelLookup
     val queryProfile = runtimeResult.runtimeResult.queryProfile()
+    val expandConstantCost = if (hasFastRelationshipTo) 1 else 2
     queryProfile.operatorProfile(
       1
-    ).dbHits() shouldBe ((n + extraNodes) * 2 /*node lookup*/ + n * costOfExpandOneRel) // optional expand into
+    ).dbHits() shouldBe ((n + extraNodes) * expandConstantCost + n * costOfExpandOneRel) // optional expand into
     queryProfile.operatorProfile(2).dbHits() shouldBe 0 // apply
     queryProfile.operatorProfile(
       3

@@ -28,8 +28,8 @@ import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.DirectionConverter.toGraphDb
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.getRowNode
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.relationshipSelectionCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.traceRelationshipSelectionCursor
+import org.neo4j.cypher.internal.runtime.iterators.RelationshipCursorIterator
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.helpers.CachingExpandInto
@@ -79,13 +79,18 @@ case class OptionalExpandIntoPipe(
                 val fromCursor = query.nodeCursor()
                 val toCursor = query.nodeCursor()
                 try {
-                  query.singleNode(fromNode.id(), fromCursor)
-                  query.singleNode(n.id(), toCursor)
-                  val relationships = if (fromCursor.next() && toCursor.next()) {
-                    val selectionCursor =
-                      expandInto.connectingRelationships(fromCursor, toCursor, traversalCursor, types.types(query))
+                  val selectionCursor =
+                    expandInto.connectingRelationships(
+                      fromNode.id(),
+                      fromCursor,
+                      n.id(),
+                      toCursor,
+                      traversalCursor,
+                      types.types(query)
+                    )
+                  val relationships = if (selectionCursor != null) {
                     traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
-                    relationshipSelectionCursorIterator(selectionCursor, traversalCursor)
+                    new RelationshipCursorIterator(selectionCursor, traversalCursor)
                   } else {
                     traversalCursor.close()
                     emptyClosingRelationshipIterator

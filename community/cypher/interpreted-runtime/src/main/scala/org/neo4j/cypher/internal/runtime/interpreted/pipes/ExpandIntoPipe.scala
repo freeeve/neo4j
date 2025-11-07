@@ -21,12 +21,10 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.runtime.ClosingIterator
-import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator.emptyClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.DirectionConverter.toGraphDb
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.getRowNode
@@ -92,18 +90,22 @@ case class ExpandIntoPipe(
                 val fromCursor = query.nodeCursor()
                 val toCursor = query.nodeCursor()
                 try {
-                  query.singleNode(fromNode.id(), fromCursor)
-                  query.singleNode(n.id(), toCursor)
-                  val relationships = if (fromCursor.next() && toCursor.next()) {
-                    val selectionCursor =
-                      expandInto.connectingRelationships(fromCursor, toCursor, traversalCursor, lazyTypes.types(query))
+                  val selectionCursor =
+                    expandInto.connectingRelationships(
+                      fromNode.id(),
+                      fromCursor,
+                      n.id(),
+                      toCursor,
+                      traversalCursor,
+                      lazyTypes.types(query)
+                    )
+                  val relationships = if (selectionCursor != null) {
                     traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
                     new RelationshipCursorIterator(selectionCursor, traversalCursor)
                   } else {
                     traversalCursor.close()
                     emptyClosingRelationshipIterator
                   }
-
                   if (!relationships.hasNext) ClosingIterator.empty
                   else PrimitiveLongHelper.map(
                     relationships,
@@ -163,12 +165,6 @@ object ExpandIntoPipe {
       resources.trace(traversalCursor)
     }
   }
-
-  def relationshipSelectionCursorIterator(
-    cursor: RelationshipTraversalCursor,
-    traversalCursor: RelationshipTraversalCursor
-  ): ClosingLongIterator with RelationshipIterator =
-    new RelationshipCursorIterator(cursor, traversalCursor)
 
   @inline
   def getRowNode(row: CypherRow, col: String): AnyValue = {

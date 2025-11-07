@@ -134,8 +134,16 @@ public class CachingExpandInto extends DefaultCloseListenable {
             RelationshipTraversalCursor traversalCursor,
             int[] types) {
         read.singleNode(firstNode, firstCursor);
+        if (!firstCursor.next()) {
+            return null;
+        }
+        // if we don't have anything in tx state, and we're on block format we only need to read the start node
+        if ((txState == null || !txState.hasChanges()) && firstCursor.supportsFastRelationshipsTo()) {
+            firstCursor.relationshipsTo(traversalCursor, selection(types, direction), secondNode);
+            return traversalCursor;
+        }
         read.singleNode(secondNode, secondCursor);
-        if (firstCursor.next() && secondCursor.next()) {
+        if (secondCursor.next()) {
             return connectingRelationships(firstCursor, secondCursor, traversalCursor, types);
         } else {
             return null;

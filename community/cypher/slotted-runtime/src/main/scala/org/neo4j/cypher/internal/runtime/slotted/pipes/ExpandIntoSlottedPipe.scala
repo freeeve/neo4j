@@ -93,11 +93,16 @@ case class ExpandIntoSlottedPipe(
           val fromCursor = query.nodeCursor()
           val toCursor = query.nodeCursor()
           try {
-            query.singleNode(fromNode, fromCursor)
-            query.singleNode(toNode, toCursor)
-            val relationships = if (fromCursor.next() && toCursor.next()) {
-              val selectionCursor =
-                expandInto.connectingRelationships(fromCursor, toCursor, traversalCursor, lazyTypes.types(query))
+            val selectionCursor =
+              expandInto.connectingRelationships(
+                fromNode,
+                fromCursor,
+                toNode,
+                toCursor,
+                traversalCursor,
+                lazyTypes.types(query)
+              )
+            val relationships = if (selectionCursor != null) {
               traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
               new RelationshipCursorIterator(selectionCursor, traversalCursor)
             } else {
