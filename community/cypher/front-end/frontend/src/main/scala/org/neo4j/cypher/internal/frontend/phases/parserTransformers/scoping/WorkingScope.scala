@@ -164,7 +164,12 @@ case class UnexpectedAstNodeScopingError(astNode: ASTNode, incoming: RegularCont
 }
 
 sealed trait Result
-case class TableResult(columns: Seq[LogicalVariable]) extends Result
+
+case class TableResult(columns: Seq[LogicalVariable]) extends Result {
+
+  def replaceVariables(removals: Seq[LogicalVariable], additions: Seq[LogicalVariable]): TableResult =
+    copy(columns = columns.filter(!removals.contains(_)) ++ additions)
+}
 case object TableResultWithNotYetKnownColumns extends Result
 case object OmittedResult extends Result
 case object NoResult extends Result
@@ -174,6 +179,9 @@ case class Declarations(constants: Seq[LogicalVariable], variables: Seq[LogicalV
   @inline def isEmpty: Boolean = isVariablesEmpty && isConstantsEmpty
   @inline def isConstantsEmpty: Boolean = constants.isEmpty
   @inline def isVariablesEmpty: Boolean = variables.isEmpty
+
+  def amendVariables(amendment: Seq[LogicalVariable]): Declarations =
+    copy(variables = variables ++ amendment)
 }
 
 object Declarations {

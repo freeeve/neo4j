@@ -258,12 +258,22 @@ object pegPattern {
       Seq(scopePredicate(whereExpression, newIncoming))
     ).getOrElse(Seq.empty[WorkingScope])
     val children = patternPartScope +: whereExpressionScopes
-    val groups = collectPathVariablesOfPatternPart(patternPart) union variableGroupings.map(_.singleton)
-    incoming.addGroupConstants(groups).resultScope(
-      patternPartScope.result,
-      children,
-      declared = patternPartScope.declared
-    )
+
+    val singletons = variableGroupings.map(_.singleton)
+    val groupings = variableGroupings.map(_.group)
+    val groups = collectPathVariablesOfPatternPart(patternPart) union singletons union groupings
+
+    // Singletons should only be visible to the inner pattern and not return to the rest of the query.
+    val (result, declared) = if (singletons equals groupings) {
+      (patternPartScope.result, patternPartScope.declared)
+    } else {
+      (
+        patternPartScope.result.replaceVariables(singletons.toSeq, groupings.toSeq),
+        patternPartScope.declared.amendVariables(groupings.toSeq)
+      )
+    }
+
+    incoming.addGroupConstants(groups).resultScope(result, children, declared = declared)
   }
 
   @inline private def scopePredicate(
