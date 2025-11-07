@@ -67,25 +67,6 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
     errorAllVersions("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
   }
 
-  test("""MERGE (n)-[r:R {p: 1}]->({p: r.p})
-         |RETURN n""".stripMargin) {
-    errorAllVersions("42I58", "Entity, 'r', cannot be created and referenced in the same clause.")
-  }
-
-  test("""MERGE (n {p: 1})-[:R]->({p: n.p})
-         |RETURN n""".stripMargin) {
-    errorAllVersions("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
-  }
-
-  test("""MERGE (n {p: n.p})-[:R]->({p: 1})
-         |RETURN n""".stripMargin) {
-    errorAllVersions("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
-  }
-
-  test("""MERGE (n {p: 1})-[:R]->(:$all("A" + n.p) {p: 1})""".stripMargin) {
-    errorAllVersions("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
-  }
-
   test("""INSERT (a)-[:REL]->(b {prop: a.prop})""") {
     errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
   }
@@ -141,6 +122,23 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
   }
 
+  test("""CREATE (b {prop: a.prop}), (a)""") {
+    passes(CypherVersion.Cypher5)
+    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  }
+
+  test("""CREATE ()-[:A]->()-[:B]->({x: a.p}), (a)""") {
+    passes(CypherVersion.Cypher5)
+    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  }
+
+  test("""MATCH (n) CREATE ()-[:A {p: n.p}]->(n)-[:B]->({x: a.p}), (a)""") {
+    passes(CypherVersion.Cypher5)
+    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  }
+
+  // INSERT
+
   test("""INSERT (a), (b {prop: a.prop})""") {
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
   }
@@ -173,13 +171,33 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
   }
 
-  test("""CREATE (b {prop: a.prop}), (a)""") {
+  // MERGE
+
+  test("""MERGE (a {prop:'p'})-[:T]->(b {prop:a.prop})""") {
     passes(CypherVersion.Cypher5)
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
   }
 
-  test("""CREATE ()-[:A]->()-[:B]->({x: a.p}), (a)""") {
+  test("""MERGE (n)-[r:R {p: 1}]->({p: r.p})
+         |RETURN n""".stripMargin) {
+    passes(CypherVersion.Cypher5)
+    error("42I58", "Entity, 'r', cannot be created and referenced in the same clause.")
+  }
+
+  test("""MERGE (n {p: 1})-[:R]->({p: n.p})
+         |RETURN n""".stripMargin) {
+    passes(CypherVersion.Cypher5)
+    error("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
+  }
+
+  test("""MERGE (n {p: 1})-[:R]->(:$all("A" + n.p) {p: 1})""".stripMargin) {
+    passes(CypherVersion.Cypher5)
+    error("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
+  }
+
+  test("""MERGE (prev)-[r:R {p: a.p}]->(a)""".stripMargin) {
     passes(CypherVersion.Cypher5)
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
   }
+
 }

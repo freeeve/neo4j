@@ -265,14 +265,25 @@ case class VariableChecker(version: CypherVersion) {
     // variable not defined
     {
       case (
-          acc @ Acc(_, UpdatingPattern(topo, patternVariables, c), _),
-          ExpressionScope(variable: LogicalVariable, incoming, ref, _, _)
+          acc @ Acc(_, UpdatingPattern(topo, patternVariables, c: CreateOrInsert), _),
+          ExpressionScope(variable: LogicalVariable, incoming, _, _, _)
         )
         if !(incoming.constants contains variable) =>
         if (topo contains variable) {
           if (!(patternVariables contains variable) && version == CypherVersion.Cypher5) acc
           else
             acc(SemanticError.invalidEntityReference(variable.name, c.name, variable.position))
+        } else {
+          acc(SemanticError.variableNotDefined(variable.name, variable.position))
+        }
+      case (
+          acc @ Acc(_, UpdatingPattern(topo, _, m: Merge), _),
+          ExpressionScope(variable: LogicalVariable, incoming, _, _, _)
+        ) if !(incoming.constants contains variable) =>
+        if (topo contains variable) {
+          if (version == CypherVersion.Cypher5) acc
+          else
+            acc(SemanticError.invalidEntityReference(variable.name, m.name, variable.position))
         } else {
           acc(SemanticError.variableNotDefined(variable.name, variable.position))
         }
@@ -307,9 +318,9 @@ case class VariableChecker(version: CypherVersion) {
           acc.inVariableContext(UpdatingPattern(declared.variables.toSet, Set.empty, c)),
           _acc => _acc.inVariableContext(acc.variableContext)
         )
-    case StatementScope(c: Merge, _, _, declared, _, _, _) => acc =>
+    case StatementScope(m: Merge, _, _, declared, _, _, _) => acc =>
         TraverseChildrenNewAccForSiblings(
-          acc.inVariableContext(UpdatingPattern(declared.variables.toSet, Set.empty, c)),
+          acc.inVariableContext(UpdatingPattern(declared.variables.toSet, Set.empty, m)),
           _acc => _acc.inVariableContext(acc.variableContext)
         )
     case PatternScope(_: RelationshipChain, _, _, Declarations(_, variables), _, _) => acc =>
