@@ -444,6 +444,16 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_22NC4(List<String> labelList, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC4)
+                        .withParam(GqlParams.ListParam.labelList, labelList)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_22NC5(
             String graphTypeElement, String entityType, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
@@ -451,6 +461,30 @@ public class GqlHelper {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC5)
                         .withParam(GqlParams.StringParam.entityType, entityType)
                         .withParam(GqlParams.StringParam.graphTypeReference, graphTypeElement)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_22NC6(
+            String constraintDescriptionOrName, String label, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC6)
+                        .withParam(GqlParams.StringParam.constrDescrOrName, constraintDescriptionOrName)
+                        .withParam(GqlParams.StringParam.label, label)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_22NC7(
+            String constraintDescriptionOrName, String relationshipType, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC7)
+                        .withParam(GqlParams.StringParam.constrDescrOrName, constraintDescriptionOrName)
+                        .withParam(GqlParams.StringParam.relType, relationshipType)
                         .atPosition(offset, line, column)
                         .build())
                 .build();
