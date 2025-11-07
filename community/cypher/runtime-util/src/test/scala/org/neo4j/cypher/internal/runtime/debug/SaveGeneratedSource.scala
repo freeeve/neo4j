@@ -24,8 +24,6 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Suite
 
 import java.io.File
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 import java.nio.file.FileVisitResult
 import java.nio.file.FileVisitResult.CONTINUE
 import java.nio.file.Files
@@ -65,8 +63,8 @@ trait SaveGeneratedSource extends BeforeAndAfterEach {
     if (saveGeneratedSourceEnabled) {
       // Resolve the generated source location relative to classpath of the test class that mixes in this trait.
       val classPathUrl = getClass.getProtectionDomain.getCodeSource.getLocation
-      val classPathString = URLDecoder.decode(classPathUrl.getPath, StandardCharsets.UTF_8)
-      val modulePath = Path.of(classPathString).resolve(Paths.get("..", "..")).normalize()
+      val classPath = Paths.get(classPathUrl.toURI)
+      val modulePath = classPath.resolve(Paths.get("..", "..")).normalize()
       // If the module directory is resolved correctly, we assign the generated source location
       if (
         Files.isDirectory(modulePath.resolve(Paths.get("src", "test", "scala")).resolve(getClass.getName.replace(
