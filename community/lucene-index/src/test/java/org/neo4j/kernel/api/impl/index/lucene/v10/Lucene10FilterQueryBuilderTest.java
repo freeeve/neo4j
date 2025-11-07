@@ -82,7 +82,7 @@ public class Lucene10FilterQueryBuilderTest {
     public void testNullMatchesString() {
         int keyIndex = 4;
         addField(keyIndex, Values.of("bravo"));
-        assertThat(scoreForQuery(keyIndex, null)).isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, new PropertyIndexQuery[] {null})).isEqualTo(1.0f);
     }
 
     @Test
@@ -116,7 +116,7 @@ public class Lucene10FilterQueryBuilderTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Floating point value for query must be finite");
 
-        assertThatThrownBy(() -> scoreForQuery(4, PropertyIndexQuery.exact(1, 0 / 0.0)))
+        assertThatThrownBy(() -> scoreForQuery(4, PropertyIndexQuery.exact(1, Double.POSITIVE_INFINITY)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Floating point value for query must be finite");
     }
@@ -142,7 +142,7 @@ public class Lucene10FilterQueryBuilderTest {
         int keyIndex = 4;
         addField(keyIndex++, Values.of("alpha"));
         addField(keyIndex++, Values.of(25.4));
-        addField(keyIndex++, Values.of(true));
+        addField(keyIndex, Values.of(true));
         assertThat(scoreForQuery(
                         4,
                         PropertyIndexQuery.exact(1, "alpha"),
@@ -198,21 +198,21 @@ public class Lucene10FilterQueryBuilderTest {
     public void testNullMatchesInteger() {
         int keyIndex = 4;
         addField(keyIndex, Values.of(4));
-        assertThat(scoreForQuery(keyIndex, null)).isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, new PropertyIndexQuery[] {null})).isEqualTo(1.0f);
     }
 
     @Test
     public void testNullMatchesFloat() {
         int keyIndex = 4;
         addField(keyIndex, Values.of(7.5f));
-        assertThat(scoreForQuery(keyIndex, null)).isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, new PropertyIndexQuery[] {null})).isEqualTo(1.0f);
     }
 
     @Test
     public void testNullMatchesBoolean() {
         int keyIndex = 4;
         addField(keyIndex, Values.of(true));
-        assertThat(scoreForQuery(keyIndex, null)).isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, new PropertyIndexQuery[] {null})).isEqualTo(1.0f);
     }
 
     @Test
@@ -417,7 +417,6 @@ public class Lucene10FilterQueryBuilderTest {
         assertThatThrownBy(() -> addField(keyIndex, Values.of(new int[] {42, 43})))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unsupported value type: IntegerArray for vector index field 4");
-        ;
     }
 
     private static class TestVectorDocumentStructure extends VectorDocumentStructure {
