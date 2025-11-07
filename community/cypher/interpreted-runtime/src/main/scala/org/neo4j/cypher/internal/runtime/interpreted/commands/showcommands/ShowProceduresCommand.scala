@@ -19,9 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.ExecutableBy
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowProceduresClause.adminColumn
 import org.neo4j.cypher.internal.ast.ShowProceduresClause.argumentDescriptionColumn
 import org.neo4j.cypher.internal.ast.ShowProceduresClause.deprecatedByColumn
@@ -35,6 +33,8 @@ import org.neo4j.cypher.internal.ast.ShowProceduresClause.rolesBoostedExecutionC
 import org.neo4j.cypher.internal.ast.ShowProceduresClause.rolesExecutionColumn
 import org.neo4j.cypher.internal.ast.ShowProceduresClause.signatureColumn
 import org.neo4j.cypher.internal.ast.ShowProceduresClause.worksOnSystemColumn
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
@@ -59,8 +59,8 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 // SHOW PROCEDURE[S] [EXECUTABLE [BY {CURRENT USER | username}]] [WHERE clause | YIELD clause]
 case class ShowProceduresCommand(
   executableBy: Option[ExecutableBy],
-  columns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  columns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   isCommunity: Boolean,
   scope: QueryLanguage
 ) extends Command(columns, yieldColumns) {

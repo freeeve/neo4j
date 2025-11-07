@@ -23,12 +23,13 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.ast.AllFunctions
 import org.neo4j.cypher.internal.ast.BuiltInFunctions
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.User
 import org.neo4j.cypher.internal.ast.UserDefinedFunctions
 import org.neo4j.cypher.internal.expressions.functions.Category
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.graphdb.Result
 import org.neo4j.internal.kernel.api.procs.FieldSignature
@@ -65,12 +66,14 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = false, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   // The yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
   private val allColumns =
     ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = true, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   private val func1 = new UserFunctionSignature(
     new QualifiedName("func1"),
@@ -1195,20 +1198,20 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
 
   test("show functions should rename columns renamed in YIELD") {
     // Given: YIELD name AS function, aggregating AS aggr, isBuiltIn, description
-    val yieldColumns: List[CommandResultItem] = List(
-      CommandResultItem(ShowFunctionsClause.nameColumn, varFor("function"))(InputPosition.NONE),
-      CommandResultItem(
+    val yieldColumns: List[CommandYieldColumn] = List(
+      CommandYieldColumn(ShowFunctionsClause.nameColumn, "function"),
+      CommandYieldColumn(
         ShowFunctionsClause.aggregatingColumn,
-        varFor("aggr")
-      )(InputPosition.NONE),
-      CommandResultItem(
+        "aggr"
+      ),
+      CommandYieldColumn(
         ShowFunctionsClause.isBuiltInColumn,
-        varFor(ShowFunctionsClause.isBuiltInColumn)
-      )(InputPosition.NONE),
-      CommandResultItem(
+        ShowFunctionsClause.isBuiltInColumn
+      ),
+      CommandYieldColumn(
         ShowFunctionsClause.descriptionColumn,
-        varFor(ShowFunctionsClause.descriptionColumn)
-      )(InputPosition.NONE)
+        ShowFunctionsClause.descriptionColumn
+      )
     )
 
     // Set-up which functions to return:

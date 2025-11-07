@@ -764,7 +764,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         slots.newReference(leaf.idName, nullable, CTInteger)
 
       case leaf: CommandLogicalPlan =>
-        for (v <- leaf.availableSymbols.map(_.name) ++ leaf.defaultColumns.map(_.name))
+        for (v <- leaf.columnVariables.map(_.name))
           slots.newReference(v, nullable, CTAny)
 
       case Input(nodes, relationships, variables, nullableInput) =>

@@ -20,8 +20,10 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.CommandClause
+import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
@@ -150,6 +152,8 @@ import org.neo4j.cypher.internal.logical.plans.AtMostOneRow
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.ColumnOrder
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.logical.plans.ConditionalApply
 import org.neo4j.cypher.internal.logical.plans.DeleteNode
 import org.neo4j.cypher.internal.logical.plans.DeletePath
@@ -2785,54 +2789,86 @@ case class LogicalPlanProducer(
   def planCommand(inner: LogicalPlan, clause: CommandClause, context: LogicalPlanningContext): LogicalPlan = {
     val solved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.withHorizon(CommandProjection(clause)))
 
+    def removeUnneededVariables(columns: List[ShowColumn], yieldItems: List[CommandResultItem]) = {
+      val relevantVariables =
+        if (yieldItems.nonEmpty) yieldItems.map(_.aliasedVariable).toSet
+        else columns.map(_.variable).toSet
+
+      val showColumns = columns.map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
+      val yieldColumns = yieldItems.map(yc => CommandYieldColumn(yc.originalName, yc.aliasedVariable.name))
+
+      (relevantVariables, showColumns, yieldColumns)
+    }
+
     val plan = clause match {
       case s: ShowIndexesClause =>
+        val (relevantVariables, showColumns, yieldColumns) =
+          removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
         ShowIndexes(
           s.indexType,
-          s.unfilteredColumns.columns,
-          s.yieldItems,
+          showColumns,
+          yieldColumns,
           s.yieldAll,
+          relevantVariables,
           inner.availableSymbols
         )
       case s: ShowConstraintsClause =>
+        val (relevantVariables, showColumns, yieldColumns) =
+          removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
         ShowConstraints(
           s.constraintType,
-          s.unfilteredColumns.columns,
-          s.yieldItems,
+          showColumns,
+          yieldColumns,
           s.yieldAll,
+          relevantVariables,
           inner.availableSymbols
         )
       case s: ShowCurrentGraphTypeClause =>
-        ShowCurrentGraphType(s.unfilteredColumns.columns, s.yieldItems, s.yieldAll, inner.availableSymbols)
+        val (relevantVariables, showColumns, yieldColumns) =
+          removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
+        ShowCurrentGraphType(showColumns, yieldColumns, s.yieldAll, relevantVariables, inner.availableSymbols)
       case s: ShowProceduresClause =>
+        val (relevantVariables, showColumns, yieldColumns) =
+          removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
         ShowProcedures(
           s.executable,
-          s.unfilteredColumns.columns,
-          s.yieldItems,
+          showColumns,
+          yieldColumns,
           s.yieldAll,
+          relevantVariables,
           inner.availableSymbols
         )
       case s: ShowFunctionsClause =>
+        val (relevantVariables, showColumns, yieldColumns) =
+          removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
         ShowFunctions(
           s.functionType,
           s.executable,
-          s.unfilteredColumns.columns,
-          s.yieldItems,
+          showColumns,
+          yieldColumns,
           s.yieldAll,
+          relevantVariables,
           inner.availableSymbols
         )
       case s: ShowTransactionsClause =>
+        val (relevantVariables, showColumns, yieldColumns) =
+          removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
         ShowTransactions(
           s.names,
-          s.unfilteredColumns.columns,
-          s.yieldItems,
+          showColumns,
+          yieldColumns,
           s.yieldAll,
+          relevantVariables,
           inner.availableSymbols
         )
       case s: TerminateTransactionsClause =>
-        TerminateTransactions(s.names, s.unfilteredColumns.columns, s.yieldItems, s.yieldAll, inner.availableSymbols)
+        val (relevantVariables, showColumns, yieldColumns) =
+          removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
+        TerminateTransactions(s.names, showColumns, yieldColumns, s.yieldAll, relevantVariables, inner.availableSymbols)
       case s: ShowSettingsClause =>
-        ShowSettings(s.names, s.unfilteredColumns.columns, s.yieldItems, s.yieldAll, inner.availableSymbols)
+        val (relevantVariables, showColumns, yieldColumns) =
+          removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
+        ShowSettings(s.names, showColumns, yieldColumns, s.yieldAll, relevantVariables, inner.availableSymbols)
     }
     val annotatedPlan = annotate(plan, solved, ProvidedOrder.empty, CachedProperties.empty, context)
 

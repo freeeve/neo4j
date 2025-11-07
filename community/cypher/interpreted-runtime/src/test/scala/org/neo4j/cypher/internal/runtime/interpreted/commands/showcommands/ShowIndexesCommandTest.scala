@@ -26,7 +26,6 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AllIndexes
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.FulltextIndexes
 import org.neo4j.cypher.internal.ast.LookupIndexes
 import org.neo4j.cypher.internal.ast.PointIndexes
@@ -34,6 +33,8 @@ import org.neo4j.cypher.internal.ast.RangeIndexes
 import org.neo4j.cypher.internal.ast.ShowIndexesClause
 import org.neo4j.cypher.internal.ast.TextIndexes
 import org.neo4j.cypher.internal.ast.VectorIndexes
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
 import org.neo4j.cypher.internal.runtime.IndexInfo
 import org.neo4j.cypher.internal.runtime.IndexStatus
@@ -87,6 +88,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   private val allColumns =
     ShowIndexesClause(
@@ -99,6 +101,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   private val nodeIndexInfo = IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List(label), List(prop))
   private val relIndexInfo = IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List(relType), List(prop))
@@ -2108,20 +2111,20 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
 
   test("show indexes should rename columns renamed in YIELD") {
     // Given: YIELD name AS index, labelsOrTypes, createStatement AS create, type
-    val yieldColumns: List[CommandResultItem] = List(
-      CommandResultItem(ShowIndexesClause.nameColumn, varFor("index"))(InputPosition.NONE),
-      CommandResultItem(
+    val yieldColumns: List[CommandYieldColumn] = List(
+      CommandYieldColumn(ShowIndexesClause.nameColumn, "index"),
+      CommandYieldColumn(
         ShowIndexesClause.labelsOrTypesColumn,
-        varFor(ShowIndexesClause.labelsOrTypesColumn)
-      )(InputPosition.NONE),
-      CommandResultItem(
+        ShowIndexesClause.labelsOrTypesColumn
+      ),
+      CommandYieldColumn(
         ShowIndexesClause.createStatementColumn,
-        varFor("create")
-      )(InputPosition.NONE),
-      CommandResultItem(
+        "create"
+      ),
+      CommandYieldColumn(
         ShowIndexesClause.typeColumn,
-        varFor(ShowIndexesClause.typeColumn)
-      )(InputPosition.NONE)
+        ShowIndexesClause.typeColumn
+      )
     )
 
     // Set-up which indexes to return:

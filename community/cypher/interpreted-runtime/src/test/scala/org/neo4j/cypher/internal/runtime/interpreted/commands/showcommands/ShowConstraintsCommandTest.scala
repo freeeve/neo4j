@@ -24,7 +24,6 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AllConstraints
 import org.neo4j.cypher.internal.ast.AllExistsConstraints
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.KeyConstraints
 import org.neo4j.cypher.internal.ast.NodeAllExistsConstraints
 import org.neo4j.cypher.internal.ast.NodeKeyConstraints
@@ -40,6 +39,8 @@ import org.neo4j.cypher.internal.ast.RelPropTypeConstraints
 import org.neo4j.cypher.internal.ast.RelUniqueConstraints
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.UniqueConstraints
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
 import org.neo4j.cypher.internal.runtime.IndexInfo
 import org.neo4j.cypher.internal.runtime.IndexStatus
@@ -72,6 +73,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   private val allColumns =
     ShowConstraintsClause(
@@ -85,6 +87,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   private val allColumnsCypher5 =
     ShowConstraintsClause(
@@ -98,6 +101,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   private val optionsMapCypher5 = VirtualValues.map(
     Array("indexProvider", "indexConfig"),
@@ -1236,23 +1240,23 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
   test("show constraints should rename columns renamed in YIELD") {
     // Given: YIELD name AS constraint, labelsOrTypes, createStatement AS create, type
-    val yieldColumns: List[CommandResultItem] = List(
-      CommandResultItem(
+    val yieldColumns: List[CommandYieldColumn] = List(
+      CommandYieldColumn(
         ShowConstraintsClause.nameColumn,
-        varFor("constraint")
-      )(InputPosition.NONE),
-      CommandResultItem(
+        "constraint"
+      ),
+      CommandYieldColumn(
         ShowConstraintsClause.labelsOrTypesColumn,
-        varFor(ShowConstraintsClause.labelsOrTypesColumn)
-      )(InputPosition.NONE),
-      CommandResultItem(
+        ShowConstraintsClause.labelsOrTypesColumn
+      ),
+      CommandYieldColumn(
         ShowConstraintsClause.createStatementColumn,
-        varFor("create")
-      )(InputPosition.NONE),
-      CommandResultItem(
+        "create"
+      ),
+      CommandYieldColumn(
         ShowConstraintsClause.typeColumn,
-        varFor(ShowConstraintsClause.typeColumn)
-      )(InputPosition.NONE)
+        ShowConstraintsClause.typeColumn
+      )
     )
 
     // Set-up which constraints to return:

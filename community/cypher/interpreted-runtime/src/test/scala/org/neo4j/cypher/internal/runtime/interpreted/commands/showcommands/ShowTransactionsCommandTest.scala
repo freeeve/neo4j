@@ -23,8 +23,9 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
@@ -79,6 +80,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   private val allColumns =
     ShowTransactionsClause(
@@ -92,6 +94,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -938,23 +941,23 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set.empty[KernelTransactionHandle].asJava)
 
     // Given: YIELD transactionId AS txId, username AS user, currentQuery, status
-    val yieldColumns: List[CommandResultItem] = List(
-      CommandResultItem(
+    val yieldColumns: List[CommandYieldColumn] = List(
+      CommandYieldColumn(
         ShowTransactionsClause.transactionIdColumn,
-        varFor("txId")
-      )(InputPosition.NONE),
-      CommandResultItem(
+        "txId"
+      ),
+      CommandYieldColumn(
         ShowTransactionsClause.usernameColumn,
-        varFor("user")
-      )(InputPosition.NONE),
-      CommandResultItem(
+        "user"
+      ),
+      CommandYieldColumn(
         ShowTransactionsClause.currentQueryColumn,
-        varFor(ShowTransactionsClause.currentQueryColumn)
-      )(InputPosition.NONE),
-      CommandResultItem(
+        ShowTransactionsClause.currentQueryColumn
+      ),
+      CommandYieldColumn(
         ShowTransactionsClause.statusColumn,
-        varFor(ShowTransactionsClause.statusColumn)
-      )(InputPosition.NONE)
+        ShowTransactionsClause.statusColumn
+      )
     )
 
     // When

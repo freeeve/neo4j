@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.plandescription
 
 import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.CreateConstraintType
 import org.neo4j.cypher.internal.ast.ExecutableBy
 import org.neo4j.cypher.internal.ast.NoOptions
@@ -115,6 +114,7 @@ import org.neo4j.cypher.internal.logical.plans.Bound
 import org.neo4j.cypher.internal.logical.plans.CacheProperties
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.ColumnOrder
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ConditionalApply
 import org.neo4j.cypher.internal.logical.plans.Create
@@ -4189,11 +4189,11 @@ case class LogicalPlan2PlanDescription(
       pretty"SET $setOps"
   }
 
-  private def commandColumnInfo(yieldColumns: List[CommandResultItem], yieldAll: Boolean): PrettyString =
+  private def commandColumnInfo(yieldColumns: List[CommandYieldColumn], yieldAll: Boolean): PrettyString =
     if (yieldColumns.nonEmpty)
       asPrettyString.raw(yieldColumns.map(y => {
         val variableName = y.originalName
-        val aliasName = y.aliasedVariable.name
+        val aliasName = y.aliasedName
 
         if (!variableName.equals(aliasName)) s"$variableName AS $aliasName"
         else variableName

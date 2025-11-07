@@ -23,8 +23,9 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.SettingImpl
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.ShowSettingsClause
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ParameterFromSlot
 import org.neo4j.cypher.internal.util.InputPosition
@@ -47,12 +48,14 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
     ShowSettingsClause(Left(List.empty), None, List.empty, yieldAll = false, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   // The yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
   private val allColumns =
     ShowSettingsClause(Left(List.empty), None, List.empty, yieldAll = true, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   private val config = Config.defaults()
 
@@ -318,20 +321,20 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
 
   test("show settings should rename columns renamed in YIELD") {
     // Given: YIELD name AS setting, startupValue AS startupVal, value, description
-    val yieldColumns: List[CommandResultItem] = List(
-      CommandResultItem(ShowSettingsClause.nameColumn, varFor("setting"))(InputPosition.NONE),
-      CommandResultItem(
+    val yieldColumns: List[CommandYieldColumn] = List(
+      CommandYieldColumn(ShowSettingsClause.nameColumn, "setting"),
+      CommandYieldColumn(
         ShowSettingsClause.startupValueColumn,
-        varFor("startupVal")
-      )(InputPosition.NONE),
-      CommandResultItem(
+        "startupVal"
+      ),
+      CommandYieldColumn(
         ShowSettingsClause.valueColumn,
-        varFor(ShowSettingsClause.valueColumn)
-      )(InputPosition.NONE),
-      CommandResultItem(
+        ShowSettingsClause.valueColumn
+      ),
+      CommandYieldColumn(
         ShowSettingsClause.descriptionColumn,
-        varFor(ShowSettingsClause.descriptionColumn)
-      )(InputPosition.NONE)
+        ShowSettingsClause.descriptionColumn
+      )
     )
 
     // When

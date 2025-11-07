@@ -21,8 +21,6 @@ package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.SettingImpl
-import org.neo4j.cypher.internal.ast.CommandResultItem
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowSettingsClause.defaultValueColumn
 import org.neo4j.cypher.internal.ast.ShowSettingsClause.descriptionColumn
 import org.neo4j.cypher.internal.ast.ShowSettingsClause.isDeprecatedColumn
@@ -32,6 +30,8 @@ import org.neo4j.cypher.internal.ast.ShowSettingsClause.nameColumn
 import org.neo4j.cypher.internal.ast.ShowSettingsClause.startupValueColumn
 import org.neo4j.cypher.internal.ast.ShowSettingsClause.validValuesColumn
 import org.neo4j.cypher.internal.ast.ShowSettingsClause.valueColumn
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
@@ -46,8 +46,8 @@ import scala.util.Try
 // SHOW SETTING[S] [names | nameExpression] [WHERE clause | YIELD clause]
 case class ShowSettingsCommand(
   givenNames: Either[List[String], Expression],
-  columns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem]
+  columns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn]
 ) extends Command(columns, yieldColumns) {
 
   private def asMap[T](config: Config)(setting: SettingImpl[T]): Map[String, AnyValue] = requestedColumnsNames.map {

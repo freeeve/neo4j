@@ -23,7 +23,6 @@ import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AllConstraints
 import org.neo4j.cypher.internal.ast.AllExistsConstraints
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.KeyConstraints
 import org.neo4j.cypher.internal.ast.NodeAllExistsConstraints
 import org.neo4j.cypher.internal.ast.NodeKeyConstraints
@@ -40,7 +39,6 @@ import org.neo4j.cypher.internal.ast.RelPropTypeConstraints
 import org.neo4j.cypher.internal.ast.RelUniqueConstraints
 import org.neo4j.cypher.internal.ast.RelationshipSourceLabelConstraints
 import org.neo4j.cypher.internal.ast.RelationshipTargetLabelConstraints
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause.classificationColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause.createStatementColumn
@@ -55,6 +53,8 @@ import org.neo4j.cypher.internal.ast.ShowConstraintsClause.propertiesColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause.propertyTypeColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause.typeColumn
 import org.neo4j.cypher.internal.ast.UniqueConstraints
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
 import org.neo4j.cypher.internal.runtime.CypherRow
@@ -92,8 +92,8 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 // ] CONSTRAINT[S] [WHERE clause | YIELD clause]
 case class ShowConstraintsCommand(
   constraintType: ShowConstraintType,
-  columns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  columns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   cypherVersion: CypherVersion
 ) extends Command(columns, yieldColumns) {
   private val returnCypher5Values: Boolean = cypherVersion == CypherVersion.Cypher5

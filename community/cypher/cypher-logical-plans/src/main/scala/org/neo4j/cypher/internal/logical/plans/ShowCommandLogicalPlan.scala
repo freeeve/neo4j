@@ -19,9 +19,7 @@
  */
 package org.neo4j.cypher.internal.logical.plans
 
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.ExecutableBy
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowFunctionType
 import org.neo4j.cypher.internal.ast.ShowIndexType
@@ -29,12 +27,14 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.util.attribution.IdGen
 import org.neo4j.cypher.internal.util.attribution.SameId
+import org.neo4j.cypher.internal.util.symbols.CypherType
 
 case class ShowIndexes(
   indexType: ShowIndexType,
-  defaultColumns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
+  columnVariables: Set[LogicalVariable],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW INDEXES"
@@ -51,9 +51,10 @@ case class ShowIndexes(
 
 case class ShowConstraints(
   constraintType: ShowConstraintType,
-  defaultColumns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
+  columnVariables: Set[LogicalVariable],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW CONSTRAINTS"
@@ -69,9 +70,10 @@ case class ShowConstraints(
 }
 
 case class ShowCurrentGraphType(
-  defaultColumns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
+  columnVariables: Set[LogicalVariable],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW CURRENT GRAPH TYPE"
@@ -88,9 +90,10 @@ case class ShowCurrentGraphType(
 
 case class ShowProcedures(
   executableBy: Option[ExecutableBy],
-  defaultColumns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
+  columnVariables: Set[LogicalVariable],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW PROCEDURES"
@@ -108,9 +111,10 @@ case class ShowProcedures(
 case class ShowFunctions(
   functionType: ShowFunctionType,
   executableBy: Option[ExecutableBy],
-  defaultColumns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
+  columnVariables: Set[LogicalVariable],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW FUNCTIONS"
@@ -127,9 +131,10 @@ case class ShowFunctions(
 
 case class ShowTransactions(
   ids: Either[List[String], Expression],
-  defaultColumns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
+  columnVariables: Set[LogicalVariable],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW TRANSACTIONS"
@@ -148,9 +153,10 @@ case class ShowTransactions(
 
 case class TerminateTransactions(
   ids: Either[List[String], Expression],
-  defaultColumns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
+  columnVariables: Set[LogicalVariable],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "TERMINATE TRANSACTIONS"
@@ -169,9 +175,10 @@ case class TerminateTransactions(
 
 case class ShowSettings(
   names: Either[List[String], Expression],
-  defaultColumns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
+  columnVariables: Set[LogicalVariable],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW SETTINGS"
@@ -187,3 +194,6 @@ case class ShowSettings(
 
   override def usedVariables: Set[LogicalVariable] = names.map(_.dependencies).getOrElse(Set.empty)
 }
+
+case class CommandDefaultColumn(name: String, cypherType: CypherType)
+case class CommandYieldColumn(originalName: String, aliasedName: String)

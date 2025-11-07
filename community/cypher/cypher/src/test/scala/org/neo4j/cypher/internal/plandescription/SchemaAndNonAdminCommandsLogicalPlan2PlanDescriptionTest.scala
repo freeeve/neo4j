@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.ast.AllExistsConstraints
 import org.neo4j.cypher.internal.ast.AllFunctions
 import org.neo4j.cypher.internal.ast.AllIndexes
 import org.neo4j.cypher.internal.ast.BuiltInFunctions
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.FulltextIndexes
 import org.neo4j.cypher.internal.ast.KeyConstraints
@@ -56,15 +55,17 @@ import org.neo4j.cypher.internal.ast.RelationshipKey
 import org.neo4j.cypher.internal.ast.RelationshipPropertyExistence
 import org.neo4j.cypher.internal.ast.RelationshipPropertyType
 import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.TextIndexes
 import org.neo4j.cypher.internal.ast.UniqueConstraints
 import org.neo4j.cypher.internal.ast.User
 import org.neo4j.cypher.internal.ast.UserDefinedFunctions
 import org.neo4j.cypher.internal.ast.VectorIndexes
 import org.neo4j.cypher.internal.expressions.Add
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.logical.plans.AlterCurrentGraphType
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.logical.plans.CreateConstraint
 import org.neo4j.cypher.internal.logical.plans.CreateFulltextIndex
 import org.neo4j.cypher.internal.logical.plans.CreateIndex
@@ -1239,32 +1240,32 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
   test("ShowIndexes") {
     assertGood(
-      attach(ShowIndexes(AllIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      attach(ShowIndexes(AllIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("allIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(RangeIndexes, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
+      attach(ShowIndexes(RangeIndexes, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("rangeIndexes, defaultColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(FulltextIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      attach(ShowIndexes(FulltextIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("fulltextIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(TextIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      attach(ShowIndexes(TextIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("textIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(PointIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      attach(ShowIndexes(PointIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("pointIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(VectorIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      attach(ShowIndexes(VectorIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("vectorIndexes, allColumns")), Set.empty)
     )
 
@@ -1272,13 +1273,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
       attach(
         ShowIndexes(
           LookupIndexes,
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
           List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
+            CommandYieldColumn("xxx", "xxx"),
+            CommandYieldColumn("yyy", "zzz"),
+            CommandYieldColumn("vvv", "vvv")
           ),
           yieldAll = false,
+          Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
           Set.empty
         ),
         1.0
@@ -2240,6 +2242,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = false,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2254,6 +2257,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = true,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2274,6 +2278,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = true,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2294,6 +2299,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = true,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2314,6 +2320,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = false,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2328,6 +2335,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = false,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2342,6 +2350,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = false,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2362,6 +2371,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = true,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2376,6 +2386,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = false,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2396,6 +2407,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = true,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2416,6 +2428,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = true,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2430,6 +2443,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = false,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2450,6 +2464,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = true,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2470,6 +2485,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = false,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2490,6 +2506,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           List.empty,
           yieldAll = true,
+          Set.empty,
           Set.empty
         ),
         1.0
@@ -2507,13 +2524,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
       attach(
         ShowConstraints(
           constraintType = RelPropTypeConstraints,
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
           List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
+            CommandYieldColumn("xxx", "xxx"),
+            CommandYieldColumn("yyy", "zzz"),
+            CommandYieldColumn("vvv", "vvv")
           ),
           yieldAll = false,
+          Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
           Set.empty
         ),
         1.0
@@ -4785,7 +4803,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
   test("ShowCurrentGraphType") {
     assertGood(
       attach(
-        ShowCurrentGraphType(List.empty, List.empty, yieldAll = false, Set.empty),
+        ShowCurrentGraphType(List.empty, List.empty, yieldAll = false, Set.empty, Set.empty),
         1.0
       ),
       planDescription(id, "ShowCurrentGraphType", Seq.empty, Seq(details("defaultColumns")), Set.empty)
@@ -4793,7 +4811,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        ShowCurrentGraphType(List.empty, List.empty, yieldAll = true, Set.empty),
+        ShowCurrentGraphType(List.empty, List.empty, yieldAll = true, Set.empty, Set.empty),
         1.0
       ),
       planDescription(id, "ShowCurrentGraphType", Seq.empty, Seq(details("allColumns")), Set.empty)
@@ -4802,13 +4820,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
     assertGood(
       attach(
         ShowCurrentGraphType(
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
           List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
+            CommandYieldColumn("xxx", "xxx"),
+            CommandYieldColumn("yyy", "zzz"),
+            CommandYieldColumn("vvv", "vvv")
           ),
           yieldAll = false,
+          Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
           Set.empty
         ),
         1.0
@@ -4827,7 +4846,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
   test("ShowProcedures") {
     assertGood(
-      attach(ShowProcedures(None, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
+      attach(ShowProcedures(None, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty), 1.0),
       planDescription(
         id,
         "ShowProcedures",
@@ -4838,7 +4857,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
     )
 
     assertGood(
-      attach(ShowProcedures(Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      attach(ShowProcedures(Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(
         id,
         "ShowProcedures",
@@ -4852,13 +4871,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
       attach(
         ShowProcedures(
           Some(User("foo")),
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
           List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
+            CommandYieldColumn("xxx", "xxx"),
+            CommandYieldColumn("yyy", "zzz"),
+            CommandYieldColumn("vvv", "vvv")
           ),
           yieldAll = false,
+          Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
           Set.empty
         ),
         1.0
@@ -4875,7 +4895,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
   test("ShowFunctions") {
     assertGood(
-      attach(ShowFunctions(AllFunctions, None, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
+      attach(ShowFunctions(AllFunctions, None, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty), 1.0),
       planDescription(
         id,
         "ShowFunctions",
@@ -4887,7 +4907,15 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        ShowFunctions(BuiltInFunctions, Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty),
+        ShowFunctions(
+          BuiltInFunctions,
+          Some(CurrentUser),
+          List.empty,
+          List.empty,
+          yieldAll = true,
+          Set.empty,
+          Set.empty
+        ),
         1.0
       ),
       planDescription(
@@ -4904,13 +4932,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         ShowFunctions(
           UserDefinedFunctions,
           Some(User("foo")),
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
           List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
+            CommandYieldColumn("xxx", "xxx"),
+            CommandYieldColumn("yyy", "zzz"),
+            CommandYieldColumn("vvv", "vvv")
           ),
           yieldAll = false,
+          Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
           Set.empty
         ),
         1.0
@@ -4926,9 +4955,21 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
   }
 
   test("ShowSettings") {
-    val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
+    val defaultColumns = List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"))
+    val defaultVariables: Set[LogicalVariable] = Set(varFor("xxx"), varFor("yyy"))
+
     assertGood(
-      attach(ShowSettings(Left(List.empty[String]), defaultColumns, List.empty, yieldAll = true, Set.empty), 1.0),
+      attach(
+        ShowSettings(
+          Left(List.empty[String]),
+          defaultColumns,
+          List.empty,
+          yieldAll = true,
+          defaultVariables,
+          Set.empty
+        ),
+        1.0
+      ),
       planDescription(
         id,
         "ShowSettings",
@@ -4940,7 +4981,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        ShowSettings(Left(List("Foo", "Bar")), defaultColumns, List.empty, yieldAll = false, Set.empty),
+        ShowSettings(
+          Left(List("Foo", "Bar")),
+          defaultColumns,
+          List.empty,
+          yieldAll = false,
+          defaultVariables,
+          Set.empty
+        ),
         1.0
       ),
       planDescription(
@@ -4956,13 +5004,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
       attach(
         ShowSettings(
           Right(stringLiteral("foo.*")),
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
           List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
+            CommandYieldColumn("xxx", "xxx"),
+            CommandYieldColumn("yyy", "zzz"),
+            CommandYieldColumn("vvv", "vvv")
           ),
           yieldAll = false,
+          Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
           Set.empty
         ),
         1.0
@@ -4978,10 +5027,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
   }
 
   test("ShowTransactions") {
-    val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
+    val defaultColumns = List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"))
+    val defaultVariables: Set[LogicalVariable] = Set(varFor("xxx"), varFor("yyy"))
 
     assertGood(
-      attach(ShowTransactions(Left(List.empty), defaultColumns, List.empty, yieldAll = false, Set.empty), 1.0),
+      attach(
+        ShowTransactions(Left(List.empty), defaultColumns, List.empty, yieldAll = false, defaultVariables, Set.empty),
+        1.0
+      ),
       planDescription(
         id,
         "ShowTransactions",
@@ -4998,6 +5051,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           defaultColumns,
           List.empty,
           yieldAll = true,
+          defaultVariables,
           Set.empty
         ),
         1.0
@@ -5015,13 +5069,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
       attach(
         ShowTransactions(
           Left(List("db1-transaction-123", "db2-transaction-456")),
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
           List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
+            CommandYieldColumn("xxx", "xxx"),
+            CommandYieldColumn("yyy", "zzz"),
+            CommandYieldColumn("vvv", "vvv")
           ),
           yieldAll = false,
+          Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
           Set.empty
         ),
         1.0
@@ -5042,6 +5097,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           defaultColumns,
           List.empty,
           yieldAll = false,
+          defaultVariables,
           Set.empty
         ),
         1.0
@@ -5062,6 +5118,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           defaultColumns,
           List.empty,
           yieldAll = false,
+          defaultVariables,
           Set.empty
         ),
         1.0
@@ -5082,6 +5139,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           defaultColumns,
           List.empty,
           yieldAll = false,
+          defaultVariables,
           Set.empty
         ),
         1.0
@@ -5097,7 +5155,8 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
   }
 
   test("TerminateTransactions") {
-    val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
+    val defaultColumns = List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"))
+    val defaultVariables: Set[LogicalVariable] = Set(varFor("xxx"), varFor("yyy"))
 
     assertGood(
       attach(
@@ -5106,6 +5165,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           defaultColumns,
           List.empty,
           yieldAll = false,
+          defaultVariables,
           Set.empty
         ),
         1.0
@@ -5124,8 +5184,9 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         TerminateTransactions(
           Left(List("db1-transaction-123", "db2-transaction-456")),
           defaultColumns,
-          List(CommandResultItem("xxx", varFor("xxx"))(pos), CommandResultItem("yyy", varFor("zzz"))(pos)),
+          List(CommandYieldColumn("xxx", "xxx"), CommandYieldColumn("yyy", "zzz")),
           yieldAll = false,
+          Set(varFor("xxx"), varFor("zzz")),
           Set.empty
         ),
         1.0
@@ -5141,7 +5202,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        TerminateTransactions(Right(parameter("foo", CTAny)), defaultColumns, List.empty, yieldAll = true, Set.empty),
+        TerminateTransactions(
+          Right(parameter("foo", CTAny)),
+          defaultColumns,
+          List.empty,
+          yieldAll = true,
+          defaultVariables,
+          Set.empty
+        ),
         1.0
       ),
       planDescription(
@@ -5155,7 +5223,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        TerminateTransactions(Right(number("123")), defaultColumns, List.empty, yieldAll = true, Set.empty),
+        TerminateTransactions(
+          Right(number("123")),
+          defaultColumns,
+          List.empty,
+          yieldAll = true,
+          defaultVariables,
+          Set.empty
+        ),
         1.0
       ),
       planDescription(
@@ -5167,5 +5242,9 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
       )
     )
   }
+
+  // Help methods
+
+  private def commandDefaultColumn(name: String) = CommandDefaultColumn(name, CTString)
 
 }

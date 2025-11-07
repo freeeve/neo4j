@@ -19,11 +19,11 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
-import org.neo4j.cypher.internal.ast.CommandResultItem
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause.messageColumn
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause.transactionIdColumn
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause.usernameColumn
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
@@ -43,8 +43,8 @@ import org.neo4j.values.storable.Values
 // TERMINATE TRANSACTION[S] transaction-id[,...]
 case class TerminateTransactionsCommand(
   givenIds: Either[List[String], Expression],
-  columns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem]
+  columns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn]
 ) extends Command(columns, yieldColumns) {
 
   override def originalNameRows(state: QueryState, baseRow: CypherRow): ClosingIterator[Map[String, AnyValue]] = {

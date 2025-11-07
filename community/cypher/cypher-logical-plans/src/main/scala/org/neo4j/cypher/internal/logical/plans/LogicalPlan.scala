@@ -20,9 +20,7 @@
 package org.neo4j.cypher.internal.logical.plans
 
 import org.neo4j.common.EntityType
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.GraphReference
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
@@ -721,21 +719,17 @@ abstract class CommandLogicalPlan(idGen: IdGen, argumentIds: Set[LogicalVariable
     extends LogicalLeafPlan(idGen = idGen) {
   def commandDescription: String
 
-  def defaultColumns: List[ShowColumn]
+  def defaultColumns: List[CommandDefaultColumn]
 
-  def yieldColumns: List[CommandResultItem]
+  def yieldColumns: List[CommandYieldColumn]
+
+  def columnVariables: Set[LogicalVariable]
 
   // Empty for the ones that don't have any input variables
   // Override in subclass for when there are input variables
   override def usedVariables: Set[LogicalVariable] = Set.empty
 
-  override val localAvailableSymbols: Set[LogicalVariable] = {
-    val introducedVariables =
-      if (yieldColumns.nonEmpty) yieldColumns.map(_.aliasedVariable).toSet
-      else defaultColumns.map(_.variable).toSet
-
-    argumentIds ++ introducedVariables
-  }
+  override val localAvailableSymbols: Set[LogicalVariable] = argumentIds ++ columnVariables
 
   final override val distinctness: Distinctness = NotDistinct
 }

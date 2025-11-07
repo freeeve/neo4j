@@ -1061,16 +1061,16 @@ case class InterpretedPipeMapper(
           indexRegistrator.registerNamedQueryIndex(indexName, IndexType.VECTOR, label, properties)
         )(id)
 
-      case ShowIndexes(indexType, columns, yields, _, _) =>
+      case ShowIndexes(indexType, columns, yields, _, _, _) =>
         CommandPipe(ShowIndexesCommand(indexType, columns, yields, cypherVersion))(id)
 
-      case ShowConstraints(constraintType, columns, yields, _, _) =>
+      case ShowConstraints(constraintType, columns, yields, _, _, _) =>
         CommandPipe(ShowConstraintsCommand(constraintType, columns, yields, cypherVersion))(id)
 
-      case ShowProcedures(executableBy, columns, yields, _, _) =>
+      case ShowProcedures(executableBy, columns, yields, _, _, _) =>
         CommandPipe(ShowProceduresCommand(executableBy, columns, yields, isCommunity, toKernelScope(cypherVersion)))(id)
 
-      case ShowFunctions(functionType, executableBy, columns, yields, _, _) =>
+      case ShowFunctions(functionType, executableBy, columns, yields, _, _, _) =>
         CommandPipe(ShowFunctionsCommand(
           functionType,
           executableBy,
@@ -1080,21 +1080,21 @@ case class InterpretedPipeMapper(
           toKernelScope(cypherVersion)
         ))(id)
 
-      case ShowTransactions(ids, columns, yields, _, _) =>
+      case ShowTransactions(ids, columns, yields, _, _, _) =>
         val newIds = ids match {
           case Right(e) => Right(buildExpression(e))
           case Left(l)  => Left(l)
         }
         CommandPipe(ShowTransactionsCommand(newIds, columns, yields, cypherVersion))(id)
 
-      case TerminateTransactions(ids, columns, yields, _, _) =>
+      case TerminateTransactions(ids, columns, yields, _, _, _) =>
         val newIds = ids match {
           case Right(e) => Right(buildExpression(e))
           case Left(l)  => Left(l)
         }
         CommandPipe(TerminateTransactionsCommand(newIds, columns, yields))(id)
 
-      case ShowSettings(names, columns, yields, _, _) =>
+      case ShowSettings(names, columns, yields, _, _, _) =>
         val newNames = names match {
           case Right(e) => Right(buildExpression(e))
           case Left(l)  => Left(l)

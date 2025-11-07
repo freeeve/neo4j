@@ -23,8 +23,6 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.StringUtils.EMPTY
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.CommandResultItem
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause.activeLockCountColumn
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause.allocatedDirectBytesColumn
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause.clientAddressColumn
@@ -64,6 +62,8 @@ import org.neo4j.cypher.internal.ast.ShowTransactionsClause.statusDetailsColumn
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause.transactionIdColumn
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause.usernameColumn
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause.waitTimeColumn
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
@@ -101,8 +101,8 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 // SHOW TRANSACTION[S] [transaction-id[,...]] [WHERE clause|YIELD clause]
 case class ShowTransactionsCommand(
   givenIds: Either[List[String], Expression],
-  defaultColumns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   cypherVersion: CypherVersion
 ) extends Command(defaultColumns, yieldColumns) {
   private val returnCypher5Values: Boolean = cypherVersion == CypherVersion.Cypher5

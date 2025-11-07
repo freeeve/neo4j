@@ -22,12 +22,10 @@ package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AllIndexes
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.FulltextIndexes
 import org.neo4j.cypher.internal.ast.LookupIndexes
 import org.neo4j.cypher.internal.ast.PointIndexes
 import org.neo4j.cypher.internal.ast.RangeIndexes
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowIndexType
 import org.neo4j.cypher.internal.ast.ShowIndexesClause.createStatementColumn
 import org.neo4j.cypher.internal.ast.ShowIndexesClause.entityTypeColumn
@@ -47,6 +45,8 @@ import org.neo4j.cypher.internal.ast.ShowIndexesClause.trackedSinceColumn
 import org.neo4j.cypher.internal.ast.ShowIndexesClause.typeColumn
 import org.neo4j.cypher.internal.ast.TextIndexes
 import org.neo4j.cypher.internal.ast.VectorIndexes
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IndexInfo
@@ -86,8 +86,8 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 // SHOW [ALL|FULLTEXT|LOOKUP|POINT|RANGE|TEXT|VECTOR] INDEX[ES] [WHERE clause|YIELD clause]
 case class ShowIndexesCommand(
   indexType: ShowIndexType,
-  columns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  columns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   cypherVersion: CypherVersion
 ) extends Command(columns, yieldColumns) {
   private val returnCypher5Values: Boolean = cypherVersion == CypherVersion.Cypher5

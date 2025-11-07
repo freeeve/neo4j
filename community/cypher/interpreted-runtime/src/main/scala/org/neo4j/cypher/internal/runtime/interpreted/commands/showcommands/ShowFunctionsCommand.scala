@@ -21,9 +21,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
 import org.neo4j.cypher.internal.ast.AllFunctions
 import org.neo4j.cypher.internal.ast.BuiltInFunctions
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.ExecutableBy
-import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowFunctionType
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause.aggregatingColumn
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause.argumentDescriptionColumn
@@ -38,6 +36,8 @@ import org.neo4j.cypher.internal.ast.ShowFunctionsClause.rolesBoostedExecutionCo
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause.rolesExecutionColumn
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause.signatureColumn
 import org.neo4j.cypher.internal.ast.UserDefinedFunctions
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
@@ -62,8 +62,8 @@ import scala.jdk.CollectionConverters.SetHasAsScala
 case class ShowFunctionsCommand(
   functionType: ShowFunctionType,
   executableBy: Option[ExecutableBy],
-  columns: List[ShowColumn],
-  yieldColumns: List[CommandResultItem],
+  columns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
   isCommunity: Boolean,
   scope: QueryLanguage
 ) extends Command(columns, yieldColumns) {

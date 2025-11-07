@@ -21,10 +21,11 @@ package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.ShowProceduresClause
 import org.neo4j.cypher.internal.ast.User
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.graphdb.Result
 import org.neo4j.internal.kernel.api.procs.FieldSignature
@@ -56,12 +57,14 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   // The yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
   private val allColumns =
     ShowProceduresClause(None, None, List.empty, yieldAll = true, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   private val proc1 = new ProcedureSignature(
     new QualifiedName("proc1"),
@@ -835,20 +838,20 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures should rename columns renamed in YIELD") {
     // Given: YIELD name AS procedure, admin, isDeprecated AS deprecated, description
-    val yieldColumns: List[CommandResultItem] = List(
-      CommandResultItem(ShowProceduresClause.nameColumn, varFor("procedure"))(InputPosition.NONE),
-      CommandResultItem(
+    val yieldColumns: List[CommandYieldColumn] = List(
+      CommandYieldColumn(ShowProceduresClause.nameColumn, "procedure"),
+      CommandYieldColumn(
         ShowProceduresClause.adminColumn,
-        varFor(ShowProceduresClause.adminColumn)
-      )(InputPosition.NONE),
-      CommandResultItem(
+        ShowProceduresClause.adminColumn
+      ),
+      CommandYieldColumn(
         ShowProceduresClause.isDeprecatedColumn,
-        varFor("deprecated")
-      )(InputPosition.NONE),
-      CommandResultItem(
+        "deprecated"
+      ),
+      CommandYieldColumn(
         ShowProceduresClause.descriptionColumn,
-        varFor(ShowProceduresClause.descriptionColumn)
-      )(InputPosition.NONE)
+        ShowProceduresClause.descriptionColumn
+      )
     )
 
     // Set-up which procedures exists:

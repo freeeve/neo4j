@@ -20,8 +20,8 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
 import org.neo4j.configuration.GraphDatabaseSettings
-import org.neo4j.cypher.internal.ast.CommandResultItem
-import org.neo4j.cypher.internal.ast.ShowColumn
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.QueryContext
@@ -39,10 +39,10 @@ import java.time.ZoneId
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 abstract class Command(
-  private val defaultColumns: List[ShowColumn],
-  private val yieldColumns: List[CommandResultItem]
+  private val defaultColumns: List[CommandDefaultColumn],
+  private val yieldColumns: List[CommandYieldColumn]
 ) {
-  private val columns: List[ShowColumn] = getColumns(defaultColumns, yieldColumns)
+  private val columns: List[CommandDefaultColumn] = getColumns(defaultColumns, yieldColumns)
 
   // The requested columns for the command,
   // only these will be returned to the user and need to be generated
@@ -60,7 +60,7 @@ abstract class Command(
   final def rows(state: QueryState, baseRow: CypherRow): ClosingIterator[Map[String, AnyValue]] = {
     originalNameRows(state, baseRow).map { map =>
       columns.map {
-        case ShowColumn(lv, _, originalName) => lv.name -> map(originalName)
+        case CommandDefaultColumn(name, _) => name -> map(name)
       }.toMap
     }
   }
@@ -78,17 +78,20 @@ abstract class Command(
     rows.map(row =>
       row.map { case (key, value) =>
         val newKey =
-          yieldColumns.find(c => c.originalName.equals(key)).map(_.aliasedVariable.name).getOrElse(key)
+          yieldColumns.find(c => c.originalName.equals(key)).map(_.aliasedName).getOrElse(key)
         (newKey, value)
       }
     )
 
   // Make sure to get the yielded columns (and their potential renames) if YIELD was specified
   // otherwise get the default columns
-  private def getColumns(defaultColumns: List[ShowColumn], yieldColumns: List[CommandResultItem]): List[ShowColumn] = {
+  private def getColumns(
+    defaultColumns: List[CommandDefaultColumn],
+    yieldColumns: List[CommandYieldColumn]
+  ): List[CommandDefaultColumn] = {
     if (yieldColumns.nonEmpty) yieldColumns.map(c => {
-      val column = defaultColumns.find(s => s.variable.name.equals(c.originalName)).get
-      ShowColumn(c.aliasedVariable, column.cypherType, c.aliasedVariable.name)
+      val column = defaultColumns.find(s => s.name.equals(c.originalName)).get
+      CommandDefaultColumn(c.aliasedName, column.cypherType)
     })
     else defaultColumns
   }

@@ -23,8 +23,9 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.when
-import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
+import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
+import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ListLiteral
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
@@ -62,6 +63,7 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     TerminateTransactionsClause(Left(List.empty), List.empty, yieldAll = false, None, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
+      .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -490,15 +492,15 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set.empty[KernelTransactionHandle].asJava)
 
     // Given: YIELD transactionId AS txId, username
-    val yieldColumns: List[CommandResultItem] = List(
-      CommandResultItem(
+    val yieldColumns: List[CommandYieldColumn] = List(
+      CommandYieldColumn(
         TerminateTransactionsClause.transactionIdColumn,
-        varFor("txId")
-      )(InputPosition.NONE),
-      CommandResultItem(
+        "txId"
+      ),
+      CommandYieldColumn(
         TerminateTransactionsClause.usernameColumn,
-        varFor(TerminateTransactionsClause.usernameColumn)
-      )(InputPosition.NONE)
+        TerminateTransactionsClause.usernameColumn
+      )
     )
 
     // When
