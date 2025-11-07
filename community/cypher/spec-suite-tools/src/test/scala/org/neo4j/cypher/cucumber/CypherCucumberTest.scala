@@ -55,7 +55,7 @@ import scala.util.Try
 
 class CypherCucumberTest extends CypherFunSuite with LoneElement {
 
-  test("cucumber based cypher tests can fail and pass in various ways") {
+  test("cucumber based cypher tests can fail and pass in various ways", Tags.NoSpdOverride) {
     val request = LauncherDiscoveryRequestBuilder.request()
       .filters(EngineFilter.includeEngines("cucumber"))
       .selectors(DiscoverySelectors.selectPackage("test.features"))
@@ -70,6 +70,23 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     LauncherFactory.create().execute(request, summaryListener, passingListener)
 
     val summary = summaryListener.getSummary
+
+    val summaryOutputStream = new ByteArrayOutputStream()
+    val summaryString = new PrintWriter(summaryOutputStream)
+    summary.printTo(summaryString)
+    summaryString.println("\n\n===== FAILURES =====\n")
+    summary.printFailuresTo(summaryString)
+    summaryString.flush()
+
+    // Test counts should be correct
+    withClue(summaryOutputStream.toString) {
+      summary.getTestsSucceededCount shouldBe 27
+      summary.getContainersFailedCount shouldBe 0
+      summary.getTestsFoundCount shouldBe 148
+      summary.getTestsFailedCount shouldBe 121
+      summary.getTestsAbortedCount shouldBe 0
+      summary.getTestsSkippedCount shouldBe 0
+    }
 
     // Passing tests should pass
     assertThat(passingListener.passing.toArray(new Array[String](0)).sorted)
@@ -258,23 +275,9 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         wrongResultOrdered("[043] Floating point precision is exact by default - Examples - Example #1.2"),
         wrongResultOrdered("[043] Floating point precision is exact by default - Examples - Example #1.3")
       )
-
-    val summaryOutputStream = new ByteArrayOutputStream()
-    val summaryString = new PrintWriter(summaryOutputStream)
-    summary.printTo(summaryString)
-    summaryString.flush()
-
-    withClue(summaryOutputStream.toString) {
-      summary.getTestsSucceededCount shouldBe 27
-      summary.getContainersFailedCount shouldBe 0
-      summary.getTestsFoundCount shouldBe 148
-      summary.getTestsFailedCount shouldBe 121
-      summary.getTestsAbortedCount shouldBe 0
-      summary.getTestsSkippedCount shouldBe 0
-    }
   }
 
-  test("object factories have correct names") {
+  test("object factories have correct names", Tags.NoSpdOverride) {
     val testConfs = ServiceLoader.load(classOf[ObjectFactory]).stream().toList.asScala.toSeq
       .map(_.get())
       .collect { case factory: SingletonInjector if Try(factory.getInstance(classOf[TestConf])).isSuccess => factory }
@@ -369,7 +372,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     }
   }
 
-  test("remember to add test coverage of the glue to avoid false positives") {
+  test("remember to add test coverage of the glue to avoid false positives", Tags.NoSpdOverride) {
     val covered = Set(
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.parametersAre(scala.collection.immutable.Map)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.givenCsvFile(java.lang.String,io.cucumber.datatable.DataTable)",

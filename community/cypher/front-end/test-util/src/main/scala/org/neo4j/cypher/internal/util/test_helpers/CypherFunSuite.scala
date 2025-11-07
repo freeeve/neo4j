@@ -43,6 +43,12 @@ abstract class CypherFunSuite
      * See the default-query-lang-cypher-25 maven profile.
      */
     val NoQueryLangOverride = Tag("exclude-default-query-lang-override")
+
+    /**
+     * Use this tag to exclude tests from running with SPD.
+     * See the test-spd maven profile.
+     */
+    val NoSpdOverride = Tag("exclude-spd-override")
   }
 
   def argCaptor[T <: AnyRef](implicit manifest: Manifest[T]): ArgumentCaptor[T] = {

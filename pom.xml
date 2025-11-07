@@ -1245,6 +1245,7 @@
           -Dorg.neo4j.ByteBuffers.TRACK_BUFFERS=false
         </test.runner.jvm.settings.dbms.factory>
         <test.vm.netty.leakDetection.level>DISABLED</test.vm.netty.leakDetection.level>
+        <excludedTestGroups>exclude-spd-override</excludedTestGroups>
       </properties>
     </profile>
     <profile>
