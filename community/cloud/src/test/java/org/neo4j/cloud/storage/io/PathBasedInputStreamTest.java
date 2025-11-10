@@ -63,7 +63,7 @@ class PathBasedInputStreamTest {
     void transferToChannel() throws IOException {
         final var outPath = directory.file("transfer");
         try (var input = new PathBasedInputStream(inputPath)) {
-            try (var output = new AbstractTestWriteableChannel(outPath)) {
+            try (var output = new TestWriteableChannel(outPath)) {
                 assertThat(input.transferTo(output)).isGreaterThan(0);
                 assertThat(output.transferred).isTrue();
             }
@@ -93,7 +93,7 @@ class PathBasedInputStreamTest {
     @Test
     void cannotReadIfAlreadyTransferring() throws IOException {
         try (var input = new PathBasedInputStream(inputPath)) {
-            try (var output = new AbstractTestWriteableChannel(directory.file("transfer"))) {
+            try (var output = new TestWriteableChannel(directory.file("transfer"))) {
                 assertThat(input.transferTo(output)).isGreaterThan(0);
             }
 

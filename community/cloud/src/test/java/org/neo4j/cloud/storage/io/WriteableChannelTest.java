@@ -20,7 +20,7 @@
 package org.neo4j.cloud.storage.io;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.neo4j.cloud.storage.io.AbstractTestWriteableChannel.BUFFER_SIZE;
+import static org.neo4j.cloud.storage.io.TestWriteableChannel.BUFFER_SIZE;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -130,7 +130,7 @@ class WriteableChannelTest {
         }
     }
 
-    private static class BlockingChannel extends AbstractTestWriteableChannel {
+    private static class BlockingChannel extends TestWriteableChannel {
 
         private final AtomicBoolean waitSignal = new AtomicBoolean(true);
 

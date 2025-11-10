@@ -30,7 +30,7 @@ import java.nio.file.StandardOpenOption;
 import org.neo4j.memory.EmptyMemoryTracker;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
-class AbstractTestWriteableChannel extends WriteableChannel {
+class TestWriteableChannel extends WriteableChannel {
 
     static final int BUFFER_SIZE = (int) kibiBytes(8);
 
@@ -38,11 +38,11 @@ class AbstractTestWriteableChannel extends WriteableChannel {
 
     boolean transferred;
 
-    protected AbstractTestWriteableChannel(Path path) throws IOException {
+    protected TestWriteableChannel(Path path) throws IOException {
         this(path, Integer.MAX_VALUE);
     }
 
-    protected AbstractTestWriteableChannel(Path path, int maxInflightWrites) throws IOException {
+    protected TestWriteableChannel(Path path, int maxInflightWrites) throws IOException {
         super(BUFFER_SIZE, maxInflightWrites, EmptyMemoryTracker.INSTANCE);
         this.channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
     }
