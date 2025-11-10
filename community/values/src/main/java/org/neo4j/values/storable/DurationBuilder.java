@@ -20,6 +20,8 @@
 package org.neo4j.values.storable;
 
 import java.util.Locale;
+import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.values.StructureBuilder;
 
 abstract class DurationBuilder<Input, Result> implements StructureBuilder<Input, Result> {
@@ -68,7 +70,9 @@ abstract class DurationBuilder<Input, Result> implements StructureBuilder<Input,
                 this.nanoseconds = value;
                 break;
             default:
-                throw new IllegalStateException("Unknown field: " + field);
+                final var legacyException = new java.lang.IllegalStateException("Unknown field: " + field);
+                final var gqlObj = GqlHelper.get22G0I(field);
+                throw new InvalidArgumentException(gqlObj, legacyException.getMessage(), null);
         }
         return this;
     }

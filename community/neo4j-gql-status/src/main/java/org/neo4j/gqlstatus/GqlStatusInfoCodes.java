@@ -874,6 +874,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "invalid duration format",
             ErrorClassification.UNKNOWN),
+    STATUS_22G0I(
+            new GqlStatus("22G0I"),
+            "{ %s } is not a valid duration field.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.field},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "invalid duration field",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22G0M(
             new GqlStatus("22G0M"),
             "",

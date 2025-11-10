@@ -1373,6 +1373,12 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject get22G0I(String field) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G0I)
+                .withParam(GqlParams.StringParam.field, field)
+                .build();
+    }
+
     public static ErrorGqlStatusObject getDefaultObject() {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
                 .build();

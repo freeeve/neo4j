@@ -19,13 +19,18 @@
  */
 package org.neo4j.values.storable;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.values.storable.DurationValue.build;
 import static org.neo4j.values.storable.DurationValue.parse;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.gqlstatus.ErrorClassification;
+import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
 
@@ -66,10 +71,29 @@ class DurationBuilderTest {
 
     @Test
     void shouldRejectUnknownKeys() {
-        assertEquals(
-                "Unknown field: millenia",
-                assertThrows(IllegalStateException.class, () -> build(asMapValue(Map.of("millenia", 2))))
-                        .getMessage());
+        assertThatThrownBy(() -> build(asMapValue(Map.of("millenia", 2))))
+                .hasMessage("Unknown field: millenia")
+                .asInstanceOf(type(InvalidArgumentException.class))
+                .satisfies(e -> {
+                    assertThat(e.gqlStatus()).isEqualTo("22G0I");
+                    assertThat(e.status()).isEqualTo(Status.Data.Statement.ArgumentError);
+                    assertThat(e.getClassification()).isEqualTo(ErrorClassification.CLIENT_ERROR);
+                    assertThat(e.cause()).isEmpty();
+                    assertThat(e.diagnosticRecord())
+                            .containsExactlyInAnyOrderEntriesOf(Map.of(
+                                    "CURRENT_SCHEMA",
+                                    "/",
+                                    "OPERATION",
+                                    "",
+                                    "OPERATION_CODE",
+                                    "0",
+                                    "_classification",
+                                    "CLIENT_ERROR"));
+                    assertThat(e.legacyMessage()).isEqualTo("Unknown field: millenia");
+                    assertThat(e.statusDescription())
+                            .isEqualTo(
+                                    "error: data exception - invalid duration field. `millenia` is not a valid duration field.");
+                });
     }
 
     @Test
