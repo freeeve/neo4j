@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.logical.plans.OrderedUnion
 import org.neo4j.cypher.internal.logical.plans.PathPropagatingBFS
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.Repeat
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
@@ -113,7 +114,10 @@ object CandidateListFinder {
      */
     def withAddedCandidate(candidate: Ref[LogicalPlan]): OpenSequence = {
       copy(
-        candidates = candidates.incl(candidate.value.id.x),
+        candidates = candidate.value match {
+          case _: RemoteBatchProperties if candidates.nonEmpty => candidates
+          case _                                               => candidates.incl(candidate.value.id.x)
+        },
         lastCandidate = Some(candidate),
         traversesEagerPlanFromLeft = traversesEagerPlanFromLeft || ((candidate, lastCandidate) match {
           case (Ref(first: EagerLogicalPlan), Some(Ref(second))) if first.lhs.contains(second) => true

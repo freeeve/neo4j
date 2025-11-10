@@ -347,10 +347,7 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .eager(ListSet(
         EagernessReason
           .PropertyReadSetConflict(PropertyKeyName("firstName")(InputPosition.NONE))
-          .withConflict(EagernessReason.Conflict(Id(6), Id(1))),
-        EagernessReason
-          .PropertyReadSetConflict(PropertyKeyName("firstName")(InputPosition.NONE))
-          .withConflict(EagernessReason.Conflict(Id(6), Id(2)))
+          .withConflict(EagernessReason.Conflict(Id(6), Id(1)))
       ))
       .apply()
       .|.projection("person AS x")
@@ -359,10 +356,7 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .eager(ListSet(
         EagernessReason
           .PropertyReadSetConflict(PropertyKeyName("firstName")(InputPosition.NONE))
-          .withConflict(EagernessReason.Conflict(Id(6), Id(9))),
-        EagernessReason
-          .PropertyReadSetConflict(PropertyKeyName("firstName")(InputPosition.NONE))
-          .withConflict(EagernessReason.Conflict(Id(6), Id(10)))
+          .withConflict(EagernessReason.Conflict(Id(6), Id(9)))
       ))
       .filter("cacheN[person.firstName] IS NOT NULL")
       .remoteBatchProperties("cacheNFromStore[person.firstName]")
@@ -593,11 +587,9 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .|.create(createRelationship("x", "p1", "MAYBE_RELATED", "p2"))
       .|.argument("p1", "k", "p2")
       .eager(ListSet(
-        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(8))),
         EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(7))),
-        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(12))),
-        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(11))),
-        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(10)))
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(10))),
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(12)))
       ))
       .filter("cacheR[k.since] > 2020", "p2:Person")
       .remoteBatchProperties("cacheRFromStore[k.since]")
@@ -667,17 +659,13 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .projection("cacheN[p.description] AS `p.description`")
       .remoteBatchProperties("cacheNFromStore[p.description]")
       .eager(ListSet(
-        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(1))),
-        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(1)))
       ))
       .setNodePropertiesFromMap(
         "p",
         "{firstName: cacheN[p.firstName], description: 'Person: ' + cacheN[p.name]}",
         removeOtherProps = true
       ) // Use cached p.firstName and p.name
-      .eager(ListSet(
-        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(6)))
-      ))
       .remoteBatchProperties("cacheNFromStore[p.name]") // Cache p.name
       .nodeIndexOperator(
         "p:Person(firstName = ???)",
@@ -839,9 +827,6 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .emptyResult()
       .setNodePropertiesFromMap("e", "{prop: cacheN[p.pr], prop2: cacheN[p.pr2]}", removeOtherProps = true)
       .expandAll("(p)-[:KNOWS]->(e)")
-      .eager(ListSet(
-        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(2), Id(5)))
-      ))
       // Check if the position of the eager makes sense w.r.t. the remoteBatchProperties
       .remoteBatchProperties("cacheNFromStore[p.pr]", "cacheNFromStore[p.pr2]")
       .nodeByLabelScan("p", "Person")
@@ -857,9 +842,6 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .emptyResult()
       .setDynamicProperty("f", "$prop", "cacheN[p.pr]")
       .expandAll("(p)-[f:KNOWS]->()")
-      .eager(ListSet(
-        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(2), Id(5)))
-      ))
       .remoteBatchProperties("cacheNFromStore[p.pr]")
       .nodeByLabelScan("p", "Person")
       .build()
@@ -1024,12 +1006,12 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual planner.subPlanBuilder()
       .emptyResult()
       .create(createNodeFull("anon_0", labels = Seq("Person"), properties = Some("{prop: cacheN[p.pr]}")))
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
       .eager(ListSet(
         EagernessReason
           .LabelReadSetConflict(LabelName("Person")(InputPosition.NONE))
           .withConflict(EagernessReason.Conflict(Id(2), Id(6)))
       ))
-      .remoteBatchProperties("cacheNFromStore[p.pr]")
       .apply()
       .|.nodeByLabelScan("p", "Person")
       .unwind("[1] AS _")
@@ -1152,6 +1134,26 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .filter("cacheN[n.AGE] IS NOT NULL")
       .remoteBatchProperties("cacheNFromStore[n.AGE]")
       .nodeByLabelScan("n", "Person")
+      .build()
+  }
+
+  test("RBP should not be the cause of an eager") {
+    val query = """UNWIND [1] AS one
+                  |MATCH (p1:Person)-[KNOWS]->(:Person)
+                  |SET p1.val = p1.val + 1""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setNodeProperty("p1", "val", "cacheN[p1.val] + 1")
+      .filter("anon_0:Person")
+      .expandAll("(p1)-[]->(anon_0)")
+      // Should not plan an eager between the SET and the RBP
+      //  .eager(ListSet(EagernessReason.PropertyReadSetConflict(PropertyKeyName("val")(InputPosition.NONE)).withConflict(EagernessReason.Conflict(Id(2), Id(6)))))
+      .remoteBatchProperties("cacheNFromStore[p1.val]")
+      .apply()
+      .|.nodeByLabelScan("p1", "Person")
+      .unwind("[1] AS _")
+      .argument()
       .build()
   }
 

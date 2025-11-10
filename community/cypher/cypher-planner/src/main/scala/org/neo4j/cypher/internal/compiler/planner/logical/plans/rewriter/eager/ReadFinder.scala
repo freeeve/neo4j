@@ -1112,10 +1112,19 @@ object ReadFinder {
 
       case CachedProperty(_, currentEntityVariable, propertyName, NODE_TYPE, _, _) =>
         acc =>
-          TraverseChildren(acc.withNodePropertyRead(AccessedProperty(propertyName, Some(currentEntityVariable))))
+          rewrittenPlan match {
+            case _: RemoteBatchProperties => SkipChildren(acc)
+            case _ =>
+              TraverseChildren(acc.withNodePropertyRead(AccessedProperty(propertyName, Some(currentEntityVariable))))
+          }
 
       case CachedProperty(_, currentEntityVariable, propertyName, RELATIONSHIP_TYPE, _, _) =>
-        acc => TraverseChildren(acc.withRelPropertyRead(AccessedProperty(propertyName, Some(currentEntityVariable))))
+        acc =>
+          rewrittenPlan match {
+            case _: RemoteBatchProperties => SkipChildren(acc)
+            case _ =>
+              TraverseChildren(acc.withRelPropertyRead(AccessedProperty(propertyName, Some(currentEntityVariable))))
+          }
 
       case GetDegree(_, relType, _) => acc =>
           TraverseChildren(processDegreeRead(relType, acc, anonymousVariableNameGenerator))
