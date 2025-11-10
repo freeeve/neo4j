@@ -56,8 +56,8 @@ object PrimitiveLongHelper {
     }
   }
 
-  def relationshipIteratorFrom(values: (Long, Int, Long, Long)*): ClosingLongIterator with RelationshipIterator =
-    new ClosingLongIterator with RelationshipIterator {
+  def relationshipIteratorFrom(values: (Long, Int, Long, Long)*): ClosingRelationshipIterator =
+    new ClosingRelationshipIterator {
       private var position = 0
       override def close(): Unit = {}
       override protected[this] def innerHasNext: Boolean = position < values.length

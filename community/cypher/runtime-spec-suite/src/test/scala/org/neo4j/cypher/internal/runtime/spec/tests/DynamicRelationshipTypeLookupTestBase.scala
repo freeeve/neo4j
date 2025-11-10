@@ -50,6 +50,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
+  val isProfilingDisabled: Boolean = canFuse // TODO: remove this when profiling works everywhere
 
   def outgoing(rel: Relationship): Array[Entity] = Array(rel, rel.getStartNode, rel.getEndNode)
 
@@ -594,6 +595,29 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns().withStatistics(nodesCreated = 2, relationshipsCreated = 1)
   }
 
+  test("work with merge and a nonexistent rel type and a property") {
+    assume(canMerge)
+
+    givenGraph {
+      circleGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults()
+      .emptyResult()
+      .merge(
+        Seq(createNodeFull("a"), createNodeFull("b")),
+        Seq(createRelationshipWithDynamicType("r", "a", "'Foo'", "b", OUTGOING, Some("{prop: 1}")))
+      )
+      .dynamicRelationshipTypeLookup("(a)-[r]->(b)", "$any('Foo')", propertyPredicates = Map("prop" -> "1"))
+      .build(readOnly = false)
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns().withStatistics(nodesCreated = 2, relationshipsCreated = 1, propertiesSet = 1)
+  }
+
   test("directed scan for any types from an empty array") {
     /* equivalent to the empty result set */
     givenGraph {
@@ -800,9 +824,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   // TYPE + PROPERTY SEEKS
 
   test("directed seek for a single type and single property") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val expected = givenGraph {
       val relType = RelationshipType.withName("R")
 
@@ -840,9 +861,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("undirected seek for a single type and single property") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val expected = givenGraph {
       val relType = RelationshipType.withName("R")
 
@@ -880,9 +898,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("directed seek for an empty type list and single property") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val expected = givenGraph {
       val relType = RelationshipType.withName("R")
 
@@ -925,9 +940,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("undirected seek for an empty type list and single property") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val expected = givenGraph {
       val relType = RelationshipType.withName("R")
 
@@ -970,9 +982,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("directed seek for a single type and single property using an index") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val indexName = "R_on_prop"
     val expected = givenGraph {
       relationshipIndex("R")(_.on("prop").withName(indexName))
@@ -1007,17 +1016,18 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = beColumns("r", "x", "y").withRows(expectDirected(expected))
-        .usingIndexes(2, indexName)
+      val matchExpectations = if (!isProfilingDisabled) {
+        beColumns("r", "x", "y").withRows(expectDirected(expected))
+          .usingIndexes(2, indexName)
+      } else {
+        beColumns("r", "x", "y").withRows(expectDirected(expected))
+      }
 
       profile(logicalQuery, runtime) should matchExpectations
     }
   }
 
   test("undirected seek for a single type and single property using an index") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val indexName = "R_on_prop"
     val expected = givenGraph {
       relationshipIndex("R")(_.on("prop").withName(indexName))
@@ -1052,17 +1062,18 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = beColumns("r", "x", "y").withRows(expectUndirected(expected))
-        .usingIndexes(2, indexName)
+      val matchExpectations = if (!isProfilingDisabled) {
+        beColumns("r", "x", "y").withRows(expectUndirected(expected))
+          .usingIndexes(2, indexName)
+      } else {
+        beColumns("r", "x", "y").withRows(expectUndirected(expected))
+      }
 
       profile(logicalQuery, runtime) should matchExpectations
     }
   }
 
   test("directed seek for a single type and multiple properties using an index and filter") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val indexName = "R_on_prop"
     val expected = givenGraph {
       relationshipIndex("R")(_.on("prop").withName(indexName))
@@ -1099,17 +1110,18 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = beColumns("r", "x", "y").withRows(expectDirected(expected))
-        .usingIndexes(2, indexName)
+      val matchExpectations = if (!isProfilingDisabled) {
+        beColumns("r", "x", "y").withRows(expectDirected(expected))
+          .usingIndexes(2, indexName)
+      } else {
+        beColumns("r", "x", "y").withRows(expectDirected(expected))
+      }
 
       profile(logicalQuery, runtime) should matchExpectations
     }
   }
 
   test("undirected seek for a single type and multiple properties using an index and filter") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val indexName = "R_on_prop"
     val expected = givenGraph {
       relationshipIndex("R")(_.on("prop").withName(indexName))
@@ -1146,17 +1158,18 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = beColumns("r", "x", "y").withRows(expectUndirected(expected))
-        .usingIndexes(2, indexName)
+      val matchExpectations = if (!isProfilingDisabled) {
+        beColumns("r", "x", "y").withRows(expectUndirected(expected))
+          .usingIndexes(2, indexName)
+      } else {
+        beColumns("r", "x", "y").withRows(expectUndirected(expected))
+      }
 
       profile(logicalQuery, runtime) should matchExpectations
     }
   }
 
   test("directed seek for a single type and multiple properties using a compound index") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val indexName = "R_on_prop_and_prop2"
     val expected = givenGraph {
       relationshipIndex("R")(_.on("prop").on("prop2").withName(indexName))
@@ -1193,17 +1206,18 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = beColumns("r", "x", "y").withRows(expectDirected(expected))
-        .usingIndexes(2, indexName)
+      val matchExpectations = if (!isProfilingDisabled) {
+        beColumns("r", "x", "y").withRows(expectDirected(expected))
+          .usingIndexes(2, indexName)
+      } else {
+        beColumns("r", "x", "y").withRows(expectDirected(expected))
+      }
 
       profile(logicalQuery, runtime) should matchExpectations
     }
   }
 
   test("undirected seek for a single type and multiple properties using a compound index") {
-    // TODO: implement
-    assume(!isParallel && !isPipelined)
-
     val indexName = "R_on_prop_and_prop2"
     val expected = givenGraph {
       relationshipIndex("R")(_.on("prop").on("prop2").withName(indexName))
@@ -1240,8 +1254,12 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = beColumns("r", "x", "y").withRows(expectUndirected(expected))
-        .usingIndexes(2, indexName)
+      val matchExpectations = if (!isProfilingDisabled) {
+        beColumns("r", "x", "y").withRows(expectUndirected(expected))
+          .usingIndexes(2, indexName)
+      } else {
+        beColumns("r", "x", "y").withRows(expectUndirected(expected))
+      }
 
       profile(logicalQuery, runtime) should matchExpectations
     }

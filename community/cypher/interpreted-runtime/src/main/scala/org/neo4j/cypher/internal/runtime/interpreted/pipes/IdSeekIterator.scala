@@ -20,8 +20,8 @@
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.QueryContext
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.NumericHelper
 import org.neo4j.internal.kernel.api.Read
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
@@ -70,7 +70,7 @@ class DirectedRelationshipIdSeekIterator(
   relIds: java.util.Iterator[AnyValue],
   read: Read,
   cursor: RelationshipScanCursor
-) extends ClosingLongIterator with RelationshipIterator {
+) extends ClosingRelationshipIterator {
   protected var cachedRelationship: RelationshipState = _
   protected var _next: Long = StatementConstants.NO_SUCH_RELATIONSHIP
   private var startNode = StatementConstants.NO_SUCH_NODE

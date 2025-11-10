@@ -41,7 +41,7 @@ case class DynamicLabelNodeLookupSlottedPipe(
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val context = state.newRowWithArgument(rowFactory)
-    val propertyLookups = DynamicLabelNodeLookupBase.mapPropertyLookups(propertyExpressions, context, state)
+    val propertyLookups = DynamicLabelNodeLookupBase.mapPropertyLookups(propertyExpressions, _.apply(context, state))
     DynamicLabelNodeLookupIterator(state, labelExpr.apply(context, state), propertyLookups, operator)
       .toIterator(n => state.newRowWithArgument(rowFactory).tap(_.setLongAt(nodeOffset, n)))
   }

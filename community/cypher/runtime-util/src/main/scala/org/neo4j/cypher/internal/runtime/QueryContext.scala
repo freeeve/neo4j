@@ -143,13 +143,13 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
     node: Long,
     dir: SemanticDirection,
     types: Array[Int]
-  ): ClosingLongIterator with RelationshipIterator
+  ): ClosingRelationshipIterator
 
   def getRelationshipsByType(
     tokenReadSession: TokenReadSession,
     relType: Int,
     indexOrder: IndexOrder
-  ): ClosingLongIterator with RelationshipIterator
+  ): ClosingRelationshipIterator
 
   def nodeCursor(): NodeCursor
 

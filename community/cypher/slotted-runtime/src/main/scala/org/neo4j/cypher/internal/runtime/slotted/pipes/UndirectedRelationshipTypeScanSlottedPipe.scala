@@ -21,9 +21,8 @@ package org.neo4j.cypher.internal.runtime.slotted.pipes
 
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingIterator
-import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.CypherRowFactory
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyType
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyTypeStatic
@@ -54,7 +53,7 @@ case class UndirectedRelationshipTypeScanSlottedPipe(
 object UndirectedRelationshipTypeScanSlottedPipe {
 
   class UndirectedIterator(
-    relIterator: ClosingLongIterator with RelationshipIterator,
+    relIterator: ClosingRelationshipIterator,
     relOffset: Option[Int],
     fromOffset: Option[Int],
     toOffset: Option[Int],

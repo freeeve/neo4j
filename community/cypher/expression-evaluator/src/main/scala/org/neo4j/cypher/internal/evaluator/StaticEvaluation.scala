@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.planner.spi.NoPreferenceIndexComparatorFactory
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
 import org.neo4j.cypher.internal.runtime.ConstraintInformation
 import org.neo4j.cypher.internal.runtime.CypherRow
@@ -41,7 +42,6 @@ import org.neo4j.cypher.internal.runtime.NodeReadOperations
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.QueryTransactionalContext
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.RelationshipOperations
 import org.neo4j.cypher.internal.runtime.RelationshipReadOperations
 import org.neo4j.cypher.internal.runtime.ResourceManager
@@ -240,13 +240,13 @@ object StaticEvaluation {
       node: Long,
       dir: SemanticDirection,
       types: Array[Int]
-    ): ClosingLongIterator with RelationshipIterator = notAvailable()
+    ): ClosingRelationshipIterator = notAvailable()
 
     override def getRelationshipsByType(
       tokenReadSession: TokenReadSession,
       relType: Int,
       indexOrder: IndexOrder
-    ): ClosingLongIterator with RelationshipIterator = notAvailable()
+    ): ClosingRelationshipIterator = notAvailable()
 
     override def relationshipById(id: Long, startNode: Long, endNode: Long, `type`: Int): VirtualRelationshipValue =
       notAvailable()

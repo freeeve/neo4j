@@ -28,7 +28,6 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.runtime.ReadWriteRow
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.ReferenceCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.IntersectionNodeByLabelsScanPipe.intersectionIterator
@@ -59,7 +58,7 @@ case class DynamicLabelNodeLookupPipe(
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val context = state.newRowWithArgument(rowFactory)
-    val propertyLookups = DynamicLabelNodeLookupBase.mapPropertyLookups(propertyExpressions, context, state)
+    val propertyLookups = DynamicLabelNodeLookupBase.mapPropertyLookups(propertyExpressions, _.apply(context, state))
     DynamicLabelNodeLookupIterator(state, labelExpr.apply(context, state), propertyLookups, operator)
       .toIterator(n => rowFactory.copyWith(context, ident, VirtualValues.node(n)))
   }
@@ -182,12 +181,11 @@ object DynamicLabelNodeLookupBase {
 
   def mapPropertyLookups(
     propExpressions: Map[PropertyKeyToken, Expression],
-    context: ReadWriteRow,
-    state: QueryState
+    expressionMapper: Expression => AnyValue
   ): Array[PropertyIndexQuery.ExactPredicate] = {
     propExpressions.view
       .map { case (prop, expr) =>
-        PropertyIndexQuery.exact(prop.nameId.id, makeValueNeoSafe(expr(context, state)))
+        PropertyIndexQuery.exact(prop.nameId.id, makeValueNeoSafe(expressionMapper(expr)))
       }
       .toArray
   }

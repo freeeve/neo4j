@@ -158,6 +158,8 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
       .contains(GraphDatabaseInternalSettings.CypherOperatorEngine.INTERPRETED)
   }
 
+  def canMerge: Boolean = !isParallel && (canFuse || !isPipelined)
+
   def canFuseOverPipelines: Boolean = canFuse && !isParallel
 
   val runOnlySafeScenarios: Boolean = !System.getenv().containsKey("RUN_EXPERIMENTAL")

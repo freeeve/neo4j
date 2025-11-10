@@ -21,8 +21,8 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.FakePipe.CountingIterator
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.kernel.impl.util.ValueUtils
@@ -101,8 +101,8 @@ object FakePipe {
 
   }
 
-  class CountingRelationshipIterator(inner: ClosingLongIterator with RelationshipIterator) extends ClosingLongIterator
-      with RelationshipIterator {
+  class CountingRelationshipIterator(inner: ClosingRelationshipIterator)
+      extends ClosingRelationshipIterator {
     private var _count = 0
     private var _closed = false
 

@@ -25,9 +25,9 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedUnionRelationshipTypesScanPipe.unionTypeIterator
 import org.neo4j.cypher.internal.runtime.iterators.BaseRelationshipCursorIterator
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -76,57 +76,68 @@ object DirectedUnionRelationshipTypesScanPipe {
     types: Seq[LazyTypeStatic],
     indexOrder: IndexOrder,
     tokenReadSession: TokenReadSession
-  ): ClosingLongIterator with RelationshipIterator = {
+  ): ClosingRelationshipIterator = {
+    val ids = types.map(_.getId(state.query)).filter(_ != LazyType.UNKNOWN).toArray
+    if (ids.isEmpty) {
+      ClosingLongIterator.emptyClosingRelationshipIterator
+    } else {
+      unionTypeIterator(state, ids, indexOrder, tokenReadSession)
+    }
+  }
+
+  def unionTypeIterator(
+    state: QueryState,
+    types: Array[Int],
+    indexOrder: IndexOrder,
+    tokenReadSession: TokenReadSession
+  ): ClosingRelationshipIterator = {
     val query = state.query
-    val ids = types.map(_.getId(query)).filter(_ != LazyType.UNKNOWN).toArray
-    if (ids.isEmpty) ClosingLongIterator.emptyClosingRelationshipIterator
-    else {
-      val cursors = ids.map(_ => {
-        val c = query.relationshipTypeIndexCursor()
-        query.resources.trace(c)
-        c
-      })
-      val read = query.transactionalContext.dataRead
-      val cursor = indexOrder match {
-        case IndexOrderAscending | IndexOrderNone =>
-          ascendingUnionRelationshipTypeIndexCursor(
-            read,
-            tokenReadSession,
-            query.transactionalContext.cursorContext,
-            ids,
-            cursors
-          )
-        case IndexOrderDescending => descendingUnionRelationshipTypeIndexCursor(
-            read,
-            tokenReadSession,
-            query.transactionalContext.cursorContext,
-            ids,
-            cursors
-          )
+    val cursors = types.map(_ => {
+      val c = query.relationshipTypeIndexCursor()
+      query.resources.trace(c)
+      c
+    })
+    val read = query.transactionalContext.dataRead
+    val cursor = indexOrder match {
+      case IndexOrderAscending | IndexOrderNone =>
+        ascendingUnionRelationshipTypeIndexCursor(
+          read,
+          tokenReadSession,
+          query.transactionalContext.cursorContext,
+          types,
+          cursors
+        )
+      case IndexOrderDescending => descendingUnionRelationshipTypeIndexCursor(
+          read,
+          tokenReadSession,
+          query.transactionalContext.cursorContext,
+          types,
+          cursors
+        )
+    }
+
+    new BaseRelationshipCursorIterator {
+
+      override protected def fetchNext(): Long = {
+        while (cursor.next()) {
+          if (cursor.readFromStore()) {
+            return cursor.reference()
+          }
+        }
+        -1L
       }
 
-      new BaseRelationshipCursorIterator {
+      override def close(): Unit = IOUtils.closeAll(cursors: _*)
 
-        override protected def fetchNext(): Long = {
-          while (cursor.next()) {
-            if (cursor.readFromStore()) {
-              return cursor.reference()
-            }
-          }
-          -1L
-        }
-
-        override def close(): Unit = IOUtils.closeAll(cursors: _*)
-
-        /**
-         * Store the current state in case the underlying cursor is closed when calling next.
-         */
-        override protected def storeState(): Unit = {
-          relTypeId = cursor.`type`()
-          source = cursor.sourceNodeReference()
-          target = cursor.targetNodeReference()
-        }
+      /**
+       * Store the current state in case the underlying cursor is closed when calling next.
+       */
+      override protected def storeState(): Unit = {
+        relTypeId = cursor.`type`()
+        source = cursor.sourceNodeReference()
+        target = cursor.targetNodeReference()
       }
     }
+
   }
 }

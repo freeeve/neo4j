@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.macros.TranslateExceptionMacros.translateException
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
 import org.neo4j.cypher.internal.runtime.ConstraintInformation
 import org.neo4j.cypher.internal.runtime.EntityTransformer
@@ -42,7 +43,6 @@ import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.QueryTransactionalContext
 import org.neo4j.cypher.internal.runtime.ReadOperations
 import org.neo4j.cypher.internal.runtime.ReadQueryContext
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.RelationshipOperations
 import org.neo4j.cypher.internal.runtime.RelationshipReadOperations
 import org.neo4j.cypher.internal.runtime.ResourceManager
@@ -448,14 +448,14 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
     node: Long,
     dir: SemanticDirection,
     types: Array[Int]
-  ): ClosingLongIterator with RelationshipIterator =
+  ): ClosingRelationshipIterator =
     translateException(tokenNameLookup, inner.getRelationshipsForIds(node, dir, types))
 
   override def getRelationshipsByType(
     tokenReadSession: TokenReadSession,
     relType: Int,
     indexOrder: IndexOrder
-  ): ClosingLongIterator with RelationshipIterator =
+  ): ClosingRelationshipIterator =
     translateException(tokenNameLookup, inner.getRelationshipsByType(tokenReadSession, relType, indexOrder))
 
   override def nodeCursor(): NodeCursor = translateException(tokenNameLookup, inner.nodeCursor())

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.profiling.OperatorProfileEvent
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.NodeOperations
 import org.neo4j.cypher.internal.runtime.NodeReadOperations
@@ -268,9 +269,9 @@ final class ProfilingPipeQueryContext(
     override def typeId(): Int = inner.typeId()
   }
 
-  override protected def manyDbHitsCliRi(inner: ClosingLongIterator with RelationshipIterator)
-    : ClosingLongIterator with RelationshipIterator =
-    new ClosingLongIterator with RelationshipIterator {
+  override protected def manyDbHitsCliRi(inner: ClosingRelationshipIterator)
+    : ClosingRelationshipIterator =
+    new ClosingRelationshipIterator {
       dbHitsCounter.increment()
 
       override def relationshipVisit[EXCEPTION <: Exception](

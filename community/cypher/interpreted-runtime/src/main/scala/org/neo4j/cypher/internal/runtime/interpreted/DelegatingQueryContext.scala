@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
 import org.neo4j.cypher.internal.runtime.ConstraintInformation
 import org.neo4j.cypher.internal.runtime.EntityTransformer
@@ -124,8 +125,8 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
   protected def manyDbHits(value: ClosingLongIterator): ClosingLongIterator = value
   protected def manyDbHits(value: RelationshipIterator): RelationshipIterator = value
 
-  protected def manyDbHitsCliRi(value: ClosingLongIterator with RelationshipIterator)
-    : ClosingLongIterator with RelationshipIterator = value
+  protected def manyDbHitsCliRi(value: ClosingRelationshipIterator)
+    : ClosingRelationshipIterator = value
   protected def manyDbHits(value: RelationshipTraversalCursor): RelationshipTraversalCursor = value
   protected def manyDbHits(value: NodeCursor): NodeCursor = value
   protected def manyDbHits(value: NodeLabelIndexCursor): NodeLabelIndexCursor = value
@@ -195,14 +196,14 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     node: Long,
     dir: SemanticDirection,
     types: Array[Int]
-  ): ClosingLongIterator with RelationshipIterator =
+  ): ClosingRelationshipIterator =
     manyDbHitsCliRi(inner.getRelationshipsForIds(node, dir, types))
 
   override def getRelationshipsByType(
     tokenReadSession: TokenReadSession,
     relType: Int,
     indexOrder: IndexOrder
-  ): ClosingLongIterator with RelationshipIterator =
+  ): ClosingRelationshipIterator =
     manyDbHitsCliRi(inner.getRelationshipsByType(tokenReadSession, relType, indexOrder))
 
   override def nodeCursor(): NodeCursor = manyDbHits(inner.nodeCursor())

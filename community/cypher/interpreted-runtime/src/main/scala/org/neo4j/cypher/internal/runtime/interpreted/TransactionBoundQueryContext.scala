@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.runtime
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
 import org.neo4j.cypher.internal.runtime.ConstraintInformation
 import org.neo4j.cypher.internal.runtime.EntityTransformer
@@ -49,7 +50,6 @@ import org.neo4j.cypher.internal.runtime.NodeValueHit
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.ReadQueryContext
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.RelationshipValueHit
 import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.internal.runtime.ThreadSafeResourceManager
@@ -819,7 +819,7 @@ private[internal] class TransactionBoundReadQueryContext(
     node: Long,
     dir: SemanticDirection,
     types: Array[Int]
-  ): ClosingLongIterator with RelationshipIterator = {
+  ): ClosingRelationshipIterator = {
     val cursor = allocateNodeCursor()
     try {
       val read = reads()
@@ -845,7 +845,7 @@ private[internal] class TransactionBoundReadQueryContext(
     session: TokenReadSession,
     relType: Int,
     indexOrder: IndexOrder
-  ): ClosingLongIterator with RelationshipIterator = {
+  ): ClosingRelationshipIterator = {
     val read = reads()
     val typeCursor =
       transactionalContext.cursors.allocateRelationshipTypeIndexCursor(

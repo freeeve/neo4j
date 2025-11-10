@@ -26,8 +26,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
 import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationBuilder
-import org.neo4j.cypher.internal.runtime.ClosingLongIterator
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.EagerTypes
@@ -46,8 +45,8 @@ class VarLengthExpandSlottedPipeTest extends CypherFunSuite {
     def wasClosed: Boolean
   }
 
-  private def relationshipIterator: ClosingLongIterator with RelationshipIterator with WasClosed =
-    new ClosingLongIterator with RelationshipIterator with WasClosed {
+  private def relationshipIterator: ClosingRelationshipIterator with WasClosed =
+    new ClosingRelationshipIterator with WasClosed {
       private val inner = Iterator(1L, 2L, 3L)
       private var _wasClosed = false
 

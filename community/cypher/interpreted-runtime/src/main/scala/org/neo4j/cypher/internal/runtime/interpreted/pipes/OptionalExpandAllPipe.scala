@@ -21,10 +21,9 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.runtime.ClosingIterator
-import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherTypeValueMapper
@@ -85,7 +84,7 @@ abstract class OptionalExpandAllPipe(
   def findMatchIterator(
     row: CypherRow,
     state: QueryState,
-    relationships: ClosingLongIterator with RelationshipIterator,
+    relationships: ClosingRelationshipIterator,
     n: VirtualNodeValue
   ): ClosingIterator[CypherRow]
 
@@ -125,7 +124,7 @@ case class NonFilteringOptionalExpandAllPipe(
   override def findMatchIterator(
     row: CypherRow,
     ignore: QueryState,
-    relationships: ClosingLongIterator with RelationshipIterator,
+    relationships: ClosingRelationshipIterator,
     n: VirtualNodeValue
   ): ClosingIterator[CypherRow] = {
     PrimitiveLongHelper.map(
@@ -157,7 +156,7 @@ case class FilteringOptionalExpandAllPipe(
   override def findMatchIterator(
     row: CypherRow,
     state: QueryState,
-    relationships: ClosingLongIterator with RelationshipIterator,
+    relationships: ClosingRelationshipIterator,
     n: VirtualNodeValue
   ): ClosingIterator[CypherRow] = {
 

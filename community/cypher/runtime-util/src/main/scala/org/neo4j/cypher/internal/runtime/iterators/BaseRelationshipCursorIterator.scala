@@ -19,11 +19,10 @@
  */
 package org.neo4j.cypher.internal.runtime.iterators
 
-import org.neo4j.cypher.internal.runtime.ClosingLongIterator
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.storageengine.api.RelationshipVisitor
 
-abstract class BaseRelationshipCursorIterator extends ClosingLongIterator with RelationshipIterator {
+abstract class BaseRelationshipCursorIterator extends ClosingRelationshipIterator {
 
   import BaseRelationshipCursorIterator.NOT_INITIALIZED
   import BaseRelationshipCursorIterator.NO_ID

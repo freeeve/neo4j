@@ -21,9 +21,8 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingIterator
-import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.UndirectedRelationshipTypeScanPipe.UndirectedIterator
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.values.virtual.VirtualNodeValue
@@ -52,7 +51,7 @@ case class UndirectedRelationshipTypeScanPipe(
 object UndirectedRelationshipTypeScanPipe {
 
   class UndirectedIterator(
-    relIterator: ClosingLongIterator with RelationshipIterator,
+    relIterator: ClosingRelationshipIterator,
     relName: Option[String],
     fromNode: Option[String],
     toNode: Option[String],

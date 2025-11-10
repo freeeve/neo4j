@@ -471,8 +471,8 @@ object ClosingLongIterator {
     override def next(): Long = throw new NoSuchElementException("next on empty iterator")
   }
 
-  def emptyClosingRelationshipIterator: ClosingLongIterator with RelationshipIterator =
-    new ClosingLongIterator with RelationshipIterator {
+  def emptyClosingRelationshipIterator: ClosingRelationshipIterator =
+    new ClosingRelationshipIterator {
       override def close(): Unit = ()
 
       override protected[this] def innerHasNext: Boolean = false
