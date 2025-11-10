@@ -455,7 +455,7 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
       )
       val contextWithAdditionalProperties = context.copy(
         plannerState = context.plannerState.copy(contextualPropertyAccess =
-          ContextualPropertyAccess(Set.empty, Set(PropertyAccess(v"x", "prop1")), Set.empty)
+          ContextualPropertyAccess(Set.empty, Set.empty, Set(PropertyAccess(v"x", "prop1")), Set.empty)
         ),
         settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatching)
       )
@@ -492,7 +492,7 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
       )
       val contextWithAdditionalProperties = context.copy(
         plannerState = context.plannerState.copy(contextualPropertyAccess =
-          ContextualPropertyAccess(Set.empty, Set(PropertyAccess(v"x", "prop1")), Set.empty)
+          ContextualPropertyAccess(Set.empty, Set.empty, Set(PropertyAccess(v"x", "prop1")), Set.empty)
         ),
         settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatching)
       )

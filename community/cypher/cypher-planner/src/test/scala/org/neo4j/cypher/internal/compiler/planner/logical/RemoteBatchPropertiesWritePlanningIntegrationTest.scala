@@ -30,9 +30,11 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.HasHeaders
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createPattern
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
+import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -630,4 +632,527 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .nodeIndexOperator("p1:Person(firstName = 'J')", getValue = Map("firstName" -> DoNotGetValue))
       .build()
   }
+
+  test("Should get value from index and use cached value in SET to set firstName and _key") {
+    // Variant on Pokec_write WQ14
+    val query = """MATCH (p:Person { firstName: $name })
+                  |SET p = { firstName:p.firstName, _key:p.firstName }""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setNodePropertiesFromMap(
+        "p",
+        "{firstName: cacheN[p.firstName], _key: cacheN[p.firstName]}",
+        removeOtherProps = true
+      )
+      .nodeIndexOperator(
+        "p:Person(firstName = ???)",
+        paramExpr = Seq(parameter("name", CTAny)),
+        getValue = Map("firstName" -> GetValue)
+      )
+      .build()
+  }
+
+  test(
+    "Should get value from index and use cached value in SET to set p.firstName - should do a remoteBatchProperties for p.name and use the cached value in the SET to set p.description"
+  ) {
+    // Variant on QMUL write WQ13
+    val query = """MATCH (p:Person { firstName: $fn })
+                  |SET p = { firstName: p.firstName, description: 'Person: ' + p.name }
+                  |RETURN p.description""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.description] AS `p.description`")
+      .remoteBatchProperties("cacheNFromStore[p.description]")
+      .eager(ListSet(
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(1))),
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))
+      ))
+      .setNodePropertiesFromMap(
+        "p",
+        "{firstName: cacheN[p.firstName], description: 'Person: ' + cacheN[p.name]}",
+        removeOtherProps = true
+      ) // Use cached p.firstName and p.name
+      .eager(ListSet(
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(6)))
+      ))
+      .remoteBatchProperties("cacheNFromStore[p.name]") // Cache p.name
+      .nodeIndexOperator(
+        "p:Person(firstName = ???)",
+        paramExpr = Seq(parameter("fn", CTAny)),
+        getValue = Map("firstName" -> GetValue)
+      ) // Cache p.firstName
+      .build()
+  }
+
+  test("Should use cached value in SET to set p.hometown and p.description") {
+    // Variant on QMUL write WQ13
+    val query = """MATCH (p:Person { hometown: $hometown })
+                  |SET p = { hometown: p.hometown, description: 'Person: ' + p.name }
+                  |RETURN p.description""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.description] AS `p.description`")
+      .remoteBatchProperties("cacheNFromStore[p.description]")
+      .setNodePropertiesFromMap(
+        "p",
+        "{hometown: cacheN[p.hometown], description: 'Person: ' + cacheN[p.name]}",
+        removeOtherProps = true
+      )
+      .filter("cacheN[p.hometown] = $hometown")
+      .remoteBatchProperties(
+        "cacheNFromStore[p.hometown]",
+        "cacheNFromStore[p.description]",
+        "cacheNFromStore[p.name]"
+      ) // p.description seems unneeded here, since it will be fetched again just before the projection because the SET invalidates it.
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should use remoteBatchProperties for p.name and use cached values in SET to set p.name and p.description") {
+    // Variant on QMUL write WQ19
+    val query = """MATCH (p:Person)
+                  |SET p = { name: p.name, description: 'Person: ' + p.name }
+                  |RETURN p.description""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.description] AS `p.description`")
+      .remoteBatchProperties("cacheNFromStore[p.description]")
+      .setNodePropertiesFromMap(
+        "p",
+        "{name: cacheN[p.name], description: 'Person: ' + cacheN[p.name]}",
+        removeOtherProps = true
+      )
+      .remoteBatchProperties("cacheNFromStore[p.name]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should get value from index and use cached value in SET to set f.friendId") {
+    // Variant on ldbc_ish_write_sf010 wq7
+    val query = """MATCH (person:Person)-[:KNOWS]-(f) WHERE person.id IN $ListOfPersons
+                  |SET f.friendId = person.id""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setNodeProperty("f", "friendId", "cacheN[person.id]")
+      .expandAll("(person)-[:KNOWS]-(f)")
+      .nodeIndexOperator(
+        "person:Person(id IN ???)",
+        paramExpr = Seq(parameter("ListOfPersons", CTAny)),
+        getValue = Map("id" -> GetValue),
+        unique = true,
+        supportPartitionedScan = false
+      )
+      .build()
+  }
+
+  test("Should RBP p.pr and use cached version in SET - SetRelationshipPropertyPattern") {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |SET f.prop = p.pr""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setRelationshipProperty("f", "prop", "cacheN[p.pr]")
+      .expandAll("(p)-[f:KNOWS]->()")
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test(
+    "Should RBPs p.pr and p.pr2 and use cached versions in SET - SetRelationshipPropertiesPattern"
+  ) {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |SET f.prop = p.pr, f.prop2 = p.pr2""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setRelationshipProperties("f", ("prop", "cacheN[p.pr]"), ("prop2", "cacheN[p.pr2]"))
+      .expandAll("(p)-[f:KNOWS]->()")
+      .remoteBatchProperties("cacheNFromStore[p.pr]", "cacheNFromStore[p.pr2]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test(
+    "Should RBPs p.pr and p.pr2 and use cached versions in SET - SetRelationshipPropertiesFromMapPattern"
+  ) {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |SET f = {prop: p.pr, prop2: p.pr2}""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setRelationshipPropertiesFromMap("f", "{prop: cacheN[p.pr], prop2: cacheN[p.pr2]}", removeOtherProps = true)
+      .expandAll("(p)-[f:KNOWS]->()")
+      .remoteBatchProperties("cacheNFromStore[p.pr]", "cacheNFromStore[p.pr2]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should RBP p.pr and use cached version in SET - SetNodePropertyPattern") {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |SET e.prop = p.pr""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setNodeProperty("e", "prop", "cacheN[p.pr]")
+      .expandAll("(p)-[:KNOWS]->(e)")
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test(
+    "Should RBPs p.pr and p.pr2 and use cached versions in SET - SetNodePropertiesPattern"
+  ) {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |SET e.prop = p.pr, e.prop2 = p.pr2""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setNodeProperties("e", ("prop", "cacheN[p.pr]"), ("prop2", "cacheN[p.pr2]"))
+      .expandAll("(p)-[:KNOWS]->(e)")
+      .remoteBatchProperties("cacheNFromStore[p.pr]", "cacheNFromStore[p.pr2]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test(
+    "Should RBPs p.pr and p.pr2 and use cached versions in SET - SetNodePropertiesFromMapPattern"
+  ) {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |SET e = {prop: p.pr, prop2: p.pr2}""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setNodePropertiesFromMap("e", "{prop: cacheN[p.pr], prop2: cacheN[p.pr2]}", removeOtherProps = true)
+      .expandAll("(p)-[:KNOWS]->(e)")
+      .eager(ListSet(
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(2), Id(5)))
+      ))
+      // Check if the position of the eager makes sense w.r.t. the remoteBatchProperties
+      .remoteBatchProperties("cacheNFromStore[p.pr]", "cacheNFromStore[p.pr2]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should RBP p.pr and use cached version in SET - SetDynamicPropertyPattern") {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |SET f[$prop] = p.pr""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setDynamicProperty("f", "$prop", "cacheN[p.pr]")
+      .expandAll("(p)-[f:KNOWS]->()")
+      .eager(ListSet(
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(2), Id(5)))
+      ))
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should RBPs e.pr and use cached version in SET - SetPropertyPattern") {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |SET (CASE WHEN p.age < 20 THEN p ELSE f END).prop = e.pr""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setProperty("CASE WHEN p.age < 20 THEN p ELSE f END", "prop", "cacheN[e.pr]")
+      .remoteBatchProperties("cacheNFromStore[e.pr]")
+      .expandAll("(p)-[f:KNOWS]->(e)")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should RBPs e.pr and e.pr2 and use cached versions in SET - SetPropertiesPattern") {
+    val query =
+      """MATCH (p:Person)-[f:KNOWS]->(e)
+        |SET (CASE WHEN p.age < 20 THEN p ELSE f END).prop = e.pr, (CASE WHEN p.age < 20 THEN p ELSE f END).prop2 = e.pr2""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setProperties("CASE WHEN p.age < 20 THEN p ELSE f END", ("prop", "cacheN[e.pr]"), ("prop2", "cacheN[e.pr2]"))
+      .remoteBatchProperties("cacheNFromStore[e.pr]", "cacheNFromStore[e.pr2]")
+      .expandAll("(p)-[f:KNOWS]->(e)")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should RBPs e.pr and e.pr2 and use cached versions in SET - SetPropertiesFromMapPattern") {
+    val query = """CALL () {
+                  |  MATCH (p:Person)
+                  |  RETURN p AS x
+                  |UNION ALL
+                  |  MATCH (p:Person)-[f:KNOWS]->(e)
+                  |  RETURN f AS x
+                  |} // x can be a node or a relationship
+                  |MATCH (e:Person) WHERE e.id < 12
+                  |SET x += {prop: e.pr, prop2: e.pr2}""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      // use the cached properties
+      .setPropertiesFromMap("x", "{prop: cacheN[e.pr], prop2: cacheN[e.pr2]}", removeOtherProps = false)
+      .remoteBatchProperties("cacheNFromStore[e.pr]", "cacheNFromStore[e.pr2]") // cache e.pr and e.pr2
+      .apply()
+      .|.nodeIndexOperator("e:Person(id < 12)", argumentIds = Set("x"), unique = true)
+      .union()
+      .|.projection("x AS x")
+      .|.projection("f AS x")
+      .|.expandAll("(p)-[f:KNOWS]->()")
+      .|.nodeByLabelScan("p", "Person")
+      .projection("x AS x")
+      .projection("p AS x")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should RBP p.pr and use cached version in SET - SetLabelPattern") {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |SET e:$(p.pr)""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .setLabels("e", Seq(), Seq("cacheN[p.pr]"))
+      .expandAll("(p)-[:KNOWS]->(e)")
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should RBP p.pr and use cached version in SET - RemoveLabelPattern") {
+    val query = """MATCH (p:Person)-[f:KNOWS]->(e)
+                  |REMOVE e:$(p.pr)""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .removeLabels("e", Seq(), Seq("cacheN[p.pr]"))
+      .expandAll("(p)-[:KNOWS]->(e)")
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should RBP p.pr and use cached version in CREATE") {
+    val query = """MATCH (p:Person)
+                  |CREATE (:Dummy {prop: p.pr})""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .create(createNodeFull("anon_0", labels = Seq("Dummy"), properties = Some("{prop: cacheN[p.pr]}")))
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should not plan another RBP after the CREATE") {
+    val query = """MATCH (p:Person)
+                  |CREATE (:Dummy {prop: p.pr})
+                  |RETURN p.pr""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.pr] AS `p.pr`")
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .create(createNodeFull("anon_0", labels = Seq("Dummy"), properties = Some("{prop: cacheN[p.pr]}")))
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should not plan another RBP after the setLabel") {
+    val query = """MATCH (p:Person {someProp: 1})
+                  |SET p:Dummy
+                  |RETURN p.someProp""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.someProp] AS `p.someProp`")
+      .remoteBatchProperties("cacheNFromStore[p.someProp]")
+      .setLabels("p", Seq("Dummy"), Seq())
+      .filter("cacheN[p.someProp] = 1")
+      .remoteBatchProperties("cacheNFromStore[p.someProp]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should RBP p.pr and use cached version in CREATE - Eager") {
+    val query = """MATCH (p:Person)-[:KNOWS]->()
+                  |CREATE (:Person {prop: p.pr})""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .create(createNodeFull("anon_0", labels = Seq("Person"), properties = Some("{prop: cacheN[p.pr]}")))
+      .eager(ListSet(
+        EagernessReason
+          .LabelReadSetConflict(LabelName("Person")(InputPosition.NONE))
+          .withConflict(EagernessReason.Conflict(Id(2), Id(4)))
+      ))
+      .expandAll("(p)-[:KNOWS]->()")
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("MutatingPattern in tail - Should RBP p.pr and use cached version in CREATE - Eager") {
+    val query = """UNWIND [1] as one
+                  |MATCH (p:Person)
+                  |CREATE (:Person {prop: p.pr})""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .create(createNodeFull("anon_0", labels = Seq("Person"), properties = Some("{prop: cacheN[p.pr]}")))
+      .eager(ListSet(
+        EagernessReason
+          .LabelReadSetConflict(LabelName("Person")(InputPosition.NONE))
+          .withConflict(EagernessReason.Conflict(Id(2), Id(6)))
+      ))
+      .remoteBatchProperties("cacheNFromStore[p.pr]")
+      .apply()
+      .|.nodeByLabelScan("p", "Person")
+      .unwind("[1] AS _")
+      .argument()
+      .build()
+  }
+
+  test("Should rbps p.age and p.propList and use cached version - ForeachPattern") {
+    val query = """MATCH (p:Person)
+                  |FOREACH (value IN p.propList | CREATE (:Item {name: value, price: 100 - p.age}))
+                  |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .foreach(
+        "value",
+        "cacheN[p.propList]",
+        Seq(createPattern(Seq(createNodeFull(
+          "anon_0",
+          labels = Seq("Item"),
+          properties = Some("{name: value, price: 100 - cacheN[p.age]}")
+        ))))
+      )
+      .remoteBatchProperties("cacheNFromStore[p.propList]", "cacheNFromStore[p.age]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Should rbps p.age and p.propList and use cached version - ForeachPattern - ForeachApply") {
+    val query = """MATCH (p:Person)
+                  |FOREACH (value IN p.propList | CREATE (:Post {name: value, price: 100 - p.age}))
+                  |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .foreach(
+        "value",
+        "cacheN[p.propList]", // Use cached p.propList
+        Seq(createPattern(Seq(createNodeFull(
+          "anon_0",
+          labels = Seq("Post"),
+          properties = Some("{name: value, price: 100 - cacheN[p.age]}") // Use cached p.age
+        ))))
+      )
+      .remoteBatchProperties("cacheNFromStore[p.age]", "cacheNFromStore[p.propList]") // Cache p.age and p.propList
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("subqueryForeach (MutatingPattern in horizon) - should rbp p.name and use cached version") {
+    val query = """MATCH (p:Person)
+                  |CALL (p) {
+                  |  CREATE (a: Artist {name: p.name})
+                  |}""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .subqueryForeach()
+      .|.create(createNodeFull("a", labels = Seq("Artist"), properties = Some("{name: cacheN[p.name]}")))
+      .|.remoteBatchProperties("cacheNFromStore[p.name]")
+      .|.argument("p")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("TransactionForeach (MutatingPattern in horizon) - should rbp p.name and use cached version") {
+    val query = """MATCH (p:Person)
+                  |CALL (p) {
+                  |  CREATE (a: Artist {name: p.name})
+                  |} IN TRANSACTIONS OF 100 ROWS""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(100)
+      .|.create(createNodeFull("a", labels = Seq("Artist"), properties = Some("{name: cacheN[p.name]}")))
+      .|.remoteBatchProperties("cacheNFromStore[p.name]")
+      .|.argument("p")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("Keep the sort when required - even when extra properties are fetched") {
+    val query = """MATCH (n)
+                  |ORDER BY n
+                  |SET n.prop2 = n.prop
+                  |RETURN n""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .setNodeProperty("n", "prop2", "cacheN[n.prop]")
+      .remoteBatchProperties("cacheNFromStore[n.prop]")
+      .sort("n ASC")
+      .allNodeScan("n")
+      .build()
+  }
+
+  test("Do not rbp a.age when a is an argument") {
+    // Variant of pokec_write WQ24
+    val query = """MATCH (n:Person)
+                  |WHERE n.AGE IS NOT NULL
+                  |  WITH n
+                  |  LIMIT 50000
+                  |WITH n.AGE AS age, collect(n) AS nodes
+                  |MERGE (a:Country { age: age })
+                  |WITH a, nodes
+                  |FOREACH (n IN nodes | MERGE (a)<-[:KNOWS]-(n))""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .foreachApply("n", "nodes")
+      // .|.remoteBatchProperties("cacheNFromStore[a.age]") <- When `planRemoteBatchPropertiesWithLookahead` plans RBPs for properties on the query graph's arguments
+      .|.mergeInto("(a)<-[anon_0:KNOWS]-(n)")
+      .|.argument("a", "n")
+      .apply()
+      .|.merge(Seq(createNodeFull("a", labels = Seq("Country"), properties = Some("{age: age}"))))
+      .|.filter("cacheN[a.age] = age")
+      .|.remoteBatchProperties("cacheNFromStore[a.age]")
+      .|.nodeByLabelScan("a", "Country", "age")
+      .aggregation(Seq("cacheN[n.AGE] AS age"), Seq("collect(n) AS nodes"))
+      .limit(50000)
+      .filter("cacheN[n.AGE] IS NOT NULL")
+      .remoteBatchProperties("cacheNFromStore[n.AGE]")
+      .nodeByLabelScan("n", "Person")
+      .build()
+  }
+
 }

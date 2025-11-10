@@ -238,6 +238,7 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
         ContextualPropertyAccess(
           horizon = Set(PropertyAccess(v"a", "prop1")),
           queryGraph = Set.empty,
+          queryGraphMutatingPatterns = Set.empty,
           interestingOrder = Set.empty
         )
       ),

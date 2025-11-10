@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityInde
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicateWithValueBehavior
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.HasMappableExpressions
 import org.neo4j.cypher.internal.expressions.IsNotNull
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
@@ -47,6 +48,7 @@ import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.QueryHorizon
 import org.neo4j.cypher.internal.ir.RegularQueryProjection
+import org.neo4j.cypher.internal.ir.SimpleMutatingPattern
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
@@ -95,6 +97,18 @@ sealed trait RemoteBatchingStrategy {
     context: LogicalPlanningContext,
     expressions: Iterable[Expression]
   ): RemoteBatchingResult
+
+  def planRemoteBatchPropertiesForSimpleMutatingPatterns(
+    source: LogicalPlan,
+    context: LogicalPlanningContext,
+    patterns: Seq[SimpleMutatingPattern]
+  ): (LogicalPlan, Seq[SimpleMutatingPattern])
+
+  def planRemoteBatchPropertiesForSimpleMutatingPattern[T <: SimpleMutatingPattern with HasMappableExpressions[T]](
+    source: LogicalPlan,
+    context: LogicalPlanningContext,
+    pattern: T
+  ): (LogicalPlan, T)
 
   def planBatchPropertiesForExpressionsWithLookahead(
     queryGraph: QueryGraph,
@@ -227,6 +241,32 @@ object RemoteBatchingStrategy {
       )
     }
 
+    override def planRemoteBatchPropertiesForSimpleMutatingPatterns(
+      source: LogicalPlan,
+      context: LogicalPlanningContext,
+      patterns: Seq[SimpleMutatingPattern]
+    ): (LogicalPlan, Seq[SimpleMutatingPattern]) = {
+      val RemoteBatchingResult(rewrittenPatternExpressions, rewrittenInner) =
+        planRemoteBatchProperties(source, context, patterns.flatMap(_.getExpressionsWithPossiblePropertyReferences))
+      val rewrittenPattern = patterns.map(_.mapExpressions(
+        rewrittenPatternExpressions.rewrittenExpressionOrSelf
+      ))
+      (rewrittenInner, rewrittenPattern)
+    }
+
+    override def planRemoteBatchPropertiesForSimpleMutatingPattern[
+      T <: SimpleMutatingPattern with HasMappableExpressions[T]
+    ](
+      source: LogicalPlan,
+      context: LogicalPlanningContext,
+      pattern: T
+    ): (LogicalPlan, T) = {
+      val RemoteBatchingResult(rewrittenPatternExpressions, rewrittenInner) =
+        planRemoteBatchProperties(source, context, pattern.getExpressionsWithPossiblePropertyReferences)
+      val rewrittenPattern = pattern.mapExpressions(rewrittenPatternExpressions.rewrittenExpressionOrSelf)
+      (rewrittenInner, rewrittenPattern)
+    }
+
     override def planBatchPropertiesForExpressionsWithLookahead(
       queryGraph: QueryGraph,
       input: LogicalPlan,
@@ -253,6 +293,7 @@ object RemoteBatchingStrategy {
       accessedPropertiesForPredicates(queryGraph, input, context, predicatesToIgnore) ++
         context.plannerState.contextualPropertyAccess.interestingOrder ++
         context.plannerState.contextualPropertyAccess.horizon ++
+        context.plannerState.contextualPropertyAccess.queryGraphMutatingPatterns ++
         context.plannerState.contextualPropertyAccess.propertyAccessInOtherComponents
     }
 
@@ -316,12 +357,14 @@ object RemoteBatchingStrategy {
     ): Boolean = {
       val propertyAccess = PropertyAccess(propertyPredicate.variable, propertyPredicate.propertyKeyName.name)
 
-      val allHorizonAcceses = contextualPropertyAccess.horizon ++ contextualPropertyAccess.interestingOrder
+      val horizonOrMutatingPatternAcceses = contextualPropertyAccess.horizon ++
+        contextualPropertyAccess.interestingOrder ++
+        contextualPropertyAccess.queryGraphMutatingPatterns
 
       isPredicateExecutedLater(propertyPredicate) ||
       propsAccessForPredsMap
         .propertyAccessInPredicatesOtherThat(propertyAccess, propertyPredicate.predicate) ||
-      allHorizonAcceses.exists(propAccess =>
+      horizonOrMutatingPatternAcceses.exists(propAccess =>
         propAccess.propertyName == propertyPredicate.propertyKeyName.name &&
           contextualPropertyAccess.entityAliases.isSameEntityAs(propertyPredicate.variable, propAccess.variable)
       ) ||
@@ -349,8 +392,13 @@ object RemoteBatchingStrategy {
       val alreadyCachedProperties =
         context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
       val availableSymbols = input.availableSymbols
-      val cachedPropertiesForHeadPlan =
-        cachedPropertiesFromPropAccesses(accessedProperties, alreadyCachedProperties, availableSymbols, context)
+      val cachedPropertiesForHeadPlan = cachedPropertiesFromPropAccesses(
+        accessedProperties,
+        alreadyCachedProperties,
+        availableSymbols,
+        queryGraph.argumentIds,
+        context
+      )
 
       if (cachedPropertiesForHeadPlan.nonEmpty)
         Iterator(context.staticComponents.logicalPlanProducer.planRemoteBatchProperties(
@@ -365,14 +413,14 @@ object RemoteBatchingStrategy {
       accessedProperties: Set[PropertyAccess],
       alreadyCachedProperties: CachedProperties,
       availableSymbols: Set[LogicalVariable],
+      queryGraphArguments: Set[LogicalVariable],
       context: LogicalPlanningContext
     ): Set[CachedProperty] =
       accessedProperties.collect {
         case PropertyAccess(variable, propertyName)
-          if availableSymbols.contains(variable) && !alreadyCachedProperties.contains(
-            variable,
-            PropertyKeyName(propertyName)(InputPosition.NONE)
-          ) =>
+          if availableSymbols.contains(variable) &&
+            !alreadyCachedProperties.contains(variable, PropertyKeyName(propertyName)(InputPosition.NONE)) &&
+            !queryGraphArguments.contains(variable) =>
           toCachedProperty(
             context,
             alreadyCachedProperties,
@@ -391,7 +439,7 @@ object RemoteBatchingStrategy {
               if !alreadyCachedProperties.contains(
                 latestVar,
                 PropertyKeyName(propertyName)(InputPosition.NONE)
-              ) =>
+              ) && !queryGraphArguments.contains(variable) =>
               toCachedProperty(
                 context,
                 alreadyCachedProperties,
@@ -587,6 +635,7 @@ object RemoteBatchingStrategy {
 
       val alreadyCachedProperties =
         context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
+          .union(context.plannerState.previouslyCachedProperties)
 
       val propsForUsedVars = expressions.folder.treeFold(Set[CachedProperty]()) {
         case _: NestedPlanExpression => set => SkipChildren(set)
@@ -680,7 +729,10 @@ object RemoteBatchingStrategy {
       def rec(currentQuery: SinglePlannerQuery, acc: ContextualPropertyAccess): ContextualPropertyAccess = {
         val accumulatedPropertyAccesses = ContextualPropertyAccess(
           queryGraph = acc.queryGraph ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.queryGraph)),
-          horizon = acc.horizon ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.horizon)),
+          queryGraphMutatingPatterns = acc.queryGraphMutatingPatterns ++
+            PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.queryGraph.mutatingPatterns)),
+          horizon = acc.horizon ++
+            PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.horizon)),
           interestingOrder =
             acc.interestingOrder ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.interestingOrder)),
           entityAliases = findEntityAliases(acc.entityAliases, currentQuery.horizon)
@@ -773,6 +825,20 @@ object RemoteBatchingStrategy {
       predicatesToSolve: RewrittenSubQueryPredicatesMap
     ): RemoteBatchingSubQueryResult =
       RemoteBatchingSubQueryResult(predicatesToSolve, input)
+
+    override def planRemoteBatchPropertiesForSimpleMutatingPatterns(
+      source: LogicalPlan,
+      context: LogicalPlanningContext,
+      patterns: Seq[SimpleMutatingPattern]
+    ): (LogicalPlan, Seq[SimpleMutatingPattern]) = (source, patterns)
+
+    override def planRemoteBatchPropertiesForSimpleMutatingPattern[
+      T <: SimpleMutatingPattern with HasMappableExpressions[T]
+    ](
+      source: LogicalPlan,
+      context: LogicalPlanningContext,
+      pattern: T
+    ): (LogicalPlan, T) = (source, pattern)
 
     override def planBatchPropertiesForExpressionsWithLookahead(
       queryGraph: QueryGraph,

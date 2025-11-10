@@ -94,6 +94,7 @@ object PropertyAccessHelper {
 
   case class ContextualPropertyAccess(
     queryGraph: Set[PropertyAccess],
+    queryGraphMutatingPatterns: Set[PropertyAccess],
     horizon: Set[PropertyAccess],
     interestingOrder: Set[PropertyAccess],
     propertyAccessInOtherComponents: Set[PropertyAccess] =
@@ -107,7 +108,7 @@ object PropertyAccessHelper {
   object ContextualPropertyAccess {
 
     def empty: ContextualPropertyAccess =
-      ContextualPropertyAccess(Set.empty, Set.empty, Set.empty)
+      ContextualPropertyAccess(Set.empty, Set.empty, Set.empty, Set.empty)
   }
 
   /*

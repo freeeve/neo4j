@@ -3534,10 +3534,15 @@ case class LogicalPlanProducer(
   }
 
   def planCreate(inner: LogicalPlan, pattern: CreatePattern, context: LogicalPlanningContext): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used in the CREATE
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
       solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
     val (rewrittenPattern: CreatePattern, rewrittenInner) =
-      SubqueryExpressionSolver.ForMappable().solve(inner, pattern, context)
+      SubqueryExpressionSolver.ForMappable().solve(innerRewrittenRBPs, patternRewrittenCachedProps, context)
     val plan = plans.Create(rewrittenInner, rewrittenPattern.commands)
     val providedOrder =
       providedOrderOfUpdate(plan, rewrittenInner, context.settings.executionModel, context.providedOrderFactory)
@@ -3687,12 +3692,24 @@ case class LogicalPlanProducer(
   }
 
   def planSetLabel(inner: LogicalPlan, pattern: SetLabelPattern, context: LogicalPlanningContext): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the node label
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
-    val rewrittenDynamicLabels = pattern.dynamicLabels.toSet.endoRewrite(irExpressionRewriter(inner, context))
-    val plan = SetLabels(inner, pattern.variable, pattern.labels.toSet, rewrittenDynamicLabels)
+      solveds.get(innerRewrittenRBPs.id)
+        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+    val rewrittenDynamicLabels =
+      patternRewrittenCachedProps.dynamicLabels.toSet.endoRewrite(irExpressionRewriter(innerRewrittenRBPs, context))
+    val plan = SetLabels(
+      innerRewrittenRBPs,
+      patternRewrittenCachedProps.variable,
+      patternRewrittenCachedProps.labels.toSet,
+      rewrittenDynamicLabels
+    )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3701,22 +3718,28 @@ case class LogicalPlanProducer(
     pattern: SetNodePropertyPattern,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the node property
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id)
+        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
     val plan = SetNodeProperty(
-      inner,
+      innerRewrittenRBPs,
       rewrittenPattern.variable,
       rewrittenPattern.propertyKey,
       rewrittenPattern.expression
     )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3725,17 +3748,23 @@ case class LogicalPlanProducer(
     pattern: SetNodePropertiesPattern,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the node properties
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id)
+        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
-    val plan = SetNodeProperties(inner, rewrittenPattern.variable, rewrittenPattern.items)
+    val plan = SetNodeProperties(innerRewrittenRBPs, rewrittenPattern.variable, rewrittenPattern.items)
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3744,22 +3773,28 @@ case class LogicalPlanProducer(
     pattern: SetNodePropertiesFromMapPattern,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the node properties
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id)
+        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
     val plan = SetNodePropertiesFromMap(
-      inner,
+      innerRewrittenRBPs,
       rewrittenPattern.variable,
       rewrittenPattern.expression,
       rewrittenPattern.removeOtherProps
     )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3768,22 +3803,28 @@ case class LogicalPlanProducer(
     pattern: SetRelationshipPropertyPattern,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the relationship property
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id)
+        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
     val plan = SetRelationshipProperty(
-      inner,
+      innerRewrittenRBPs,
       rewrittenPattern.variable,
       rewrittenPattern.propertyKey,
       rewrittenPattern.expression
     )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3792,17 +3833,23 @@ case class LogicalPlanProducer(
     pattern: SetRelationshipPropertiesPattern,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the relationship properties
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id)
+        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
-    val plan = SetRelationshipProperties(inner, rewrittenPattern.variable, rewrittenPattern.items)
+    val plan = SetRelationshipProperties(innerRewrittenRBPs, rewrittenPattern.variable, rewrittenPattern.items)
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3811,22 +3858,28 @@ case class LogicalPlanProducer(
     pattern: SetRelationshipPropertiesFromMapPattern,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the relationship properties
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id)
+        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
     val plan = SetRelationshipPropertiesFromMap(
-      inner,
+      innerRewrittenRBPs,
       rewrittenPattern.variable,
       rewrittenPattern.expression,
       rewrittenPattern.removeOtherProps
     )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3835,42 +3888,54 @@ case class LogicalPlanProducer(
     pattern: SetPropertiesFromMapPattern,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the properties
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
+        .updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
     val plan = SetPropertiesFromMap(
-      inner,
+      innerRewrittenRBPs,
       rewrittenPattern.entityExpression,
       rewrittenPattern.expression,
       rewrittenPattern.removeOtherProps
     )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
   def planSetProperty(inner: LogicalPlan, pattern: SetPropertyPattern, context: LogicalPlanningContext): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the property
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
+        .updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
     val plan = SetProperty(
-      inner,
+      innerRewrittenRBPs,
       rewrittenPattern.entityExpression,
       rewrittenPattern.propertyKeyName,
       rewrittenPattern.expression
     )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3879,17 +3944,23 @@ case class LogicalPlanProducer(
     pattern: SetPropertiesPattern,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the properties
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
+        .updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
-    val plan = SetProperties(inner, rewrittenPattern.entityExpression, rewrittenPattern.items)
+    val plan = SetProperties(innerRewrittenRBPs, rewrittenPattern.entityExpression, rewrittenPattern.items)
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3898,32 +3969,50 @@ case class LogicalPlanProducer(
     pattern: SetDynamicPropertyPattern,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to set the label
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(innerRewrittenRBPs.id)
+        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
-    val rewriter = irExpressionRewriter(inner, context)
-    val rewrittenPattern = pattern.endoRewrite(rewriter)
+    val rewriter = irExpressionRewriter(innerRewrittenRBPs, context)
+    val rewrittenPattern = patternRewrittenCachedProps.endoRewrite(rewriter)
 
     val plan = SetDynamicProperty(
-      inner,
+      innerRewrittenRBPs,
       rewrittenPattern.entity,
       rewrittenPattern.property,
       rewrittenPattern.expression
     )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
   def planRemoveLabel(inner: LogicalPlan, pattern: RemoveLabelPattern, context: LogicalPlanningContext): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used to define the label that needs to be removed
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
-    val rewrittenDynamicLabels = pattern.dynamicLabels.toSet.endoRewrite(irExpressionRewriter(inner, context))
-    val plan = RemoveLabels(inner, pattern.variable, pattern.labels.toSet, rewrittenDynamicLabels)
+      solveds.get(innerRewrittenRBPs.id)
+        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+    val rewrittenDynamicLabels =
+      patternRewrittenCachedProps.dynamicLabels.toSet.endoRewrite(irExpressionRewriter(innerRewrittenRBPs, context))
+    val plan = RemoveLabels(
+      innerRewrittenRBPs,
+      patternRewrittenCachedProps.variable,
+      patternRewrittenCachedProps.labels.toSet,
+      rewrittenDynamicLabels
+    )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 
@@ -3955,17 +4044,24 @@ case class LogicalPlanProducer(
     expression: Expression,
     mutations: collection.Seq[SimpleMutatingPattern]
   ): LogicalPlan = {
+    // Plan remoteBatchProperties when property references are used in the mutating patterns
+    val (innerRewrittenRBPs, mutationsRewrittenCachedProps) =
+      context.settings.remoteBatchPropertiesStrategy
+        .planRemoteBatchPropertiesForSimpleMutatingPatterns(inner, context, mutations.toSeq)
+
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
-    val (rewrittenExpression, rewrittenLeft) = SubqueryExpressionSolver.ForSingle.solve(inner, expression, context)
+      solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
+        .updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+    val (rewrittenExpression, rewrittenLeft) = SubqueryExpressionSolver
+      .ForSingle.solve(innerRewrittenRBPs, expression, context)
     val plan = Foreach(
       rewrittenLeft,
       pattern.variable,
       rewrittenExpression,
-      mutations
+      mutationsRewrittenCachedProps
     )
     val providedOrder =
-      providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
+      providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
     annotate(plan, solved, providedOrder, CachedProperties.empty, context)
   }
 

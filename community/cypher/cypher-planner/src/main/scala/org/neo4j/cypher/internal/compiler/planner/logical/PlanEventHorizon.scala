@@ -134,7 +134,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       BestResults(
         bestOverall,
         None,
-        maintainPropertiesAndSortOnTailOrSelfIfRequired.filter(extraPropertiesRequirement.fulfils)
+        maintainPropertiesAndSortOnSelfRequired.filter(extraPropertiesRequirement.fulfils)
       )
     } else if (tailHasRequiredOrder) {
       // For best-overall keep the current best-overall plan

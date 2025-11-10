@@ -1406,43 +1406,22 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         |LIMIT 100
         |""".stripMargin
 
-    if (orderPreserving) {
-      planner.plan(query) should equal(planner
-        .planBuilder()
-        .produceResults("`a.lastName`", "`b.name`")
-        .projection("cacheN[a.lastName] AS `a.lastName`", "cacheN[b.name] AS `b.name`")
-        .remoteBatchProperties("cacheNFromStore[a.lastName]") // orderPreserving: rbp after top
-        .top(100, "`b.name` ASC")
-        .projection("cacheN[b.name] AS `b.name`")
-        .apply()
-        .|.top(1, "`b.name` ASC")
-        .|.projection("cacheN[b.name] AS `b.name`")
-        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.name]")("b.name = cacheN[a.firstName]")
-        .|.expandAll("(a)-[:KNOWS]->(b)")
-        .|.remoteBatchProperties("cacheNFromStore[a.firstName]")
-        .|.argument("a")
-        .nodeByLabelScan("a", "Person")
-        .build())
-    } else {
-      planner.plan(query) should equal(planner
-        .planBuilder()
-        .produceResults("`a.lastName`", "`b.name`")
-        .projection("cacheN[a.lastName] AS `a.lastName`", "cacheN[b.name] AS `b.name`")
-        .top(100, "`b.name` ASC")
-        .projection("cacheN[b.name] AS `b.name`")
-        .apply()
-        .|.top(1, "`b.name` ASC")
-        .|.projection("cacheN[b.name] AS `b.name`", "cacheN[b.name] AS `b.name`")
-        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.name]")("b.name = cacheN[a.firstName]")
-        .|.expandAll("(a)-[:KNOWS]->(b)")
-        .|.argument("a")
-        .remoteBatchProperties(
-          "cacheNFromStore[a.firstName]",
-          "cacheNFromStore[a.lastName]"
-        ) // !orderPreserving: rbp before top, otherwise we would need to sort again
-        .nodeByLabelScan("a", "Person")
-        .build())
-    }
+    planner.plan(query) should equal(planner
+      .planBuilder()
+      .produceResults("`a.lastName`", "`b.name`")
+      .projection("cacheN[a.lastName] AS `a.lastName`", "cacheN[b.name] AS `b.name`")
+      .top(100, "`b.name` ASC")
+      .projection("cacheN[b.name] AS `b.name`")
+      .apply()
+      .|.top(1, "`b.name` ASC")
+      .|.projection("cacheN[b.name] AS `b.name`")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.name]")("b.name = cacheN[a.firstName]")
+      .|.expandAll("(a)-[:KNOWS]->(b)")
+      .|.argument("a")
+      .remoteBatchProperties("cacheNFromStore[a.firstName]", "cacheNFromStore[a.lastName]")
+      .nodeByLabelScan("a", "Person")
+      .build())
+
   }
 
   test("should plan pruning var expand if it has remoteBatchProperties") {
