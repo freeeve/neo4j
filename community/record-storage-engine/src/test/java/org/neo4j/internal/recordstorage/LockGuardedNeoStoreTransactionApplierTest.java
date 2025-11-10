@@ -988,7 +988,8 @@ class LockGuardedNeoStoreTransactionApplierTest {
     }
 
     private static TransactionAppliersDispatcherFactory newApplierFacade(TransactionApplierFactory... appliers) {
-        return new TransactionAppliersDispatcherFactory(IdGeneratorUpdatesWorkSync::newBatch, appliers);
+        return new TransactionAppliersDispatcherFactory(
+                (workSync, cursorContext) -> workSync.newBatch(cursorContext, false), appliers);
     }
 
     private TransactionApplierFactory newIndexApplier() {

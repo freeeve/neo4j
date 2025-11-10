@@ -28,7 +28,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
-import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
 
 class TransactionAppliersDispatcherFactoryTest {
     private TransactionAppliersDispatcherFactory facade;
@@ -54,7 +53,7 @@ class TransactionAppliersDispatcherFactoryTest {
                 .thenReturn(txApplier3);
 
         facade = new TransactionAppliersDispatcherFactory(
-                IdGeneratorUpdatesWorkSync::newBatch, applier1, applier2, applier3);
+                (workSync, cursorContext) -> workSync.newBatch(cursorContext, false), applier1, applier2, applier3);
     }
 
     @Test

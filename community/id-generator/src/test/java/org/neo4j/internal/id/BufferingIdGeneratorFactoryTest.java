@@ -355,8 +355,13 @@ class BufferingIdGeneratorFactoryTest {
         }
 
         @Override
-        public void markDeleted(long id, int numberOfIds) {
+        public void markDeleted(long id, int numberOfIds, boolean bridgeOnDelete) {
             deleted.add(Pair.of(id, numberOfIds));
+        }
+
+        @Override
+        public void markDeleted(long id, int numberOfIds) {
+            markDeleted(id, numberOfIds, false);
         }
 
         @Override
@@ -366,7 +371,12 @@ class BufferingIdGeneratorFactoryTest {
 
         @Override
         public void markDeletedAndFree(long id, int numberOfIds) {
-            markDeleted(id, numberOfIds);
+            markDeleted(id, numberOfIds, false);
+        }
+
+        @Override
+        public void markDeletedAndFree(long id, int numberOfIds, boolean bridgeOnDelete) {
+            markDeleted(id, numberOfIds, bridgeOnDelete);
             markFree(id, numberOfIds);
         }
 

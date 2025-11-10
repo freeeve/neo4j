@@ -1074,6 +1074,20 @@ class IndexedIdGeneratorTest {
         }
     }
 
+    @Test
+    void markDeleteBringingNotReportedIds() throws IOException {
+        open();
+        idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
+
+        idGenerator.setHighId(25);
+        idGenerator.markHighestWrittenAtHighId();
+
+        markDeleted(34, 1, true);
+
+        var unusedIds = asList(idGenerator.notUsedIdsIterator()).toArray();
+        assertThat(unusedIds).hasSize(10).containsExactly(25, 26, 27, 28, 29, 30, 31, 32, 33, 34);
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void shouldHandleAllocateReservedIdsInBatchedAllocation(boolean caresAboutReservedId) throws IOException {
@@ -1543,6 +1557,13 @@ class IndexedIdGeneratorTest {
                 }
 
                 @Override
+                public void markDeleted(long id, int numberOfIds, boolean bridgeOnDelete) {
+                    for (var marker : markers) {
+                        marker.markDeleted(id, numberOfIds, bridgeOnDelete);
+                    }
+                }
+
+                @Override
                 public void markDeleted(long id, int numberOfIds) {
                     for (var marker : markers) {
                         marker.markDeleted(id, numberOfIds);
@@ -1553,6 +1574,13 @@ class IndexedIdGeneratorTest {
                 public void markDeletedAndFree(long id, int numberOfIds) {
                     for (var marker : markers) {
                         marker.markDeletedAndFree(id, numberOfIds);
+                    }
+                }
+
+                @Override
+                public void markDeletedAndFree(long id, int numberOfIds, boolean bridgeOnDelete) {
+                    for (var marker : markers) {
+                        marker.markDeletedAndFree(id, numberOfIds, bridgeOnDelete);
                     }
                 }
 
@@ -2431,6 +2459,12 @@ class IndexedIdGeneratorTest {
     private void markDeleted(long id, int size) {
         try (var marker = idGenerator.transactionalMarker(NULL_CONTEXT)) {
             marker.markDeleted(id, size);
+        }
+    }
+
+    private void markDeleted(long id, int size, boolean bridgeOnDelete) {
+        try (var marker = idGenerator.transactionalMarker(NULL_CONTEXT)) {
+            marker.markDeleted(id, size, bridgeOnDelete);
         }
     }
 

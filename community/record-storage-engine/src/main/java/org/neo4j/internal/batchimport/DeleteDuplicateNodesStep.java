@@ -72,7 +72,7 @@ public class DeleteDuplicateNodesStep extends ProcessorStep<long[]> {
         NodeRecord nodeRecord = nodeStore.newRecord();
         PropertyRecord propertyRecord = propertyStore.newRecord();
         try (var storeCursors = new CachedStoreCursors(neoStores, cursorContext);
-                var idUpdates = idUpdatesWorkSync.newBatch(cursorContext)) {
+                var idUpdates = idUpdatesWorkSync.newBatch(cursorContext, false)) {
             long batchPropertiesRemoved = 0;
             for (long duplicateNodeId : batch) {
                 nodeStore.getRecordByCursor(

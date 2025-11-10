@@ -623,8 +623,8 @@ public class IndexedIdGenerator implements IdGenerator {
         }
         return new TransactionalMarker.Delegate(realMarker) {
             @Override
-            public void markDeletedAndFree(long id, int numberOfIds) {
-                realMarker.markDeleted(id, numberOfIds);
+            public void markDeletedAndFree(long id, int numberOfIds, boolean bridgeOnDelete) {
+                realMarker.markDeleted(id, numberOfIds, bridgeOnDelete);
                 feedDirectlyToCache(id, numberOfIds, realMarker);
             }
         };

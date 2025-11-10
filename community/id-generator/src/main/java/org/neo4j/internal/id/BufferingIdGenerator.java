@@ -78,9 +78,9 @@ class BufferingIdGenerator extends IdGenerator.Delegate {
 
         return new TransactionalMarker.Delegate(actualMarker) {
             @Override
-            public void markDeleted(long id, int numberOfIds) {
+            public void markDeleted(long id, int numberOfIds, boolean bridgeOnDelete) {
                 // Run these by the buffering too
-                actual.markDeleted(id, numberOfIds);
+                actual.markDeleted(id, numberOfIds, bridgeOnDelete);
                 synchronized (BufferingIdGenerator.this) {
                     bufferedDeletedIds.add(combinedIdAndNumberOfIds(id, numberOfIds, false));
                 }

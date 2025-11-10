@@ -210,16 +210,24 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         void markUsed(long id, int numberOfIds);
 
         default void markDeleted(long id) {
-            markDeleted(id, 1);
+            markDeleted(id, 1, false);
         }
 
-        void markDeleted(long id, int numberOfIds);
+        void markDeleted(long id, int numberOfIds, boolean bridgeOnDelete);
+
+        default void markDeleted(long id, int numberOfIds) {
+            markDeleted(id, numberOfIds, false);
+        }
 
         default void markDeletedAndFree(long id) {
-            markDeletedAndFree(id, 1);
+            markDeletedAndFree(id, 1, false);
         }
 
-        void markDeletedAndFree(long id, int numberOfIds);
+        default void markDeletedAndFree(long id, int numberOfIds) {
+            markDeletedAndFree(id, numberOfIds, false);
+        }
+
+        void markDeletedAndFree(long id, int numberOfIds, boolean bridgeOnDelete);
 
         /**
          * For an ID that was allocated and later not committed (e.g. tx rolled back).
@@ -246,13 +254,13 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
             }
 
             @Override
-            public void markDeleted(long id, int numberOfIds) {
-                actual.markDeleted(id, numberOfIds);
+            public void markDeleted(long id, int numberOfIds, boolean bridgeOnDelete) {
+                actual.markDeleted(id, numberOfIds, bridgeOnDelete);
             }
 
             @Override
-            public void markDeletedAndFree(long id, int numberOfIds) {
-                actual.markDeletedAndFree(id, numberOfIds);
+            public void markDeletedAndFree(long id, int numberOfIds, boolean bridgeOnDelete) {
+                actual.markDeletedAndFree(id, numberOfIds, bridgeOnDelete);
             }
 
             @Override
@@ -493,10 +501,10 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         public void markUsed(long id, int numberOfIds) {}
 
         @Override
-        public void markDeleted(long id, int numberOfIds) {}
+        public void markDeleted(long id, int numberOfIds, boolean bridgeOnDelete) {}
 
         @Override
-        public void markDeletedAndFree(long id, int numberOfIds) {}
+        public void markDeletedAndFree(long id, int numberOfIds, boolean bridgeOnDelete) {}
 
         @Override
         public void markUnallocated(long id, int numberOfIds) {}

@@ -218,14 +218,17 @@ class IdRangeMarker implements IdGenerator.TransactionalMarker, IdGenerator.Cont
     }
 
     @Override
-    public void markDeleted(long id, int numberOfIds) {
+    public void markDeleted(long id, int numberOfIds, boolean bridgeOnDelete) {
         if (!deleteAlsoFrees) {
+            if (bridgeOnDelete) {
+                bridgeGapBetweenHighestWrittenIdAndThisId(id, numberOfIds, false);
+            }
             if (!hasReservedIdInRange(id, id + numberOfIds)) {
                 markWithSupportForLargerThanRange(TYPE_DELETED, id, numberOfIds, ADDITION_ALL, BITSET_COMMIT, -1);
                 monitor.markedAsDeleted(id, numberOfIds);
             }
         } else {
-            markDeletedAndFree(id, numberOfIds);
+            markDeletedAndFree(id, numberOfIds, bridgeOnDelete);
         }
     }
 
@@ -265,7 +268,10 @@ class IdRangeMarker implements IdGenerator.TransactionalMarker, IdGenerator.Cont
     }
 
     @Override
-    public void markDeletedAndFree(long id, int numberOfIds) {
+    public void markDeletedAndFree(long id, int numberOfIds, boolean bridgeOnDelete) {
+        if (bridgeOnDelete) {
+            bridgeGapBetweenHighestWrittenIdAndThisId(id, numberOfIds, false);
+        }
         if (!hasReservedIdInRange(id, id + numberOfIds)) {
             markWithSupportForLargerThanRange(
                     TYPE_DELETED_AND_FREE, id, numberOfIds, ADDITION_ALL, BITSET_COMMIT, BITSET_REUSE);

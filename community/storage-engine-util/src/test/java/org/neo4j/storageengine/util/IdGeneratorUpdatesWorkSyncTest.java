@@ -43,7 +43,7 @@ class IdGeneratorUpdatesWorkSyncTest {
         workSync.add(idGenerator);
 
         // when
-        IdGeneratorUpdatesWorkSync.Batch batch = workSync.newBatch(CursorContext.NULL_CONTEXT);
+        IdGeneratorUpdatesWorkSync.Batch batch = workSync.newBatch(CursorContext.NULL_CONTEXT, false);
         batch.markIdAsUsed(idGenerator, 10, 1, CursorContext.NULL_CONTEXT);
         batch.markIdAsUnused(idGenerator, 11, 1, CursorContext.NULL_CONTEXT);
         batch.markIdAsUsed(idGenerator, 270, 4, CursorContext.NULL_CONTEXT);
@@ -67,12 +67,20 @@ class IdGeneratorUpdatesWorkSyncTest {
         }
 
         @Override
+        public void markDeleted(long id, int numberOfIds, boolean bridgeOnDelete) {
+            deleted.add(Pair.of(id, numberOfIds));
+        }
+
+        @Override
         public void markDeleted(long id, int numberOfIds) {
             deleted.add(Pair.of(id, numberOfIds));
         }
 
         @Override
         public void markDeletedAndFree(long id, int numberOfIds) {}
+
+        @Override
+        public void markDeletedAndFree(long id, int numberOfIds, boolean bridgeOnDelete) {}
 
         @Override
         public void markUnallocated(long id, int numberOfIds) {}

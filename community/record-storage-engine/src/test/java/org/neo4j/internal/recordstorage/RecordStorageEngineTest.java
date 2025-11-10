@@ -62,7 +62,6 @@ import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.StorageFileSelection;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
-import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
@@ -237,7 +236,7 @@ class RecordStorageEngineTest {
         private TransactionAppliersDispatcherFactory actual;
 
         CapturingTransactionAppliersDispatcherFactory(Consumer<Boolean> applierCloseCall) {
-            super(IdGeneratorUpdatesWorkSync::newBatch);
+            super((workSync, cursorContext) -> workSync.newBatch(cursorContext, false));
             this.applierCloseCall = applierCloseCall;
         }
 

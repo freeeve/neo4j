@@ -67,16 +67,18 @@ public class IdGeneratorUpdatesWorkSync {
         this.workSyncMap.put(idGenerator, new WorkSync<>(idGenerator));
     }
 
-    public Batch newBatch(CursorContext cursorContext) {
-        return new Batch(cursorContext);
+    public Batch newBatch(CursorContext cursorContext, boolean bridgeOnDelete) {
+        return new Batch(cursorContext, bridgeOnDelete);
     }
 
     public class Batch implements IdUpdateListener {
         private final Map<IdGenerator, ChangedIds> idUpdatesMap = new HashMap<>();
         private final CursorContext cursorContext;
+        private final boolean bridgeOnDelete;
 
-        protected Batch(CursorContext cursorContext) {
+        protected Batch(CursorContext cursorContext, boolean bridgeOnDelete) {
             this.cursorContext = cursorContext;
+            this.bridgeOnDelete = bridgeOnDelete;
         }
 
         @Override
@@ -143,7 +145,7 @@ public class IdGeneratorUpdatesWorkSync {
         }
 
         private ChangedIds createChangedIds(IdGenerator ignored) {
-            return new ChangedIds(alwaysFreeOnDelete, cursorContext);
+            return new ChangedIds(alwaysFreeOnDelete, cursorContext, bridgeOnDelete);
         }
     }
 
@@ -153,11 +155,13 @@ public class IdGeneratorUpdatesWorkSync {
         private final MutableLongList ids = LongLists.mutable.empty();
         private final boolean freeOnDelete;
         private final CursorContext cursorContext;
+        private final boolean bridgeOnDelete;
         private AsyncApply asyncApply;
 
-        ChangedIds(boolean freeOnDelete, CursorContext cursorContext) {
+        ChangedIds(boolean freeOnDelete, CursorContext cursorContext, boolean bridgeOnDelete) {
             this.freeOnDelete = freeOnDelete;
             this.cursorContext = cursorContext;
+            this.bridgeOnDelete = bridgeOnDelete;
         }
 
         private void addUsedId(long id, int numberOfIds) {
@@ -176,9 +180,9 @@ public class IdGeneratorUpdatesWorkSync {
                     visitor.markUsed(id, slots);
                 } else {
                     if (freeOnDelete) {
-                        visitor.markDeletedAndFree(id, slots);
+                        visitor.markDeletedAndFree(id, slots, bridgeOnDelete);
                     } else {
-                        visitor.markDeleted(id, slots);
+                        visitor.markDeleted(id, slots, bridgeOnDelete);
                     }
                 }
             });

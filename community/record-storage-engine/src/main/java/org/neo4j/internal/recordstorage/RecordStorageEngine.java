@@ -26,6 +26,7 @@ import static org.neo4j.internal.recordstorage.RecordStorageCommandHandling.hand
 import static org.neo4j.internal.recordstorage.RecordStorageEngineFactory.ID;
 import static org.neo4j.internal.recordstorage.RecordStorageEngineFactory.NAME;
 import static org.neo4j.lock.LockService.NO_LOCK_SERVICE;
+import static org.neo4j.storageengine.api.TransactionApplicationMode.MVCC_INCOMPLETE_REVERSE_RECOVERY;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.RECOVERY;
 import static org.neo4j.util.Preconditions.checkState;
 
@@ -349,7 +350,10 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     private static IdUpdateListenerFactory idUpdateListenerFunction(TransactionApplicationMode mode) {
-        return mode.isReverseStep() ? (w, c) -> IdUpdateListener.IGNORE : IdGeneratorUpdatesWorkSync::newBatch;
+        return mode.isReverseStep()
+                ? (w, c) -> IdUpdateListener.IGNORE
+                : (workSync, cursorContext) ->
+                        workSync.newBatch(cursorContext, mode == MVCC_INCOMPLETE_REVERSE_RECOVERY);
     }
 
     private CountsStore openCountsStore(
