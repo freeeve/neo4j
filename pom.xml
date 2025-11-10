@@ -188,7 +188,7 @@
     <cucumber.version>7.30.0</cucumber.version>
     <cucumber.scala.version>8.26.1</cucumber.scala.version>
     <caffeine.version>3.2.2</caffeine.version>
-    <required.maven.version>3.8.2</required.maven.version>
+    <required.maven.version>3.9.11</required.maven.version>
     <jackson.version>2.20.0</jackson.version>
     <jackson-databind.version>2.20.0</jackson-databind.version>
     <amazon-sdk.version>1.12.791</amazon-sdk.version>
