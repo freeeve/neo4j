@@ -109,16 +109,22 @@ public class TokenIndexProvider extends IndexProvider {
             throw WriteOperationsNotAllowedException.noWriteOperationAllowed();
         }
 
-        return new WorkSyncedIndexPopulator(createPopulator(descriptor, openOptions, indexingBehaviour));
+        return new WorkSyncedIndexPopulator(createPopulator(descriptor, openOptions, indexingBehaviour, memoryTracker));
     }
 
     private IndexPopulator createPopulator(
             IndexDescriptor descriptor,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour) {
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            MemoryTracker memoryTracker) {
         if (openOptions.contains(PageCacheOpenOptions.MULTI_VERSIONED)) {
             return new MultiVersionTokenIndexPopulator(
-                    databaseIndexContext, indexFiles(descriptor), descriptor, openOptions, indexingBehaviour);
+                    databaseIndexContext,
+                    indexFiles(descriptor),
+                    descriptor,
+                    openOptions,
+                    indexingBehaviour,
+                    memoryTracker);
         }
         return new TokenIndexPopulator(
                 databaseIndexContext, indexFiles(descriptor), descriptor, openOptions, indexingBehaviour);

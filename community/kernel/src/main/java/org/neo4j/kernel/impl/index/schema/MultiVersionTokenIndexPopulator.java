@@ -28,14 +28,15 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.async.AsyncBlockAccessor;
+import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -44,13 +45,18 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
+import org.neo4j.kernel.impl.index.schema.MultiVersionTokenIndexUpdateStorage.Reader;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.util.Preconditions;
 
 public class MultiVersionTokenIndexPopulator implements IndexPopulator {
     private final TokenIndex tokenIndex;
-    private final ArrayList<VersionedTokenUpdate> concurrentUpdates;
+    private final FileSystemAbstraction fs;
+    private final MemoryTracker memoryTracker;
+    private final IndexDescriptor descriptor;
+    private MultiVersionTokenIndexUpdateStorage external;
 
     private byte[] failureBytes;
     private boolean dropped;
@@ -63,10 +69,13 @@ public class MultiVersionTokenIndexPopulator implements IndexPopulator {
             IndexFiles indexFiles,
             IndexDescriptor descriptor,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour) {
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            MemoryTracker memoryTracker) {
+        this.memoryTracker = memoryTracker;
         this.tokenIndex =
                 new TokenIndex(databaseIndexContext, indexFiles, descriptor, openOptions, false, indexingBehaviour);
-        this.concurrentUpdates = new ArrayList<>();
+        this.fs = databaseIndexContext.fileSystem;
+        this.descriptor = descriptor;
     }
 
     @Override
@@ -77,6 +86,10 @@ public class MultiVersionTokenIndexPopulator implements IndexPopulator {
         tokenIndex.indexFiles.clear();
         tokenIndex.instantiateTree(RecoveryCleanupWorkCollector.immediate());
         tokenIndex.instantiateUpdater();
+        tokenIndex.indexFiles.ensureDirectoryExist();
+        Path storeFile = tokenIndex.indexFiles.getStoreFile();
+        Path externalUpdatesFile = storeFile.resolveSibling(storeFile.getFileName() + ".ext");
+        external = new MultiVersionTokenIndexUpdateStorage(fs, externalUpdatesFile, memoryTracker);
     }
 
     @Override
@@ -119,13 +132,20 @@ public class MultiVersionTokenIndexPopulator implements IndexPopulator {
         }
 
         // collect updates in order to apply them later
-        // TODO offload 'em to file
         return new IndexUpdater() {
             @Override
             public void process(IndexEntryUpdate update) {
-                concurrentUpdates.add(new VersionedTokenUpdate(
-                        (TokenIndexEntryUpdate) update,
-                        cursorContext.getVersionContext().committingTransactionId()));
+
+                TokenIndexEntryUpdate tokenIndexEntryUpdate = (TokenIndexEntryUpdate) update;
+                try {
+                    external.add(
+                            tokenIndexEntryUpdate.getEntityId(),
+                            tokenIndexEntryUpdate.added(),
+                            tokenIndexEntryUpdate.removed(),
+                            cursorContext.getVersionContext().committingTransactionId());
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
             }
 
             @Override
@@ -144,9 +164,13 @@ public class MultiVersionTokenIndexPopulator implements IndexPopulator {
         try (var localContext = cursorContext.createUnboundedReadRelatedContext("TOKEN_POPULATION");
                 var updater = tokenIndex.singleUpdater.initialize(
                         context -> tokenIndex.index.writer(W_BATCHED_SINGLE_THREADED, context), false, localContext)) {
-            for (var versionedUpdate : concurrentUpdates) {
-                localContext.getVersionContext().initWrite(versionedUpdate.version());
-                updater.process(versionedUpdate.update());
+            try (Reader updatesReader = external.reader()) {
+                while (updatesReader.next()) {
+                    localContext.getVersionContext().initWrite(updatesReader.version);
+                    TokenIndexEntryUpdate versionedUpdate = TokenIndexEntryUpdate.tokenChange(
+                            updatesReader.entityId, descriptor, updatesReader.removed, updatesReader.added);
+                    updater.process(versionedUpdate);
+                }
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -178,7 +202,7 @@ public class MultiVersionTokenIndexPopulator implements IndexPopulator {
             // else cancelled population. Here we simply close the tree w/o checkpointing it and it will look like
             // POPULATING state on next open
         } finally {
-            tokenIndex.closeResources();
+            IOUtils.closeAllUnchecked(external, tokenIndex::closeResources);
             closed = true;
         }
     }
