@@ -18,6 +18,7 @@
 
     <properties>
         <moduleName>org.neo4j.bootcheck</moduleName>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <scm>
