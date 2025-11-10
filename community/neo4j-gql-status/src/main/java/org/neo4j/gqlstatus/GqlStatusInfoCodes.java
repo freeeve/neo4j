@@ -3802,6 +3802,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "variable already bound",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42N79(
+            new GqlStatus("42N79"),
+            "The USE clause is not required for administration commands. Retry the query without the USE clause, and it will be routed automatically.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid USE clause",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N81(
             new GqlStatus("42N81"),
             "Expected { %s }, but got { %s }.",

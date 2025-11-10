@@ -40,9 +40,10 @@ public abstract class SecureHasherConfigurations {
         if (entry.isPresent()) {
             return entry.get().getKey();
         } else {
-            throw new InvalidArgumentException(String.format(
+            String message = String.format(
                     "There exists no version with this combination of algorithm:'%s' and iterations:'%d'",
-                    algorithm, iterations));
+                    algorithm, iterations);
+            throw InvalidArgumentException.internalError(SecureHasherConfigurations.class.getSimpleName(), message);
         }
     }
 }

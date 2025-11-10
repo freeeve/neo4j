@@ -344,6 +344,15 @@ object SemanticError {
     )
   }
 
+  def useClauseWithAdministrationCommand(pos: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N79).build()
+    SemanticError(
+      gql,
+      "The `USE` clause is not required for administration commands. Retry your query without the `USE` clause, and it will be routed automatically.",
+      pos
+    )
+  }
+
   def invalidInput(
     wrongInput: String,
     forField: String,
