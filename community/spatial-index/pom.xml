@@ -10,6 +10,7 @@
 
     <properties>
         <moduleName>org.neo4j.gis.spatial.index</moduleName>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <modelVersion>4.0.0</modelVersion>
