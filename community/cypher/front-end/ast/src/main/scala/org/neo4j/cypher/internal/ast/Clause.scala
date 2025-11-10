@@ -2343,7 +2343,7 @@ case object ScopeClauseSubqueryCall extends UnaliasedNotAllowed { override val m
 case class ScopeClauseSubqueryCall(
   override val innerQuery: Query,
   isImportingAll: Boolean,
-  importedVariables: Seq[Variable],
+  importedVariables: Seq[LogicalVariable],
   override val inTransactionsParameters: Option[SubqueryCall.InTransactionsParameters],
   override val optional: Boolean
 )(val position: InputPosition) extends SubqueryCall {

@@ -1596,13 +1596,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
 
         SingleQuery(List(RETURN))(pos)
       }
-      ScopeClauseSubqueryCall(
-        UnionDistinct(LEFT, RIGHT)(pos),
-        false,
-        Seq(a),
-        None,
-        false
-      )(pos)
+      ScopeClauseSubqueryCall(UnionDistinct(LEFT, RIGHT)(pos), false, Seq(a), None, false)(pos)
     }
 
     val RETURN =

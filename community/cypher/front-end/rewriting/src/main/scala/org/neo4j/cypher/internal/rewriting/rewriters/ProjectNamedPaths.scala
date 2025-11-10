@@ -93,7 +93,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
     protectedVariables: Set[Ref[LogicalVariable]] = Set.empty,
     variableRewrites: Map[Ref[LogicalVariable], PathExpression] = Map.empty,
     insertedWiths: Map[SingleQuery, With] = Map.empty,
-    insertedImports: Map[ScopeClauseSubqueryCall, Seq[Variable]] = Map.empty
+    insertedImports: Map[ScopeClauseSubqueryCall, Seq[LogicalVariable]] = Map.empty
   ) {
 
     self =>
@@ -115,7 +115,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
     def withInsertedWith(query: SingleQuery, wizz: With): Projectibles =
       copy(insertedWiths = insertedWiths + (query -> wizz))
 
-    def withInsertedImports(subquery: ScopeClauseSubqueryCall, imports: Seq[Variable]): Projectibles = {
+    def withInsertedImports(subquery: ScopeClauseSubqueryCall, imports: Seq[LogicalVariable]): Projectibles = {
       copy(insertedImports = insertedImports + (subquery -> imports))
     }
 
@@ -266,17 +266,17 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
         val imports = subquery.importedVariables
         val (pathReturnItems, nonPathReturnItems) = imports.partition {
           // We can assume all return items are aliased at this point
-          case v if acc.paths.keySet.contains(v) => true
-          case _                                 => false
+          case v if acc.paths.keySet.exists(_.name == v.name) => true
+          case _                                              => false
         }
 
-        val importVariablesFromPaths: Seq[Variable] =
+        val importVariablesFromPaths: Seq[LogicalVariable] =
           acc.paths.collect {
             case (variable, pathExpression) if pathReturnItems.contains(variable) =>
               pathExpression.step.dependencies
           }.flatten.map(v => Variable(v.name)(v.position, Variable.isIsolatedDefault)).toSeq
 
-        val newImports: Option[Seq[Variable]] =
+        val newImports: Option[Seq[LogicalVariable]] =
           if (importVariablesFromPaths.isEmpty) None
           else Some((importVariablesFromPaths ++ nonPathReturnItems).distinct)
 

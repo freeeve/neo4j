@@ -315,7 +315,8 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
       isLast: Boolean
     ): (Acc, Seq[Clause]) = {
       val pos = innerQuery.position
-      val subQuery = ScopeClauseSubqueryCall(innerQuery, isImportingAll = true, Seq.empty, None, optional = false)(pos)
+      val subQuery =
+        ScopeClauseSubqueryCall(innerQuery, isImportingAll = true, Seq.empty, None, optional = false)(pos)
 
       val returnItems = buildCollectItems(acc).getOrElse(
         ReturnItems(
