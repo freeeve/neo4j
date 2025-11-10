@@ -41,7 +41,10 @@ class Cypher25ErrorStrategyConf extends CypherErrorStrategy.Conf {
 
   override def ignoredTokens: util.Set[Integer] = java.util.Set.of[java.lang.Integer](
     Token.EPSILON,
-    Cypher25Parser.SEMICOLON
+    Cypher25Parser.SEMICOLON,
+    // Feature flag based exclusions:
+    Cypher25Parser.SEARCH, // Feature flagged keyword, remove when SEARCH is released.
+    Cypher25Parser.SCORE // Feature flagged keyword, remove when SEARCH is released.
   )
 
   override def customTokenDisplayNames: Map[Int, String] = Map(
