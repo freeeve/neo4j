@@ -28,7 +28,6 @@ import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransfor
 import org.neo4j.cypher.internal.rewriting.RewriterStep
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
-import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandCallWhere
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandShowWhere
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.MergeInPredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
@@ -38,7 +37,6 @@ import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.Rewrit
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShortestPathWithFixedLengthRelationship
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShowQuery
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.TimestampRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.WrapOptionalCallProcedure
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.AccumulatedSteps
 import org.neo4j.cypher.internal.util.inSequence
@@ -53,14 +51,12 @@ case object PreparatoryRewriting extends Phase[BaseContext, BaseState, BaseState
   val AccumulatedSteps(orderedSteps, _postConditions) =
     StepSequencer[StepSequencer.Step with PreparatoryRewritingRewriterFactory]().orderSteps(
       Set(
-        ExpandCallWhere,
         ExpandShowWhere,
         MergeInPredicates,
         NormalizeWithAndReturnClauses,
         NullIfFunctionRewriter,
         RemoveSyntaxTracking,
         TimestampRewriter,
-        WrapOptionalCallProcedure,
         RewriteGraphTypeReferences,
         RewriteShortestPathWithFixedLengthRelationship,
         RewriteShowQuery

@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.util.StepSequencer.Condition
 
 package object conditions {
   case object CallInvocationsResolved extends Condition
-  case object OptionalCallProcedureWrapped extends Condition
+  case object ProcedureCallWrappedAndExpanded extends Condition
   case object GraphTypeCanonicalized extends Condition
   case object GQLAliasFunctionNameRewritten extends Condition
   case object FunctionInvocationsResolved extends Condition

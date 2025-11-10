@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticType
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SyntaxDeprecationWarningsAndReplacements
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnresolveShadowedFunctions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnwrapTopLevelBraces
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.WrapAndExpandProcedureCall
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.rewriting.Deprecations
 import org.neo4j.cypher.internal.rewriting.rewriters.Forced
@@ -89,7 +90,8 @@ trait FrontEndCompilationPhases {
         SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures),
         SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures),
         UnwrapTopLevelBraces,
-        UnresolveShadowedFunctions
+        UnresolveShadowedFunctions,
+        WrapAndExpandProcedureCall
       ),
       initialConditions = Set(BaseContains[Statement]())
     )

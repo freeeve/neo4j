@@ -14,18 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.rewriting
+package org.neo4j.cypher.internal.frontend.phases.rewriting
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteProcCall
+import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnAddedInRewrite
-import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.WrapOptionalCallProcedure
+import org.neo4j.cypher.internal.ast.With
+import org.neo4j.cypher.internal.frontend.helpers.TestState
+import org.neo4j.cypher.internal.frontend.phases.Monitors
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.WrapAndExpandProcedureCall
+import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.TestContext
+import org.neo4j.cypher.internal.rewriting.RewriteTest
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class wrapOptionalCallProcedureTest extends CypherFunSuite with RewriteTest {
 
-  override val rewriterUnderTest: Rewriter = WrapOptionalCallProcedure.getRewriter(null)
+  override val rewriterUnderTest: Rewriter =
+    WrapAndExpandProcedureCall.instance(TestState(None), new TestContext(mock[Monitors]))
 
   test("rewrite optional call procedure") {
     assertRewrite(
@@ -40,11 +48,29 @@ class wrapOptionalCallProcedureTest extends CypherFunSuite with RewriteTest {
     )
     assertRewrite(
       "OPTIONAL CALL foo() YIELD a, b WHERE a > 0 FINISH",
-      "OPTIONAL CALL (*) { CALL foo() YIELD a, b WHERE a > 0 RETURN a AS a, b AS b } FINISH",
+      "OPTIONAL CALL (*) { CALL foo() YIELD a, b WITH * WHERE a > 0 RETURN a AS a, b AS b } FINISH",
       additionalExpectedAstUpdates = expectedStatement => {
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteProcCall)(w.position)
           case r: Return =>
             r.copy(returnType = ReturnAddedInRewrite)(r.position)
+        }))
+      }
+    )
+  }
+
+  test("rewrite call yield where") {
+    assertRewrite(
+      "CALL foo() YIELD a, b WHERE a > b RETURN *",
+      "CALL foo() YIELD a, b WITH * WHERE a > b RETURN *",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteProcCall,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteProcCall)(w.position)
         }))
       }
     )
