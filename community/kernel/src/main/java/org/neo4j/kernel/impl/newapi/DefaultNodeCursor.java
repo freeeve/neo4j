@@ -79,10 +79,14 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         this.applyAccessModeToTxState = applyAccessModeToTxState;
     }
 
-    void scan(Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider) {
+    void scan(
+            Read read,
+            TxStateHolder txStateHolder,
+            AccessModeProvider accessModeProvider,
+            boolean includeChangesFromThisTransaction) {
         storeCursor.scan();
         this.read = read;
-        this.txStateHolder = txStateHolder;
+        this.txStateHolder = includeChangesFromThisTransaction ? txStateHolder : TxStateHolder.EMPTY_TX_STATE;
         this.accessModeProvider = accessModeProvider;
         this.accessMode = accessModeProvider.getAccessMode();
         this.isSingle = false;

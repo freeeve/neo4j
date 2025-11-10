@@ -86,7 +86,7 @@ class DefaultNodeBasedRelationshipTypeIndexCursorTest {
                 false,
                 NullLogProvider.getInstance());
 
-        cursor.initState(read, mock(TxStateHolder.class), () -> StaticAccessMode.FULL);
+        cursor.initState(read, mock(TxStateHolder.class), () -> StaticAccessMode.FULL, true);
         int numNodes = 10;
         int numRelationships = 5;
         int type = 1;

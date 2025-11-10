@@ -318,9 +318,13 @@ public abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<
     }
 
     @Override
-    public final void initState(Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider) {
+    public final void initState(
+            Read read,
+            TxStateHolder txStateHolder,
+            AccessModeProvider accessModeProvider,
+            boolean includeChangesFromThisTransaction) {
         this.read = read;
-        this.txStateHolder = txStateHolder;
+        this.txStateHolder = includeChangesFromThisTransaction ? txStateHolder : TxStateHolder.EMPTY_TX_STATE;
         this.accessModeProvider = accessModeProvider;
         this.accessMode = accessModeProvider.getAccessMode();
     }

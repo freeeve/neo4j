@@ -172,9 +172,13 @@ abstract class DefaultEntityTokenIndexCursor<SELF extends DefaultEntityTokenInde
     }
 
     @Override
-    public void initState(Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider) {
+    public void initState(
+            Read read,
+            TxStateHolder txStateHolder,
+            AccessModeProvider accessModeProvider,
+            boolean includeChangesFromThisTransaction) {
         this.read = read;
-        this.txStateHolder = txStateHolder;
+        this.txStateHolder = includeChangesFromThisTransaction ? txStateHolder : TxStateHolder.EMPTY_TX_STATE;
         this.accessModeProvider = accessModeProvider;
     }
 

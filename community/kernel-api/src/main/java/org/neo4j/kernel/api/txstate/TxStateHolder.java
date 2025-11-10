@@ -20,6 +20,19 @@
 package org.neo4j.kernel.api.txstate;
 
 public interface TxStateHolder {
+
+    TxStateHolder EMPTY_TX_STATE = new TxStateHolder() {
+        @Override
+        public TransactionState txState() {
+            throw new UnsupportedOperationException("EMPTY TxStateHolder");
+        }
+
+        @Override
+        public boolean hasTxStateWithChanges() {
+            return false;
+        }
+    };
+
     TransactionState txState();
 
     boolean hasTxStateWithChanges();

@@ -171,7 +171,7 @@ public class KernelRead implements Read {
         }
 
         EntityIndexSeekClient client = (EntityIndexSeekClient) cursor;
-        client.initState(this, txStateHolder, accessModeProvider);
+        client.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
         indexSession.reader().query(client, queryContext, queryContext.cursorContext(), constraints, query);
     }
 
@@ -214,7 +214,7 @@ public class KernelRead implements Read {
         }
 
         EntityIndexSeekClient client = (EntityIndexSeekClient) cursor;
-        client.initState(this, txStateHolder, accessModeProvider);
+        client.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
         indexSession.reader().query(client, queryContext, queryContext.cursorContext(), constraints, query);
     }
 
@@ -319,7 +319,7 @@ public class KernelRead implements Read {
             ValueIndexReader indexReader,
             PropertyIndexQuery.ExactPredicate... query)
             throws IndexNotApplicableKernelException {
-        cursor.initState(this, txStateHolder, accessModeProvider);
+        cursor.initState(this, txStateHolder, accessModeProvider, true);
         indexReader.query(cursor, queryContext, cursorContext, unconstrained(), query);
     }
 
@@ -341,7 +341,7 @@ public class KernelRead implements Read {
                             + index.reference().userDescription(tokenRead));
         }
 
-        scanIndex(indexSession, (EntityIndexSeekClient) cursor, constraints);
+        scanIndex(indexSession, (EntityIndexSeekClient) cursor, constraints, includeChangesFromThisTransaction);
     }
 
     @Override
@@ -378,7 +378,7 @@ public class KernelRead implements Read {
                             + index.reference().userDescription(tokenRead));
         }
 
-        scanIndex(indexSession, (EntityIndexSeekClient) cursor, constraints);
+        scanIndex(indexSession, (EntityIndexSeekClient) cursor, constraints, includeChangesFromThisTransaction);
     }
 
     @Override
@@ -400,9 +400,10 @@ public class KernelRead implements Read {
     private void scanIndex(
             DefaultIndexReadSession indexSession,
             EntityIndexSeekClient indexSeekClient,
-            IndexQueryConstraints constraints)
+            IndexQueryConstraints constraints,
+            boolean includeChangesFromThisTransaction)
             throws KernelException {
-        indexSeekClient.initState(this, txStateHolder, accessModeProvider);
+        indexSeekClient.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
         indexSession
                 .reader()
                 .query(
@@ -462,7 +463,7 @@ public class KernelRead implements Read {
     }
 
     @Override
-    public void nodeLabelScan(
+    public void nodeLabelIndexScan(
             TokenReadSession session,
             NodeLabelIndexCursor cursor,
             IndexQueryConstraints constraints,
@@ -483,14 +484,14 @@ public class KernelRead implements Read {
         var tokenSession = (DefaultTokenReadSession) session;
 
         DefaultNodeLabelIndexCursor indexCursor = (DefaultNodeLabelIndexCursor) cursor;
-        indexCursor.initState(this, txStateHolder, accessModeProvider);
+        indexCursor.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
         tokenSession.reader().query(indexCursor, constraints, query, cursorContext);
     }
 
     @Override
     public void allNodesScan(NodeCursor cursor, boolean includeChangesFromThisTransaction) {
         performCheckBeforeOperation();
-        ((DefaultNodeCursor) cursor).scan(this, txStateHolder, accessModeProvider);
+        ((DefaultNodeCursor) cursor).scan(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
     }
 
     @Override
@@ -543,7 +544,8 @@ public class KernelRead implements Read {
     @Override
     public void allRelationshipsScan(RelationshipScanCursor cursor, boolean includeChangesFromThisTransaction) {
         performCheckBeforeOperation();
-        ((DefaultRelationshipScanCursor) cursor).scan(this, txStateHolder, accessModeProvider);
+        ((DefaultRelationshipScanCursor) cursor)
+                .scan(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
     }
 
     @Override
@@ -597,7 +599,7 @@ public class KernelRead implements Read {
     }
 
     @Override
-    public void relationshipTypeScan(
+    public void relationshipTypeIndexScan(
             TokenReadSession session,
             RelationshipTypeIndexCursor cursor,
             IndexQueryConstraints constraints,
@@ -618,7 +620,7 @@ public class KernelRead implements Read {
         var tokenSession = (DefaultTokenReadSession) session;
 
         var indexCursor = (InternalTokenIndexCursor) cursor;
-        indexCursor.initState(this, txStateHolder, accessModeProvider);
+        indexCursor.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
         tokenSession.reader().query(indexCursor, constraints, query, cursorContext);
     }
 

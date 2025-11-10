@@ -46,8 +46,15 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         this.storeCursor = storeCursor;
     }
 
-    void scan(Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider) {
-        init(read, txStateHolder, accessModeProvider);
+    void scan(
+            Read read,
+            TxStateHolder txStateHolder,
+            AccessModeProvider accessModeProvider,
+            boolean includeChangesFromThisTransaction) {
+        init(
+                read,
+                includeChangesFromThisTransaction ? txStateHolder : TxStateHolder.EMPTY_TX_STATE,
+                accessModeProvider);
         storeCursor.scan();
         this.single = LongReference.NULL;
         this.isSingle = false;

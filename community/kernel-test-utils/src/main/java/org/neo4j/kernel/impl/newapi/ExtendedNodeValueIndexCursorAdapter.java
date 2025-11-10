@@ -76,7 +76,11 @@ public class ExtendedNodeValueIndexCursorAdapter extends DefaultCloseListenable
     }
 
     @Override
-    public void initState(Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider) {}
+    public void initState(
+            Read read,
+            TxStateHolder txStateHolder,
+            AccessModeProvider accessModeProvider,
+            boolean includeChangesFromThisTransaction) {}
 
     @Override
     public void initializeQuery(

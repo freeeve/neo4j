@@ -287,10 +287,10 @@ public interface Read {
             TokenPredicate query,
             CursorContext cursorContext)
             throws KernelException {
-        nodeLabelScan(session, cursor, constraints, query, cursorContext, true);
+        nodeLabelIndexScan(session, cursor, constraints, query, cursorContext, true);
     }
 
-    void nodeLabelScan(
+    void nodeLabelIndexScan(
             TokenReadSession session,
             NodeLabelIndexCursor cursor,
             IndexQueryConstraints constraints,
@@ -547,10 +547,10 @@ public interface Read {
             TokenPredicate query,
             CursorContext cursorContext)
             throws KernelException {
-        relationshipTypeScan(session, cursor, constraints, query, cursorContext, true);
+        relationshipTypeIndexScan(session, cursor, constraints, query, cursorContext, true);
     }
 
-    void relationshipTypeScan(
+    void relationshipTypeIndexScan(
             TokenReadSession session,
             RelationshipTypeIndexCursor cursor,
             IndexQueryConstraints constraints,

@@ -167,7 +167,7 @@ public class StubRead implements Read {
     }
 
     @Override
-    public void nodeLabelScan(
+    public void nodeLabelIndexScan(
             TokenReadSession session,
             NodeLabelIndexCursor cursor,
             IndexQueryConstraints constraints,
@@ -291,7 +291,7 @@ public class StubRead implements Read {
     }
 
     @Override
-    public void relationshipTypeScan(
+    public void relationshipTypeIndexScan(
             TokenReadSession session,
             RelationshipTypeIndexCursor cursor,
             IndexQueryConstraints constraints,

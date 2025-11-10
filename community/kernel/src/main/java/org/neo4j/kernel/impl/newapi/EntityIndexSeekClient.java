@@ -30,5 +30,9 @@ public interface EntityIndexSeekClient extends IndexProgressor.EntityValueClient
      * This must be called before {@link IndexProgressor.EntityValueClient#initializeQuery initialization with query
      * information}.
      */
-    void initState(Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider);
+    void initState(
+            Read read,
+            TxStateHolder txStateHolder,
+            AccessModeProvider accessModeProvider,
+            boolean includeChangesFromThisTransaction);
 }

@@ -30,5 +30,9 @@ public interface InternalTokenIndexCursor extends TraceableCursor, IndexProgress
      * This must be called before {@link IndexProgressor.EntityTokenClient#initializeQuery initialization with query
      * information}.
      */
-    void initState(Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider);
+    void initState(
+            Read read,
+            TxStateHolder txStateHolder,
+            AccessModeProvider accessModeProvider,
+            boolean includeChangesFromThisTransaction);
 }
