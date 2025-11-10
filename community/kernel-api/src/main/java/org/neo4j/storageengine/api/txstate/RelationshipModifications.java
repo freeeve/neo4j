@@ -308,7 +308,7 @@ public interface RelationshipModifications {
                 return false;
             }
             MutableBoolean contains = new MutableBoolean();
-            forEach((rId, type, start, end, addedProps, changedProps, removedProps) -> {
+            forEach((rId, type, start, end, addedProps, removedProps) -> {
                 if (rId == id) {
                     contains.setTrue();
                 }
@@ -323,7 +323,7 @@ public interface RelationshipModifications {
         default long first() {
             Preconditions.checkState(!isEmpty(), "No ids");
             MutableLong first = new MutableLong(LongReference.NULL);
-            forEach((rId, type, start, end, addedProps, changedProps, removedProps) -> {
+            forEach((rId, type, start, end, addedProps, removedProps) -> {
                 if (first.longValue() == LongReference.NULL) {
                     first.setValue(rId);
                 }
@@ -355,13 +355,7 @@ public interface RelationshipModifications {
         @Override
         public <E extends Exception> void accept(long id, RelationshipVisitorWithProperties<E> visitor) throws E {
             visitor.visit(
-                    id,
-                    NO_TOKEN,
-                    LongReference.NULL,
-                    LongReference.NULL,
-                    emptyList(),
-                    emptyList(),
-                    IntLists.immutable.empty());
+                    id, NO_TOKEN, LongReference.NULL, LongReference.NULL, emptyList(), IntLists.immutable.empty());
         }
     }
 }

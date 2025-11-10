@@ -113,11 +113,11 @@ public final class NodeBasedTransactionToIndexUpdateVisitor extends TransactionT
 
         modifications
                 .creations()
-                .forEach((id, type, startNode, en, ap, cp, rp) ->
+                .forEach((id, type, startNode, en, ap, rp) ->
                         changes.updateValue(new NodeTypeKey(startNode, type), 0, i -> i + 1));
         modifications
                 .deletions()
-                .forEach((id, type, startNode, en, ap, cp, rp) ->
+                .forEach((id, type, startNode, en, ap, rp) ->
                         changes.updateValue(new NodeTypeKey(startNode, findTypeToRemove(id, type)), 0, i -> i - 1));
         return changes;
     }

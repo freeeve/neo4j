@@ -190,7 +190,7 @@ public class DefaultRelationshipValueIndexCursor
             return txStateHolder
                     .txState()
                     .getRelationshipState(relationshipScanCursor.relationshipReference())
-                    .addedAndChangedProperties();
+                    .addedProperties();
         }
         return Iterables.empty();
     }

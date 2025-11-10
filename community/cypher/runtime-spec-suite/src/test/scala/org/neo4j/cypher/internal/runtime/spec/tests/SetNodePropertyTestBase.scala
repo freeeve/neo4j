@@ -391,30 +391,6 @@ abstract class SetNodePropertyTestBase[CONTEXT <: RuntimeContext](
     nodes.map(_.getProperty("prop")).foreach(i => i should equal(1))
   }
 
-  test("should not take exclusive lock if value not changing") {
-    // given a single node
-    givenGraph {
-      uniqueNodeIndex("L", "prop")
-      nodePropertyGraph(1, { case _ => Map("prop" -> 1) }, "L")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("p1", "p2")
-      .projection("n.prop as p1", "n.other as p2")
-      .setNodeProperty("n", "prop", "n.prop")
-      .setNodeProperty("n", "other", "n.prop")
-      .nodeIndexOperator("n:L(prop = 1)", unique = true)
-      .build(readOnly = false)
-
-    // then
-    val runtimeResult: RecordingRuntimeResult = execute(logicalQuery, runtime)
-    runtimeResult should beColumns("p1", "p2")
-      .withSingleRow(1, 1)
-      .withStatistics(propertiesSet = 2)
-      .withLocks((EXCLUSIVE, NODE), (SHARED, INDEX_ENTRY), (SHARED, LABEL))
-  }
-
   test("should take exclusive lock if value changing") {
     // given a single node
     givenGraph {

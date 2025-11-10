@@ -170,7 +170,7 @@ final class RelationshipLockHelper {
             lockList.add(
                     optionalFirstInChain); // The locklist does not accept NULL(-1) values, so we don't need to care
             // about that
-            ids.forEach((id, type, startNode, endNode, noProperties, changedProperties, removedProperties) -> {
+            ids.forEach((id, type, startNode, endNode, noProperties, removedProperties) -> {
                 RelationshipRecord relationship = relRecords.getOrLoad(id, null).forReadingLinkage();
                 optimistic.put(id, relationship);
                 lockList.add(relationship.getId());

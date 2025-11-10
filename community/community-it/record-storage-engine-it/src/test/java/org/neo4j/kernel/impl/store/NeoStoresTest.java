@@ -596,11 +596,7 @@ class NeoStoresTest {
             }
         }
 
-        if (oldProperty == null) {
-            transactionState.nodeDoAddProperty(nodeId, key, property.value());
-        } else {
-            transactionState.nodeDoChangeProperty(nodeId, key, property.value());
-        }
+        transactionState.nodeDoAddProperty(nodeId, key, property.value());
         return property;
     }
 

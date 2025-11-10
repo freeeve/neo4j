@@ -29,19 +29,14 @@ import org.neo4j.values.storable.Value;
 /**
  * Represents the property changes to a {@link NodeState node} or {@link RelationshipState relationship}:
  * <ul>
- * <li>{@linkplain #addedProperties() Added properties},</li>
+ * <li>{@linkplain #addedProperties() Added and changed properties},</li>
  * <li>{@linkplain #removedProperties() removed properties}, and </li>
- * <li>{@linkplain #changedProperties() changed property values}.</li>
  * </ul>
  */
 public interface EntityState {
     Iterable<StorageProperty> addedProperties();
 
-    Iterable<StorageProperty> changedProperties();
-
     IntIterable removedProperties();
-
-    Iterable<StorageProperty> addedAndChangedProperties();
 
     boolean hasPropertyChanges();
 
@@ -60,18 +55,8 @@ public interface EntityState {
         }
 
         @Override
-        public Iterable<StorageProperty> changedProperties() {
-            return emptyList();
-        }
-
-        @Override
         public IntIterable removedProperties() {
             return IntSets.immutable.empty();
-        }
-
-        @Override
-        public Iterable<StorageProperty> addedAndChangedProperties() {
-            return emptyList();
         }
 
         @Override

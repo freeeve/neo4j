@@ -281,8 +281,7 @@ public class PlainOperationsTest extends OperationsTest {
     void shouldAcquireEntityWriteLockBeforeSettingPropertyOnNode() throws Exception {
         // given
         when(nodeCursor.next()).thenReturn(true);
-        when(nodeCursor.labelsAndProperties(any(PropertyCursor.class), any(PropertySelection.class)))
-                .thenReturn(TokenSet.NONE);
+        when(nodeCursor.labels()).thenReturn(TokenSet.NONE);
         int propertyKeyId = 8;
         Value value = Values.of(9);
         when(propertyCursor.next()).thenReturn(true);
@@ -306,8 +305,7 @@ public class PlainOperationsTest extends OperationsTest {
         when(nodeCursor.next()).thenReturn(true);
         TokenSet tokenSet = mock(TokenSet.class);
         when(tokenSet.all()).thenReturn(new int[] {relatedLabelId});
-        when(nodeCursor.labelsAndProperties(any(PropertyCursor.class), any(PropertySelection.class)))
-                .thenReturn(tokenSet);
+        when(nodeCursor.labels()).thenReturn(tokenSet);
         Value value = Values.of(9);
         when(propertyCursor.next()).thenReturn(true);
         when(propertyCursor.propertyKey()).thenReturn(propertyKeyId);
@@ -339,8 +337,7 @@ public class PlainOperationsTest extends OperationsTest {
         // then
         order.verify(locks).acquireExclusive(LockTracer.NONE, ResourceType.RELATIONSHIP, 123);
         order.verify(txState)
-                .relationshipDoReplaceProperty(
-                        eq(123L), anyInt(), anyLong(), anyLong(), eq(propertyKeyId), eq(NO_VALUE), eq(value));
+                .relationshipDoAddProperty(eq(123L), anyInt(), anyLong(), anyLong(), eq(propertyKeyId), eq(value));
     }
 
     @Test
@@ -378,8 +375,7 @@ public class PlainOperationsTest extends OperationsTest {
         // then
         verify(locks, never()).acquireExclusive(LockTracer.NONE, ResourceType.RELATIONSHIP, 123);
         order.verify(txState)
-                .relationshipDoReplaceProperty(
-                        eq(123L), anyInt(), anyLong(), anyLong(), eq(propertyKeyId), eq(NO_VALUE), eq(value));
+                .relationshipDoAddProperty(eq(123L), anyInt(), anyLong(), anyLong(), eq(propertyKeyId), eq(value));
     }
 
     @Test

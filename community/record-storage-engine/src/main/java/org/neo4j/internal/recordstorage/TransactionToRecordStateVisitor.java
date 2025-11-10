@@ -104,23 +104,16 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
     @Override
     public void visitRelationshipModifications(RelationshipModifications modifications) {
         recordState.relModify(modifications);
-        modifications.creations().forEach((id, t, s, e, props, i1, i2) -> visitAddedRelProperties(id, props));
-        modifications.updates().forEach((id, t, s, e, addedProps, changedProps, removedProps) -> {
+        modifications.creations().forEach((id, t, s, e, props, i2) -> visitAddedRelProperties(id, props));
+        modifications.updates().forEach((id, t, s, e, addedProps, removedProps) -> {
             removedProps.each(relId -> recordState.relRemoveProperty(id, relId));
-            for (StorageProperty property : changedProps) {
-                recordState.relChangeProperty(id, property.propertyKeyId(), property.value());
-            }
             visitAddedRelProperties(id, addedProps);
         });
     }
 
     @Override
-    public void visitNodePropertyChanges(
-            long id, Iterable<StorageProperty> added, Iterable<StorageProperty> changed, IntIterable removed) {
+    public void visitNodePropertyChanges(long id, Iterable<StorageProperty> added, IntIterable removed) {
         removed.each(propId -> recordState.nodeRemoveProperty(id, propId));
-        for (StorageProperty property : changed) {
-            recordState.nodeChangeProperty(id, property.propertyKeyId(), property.value());
-        }
         for (StorageProperty property : added) {
             recordState.nodeAddProperty(id, property.propertyKeyId(), property.value());
         }

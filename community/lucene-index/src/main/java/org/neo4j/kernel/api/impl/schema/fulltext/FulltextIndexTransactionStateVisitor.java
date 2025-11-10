@@ -101,8 +101,7 @@ class FulltextIndexTransactionStateVisitor extends TxStateVisitor.Adapter {
     }
 
     @Override
-    public void visitNodePropertyChanges(
-            long id, Iterable<StorageProperty> added, Iterable<StorageProperty> changed, IntIterable removed) {
+    public void visitNodePropertyChanges(long id, Iterable<StorageProperty> added, IntIterable removed) {
         indexNode(id);
     }
 
@@ -113,16 +112,12 @@ class FulltextIndexTransactionStateVisitor extends TxStateVisitor.Adapter {
 
     @Override
     public void visitRelationshipModifications(RelationshipModifications modifications) {
-        modifications
-                .creations()
-                .forEach((id, type, start, end, addedProps, changedProps, removedProps) -> indexRelationship(id));
+        modifications.creations().forEach((id, type, start, end, addedProps, removedProps) -> indexRelationship(id));
         modifications
                 .deletions()
-                .forEach((id, type, start, end, addedProps, changedProps, noDeletedProps) ->
+                .forEach((id, type, start, end, addedProps, noDeletedProps) ->
                         modifiedEntityIdsInThisTransaction.add(id));
-        modifications
-                .updates()
-                .forEach((id, type, start, end, addedProps, changedProps, removedProps) -> indexRelationship(id));
+        modifications.updates().forEach((id, type, start, end, addedProps, removedProps) -> indexRelationship(id));
     }
 
     @Override

@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.api.state;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
@@ -40,7 +39,7 @@ class EntityStateImplTest {
         EntityStateImpl state = new EntityStateImpl(1, OnHeapCollectionsFactory.INSTANCE, EmptyMemoryTracker.INSTANCE);
         state.addProperty(1, Values.of("Hello"));
         state.addProperty(2, Values.of("Hello"));
-        state.removeProperty(1);
+        state.removePropertyFromTxState(1);
 
         // When
         Iterator<StorageProperty> added = state.addedProperties().iterator();
@@ -72,13 +71,12 @@ class EntityStateImplTest {
         EntityStateImpl state = new EntityStateImpl(1, OnHeapCollectionsFactory.INSTANCE, EmptyMemoryTracker.INSTANCE);
 
         // When
-        state.removeProperty(4);
+        state.removePropertyFromStore(4);
         state.addProperty(4, Values.of("another value"));
 
         // Then
-        assertThat(Iterators.asList(state.changedProperties().iterator()))
+        assertThat(Iterators.asList(state.addedProperties().iterator()))
                 .isEqualTo(asList(new PropertyKeyValue(4, Values.of("another value"))));
-        assertFalse(state.addedProperties().iterator().hasNext());
         assertTrue(state.removedProperties().isEmpty());
     }
 }

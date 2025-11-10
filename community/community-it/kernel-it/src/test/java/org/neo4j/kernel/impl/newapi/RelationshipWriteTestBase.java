@@ -55,6 +55,7 @@ import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
+import org.neo4j.values.storable.Values;
 
 @SuppressWarnings("Duplicates")
 @RandomSupportExtension
@@ -282,6 +283,65 @@ public abstract class RelationshipWriteTestBase<G extends KernelAPIWriteTestSupp
     }
 
     @Test
+    void shouldRemoveAddedPropertyFromRelationship() throws Exception {
+        // Given
+        long relationshipId;
+        String propertyKey = "prop";
+        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+            Node node1 = tx.createNode();
+            Node node2 = tx.createNode();
+
+            Relationship proxy = node1.createRelationshipTo(node2, TYPE);
+            relationshipId = proxy.getId();
+            tx.commit();
+        }
+
+        // When
+        try (KernelTransaction tx = beginTransaction()) {
+            int token = tx.token().propertyKeyGetOrCreateForName(propertyKey);
+            tx.dataWrite().relationshipSetProperty(relationshipId, token, Values.intValue(42));
+            assertThat(tx.dataWrite().relationshipRemoveProperty(relationshipId, token))
+                    .isEqualTo(intValue(42));
+            tx.commit();
+        }
+
+        // Then
+        try (org.neo4j.graphdb.Transaction transaction = graphDb.beginTx()) {
+            assertFalse(transaction.getRelationshipById(relationshipId).hasProperty("prop"));
+        }
+    }
+
+    @Test
+    void shouldRemoveChangedPropertyFromRelationship() throws Exception {
+        // Given
+        long relationshipId;
+        String propertyKey = "prop";
+        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+            Node node1 = tx.createNode();
+            Node node2 = tx.createNode();
+
+            Relationship proxy = node1.createRelationshipTo(node2, TYPE);
+            relationshipId = proxy.getId();
+            proxy.setProperty(propertyKey, 42);
+            tx.commit();
+        }
+
+        // When
+        try (KernelTransaction tx = beginTransaction()) {
+            int token = tx.token().propertyKeyGetOrCreateForName(propertyKey);
+            tx.dataWrite().relationshipSetProperty(relationshipId, token, Values.intValue(24));
+            assertThat(tx.dataWrite().relationshipRemoveProperty(relationshipId, token))
+                    .isEqualTo(intValue(24));
+            tx.commit();
+        }
+
+        // Then
+        try (org.neo4j.graphdb.Transaction transaction = graphDb.beginTx()) {
+            assertFalse(transaction.getRelationshipById(relationshipId).hasProperty("prop"));
+        }
+    }
+
+    @Test
     void shouldRemoveNonExistingPropertyFromRelationship() throws Exception {
         // Given
         long relationshipId;
@@ -367,32 +427,6 @@ public abstract class RelationshipWriteTestBase<G extends KernelAPIWriteTestSupp
             assertThat(transaction.getRelationshipById(relationshipId).getProperty("prop"))
                     .isEqualTo(1337);
         }
-    }
-
-    @Test
-    void shouldNotWriteWhenSettingPropertyToSameValue() throws Exception {
-        // Given
-        long relationshipId;
-        String propertyKey = "prop";
-        Value theValue = stringValue("The Value");
-
-        try (org.neo4j.graphdb.Transaction ctx = graphDb.beginTx()) {
-            Node node1 = ctx.createNode();
-            Node node2 = ctx.createNode();
-
-            Relationship r = node1.createRelationshipTo(node2, TYPE);
-
-            r.setProperty(propertyKey, theValue.asObject());
-            relationshipId = r.getId();
-            ctx.commit();
-        }
-
-        // When
-        KernelTransaction tx = beginTransaction();
-        int property = tx.token().propertyKeyGetOrCreateForName(propertyKey);
-        tx.dataWrite().relationshipSetProperty(relationshipId, property, theValue);
-
-        assertThat(tx.commit()).isEqualTo(KernelTransaction.READ_ONLY_ID);
     }
 
     @Test

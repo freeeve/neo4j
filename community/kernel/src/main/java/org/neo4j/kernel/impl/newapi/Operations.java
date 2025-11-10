@@ -664,7 +664,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         ktx.securityAuthorizationHandler()
                                 .assertAllowsSetProperty(
                                         ktx.securityContext(), Operations.this::resolvePropertyKey, type, key);
-                        ktx.txState().relationshipDoReplaceProperty(newId, type, source, target, key, NO_VALUE, value);
+                        ktx.txState().relationshipDoAddProperty(newId, type, source, target, key, value);
                         boolean hasRelatedSchema = storageReader.hasRelatedSchema(new int[] {type}, key, RELATIONSHIP);
                         if (hasRelatedSchema) {
                             updater.onPropertyAdd(traversalCursor, propertyCursor, type, key, EMPTY_INT_ARRAY, value);
@@ -1196,44 +1196,24 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         acquireExclusiveNodeLock(node);
         ktx.assertOpen();
         ensureCursors();
-
         singleNode(node);
-        int[] labels = localNodeCursor
-                .labelsAndProperties(localPropertyCursor, PropertySelection.selection(propertyKey))
-                .all();
-        var existingValue = localPropertyCursor.next() ? localPropertyCursor.propertyValue() : NO_VALUE;
+        int[] labels = localNodeCursor.labels().all();
         acquireSharedLabelLocks(labels);
-        int[] existingPropertyKeyIds = null;
-        boolean hasRelatedSchema = storageReader.hasRelatedSchema(labels, propertyKey, NODE);
-        if (hasRelatedSchema) {
-            existingPropertyKeyIds = loadSortedNodePropertyKeyList(localNodeCursor, localPropertyCursor);
-        }
 
-        if (existingValue == NO_VALUE) {
-            ktx.securityAuthorizationHandler()
-                    .assertAllowsSetProperty(
-                            ktx.securityContext(), this::resolvePropertyKey, Labels.from(labels), propertyKey);
-            if (hasRelatedSchema) {
-                checkUniquenessConstraints(node, propertyKey, value, labels, existingPropertyKeyIds);
-            }
+        ktx.securityAuthorizationHandler()
+                .assertAllowsSetProperty(
+                        ktx.securityContext(), this::resolvePropertyKey, Labels.from(labels), propertyKey);
 
-            // no existing value, we just add it
-            ktx.txState().nodeDoAddProperty(node, propertyKey, value);
-            if (hasRelatedSchema) {
+        if (storageReader.hasRelatedSchema(labels, propertyKey, NODE)) {
+            Value existingValue = readNodeProperty(propertyKey);
+            int[] existingPropertyKeyIds = loadSortedNodePropertyKeyList(localNodeCursor, localPropertyCursor);
+
+            checkUniquenessConstraints(node, propertyKey, value, labels, existingPropertyKeyIds);
+
+            if (existingValue == NO_VALUE) {
                 updater.onPropertyAdd(
                         localNodeCursor, localPropertyCursor, labels, propertyKey, existingPropertyKeyIds, value);
-            }
-        } else if (propertyHasChanged(value, existingValue)) {
-            ktx.securityAuthorizationHandler()
-                    .assertAllowsSetProperty(
-                            ktx.securityContext(), this::resolvePropertyKey, Labels.from(labels), propertyKey);
-            if (hasRelatedSchema) {
-                checkUniquenessConstraints(node, propertyKey, value, labels, existingPropertyKeyIds);
-            }
-
-            // the value has changed to a new value
-            ktx.txState().nodeDoChangeProperty(node, propertyKey, value);
-            if (hasRelatedSchema) {
+            } else {
                 updater.onPropertyChange(
                         localNodeCursor,
                         localPropertyCursor,
@@ -1244,6 +1224,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         value);
             }
         }
+        ktx.txState().nodeDoAddProperty(node, propertyKey, value);
     }
 
     @Override
@@ -1297,7 +1278,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         MutableIntSet afterPropertyKeyIdsSet = IntSets.mutable.of(existingPropertyKeyIds);
         RichIterable<IntObjectPair<Value>> propertiesKeyValueView = properties.keyValuesView();
         MutableIntSet removedPropertyKeyIdsSet = null;
-        MutableIntSet changedPropertyKeyIdsSet = null;
+        MutableIntSet addedPropertyKeyIdsSet = null;
         for (IntObjectPair<Value> property : propertiesKeyValueView) {
             int key = property.getOne();
             Value value = property.getTwo();
@@ -1309,25 +1290,22 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 afterPropertyKeyIdsSet.remove(key);
             } else {
                 afterPropertyKeyIdsSet.add(key);
-                Value existingValue = existingValuesForChangedProperties.get(key);
-                if (existingValue == null || propertyHasChanged(value, existingValue)) {
-                    if (changedPropertyKeyIdsSet == null) {
-                        changedPropertyKeyIdsSet = IntSets.mutable.empty();
-                    }
-                    changedPropertyKeyIdsSet.add(key);
+                if (addedPropertyKeyIdsSet == null) {
+                    addedPropertyKeyIdsSet = IntSets.mutable.empty();
                 }
+                addedPropertyKeyIdsSet.add(key);
             }
         }
         int[] afterPropertyKeyIds = afterPropertyKeyIdsSet.toSortedArray();
-        int[] changedPropertyKeyIds =
-                changedPropertyKeyIdsSet != null ? changedPropertyKeyIdsSet.toSortedArray() : EMPTY_INT_ARRAY;
+        int[] addedPropertyKeyIds =
+                addedPropertyKeyIdsSet != null ? addedPropertyKeyIdsSet.toSortedArray() : EMPTY_INT_ARRAY;
 
         // Check uniqueness constraints for the added labels and _actually_ changed properties
         // TODO Due to previous assumptions around very specific use cases for the schema "get related" lookups and its
         // inherent accidental
         //  complexity we have to provide very specific argument to get it to do what we want it to do.
         //  The schema cache lookup methods should be revisited to naturally accomodate this new scenario.
-        int[] uniquenessPropertiesCheck = addedLabels.isEmpty() ? changedPropertyKeyIds : afterPropertyKeyIds;
+        int[] uniquenessPropertiesCheck = addedLabels.isEmpty() ? addedPropertyKeyIds : afterPropertyKeyIds;
         Collection<IndexBackedConstraintDescriptor> uniquenessConstraints =
                 storageReader.uniquenessConstraintsGetRelated(
                         combineLabelIds(EMPTY_INT_ARRAY, addedLabels, IntSets.immutable.empty()),
@@ -1384,7 +1362,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     ktx.securityAuthorizationHandler()
                             .assertAllowsSetProperty(
                                     ktx.securityContext(), this::resolvePropertyKey, existingLabelsMinusRemoved, key);
-                    ktx.txState().nodeDoRemoveProperty(node, key);
+                    ktx.txState().nodeDoRemoveProperty(node, key, k -> readNodeProperty(k) != NO_VALUE);
                     existingPropertyKeyIds = remove(existingPropertyKeyIds, existingPropertyKeyIdIndex);
                     if (storageReader.hasRelatedSchema(existingLabelsMinusRemovedArray, key, NODE)) {
                         updater.onPropertyRemove(
@@ -1424,20 +1402,17 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             }
         }
         // add/change properties
-        if (changedPropertyKeyIdsSet != null) {
+        if (addedPropertyKeyIdsSet != null) {
             Labels labelsAfterSet = Labels.from(labelsAfter);
             MutableIntSet existingPropertyKeyIdsBeforeChange = IntSets.mutable.of(existingPropertyKeyIds);
-            for (int key : changedPropertyKeyIds) {
+            for (int key : addedPropertyKeyIds) {
                 Value value = properties.get(key);
-                Value existingValue = existingValuesForChangedProperties.getIfAbsent(key, () -> NO_VALUE);
-                if (existingValue == NO_VALUE) {
-                    // adding of new property
-                    ktx.securityAuthorizationHandler()
-                            .assertAllowsSetProperty(
-                                    ktx.securityContext(), this::resolvePropertyKey, labelsAfterSet, key);
-                    ktx.txState().nodeDoAddProperty(node, key, value);
-                    boolean hasRelatedSchema = storageReader.hasRelatedSchema(labelsAfter, key, NODE);
-                    if (hasRelatedSchema) {
+                ktx.securityAuthorizationHandler()
+                        .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, labelsAfterSet, key);
+                ktx.txState().nodeDoAddProperty(node, key, value);
+                if (storageReader.hasRelatedSchema(labelsAfter, key, NODE)) {
+                    Value existingValue = existingValuesForChangedProperties.getIfAbsent(key, () -> NO_VALUE);
+                    if (existingValue == NO_VALUE) {
                         updater.onPropertyAdd(
                                 localNodeCursor,
                                 localPropertyCursor,
@@ -1445,16 +1420,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                                 key,
                                 existingPropertyKeyIdsBeforeChange.toSortedArray(),
                                 value);
-                    }
-                } else // since it's in the changedPropertyKeyIds array we know that it's an actually changed value
-                {
-                    // changing of existing property
-                    ktx.securityAuthorizationHandler()
-                            .assertAllowsSetProperty(
-                                    ktx.securityContext(), this::resolvePropertyKey, labelsAfterSet, key);
-                    ktx.txState().nodeDoChangeProperty(node, key, value);
-                    boolean hasRelatedSchema = storageReader.hasRelatedSchema(labelsAfter, key, NODE);
-                    if (hasRelatedSchema) {
+                    } else {
                         updater.onPropertyChange(
                                 localNodeCursor,
                                 localPropertyCursor,
@@ -1506,7 +1472,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         int[] existingPropertyKeyIds = loadSortedRelationshipPropertyKeyList(relationshipCursor, propertyCursor);
         MutableIntSet afterPropertyKeyIdsSet = IntSets.mutable.of(existingPropertyKeyIds);
         boolean hasPropertyRemovals = false;
-        MutableIntSet changedPropertyKeyIdsSet = null;
+        MutableIntSet addedPropertyKeyIdsSet = null;
         RichIterable<IntObjectPair<Value>> propertiesKeyValueView = properties.keyValuesView();
         for (IntObjectPair<Value> property : propertiesKeyValueView) {
             int key = property.getOne();
@@ -1516,26 +1482,22 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 afterPropertyKeyIdsSet.remove(key);
             } else {
                 afterPropertyKeyIdsSet.add(key);
-                Value existingValue = existingValuesForChangedProperties.get(key);
-                if (existingValue == null || propertyHasChanged(value, existingValue)) {
-                    if (changedPropertyKeyIdsSet == null) {
-                        changedPropertyKeyIdsSet = IntSets.mutable.empty();
-                    }
-                    changedPropertyKeyIdsSet.add(key);
+                if (addedPropertyKeyIdsSet == null) {
+                    addedPropertyKeyIdsSet = IntSets.mutable.empty();
                 }
+                addedPropertyKeyIdsSet.add(key);
             }
         }
 
-        int[] changedPropertyKeyIds =
-                changedPropertyKeyIdsSet != null ? changedPropertyKeyIdsSet.toSortedArray() : EMPTY_INT_ARRAY;
+        int[] addedPropertyKeyIds =
+                addedPropertyKeyIdsSet != null ? addedPropertyKeyIdsSet.toSortedArray() : EMPTY_INT_ARRAY;
 
         // Check uniqueness constraints for the _actually_ changed properties
-        if (changedPropertyKeyIdsSet != null) {
+        if (addedPropertyKeyIdsSet != null) {
             int[] afterPropertyKeyIds = afterPropertyKeyIdsSet.toSortedArray();
 
             Collection<IndexBackedConstraintDescriptor> uniquenessConstraints =
-                    storageReader.uniquenessConstraintsGetRelated(
-                            new int[] {type}, changedPropertyKeyIds, RELATIONSHIP);
+                    storageReader.uniquenessConstraintsGetRelated(new int[] {type}, addedPropertyKeyIds, RELATIONSHIP);
             SchemaMatcher.onMatchingSchema(
                     uniquenessConstraints.iterator(),
                     TokenConstants.ANY_PROPERTY_KEY,
@@ -1568,7 +1530,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                                     type,
                                     relationshipCursor.sourceNodeReference(),
                                     relationshipCursor.targetNodeReference(),
-                                    key);
+                                    key,
+                                    k -> readRelationshipProperty(k) != NO_VALUE);
                     existingPropertyKeyIds = remove(existingPropertyKeyIds, existingPropertyKeyIdIndex);
                     if (storageReader.hasRelatedSchema(new int[] {type}, key, RELATIONSHIP)) {
                         updater.onPropertyRemove(
@@ -1579,26 +1542,25 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
 
         // add/change properties
-        if (changedPropertyKeyIdsSet != null) {
+        if (addedPropertyKeyIdsSet != null) {
             MutableIntSet existingPropertyKeyIdsBeforeChange = IntSets.mutable.of(existingPropertyKeyIds);
-            for (int key : changedPropertyKeyIds) {
+            for (int key : addedPropertyKeyIds) {
                 Value value = properties.get(key);
-                Value existingValue = existingValuesForChangedProperties.getIfAbsent(key, () -> NO_VALUE);
-                if (existingValue == NO_VALUE) {
-                    // adding of new property
-                    ktx.securityAuthorizationHandler()
-                            .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, type, key);
-                    ktx.txState()
-                            .relationshipDoReplaceProperty(
-                                    relationship,
-                                    relationshipCursor.type(),
-                                    relationshipCursor.sourceNodeReference(),
-                                    relationshipCursor.targetNodeReference(),
-                                    key,
-                                    NO_VALUE,
-                                    value);
-                    boolean hasRelatedSchema = storageReader.hasRelatedSchema(new int[] {type}, key, RELATIONSHIP);
-                    if (hasRelatedSchema) {
+                ktx.securityAuthorizationHandler()
+                        .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, type, key);
+                ktx.txState()
+                        .relationshipDoAddProperty(
+                                relationship,
+                                relationshipCursor.type(),
+                                relationshipCursor.sourceNodeReference(),
+                                relationshipCursor.targetNodeReference(),
+                                key,
+                                value);
+                boolean hasRelatedSchema = storageReader.hasRelatedSchema(new int[] {type}, key, RELATIONSHIP);
+                if (hasRelatedSchema) {
+                    Value existingValue = existingValuesForChangedProperties.getIfAbsent(key, () -> NO_VALUE);
+
+                    if (existingValue == NO_VALUE) {
                         updater.onPropertyAdd(
                                 relationshipCursor,
                                 this.localPropertyCursor,
@@ -1606,23 +1568,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                                 key,
                                 existingPropertyKeyIdsBeforeChange.toSortedArray(),
                                 value);
-                    }
-                } else // since it's in the changedPropertyKeyIds array we know that it's an actually changed value
-                {
-                    // changing of existing property
-                    ktx.securityAuthorizationHandler()
-                            .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, type, key);
-                    ktx.txState()
-                            .relationshipDoReplaceProperty(
-                                    relationship,
-                                    relationshipCursor.type(),
-                                    relationshipCursor.sourceNodeReference(),
-                                    relationshipCursor.targetNodeReference(),
-                                    key,
-                                    existingValue,
-                                    value);
-                    boolean hasRelatedSchema = storageReader.hasRelatedSchema(new int[] {type}, key, RELATIONSHIP);
-                    if (hasRelatedSchema) {
+                    } else {
                         updater.onPropertyChange(
                                 relationshipCursor,
                                 this.localPropertyCursor,
@@ -1706,7 +1652,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             ktx.securityAuthorizationHandler()
                     .assertAllowsSetProperty(
                             ktx.securityContext(), this::resolvePropertyKey, Labels.from(labels), propertyKey);
-            ktx.txState().nodeDoRemoveProperty(node, propertyKey);
+            ktx.txState().nodeDoRemoveProperty(node, propertyKey, k -> readNodeProperty(k) != NO_VALUE);
             if (storageReader.hasRelatedSchema(labels, propertyKey, NODE)) {
                 updater.onPropertyRemove(
                         localNodeCursor,
@@ -1729,50 +1675,18 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         ensureCursors();
         singleRelationship(relationship);
         int type = acquireSharedRelationshipTypeLock();
-        Value existingValue = readRelationshipProperty(propertyKey);
-        int[] existingPropertyKeyIds = null;
-        boolean hasRelatedSchema = storageReader.hasRelatedSchema(new int[] {type}, propertyKey, RELATIONSHIP);
-        if (hasRelatedSchema) {
-            existingPropertyKeyIds =
+
+        ktx.securityAuthorizationHandler()
+                .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, type, propertyKey);
+        if (storageReader.hasRelatedSchema(new int[] {type}, propertyKey, RELATIONSHIP)) {
+            Value existingValue = readRelationshipProperty(propertyKey);
+            int[] existingPropertyKeyIds =
                     loadSortedRelationshipPropertyKeyList(localRelationshipCursor, localPropertyCursor);
-        }
-        if (existingValue == NO_VALUE) {
-            ktx.securityAuthorizationHandler()
-                    .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, type, propertyKey);
-            if (hasRelatedSchema) {
-                checkRelationshipUniquenessConstraints(relationship, propertyKey, value, type, existingPropertyKeyIds);
-            }
-            ktx.txState()
-                    .relationshipDoReplaceProperty(
-                            relationship,
-                            localRelationshipCursor.type(),
-                            localRelationshipCursor.sourceNodeReference(),
-                            localRelationshipCursor.targetNodeReference(),
-                            propertyKey,
-                            NO_VALUE,
-                            value);
-            if (hasRelatedSchema) {
+            checkRelationshipUniquenessConstraints(relationship, propertyKey, value, type, existingPropertyKeyIds);
+            if (existingValue == NO_VALUE) {
                 updater.onPropertyAdd(
                         localRelationshipCursor, localPropertyCursor, type, propertyKey, existingPropertyKeyIds, value);
-            }
-            return;
-        }
-        if (propertyHasChanged(existingValue, value)) {
-            ktx.securityAuthorizationHandler()
-                    .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, type, propertyKey);
-            if (hasRelatedSchema) {
-                checkRelationshipUniquenessConstraints(relationship, propertyKey, value, type, existingPropertyKeyIds);
-            }
-            ktx.txState()
-                    .relationshipDoReplaceProperty(
-                            relationship,
-                            localRelationshipCursor.type(),
-                            localRelationshipCursor.sourceNodeReference(),
-                            localRelationshipCursor.targetNodeReference(),
-                            propertyKey,
-                            existingValue,
-                            value);
-            if (hasRelatedSchema) {
+            } else {
                 updater.onPropertyChange(
                         localRelationshipCursor,
                         localPropertyCursor,
@@ -1783,6 +1697,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         value);
             }
         }
+        ktx.txState()
+                .relationshipDoAddProperty(
+                        relationship,
+                        localRelationshipCursor.type(),
+                        localRelationshipCursor.sourceNodeReference(),
+                        localRelationshipCursor.targetNodeReference(),
+                        propertyKey,
+                        value);
     }
 
     @Override
@@ -1803,7 +1725,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                             localRelationshipCursor.type(),
                             localRelationshipCursor.sourceNodeReference(),
                             localRelationshipCursor.targetNodeReference(),
-                            propertyKey);
+                            propertyKey,
+                            k -> readRelationshipProperty(k) != NO_VALUE);
             if (storageReader.hasRelatedSchema(new int[] {type}, propertyKey, RELATIONSHIP)) {
                 updater.onPropertyRemove(
                         localRelationshipCursor,

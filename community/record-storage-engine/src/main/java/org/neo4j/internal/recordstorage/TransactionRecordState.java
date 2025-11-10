@@ -427,33 +427,6 @@ public class TransactionRecordState implements RecordState {
     }
 
     /**
-     * Changes an existing property's value of the given relationship, with the
-     * given index to the passed value
-     * @param relId The id of the relationship which holds the property to change.
-     * @param propertyKey The index of the key of the property to change.
-     * @param value The new value of the property.
-     */
-    void relChangeProperty(long relId, int propertyKey, Value value) {
-        RecordProxy<RelationshipRecord, Void> rel =
-                recordChangeSet.getRelRecords().getOrLoad(relId, null);
-        propertyCreator.primitiveSetProperty(
-                rel, propertyKey, value, recordChangeSet.getPropertyRecords(), memoryTracker);
-    }
-
-    /**
-     * Changes an existing property of the given node, with the given index to
-     * the passed value
-     * @param nodeId The id of the node which holds the property to change.
-     * @param propertyKey The index of the key of the property to change.
-     * @param value The new value of the property.
-     */
-    void nodeChangeProperty(long nodeId, int propertyKey, Value value) {
-        RecordProxy<NodeRecord, Void> node = recordChangeSet.getNodeRecords().getOrLoad(nodeId, null);
-        propertyCreator.primitiveSetProperty(
-                node, propertyKey, value, recordChangeSet.getPropertyRecords(), memoryTracker);
-    }
-
-    /**
      * Adds a property to the given relationship, with the given index and
      * value.
      * @param relId The id of the relationship to which to add the property.

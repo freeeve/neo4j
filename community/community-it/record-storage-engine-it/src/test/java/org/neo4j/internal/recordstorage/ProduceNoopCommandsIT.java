@@ -111,15 +111,6 @@ class ProduceNoopCommandsIT {
     }
 
     @Test
-    void setNodePropertyToSameValue() {
-        // given
-        String id = node().withProperty(KEY, 123).build();
-
-        // when
-        onNode(id, (tx, node) -> node.setProperty(KEY, 123));
-    }
-
-    @Test
     void overwriteNodePropertyInOneEndOfChain() {
         // given
         String id = node().withProperty(KEY, 123)

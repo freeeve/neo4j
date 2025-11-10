@@ -138,7 +138,7 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
         if (txStateHolder.hasTxStateWithChanges()) {
             this.propertiesState = txStateHolder.txState().getNodeState(nodeReference);
             this.txStateChangedProperties =
-                    this.propertiesState.addedAndChangedProperties().iterator();
+                    this.propertiesState.addedProperties().iterator();
         } else {
             this.propertiesState = null;
             this.txStateChangedProperties = null;
@@ -197,7 +197,7 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
         if (txStateHolder.hasTxStateWithChanges()) {
             this.propertiesState = txStateHolder.txState().getRelationshipState(relationshipReference);
             this.txStateChangedProperties =
-                    this.propertiesState.addedAndChangedProperties().iterator();
+                    this.propertiesState.addedProperties().iterator();
         } else {
             this.propertiesState = null;
             this.txStateChangedProperties = null;
@@ -222,7 +222,7 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
     }
 
     private Iterable<StorageProperty> txStateProperties() {
-        return this.propertiesState != null ? this.propertiesState.addedAndChangedProperties() : Iterables.empty();
+        return this.propertiesState != null ? this.propertiesState.addedProperties() : Iterables.empty();
     }
 
     @Override

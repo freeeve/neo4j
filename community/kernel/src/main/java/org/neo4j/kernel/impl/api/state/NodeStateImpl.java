@@ -56,18 +56,8 @@ class NodeStateImpl extends EntityStateImpl implements NodeState {
         }
 
         @Override
-        public Iterable<StorageProperty> changedProperties() {
-            return emptyList();
-        }
-
-        @Override
         public IntIterable removedProperties() {
             return IntSets.immutable.empty();
-        }
-
-        @Override
-        public Iterable<StorageProperty> addedAndChangedProperties() {
-            return emptyList();
         }
 
         @Override

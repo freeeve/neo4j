@@ -657,11 +657,11 @@ class TxStateTest {
             public void visitRelationshipModifications(RelationshipModifications modifications) {
                 modifications
                         .creations()
-                        .forEach((id, type, startNode, endNode, addedProps, changedProperties, removedProperties) ->
+                        .forEach((id, type, startNode, endNode, addedProps, removedProperties) ->
                                 assertEquals(1, id, "Should not create any other relationship than 1"));
                 modifications
                         .deletions()
-                        .forEach((id, type, startNode, endNode, noProps, changedProperties, removedProperties) ->
+                        .forEach((id, type, startNode, endNode, noProps, removedProperties) ->
                                 fail("Should not delete any relationship"));
             }
         });
@@ -682,8 +682,7 @@ class TxStateTest {
             }
 
             @Override
-            public void visitNodePropertyChanges(
-                    long id, Iterable<StorageProperty> added, Iterable<StorageProperty> changed, IntIterable removed) {
+            public void visitNodePropertyChanges(long id, Iterable<StorageProperty> added, IntIterable removed) {
                 fail("Properties were not changed.");
             }
         });
@@ -701,11 +700,9 @@ class TxStateTest {
             }
 
             @Override
-            public void visitNodePropertyChanges(
-                    long id, Iterable<StorageProperty> added, Iterable<StorageProperty> changed, IntIterable removed) {
+            public void visitNodePropertyChanges(long id, Iterable<StorageProperty> added, IntIterable removed) {
                 propertiesChecked.setTrue();
                 assertEquals(1, id);
-                assertFalse(changed.iterator().hasNext());
                 assertTrue(removed.isEmpty());
                 assertEquals(1, Iterators.count(added.iterator(), Predicates.alwaysTrue()));
             }
@@ -725,7 +722,7 @@ class TxStateTest {
                 // Then
                 assertThat(ids.deletions().size()).isEqualTo(1);
                 ids.deletions()
-                        .forEach((id, type, start, end, noProps, changedProperties, removedProperties) ->
+                        .forEach((id, type, start, end, noProps, removedProperties) ->
                                 assertEquals(42, id, "Wrong deleted relationship id"));
             }
         });
@@ -922,11 +919,11 @@ class TxStateTest {
         assertTrue(observedRevisions.add(state.getDataRevision()));
         assertTrue(state.hasDataChanges());
 
-        state.nodeDoChangeProperty(0, 0, Values.booleanValue(false));
+        state.nodeDoAddProperty(0, 0, Values.booleanValue(false));
         assertTrue(observedRevisions.add(state.getDataRevision()));
         assertTrue(state.hasDataChanges());
 
-        state.nodeDoRemoveProperty(0, 0);
+        state.nodeDoRemoveProperty(0, 0, Predicates.ALWAYS_TRUE_INT);
         assertTrue(observedRevisions.add(state.getDataRevision()));
         assertTrue(state.hasDataChanges());
 
@@ -938,15 +935,15 @@ class TxStateTest {
         assertTrue(observedRevisions.add(state.getDataRevision()));
         assertTrue(state.hasDataChanges());
 
-        state.relationshipDoReplaceProperty(0, 0, 0, 0, 0, Values.NO_VALUE, Values.booleanValue(true));
+        state.relationshipDoAddProperty(0, 0, 0, 0, 0, Values.booleanValue(true));
         assertTrue(observedRevisions.add(state.getDataRevision()));
         assertTrue(state.hasDataChanges());
 
-        state.relationshipDoReplaceProperty(0, 0, 0, 0, 0, Values.booleanValue(true), Values.booleanValue(false));
+        state.relationshipDoAddProperty(0, 0, 0, 0, 0, Values.booleanValue(false));
         assertTrue(observedRevisions.add(state.getDataRevision()));
         assertTrue(state.hasDataChanges());
 
-        state.relationshipDoRemoveProperty(0, 0, 0, 0, 0);
+        state.relationshipDoRemoveProperty(0, 0, 0, 0, 0, Predicates.ALWAYS_TRUE_INT);
         assertTrue(observedRevisions.add(state.getDataRevision()));
         assertTrue(state.hasDataChanges());
 
@@ -1018,10 +1015,10 @@ class TxStateTest {
         long memoryBefore = usedMemory();
 
         nodeState.addProperty(2, stringValue("foo"));
-        nodeState.removeProperty(3);
-        nodeState.changeProperty(4, stringValue("bar"));
+        nodeState.removePropertyFromStore(3);
+        nodeState.addProperty(4, stringValue("bar"));
 
-        verify(collectionsFactory, times(2)).newObjectMap(any());
+        verify(collectionsFactory, times(1)).newObjectMap(any());
         verify(collectionsFactory).newLongSet(any());
         assertThat(usedMemory()).isGreaterThan(memoryBefore);
         verifyNoMoreInteractions(collectionsFactory);
@@ -1126,7 +1123,7 @@ class TxStateTest {
         state.accept(new TxStateVisitor.Adapter() {
             @Override
             public void visitRelationshipModifications(RelationshipModifications modifications) {
-                modifications.deletions().forEach((rId, typeId, start, end, aP, cP, rP) -> {
+                modifications.deletions().forEach((rId, typeId, start, end, aP, rP) -> {
                     assertThat(found.booleanValue()).isFalse();
                     found.setTrue();
 
@@ -1221,7 +1218,7 @@ class TxStateTest {
     void shouldGetChangedRelationshipPropertiesOnExistingRel() throws Exception {
         RelTxStateMirror state = new RelTxStateMirror();
         state.addProp(1, 1);
-        state.changeProp(2, 1);
+        state.addProp(2, 1);
 
         assertThat(state.hasStateChanges()).isTrue();
         assertRelModificationsMatch(state);
@@ -1232,7 +1229,7 @@ class TxStateTest {
         RelTxStateMirror state = new RelTxStateMirror();
         state.create(1);
         state.addProp(1, 1);
-        state.changeProp(2, 1);
+        state.addProp(2, 1);
 
         assertThat(state.hasStateChanges()).isTrue();
         assertRelModificationsMatch(state);
@@ -1301,7 +1298,7 @@ class TxStateTest {
             for (int key = 0; key < 10; key++) {
                 switch (random.nextInt(3)) {
                     case 0 -> state.addProp(id, key);
-                    case 1 -> state.changeProp(id, key);
+                    case 1 -> state.addProp(id, key);
                     case 2 -> state.removeProp(id, key);
                 }
             }
@@ -1328,14 +1325,10 @@ class TxStateTest {
         }
 
         void addProp(long id, int key) {
-            setProp(id, key, true);
+            setProp(id, key);
         }
 
-        void changeProp(long id, int key) {
-            setProp(id, key, false);
-        }
-
-        private void setProp(long id, int key, boolean added) {
+        private void setProp(long id, int key) {
             assertThat(deleted).doesNotContainKey(id);
 
             RelData data = created.get(id);
@@ -1347,20 +1340,10 @@ class TxStateTest {
                 }
             }
             PropertyKeyValue prop = new PropertyKeyValue(key, Values.intValue(1));
-            if (added) {
-                data.addedProperties.add(prop);
-            } else {
-                data.changedProperties.add(prop);
-            }
+            data.addedProperties.add(prop);
 
-            state.relationshipDoReplaceProperty(
-                    data.id,
-                    data.type,
-                    data.startNode,
-                    data.endNode,
-                    prop.propertyKeyId(),
-                    added ? Values.NO_VALUE : Values.stringValue("prev"),
-                    prop.value());
+            state.relationshipDoAddProperty(
+                    data.id, data.type, data.startNode, data.endNode, prop.propertyKeyId(), prop.value());
         }
 
         void removeProp(long id, int key) {
@@ -1374,18 +1357,15 @@ class TxStateTest {
                 data = new RelData(id, random);
                 updated.put(id, data);
             }
-            boolean removed = data.addedProperties.removeIf(storageProperty -> storageProperty.propertyKeyId() == key)
-                    || data.changedProperties.removeIf(storageProperty -> storageProperty.propertyKeyId() == key);
+            boolean removed = data.addedProperties.removeIf(storageProperty -> storageProperty.propertyKeyId() == key);
             if (!removed) {
                 data.removedProperties.add(key);
             } else {
-                if (data.changedProperties.isEmpty()
-                        && data.addedProperties.isEmpty()
-                        && data.removedProperties.isEmpty()) {
+                if (data.addedProperties.isEmpty() && data.removedProperties.isEmpty()) {
                     updated.remove(id);
                 }
             }
-            state.relationshipDoRemoveProperty(data.id, data.type, data.startNode, data.endNode, key);
+            state.relationshipDoRemoveProperty(data.id, data.type, data.startNode, data.endNode, key, k -> !removed);
         }
 
         void delete(long id) {
@@ -1396,7 +1376,7 @@ class TxStateTest {
             } else {
                 data = updated.remove(id);
                 // Deletions are visited without data, only ID
-                deleted.put(id, new RelData(id, -1, -1, -1, new HashSet<>(), new HashSet<>(), IntSets.mutable.empty()));
+                deleted.put(id, new RelData(id, -1, -1, -1, new HashSet<>(), IntSets.mutable.empty()));
             }
 
             state.relationshipDoDelete(data.id, data.type, data.startNode, data.endNode);
@@ -1469,7 +1449,6 @@ class TxStateTest {
             long startNode,
             long endNode,
             Set<StorageProperty> addedProperties,
-            Set<StorageProperty> changedProperties,
             MutableIntSet removedProperties) {
         RelData(long id, RandomSupport random) {
             this(
@@ -1478,21 +1457,13 @@ class TxStateTest {
                     random.nextInt(10),
                     random.nextInt(10),
                     new HashSet<>(),
-                    new HashSet<>(),
                     IntSets.mutable.empty());
         }
     }
 
     RelationshipVisitorWithProperties<RuntimeException> collector(Set<RelData> into) {
-        return (id, type, start, end, addedProps, changedProperties, removedProperties) -> assertThat(
-                        into.add(new RelData(
-                                id,
-                                type,
-                                start,
-                                end,
-                                Iterables.asSet(addedProps),
-                                Iterables.asSet(changedProperties),
-                                IntSets.mutable.ofAll(removedProperties))))
+        return (id, type, start, end, addedProps, removedProperties) -> assertThat(into.add(new RelData(
+                        id, type, start, end, Iterables.asSet(addedProps), IntSets.mutable.ofAll(removedProperties))))
                 .isTrue();
     }
 
@@ -1608,10 +1579,13 @@ class TxStateTest {
                                 (state, nodeId) -> state.nodeDoAddProperty(nodeId, 42, Values.stringValue("changed")),
                         true),
                 Arguments.of(
-                        (NodeStateModifier) (state, nodeId) ->
-                                state.nodeDoChangeProperty(nodeId, 42, Values.stringValue("changed")),
+                        (NodeStateModifier)
+                                (state, nodeId) -> state.nodeDoAddProperty(nodeId, 42, Values.stringValue("changed")),
                         true),
-                Arguments.of((NodeStateModifier) (state, nodeId) -> state.nodeDoRemoveProperty(nodeId, 42), true),
+                Arguments.of(
+                        (NodeStateModifier)
+                                (state, nodeId) -> state.nodeDoRemoveProperty(nodeId, 42, Predicates.ALWAYS_TRUE_INT),
+                        true),
                 Arguments.of((NodeStateModifier) (state, nodeId) -> state.nodeDoAddLabel(42, nodeId), true),
                 Arguments.of((NodeStateModifier) (state, nodeId) -> state.nodeDoRemoveLabel(42, nodeId), true),
                 Arguments.of(
@@ -1622,7 +1596,7 @@ class TxStateTest {
                         false),
                 Arguments.of(
                         (NodeStateModifier) (state, nodeId) -> {
-                            state.nodeDoChangeProperty(nodeId, 42, Values.stringValue("changed"));
+                            state.nodeDoAddProperty(nodeId, 42, Values.stringValue("changed"));
                             state.nodeDoDelete(nodeId);
                         },
                         false));
@@ -1662,46 +1636,37 @@ class TxStateTest {
                 new RelationshipIsModifiedTest(
                         "Relationship with new property is modified",
                         state -> {
-                            state.relationshipDoReplaceProperty(
-                                    RelationshipIsModifiedTest.REL_ID,
-                                    1,
-                                    2,
-                                    3,
-                                    4,
-                                    Values.NO_VALUE,
-                                    Values.stringValue("someValue"));
+                            state.relationshipDoAddProperty(
+                                    RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4, Values.stringValue("someValue"));
                         },
                         true),
                 new RelationshipIsModifiedTest(
                         "Relationship with replaced property is modified",
                         state -> {
-                            state.relationshipDoReplaceProperty(
-                                    RelationshipIsModifiedTest.REL_ID,
-                                    1,
-                                    2,
-                                    3,
-                                    4,
-                                    Values.stringValue("other Value"),
-                                    Values.stringValue("someValue"));
+                            state.relationshipDoAddProperty(
+                                    RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4, Values.stringValue("someValue"));
                         },
                         true),
                 new RelationshipIsModifiedTest(
                         "Relationship with removed property is modified",
                         state -> {
-                            state.relationshipDoRemoveProperty(RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4);
+                            state.relationshipDoRemoveProperty(
+                                    RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4, Predicates.ALWAYS_TRUE_INT);
                         },
                         true),
                 new RelationshipIsModifiedTest(
                         "Relationship isn't modified after reset",
                         state -> {
-                            state.relationshipDoRemoveProperty(RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4);
+                            state.relationshipDoRemoveProperty(
+                                    RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4, Predicates.ALWAYS_TRUE_INT);
                             state.reset();
                         },
                         false),
                 new RelationshipIsModifiedTest(
                         "Relationship with removed property is modified",
                         state -> {
-                            state.relationshipDoRemoveProperty(RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4);
+                            state.relationshipDoRemoveProperty(
+                                    RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4, Predicates.ALWAYS_TRUE_INT);
                         },
                         true),
                 new RelationshipIsModifiedTest("Unknown relationship to tx state isn't modified", state -> {}, false),

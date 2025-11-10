@@ -578,8 +578,8 @@ class TransactionRecordStateTest {
         Value newValue1 = Values.of("new");
         Value newValue2 = Values.of("new 2");
         recordState = newTransactionRecordState();
-        recordState.nodeChangeProperty(nodeId, propertyId1, newValue1);
-        recordState.nodeChangeProperty(nodeId, propertyId2, newValue2);
+        recordState.nodeAddProperty(nodeId, propertyId1, newValue1);
+        recordState.nodeAddProperty(nodeId, propertyId2, newValue2);
         var indexUpdates = indexUpdatesOf(neoStores, recordState);
 
         // THEN
@@ -733,7 +733,7 @@ class TransactionRecordStateTest {
         apply(transaction(storeCursors, recordState));
 
         recordState = newTransactionRecordState();
-        recordState.nodeChangeProperty(nodeId, 0, Values.of(102));
+        recordState.nodeAddProperty(nodeId, 0, Values.of(102));
         recordState.relModify(singleCreate(relId3, 0, nodeId, nodeId));
         recordState.relAddProperty(relId1, 0, Values.of(123));
 
@@ -922,7 +922,7 @@ class TransactionRecordStateTest {
         tx.nodeCreate(nodes[0]);
         tx.addLabelToNode(0, nodes[1]);
         tx.nodeAddProperty(nodes[2], 0, Values.of("value"));
-        tx.nodeChangeProperty(nodes[3], 0, Values.of("value"));
+        tx.nodeAddProperty(nodes[3], 0, Values.of("value"));
         tx.nodeRemoveProperty(nodes[4], 0);
         tx.nodeDelete(nodes[5]);
 

@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import org.eclipse.collections.api.IntIterable;
@@ -50,7 +49,7 @@ class TxStateVisitorTest {
         int propKey = 2;
         GatheringVisitor visitor = new GatheringVisitor();
         Value value = Values.of("hello");
-        state.relationshipDoReplaceProperty(relId, 1, 2, 3, propKey, Values.of(""), value);
+        state.relationshipDoAddProperty(relId, 1, 2, 3, propKey, value);
 
         // When
         state.accept(visitor);
@@ -58,16 +57,15 @@ class TxStateVisitorTest {
         // Then
         StorageProperty prop = new PropertyKeyValue(propKey, Values.of("hello"));
         assertThat(visitor.relPropertyChanges)
-                .containsExactly(propChange(relId, noProperty, singletonList(prop), IntSets.immutable.empty()));
+                .containsExactly(propChange(relId, singletonList(prop), IntSets.immutable.empty()));
     }
 
     private static GatheringVisitor.PropertyChange propChange(
-            long relId, Collection<StorageProperty> added, List<StorageProperty> changed, IntIterable removed) {
-        return new GatheringVisitor.PropertyChange(relId, added, changed, removed);
+            long relId, Collection<StorageProperty> added, IntIterable removed) {
+        return new GatheringVisitor.PropertyChange(relId, added, removed);
     }
 
     private TransactionState state;
-    private final Collection<StorageProperty> noProperty = Collections.emptySet();
 
     @BeforeEach
     void before() {
@@ -78,38 +76,23 @@ class TxStateVisitorTest {
         static class PropertyChange {
             final long entityId;
             final List<StorageProperty> added;
-            final List<StorageProperty> changed;
             final IntList removed;
 
-            PropertyChange(
-                    long entityId,
-                    Collection<StorageProperty> added,
-                    Collection<StorageProperty> changed,
-                    IntIterable removed) {
+            PropertyChange(long entityId, Collection<StorageProperty> added, IntIterable removed) {
                 this.entityId = entityId;
                 this.added = Iterables.asList(added);
-                this.changed = Iterables.asList(changed);
                 this.removed = removed.toList();
             }
 
-            PropertyChange(
-                    long entityId,
-                    Iterator<StorageProperty> added,
-                    Iterator<StorageProperty> changed,
-                    IntIterable removed) {
+            PropertyChange(long entityId, Iterator<StorageProperty> added, IntIterable removed) {
                 this.entityId = entityId;
                 this.added = Iterators.asList(added);
-                this.changed = Iterators.asList(changed);
                 this.removed = removed.toList();
             }
 
             @Override
             public String toString() {
-                return "PropertyChange{" + "entityId="
-                        + entityId + ", added="
-                        + added + ", changed="
-                        + changed + ", removed="
-                        + removed + '}';
+                return "PropertyChange{" + "entityId=" + entityId + ", added=" + added + ", removed=" + removed + '}';
             }
 
             @Override
@@ -129,9 +112,6 @@ class TxStateVisitorTest {
                 if (!added.equals(that.added)) {
                     return false;
                 }
-                if (!changed.equals(that.changed)) {
-                    return false;
-                }
                 return removed.equals(that.removed);
             }
 
@@ -139,7 +119,6 @@ class TxStateVisitorTest {
             public int hashCode() {
                 int result = (int) (entityId ^ (entityId >>> 32));
                 result = 31 * result + added.hashCode();
-                result = 31 * result + changed.hashCode();
                 result = 31 * result + removed.hashCode();
                 return result;
             }
@@ -149,17 +128,16 @@ class TxStateVisitorTest {
         List<PropertyChange> relPropertyChanges = new ArrayList<>();
 
         @Override
-        public void visitNodePropertyChanges(
-                long id, Iterable<StorageProperty> added, Iterable<StorageProperty> changed, IntIterable removed) {
-            nodePropertyChanges.add(new PropertyChange(id, added.iterator(), changed.iterator(), removed));
+        public void visitNodePropertyChanges(long id, Iterable<StorageProperty> added, IntIterable removed) {
+            nodePropertyChanges.add(new PropertyChange(id, added.iterator(), removed));
         }
 
         @Override
         public void visitRelationshipModifications(RelationshipModifications modifications) {
             modifications
                     .updates()
-                    .forEach((id, typeId, startNodeId, endNodeId, added, changed, removed) -> relPropertyChanges.add(
-                            new PropertyChange(id, added.iterator(), changed.iterator(), removed)));
+                    .forEach((id, typeId, startNodeId, endNodeId, added, removed) ->
+                            relPropertyChanges.add(new PropertyChange(id, added.iterator(), removed)));
         }
     }
 }

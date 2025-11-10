@@ -63,11 +63,11 @@ public final class RelationshipBasedTransactionToIndexUpdateVisitor extends Tran
 
         modifications
                 .creations()
-                .forEach((id, type, sn, en, ap, cp, rp) -> indexUpdatesState.addTokenUpdate(
+                .forEach((id, type, sn, en, ap, rp) -> indexUpdatesState.addTokenUpdate(
                         tokenChange(id, relationshipTypeIndex, NO_TOKENS, new int[] {type})));
         modifications
                 .deletions()
-                .forEach((id, type, sn, en, ap, cp, rp) -> indexUpdatesState.addTokenUpdate(
+                .forEach((id, type, sn, en, ap, rp) -> indexUpdatesState.addTokenUpdate(
                         tokenChange(id, relationshipTypeIndex, new int[] {findTypeToRemove(id, type)}, NO_TOKENS)));
     }
 

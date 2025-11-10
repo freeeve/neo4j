@@ -112,20 +112,19 @@ class SnapshotExecutionIT {
 
     @Test
     void testBasicSnapshotRead() {
+        try (Transaction tx = driver.session().beginTransaction()) {
+            tx.run("MATCH (f:First)\n SET f:Test").consume();
+            tx.commit();
+        }
         var query = joinAsLines(
-                "MATCH (f:First)",
-                "WITH f.number AS f",
-                "CALL se.doConcurrently('MATCH (f:First)\n SET f.number=1')",
-                "CALL se.doConcurrently('MATCH (s:Second)\n SET s.number=1')",
-                "MATCH (s:Second)",
-                "RETURN f, s.number AS s");
+                "MATCH (f:Test)",
+                "WITH f AS f",
+                "CALL se.doConcurrently('MATCH (f:First)\n REMOVE f:Test')",
+                "RETURN f");
 
-        var result = driver.session().run(query).stream()
-                .map(r -> List.of(r.get("f", -1), r.get("s", -1)))
-                .findFirst()
-                .get();
-        // The result would be (0, 1) without Snapshot EE
-        assertEquals(List.of(1, 1), result);
+        var result = driver.session().run(query).list();
+        // The result would be one node found without Snapshot EE
+        assertEquals(List.of(), result);
     }
 
     /**

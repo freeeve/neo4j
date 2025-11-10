@@ -73,18 +73,8 @@ class RelationshipStateImpl extends EntityStateImpl implements RelationshipState
         }
 
         @Override
-        public Iterable<StorageProperty> changedProperties() {
-            return emptyList();
-        }
-
-        @Override
         public IntIterable removedProperties() {
             return IntSets.immutable.empty();
-        }
-
-        @Override
-        public Iterable<StorageProperty> addedAndChangedProperties() {
-            return emptyList();
         }
 
         @Override
@@ -181,8 +171,7 @@ class RelationshipStateImpl extends EntityStateImpl implements RelationshipState
     @Override
     public <EX extends Exception> boolean accept(RelationshipVisitorWithProperties<EX> visitor) throws EX {
         if (type != TokenConstants.NO_TOKEN) {
-            visitor.visit(
-                    getId(), type, startNode, endNode, addedProperties(), changedProperties(), removedProperties());
+            visitor.visit(getId(), type, startNode, endNode, addedProperties(), removedProperties());
             return true;
         }
         return false;

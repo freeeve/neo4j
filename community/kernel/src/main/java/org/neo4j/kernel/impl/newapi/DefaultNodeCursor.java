@@ -360,7 +360,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
     }
 
     private Iterable<StorageProperty> txStateProperties() {
-        return txStateHolder.txState().getNodeState(this.nodeReference()).addedAndChangedProperties();
+        return txStateHolder.txState().getNodeState(this.nodeReference()).addedProperties();
     }
 
     private TokenSet labels(StorageNodeCursor nodeCursor) {

@@ -29,7 +29,6 @@ import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.collection.factory.CollectionsFactory;
-import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.PropertyKeyValue;
 import org.neo4j.storageengine.api.StorageProperty;
@@ -40,7 +39,6 @@ import org.neo4j.values.storable.Values;
 class EntityStateImpl implements EntityState {
     private final long id;
     private MutableLongObjectMap<Value> addedProperties;
-    private MutableLongObjectMap<Value> changedProperties;
     private MutableLongSet removedProperties;
 
     final CollectionsFactory collectionsFactory;
@@ -57,9 +55,6 @@ class EntityStateImpl implements EntityState {
     }
 
     void clear() {
-        if (changedProperties != null) {
-            changedProperties.clear();
-        }
         if (addedProperties != null) {
             addedProperties.clear();
         }
@@ -68,28 +63,9 @@ class EntityStateImpl implements EntityState {
         }
     }
 
-    void changeProperty(int propertyKeyId, Value value) {
-        if (addedProperties != null && addedProperties.containsKey(propertyKeyId)) {
-            addedProperties.put(propertyKeyId, value);
-            return;
-        }
-
-        if (changedProperties == null) {
-            changedProperties = collectionsFactory.newObjectMap(memoryTracker);
-        }
-        changedProperties.put(propertyKeyId, value);
-
+    void addProperty(int propertyKeyId, Value value) {
         if (removedProperties != null) {
             removedProperties.remove(propertyKeyId);
-        }
-    }
-
-    void addProperty(int propertyKeyId, Value value) {
-        if (removedProperties != null && removedProperties.remove(propertyKeyId)) {
-            // This indicates the user did remove+add as two discrete steps, which should be translated to
-            // a single change operation.
-            changeProperty(propertyKeyId, value);
-            return;
         }
         if (addedProperties == null) {
             addedProperties = collectionsFactory.newObjectMap(memoryTracker);
@@ -97,27 +73,23 @@ class EntityStateImpl implements EntityState {
         addedProperties.put(propertyKeyId, value);
     }
 
-    void removeProperty(int propertyKeyId) {
-        if (addedProperties != null && addedProperties.remove(propertyKeyId) != null) {
-            return;
+    boolean removePropertyFromTxState(int propertyKeyId) {
+        if (addedProperties != null) {
+            return addedProperties.remove(propertyKeyId) != null;
         }
+        return false;
+    }
+
+    void removePropertyFromStore(int propertyKeyId) {
         if (removedProperties == null) {
             removedProperties = collectionsFactory.newLongSet(memoryTracker);
         }
         removedProperties.add(propertyKeyId);
-        if (changedProperties != null) {
-            changedProperties.remove(propertyKeyId);
-        }
     }
 
     @Override
     public Iterable<StorageProperty> addedProperties() {
         return toStorageProperties(addedProperties);
-    }
-
-    @Override
-    public Iterable<StorageProperty> changedProperties() {
-        return toStorageProperties(changedProperties);
     }
 
     @Override
@@ -128,27 +100,15 @@ class EntityStateImpl implements EntityState {
     }
 
     @Override
-    public Iterable<StorageProperty> addedAndChangedProperties() {
-        if (addedProperties == null) {
-            return toStorageProperties(changedProperties);
-        }
-        if (changedProperties == null) {
-            return toStorageProperties(addedProperties);
-        }
-        return Iterables.concat(toStorageProperties(addedProperties), toStorageProperties(changedProperties));
-    }
-
-    @Override
     public boolean hasPropertyChanges() {
         return (addedProperties != null && !addedProperties.isEmpty())
-                || (removedProperties != null && !removedProperties.isEmpty())
-                || (changedProperties != null && !changedProperties.isEmpty());
+                || (removedProperties != null && !removedProperties.isEmpty());
     }
 
     @Override
     public boolean isPropertyChangedOrRemoved(int propertyKey) {
         return (removedProperties != null && removedProperties.contains(propertyKey))
-                || (changedProperties != null && changedProperties.containsKey(propertyKey));
+                || (addedProperties != null && addedProperties.containsKey(propertyKey));
     }
 
     @Override
@@ -166,9 +126,6 @@ class EntityStateImpl implements EntityState {
             if (addedValue != null) {
                 return addedValue;
             }
-        }
-        if (changedProperties != null) {
-            return changedProperties.get(propertyKey);
         }
         return null;
     }

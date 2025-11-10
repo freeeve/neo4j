@@ -43,8 +43,7 @@ public interface TxStateVisitor extends AutoCloseable {
 
     void visitRelationshipModifications(RelationshipModifications modifications) throws ConstraintValidationException;
 
-    void visitNodePropertyChanges(
-            long id, Iterable<StorageProperty> added, Iterable<StorageProperty> changed, IntIterable removed)
+    void visitNodePropertyChanges(long id, Iterable<StorageProperty> added, IntIterable removed)
             throws ConstraintValidationException;
 
     void visitNodeLabelChanges(long id, IntSet added, IntSet removed) throws ConstraintValidationException;
@@ -84,8 +83,7 @@ public interface TxStateVisitor extends AutoCloseable {
                 throws ConstraintValidationException {}
 
         @Override
-        public void visitNodePropertyChanges(
-                long id, Iterable<StorageProperty> added, Iterable<StorageProperty> changed, IntIterable removed)
+        public void visitNodePropertyChanges(long id, Iterable<StorageProperty> added, IntIterable removed)
                 throws ConstraintValidationException {}
 
         @Override
@@ -159,10 +157,9 @@ public interface TxStateVisitor extends AutoCloseable {
         }
 
         @Override
-        public void visitNodePropertyChanges(
-                long id, Iterable<StorageProperty> added, Iterable<StorageProperty> changed, IntIterable removed)
+        public void visitNodePropertyChanges(long id, Iterable<StorageProperty> added, IntIterable removed)
                 throws ConstraintValidationException {
-            actual.visitNodePropertyChanges(id, added, changed, removed);
+            actual.visitNodePropertyChanges(id, added, removed);
         }
 
         @Override

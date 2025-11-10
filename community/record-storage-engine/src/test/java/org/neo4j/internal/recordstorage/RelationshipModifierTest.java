@@ -459,11 +459,11 @@ class RelationshipModifierTest {
         this.lockTracking.preModify(true);
         modifications
                 .creations()
-                .forEach((id, type, start, end, addedProperties, changedProperties, removedProperties) ->
+                .forEach((id, type, start, end, addedProperties, removedProperties) ->
                         context.acquireRelationshipCreationLock(NONE, start, end, false, false));
         modifications
                 .deletions()
-                .forEach((id, type, start, end, noProperties, changedProperties, removedProperties) ->
+                .forEach((id, type, start, end, noProperties, removedProperties) ->
                         context.acquireRelationshipDeletionLock(NONE, start, end, id, false, false, false));
         this.lockTracking.preModify(false);
 
@@ -553,11 +553,11 @@ class RelationshipModifierTest {
             RelationshipModifications modifications, List<RelationshipData> expectedRelationships) {
         modifications
                 .creations()
-                .forEach((id, type, start, end, aP, cP, rP) ->
+                .forEach((id, type, start, end, aP, rP) ->
                         expectedRelationships.add(new RelationshipData(id, type, start, end)));
         modifications
                 .deletions()
-                .forEach((id, type, start, end, aP, cP, rP) ->
+                .forEach((id, type, start, end, aP, rP) ->
                         expectedRelationships.remove(new RelationshipData(id, type, start, end)));
     }
 

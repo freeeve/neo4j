@@ -301,6 +301,40 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
     }
 
     @Test
+    void shouldRemoveAddedPropertyFromNode() throws Exception {
+        // Given
+        long node = createNode();
+
+        // When
+        try (KernelTransaction tx = beginTransaction()) {
+            int token = tx.token().propertyKeyGetOrCreateForName(propertyKey);
+            tx.dataWrite().nodeSetProperty(node, token, Values.intValue(42));
+            assertThat(tx.dataWrite().nodeRemoveProperty(node, token)).isEqualTo(Values.intValue(42));
+            tx.commit();
+        }
+
+        // Then
+        assertNoProperty(node, propertyKey);
+    }
+
+    @Test
+    void shouldRemoveChangedPropertyFromNode() throws Exception {
+        // Given
+        long node = createNodeWithProperty(propertyKey, 42);
+
+        // When
+        try (KernelTransaction tx = beginTransaction()) {
+            int token = tx.token().propertyKeyGetOrCreateForName(propertyKey);
+            tx.dataWrite().nodeSetProperty(node, token, Values.intValue(24));
+            assertThat(tx.dataWrite().nodeRemoveProperty(node, token)).isEqualTo(Values.intValue(24));
+            tx.commit();
+        }
+
+        // Then
+        assertNoProperty(node, propertyKey);
+    }
+
+    @Test
     void shouldRemoveNonExistingPropertyFromNode() throws Exception {
         // Given
         long node = createNode();
@@ -369,20 +403,6 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
 
         // then
         assertNoProperty(node, propertyKey);
-    }
-
-    @Test
-    void shouldNotWriteWhenSettingPropertyToSameValue() throws Exception {
-        // Given
-        Value theValue = stringValue("The Value");
-        long nodeId = createNodeWithProperty(propertyKey, theValue.asObject());
-
-        // When
-        KernelTransaction tx = beginTransaction();
-        int property = tx.token().propertyKeyGetOrCreateForName(propertyKey);
-        tx.dataWrite().nodeSetProperty(nodeId, property, theValue);
-
-        assertThat(tx.commit()).isEqualTo(KernelTransaction.READ_ONLY_ID);
     }
 
     @Test

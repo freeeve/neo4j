@@ -175,7 +175,7 @@ abstract class DefaultRelationshipCursor<SELF extends DefaultRelationshipCursor<
         return txStateHolder
                 .txState()
                 .getRelationshipState(this.relationshipReference())
-                .addedAndChangedProperties();
+                .addedProperties();
     }
 
     protected DefaultNodeCursor getSecurityNodeCursor() {

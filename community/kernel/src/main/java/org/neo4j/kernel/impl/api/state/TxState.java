@@ -30,7 +30,6 @@ import static org.neo4j.kernel.impl.api.state.TokenState.createTokenState;
 import static org.neo4j.storageengine.api.txstate.EntityChange.ADDED;
 import static org.neo4j.storageengine.api.txstate.EntityChange.REMOVED;
 import static org.neo4j.storageengine.api.txstate.RelationshipModifications.idsAsBatch;
-import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +38,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import java.util.function.IntPredicate;
 import org.eclipse.collections.api.map.MutableMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
@@ -236,8 +236,7 @@ public class TxState implements TransactionState {
 
         for (NodeState node : modifiedNodes()) {
             if (node.hasPropertyChanges()) {
-                visitor.visitNodePropertyChanges(
-                        node.getId(), node.addedProperties(), node.changedProperties(), node.removedProperties());
+                visitor.visitNodePropertyChanges(node.getId(), node.addedProperties(), node.removedProperties());
             }
 
             final IntDiffSets labelDiffSets = node.labelDiffSets();
@@ -520,44 +519,40 @@ public class TxState implements TransactionState {
     }
 
     @Override
-    public void nodeDoChangeProperty(long nodeId, int propertyKeyId, Value newValue) {
-        getOrCreateNodeState(nodeId).changeProperty(propertyKeyId, newValue);
-        dataChanged();
-    }
-
-    @Override
-    public void relationshipDoReplaceProperty(
-            long relationshipId,
-            int type,
-            long startNode,
-            long endNode,
-            int propertyKeyId,
-            Value replacedValue,
-            Value newValue) {
+    public void relationshipDoAddProperty(
+            long relationshipId, int type, long startNode, long endNode, int propertyKeyId, Value newValue) {
         RelationshipStateImpl relationshipState =
                 getOrCreateRelationshipState(relationshipId, type, startNode, endNode);
-        if (replacedValue != NO_VALUE) {
-            relationshipState.changeProperty(propertyKeyId, newValue);
-        } else {
-            relationshipState.addProperty(propertyKeyId, newValue);
-        }
+        relationshipState.addProperty(propertyKeyId, newValue);
 
         updateRelationship(relationshipId, type, startNode, endNode, relationshipState);
         dataChanged();
     }
 
     @Override
-    public void nodeDoRemoveProperty(long nodeId, int propertyKeyId) {
-        getOrCreateNodeState(nodeId).removeProperty(propertyKeyId);
+    public void nodeDoRemoveProperty(long nodeId, int propertyKeyId, IntPredicate removeFromStore) {
+        NodeStateImpl nodeState = getOrCreateNodeState(nodeId);
+        boolean removedFromTx = nodeState.removePropertyFromTxState(propertyKeyId);
+        if (!removedFromTx || removeFromStore.test(propertyKeyId)) {
+            nodeState.removePropertyFromStore(propertyKeyId);
+        }
         dataChanged();
     }
 
     @Override
     public void relationshipDoRemoveProperty(
-            long relationshipId, int type, long startNode, long endNode, int propertyKeyId) {
+            long relationshipId,
+            int type,
+            long startNode,
+            long endNode,
+            int propertyKeyId,
+            IntPredicate removeFromStore) {
         RelationshipStateImpl relationshipState =
                 getOrCreateRelationshipState(relationshipId, type, startNode, endNode);
-        relationshipState.removeProperty(propertyKeyId);
+        boolean removedFromTx = relationshipState.removePropertyFromTxState(propertyKeyId);
+        if (!removedFromTx || removeFromStore.test(propertyKeyId)) {
+            relationshipState.removePropertyFromStore(propertyKeyId);
+        }
 
         updateRelationship(relationshipId, type, startNode, endNode, relationshipState);
 

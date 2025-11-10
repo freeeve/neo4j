@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.function.Predicates;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -168,7 +169,7 @@ class TxStateTransactionDataViewTest {
         // Given
         int propertyKeyId = ops.propertyKeyTokenHolder().getOrCreateId("theKey");
         Value prevValue = Values.of("prevValue");
-        state.nodeDoChangeProperty(1L, propertyKeyId, Values.of("newValue"));
+        state.nodeDoAddProperty(1L, propertyKeyId, Values.of("newValue"));
         ops.withNode(1).properties("theKey", prevValue);
 
         // When
@@ -187,7 +188,7 @@ class TxStateTransactionDataViewTest {
         // Given
         int propertyKeyId = ops.propertyKeyTokenHolder().getOrCreateId("theKey");
         Value prevValue = Values.of("prevValue");
-        state.nodeDoRemoveProperty(1L, propertyKeyId);
+        state.nodeDoRemoveProperty(1L, propertyKeyId, Predicates.ALWAYS_TRUE_INT);
         ops.withNode(1).properties("theKey", prevValue);
 
         // When
@@ -205,7 +206,7 @@ class TxStateTransactionDataViewTest {
         // Given
         int propertyKeyId = ops.propertyKeyTokenHolder().getOrCreateId("theKey");
         Value prevValue = Values.of("prevValue");
-        state.relationshipDoRemoveProperty(1L, 0, 0, 0, propertyKeyId);
+        state.relationshipDoRemoveProperty(1L, 0, 0, 0, propertyKeyId, Predicates.ALWAYS_TRUE_INT);
         ops.withRelationship(1, 0, 0, 0).properties("theKey", prevValue);
 
         // When
@@ -223,7 +224,7 @@ class TxStateTransactionDataViewTest {
         // Given
         Value prevValue = Values.of("prevValue");
         int propertyKeyId = ops.propertyKeyTokenHolder().getOrCreateId("theKey");
-        state.relationshipDoReplaceProperty(1L, 0, 0, 0, propertyKeyId, prevValue, Values.of("newValue"));
+        state.relationshipDoAddProperty(1L, 0, 0, 0, propertyKeyId, Values.of("newValue"));
         ops.withRelationship(1, 0, 0, 0).properties("theKey", prevValue);
 
         // When

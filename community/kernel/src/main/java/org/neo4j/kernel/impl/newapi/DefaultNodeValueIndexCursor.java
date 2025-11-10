@@ -113,7 +113,7 @@ public class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<D
             return txStateHolder
                     .txState()
                     .getNodeState(securityNodeCursor.nodeReference())
-                    .addedAndChangedProperties();
+                    .addedProperties();
         }
         return Iterables.empty();
     }

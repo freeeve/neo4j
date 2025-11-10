@@ -215,8 +215,7 @@ public class TxStateTransactionDataSnapshot implements TransactionData, AutoClos
             throws PropertyKeyIdNotFoundKernelException {
         for (RelationshipState relState : state.modifiedRelationships()) {
             Relationship relationship = relationship(relState.getId());
-            Iterator<StorageProperty> added =
-                    relState.addedAndChangedProperties().iterator();
+            Iterator<StorageProperty> added = relState.addedProperties().iterator();
             while (added.hasNext()) {
                 StorageProperty property = added.next();
                 assignedRelationshipProperties.add(createRelationshipPropertyEntryView(
@@ -249,8 +248,7 @@ public class TxStateTransactionDataSnapshot implements TransactionData, AutoClos
             MemoryTracker memoryTracker, StorageNodeCursor node, StoragePropertyCursor properties, TokenRead tokenRead)
             throws PropertyKeyIdNotFoundKernelException {
         for (NodeState nodeState : state.modifiedNodes()) {
-            Iterator<StorageProperty> added =
-                    nodeState.addedAndChangedProperties().iterator();
+            Iterator<StorageProperty> added = nodeState.addedProperties().iterator();
             long nodeId = nodeState.getId();
             while (added.hasNext()) {
                 StorageProperty property = added.next();

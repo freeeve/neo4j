@@ -182,7 +182,6 @@ public class FlatRelationshipModifications implements RelationshipModifications 
             long startNode,
             long endNode,
             Collection<StorageProperty> addedProperties,
-            Collection<StorageProperty> changedProperties,
             IntIterable removedProperties) {
         public RelationshipData(long id, int type, long startNode, long endNode) {
             this(id, type, startNode, endNode, Collections.emptyList());
@@ -190,7 +189,7 @@ public class FlatRelationshipModifications implements RelationshipModifications 
 
         public RelationshipData(
                 long id, int type, long startNode, long endNode, Collection<StorageProperty> addedProperties) {
-            this(id, type, startNode, endNode, addedProperties, Collections.emptyList(), IntLists.immutable.empty());
+            this(id, type, startNode, endNode, addedProperties, IntLists.immutable.empty());
         }
 
         public RelationshipDirection direction(long fromNodePov) {
@@ -249,14 +248,8 @@ public class FlatRelationshipModifications implements RelationshipModifications 
     }
 
     public static RelationshipModifications singleUpdate(
-            long id,
-            int type,
-            long startNode,
-            long endNode,
-            Collection<StorageProperty> added,
-            Collection<StorageProperty> changed,
-            IntIterable removed) {
-        return singleUpdate(new RelationshipData(id, type, startNode, endNode, added, changed, removed));
+            long id, int type, long startNode, long endNode, Collection<StorageProperty> added, IntIterable removed) {
+        return singleUpdate(new RelationshipData(id, type, startNode, endNode, added, removed));
     }
 
     public static RelationshipModifications singleUpdate(RelationshipData relationship) {
@@ -283,13 +276,7 @@ public class FlatRelationshipModifications implements RelationshipModifications 
         public <E extends Exception> void forEach(RelationshipVisitorWithProperties<E> relationship) throws E {
             for (RelationshipData rel : relationships) {
                 relationship.visit(
-                        rel.id,
-                        rel.type,
-                        rel.startNode,
-                        rel.endNode,
-                        rel.addedProperties,
-                        rel.changedProperties,
-                        rel.removedProperties);
+                        rel.id, rel.type, rel.startNode, rel.endNode, rel.addedProperties, rel.removedProperties);
             }
         }
     }

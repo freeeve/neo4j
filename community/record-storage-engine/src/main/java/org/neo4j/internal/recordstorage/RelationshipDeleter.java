@@ -80,7 +80,7 @@ class RelationshipDeleter {
             MappedNodeDataLookup nodeDataLookup,
             MemoryTracker memoryTracker,
             ResourceLocker locks) {
-        deletions.forEach((id, type, start, end, addedProps, changedProps, removedProps) -> {
+        deletions.forEach((id, type, start, end, addedProps, removedProps) -> {
             RelationshipRecord record =
                     recordChanges.getRelRecords().getOrLoad(id, null).forChangingLinkage();
             propertyChainDeleter.deletePropertyChain(record, recordChanges.getPropertyRecords(), memoryTracker);
