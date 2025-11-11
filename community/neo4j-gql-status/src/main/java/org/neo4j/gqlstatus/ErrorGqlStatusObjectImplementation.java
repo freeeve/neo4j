@@ -227,6 +227,11 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
             return this;
         }
 
+        public <T> Builder withDiagnosticRecordProperty(DiagnosticRecordProperty<T> property, T value) {
+            diagnosticRecordBuilder.withProperty(property, value);
+            return this;
+        }
+
         public Builder atPosition(int offset, int line, int col) {
             // Assert that the position is valid (only run in tests)
             // An invalid position might indicate that offset, line and column is provided in incorrect order

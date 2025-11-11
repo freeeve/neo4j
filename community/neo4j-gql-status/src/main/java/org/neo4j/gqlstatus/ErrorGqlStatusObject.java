@@ -78,7 +78,7 @@ public interface ErrorGqlStatusObject extends CommonGqlStatusObject {
     }
 
     default ErrorClassification getClassification() {
-        Object maybeClassification = diagnosticRecord().get("_classification");
+        Object maybeClassification = diagnosticRecord().get(Neo4jDiagnosticRecordProperty.CLASSIFICATION.key());
         if (maybeClassification == null) {
             return ErrorClassification.UNKNOWN;
         } else {
