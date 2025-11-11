@@ -100,9 +100,6 @@ public class TransactionLogFilesProviders {
     }
 
     private LastClosedPositionProvider closePositionProvider() {
-        if (overrides.lastClosedPositionSupplier() != null) {
-            return () -> overrides.lastClosedPositionSupplier().get();
-        }
         if (overrides.transactionIdStore() != null) {
             return () ->
                     overrides.transactionIdStore().getLastClosedTransaction().logPosition();

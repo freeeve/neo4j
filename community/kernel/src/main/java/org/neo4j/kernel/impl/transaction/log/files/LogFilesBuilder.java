@@ -37,7 +37,6 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
-import org.neo4j.function.ThrowingSupplier;
 import org.neo4j.internal.nativeimpl.NativeAccess;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -46,7 +45,6 @@ import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.entry.LogSegments;
 import org.neo4j.logging.InternalLogProvider;
@@ -91,7 +89,6 @@ public class LogFilesBuilder {
     private TransactionIdStore transactionIdStore;
     private AppendIndexProvider appendIndexProvider;
     private IntSupplier lastCommittedChecksumProvider;
-    private ThrowingSupplier<LogPosition, IOException> lastClosedPositionSupplier;
     private boolean fileBasedOperationsOnly;
     private DatabaseTracers databaseTracers = DatabaseTracers.EMPTY;
     private MemoryTracker memoryTracker = EmptyMemoryTracker.INSTANCE;
@@ -162,12 +159,6 @@ public class LogFilesBuilder {
         builder.turnOffPreallocation = true;
         builder.noInit = true;
         return builder;
-    }
-
-    public LogFilesBuilder withLastClosedTransactionPositionSupplier(
-            ThrowingSupplier<LogPosition, IOException> lastClosedPositionSupplier) {
-        this.lastClosedPositionSupplier = lastClosedPositionSupplier;
-        return this;
     }
 
     public LogFilesBuilder withLogVersionRepository(LogVersionRepository logVersionRepository) {
@@ -321,7 +312,6 @@ public class LogFilesBuilder {
                 transactionIdStore,
                 appendIndexProvider,
                 lastCommittedChecksumProvider,
-                lastClosedPositionSupplier,
                 databaseLayout,
                 logFormatVersionProvider,
                 kernelVersionProvider,

@@ -19,13 +19,10 @@
  */
 package org.neo4j.kernel.impl.transaction.log.files;
 
-import java.io.IOException;
 import java.util.function.IntSupplier;
-import org.neo4j.function.ThrowingSupplier;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
@@ -36,7 +33,6 @@ public record TransactionLogFilesOverrides(
         TransactionIdStore transactionIdStore,
         AppendIndexProvider appendIndexProvider,
         IntSupplier lastCommittedChecksumProvider,
-        ThrowingSupplier<LogPosition, IOException> lastClosedPositionSupplier,
         DatabaseLayout databaseLayout,
         LogFormatVersionProvider logFormatVersionProvider,
         KernelVersionProvider kernelVersionProvider,
