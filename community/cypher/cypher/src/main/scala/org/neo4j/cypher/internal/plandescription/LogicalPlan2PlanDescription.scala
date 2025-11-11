@@ -189,6 +189,7 @@ import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
+import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeByElementIdSeek
@@ -759,6 +760,50 @@ case class LogicalPlan2PlanDescription(
           indexMode,
           Seq.empty,
           Seq(Details(indexDesc)),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case MergeUniqueNode(idName, label, properties, seekExpressions, _, _, indexType, onMatch, onCreate) =>
+        val queryExpression = if (seekExpressions.length == 1) {
+          SingleQueryExpression(seekExpressions.head)
+        } else {
+          CompositeQueryExpression(seekExpressions.map(SingleQueryExpression(_)))
+        }
+
+        def asPrettyProps(kv: (PropertyKeyName, Expression)): PrettyString = {
+          pretty"${asPrettyString(idName)}.${asPrettyString(kv._1)} = ${asPrettyString(kv._2)}"
+        }
+        def asPretty(op: String, props: Seq[(PropertyKeyName, Expression)]): PrettyString = {
+          if (props.isEmpty) pretty""
+          else {
+            pretty"ON ${asPrettyString(op)} SET ${props.map(asPrettyProps).mkPrettyString(", ")}"
+          }
+        }
+
+        val onDetails = pretty"${asPretty("MATCH", onMatch)} ${asPretty("CREATE", onCreate)}"
+
+        val (_, indexDesc) = getNodeIndexDescriptions(
+          idName.name,
+          label,
+          properties.map(_.propertyKeyToken),
+          indexType,
+          queryExpression,
+          unique = true,
+          readOnly,
+          Seq.empty
+        )
+        PlanDescriptionImpl(
+          id,
+          "MergeUniqueNode",
+          Seq.empty,
+          Seq(Details(
+            Seq(
+              indexDesc,
+              onDetails
+            )
+          )),
           variables,
           withRawCardinalities,
           withDistinctness

@@ -228,6 +228,8 @@ object StaticEvaluation {
 
     override def nodeLabelIndexCursor(): NodeLabelIndexCursor = notAvailable()
 
+    override def nodeValueIndexCursor(): NodeValueIndexCursor = notAvailable()
+
     override def relationshipTypeIndexCursor(): RelationshipTypeIndexCursor = notAvailable()
 
     override def traversalCursor(): RelationshipTraversalCursor = notAvailable()

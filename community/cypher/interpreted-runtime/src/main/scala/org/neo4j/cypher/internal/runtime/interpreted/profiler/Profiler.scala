@@ -304,6 +304,10 @@ final class ProfilingPipeQueryContext(
     trace(nodeCursor)
   }
 
+  override protected def manyDbHits(nodeCursor: NodeValueIndexCursor): NodeValueIndexCursor = {
+    trace(nodeCursor)
+  }
+
   override protected def manyDbHits(relCursor: RelationshipTypeIndexCursor): RelationshipTypeIndexCursor = {
     trace(relCursor)
   }

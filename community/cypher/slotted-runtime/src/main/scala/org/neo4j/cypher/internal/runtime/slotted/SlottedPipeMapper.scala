@@ -94,6 +94,7 @@ import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
+import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
@@ -291,6 +292,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.LoadCSVSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.LockNodesSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.LockingMergeSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.MergeIntoSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.MergeUniqueNodeSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe.KeyOffsets
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe.SlotMapping
@@ -476,6 +478,27 @@ class SlottedPipeMapper(
           indexOrder,
           slots
         )(id = id)
+
+      case MergeUniqueNode(
+          idName,
+          label,
+          properties,
+          seekExpressions,
+          _,
+          _,
+          indexType,
+          onMatchProperties,
+          onCreateProperties
+        ) =>
+        new MergeUniqueNodeSlottedPipe(
+          slots.longOffset(idName.name),
+          label.name,
+          indexRegistrator.registerQueryIndex(indexType, label, properties),
+          properties.map(SlottedIndexedProperty(idName, _, slots)).toArray,
+          seekExpressions.map(convertExpressions).toArray,
+          MergePropertySets(compilePropertyExpressions(id, onMatchProperties)),
+          MergePropertySets(compilePropertyExpressions(id, onCreateProperties))
+        )(id)
 
       case NodeByLabelScan(column, label, _, indexOrder) =>
         indexRegistrator.registerLabelScan()
@@ -1018,18 +1041,6 @@ class SlottedPipeMapper(
     val id = plan.id
     val convertExpressions = (e: internal.expressions.Expression) => expressionConverters.toCommandExpression(id, e)
 
-    def compilePropertyExpressions(items: Seq[(PropertyKeyName, internal.expressions.Expression)]) = {
-      val size = items.size
-      val keys = new Array[LazyPropertyKey](size)
-      val values = new Array[Expression](size)
-      items.zipWithIndex.foreach {
-        case ((k, e), i) =>
-          keys(i) = LazyPropertyKey(k)(semanticTable)
-          values(i) = convertExpressions(e)
-      }
-      (keys, values)
-    }
-
     val slots = physicalPlan.slotConfigurations(id)
     // some operators will overwrite this value
     var argumentSize = physicalPlan.argumentSizes.getOrElse(id, SlotConfiguration.Size.zero)
@@ -1089,7 +1100,7 @@ class SlottedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(node, e, p)
         }
-        val (keys, values) = compilePropertyExpressions(items)
+        val (keys, values) = compilePropertyExpressions(id, items)
         Seq(SlottedSetNodePropertiesOperation(slots(node).slot, keys, values, needsExclusiveLock))
       case SetNodePropertiesFromMapPattern(node, map, removeOtherProps) =>
         val needsExclusiveLock = internal.expressions.Expression.mapExpressionHasPropertyReadDependency(node, map)
@@ -1112,7 +1123,7 @@ class SlottedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(rel, e, p)
         }
-        val (keys, values) = compilePropertyExpressions(items)
+        val (keys, values) = compilePropertyExpressions(id, items)
         Seq(SlottedSetRelationshipPropertiesOperation(slots(rel).slot, keys, values, needsExclusiveLock))
       case SetRelationshipPropertiesFromMapPattern(relationship, map, removeOtherProps) =>
         val needsExclusiveLock =
@@ -1138,7 +1149,7 @@ class SlottedPipeMapper(
         ))
 
       case SetPropertiesPattern(entity, items) =>
-        val (keys, values) = compilePropertyExpressions(items)
+        val (keys, values) = compilePropertyExpressions(id, items)
         Seq(SetPropertiesOperation(convertExpressions(entity), keys, values))
       case SetPropertiesFromMapPattern(entityExpression, expression, removeOtherProps) =>
         Seq(SetPropertyFromMapOperation(
@@ -1494,8 +1505,8 @@ class SlottedPipeMapper(
           slots.longOffset(idName.name),
           slots(rightNode).slot,
           LazyType(relType)(semanticTable),
-          MergePropertySets(compilePropertyExpressions(onMatchProperties)),
-          MergePropertySets(compilePropertyExpressions(onCreateProperties)),
+          MergePropertySets(compilePropertyExpressions(id, onMatchProperties)),
+          MergePropertySets(compilePropertyExpressions(id, onCreateProperties)),
           slots
         )(id)
 
@@ -1570,7 +1581,7 @@ class SlottedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(name, e, p)
         }
-        val (keys, values) = compilePropertyExpressions(items)
+        val (keys, values) = compilePropertyExpressions(id, items)
         SetPipe(source, SlottedSetNodePropertiesOperation(slots(name).slot, keys, values, needsExclusiveLock))(id =
           id
         )
@@ -1605,7 +1616,7 @@ class SlottedPipeMapper(
         val needsExclusiveLock = items.exists {
           case (p, e) => internal.expressions.Expression.hasPropertyReadDependency(name, e, p)
         }
-        val (keys, values) = compilePropertyExpressions(items)
+        val (keys, values) = compilePropertyExpressions(id, items)
         SetPipe(
           source,
           SlottedSetRelationshipPropertiesOperation(slots(name).slot, keys, values, needsExclusiveLock)
@@ -2398,6 +2409,21 @@ class SlottedPipeMapper(
       )
     }
     true
+  }
+
+  private def compilePropertyExpressions(
+    id: Id,
+    items: Seq[(PropertyKeyName, internal.expressions.Expression)]
+  ): (Array[LazyPropertyKey], Array[Expression]) = {
+    val size = items.size
+    val keys = new Array[LazyPropertyKey](size)
+    val values = new Array[Expression](size)
+    items.zipWithIndex.foreach {
+      case ((k, e), i) =>
+        keys(i) = LazyPropertyKey(k)(semanticTable)
+        values(i) = expressionConverters.toCommandExpression(id, e)
+    }
+    (keys, values)
   }
 }
 

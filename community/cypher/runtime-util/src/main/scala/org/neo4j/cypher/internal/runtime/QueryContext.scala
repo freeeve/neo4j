@@ -40,7 +40,7 @@ import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.KernelReadTracer
 import org.neo4j.internal.kernel.api.Locks
 import org.neo4j.internal.kernel.api.MutatingEntityCursor
-import org.neo4j.internal.kernel.api.MutatingEntityCursor.MutationCallback
+import org.neo4j.internal.kernel.api.MutationCallback
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.NodeLabelIndexCursor
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
@@ -119,7 +119,13 @@ import scala.collection.immutable.ArraySeq
  * the core layer, we can move that responsibility outside of the scope of cypher.
  */
 trait QueryContext extends ReadQueryContext with WriteQueryContext with MutationCallback {
-  override def onMutation(nodesCreated: Int, relationshipsCreated: Int, propertiesCreated: Int): Unit = {}
+
+  override def onMutation(
+    nodesCreated: Int,
+    relationshipsCreated: Int,
+    labelsCreated: Int,
+    propertiesCreated: Int
+  ): Unit = {}
 }
 
 trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable {
@@ -154,6 +160,8 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
   def nodeCursor(): NodeCursor
 
   def nodeLabelIndexCursor(): NodeLabelIndexCursor
+
+  def nodeValueIndexCursor(): NodeValueIndexCursor
 
   def relationshipTypeIndexCursor(): RelationshipTypeIndexCursor
 

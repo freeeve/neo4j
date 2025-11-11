@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setLabel
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
@@ -140,10 +141,40 @@ class MergeRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
     assertNotRewritten(before)
   }
 
-  private def assertNotRewritten(p: LogicalPlan): Unit = {
-    rewrite(p) should equal(p)
+  test("should not rewrite merge + expandInto if we don't support fastExpandInto") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.merge(Seq.empty, Seq(createRelationship("r", "x", "R", "y")), lockNodes = Set("x", "y"))
+      .|.expandInto("(x)-[r:R]->(y)")
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+
+    assertNotRewritten(before, supportsFastExpandInto = false)
   }
 
-  private def rewrite(p: LogicalPlan): LogicalPlan =
-    p.endoRewrite(mergeRewriter)
+  test("should rewrite merge + unique node index seek") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("x")
+      .merge(Seq(createNodeWithProperties("x", Seq("X"), "{prop: 42}")))
+      .nodeIndexOperator("x:X(prop=42)", unique = true)
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("x")
+      .mergeUniqueNode("x", "X", Seq("prop" -> "42"))
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
+  private def assertNotRewritten(p: LogicalPlan, supportsFastExpandInto: Boolean = true): Unit = {
+    rewrite(p, supportsFastExpandInto) should equal(p)
+  }
+
+  private def rewrite(p: LogicalPlan, supportsFastExpandInto: Boolean = true): LogicalPlan =
+    p.endoRewrite(mergeRewriter(supportsFastExpandInto))
 }

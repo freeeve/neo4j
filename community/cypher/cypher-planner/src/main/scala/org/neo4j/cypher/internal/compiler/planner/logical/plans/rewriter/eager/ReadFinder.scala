@@ -126,6 +126,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanExtension
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
+import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
 import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeByElementIdSeek
@@ -466,6 +467,9 @@ object ReadFinder {
         processNodeIndexPlan(node, labelName, properties)
 
       case NodeUniqueIndexSeek(node, LabelToken(labelName, _), properties, _, _, _, _, _) =>
+        processNodeIndexPlan(node, labelName, properties)
+
+      case MergeUniqueNode(node, LabelToken(labelName, _), properties, _, _, _, _, _, _) =>
         processNodeIndexPlan(node, labelName, properties)
 
       case NodeIndexContainsScan(

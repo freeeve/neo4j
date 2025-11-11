@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
+import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.CreateNode
@@ -69,6 +70,7 @@ import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
+import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
 import org.neo4j.cypher.internal.logical.plans.PhysicalPlanningPlan
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.SetDynamicProperty
@@ -83,6 +85,7 @@ import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperties
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipPropertiesFromMap
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperty
 import org.neo4j.cypher.internal.logical.plans.UpdatingPlan
+import org.neo4j.cypher.internal.util.InputPosition
 
 /**
  * Finds all writes for a single plan.
@@ -309,6 +312,28 @@ object WriteFinder {
           val nodeCreatePart = processCreateNodes(PlanCreates(), nodes)
           val createPart = processCreateRelationships(nodeCreatePart, relationships)
 
+          PlanWrites(setPart, createPart)
+
+        case MergeUniqueNode(idName, label, properties, _, _, _, _, onMatch, onCreate) =>
+          val setPart = Function.chain[PlanSets](Seq(
+            onMatch.foldLeft(_) {
+              case (acc, (p, _)) =>
+                acc.withNodePropertyWritten(AccessedProperty(p, Some(idName)))
+            },
+            onCreate.foldLeft(_) {
+              case (acc, (p, _)) =>
+                acc.withNodePropertyWritten(AccessedProperty(p, Some(idName)))
+            }
+          ))(PlanSets())
+
+          val createPart =
+            PlanCreates()
+              .withCreatedNode(CreatedNode(
+                CreatesStaticNodeLabels(Set(LabelName(label.name)(InputPosition.NONE))),
+                CreatesKnownPropertyKeys(properties.map(p =>
+                  PropertyKeyName(p.propertyKeyToken.name)(InputPosition.NONE)
+                ).toSet)
+              ))
           PlanWrites(setPart, createPart)
 
         case MergeInto(_, rel, source, direction, relType, target, onMatch, onCreate) =>

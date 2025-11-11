@@ -53,6 +53,28 @@ public interface Write {
     long nodeCreateWithLabels(int[] labels) throws ConstraintValidationException;
 
     /**
+     *  Returns node id of node found in the unique index, or else one will be created.
+     *  <p>
+     *   Note that this is a very special method and should be used with caution. It has special locking semantics in
+     *   order to facilitate unique creation of nodes. If a node is found, a shared lock for the index entry will be
+     *   held, whereas if no node is found - we will hold onto an exclusive lock until the close of the transaction.
+     * @param index {@link IndexReadSession} for the index to query.
+     * @param cursor cursor to use for performing the index seek
+     * @param predicates predicates Combination of {@link PropertyIndexQuery.ExactPredicate index queries} to run against referenced index.
+     * @param onMatchProperties if relationships exists, these properties will be set on the existing relationship
+     * @param onCreateProperties if no relationship exists, these properties will be set on the newly created relationship
+     * @return a node id of either found in the unique index, or a newly created one.
+     */
+    long uniqueNodeMerge(
+            IndexReadSession index,
+            NodeValueIndexCursor cursor,
+            PropertyIndexQuery.ExactPredicate[] predicates,
+            IntObjectMap<Value> onMatchProperties,
+            IntObjectMap<Value> onCreateProperties,
+            MutationCallback onMutation)
+            throws KernelException;
+
+    /**
      * Delete a node.
      *
      * @param node the internal id of the node to delete
@@ -87,8 +109,8 @@ public interface Write {
     boolean relationshipDelete(long relationship);
 
     /**
-     * Finds all relationships connecting source and target with the given type and direction,
-     * should no such relationships exists it will be created.
+     * Finds all relationships connecting source and target with the given type and direction.
+     * If no such relationship exists - it will be created.
      * <p>
      * Apart from finding or creating relationship, properties will also be set on the matched and/or
      * created relationships.

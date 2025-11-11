@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.newapi;
 
 import static java.lang.String.format;
+import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 import static org.apache.commons.lang3.ArrayUtils.contains;
 import static org.apache.commons.lang3.ArrayUtils.indexOf;
 import static org.apache.commons.lang3.ArrayUtils.remove;
@@ -80,10 +81,13 @@ import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.EntityCursor;
+import org.neo4j.internal.kernel.api.IndexReadSession;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.MutatingEntityCursor;
+import org.neo4j.internal.kernel.api.MutationCallback;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.NodeLabelIndexCursor;
+import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.RelationshipCursor;
@@ -187,7 +191,6 @@ import org.neo4j.values.storable.Value;
  * Keep that in mind: e.g. nodeCursor, propertyCursor and relationshipCursor
  */
 public class Operations implements Write, SchemaWrite, Upgrade {
-    private static final int[] EMPTY_INT_ARRAY = new int[0];
 
     private final KernelTransactionImplementation ktx;
     private final KernelRead kernelRead;
@@ -347,6 +350,58 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     public long nodeCreateWithLabels(int[] labels) throws ConstraintValidationException {
         ensureCursors();
         return internalNodeCreateWithLabels(commandCreationContext, labels, null);
+    }
+
+    @Override
+    public long uniqueNodeMerge(
+            IndexReadSession index,
+            NodeValueIndexCursor cursor,
+            PropertyIndexQuery.ExactPredicate[] predicates,
+            IntObjectMap<Value> onMatchProperties,
+            IntObjectMap<Value> onCreateProperties,
+            MutationCallback onMutation)
+            throws KernelException {
+        ktx.assertOpen();
+        ensureCursors();
+        int[] labels = index.reference().schema().getEntityTokenIds();
+        Labels labelSet = Labels.from(labels);
+
+        long node = kernelRead.lockingNodeUniqueIndexSeek(index, cursor, predicates);
+        boolean wasFiltered = ((DefaultNodeValueIndexCursor) cursor).wasFiltered();
+        if (node != NO_SUCH_NODE) {
+            if (!onMatchProperties.isEmpty()) {
+                nodeApplyChanges(node, IntSets.immutable.empty(), IntSets.immutable.empty(), onMatchProperties);
+            }
+            onMutation.onMutation(0, 0, 0, onMatchProperties.size());
+            return node;
+        }
+
+        node = internalNodeCreateWithLabels(commandCreationContext, labels, null);
+        for (PropertyIndexQuery.ExactPredicate predicate : predicates) {
+            int propertyKey = predicate.propertyKeyId();
+            Value value = predicate.value();
+            // adding of new property
+            ktx.securityAuthorizationHandler()
+                    .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, labelSet, propertyKey);
+            boolean hasRelatedSchema = storageReader.hasRelatedSchema(labels, propertyKey, NODE);
+            if (hasRelatedSchema && wasFiltered) {
+                checkUniquenessConstraints(node, propertyKey, value, labels, EMPTY_INT_ARRAY);
+            }
+            // We are holding an exclusive index lock, we just checked that there wasn't any matching node and have
+            // just created the node, so we can't violate any uniqueness constraints at this point.
+            ktx.txState().nodeDoAddProperty(node, propertyKey, value);
+            if (hasRelatedSchema) {
+                updater.onPropertyAdd(localNodeCursor, localPropertyCursor, labels, propertyKey, new int[] {}, value);
+            }
+        }
+        if (!onCreateProperties.isEmpty()) {
+            // we could probably do a bit better here since we know the node was just created,
+            // for example this will do singleNode again etc
+            nodeApplyChanges(node, IntSets.immutable.empty(), IntSets.immutable.empty(), onCreateProperties);
+        }
+        onMutation.onMutation(1, 0, labels.length, predicates.length + onCreateProperties.size());
+
+        return node;
     }
 
     private long[] acquireSharedLabelLocks(int[] labels) {
@@ -671,7 +726,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         }
                     }
                 }
-                mutationCallback.onMutation(0, 1, onCreateProperties.size());
+                mutationCallback.onMutation(0, 1, 0, onCreateProperties.size());
                 return newId;
             } catch (EntityNotFoundException e) {
                 throw createEntityNotFoundException(e, e.getUserMessage(token));
@@ -680,12 +735,12 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         private void onMatch(MutationCallback mutationCallback) {
             if (onMatchProperties.isEmpty()) {
-                mutationCallback.onMutation(0, 0, 0);
+                mutationCallback.onMutation(0, 0, 0, 0);
                 return;
             }
             // lock
             acquireExclusiveRelationshipLock(traversalCursor.relationshipReference());
-            mutationCallback.onMutation(0, 0, onMatchProperties.size());
+            mutationCallback.onMutation(0, 0, 0, onMatchProperties.size());
             try {
                 internalRelationshipApply(traversalCursor, propertyCursor, onMatchProperties);
             } catch (ConstraintValidationException e) {

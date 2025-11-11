@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QualifiedName
-import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
@@ -610,8 +609,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .projection("cache[n.prop1] AS `n.prop1`")
-      .merge(Seq(createNodeWithProperties("n", Seq("Awesome"), "{prop1: 'foo'}")))
-      .nodeIndexOperator("n:Awesome(prop1 = 'foo')", _ => GetValue, unique = true)
+      .mergeUniqueNode("n", "Awesome", Seq("prop1" -> "'foo'"), cacheValues = true)
       .build())
   }
 
@@ -636,14 +634,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .projection("cache[n.prop1] AS `n.prop1`")
-      .merge(Seq(createNodeWithProperties("n", Seq("Awesome"), "{prop1: 'foo'}")))
-      .nodeIndexOperator(
-        "n:Awesome(prop1 = 'foo')",
-        _ => GetValue,
-        unique = true,
-        indexType = TEXT,
-        supportPartitionedScan = false
-      )
+      .mergeUniqueNode("n", "Awesome", Seq("prop1" -> "'foo'"), indexType = TEXT, cacheValues = true)
       .build())
   }
 
@@ -657,8 +648,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .projection("n.foo AS `n.foo`")
-      .merge(Seq(createNodeWithProperties("n", Seq("Awesome"), "{prop1: 'foo'}")))
-      .nodeIndexOperator("n:Awesome(prop1 = 'foo')", _ => DoNotGetValue, unique = true)
+      .mergeUniqueNode("n", "Awesome", Seq("prop1" -> "'foo'"))
       .build())
   }
 

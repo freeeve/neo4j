@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.logical.plans.ApplyPlan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.LogicalBinaryPlan
+import org.neo4j.cypher.internal.logical.plans.LogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalUnaryPlan
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -83,8 +84,11 @@ case class EagerEverywhereRewriter(attributes: Attributes[LogicalPlan]) extends 
       case p: LogicalUnaryPlan if p.isUpdatingPlan =>
         eager(p.withLhs(eager(p.source))(SameId(p.id)))
 
+      case p: LogicalLeafPlan if p.isUpdatingPlan =>
+        eager(p)
+
       case p: LogicalPlan if p.isUpdatingPlan =>
-        throw new IllegalStateException("We don't expect non-unary updating plans.")
+        throw new IllegalStateException("Unexpected n-ary updating plan.")
 
       case ap: ApplyPlan =>
         eagerizeApplyPlan(ap)

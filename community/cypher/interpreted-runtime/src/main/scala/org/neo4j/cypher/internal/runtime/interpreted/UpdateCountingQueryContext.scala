@@ -122,9 +122,10 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     inner.addStatistics(statistics)
   }
 
-  override def onMutation(nodes: Int, relationships: Int, properties: Int): Unit = {
+  override def onMutation(nodes: Int, relationships: Int, labels: Int, properties: Int): Unit = {
     nodesCreated.increase(nodes)
     relationshipsCreated.increase(relationships)
+    labelsAdded.increase(labels)
     propertiesSet.increase(properties)
   }
 

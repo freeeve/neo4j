@@ -160,6 +160,7 @@ import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.SameNodeMode
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.FusedMerge
+import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.GetValueFromIndexBehavior
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
@@ -179,6 +180,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
+import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.NestedPlanCollectExpression
@@ -2958,6 +2960,50 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(UnaryOperator(source =>
       FusedMerge(source, nodes, relationships, onMatch, onCreate, lockNodes.map(varFor))(_)
     ))
+  }
+
+  def mergeUniqueNode(
+    node: String,
+    labelName: String,
+    predicates: Seq[(String, String)],
+    onMatch: Seq[(String, String)] = Seq.empty,
+    onCreate: Seq[(String, String)] = Seq.empty,
+    args: Set[String] = Set.empty,
+    indexType: IndexType = IndexType.RANGE,
+    cacheValues: Boolean = false
+  ): IMPL = {
+
+    val n = varFor(VariableParser.unescaped(node))
+    newNode(n)
+    val label = resolver.getLabelId(labelName)
+
+    val (properties, seekExpressions) = predicates.foldLeft((Seq.empty[IndexedProperty], Seq.empty[Expression]))(
+      (acc, current) =>
+        (
+          acc._1 :+
+            IndexedProperty(
+              PropertyKeyToken(current._1, PropertyKeyId(resolver.getPropertyKeyId(current._1))),
+              if (cacheValues) GetValue else DoNotGetValue,
+              NODE_TYPE
+            ),
+          acc._2 :+ parseExpression(current._2)
+        )
+    )
+    appendAtCurrentIndent(LeafOperator(MergeUniqueNode(
+      n,
+      LabelToken(labelName, LabelId(label)),
+      properties,
+      seekExpressions,
+      args.map(a => VariableParser.unescapedVar(a)),
+      IndexOrderNone,
+      indexType,
+      onMatch.map {
+        case (k, v) => PropertyKeyName(k)(pos) -> parseExpression(v)
+      },
+      onCreate.map {
+        case (k, v) => PropertyKeyName(k)(pos) -> parseExpression(v)
+      }
+    )(_)))
   }
 
   def mergeInto(

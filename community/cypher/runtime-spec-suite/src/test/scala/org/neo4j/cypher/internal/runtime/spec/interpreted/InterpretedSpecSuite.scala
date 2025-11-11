@@ -93,6 +93,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.MergeIntoTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MergeProfileRowsTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MergeStressTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MergeTestBase
+import org.neo4j.cypher.internal.runtime.spec.tests.MergeUniqueNodeTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MiscTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MultiNodeIndexSeekTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.NestedPlanDbHitsTestBase
@@ -600,6 +601,10 @@ class InterpretedLockNodesTest extends LockNodesTestBase(COMMUNITY.EDITION, Comm
 
 class InterpretedMergeIntoTest
     extends MergeIntoTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedMergeUniqueNodeTest
+    extends MergeUniqueNodeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
 class InterpretedMergeTest extends MergeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 class InterpretedMergeStressTest extends MergeStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 class InterpretedSetLabelsTest extends SetLabelsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)

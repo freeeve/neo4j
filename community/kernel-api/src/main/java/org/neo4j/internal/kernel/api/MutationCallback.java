@@ -19,12 +19,7 @@
  */
 package org.neo4j.internal.kernel.api;
 
-/**
- * A mutating cursor is a cursor that also performs mutating side-effects while iterating.
- */
-public interface MutatingEntityCursor {
-
-    boolean next(MutationCallback mutationCallback);
-
-    long reference();
+@FunctionalInterface
+public interface MutationCallback {
+    void onMutation(int nodesCreated, int relationshipsCreated, int labelsCreated, int propertiesUpdated);
 }

@@ -401,6 +401,20 @@ object LogicalPlanToPlanBuilderString {
       case FusedMerge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
         params(createNodes, createRelationships, onMatch, onCreate, nodesToLock)
 
+      case MergeUniqueNode(node, label, props, seekExpressions, args, _, indexType, onMatch, onCreate) =>
+        val combined = props.zip(seekExpressions).map {
+          case (p, e) => Param.tupleArrow(p.propertyKeyToken, e.quoted)
+        }
+        params(
+          node.escaped,
+          label,
+          combined,
+          s"Seq(${setPropertiesParam(onMatch)})",
+          s"Seq(${setPropertiesParam(onCreate)})",
+          args.map(_.escaped),
+          indexType
+        )
+
       case MergeInto(_, rel, from, dir, relTYpe, to, onMatch, onCreate) =>
         val (dirStrA, dirStrB) = arrows(dir)
         val typeStr = relTypeStr(Seq(relTYpe))
@@ -2703,7 +2717,7 @@ object LogicalPlanToPlanBuilderString {
     }
 
     /** Writes a tuple of two parameters with arrow syntax a -> b */
-    private def tupleArrow(a: Param, b: Param): Param =
+    def tupleArrow(a: Param, b: Param): Param =
       Param { sb =>
         a.write(sb)
         sb.append(" -> ")

@@ -84,6 +84,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
+import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.PhysicalPlanningPlan
@@ -808,6 +809,13 @@ object RestrictedCaching {
           case (p, v) => protectedProperties(mergeInto.idName, Seq(p.name -> v))
         }
         if (protectedMergeIntoProps.nonEmpty) Some(CombinedProtectedProperties(protectedMergeIntoProps))
+        else None
+
+      case upsert: MergeUniqueNode =>
+        val protectedUpsertProps = upsert.onMatchProperties.map {
+          case (p, v) => protectedProperties(upsert.idName, Seq(p.name -> v))
+        }
+        if (protectedUpsertProps.nonEmpty) Some(CombinedProtectedProperties(protectedUpsertProps))
         else None
 
       case _: Create                 => None

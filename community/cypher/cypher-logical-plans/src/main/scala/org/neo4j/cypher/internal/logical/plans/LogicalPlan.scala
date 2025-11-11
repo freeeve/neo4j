@@ -393,9 +393,10 @@ sealed trait AggregatingPlan extends LogicalPlan {
  *
  * [[LogicalPlan.isUpdatingPlan]] does that check for you if needed.
  */
-sealed trait UpdatingPlan extends LogicalUnaryPlan {
-  override def withLhs(source: LogicalPlan)(idGen: IdGen): UpdatingPlan
+sealed trait UpdatingPlan extends LogicalPlan
 
+sealed trait UpdatingUnaryPlan extends LogicalUnaryPlan with UpdatingPlan {
+  override def withLhs(source: LogicalPlan)(idGen: IdGen): UpdatingUnaryPlan
   final override val distinctness: Distinctness = source.distinctness
 }
 
@@ -1336,7 +1337,7 @@ case class ConditionalApply(
  */
 case class Create(override val source: LogicalPlan, commands: Seq[CreateCommand])(
   implicit idGen: IdGen
-) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
   def nodes: Seq[CreateNode] = commands.collect {
     case c: CreateNode => c
@@ -1346,7 +1347,7 @@ case class Create(override val source: LogicalPlan, commands: Seq[CreateCommand]
     case c: CreateRelationship => c
   }
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = {
@@ -1358,9 +1359,9 @@ case class Create(override val source: LogicalPlan, commands: Seq[CreateCommand]
  * For each input row, delete the entity specified by 'expression'. Entity can be a node, relationship or path.
  */
 case class DeleteExpression(override val source: LogicalPlan, expression: Expression)(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -1370,9 +1371,9 @@ case class DeleteExpression(override val source: LogicalPlan, expression: Expres
  * For each input row, delete the node specified by 'expression' from the graph.
  */
 case class DeleteNode(override val source: LogicalPlan, expression: Expression)(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -1382,9 +1383,9 @@ case class DeleteNode(override val source: LogicalPlan, expression: Expression)(
  * For each input row, delete the path specified by 'expression' from the graph.
  */
 case class DeletePath(override val source: LogicalPlan, expression: Expression)(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -1394,9 +1395,9 @@ case class DeletePath(override val source: LogicalPlan, expression: Expression)(
  * For each input row, delete the relationship specified by 'expression' from the graph.
  */
 case class DeleteRelationship(override val source: LogicalPlan, expression: Expression)(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -1408,9 +1409,9 @@ case class DeleteRelationship(override val source: LogicalPlan, expression: Expr
  *   path) all nodes in the path and all their relationships are deleted.
  */
 case class DetachDeleteExpression(override val source: LogicalPlan, expression: Expression)(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -1420,9 +1421,9 @@ case class DetachDeleteExpression(override val source: LogicalPlan, expression: 
  * For each input row, delete the node specified by 'expression' and all its relationships from the graph.
  */
 case class DetachDeleteNode(override val source: LogicalPlan, expression: Expression)(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -1433,9 +1434,9 @@ case class DetachDeleteNode(override val source: LogicalPlan, expression: Expres
  * relationships are deleted.
  */
 case class DetachDeletePath(override val source: LogicalPlan, expression: Expression)(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -2882,9 +2883,9 @@ case class Foreach(
   expression: Expression,
   mutations: collection.Seq[SimpleMutatingPattern]
 )(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override def localAvailableSymbols: Set[LogicalVariable] =
@@ -3158,10 +3159,10 @@ case class Merge(
   onMatch: Seq[SetMutatingPattern],
   onCreate: Seq[SetMutatingPattern],
   nodesToLock: Set[LogicalVariable]
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
   override def source: LogicalPlan = read
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(read = newLHS)(idGen)
 
   override def localAvailableSymbols: Set[LogicalVariable] = read.localAvailableSymbols
@@ -3174,10 +3175,10 @@ case class FusedMerge(
   onMatch: Seq[SetMutatingPattern],
   onCreate: Seq[SetMutatingPattern],
   nodesToLock: Set[LogicalVariable]
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan with PhysicalPlanningPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan with PhysicalPlanningPlan {
   override def source: LogicalPlan = read
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(read = newLHS)(idGen)
 
   override def localAvailableSymbols: Set[LogicalVariable] = read.localAvailableSymbols
@@ -3206,8 +3207,8 @@ case class MergeInto(
   rightNode: LogicalVariable,
   onMatchProperties: Seq[(PropertyKeyName, Expression)],
   onCreateProperties: Seq[(PropertyKeyName, Expression)]
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
-  override def withLhs(source: LogicalPlan)(idGen: IdGen): UpdatingPlan = copy(source = source)(idGen)
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
+  override def withLhs(source: LogicalPlan)(idGen: IdGen): UpdatingUnaryPlan = copy(source = source)(idGen)
   override def localAvailableSymbols: Set[LogicalVariable] = Set(idName, leftNode, rightNode)
 }
 
@@ -3725,6 +3726,39 @@ object NodeIndexSeek extends IndexSeekNames {
   override val PLAN_DESCRIPTION_UNIQUE_INDEX_SEEK_NAME = "NodeUniqueIndexSeek"
   override val PLAN_DESCRIPTION_UNIQUE_INDEX_SEEK_RANGE_NAME = "NodeUniqueIndexSeekByRange"
   override val PLAN_DESCRIPTION_UNIQUE_LOCKING_INDEX_SEEK_NAME = "NodeUniqueIndexSeek(Locking)"
+}
+
+case class MergeUniqueNode(
+  idName: LogicalVariable,
+  override val label: LabelToken,
+  properties: Seq[IndexedProperty],
+  seekExpressions: Seq[Expression],
+  argumentIds: Set[LogicalVariable],
+  override val indexOrder: IndexOrder,
+  override val indexType: IndexType,
+  onMatchProperties: Seq[(PropertyKeyName, Expression)],
+  onCreateProperties: Seq[(PropertyKeyName, Expression)]
+)(implicit idGen: IdGen) extends NodeIndexLeafPlan(idGen) with StableLeafPlan with UpdatingPlan {
+  override def localAvailableSymbols: Set[LogicalVariable] = Set(idName)
+
+  override def usedVariables: Set[LogicalVariable] =
+    (seekExpressions ++ onMatchProperties.map(_._2) ++ onCreateProperties.map(_._2)).flatMap(_.dependencies).toSet
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): MergeUniqueNode =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): MergeUniqueNode =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def withMappedProperties(f: IndexedProperty => IndexedProperty): NodeIndexLeafPlan =
+    copy(properties = properties.map(f))(SameId(this.id))
+
+  override def copyWithoutGettingValues: NodeIndexLeafPlan =
+    copy(properties = properties.map(_.copy(getValueFromIndex = DoNotGetValue)))(SameId(this.id))
+
 }
 
 /**
@@ -4264,9 +4298,9 @@ case class RemoveLabels(
   idName: LogicalVariable,
   labelNames: Set[LabelName],
   labelExpressions: Set[Expression]
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + idName
@@ -4462,9 +4496,9 @@ case class SetLabels(
   idName: LogicalVariable,
   labelNames: Set[LabelName],
   labelExpressions: Set[Expression]
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + idName
@@ -4475,9 +4509,9 @@ case class SetNodeProperties(
   idName: LogicalVariable,
   items: Seq[(PropertyKeyName, Expression)]
 )(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + idName
@@ -4498,9 +4532,9 @@ case class SetNodePropertiesFromMap(
   expression: Expression,
   removeOtherProps: Boolean
 )(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + idName
@@ -4519,9 +4553,9 @@ case class SetNodeProperty(
   propertyKey: PropertyKeyName,
   value: Expression
 )(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + idName
@@ -4531,9 +4565,9 @@ case class SetProperties(
   override val source: LogicalPlan,
   entity: Expression,
   items: Seq[(PropertyKeyName, Expression)]
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -4552,9 +4586,9 @@ case class SetPropertiesFromMap(
   entity: Expression,
   expression: Expression,
   removeOtherProps: Boolean
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -4572,9 +4606,9 @@ case class SetProperty(
   entity: Expression,
   propertyKey: PropertyKeyName,
   value: Expression
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -4585,9 +4619,9 @@ case class SetDynamicProperty(
   entityExpression: Expression,
   propertyExpression: Expression,
   valueExpression: Expression
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
@@ -4598,9 +4632,9 @@ case class SetRelationshipProperties(
   idName: LogicalVariable,
   items: Seq[(PropertyKeyName, Expression)]
 )(implicit idGen: IdGen)
-    extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+    extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + idName
@@ -4620,9 +4654,9 @@ case class SetRelationshipPropertiesFromMap(
   idName: LogicalVariable,
   expression: Expression,
   removeOtherProps: Boolean
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + idName
@@ -4640,9 +4674,9 @@ case class SetRelationshipProperty(
   idName: LogicalVariable,
   propertyKey: PropertyKeyName,
   expression: Expression
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan {
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingUnaryPlan {
 
-  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingUnaryPlan =
     copy(source = newLHS)(idGen)
 
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + idName

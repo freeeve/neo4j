@@ -153,6 +153,7 @@ import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
+import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.NFA.MultiRelationshipExpansionTransition
@@ -3129,6 +3130,37 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Seq(lhsPD),
         Seq(details(Seq("(x)<-[r:$all(n.prop) {y: 1, crs: \"cartesian\"}]-(y)"))),
         Set("a", "r")
+      )
+    )
+  }
+
+  test("MergeUniqueNode") {
+    assertGood(
+      attach(
+        MergeUniqueNode(
+          varFor("n"),
+          LabelToken("Label", LabelId(0)),
+          Seq(IndexedProperty(PropertyKeyToken("prop", PropertyKeyId(0)), DoNotGetValue, NODE_TYPE)),
+          Seq(stringLiteral("A value")),
+          Set.empty,
+          IndexOrderNone,
+          IndexType.RANGE,
+          Seq(PropertyKeyName("p1")(pos) -> stringLiteral("A"), PropertyKeyName("p2")(pos) -> stringLiteral("B")),
+          Seq(PropertyKeyName("p3")(pos) -> stringLiteral("C"), PropertyKeyName("p4")(pos) -> stringLiteral("D"))
+        ),
+        32.2
+      ),
+      planDescription(
+        id,
+        "MergeUniqueNode",
+        Seq.empty,
+        Seq(details(
+          Seq(
+            "UNIQUE n:Label(prop) WHERE prop = \"A value\"",
+            "ON MATCH SET n.p1 = \"A\", n.p2 = \"B\" ON CREATE SET n.p3 = \"C\", n.p4 = \"D\""
+          )
+        )),
+        Set("n")
       )
     )
   }

@@ -25,13 +25,20 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.SetMutatingPattern
+import org.neo4j.cypher.internal.ir.SetNodePropertiesPattern
+import org.neo4j.cypher.internal.ir.SetNodePropertyPattern
 import org.neo4j.cypher.internal.ir.SetRelationshipPropertiesPattern
 import org.neo4j.cypher.internal.ir.SetRelationshipPropertyPattern
 import org.neo4j.cypher.internal.logical.plans.Argument
+import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
+import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
+import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.QueryExpression
+import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.Rewriter.BottomUpMergeableRewriter
 import org.neo4j.cypher.internal.util.attribution.SameId
@@ -39,7 +46,7 @@ import org.neo4j.cypher.internal.util.bottomUp
 
 import scala.collection.mutable.ArrayBuffer
 
-case object mergeRewriter extends Rewriter with BottomUpMergeableRewriter {
+case class mergeRewriter(supportsFastExpandInto: Boolean) extends Rewriter with BottomUpMergeableRewriter {
 
   override def apply(input: AnyRef): AnyRef = {
     instance.apply(input)
@@ -61,7 +68,7 @@ case object mergeRewriter extends Rewriter with BottomUpMergeableRewriter {
         _,
         _,
         _
-      ) if isRewritable(from, dir, relType, to, rel, m) =>
+      ) if supportsFastExpandInto && isRewritable(from, dir, relType, to, rel, m) =>
       val RelationshipProperties = RelationshipPropertiesForName(rel)
       m match {
         case Merge(_, _, _, RelationshipProperties(onMatch), RelationshipProperties(onCreate), _) =>
@@ -78,6 +85,49 @@ case object mergeRewriter extends Rewriter with BottomUpMergeableRewriter {
         case _ => m
       }
 
+    case m @ Merge(
+        NodeUniqueIndexSeek(
+          idName,
+          label,
+          properties,
+          MergeUniqueSeekExpression(seekExpressions),
+          args,
+          indexOrder,
+          indexType,
+          _
+        ),
+        _,
+        _,
+        _,
+        _,
+        _
+      ) if seekExpressions.length == properties.length =>
+      val NodeProperties = NodePropertiesForName(idName)
+      m match {
+        case Merge(_, _, _, NodeProperties(onMatch), NodeProperties(onCreate), _) =>
+          MergeUniqueNode(
+            idName,
+            label,
+            properties,
+            seekExpressions,
+            args,
+            indexOrder,
+            indexType,
+            onMatch,
+            onCreate
+          )(SameId(m.id))
+        case _ => m
+      }
+  }
+
+  private object MergeUniqueSeekExpression {
+
+    def unapply(in: QueryExpression[Expression]): Option[Seq[Expression]] = in match {
+      case SingleQueryExpression(expression) => Some(Seq(expression))
+      case CompositeQueryExpression(inner) if inner.forall(_.isInstanceOf[SingleQueryExpression[_]]) =>
+        Some(inner.map(_.asInstanceOf[SingleQueryExpression[Expression]].expression))
+      case _ => None
+    }
   }
 
   private case class RelationshipPropertiesForName(relName: LogicalVariable) {
@@ -96,7 +146,24 @@ case object mergeRewriter extends Rewriter with BottomUpMergeableRewriter {
       }
       Some(list.toSeq)
     }
+  }
 
+  private case class NodePropertiesForName(relName: LogicalVariable) {
+
+    def unapply(in: Seq[SetMutatingPattern]): Option[Seq[(PropertyKeyName, Expression)]] = {
+      val list = new ArrayBuffer[(PropertyKeyName, Expression)]()
+      val it = in.iterator
+      while (it.hasNext) {
+        it.next() match {
+          case SetNodePropertyPattern(variable, key, value)
+            if variable == relName && value.isConstantForQuery => list.append(key -> value)
+          case SetNodePropertiesPattern(variable, items)
+            if variable == relName && items.forall(_._2.isConstantForQuery) => list.appendAll(items)
+          case _ => return None
+        }
+      }
+      Some(list.toSeq)
+    }
   }
 
   private def isRewritable(

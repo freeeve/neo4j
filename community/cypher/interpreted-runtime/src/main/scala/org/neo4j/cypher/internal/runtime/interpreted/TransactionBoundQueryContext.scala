@@ -875,6 +875,12 @@ private[internal] class TransactionBoundReadQueryContext(
       transactionalContext.memoryTracker
     )
 
+  override def nodeValueIndexCursor(): NodeValueIndexCursor =
+    transactionalContext.cursors.allocateNodeValueIndexCursor(
+      transactionalContext.cursorContext,
+      transactionalContext.memoryTracker
+    )
+
   override def relationshipTypeIndexCursor(): RelationshipTypeIndexCursor =
     transactionalContext.cursors.allocateRelationshipTypeIndexCursor(
       transactionalContext.cursorContext,

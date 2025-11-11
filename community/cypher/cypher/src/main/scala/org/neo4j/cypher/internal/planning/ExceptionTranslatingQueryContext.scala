@@ -463,6 +463,9 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
   override def nodeLabelIndexCursor(): NodeLabelIndexCursor =
     translateException(tokenNameLookup, inner.nodeLabelIndexCursor())
 
+  override def nodeValueIndexCursor(): NodeValueIndexCursor =
+    translateException(tokenNameLookup, inner.nodeValueIndexCursor())
+
   override def relationshipTypeIndexCursor(): RelationshipTypeIndexCursor =
     translateException(tokenNameLookup, inner.relationshipTypeIndexCursor())
 
