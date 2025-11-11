@@ -131,6 +131,11 @@ public abstract class ArrayValue extends HashMemoizingValue implements SequenceV
     }
 
     @Override
+    public ListValue asListValue() {
+        return VirtualValues.fromArray(this);
+    }
+
+    @Override
     public final boolean equalTo(Object other) {
         if (other == null) {
             return false;

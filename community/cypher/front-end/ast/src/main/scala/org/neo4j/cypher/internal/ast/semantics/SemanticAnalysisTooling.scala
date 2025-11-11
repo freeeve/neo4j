@@ -234,9 +234,9 @@ trait SemanticAnalysisTooling {
           val argTypes = possibilities.foldLeft(TypeSpec.none) { _ | _.argumentTypes.head.covariant }
 
           val info = expression match {
-            case FunctionInvocation(functionName, _, _, _, _, _) =>
+            case f: FunctionInvocation =>
               TypeMismatchContext.TypeMismatchContextVal(
-                s"argument at index $argIdx of function ${functionName.name}()"
+                s"argument at index $argIdx of function ${f.name}()"
               )
             case _ => TypeMismatchContext.EMPTY
           }

@@ -50,6 +50,14 @@ import org.neo4j.cypher.internal.expressions.functions.BTrim
 import org.neo4j.cypher.internal.expressions.functions.Ceil
 import org.neo4j.cypher.internal.expressions.functions.CharacterLength
 import org.neo4j.cypher.internal.expressions.functions.Coalesce
+import org.neo4j.cypher.internal.expressions.functions.CollDistinct
+import org.neo4j.cypher.internal.expressions.functions.CollFlatten
+import org.neo4j.cypher.internal.expressions.functions.CollIndexOf
+import org.neo4j.cypher.internal.expressions.functions.CollInsert
+import org.neo4j.cypher.internal.expressions.functions.CollMax
+import org.neo4j.cypher.internal.expressions.functions.CollMin
+import org.neo4j.cypher.internal.expressions.functions.CollRemove
+import org.neo4j.cypher.internal.expressions.functions.CollSort
 import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.expressions.functions.Cos
 import org.neo4j.cypher.internal.expressions.functions.Cosh
@@ -604,6 +612,18 @@ case class CommunityExpressionConverter(
       case CharacterLength =>
         commands.expressions.CharacterLengthFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Coalesce => commands.expressions.CoalesceFunction(toCommandExpression(id, invocation.arguments, self): _*)
+      case CollDistinct => commands.expressions.CollDistinctFunction(
+          self.toCommandExpression(id, invocation.arguments.head)
+        )
+      case CollRemove => commands.expressions.CollRemoveFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          self.toCommandExpression(id, invocation.arguments(1))
+        )
+      case CollInsert => commands.expressions.CollInsertFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          self.toCommandExpression(id, invocation.arguments(1)),
+          self.toCommandExpression(id, invocation.arguments(2))
+        )
       case Collect =>
         val inner = self.toCommandExpression(id, invocation.arguments.head)
         val command = commands.expressions.Collect(inner)
@@ -900,6 +920,34 @@ case class CommunityExpressionConverter(
             Some(self.toCommandExpression(id, invocation.arguments(1)))
           )
         }
+      case CollFlatten => if (invocation.arguments.size == 1) {
+          commands.expressions.CollFlattenFunction(
+            self.toCommandExpression(id, invocation.arguments.head),
+            None
+          )
+        } else {
+          commands.expressions.CollFlattenFunction(
+            self.toCommandExpression(id, invocation.arguments.head),
+            Some(self.toCommandExpression(id, invocation.arguments(1)))
+          )
+        }
+      case CollSort =>
+        commands.expressions.CollSortFunction(
+          self.toCommandExpression(id, invocation.arguments.head)
+        )
+      case CollIndexOf =>
+        commands.expressions.CollIndexOfFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          self.toCommandExpression(id, invocation.arguments(1))
+        )
+      case CollMax =>
+        commands.expressions.CollMaxFunction(
+          self.toCommandExpression(id, invocation.arguments.head)
+        )
+      case CollMin =>
+        commands.expressions.CollMinFunction(
+          self.toCommandExpression(id, invocation.arguments.head)
+        )
       case Type =>
         commands.expressions.RelationshipTypeFunction(self.toCommandExpression(id, invocation.arguments.head))
       case ValueType => commands.expressions.ValueTypeFunction(self.toCommandExpression(id, invocation.arguments.head))

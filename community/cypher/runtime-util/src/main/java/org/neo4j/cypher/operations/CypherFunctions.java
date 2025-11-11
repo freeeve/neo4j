@@ -33,10 +33,12 @@ import static org.neo4j.values.storable.Values.NaN;
 import static org.neo4j.values.storable.Values.TRUE;
 import static org.neo4j.values.storable.Values.booleanValue;
 import static org.neo4j.values.storable.Values.doubleValue;
+import static org.neo4j.values.storable.Values.intValue;
 import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.storable.Values.stringValue;
 import static org.neo4j.values.virtual.VirtualValues.EMPTY_LIST;
 import static org.neo4j.values.virtual.VirtualValues.asList;
+import static org.neo4j.values.virtual.VirtualValues.fromList;
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
 import java.math.BigDecimal;
@@ -116,6 +118,7 @@ import org.neo4j.token.api.TokenConstants;
 import org.neo4j.token.api.TokenType;
 import org.neo4j.util.CalledFromGeneratedCode;
 import org.neo4j.values.AnyValue;
+import org.neo4j.values.AnyValues;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.SequenceValue;
 import org.neo4j.values.VectorCandidate;
@@ -1076,6 +1079,217 @@ public final class CypherFunctions {
             }
         } else {
             throw notAString("ltrim", trimSource);
+        }
+    }
+
+    public static AnyValue collSort(AnyValue list) {
+        if (list == NO_VALUE) {
+            return NO_VALUE;
+        } else if (list instanceof SequenceValue seq) {
+            List<AnyValue> newList = new ArrayList<>();
+            if (seq.iterationPreference() == SequenceValue.IterationPreference.RANDOM_ACCESS) {
+                for (int i = 0; i < seq.intSize(); i++) {
+                    newList.add(seq.value(i));
+                }
+            } else {
+                for (AnyValue anyValue : seq) {
+                    newList.add(anyValue);
+                }
+            }
+            newList.sort(AnyValues.COMPARATOR);
+
+            return fromList(newList);
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'coll.sort()': Expected %s to be a list", list),
+                    "coll.sort",
+                    list.prettyPrint(),
+                    List.of("LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(list));
+        }
+    }
+
+    public static AnyValue collIndexOf(AnyValue list, AnyValue value) {
+        if (list == NO_VALUE || value == NO_VALUE) {
+            return NO_VALUE;
+        } else if (list instanceof SequenceValue sequence) {
+            return intValue(sequence.indexOf(value));
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'coll.indexOf()': Expected %s to be a list", list),
+                    "coll.indexOf",
+                    list.prettyPrint(),
+                    List.of("LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(list));
+        }
+    }
+
+    public static AnyValue collMax(AnyValue list) {
+        if (list == NO_VALUE) {
+            return NO_VALUE;
+        } else if (list instanceof SequenceValue sequence) {
+            if (sequence.isEmpty()) {
+                return NO_VALUE;
+            }
+            AnyValue maxValue = sequence.head();
+            if (sequence.iterationPreference() == SequenceValue.IterationPreference.RANDOM_ACCESS) {
+                // use a for loop; skip head as we already assume that is max
+                for (int i = 1; i < sequence.intSize(); i++) {
+                    var anyValue = sequence.value(i);
+                    if (AnyValues.TERNARY_COMPARATOR.compare(anyValue, maxValue) > 0) {
+                        maxValue = anyValue;
+                    }
+                }
+            } else {
+                // use the iterator
+                for (AnyValue anyValue : sequence) {
+                    if (AnyValues.TERNARY_COMPARATOR.compare(anyValue, maxValue) > 0) {
+                        maxValue = anyValue;
+                    }
+                }
+            }
+
+            return maxValue;
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'coll.max()': Expected %s to be a list", list),
+                    "coll.max",
+                    list.prettyPrint(),
+                    List.of("LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(list));
+        }
+    }
+
+    public static AnyValue collMin(AnyValue list) {
+        if (list == NO_VALUE) {
+            return NO_VALUE;
+        } else if (list instanceof SequenceValue sequence) {
+            AnyValue minValue = NO_VALUE;
+            if (sequence.iterationPreference() == SequenceValue.IterationPreference.RANDOM_ACCESS) {
+                // use a for loop
+                for (int i = 0; i < sequence.intSize(); i++) {
+                    var anyValue = sequence.value(i);
+                    if (AnyValues.TERNARY_COMPARATOR.compare(anyValue, minValue) < 0) {
+                        minValue = anyValue;
+                    }
+                }
+            } else {
+                // use the iterator
+                for (AnyValue anyValue : sequence) {
+                    if (AnyValues.TERNARY_COMPARATOR.compare(anyValue, minValue) < 0) {
+                        minValue = anyValue;
+                    }
+                }
+            }
+            return minValue;
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'coll.min()': Expected %s to be a list", list),
+                    "coll.min",
+                    list.prettyPrint(),
+                    List.of("LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(list));
+        }
+    }
+
+    public static AnyValue collFlatten(AnyValue list) {
+        if (list == NO_VALUE) {
+            return NO_VALUE;
+        } else if (list instanceof SequenceValue sequence) {
+            return sequence.flatten(1);
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'coll.flatten()': Expected %s to be a list", list),
+                    "coll.flatten",
+                    list.prettyPrint(),
+                    List.of("LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(list));
+        }
+    }
+
+    public static AnyValue collFlatten(AnyValue list, AnyValue depth) {
+        if (list == NO_VALUE || depth == NO_VALUE) {
+            return NO_VALUE;
+        } else if (list instanceof SequenceValue sequence) {
+            int maxDepth = asIntExact(
+                    depth, () -> "Invalid input for depth value in function 'coll.flatten()'", "coll.flatten", false);
+            if (maxDepth < 0) {
+                throw InvalidArgumentException.argumentOutOfRange("coll.flatten", "depth", 0, Long.MAX_VALUE, maxDepth);
+            }
+
+            return sequence.flatten(maxDepth);
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'coll.flatten()': Expected %s to be a list", list),
+                    "coll.flatten",
+                    list.prettyPrint(),
+                    List.of("LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(list));
+        }
+    }
+
+    public static AnyValue collInsert(AnyValue list, AnyValue index, AnyValue value) {
+        if (list == NO_VALUE || index == NO_VALUE) {
+            return NO_VALUE;
+        } else if (list instanceof SequenceValue sequence) {
+            int givenIndex = asIntExact(
+                    index, () -> "Invalid input for index value in function 'coll.insert()'", "coll.insert", false);
+            if (givenIndex < 0 || givenIndex > sequence.intSize()) {
+                throw InvalidArgumentException.argumentOutOfRange(
+                        "coll.insert", "index", 0, sequence.intSize(), givenIndex);
+            }
+
+            return sequence.insertAt(givenIndex, value);
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'coll.insert()': Expected %s to be a list", list),
+                    "coll.insert",
+                    list.prettyPrint(),
+                    List.of("LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(list));
+        }
+    }
+
+    public static AnyValue collRemove(AnyValue list, AnyValue index) {
+        if (list == NO_VALUE || index == NO_VALUE) {
+            return NO_VALUE;
+        } else if (list instanceof SequenceValue sequence) {
+            if (sequence.intSize() == 0) {
+                throw new InvalidArgumentException(
+                        GqlHelper.getGql22N38_22N04(
+                                "coll.remove()", "[]", "list", List.of("argument list must not be empty")),
+                        "The argument `list` in the `coll.remove()` function must not be empty.");
+            }
+            int givenIndex = asIntExact(
+                    index, () -> "Invalid input for index value in function 'coll.remove()'", "coll.remove", false);
+            if (givenIndex < 0 || givenIndex >= sequence.intSize()) {
+                throw InvalidArgumentException.argumentOutOfRange(
+                        "coll.remove", "index", 0, sequence.intSize() - 1, givenIndex);
+            }
+
+            return sequence.remove(givenIndex);
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'coll.remove()': Expected %s to be a list", list),
+                    "coll.remove",
+                    list.prettyPrint(),
+                    List.of("LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(list));
+        }
+    }
+
+    public static AnyValue collDistinct(AnyValue list) {
+        if (list == NO_VALUE) {
+            return NO_VALUE;
+        } else if (list instanceof SequenceValue sequence) {
+            return sequence.asListValue().distinct();
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'coll.distinct()': Expected %s to be a list", list),
+                    "coll.distinct",
+                    list.prettyPrint(),
+                    List.of("LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(list));
         }
     }
 

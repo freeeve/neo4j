@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.ListValue;
+import org.neo4j.values.virtual.ListValueBuilder;
 
 /**
  * Values that represent sequences of values (such as Lists or Arrays) need to implement this interface.
@@ -84,6 +85,8 @@ public interface SequenceValue extends Iterable<AnyValue> {
     IterationPreference iterationPreference();
 
     ListValue reverse(); // SequenceValue does not extend AnyValue so ListValue is a better return type
+
+    ListValue asListValue();
 
     String prettyPrint();
 
@@ -256,5 +259,55 @@ public interface SequenceValue extends Iterable<AnyValue> {
         } else {
             return ternaryEqualsUsingIterators(this, other);
         }
+    }
+
+    default ListValue flatten(int depth) {
+        if (depth == 0) {
+            return this.asListValue();
+        }
+        ListValueBuilder listBuilder = ListValueBuilder.newListBuilder();
+
+        for (AnyValue value : this) {
+            if (value instanceof SequenceValue sequenceValue) {
+                sequenceValue.flatten(depth - 1).forEach(listBuilder::add);
+            } else {
+                listBuilder.add(value);
+            }
+        }
+
+        return listBuilder.build();
+    }
+
+    default ListValue insertAt(int index, AnyValue value) {
+        if (index == 0) {
+            return asListValue().prepend(value);
+        } else if (index == this.intSize()) {
+            return asListValue().append(value);
+        } else {
+            return asListValue().insertAt(index, value);
+        }
+    }
+
+    default ListValue remove(int index) {
+        if (index == 0) {
+            return asListValue().slice(1, this.intSize());
+        } else if (index == this.intSize()) {
+            return asListValue().slice(0, this.intSize() - 1);
+        } else {
+            return asListValue().remove(index);
+        }
+    }
+
+    default int indexOf(AnyValue value) {
+        int index = -1;
+        int currentIndex = 0;
+        Iterator<AnyValue> iterator = iterator();
+        while (index == -1 && iterator.hasNext()) {
+            if (iterator.next().ternaryEquals(value) == Equality.TRUE) {
+                index = currentIndex;
+            }
+            currentIndex = currentIndex + 1;
+        }
+        return index;
     }
 }

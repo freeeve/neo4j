@@ -1052,6 +1052,10 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         return new ReversedList(this);
     }
 
+    public ListValue asListValue() {
+        return this;
+    }
+
     public ListValue append(AnyValue value) {
         return new AppendList(this, value);
     }
@@ -1062,6 +1066,15 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
 
     public ListValue appendAll(ListValue value) {
         return new ConcatList(new ListValue[] {this, value});
+    }
+
+    public ListValue insertAt(int index, AnyValue value) {
+        return new ConcatList(
+                new ListValue[] {new AppendList(this.slice(0, index), value), this.slice(index, this.intSize())});
+    }
+
+    public ListValue remove(int index) {
+        return new ConcatList(new ListValue[] {this.slice(0, index), this.slice(index + 1, this.intSize())});
     }
 
     public ListValue distinct() {

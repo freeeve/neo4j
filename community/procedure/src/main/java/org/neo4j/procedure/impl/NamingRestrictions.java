@@ -219,8 +219,9 @@ public interface NamingRestrictions {
     }
 
     static List<String> namespacedBuiltInFunctions(QueryLanguage queryLanguage) {
-        // This list is currently the same in both Cypher 5 and 25
-        return List.of(
+        // It is a list of all built-in functions that have a namespace
+        // so they can be checked for shadowing
+        var combined = List.of(
                 "date.realtime",
                 "date.statement",
                 "date.transaction",
@@ -256,6 +257,24 @@ public interface NamingRestrictions {
                 "time.truncate",
                 "vector.similarity.cosine",
                 "vector.similarity.euclidean");
+
+        var cypher25Additional = List.of(
+                "coll.distinct",
+                "coll.flatten",
+                "coll.indexOf",
+                "coll.insert",
+                "coll.max",
+                "coll.min",
+                "coll.remove",
+                "coll.sort");
+
+        var cypher25All = new java.util.ArrayList<>(combined);
+        cypher25All.addAll(cypher25Additional);
+
+        return switch (queryLanguage) {
+            case CYPHER_5 -> combined;
+            case CYPHER_25 -> cypher25All;
+        };
     }
 
     class IllegalNamingException extends ProcedureException {
