@@ -51,6 +51,7 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IndexInfo
 import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowConstraintsCommand.constraintIsAddedInTransaction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowIndexesCommand.createIndexStatement
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowSchemaCommandHelper.asEscapedString
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowSchemaCommandHelper.barStringJoiner
@@ -96,6 +97,9 @@ case class ShowIndexesCommand(
     val ctx = state.query
     ctx.assertShowIndexAllowed()
     val constraintIdToName = ctx.getAllConstraints()
+      // Skip the constraint if it's added in the same transaction, as it doesn't have an id yet and getId will throw an error.
+      // The indexDescriptor will give back empty as its owning constraint id for these constraints so it's safe to just ignore them.
+      .filterNot { case (descriptor, _) => constraintIsAddedInTransaction(ctx, descriptor) }
       .map { case (descriptor, _) => descriptor.getId -> descriptor.getName }
     val indexes: Map[IndexDescriptor, IndexInfo] = ctx.getAllIndexes()
     val relevantIndexes = indexType match {

@@ -227,9 +227,6 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
   private val relTargetConstraintInfo =
     ConstraintInfo(List(relType), List(), None, Some(label), Some(EndpointType.END))
 
-  protected lazy val kernelQueryContext: org.neo4j.internal.kernel.api.QueryContext =
-    mock[org.neo4j.internal.kernel.api.QueryContext]
-
   override def beforeEach(): Unit = {
     super.beforeEach()
     when(ctx.transactionalContext).thenReturn(txContext)

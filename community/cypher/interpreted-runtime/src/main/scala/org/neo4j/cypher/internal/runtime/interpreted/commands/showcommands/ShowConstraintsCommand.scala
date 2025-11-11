@@ -59,6 +59,7 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowConstraintsCommand.constraintIsAddedInTransaction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowConstraintsCommand.createConstraintStatement
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowConstraintsCommand.getConstraintType
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowSchemaCommandHelper.createNodeConstraintCommand
@@ -267,11 +268,6 @@ case class ShowConstraintsCommand(
       extractOptionsMap(index.getIndexType, index.getIndexProvider, index.getIndexConfig, cypherVersion)
     } else Values.NO_VALUE
   }
-
-  private def constraintIsAddedInTransaction(ctx: QueryContext, constraintDescriptor: ConstraintDescriptor): Boolean =
-    Option(ctx.transactionalContext.kernelQueryContext.getTransactionStateOrNull)
-      .map(_.constraintsChanges)
-      .exists(_.isAdded(constraintDescriptor))
 }
 
 object ShowConstraintsCommand {
@@ -372,4 +368,12 @@ object ShowConstraintsCommand {
         )
     }
   }
+
+  private[showcommands] def constraintIsAddedInTransaction(
+    ctx: QueryContext,
+    constraintDescriptor: ConstraintDescriptor
+  ): Boolean =
+    Option(ctx.transactionalContext.kernelQueryContext.getTransactionStateOrNull)
+      .map(_.constraintsChanges)
+      .exists(_.isAdded(constraintDescriptor))
 }

@@ -71,6 +71,9 @@ class ShowCommandTestBase extends CypherFunSuite {
   protected lazy val txContext: QueryTransactionalContext = mock[QueryTransactionalContext]
   protected lazy val securityContext: SecurityContext = mock[SecurityContext]
 
+  protected lazy val kernelQueryContext: org.neo4j.internal.kernel.api.QueryContext =
+    mock[org.neo4j.internal.kernel.api.QueryContext]
+
   protected def setupBaseSecurityContext(): Unit = {
     when(ctx.transactionalContext).thenReturn(txContext)
     when(txContext.securityContext).thenReturn(securityContext)

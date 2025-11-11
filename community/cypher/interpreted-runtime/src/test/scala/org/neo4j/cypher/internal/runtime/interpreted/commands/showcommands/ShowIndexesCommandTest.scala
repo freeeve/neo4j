@@ -354,6 +354,8 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
+    when(ctx.transactionalContext).thenReturn(txContext)
+    when(txContext.kernelQueryContext).thenReturn(kernelQueryContext)
 
     // Defaults:
     when(ctx.getConfig).thenReturn(config)
