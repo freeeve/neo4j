@@ -106,6 +106,7 @@ import org.neo4j.cypher.internal.ir.ForeachPattern
 import org.neo4j.cypher.internal.ir.LoadCSVProjection
 import org.neo4j.cypher.internal.ir.MergeNodePattern
 import org.neo4j.cypher.internal.ir.MergeRelationshipPattern
+import org.neo4j.cypher.internal.ir.MutatingPattern
 import org.neo4j.cypher.internal.ir.NodeBinding
 import org.neo4j.cypher.internal.ir.PassthroughAllHorizon
 import org.neo4j.cypher.internal.ir.PatternRelationship
@@ -1184,7 +1185,13 @@ case class LogicalPlanProducer(
     val plan = Apply(left, right)
     val providedOrder =
       providedOrderOfApply(left, right, plan, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(
+      plan,
+      solved,
+      providedOrder,
+      cachedPropertiesPerPlan.get(right.id),
+      context
+    )
   }
 
   def planSubquery(
@@ -3533,6 +3540,16 @@ case class LogicalPlanProducer(
     )
   }
 
+  private def cachedPropertiesAfterMutatingPattern(
+    mutatingPattern: MutatingPattern,
+    planWithMutatingPattern: LogicalPlan
+  ): CachedProperties = {
+    if (mutatingPattern.invalidatesCachedProperties)
+      CachedProperties.empty
+    else
+      cachedPropertiesPerPlan.get(planWithMutatingPattern.id)
+  }
+
   def planCreate(inner: LogicalPlan, pattern: CreatePattern, context: LogicalPlanningContext): LogicalPlan = {
     // Plan remoteBatchProperties when property references are used in the CREATE
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
@@ -3546,7 +3563,7 @@ case class LogicalPlanProducer(
     val plan = plans.Create(rewrittenInner, rewrittenPattern.commands)
     val providedOrder =
       providedOrderOfUpdate(plan, rewrittenInner, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planMerge(
@@ -3596,7 +3613,7 @@ case class LogicalPlanProducer(
       )
     val providedOrder =
       providedOrderOfUpdate(merge, inner, context.settings.executionModel, context.providedOrderFactory)
-    annotate(merge, solved, providedOrder, CachedProperties.empty, context)
+    annotate(merge, solved, providedOrder, cachedPropertiesAfterMutatingPattern(patterns, inner), context)
   }
 
   def planConditionalApply(
@@ -3639,7 +3656,7 @@ case class LogicalPlanProducer(
       }
     val providedOrder =
       providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(delete, inner), context)
   }
 
   def planDeleteRelationship(
@@ -3653,7 +3670,7 @@ case class LogicalPlanProducer(
     val plan = DeleteRelationship(rewrittenInner, rewrittenDelete.expression)
     val providedOrder =
       providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(delete, inner), context)
   }
 
   def planDeletePath(inner: LogicalPlan, delete: DeleteExpression, context: LogicalPlanningContext): LogicalPlan = {
@@ -3669,7 +3686,7 @@ case class LogicalPlanProducer(
       }
     val providedOrder =
       providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(delete, inner), context)
   }
 
   def planDeleteExpression(
@@ -3688,7 +3705,7 @@ case class LogicalPlanProducer(
       }
     val providedOrder =
       providedOrderOfUpdate(plan, inner, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(delete, inner), context)
   }
 
   def planSetLabel(inner: LogicalPlan, pattern: SetLabelPattern, context: LogicalPlanningContext): LogicalPlan = {
@@ -3710,7 +3727,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetNodeProperty(
@@ -3740,7 +3757,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetNodeProperties(
@@ -3765,7 +3782,7 @@ case class LogicalPlanProducer(
     val plan = SetNodeProperties(innerRewrittenRBPs, rewrittenPattern.variable, rewrittenPattern.items)
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetNodePropertiesFromMap(
@@ -3795,7 +3812,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetRelationshipProperty(
@@ -3825,7 +3842,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetRelationshipProperties(
@@ -3850,7 +3867,7 @@ case class LogicalPlanProducer(
     val plan = SetRelationshipProperties(innerRewrittenRBPs, rewrittenPattern.variable, rewrittenPattern.items)
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetRelationshipPropertiesFromMap(
@@ -3880,7 +3897,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetPropertiesFromMap(
@@ -3910,7 +3927,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetProperty(inner: LogicalPlan, pattern: SetPropertyPattern, context: LogicalPlanningContext): LogicalPlan = {
@@ -3936,7 +3953,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetProperties(
@@ -3961,7 +3978,7 @@ case class LogicalPlanProducer(
     val plan = SetProperties(innerRewrittenRBPs, rewrittenPattern.entityExpression, rewrittenPattern.items)
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planSetDynamicProperty(
@@ -3991,7 +4008,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planRemoveLabel(inner: LogicalPlan, pattern: RemoveLabelPattern, context: LogicalPlanningContext): LogicalPlan = {
@@ -4013,7 +4030,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planForeachApply(
@@ -4034,7 +4051,7 @@ case class LogicalPlanProducer(
       context.settings.executionModel,
       context.providedOrderFactory
     )
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, left), context)
   }
 
   def planForeach(
@@ -4062,7 +4079,7 @@ case class LogicalPlanProducer(
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
-    annotate(plan, solved, providedOrder, CachedProperties.empty, context)
+    annotate(plan, solved, providedOrder, cachedPropertiesAfterMutatingPattern(pattern, innerRewrittenRBPs), context)
   }
 
   def planEager(

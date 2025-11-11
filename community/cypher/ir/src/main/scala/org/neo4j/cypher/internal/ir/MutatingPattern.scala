@@ -39,6 +39,8 @@ sealed trait MutatingPattern extends Product {
   def getExpressionsWithPossiblePropertyReferences: Seq[Expression]
 
   def mapExpressions(f: Expression => Expression): MutatingPattern
+
+  def invalidatesCachedProperties: Boolean
 }
 
 sealed trait NoSymbols {
@@ -66,6 +68,8 @@ case class SetPropertyPattern(entityExpression: Expression, propertyKeyName: Pro
     )
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq(expression)
+
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetPropertiesPattern(entityExpression: Expression, items: Seq[(PropertyKeyName, Expression)])
@@ -83,6 +87,8 @@ case class SetPropertiesPattern(entityExpression: Expression, items: Seq[(Proper
     )
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = items.map(_._2)
+
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetRelationshipPropertyPattern(
@@ -97,6 +103,8 @@ case class SetRelationshipPropertyPattern(
     copy(expression = f(expression))
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq(expression)
+
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetRelationshipPropertiesPattern(variable: LogicalVariable, items: Seq[(PropertyKeyName, Expression)])
@@ -111,6 +119,8 @@ case class SetRelationshipPropertiesPattern(variable: LogicalVariable, items: Se
   }
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = items.map(_._2)
+
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetNodePropertiesFromMapPattern(variable: LogicalVariable, expression: Expression, removeOtherProps: Boolean)
@@ -121,6 +131,8 @@ case class SetNodePropertiesFromMapPattern(variable: LogicalVariable, expression
     copy(expression = f(expression))
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq(expression)
+
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetRelationshipPropertiesFromMapPattern(
@@ -134,6 +146,8 @@ case class SetRelationshipPropertiesFromMapPattern(
     copy(expression = f(expression))
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq(expression)
+
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetPropertiesFromMapPattern(entityExpression: Expression, expression: Expression, removeOtherProps: Boolean)
@@ -146,6 +160,8 @@ case class SetPropertiesFromMapPattern(entityExpression: Expression, expression:
     copy(f(entityExpression), f(expression))
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq(expression)
+
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetDynamicPropertyPattern(entity: Expression, property: Expression, expression: Expression)
@@ -158,6 +174,8 @@ case class SetDynamicPropertyPattern(entity: Expression, property: Expression, e
     entity.dependencies ++ property.dependencies ++ expression.dependencies
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq(expression)
+
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetNodePropertyPattern(variable: LogicalVariable, propertyKey: PropertyKeyName, expression: Expression)
@@ -165,6 +183,7 @@ case class SetNodePropertyPattern(variable: LogicalVariable, propertyKey: Proper
   override def dependencies: Set[LogicalVariable] = expression.dependencies + variable
   override def mapExpressions(f: Expression => Expression): SetNodePropertyPattern = copy(expression = f(expression))
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq(expression)
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetNodePropertiesPattern(variable: LogicalVariable, items: Seq[(PropertyKeyName, Expression)])
@@ -179,6 +198,8 @@ case class SetNodePropertiesPattern(variable: LogicalVariable, items: Seq[(Prope
   }
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = items.map(_._2)
+
+  override def invalidatesCachedProperties: Boolean = true
 }
 
 case class SetLabelPattern(variable: LogicalVariable, labels: Seq[LabelName], dynamicLabels: Seq[Expression])
@@ -188,6 +209,8 @@ case class SetLabelPattern(variable: LogicalVariable, labels: Seq[LabelName], dy
 
   override def mapExpressions(f: Expression => Expression): SetLabelPattern =
     copy(dynamicLabels = dynamicLabels.map(f(_)))
+
+  override def invalidatesCachedProperties: Boolean = false
 }
 
 case class RemoveLabelPattern(variable: LogicalVariable, labels: Seq[LabelName], dynamicLabels: Seq[Expression])
@@ -199,6 +222,7 @@ case class RemoveLabelPattern(variable: LogicalVariable, labels: Seq[LabelName],
 
   override def mapExpressions(f: Expression => Expression): RemoveLabelPattern =
     copy(dynamicLabels = dynamicLabels.map(f(_)))
+  override def invalidatesCachedProperties: Boolean = false
 }
 
 case class CreatePattern(commands: Seq[CreateCommand]) extends SimpleMutatingPattern
@@ -231,6 +255,8 @@ case class CreatePattern(commands: Seq[CreateCommand]) extends SimpleMutatingPat
   }
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = commands.flatMap(_.properties)
+
+  override def invalidatesCachedProperties: Boolean = false
 }
 
 case class DeleteExpression(expression: Expression, detachDelete: Boolean) extends DeleteMutatingPattern
@@ -240,6 +266,8 @@ case class DeleteExpression(expression: Expression, detachDelete: Boolean) exten
   override def mapExpressions(f: Expression => Expression): DeleteExpression = copy(expression = f(expression))
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq.empty
+
+  override def invalidatesCachedProperties: Boolean = false
 }
 
 sealed trait MergePattern {
@@ -264,6 +292,8 @@ case class MergeNodePattern(
   override def mapExpressions(f: Expression => Expression): MergeNodePattern = this // Not implemented
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq.empty // Not implemented
+
+  override def invalidatesCachedProperties: Boolean = onMatch.exists(_.invalidatesCachedProperties)
 }
 
 case class MergeRelationshipPattern(
@@ -285,6 +315,8 @@ case class MergeRelationshipPattern(
   override def mapExpressions(f: Expression => Expression): MergeRelationshipPattern = this // Not implemented
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq.empty // Not implemented
+
+  override def invalidatesCachedProperties: Boolean = onMatch.exists(_.invalidatesCachedProperties)
 }
 
 case class ForeachPattern(variable: LogicalVariable, expression: Expression, innerUpdates: SinglePlannerQuery)
@@ -302,4 +334,9 @@ case class ForeachPattern(variable: LogicalVariable, expression: Expression, inn
 
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] =
     innerUpdates.queryGraph.mutatingPatterns.flatMap(_.getExpressionsWithPossiblePropertyReferences)
+
+  override def invalidatesCachedProperties: Boolean =
+    innerUpdates.allPlannerQueries.exists(
+      _.queryGraph.mutatingPatterns.exists(_.invalidatesCachedProperties)
+    )
 }

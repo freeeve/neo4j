@@ -284,7 +284,7 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
           Set.empty
         )
         .filter("cacheN[p.name] = 'Andy'")
-        .remoteBatchProperties("cacheNFromStore[p.name]", "cacheNFromStore[p.existed]")
+        .remoteBatchProperties("cacheNFromStore[p.name]")
         .nodeByLabelScan("p", "Person")
         .build()
   }
@@ -304,7 +304,6 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`r.name`", "`r.existed`")
         .projection("cacheR[r.name] AS `r.name`", "cacheR[r.existed] AS `r.existed`")
-        .remoteBatchProperties("cacheRFromStore[r.name]", "cacheRFromStore[r.existed]")
         .apply()
         .|.merge(
           Seq(),
@@ -693,7 +692,6 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .filter("cacheN[p.hometown] = $hometown")
       .remoteBatchProperties(
         "cacheNFromStore[p.hometown]",
-        "cacheNFromStore[p.description]",
         "cacheNFromStore[p.name]"
       ) // p.description seems unneeded here, since it will be fetched again just before the projection because the SET invalidates it.
       .nodeByLabelScan("p", "Person")
@@ -955,7 +953,6 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .projection("cacheN[p.pr] AS `p.pr`")
-      .remoteBatchProperties("cacheNFromStore[p.pr]")
       .create(createNodeFull("anon_0", labels = Seq("Dummy"), properties = Some("{prop: cacheN[p.pr]}")))
       .remoteBatchProperties("cacheNFromStore[p.pr]")
       .nodeByLabelScan("p", "Person")
@@ -970,7 +967,6 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .projection("cacheN[p.someProp] AS `p.someProp`")
-      .remoteBatchProperties("cacheNFromStore[p.someProp]")
       .setLabels("p", Seq("Dummy"), Seq())
       .filter("cacheN[p.someProp] = 1")
       .remoteBatchProperties("cacheNFromStore[p.someProp]")
@@ -1157,4 +1153,107 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
+  test("Should not fetch the property 'name' before SetNodeProperty when it is only needed after the SET") {
+    val query = """MATCH (p:Person {age: 20})
+                  |SET p.name = 1
+                  |RETURN p.name""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual
+      planner.subPlanBuilder()
+        .projection("cacheN[p.name] AS `p.name`")
+        .remoteBatchProperties("cacheNFromStore[p.name]")
+        .setNodeProperty("p", "name", "1")
+        .filter("cacheN[p.age] = 20")
+        .remoteBatchProperties("cacheNFromStore[p.age]") // Should not fetch p.name here too
+        .nodeByLabelScan("p", "Person")
+        .build()
+  }
+
+  test("Should not fetch the property 'name' before FOREACH when it is only needed after the FOREACH") {
+    val query = """MATCH p=(:Person)-[:KNOWS*]->(), (x:Person {age: 20})
+                  |FOREACH (n IN nodes(p) | SET n.marked = true)
+                  |RETURN x.name""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual
+      planner.subPlanBuilder()
+        .projection("cacheN[x.name] AS `x.name`")
+        .remoteBatchProperties("cacheNFromStore[x.name]")
+        .foreach(
+          "n",
+          nodes(PathExpressionBuilder.node("anon_0").outToVarLength("anon_1", "anon_2").build()),
+          Seq(setNodeProperty("n", "marked", "true"))
+        )
+        .cartesianProduct()
+        .|.expand("(anon_0)-[anon_1:KNOWS*]->(anon_2)")
+        .|.nodeByLabelScan("anon_0", "Person")
+        .filter("cacheN[x.age] = 20")
+        .remoteBatchProperties("cacheNFromStore[x.age]") // Should not fetch x.name here too
+        .nodeByLabelScan("x", "Person")
+        .build()
+  }
+
+  test("Should not fetch the property 'name' before and after the MERGE when it is only needed after the MERGE") {
+    val query = """MATCH (x:Person {age: 20})
+                  |MERGE (x)-[:KNOWS]->(:Person {id: 5})
+                  |RETURN x.name""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual
+      planner.subPlanBuilder()
+        .projection("cacheN[x.name] AS `x.name`")
+        .apply()
+        .|.merge(
+          Seq(createNodeFull("anon_1", labels = Seq("Person"), properties = Some("{id: 5}"))),
+          Seq(createRelationship("anon_0", "x", "KNOWS", "anon_1", OUTGOING)),
+          lockNodes = Set("x")
+        )
+        .|.expandInto("(x)-[anon_0:KNOWS]->(anon_1)")
+        .|.nodeIndexOperator(
+          "anon_1:Person(id = 5)",
+          argumentIds = Set("x"),
+          getValue = Map("id" -> GetValue),
+          unique = true
+        )
+        .filter("cacheN[x.age] = 20")
+        .remoteBatchProperties("cacheNFromStore[x.age]", "cacheNFromStore[x.name]")
+        .nodeByLabelScan("x", "Person")
+        .build()
+  }
+
+  test(
+    "Should not fetch the property 'name' before the MERGE with a SET in the onMatch when it is only needed after the MERGE"
+  ) {
+    val query = """MATCH (x:Person {age: 20})
+                  |MERGE (x)-[:KNOWS]->(:Person {id: 5}) ON MATCH SET x.knewPerson5 = true
+                  |RETURN x.name""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual
+      planner.subPlanBuilder()
+        .projection("cacheN[x.name] AS `x.name`")
+        .remoteBatchProperties("cacheNFromStore[x.name]")
+        .apply()
+        .|.merge(
+          Seq(createNodeFull("anon_1", labels = Seq("Person"), properties = Some("{id: 5}"))),
+          Seq(createRelationship("anon_0", "x", "KNOWS", "anon_1", OUTGOING)),
+          Seq(setNodeProperty("x", "knewPerson5", "true")),
+          Seq(),
+          Set("x")
+        )
+        .|.expandInto("(x)-[anon_0:KNOWS]->(anon_1)")
+        .|.nodeIndexOperator(
+          "anon_1:Person(id = 5)",
+          argumentIds = Set("x"),
+          getValue = Map("id" -> GetValue),
+          unique = true
+        )
+        .filter("cacheN[x.age] = 20")
+        .remoteBatchProperties(
+          "cacheNFromStore[x.age]"
+        ) // Should not fetch x.name here, since the merge invalidates them, and they are not needed before the merge
+        .nodeByLabelScan("x", "Person")
+        .build()
+  }
 }

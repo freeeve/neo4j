@@ -725,21 +725,41 @@ object RemoteBatchingStrategy {
     override def findGlobalPropertyAccessesWithContext(
       query: SinglePlannerQuery
     ): ContextualPropertyAccess = {
+      // When `q` contains something that invalidates the cached properties,
+      // then we do not want to collect properties beyond the current query graph.
+      def containsMutatingPatternThatInvalidatesCachesProps(q: SinglePlannerQuery): Boolean = {
+        q.queryGraph.mutatingPatterns.exists {
+          case m if m.invalidatesCachedProperties => true
+          case _                                  => false
+        }
+      }
+
       @tailrec
       def rec(currentQuery: SinglePlannerQuery, acc: ContextualPropertyAccess): ContextualPropertyAccess = {
+        val collectOnlyQgProps = containsMutatingPatternThatInvalidatesCachesProps(currentQuery)
         val accumulatedPropertyAccesses = ContextualPropertyAccess(
           queryGraph = acc.queryGraph ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.queryGraph)),
           queryGraphMutatingPatterns = acc.queryGraphMutatingPatterns ++
             PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.queryGraph.mutatingPatterns)),
-          horizon = acc.horizon ++
-            PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.horizon)),
+          horizon =
+            if (collectOnlyQgProps)
+              acc.horizon
+            else
+              acc.horizon ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.horizon)),
           interestingOrder =
-            acc.interestingOrder ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.interestingOrder)),
+            if (collectOnlyQgProps)
+              acc.interestingOrder
+            else
+              acc.interestingOrder ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.interestingOrder)),
           entityAliases = findEntityAliases(acc.entityAliases, currentQuery.horizon)
         )
         currentQuery.tail match {
-          case Some(tailQuery) => rec(tailQuery, accumulatedPropertyAccesses)
-          case None            => accumulatedPropertyAccesses
+          case Some(tailQuery) =>
+            if (collectOnlyQgProps)
+              accumulatedPropertyAccesses
+            else
+              rec(tailQuery, accumulatedPropertyAccesses)
+          case None => accumulatedPropertyAccesses
         }
       }
 

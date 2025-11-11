@@ -309,6 +309,9 @@ case object PlanUpdates extends UpdatesPlanner {
       context
         .withModifiedPlannerState(_
           .withUpdatedLabelInfo(source, context.staticComponents.planningAttributes.solveds)
+          .withPreviouslyCachedProperties(
+            context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(source.id)
+          )
           .copy(config = context.plannerState.config.withLeafPlanners(leafPlanners)))
 
     val read = mergeRead(innerContext)
