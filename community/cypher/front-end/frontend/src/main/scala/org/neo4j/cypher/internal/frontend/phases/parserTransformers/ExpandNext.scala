@@ -356,12 +356,17 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
           buildSubquery(rewrittenQuery, accWithOutgoing, isLast)
         case q: Query =>
           val rewrittenQuery = q.mapEachSingleQuery(
-            sq =>
-              SingleQuery(insertUnwind(accWithOutgoing, sq) ++ sq.clauses)(sq.position),
+            {
+              case sq if sq.partitionedClauses.initialGraphSelection.isDefined =>
+                SingleQuery(Seq(sq.clauses.head) ++ insertUnwind(accWithOutgoing, sq) ++ sq.clauses.tail)(sq.position)
+              case sq =>
+                SingleQuery(insertUnwind(accWithOutgoing, sq) ++ sq.clauses)(sq.position)
+            },
             nextFirst = true
-          ).mapEachSingleQuery(sq =>
-            SingleQuery(sq.clauses.dropRight(1) :+ anonymizeAndExpandReturn(sq, accWithOutgoing))(sq.position)
           )
+            .mapEachSingleQuery(sq =>
+              SingleQuery(sq.clauses.dropRight(1) :+ anonymizeAndExpandReturn(sq, accWithOutgoing))(sq.position)
+            )
           buildSubquery(rewrittenQuery, accWithOutgoing, isLast)
       }
 
@@ -382,10 +387,7 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
       query.folder.treeFold[QuerySemantics](ByRow) {
         case _: SubqueryCall         => _ => SkipChildren(ByRow)
         case _: ConditionalQueryWhen => _ => SkipChildren(ByRow)
-        case u: Union => {
-          case _ if u.containsUpdates => SkipChildren(RequiresCollecting)
-          case _                      => TraverseChildren(ByTable)
-        }
+        case _: Union                => _ => SkipChildren(RequiresCollecting)
         case tlb: TopLevelBraces => {
           case _ if tlb.containsUpdates => SkipChildren(RequiresCollecting)
           case _                        => TraverseChildren(ByTable)

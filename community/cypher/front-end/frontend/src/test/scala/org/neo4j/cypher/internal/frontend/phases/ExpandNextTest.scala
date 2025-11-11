@@ -206,13 +206,17 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |  UNION
         |  RETURN 2 AS `  UNNAMED0`
         |}
-        |WITH `  UNNAMED0` AS a
+        |WITH count(*) AS `  UNNAMED1`, collect([`  UNNAMED0`]) AS `  UNNAMED0`
         |CALL (*) {
-        |  RETURN a + 1 AS `  UNNAMED1`
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED3`
+        |  WITH (`  UNNAMED0`[`  UNNAMED3`])[0] AS a
+        |  RETURN a + 1 AS `  UNNAMED2`
         |  UNION
-        |  RETURN a + 2 AS `  UNNAMED1`
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED4`
+        |  WITH (`  UNNAMED0`[`  UNNAMED4`])[0] AS a
+        |  RETURN a + 2 AS `  UNNAMED2`
         |}
-        |RETURN `  UNNAMED1` AS b""".stripMargin,
+        |RETURN `  UNNAMED2` AS b""".stripMargin,
       additionalExpectedAstUpdates = withUpdate()
     )
   }
@@ -236,22 +240,32 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |UNION
         |RETURN a + 2 AS b
         |""".stripMargin,
-      """|LET x = 1, y = 2
-         |WITH x AS x
-         |CALL (*) {
-         |  RETURN 1 + x AS `  UNNAMED0`
-         |  UNION
-         |  LET y = 3
-         |  RETURN 2 + y AS `  UNNAMED0`
-         |}
-         |WITH `  UNNAMED0` AS a
-         |CALL (*) {
-         |  RETURN a + 1 AS `  UNNAMED1`
-         |  UNION
-         |  RETURN a + 2 AS `  UNNAMED1`
-         |}
-         |RETURN `  UNNAMED1` AS b""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      """LET x = 1, y = 2
+        |WITH x AS `  UNNAMED0`
+        |WITH count(*) AS `  UNNAMED1`, collect([`  UNNAMED0`]) AS `  UNNAMED0`
+        |CALL (*) {
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED4`
+        |  WITH (`  UNNAMED0`[`  UNNAMED4`])[0] AS x
+        |  RETURN 1 + x AS `  UNNAMED2`
+        |  UNION
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED0`[`  UNNAMED5`])[0] AS x
+        |  LET y = 3
+        |  RETURN 2 + y AS `  UNNAMED2`
+        |}
+        |WITH count(*) AS `  UNNAMED3`, collect([`  UNNAMED2`]) AS `  UNNAMED2`
+        |CALL (*) {
+        |  UNWIND range(0, `  UNNAMED3` - 1) AS `  UNNAMED7`
+        |  WITH (`  UNNAMED2`[`  UNNAMED7`])[0] AS a
+        |  RETURN a + 1 AS `  UNNAMED6`
+        |  UNION
+        |  UNWIND range(0, `  UNNAMED3` - 1) AS `  UNNAMED8`
+        |  WITH (`  UNNAMED2`[`  UNNAMED8`])[0] AS a
+        |  RETURN a + 2 AS `  UNNAMED6`
+        |}
+        |RETURN `  UNNAMED6` AS b""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -366,21 +380,31 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |RETURN *
         |""".stripMargin,
       """LET x = 1, y = 2
-        |WITH x AS x, y AS y
+        |WITH x AS `  UNNAMED0`, y AS `  UNNAMED1`
+        |WITH count(*) AS `  UNNAMED2`, collect([`  UNNAMED0`]) AS `  UNNAMED0`, collect([`  UNNAMED1`]) AS `  UNNAMED1`
         |CALL (*) {
-        |  RETURN 1 + x AS `  UNNAMED0`
+        |  UNWIND range(0, `  UNNAMED2` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED0`[`  UNNAMED5`])[0] AS x, (`  UNNAMED1`[`  UNNAMED5`])[0] AS y
+        |  RETURN 1 + x AS `  UNNAMED3`
         |  UNION
-        |  RETURN 2 + y AS `  UNNAMED0`
+        |  UNWIND range(0, `  UNNAMED2` - 1) AS `  UNNAMED6`
+        |  WITH (`  UNNAMED0`[`  UNNAMED6`])[0] AS x, (`  UNNAMED1`[`  UNNAMED6`])[0] AS y
+        |  RETURN 2 + y AS `  UNNAMED3`
         |}
-        |WITH `  UNNAMED0` AS a
+        |WITH count(*) AS `  UNNAMED4`, collect([`  UNNAMED3`]) AS `  UNNAMED3`
         |CALL (*) {
-        |  RETURN a + 1 AS `  UNNAMED1`
+        |  UNWIND range(0, `  UNNAMED4` - 1) AS `  UNNAMED8`
+        |  WITH (`  UNNAMED3`[`  UNNAMED8`])[0] AS a
+        |  RETURN a + 1 AS `  UNNAMED7`
         |  UNION
-        |  RETURN a + 2 AS `  UNNAMED1`
+        |  UNWIND range(0, `  UNNAMED4` - 1) AS `  UNNAMED9`
+        |  WITH (`  UNNAMED3`[`  UNNAMED9`])[0] AS a
+        |  RETURN a + 2 AS `  UNNAMED7`
         |}
-        |WITH `  UNNAMED1` AS b
+        |WITH `  UNNAMED7` AS b
         |RETURN *""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -409,23 +433,33 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |RETURN *
         |""".stripMargin,
       """LET x = 1, y = 2
-        |WITH x AS x, y AS y
+        |WITH x AS `  UNNAMED0`, y AS `  UNNAMED1`
+        |WITH count(*) AS `  UNNAMED2`, collect([`  UNNAMED0`]) AS `  UNNAMED0`, collect([`  UNNAMED1`]) AS `  UNNAMED1`
         |CALL (*) {
-        |  RETURN 1 + x AS `  UNNAMED0`
+        |  UNWIND range(0, `  UNNAMED2` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED0`[`  UNNAMED5`])[0] AS x, (`  UNNAMED1`[`  UNNAMED5`])[0] AS y
+        |  RETURN 1 + x AS `  UNNAMED3`
         |  UNION
-        |  RETURN 2 + y AS `  UNNAMED0`
+        |  UNWIND range(0, `  UNNAMED2` - 1) AS `  UNNAMED6`
+        |  WITH (`  UNNAMED0`[`  UNNAMED6`])[0] AS x, (`  UNNAMED1`[`  UNNAMED6`])[0] AS y
+        |  RETURN 2 + y AS `  UNNAMED3`
         |}
-        |WITH `  UNNAMED0` AS a
+        |WITH count(*) AS `  UNNAMED4`, collect([`  UNNAMED3`]) AS `  UNNAMED3`
         |CALL (*) {
+        |  UNWIND range(0, `  UNNAMED4` - 1) AS `  UNNAMED9`
+        |  WITH (`  UNNAMED3`[`  UNNAMED9`])[0] AS a
         |  LET b = a + 1
-        |  RETURN a AS `  UNNAMED1`, b AS `  UNNAMED2`
+        |  RETURN a AS `  UNNAMED7`, b AS `  UNNAMED8`
         |  UNION
+        |  UNWIND range(0, `  UNNAMED4` - 1) AS `  UNNAMED10`
+        |  WITH (`  UNNAMED3`[`  UNNAMED10`])[0] AS a
         |  LET b = a + 2
-        |  RETURN a AS `  UNNAMED1`, b AS `  UNNAMED2`
+        |  RETURN a AS `  UNNAMED7`, b AS `  UNNAMED8`
         |}
-        |WITH `  UNNAMED1` AS a, `  UNNAMED2` AS b
+        |WITH `  UNNAMED7` AS a, `  UNNAMED8` AS b
         |RETURN *""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -449,18 +483,24 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |RETURN a, b, c
         |""".stripMargin,
       """LET a = 1
-        |WITH a AS a
+        |WITH a AS `  UNNAMED0`
+        |WITH count(*) AS `  UNNAMED1`, collect([`  UNNAMED0`]) AS `  UNNAMED0`
         |CALL (*) {
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED4`
+        |  WITH (`  UNNAMED0`[`  UNNAMED4`])[0] AS a
         |  LET b = a + 1
-        |  RETURN a AS `  UNNAMED0`, b AS `  UNNAMED1`
+        |  RETURN a AS `  UNNAMED2`, b AS `  UNNAMED3`
         |  UNION
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED0`[`  UNNAMED5`])[0] AS a
         |  LET b = a + 2
-        |  RETURN a AS `  UNNAMED0`, b AS `  UNNAMED1`
+        |  RETURN a AS `  UNNAMED2`, b AS `  UNNAMED3`
         |}
-        |WITH `  UNNAMED0` AS a, `  UNNAMED1` AS b
+        |WITH `  UNNAMED2` AS a, `  UNNAMED3` AS b
         |LET c = b + 1
         |RETURN a AS a, b AS b, c AS c""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -684,15 +724,65 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
       UNION ALL
       RETURN COUNT{ RETURN sum(x) } AS x""".stripMargin,
       """UNWIND [1, 2, 3] AS x
-        |WITH x AS x
+        |WITH x AS `  UNNAMED0`
+        |WITH count(*) AS `  UNNAMED1`, collect([`  UNNAMED0`]) AS `  UNNAMED0`
         |CALL (*) {
-        |  RETURN x AS `  UNNAMED0`
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED3`
+        |  WITH (`  UNNAMED0`[`  UNNAMED3`])[0] AS x
+        |  RETURN x AS `  UNNAMED2`
         |  UNION ALL
-        |  RETURN COUNT { RETURN sum(x) AS `sum(x)` } AS `  UNNAMED0`
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED4`
+        |  WITH (`  UNNAMED0`[`  UNNAMED4`])[0] AS x
+        |  RETURN COUNT { RETURN sum(x) AS `sum(x)` } AS `  UNNAMED2`
         |}
-        |RETURN `  UNNAMED0` AS x""".stripMargin,
+        |RETURN `  UNNAMED2` AS x""".stripMargin,
       additionalExpectedAstUpdates = withUpdate(),
       withUpdate()
+    )
+  }
+
+  test("NEXT query rewritten with USE in UNION") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """USE mega
+        |MATCH (p0:Person) ORDER BY p0.name ASC
+        |RETURN head(collect(p0.name)) AS name0 ORDER BY name0
+        |
+        |NEXT
+        |
+        |USE mega
+        |MATCH (p1:Person) WHERE name0 = p1.name
+        |RETURN name0, p1.name
+        |UNION
+        |USE mega
+        |MATCH (p1:Person) WHERE name0 = p1.name
+        |RETURN name0, p1.name""".stripMargin,
+      """CALL (*) {
+        |  USE `mega`
+        |  MATCH (p0:Person)
+        |  ORDER BY p0.name ASCENDING
+        |  RETURN head(collect(p0.name)) AS `  UNNAMED0`
+        |    ORDER BY `  UNNAMED0` ASCENDING
+        |}
+        |WITH count(*) AS `  UNNAMED1`, collect([`  UNNAMED0`]) AS `  UNNAMED0`
+        |CALL (*) {
+        |  USE `mega`
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED4`
+        |  WITH (`  UNNAMED0`[`  UNNAMED4`])[0] AS name0
+        |  MATCH (p1:Person)
+        |    WHERE name0 = p1.name
+        |  RETURN name0 AS `  UNNAMED2`, p1.name AS `  UNNAMED3`
+        |  UNION
+        |  USE `mega`
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED0`[`  UNNAMED5`])[0] AS name0
+        |  MATCH (p1:Person)
+        |    WHERE name0 = p1.name
+        |  RETURN name0 AS `  UNNAMED2`, p1.name AS `  UNNAMED3`
+        |}
+        |RETURN `  UNNAMED2` AS name0, `  UNNAMED3` AS `p1.name`""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 }
