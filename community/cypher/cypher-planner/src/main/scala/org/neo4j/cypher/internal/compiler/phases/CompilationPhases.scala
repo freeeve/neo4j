@@ -144,6 +144,8 @@ object CompilationPhases extends FrontEndCompilationPhases {
         initialConditions = irPlanPipelinePostConditions
       )
 
+  val getAstPlanPipelineSteps: Seq[StepSequencer.Step with PlanPipelineTransformerFactory] = astPlanPipelineSteps
+
   private val orderedPlanPipelineSteps = astPlanPipelineSteps ++ irPlanPipelineSteps ++ lpPlanPipelineSteps
 
   // Phase 2
