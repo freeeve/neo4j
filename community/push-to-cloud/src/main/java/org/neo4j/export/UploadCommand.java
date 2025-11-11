@@ -67,6 +67,9 @@ import picocli.CommandLine.Parameters;
                 + "either as a command option or as an environment variable, they will be requested interactively ")
 public class UploadCommand extends AbstractAdminCommand {
     private static final long CRC32_BUFFER_SIZE = ByteUnit.mebiBytes(4);
+    private static final long CRC32_LARGE_FILE_THRESHOLD = ByteUnit.mebiBytes(100);
+    private static final long CRC32_SEGMENT_SIZE = ByteUnit.mebiBytes(100);
+    private static final long CRC32_SAMPLE_SIZE = ByteUnit.mebiBytes(1);
     private static final String DEV_MODE_VAR_NAME = "P2C_DEV_MODE";
     private static final String ENV_NEO4J_USERNAME = "NEO4J_USERNAME";
     private static final String ENV_NEO4J_PASSWORD = "NEO4J_PASSWORD";
@@ -342,16 +345,51 @@ public class UploadCommand extends AbstractAdminCommand {
     public record Source(FileSystemAbstraction fs, Path path, long size) {
         long crc32Sum() throws IOException {
             CRC32 crc = new CRC32();
-            try (var channel = fs.read(path);
-                    var buffer = new NativeScopedBuffer(
-                            CRC32_BUFFER_SIZE, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE)) {
-                var byteBuffer = buffer.getBuffer();
-                while ((channel.read(byteBuffer)) != -1) {
-                    byteBuffer.flip();
-                    crc.update(byteBuffer);
-                    byteBuffer.clear();
+            long fileSize = fs.getFileSize(path);
+
+            if (fileSize < CRC32_LARGE_FILE_THRESHOLD) {
+                try (var channel = fs.read(path);
+                        var buffer = new NativeScopedBuffer(
+                                CRC32_BUFFER_SIZE, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE)) {
+                    var byteBuffer = buffer.getBuffer();
+                    while ((channel.read(byteBuffer)) != -1) {
+                        byteBuffer.flip();
+                        crc.update(byteBuffer);
+                        byteBuffer.clear();
+                    }
+                }
+            } else {
+                // For files over threshold (100 MB), only read first 1MB of each 100 MB
+                try (var channel = fs.read(path);
+                        var buffer = new NativeScopedBuffer(
+                                CRC32_BUFFER_SIZE, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE)) {
+                    var byteBuffer = buffer.getBuffer();
+
+                    long numSegments = (fileSize + CRC32_SEGMENT_SIZE - 1) / CRC32_SEGMENT_SIZE;
+
+                    for (long segment = 0; segment < numSegments; segment++) {
+                        long segmentStart = segment * CRC32_SEGMENT_SIZE;
+                        long bytesToRead = Math.min(CRC32_SAMPLE_SIZE, fileSize - segmentStart);
+
+                        if (bytesToRead <= 0) {
+                            break;
+                        }
+
+                        channel.position(segmentStart);
+                        byteBuffer.limit((int) Math.min(byteBuffer.capacity(), bytesToRead));
+
+                        int read = channel.read(byteBuffer);
+                        if (read == -1) {
+                            break;
+                        }
+
+                        byteBuffer.flip();
+                        crc.update(byteBuffer);
+                        byteBuffer.clear();
+                    }
                 }
             }
+
             return crc.getValue();
         }
     }
