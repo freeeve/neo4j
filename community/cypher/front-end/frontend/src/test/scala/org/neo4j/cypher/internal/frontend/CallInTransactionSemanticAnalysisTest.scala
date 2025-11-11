@@ -225,7 +225,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "OF ... ROWS",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "0",
@@ -244,7 +244,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "OF ... ROWS",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "-1",
@@ -263,7 +263,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "OF ... ROWS",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "1.5",
@@ -288,7 +288,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "OF ... ROWS",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "foo",
@@ -313,7 +313,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "OF ... ROWS",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "NULL",
@@ -420,7 +420,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "IN ... CONCURRENT",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "0",
@@ -439,7 +439,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "IN ... CONCURRENT",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "-1",
@@ -458,7 +458,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "IN ... CONCURRENT",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "1.5",
@@ -483,7 +483,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "IN ... CONCURRENT",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "foo",
@@ -508,7 +508,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "IN ... CONCURRENT",
-        "INTEGER",
+        "INTEGER NOT NULL",
         1,
         Long.MaxValue,
         "NULL",

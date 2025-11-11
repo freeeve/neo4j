@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.SetClause
 import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
@@ -184,17 +185,24 @@ object pegClause {
         val declared = Declarations(Seq.empty, Seq(variable))
         incoming.noResultScope(outgoing = incoming.amendedWith(variable), children, declared = declared)
 
-      case Match(_, _, pattern, hints, whereOpt, _) => // TODO implement checking for search here
+      case Match(_, _, pattern, hints, whereOpt, searchOpt) =>
         val patternScope = pegPattern(pattern, incoming.constantChildContext())
-        val subclauseIncoming = incoming.amendedWith(patternScope.outgoing.variables).constantChildContext()
-        val hintsScopes = hints.flatMap(h => h.variables.map(pegExpression(_, subclauseIncoming)))
-        val whereScopeOpt = whereOpt.map(where =>
-          pegExpression(where.expression, subclauseIncoming)
-        )
-        val children = Seq(Some(patternScope), hintsScopes, whereScopeOpt).flatten
+        val patternOutgoing = incoming.amendedWith(patternScope.outgoing.variables)
+
+        val searchScopeOpt = searchOpt.map(search => scopeSearchSubclause(search, patternOutgoing))
+        val searchOutgoing = if (searchScopeOpt.isDefined) searchScopeOpt.get.outgoing else patternOutgoing
+
+        val hintsScopes = hints.flatMap(h => h.variables.map(pegExpression(_, searchOutgoing.constantChildContext())))
+        val whereScopeOpt =
+          whereOpt.map(where => pegExpression(where.expression, searchOutgoing.constantChildContext()))
+
+        val children = Seq(Some(patternScope), searchScopeOpt, hintsScopes, whereScopeOpt).flatten
         val referenced = Some(WorkingScope.referencedInChildren(children) intersect incoming.constantsAndVariables)
         val declared = patternScope.declared
-        val outgoing = incoming.amendedWith(patternScope.outgoing.variables diff incoming.constants)
+        val outgoing =
+          incoming.amendedWith(
+            patternScope.outgoing.variables diff incoming.constants
+          ).amendedWith(searchScopeOpt.fold(Set.empty[LogicalVariable])(scope => scope.outgoing.variables))
         incoming.noResultScope(outgoing, children, referenced, declared)
 
       // load clause
@@ -576,5 +584,29 @@ object pegClause {
         }
         (batchParamsChild ++ concurrencyParamsChild ++ errorParamsChild, reportVariable)
     }
+  }
+
+  private def scopeSearchSubclause(
+    search: Search,
+    incoming: RegularContext
+  )(implicit c: PegContext): StatementScope = {
+    implicit val astNode: ASTNode = search
+
+    val constantIncoming = incoming.constantChildContext()
+
+    val bindingVariable = search.bindingVariable
+    val bindingVariableScope = pegExpression(bindingVariable, constantIncoming)
+    val embedding = search.embedding
+    val embeddingScope = pegExpression(embedding, constantIncoming)
+    val limit = search.limit
+    val limitScope = pegExpression(limit.expression, constantIncoming)
+    val scoreOpt = search.score
+
+    val outgoing = if (scoreOpt.isDefined) incoming.amendedWith(scoreOpt.get) else incoming
+
+    val children = Seq(bindingVariableScope, embeddingScope, limitScope)
+
+    incoming.noResultScope(outgoing, children, declared = Declarations(Seq.empty, scoreOpt.toSeq))
+
   }
 }

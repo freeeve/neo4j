@@ -777,6 +777,7 @@ case class Match(
         hints.semanticCheck chain
           uniqueHints chain
           search.semanticCheck chain
+          (if (search.isDefined) search.get.patternChecks(pattern) else SemanticCheck.success) chain
           where.semanticCheck chain
           checkHints chain
           checkForCartesianProducts

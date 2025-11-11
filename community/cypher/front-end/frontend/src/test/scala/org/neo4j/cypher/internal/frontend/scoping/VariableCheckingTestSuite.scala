@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
@@ -140,6 +141,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
   private def prettify(astNode: ASTNode): String = (astNode match {
     case s: Statement           => prettifier.asString(s)
     case c: Clause              => prettifier.asString(SingleQuery(Seq(c))(InputPosition.NONE))
+    case s: Search              => prettifier.asString(s)
     case ex: Expression         => prettifier.expr(ex)
     case p: Pattern             => prettifier.expr.patterns(p)
     case p: PatternPart         => prettifier.expr.patterns(p)

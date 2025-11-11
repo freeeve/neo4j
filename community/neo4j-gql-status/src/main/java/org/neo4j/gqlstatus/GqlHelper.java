@@ -769,6 +769,43 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42I69(String variable, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I69)
+                        .withParam(GqlParams.StringParam.variable, variable)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42I70(int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I70)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42I71(int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I71)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42I72(int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I72)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42N07(String variable, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)

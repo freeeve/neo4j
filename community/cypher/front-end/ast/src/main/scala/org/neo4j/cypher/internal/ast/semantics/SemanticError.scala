@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast.semantics
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.StaticElementTypeName
 import org.neo4j.cypher.internal.expressions.functions.AllReduce
@@ -184,6 +185,7 @@ object SemanticError {
       pos
     )
   }
+
   private val existsErrorMessage = "The EXISTS expression is not valid in driver settings."
   private val countErrorMessage = "The COUNT expression is not valid in driver settings."
   private val collectErrorMessage = "The COLLECT expression is not valid in driver settings."
@@ -2165,6 +2167,47 @@ object SemanticError {
             .build()
         ).build(),
       s"graph type contains duplicated tokens '$token'",
+      position
+    )
+  }
+
+  def invalidIndexParameter(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I04("Parameter", "VECTOR INDEX", position.offset, position.line, position.column),
+      "Parameter cannot be used in a VECTOR INDEX clause.",
+      position
+    )
+  }
+
+  def searchWithVariableFromOutsideMatch(bindingVariable: LogicalVariable): SemanticError = {
+    val pos = bindingVariable.position
+    SemanticError(
+      GqlHelper.getGql42001_42I69(bindingVariable.name, pos.offset, pos.line, pos.column),
+      s"The variable `${bindingVariable.name}` in SEARCH must reference a variable from the same MATCH statement.",
+      pos
+    )
+  }
+
+  def searchWithMultipleBoundVariables(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I70(position.offset, position.line, position.column),
+      "In order to have a search clause, a match statement can only have one bound variable.",
+      position
+    )
+  }
+
+  def searchWithInvalidPredicates(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I71(position.offset, position.line, position.column),
+      "In order to have a search clause, a match statement can only have predicates on the bound variable.",
+      position
+    )
+  }
+
+  def searchWithTooComplexMatch(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I72(position.offset, position.line, position.column),
+      "In order to have a search clause, a match statement can only have a single node or relationship pattern and no selectors.",
       position
     )
   }

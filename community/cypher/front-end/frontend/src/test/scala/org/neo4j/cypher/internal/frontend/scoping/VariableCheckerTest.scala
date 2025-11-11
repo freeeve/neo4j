@@ -1057,6 +1057,71 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test("""MATCH (movie:Movie)
+         |  WHERE score > 0
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, score""".stripMargin) {
+    passes()
+  }
+
+  test(
+    """WITH 0.5 AS score
+      |MATCH (movie:Movie)
+      |  SEARCH movie IN (
+      |    VECTOR INDEX moviePlots
+      |    FOR [1, 2, 3]
+      |    LIMIT 5
+      |  ) SCORE AS score
+      |RETURN movie.title AS title, score
+      |""".stripMargin
+  ) {
+    error("42N59", "Variable `score` already declared")
+  }
+
+  test(
+    """MATCH (movie: Movie)
+      |  SEARCH m IN (
+      |    VECTOR INDEX moviePlots
+      |    FOR [1, 2, 3]
+      |    LIMIT 5
+      |  )
+      |RETURN movie.title AS title
+      |""".stripMargin
+  ) {
+    error("42N62", "Variable `m` not defined")
+  }
+
+  test(
+    """WITH 1 AS l
+      |MATCH (movie: Movie)
+      |  SEARCH movie IN (
+      |    VECTOR INDEX moviePlots
+      |    FOR [1, 2, 3]
+      |    LIMIT l
+      |  )
+      |RETURN movie.title AS title
+      |""".stripMargin
+  ) {
+    passes()
+  }
+
+  test(
+    """MATCH (movie: Movie)
+      |  SEARCH movie IN (
+      |    VECTOR INDEX moviePlots
+      |    FOR [1, 2, 3]
+      |    LIMIT l
+      |  )
+      |RETURN movie.title AS title
+      |""".stripMargin
+  ) {
+    error("42N62", "Variable `l` not defined")
+  }
+
   test("""MATCH (n)
          |MERGE (n {p:n.p})""".stripMargin) {
     error("42N59", "Variable `n` already declared.")

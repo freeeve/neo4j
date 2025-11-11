@@ -298,6 +298,8 @@ case class Prettifier(
     case _                        => throw new IllegalStateException(s"Unknown statement: $statement")
   }
 
+  def asString(search: Search): String = base.asString(search)
+
   def asString(hint: Hint): String = base.asString(hint)
 
   def backtick(s: String): String = expr.backtick(s)

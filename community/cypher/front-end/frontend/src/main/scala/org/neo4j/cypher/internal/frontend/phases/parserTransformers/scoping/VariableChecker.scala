@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.StrictlyAdditiveProjection
 import org.neo4j.cypher.internal.ast.SubqueryCall
@@ -113,8 +114,9 @@ case class VariableChecker(version: CypherVersion) {
             incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
           case pc: ProjectionClause if pc.returnItems.projectionType == StrictlyAdditiveProjection =>
             incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
-          case _: UnresolvedCall => incoming.checkIfVariablesHaveMultipleDeclarations(variables)
-          case _: Unwind         => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
+          case _: UnresolvedCall              => incoming.checkIfVariablesHaveMultipleDeclarations(variables)
+          case _: Unwind                      => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
+          case s: Search if s.score.isDefined => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(Set(s.score.get))
           case _: SubqueryCall =>
             incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(
               variables,

@@ -40,6 +40,9 @@ trait ASTSlicingPhrase extends SemanticCheckable with SemanticAnalysisTooling {
   def name: String
   def expression: Expression
   def semanticCheck: SemanticCheck = checkExpressionIsStaticInt(expression, name, acceptsZero = true)
+
+  def semanticCheckWithUpperBound(upperBound: Long): SemanticCheck =
+    checkExpressionIsStaticInt(expression, name, acceptsZero = true, upperBound)
 }
 
 object ASTSlicingPhrase extends SemanticAnalysisTooling {
@@ -55,15 +58,21 @@ object ASTSlicingPhrase extends SemanticAnalysisTooling {
    * @param expression  the expression to check
    * @param name        the name of the construct. Used for error messages.
    * @param acceptsZero if `true` then 0 is an accepted value, otherwise not.
+   * @param upperBound the upper bound of the value (by default Long.MaxValue)
    * @return a SemanticCheck
    */
-  def checkExpressionIsStaticInt(expression: Expression, name: String, acceptsZero: Boolean): SemanticCheck =
+  def checkExpressionIsStaticInt(
+    expression: Expression,
+    name: String,
+    acceptsZero: Boolean,
+    upperBound: Long = Long.MaxValue
+  ): SemanticCheck =
     // We need to check doesNotTouchTheGraph first. If we find a SubqueryExpression we already have an error,
     // and it would not be safe to run containsNoVariables, since these SubqueryExpression haven't computed their
     // scopeDependencies yet. Therefore we use `ifOkChain`.
     doesNotTouchTheGraph(expression, name) ifOkChain
       containsNoVariables(expression, name) chain
-      literalShouldBeUnsignedInteger(expression, name, acceptsZero) chain
+      literalShouldBeUnsignedInteger(expression, name, acceptsZero, upperBound) chain
       SemanticExpressionCheck.simple(expression) chain
       expectType(CTInteger.covariant, expression)
 
@@ -118,22 +127,24 @@ object ASTSlicingPhrase extends SemanticAnalysisTooling {
   private def literalShouldBeUnsignedInteger(
     expression: Expression,
     name: String,
-    acceptsZero: Boolean
+    acceptsZero: Boolean,
+    upperBound: Long
   ): SemanticCheck = {
     try {
       expression match {
-        case i: IntegerLiteral if i.value > 0                 => SemanticCheck.success
-        case i: IntegerLiteral if i.value == 0 && acceptsZero => SemanticCheck.success
+        case i: IntegerLiteral if i.value > 0 && i.value <= upperBound                 => SemanticCheck.success
+        case i: IntegerLiteral if i.value == 0 && acceptsZero && i.value <= upperBound => SemanticCheck.success
         case lit: Literal =>
           val accepted = if (acceptsZero) "non-negative" else "positive"
           val lowerBound = if (acceptsZero) 0 else 1
+          val upperBoundText = if (upperBound != Long.MaxValue) s" smaller than or equal to $upperBound" else ""
           SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             name,
-            "INTEGER",
+            "INTEGER NOT NULL",
             lowerBound,
-            Long.MaxValue,
+            upperBound,
             lit.asCanonicalStringVal,
-            s"Invalid input. '${lit.asCanonicalStringVal}' is not a valid value. Must be a $accepted integer.",
+            s"Invalid input. '${lit.asCanonicalStringVal}' is not a valid value. Must be a $accepted integer$upperBoundText.",
             lit.position
           )
         case _ => SemanticCheck.success

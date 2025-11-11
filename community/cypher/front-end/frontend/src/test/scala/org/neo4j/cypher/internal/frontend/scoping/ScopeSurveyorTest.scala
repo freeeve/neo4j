@@ -1505,6 +1505,74 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
     )
   }
 
+  test("""MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, score""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""MATCH (movie:Movie)
+              |  SEARCH movie IN (
+              |    VECTOR INDEX moviePlots
+              |    FOR [1, 2, 3]
+              |    LIMIT 5
+              |  ) SCORE AS score
+              |RETURN movie.title AS title, score""".stripMargin),
+        Outgoing(variables = Set("title", "score")),
+        ExpectedResult.TableResult("title", "score"),
+        ExpectedWorkingScope(
+          Ast("""MATCH (movie:Movie)
+                |  SEARCH movie IN (
+                |    VECTOR INDEX moviePlots
+                |    FOR [1, 2, 3]
+                |    LIMIT 5
+                |  ) SCORE AS score""".stripMargin),
+          Outgoing(variables = Set("movie", "score")),
+          Declared(variables = Seq("movie")),
+          ExpectedWorkingScope(
+            Ast("(movie:Movie)"),
+            PatternIncoming(Set(), Set("movie"), Set()),
+            Declared(variables = Seq("movie")),
+            Outgoing(variables = Set("movie")),
+            ExpectedResult.TableResult("movie"),
+            ExpectedWorkingScope.constExp("Movie", Set("movie"))
+          ),
+          ExpectedWorkingScope(
+            Ast("""SEARCH movie IN (
+                  |  VECTOR INDEX moviePlots
+                  |  FOR [1, 2, 3]
+                  |  LIMIT 5
+                  |) SCORE AS score""".stripMargin),
+            Incoming(variables = Set("movie")),
+            Referenced(Set("movie")),
+            Declared(variables = Seq("score")),
+            Outgoing(variables = Set("movie", "score")),
+            ExpectedWorkingScope.varExp("movie", Set("movie")),
+            ExpectedWorkingScope.constExp("[1, 2, 3]", Set("movie")),
+            ExpectedWorkingScope.constExp("5", Set("movie"))
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("""RETURN movie.title AS title, score""".stripMargin),
+          Incoming(variables = Set("movie", "score")),
+          Referenced(Set("movie", "score")),
+          Outgoing(variables = Set("title", "score")),
+          ExpectedResult.TableResult("title", "score"),
+          ExpectedWorkingScope(
+            Ast("movie.title"),
+            Incoming(constants = Set("movie", "score")),
+            Referenced(Set("movie")),
+            ExpectedWorkingScope.varExp("movie", Set("movie", "score"))
+          ),
+          ExpectedWorkingScope.varExp("score", Set("movie", "score"))
+        )
+      )
+    )
+  }
+
   test("""LET a = 10
          |RETURN reduce(acc = a, x IN [1, a, 3] | acc * x + 5) AS red""".stripMargin) {
     hasScope(
