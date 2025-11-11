@@ -23,17 +23,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.logging.LogAssertions.assertThat;
 
 import java.io.IOException;
-import java.nio.file.AccessDeniedException;
 import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
-import java.util.Set;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -66,35 +64,31 @@ public class LuceneDirectoryTest {
     @TempDir
     Path tmpDir;
 
-    @DisabledOnOs(OS.WINDOWS)
     @ParameterizedTest
     @EnumSource(LuceneContext.class)
     void shouldLogMergeErrors(LuceneContext luceneContext) throws IOException, InterruptedException {
-        class RemovePermissions extends SimpleFileVisitor<Path> {
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                Files.setPosixFilePermissions(dir, Set.of());
-                return super.postVisitDirectory(dir, exc);
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.setPosixFilePermissions(file, Set.of());
-                return super.visitFile(file, attrs);
-            }
-        }
-
         var logProvider = new AssertableLogProvider();
 
         try (var directoryFactory = luceneContext.directoryFactory();
                 var directory = directoryFactory.openPersistent(tmpDir)) {
 
             assertThatThrownBy(() -> runTest(logProvider, luceneContext, directory, iw -> {
-                        // remove file permissions so that merging will fail
-                        Files.walkFileTree(tmpDir, new RemovePermissions());
+                        // remove some index files so that merging will fail
+                        FileVisitor<Path> corruptIndex = new SimpleFileVisitor<>() {
+                            @Override
+                            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                                if (file.getFileName().toString().endsWith(".cfs")) {
+                                    Files.delete(file);
+                                }
+                                return FileVisitResult.CONTINUE;
+                            }
+                        };
+
+                        Files.walkFileTree(tmpDir, corruptIndex);
+
                         iw.forceMerge(1);
                     }))
-                    .hasRootCauseInstanceOf(AccessDeniedException.class);
+                    .hasRootCauseInstanceOf(NoSuchFileException.class);
         }
 
         assertThat(logProvider).forLevel(Level.ERROR).containsMessagesEventually(500, "failed");
