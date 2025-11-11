@@ -30,6 +30,10 @@ public class UnboundedReadVersionContext implements VersionContext {
     private long committingTransactionId = INVALID_TRANSACTION_ID;
     private long committingAppendIndex = INVALID_TRANSACTION_ID;
 
+    public UnboundedReadVersionContext() {
+        this(INVALID_TRANSACTION_ID, INVALID_TRANSACTION_ID, INVALID_TRANSACTION_ID);
+    }
+
     public UnboundedReadVersionContext(
             long committingTransactionId, long committingAppendIndex, long oldestTransactionId) {
         this.committingTransactionId = committingTransactionId;
