@@ -141,12 +141,10 @@ object SemanticCheck {
   def nestedCheck(check: => SemanticCheck): SemanticCheck = success.flatMap(_ => check)
 
   /** Creates a check which runs `check` if `condition` is `true`, otherwise does nothing. */
-  def when(condition: Boolean)(check: => SemanticCheck): SemanticCheck = {
-    if (condition)
-      check
-    else
-      SemanticCheck.success
-  }
+  def when(condition: Boolean, default: SemanticCheck = SemanticCheck.success)(
+    check: => SemanticCheck
+  ): SemanticCheck =
+    if (condition) check else default
 
   private[semantics] val DEBUG_ENABLED = false
 

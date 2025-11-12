@@ -1881,7 +1881,6 @@ sealed trait ProjectionClause extends HorizonClause {
                 warnOnAccessToRestrictedVariableInOrderByOrWhere(state.currentScope.symbolNames)
               )
               SemanticCheckResult(checksResult.state, niceErrors)
-
             }
           }
 
@@ -1891,7 +1890,7 @@ sealed trait ProjectionClause extends HorizonClause {
                 case r: Return => r.context == ImportingWithSubqueryCall
                 case _         => true
               }
-              when(inImportingWith) { (_: SemanticState) =>
+              when(inImportingWith, check) { (_: SemanticState) =>
                 val outerScopeSymbolNames = outer.symbolNames
                 val outputSymbolNames = result.state.currentScope.scope.symbolNames
                 val alreadyDeclaredNames = outputSymbolNames.intersect(outerScopeSymbolNames)
@@ -1906,8 +1905,7 @@ sealed trait ProjectionClause extends HorizonClause {
               }
             }
 
-          case _ =>
-            check
+          case _ => check
         }
     }
 
@@ -2395,11 +2393,13 @@ case class ScopeClauseSubqueryCall(
 
         innerQuery.getReturns.flatMap(v => difference.map((v, _))).foldSemanticCheck {
           case (ret, name) if ret.returnType != ReturnAddedInRewrite =>
-            val position = ret.returnItems.items.find(_.name == name) match {
-              case _ @Some(AliasedReturnItem(_, variable)) => variable.position
-              case _                                       => ret.position
+            ret.returnItems.items.find(_.name == name) match {
+              case Some(AliasedReturnItem(_, variable)) =>
+                SemanticError.variableAlreadyDeclaredInOuterScope(name, variable.position)
+              case None if ret.returnItems.includeExisting =>
+                SemanticError.variableAlreadyDeclaredInOuterScope(name, ret.position)
+              case _ => SemanticCheck.success
             }
-            SemanticError.variableAlreadyDeclaredInOuterScope(name, position)
           case _ => SemanticCheck.success
         } ifOkChain declareVariables(filteredVariables)
       }
