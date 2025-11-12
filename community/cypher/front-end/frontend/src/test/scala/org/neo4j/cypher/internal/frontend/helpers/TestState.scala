@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ObfuscationMetadata
 
@@ -43,7 +43,7 @@ case class TestState(override val maybeStatement: Option[ast.Statement]) extends
 
   override def maybeProcedureSignatureVersion: Option[Long] = None
 
-  override def maybeWorkingScope: Option[WorkingScope] = None
+  override def maybeScopeState: Option[ScopeState] = None
 
   override def maybeSemantics = None
 
@@ -64,7 +64,7 @@ case class TestState(override val maybeStatement: Option[ast.Statement]) extends
 
   override def withReturnColumns(cols: Seq[String]): BaseState = fail("not implemented")
 
-  override def withWorkingScope(ws: WorkingScope): BaseState = fail("not implemented")
+  override def withScopeState(s: ScopeState): BaseState = fail("not implemented")
 
   override def withSemanticTable(s: SemanticTable) = fail("not implemented")
 

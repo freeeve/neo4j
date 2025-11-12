@@ -131,7 +131,7 @@ case class FullyParsedQuery(state: BaseState, options: QueryOptions) extends Inp
     options = options.copy(queryOptions = options.queryOptions.copy(replan = replanOption))
   )
 
-  override def workingScopeOpt: Option[WorkingScope] = state.maybeWorkingScope
+  override def workingScopeOpt: Option[WorkingScope] = state.maybeScopeState.map(_.workingScope)
 }
 
 /**

@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -57,7 +58,7 @@ case class LogicalPlanState(
   anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
   maybeProcedureSignatureVersion: Option[Long] = None,
   maybeStatement: Option[Statement] = None,
-  maybeWorkingScope: Option[WorkingScope] = None,
+  maybeScopeState: Option[ScopeState] = None,
   maybeSemantics: Option[SemanticState] = None,
   maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]] = None,
   maybeResolvedParams: Option[Set[String]] = None,
@@ -89,7 +90,7 @@ case class LogicalPlanState(
       ),
       anonymousVariableNameGenerator,
       statement(),
-      maybeWorkingScope,
+      maybeScopeState.map(_.workingScope),
       CachableSemanticTable(semanticTable()),
       logicalPlan,
       hasLoadCSV,
@@ -99,7 +100,7 @@ case class LogicalPlanState(
 
   override def withStatement(s: Statement): LogicalPlanState = copy(maybeStatement = Some(s))
   override def withReturnColumns(cols: Seq[String]): LogicalPlanState = copy(maybeReturnColumns = Some(cols))
-  override def withWorkingScope(ws: WorkingScope): LogicalPlanState = copy(maybeWorkingScope = Some(ws))
+  override def withScopeState(s: ScopeState): LogicalPlanState = copy(maybeScopeState = Some(s))
   override def withSemanticTable(s: SemanticTable): LogicalPlanState = copy(maybeSemanticTable = Some(s))
   override def withSemanticState(s: SemanticState): LogicalPlanState = copy(maybeSemantics = Some(s))
 
@@ -133,7 +134,7 @@ object LogicalPlanState {
       anonymousVariableNameGenerator = state.anonymousVariableNameGenerator,
       maybeProcedureSignatureVersion = state.maybeProcedureSignatureVersion,
       maybeStatement = state.maybeStatement,
-      maybeWorkingScope = state.maybeWorkingScope,
+      maybeScopeState = state.maybeScopeState,
       maybeSemantics = state.maybeSemantics,
       maybeExtractedParams = state.maybeExtractedParams,
       maybeSemanticTable = state.maybeSemanticTable,

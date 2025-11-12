@@ -224,7 +224,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         val rewriteMsg = if (rewrite) " after rewrite" else ""
         runQuery(query, version, withPrepRewriting = rewrite) match {
           case Left(state) =>
-            state.maybeWorkingScope should not be empty
+            state.maybeScopeState should not be empty
 
             if (testLog) {
               log.append(
@@ -352,10 +352,10 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     versions.foreach(version => {
       runQuery(query, version, skipVariableChecker) match {
         case Left(state) =>
-          state.maybeWorkingScope should not be empty
-          val ws = state.maybeWorkingScope.get
+          state.maybeScopeState should not be empty
+          val ss = state.maybeScopeState.get
 
-          assertExpectation(ws, expected)
+          assertExpectation(ss.workingScope, expected)
 
           if (testLog) {
             log.append(
@@ -365,7 +365,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
                  |
                  |Working scope:
                  |
-                 |${logPPrint(ws)}
+                 |${logPPrint(ss.workingScope)}
                  |----------
                  |""".stripMargin
             )

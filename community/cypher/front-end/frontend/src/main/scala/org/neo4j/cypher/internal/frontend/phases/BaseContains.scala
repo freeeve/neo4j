@@ -42,8 +42,10 @@ case class BaseContains[T]()(implicit val tag: ClassTag[T]) extends ValidatingCo
         case x if classOf[Statement] == x && state.maybeStatement.isEmpty         => Seq("Statement missing")
         case x if classOf[SemanticState] == x && state.maybeSemantics.isEmpty     => Seq("Semantic state missing")
         case x if classOf[SemanticTable] == x && state.maybeSemanticTable.isEmpty => Seq("Semantic table missing")
-        case x if classOf[WorkingScope] == x && state.maybeWorkingScope.isEmpty   => Seq("Working scope missing")
-        case _                                                                    => Seq.empty
+        case x
+          if classOf[WorkingScope] == x && state.
+          maybeScopeState.isEmpty => Seq("Working scope missing")
+        case _ => Seq.empty
       }
     case x => throw new IllegalStateException(s"Unknown state: $x")
   }

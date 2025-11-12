@@ -81,7 +81,10 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
       RegularContext.unit,
       PegContext(anonVarGen, context.cypherVersion, context.semanticFeatures.toSet)
     )
-    from.withWorkingScope(workingContextOfStatement)
+
+    val recordedScopes = workingContextOfStatement.getRecordedScopes
+
+    from.withScopeState(ScopeState(workingContextOfStatement, recordedScopes))
   }
 
   override def getTransformer(

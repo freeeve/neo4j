@@ -137,9 +137,9 @@ object Transformer {
     if (LogWorkingScope) {
       (fromState, toState) match {
         case (from: BaseState, to: BaseState)
-          if to.maybeWorkingScope.isDefined && from.maybeWorkingScope != to.maybeWorkingScope =>
+          if to.maybeScopeState.isDefined && from.maybeScopeState != to.maybeScopeState =>
           println(s"######## DEBUG $transformerName, working scope changed:")
-          println(WorkingScopeStringRenderer(to.maybeWorkingScope))
+          println(WorkingScopeStringRenderer(to.maybeScopeState.get.workingScope))
           println("\n")
         case _ =>
       }

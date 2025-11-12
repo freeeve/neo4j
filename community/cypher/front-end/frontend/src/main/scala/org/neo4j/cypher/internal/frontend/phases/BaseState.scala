@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ObfuscationMetadata
 import org.neo4j.cypher.internal.util.StepSequencer
@@ -33,7 +33,7 @@ trait BaseState {
   def maybeProcedureSignatureVersion: Option[Long]
   def maybeStatement: Option[Statement]
   def maybeReturnColumns: Option[Seq[String]]
-  def maybeWorkingScope: Option[WorkingScope]
+  def maybeScopeState: Option[ScopeState]
   def maybeSemantics: Option[SemanticState]
   def maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]]
   def maybeResolvedParams: Option[Set[String]]
@@ -49,6 +49,7 @@ trait BaseState {
   def semantics(): SemanticState = maybeSemantics getOrElse fail("Semantics")
   def semanticTable(): SemanticTable = maybeSemanticTable getOrElse fail("Semantic table")
   def obfuscationMetadata(): ObfuscationMetadata = maybeObfuscationMetadata getOrElse fail("Obfuscation metadata")
+  def scopeState(): ScopeState = maybeScopeState getOrElse fail("Scope state")
 
   protected def fail(what: String) = {
     throw new IllegalStateException(s"$what not yet initialised")
@@ -57,7 +58,7 @@ trait BaseState {
   def withStatement(s: Statement): BaseState
   def withProcedureSignatureVersion(signatureVersion: Option[Long]): BaseState
   def withReturnColumns(cols: Seq[String]): BaseState
-  def withWorkingScope(ws: WorkingScope): BaseState
+  def withScopeState(s: ScopeState): BaseState
   def withSemanticTable(s: SemanticTable): BaseState
   def withSemanticState(s: SemanticState): BaseState
   def withParams(p: Map[AutoExtractedParameter, Expression]): BaseState
@@ -72,7 +73,7 @@ case class InitialState(
   anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
   maybeProcedureSignatureVersion: Option[Long] = None,
   maybeStatement: Option[Statement] = None,
-  maybeWorkingScope: Option[WorkingScope] = None,
+  maybeScopeState: Option[ScopeState] = None,
   maybeSemantics: Option[SemanticState] = None,
   maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]] = None,
   maybeResolvedParams: Option[Set[String]] = None,
@@ -87,7 +88,7 @@ case class InitialState(
 
   override def withReturnColumns(cols: Seq[String]): InitialState = copy(maybeReturnColumns = Some(cols))
 
-  override def withWorkingScope(ws: WorkingScope): InitialState = copy(maybeWorkingScope = Some(ws))
+  override def withScopeState(s: ScopeState): InitialState = copy(maybeScopeState = Some(s))
 
   override def withSemanticTable(s: SemanticTable): InitialState = copy(maybeSemanticTable = Some(s))
 

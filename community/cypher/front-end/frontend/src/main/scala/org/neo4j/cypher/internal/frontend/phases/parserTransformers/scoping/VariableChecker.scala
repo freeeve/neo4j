@@ -399,9 +399,9 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
   override def process(from: BaseState, context: BaseContext): BaseState = {
     if (context.semanticFeatures contains ScopeQueries) {
       val semanticsErrors = if (1 == 1) {
-        from.maybeWorkingScope.map(VariableChecker(context.cypherVersion).collectAll)
+        from.maybeScopeState.map(s => VariableChecker(context.cypherVersion).collectAll(s.workingScope))
       } else {
-        from.maybeWorkingScope.map(VariableChecker(context.cypherVersion).collectFirst)
+        from.maybeScopeState.map(s => VariableChecker(context.cypherVersion).collectFirst(s.workingScope))
       }
       semanticsErrors.foreach(errors => context.errorHandler(errors.toSeq))
     }
