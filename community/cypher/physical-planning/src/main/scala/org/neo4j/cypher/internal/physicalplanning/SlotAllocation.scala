@@ -121,6 +121,7 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.Repeat
+import org.neo4j.cypher.internal.logical.plans.RepeatAcyclic
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
@@ -155,6 +156,7 @@ import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
+import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.AcyclicPlans
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.ApplyPlans
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.ArgumentSizes
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.LiveVariables
@@ -164,6 +166,7 @@ import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.Tra
 import org.neo4j.cypher.internal.physicalplanning.PipelineBreakingPolicy.DiscardFromLhs
 import org.neo4j.cypher.internal.physicalplanning.PipelineBreakingPolicy.DiscardFromRhs
 import org.neo4j.cypher.internal.physicalplanning.PipelineBreakingPolicy.DoNotDiscard
+import org.neo4j.cypher.internal.physicalplanning.SlotAllocation.ACYCLIC_STATE_METADATA_KEY
 import org.neo4j.cypher.internal.physicalplanning.SlotAllocation.LOAD_CSV_METADATA_KEY
 import org.neo4j.cypher.internal.physicalplanning.SlotAllocation.NO_ARGUMENT
 import org.neo4j.cypher.internal.physicalplanning.SlotAllocation.SlotMetaData
@@ -220,13 +223,15 @@ object SlotAllocation {
    * @param argumentPlan the plan which introduced this argument
    * @param conditionalApplyPlan the nearest outer [Anti]ConditionalApply plan
    * @param trailPlan the nearest outer Trail plan
+   * @param acyclicPlan the nearest outer Acyclic plan
    */
   case class SlotsAndArgument(
     slotConfiguration: SlotConfigurationBuilder,
     argumentSize: Size,
     argumentPlan: Id,
     conditionalApplyPlan: Id,
-    trailPlan: Id
+    trailPlan: Id,
+    acyclicPlan: Id
   ) {
 
     def isArgument(field: String): Boolean =
@@ -241,6 +246,7 @@ object SlotAllocation {
     argumentSizes: ArgumentSizes,
     applyPlans: ApplyPlans,
     trailPlans: TrailPlans,
+    acyclicPlans: AcyclicPlans,
     nestedPlanArgumentConfigurations: NestedPlanArgumentConfigurations
   )
 
@@ -249,7 +255,7 @@ object SlotAllocation {
     if (allocateArgumentSlots) {
       slots.newArgument(Id.INVALID_ID)
     }
-    SlotsAndArgument(slots, Size.zero, Id.INVALID_ID, Id.INVALID_ID, Id.INVALID_ID)
+    SlotsAndArgument(slots, Size.zero, Id.INVALID_ID, Id.INVALID_ID, Id.INVALID_ID, Id.INVALID_ID)
   }
 
   final val INITIAL_SLOT_CONFIGURATION: SlotConfiguration = NO_ARGUMENT(true).slotConfiguration.build()
@@ -277,6 +283,8 @@ object SlotAllocation {
   final val LOAD_CSV_METADATA_KEY: String = "csv"
 
   final val TRAIL_STATE_METADATA_KEY: String = "trailState"
+
+  final val ACYCLIC_STATE_METADATA_KEY: String = "acyclicState"
 }
 
 /**
@@ -293,6 +301,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
   private val argumentSizes: ArgumentSizes = new ArgumentSizes,
   private val applyPlans: ApplyPlans = new ApplyPlans,
   private val trailPlans: TrailPlans = new TrailPlans,
+  private val acyclicPlans: AcyclicPlans = new AcyclicPlans,
   private val liveVariables: LiveVariables = new LiveVariables,
   private val nestedPlanArgumentConfigurations: NestedPlanArgumentConfigurations = new NestedPlanArgumentConfigurations
 ) {
@@ -379,11 +388,13 @@ class SingleQuerySlotAllocator private[physicalplanning] (
       cancellationChecker.throwIfCancelled()
       val (nullable, current) = planStack.pop()
 
-      val (outerApplyPlan, outerTrailPlan) = if (argumentStack.isEmpty) (Id.INVALID_ID, Id.INVALID_ID)
-      else (argumentStack.getFirst.argumentPlan, argumentStack.getFirst.trailPlan)
+      val (outerApplyPlan, outerTrailPlan, outerAcyclicPlan) = if (argumentStack.isEmpty)
+        (Id.INVALID_ID, Id.INVALID_ID, Id.INVALID_ID)
+      else (argumentStack.getFirst.argumentPlan, argumentStack.getFirst.trailPlan, argumentStack.getFirst.acyclicPlan)
 
       applyPlans.set(current.id, outerApplyPlan)
       trailPlans.set(current.id, outerTrailPlan)
+      acyclicPlans.set(current.id, outerAcyclicPlan)
 
       (current.lhs, current.rhs) match {
         case (None, None) =>
@@ -428,6 +439,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
           val conditionalApplyPlan = if (isConditionalApplyPlan) current.id else argument.conditionalApplyPlan
           val trailPlan = if (current.isInstanceOf[RepeatTrail] || current.isInstanceOf[RepeatWalk]) current.id
           else argument.trailPlan
+          val acyclicPlan = if (current.isInstanceOf[RepeatAcyclic]) current.id else argument.acyclicPlan
           if (allocateArgumentSlots) {
             if (nestedArgumentRowIdSlotNeeded(current)) {
               argumentSlots.newNestedArgument(current.id)
@@ -442,7 +454,8 @@ class SingleQuerySlotAllocator private[physicalplanning] (
             argumentSlots.size(),
             current.id,
             conditionalApplyPlan,
-            trailPlan
+            trailPlan,
+            acyclicPlan
           ))
           populate(right, nullable)
 
@@ -459,7 +472,8 @@ class SingleQuerySlotAllocator private[physicalplanning] (
               newArgument.size(),
               current.id,
               previousArgument.conditionalApplyPlan,
-              previousArgument.trailPlan
+              previousArgument.trailPlan,
+              previousArgument.acyclicPlan
             ))
           }
           allocateExpressionsTwoChild(current, lhsSlots, semanticTable, comingFromLeft = true, cancellationChecker)
@@ -490,7 +504,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
       comingFrom = current
     }
 
-    SlotMetaData(allocations, argumentSizes, applyPlans, trailPlans, nestedPlanArgumentConfigurations)
+    SlotMetaData(allocations, argumentSizes, applyPlans, trailPlans, acyclicPlans, nestedPlanArgumentConfigurations)
   }
 
   case class Accumulator(doNotTraverseExpression: Option[Expression])
@@ -639,13 +653,15 @@ class SingleQuerySlotAllocator private[physicalplanning] (
              * nested plans are only ever run with slotted pipes.
              */
             val trailPlanId = Id.INVALID_ID
+            val acyclicPlanId = Id.INVALID_ID
             val slotsAndArgument =
               SlotsAndArgument(
                 argumentSlotConfiguration.copy(),
                 argumentSlotConfiguration.size(),
                 argumentPlan,
                 conditionalApplyPlan,
-                trailPlanId
+                trailPlanId,
+                acyclicPlanId
               )
 
             // Allocate slots for nested plan
@@ -1409,7 +1425,10 @@ class SingleQuerySlotAllocator private[physicalplanning] (
           lhs.newReference(acc.next, nullable, CTAny)
           lhs.newReference(acc.previous, nullable, CTAny)
         })
-        lhs.newMetaData(TRAIL_STATE_METADATA_KEY, plan.id)
+        repeat match {
+          case _: RepeatAcyclic => lhs.newMetaData(ACYCLIC_STATE_METADATA_KEY, plan.id)
+          case _                => lhs.newMetaData(TRAIL_STATE_METADATA_KEY, plan.id)
+        }
 
       case _ =>
     }

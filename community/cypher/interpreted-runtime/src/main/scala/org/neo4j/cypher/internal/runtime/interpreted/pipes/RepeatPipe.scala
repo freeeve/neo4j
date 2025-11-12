@@ -288,14 +288,16 @@ case class RepeatPipe(
           acyclicState.relationshipsSeen
         )
         val innerRelationshipsArray = acyclicState.constraint.innerRelationships
+
+        var allRelationshipsUnique = true
         i = 0
         while (i < innerRelationshipsArray.length) {
           val r = innerRelationshipsArray(i)
-          newRelationships.add(castOrFail[VirtualRelationshipValue](row.getByName(r)).id())
+          allRelationshipsUnique = newRelationships.add(castOrFail[VirtualRelationshipValue](row.getByName(r)).id())
           i += 1
         }
 
-        if (allNodesUnique) {
+        if (allNodesUnique && allRelationshipsUnique) {
           val accumulatorValues = sortedAccumulators.map(acc => row.getByName(acc.next))
           Some(AcyclicLegacyRepeatState(
             innerEndNode.id(),
@@ -342,7 +344,9 @@ case class RepeatPipe(
         while (nodesAreUnique && i < innerNodesArray.length) {
           val n = innerNodesArray(i)
           val node = castOrFail[VirtualNodeValue](row.getByName(n)).id()
-          nodesAreUnique = !acyclicState.nodesSeen.contains(node) && innerNodesSeen.add(node)
+          nodesAreUnique = (!acyclicState.nodesSeen.contains(node)) && innerNodesSeen.add(
+            node
+          )
           i += 1
         }
         relationshipsAreUnique && nodesAreUnique

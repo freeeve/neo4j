@@ -52,6 +52,8 @@ object PhysicalPlanningAttributes {
 
   class TrailPlans extends Attribute[LogicalPlan, Id]
 
+  class AcyclicPlans extends Attribute[LogicalPlan, Id]
+
   class NestedPlanArgumentConfigurations extends BuildsSlotConfigurations
   class LiveVariables extends Attribute[LogicalPlan, Set[String]]
 

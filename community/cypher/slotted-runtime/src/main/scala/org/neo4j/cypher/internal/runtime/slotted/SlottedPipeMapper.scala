@@ -134,6 +134,7 @@ import org.neo4j.cypher.internal.logical.plans.Prober
 import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
+import org.neo4j.cypher.internal.logical.plans.RepeatAcyclic
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
@@ -311,6 +312,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.OrderedDistinctSlottedPri
 import org.neo4j.cypher.internal.runtime.slotted.pipes.OrderedDistinctSlottedSinglePrimitivePipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.OrderedUnionSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.AcyclicModeConstraint
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.SlottedAllReduceAcc
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.TrailModeConstraint
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.WalkModeConstraint
@@ -2085,6 +2087,65 @@ class SlottedPipeMapper(
 
       case AssertSameRelationship(relationship, _, _) =>
         AssertSameRelationshipSlottedPipe(lhs, rhs, relationship.name, slots(relationship).slot)(id = id)
+
+      case RepeatAcyclic(
+          _,
+          _,
+          repetition,
+          start,
+          end,
+          innerStart,
+          innerEnd,
+          groupNodes,
+          innerNodes,
+          previouslyBoundNodes,
+          previouslyBoundNodeGroups,
+          groupRelationships,
+          innerRelationships,
+          previouslyBoundRelationships,
+          previouslyBoundRelationshipGroups,
+          reverseGroupVariableProjections,
+          expansionMode,
+          accumulators
+        ) =>
+        val nodeInScope = expansionMode match {
+          case ExpandAll  => false
+          case ExpandInto => true
+        }
+        val rhsSlots = slotConfigs(rhs.id)
+        val lhsSlots = slotConfigs(lhs.id)
+        RepeatSlottedPipe(
+          lhs,
+          rhs,
+          repetition,
+          slots(start).slot,
+          slots(end).slot,
+          rhsSlots.longOffset(innerStart),
+          rhsSlots(innerEnd).slot,
+          groupNodes.map(n => GroupSlot(rhsSlots(n.singleton).slot, slots(n.group).slot)).toArray,
+          groupRelationships.map(r => GroupSlot(rhsSlots(r.singleton).slot, slots(r.group).slot)).toArray,
+          AcyclicModeConstraint(
+            rhsSlots.metaDataOffset(SlotAllocation.ACYCLIC_STATE_METADATA_KEY, id),
+            innerRelationships.map(r => rhsSlots(r).slot).toArray,
+            previouslyBoundRelationships.map(r => lhsSlots(r).slot).toArray,
+            previouslyBoundRelationshipGroups.map(r => lhsSlots(r).slot).toArray,
+            innerNodes.map(n => rhsSlots(n).slot).toArray,
+            previouslyBoundNodes.map(n => lhsSlots(n).slot).toArray,
+            previouslyBoundNodeGroups.map(n => lhsSlots(n).slot).toArray
+          ),
+          slots,
+          rhsSlots,
+          argumentSize,
+          reverseGroupVariableProjections,
+          nodeInScope,
+          accumulators.map(acc =>
+            SlottedAllReduceAcc(
+              expressionConverters.toCommandExpression(id, acc.initial),
+              rhsSlots(acc.previous).slot,
+              rhsSlots(acc.next).slot
+            )
+          ).toArray
+        )(id = id)
 
       case RepeatTrail(
           _,

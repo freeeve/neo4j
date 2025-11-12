@@ -4918,6 +4918,7 @@ case class RepeatWalk(
  * @param nodeVariableGroupings             node variables to aggregate
  * @param relationshipVariableGroupings     relationship variables to aggregate
  * @param innerRelationships                all inner relationships, whether they get projected or not
+ * @param innerNodes                        all inner nodes, whether they get projected or not
  * @param previouslyBoundNodes              all node variables of the same path pattern that are present in lhs that are not provably disjoint
  * @param previouslyBoundNodeGroups         all node group variables of the same path pattern that are present in lhs that are not provably disjoint
  * @param reverseGroupVariableProjections   if `true` reverse the group variable lists
@@ -4931,13 +4932,13 @@ case class RepeatAcyclic(
   innerStart: LogicalVariable,
   innerEnd: LogicalVariable,
   nodeVariableGroupings: Set[VariableGrouping],
+  innerNodes: Set[LogicalVariable],
   previouslyBoundNodes: Set[LogicalVariable],
   previouslyBoundNodeGroups: Set[LogicalVariable],
-  innerNodes: Set[LogicalVariable],
   relationshipVariableGroupings: Set[VariableGrouping],
+  innerRelationships: Set[LogicalVariable],
   previouslyBoundRelationships: Set[LogicalVariable],
   previouslyBoundRelationshipGroups: Set[LogicalVariable],
-  innerRelationships: Set[LogicalVariable],
   reverseGroupVariableProjections: Boolean,
   expansionMode: ExpansionMode = ExpandAll,
   accumulatorMappings: Set[AllReduceAccumulator] = Set.empty

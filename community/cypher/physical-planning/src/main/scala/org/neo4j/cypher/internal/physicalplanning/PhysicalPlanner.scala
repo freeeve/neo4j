@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.physicalplanning
 
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.AcyclicPlans
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.ApplyPlans
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.ArgumentSizes
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.LiveVariables
@@ -71,7 +72,7 @@ object PhysicalPlanner {
       allocatePipelinedSlots
     )
     val finalLogicalPlan = new SlottedRewriter(tokenContext)
-      .apply(withSlottedParameters, slotMetaData.slotConfigurations, slotMetaData.trailPlans)
+      .apply(withSlottedParameters, slotMetaData.slotConfigurations, slotMetaData.trailPlans, slotMetaData.acyclicPlans)
     DebugSupport.PHYSICAL_PLANNING.log(
       "======== END Physical Planning =================================================================="
     )
@@ -82,6 +83,7 @@ object PhysicalPlanner {
       slotMetaData.argumentSizes,
       slotMetaData.applyPlans,
       slotMetaData.trailPlans,
+      slotMetaData.acyclicPlans,
       slotMetaData.nestedPlanArgumentConfigurations.finalizeSlots(),
       availableExpressionVars,
       parameterMapping
@@ -96,6 +98,7 @@ case class PhysicalPlan(
   argumentSizes: ArgumentSizes,
   applyPlans: ApplyPlans,
   trailPlans: TrailPlans,
+  acyclicPlans: AcyclicPlans,
   nestedPlanArgumentConfigurations: ImmutableAttribute[SlotConfiguration],
   availableExpressionVariables: AvailableExpressionVariables,
   parameterMapping: ParameterMapping

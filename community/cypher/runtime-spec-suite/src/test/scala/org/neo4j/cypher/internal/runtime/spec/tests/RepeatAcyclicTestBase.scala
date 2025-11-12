@@ -523,7 +523,6 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       val r51 = n5.createRelationshipTo(n1, RelationshipType.withName("R"))
       (n1, n2, n3, n4, n5, r12, r23, r34, r45, r51)
     }
-
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("me", "you", "a", "b", "r")
       .repeatAcyclic(`(me) [(a)-[r]->()-[]->(b)]{0,*} (you)`)
@@ -736,7 +735,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
 
   test("should respect relationship and node uniqueness of previous relationships") {
     // given
-    //          (n1)
+    //       (n1:START)
     //        ↗     ↘
     //      (n3) <- (n2)
     val (n1, n2, n3, r12, r23, r31) = smallCircularGraph
@@ -753,7 +752,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       innerEnd = "c_inner",
       groupNodes = Set(("c_inner", "c")),
       innerNodes = Set("c_inner"),
-      previouslyBoundNodes = Set(),
+      previouslyBoundNodes = Set("a"),
       previouslyBoundNodeGroups = Set(),
       groupRelationships = Set(("f_inner", "f")),
       innerRelationships = Set("f_inner"),
@@ -767,9 +766,10 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "e", "b", "f", "c")
       .repeatAcyclic(`(anon_start) (()-[f]->(c){1,*} (anon_end)`)
+      .|.filter("NOT c_inner = a") // TODO: currently needed for legacy - fix!
       .|.filter("NOT anon_inner = c_inner", isRepeatAcyclic("c_inner"))
       .|.expandAll("(anon_inner)-[f_inner]->(c_inner)")
-      .|.argument("anon_inner")
+      .|.argument("anon_inner", "a") // TODO: remove a when legacy is fixed.
       .filter("a:START")
       .allRelationshipsScan("(a)-[e]->(b)")
       .build()
@@ -777,8 +777,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
     runtimeResult should beColumns("a", "e", "b", "f", "c").withRows(inAnyOrder(
       Seq(
-        Array(n1, r12, n2, listOf(r23), listOf(n3)),
-        Array(n1, r12, n2, listOf(r23, r31), listOf(n3, n1))
+        Array(n1, r12, n2, listOf(r23), listOf(n3))
       )
     ))
   }
@@ -1824,9 +1823,9 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .|.|.|.|.|.filter("true")
       .|.|.|.|.|.filter("d_inner:LOOP")
       .|.|.|.|.|.nodeHashJoin("d_inner")
-      .|.|.|.|.|.|.limit(9223372036854775807L) // We used to fail here
+      .|.|.|.|.|.|.limit(9223372036854775807L)
       .|.|.|.|.|.|.allNodeScan("d_inner")
-      .|.|.|.|.|.filter("NOT c_inner = d_inner", isRepeatAcyclic("d_inner"))
+      .|.|.|.|.|.filter("NOT c_inner = d_inner", isRepeatAcyclic("d_inner"), isRepeatTrailUnique("r2_inner"))
       .|.|.|.|.|.expandAll("(c_inner)-[r2_inner]->(d_inner)")
       .|.|.|.|.|.argument("middle", "c_inner")
       .|.|.|.|.argument("middle")
@@ -1857,7 +1856,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .|.|.|.|.nodeHashJoin("b_inner")
       .|.|.|.|.|.allNodeScan("b_inner")
       .|.|.|.|.limit(9223372036854775807L)
-      .|.|.|.|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
+      .|.|.|.|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"), isRepeatTrailUnique(("r1_inner")))
       .|.|.|.|.expandAll("(a_inner)-[r1_inner]->(b_inner)")
       .|.|.|.|.optional("start")
       .|.|.|.|.filter("true")
@@ -1886,7 +1885,11 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .|.|.|.|.|.filter("true")
       .|.|.|.|.|.allNodeScan("anon_end_inner")
       .|.|.|.|.filter("true")
-      .|.|.|.|.filter("NOT anon_start_inner = anon_end_inner", isRepeatAcyclic("anon_end_inner"))
+      .|.|.|.|.filter(
+        "NOT anon_start_inner = anon_end_inner",
+        isRepeatAcyclic("anon_end_inner"),
+        isRepeatTrailUnique("anon_r_inner")
+      )
       .|.|.|.|.expandAll("(anon_start_inner)-[anon_r_inner]->(anon_end_inner)")
       .|.|.|.|.argument("start", "anon_start_inner")
       .|.|.|.filter("true")
@@ -1916,7 +1919,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .|.|.|.|.filter("d_inner:LOOP")
       .|.|.|.|.nodeHashJoin("d_inner")
       .|.|.|.|.|.allNodeScan("d_inner")
-      .|.|.|.|.filter("NOT c_inner = d_inner", isRepeatAcyclic("d_inner"))
+      .|.|.|.|.filter("NOT c_inner = d_inner", isRepeatAcyclic("d_inner"), isRepeatTrailUnique("r2_inner"))
       .|.|.|.|.filter("true")
       .|.|.|.|.expandAll("(c_inner)-[r2_inner]->(d_inner)")
       .|.|.|.|.argument("middle", "c_inner")
@@ -1949,7 +1952,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
     val plan3 = plan2.|.|.|.filter("b_inner:MIDDLE")
       .|.|.|.nodeHashJoin("b_inner")
       .|.|.|.|.allNodeScan("b_inner")
-      .|.|.|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
+      .|.|.|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"), isRepeatTrailUnique("r1_inner"))
       .|.|.|.filter("true")
       .|.|.|.expandAll("(a_inner)-[r1_inner]->(b_inner)")
       .|.|.|.filter("true")
@@ -1977,7 +1980,11 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .|.|.|.|.filter("true")
       .|.|.|.|.filter("anon_end_inner:MIDDLE")
       .|.|.|.|.allNodeScan("anon_end_inner")
-      .|.|.|.filter("NOT anon_start_inner = anon_end_inner", isRepeatAcyclic("anon_end_inner"))
+      .|.|.|.filter(
+        "NOT anon_start_inner = anon_end_inner",
+        isRepeatAcyclic("anon_end_inner"),
+        isRepeatTrailUnique("anon_r_inner")
+      )
       .|.|.|.expandAll("(anon_start_inner)-[anon_r_inner]->(anon_end_inner)")
       .|.|.|.filter("true")
       .|.|.|.argument("start", "anon_start_inner")
@@ -2010,7 +2017,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .|.|.|.filter("d_inner:LOOP")
       .|.|.|.nodeHashJoin("d_inner")
       .|.|.|.|.allNodeScan("d_inner")
-      .|.|.|.filter("NOT c_inner = d_inner", isRepeatAcyclic("d_inner"))
+      .|.|.|.filter("NOT c_inner = d_inner", isRepeatAcyclic("d_inner"), isRepeatTrailUnique("r2_inner"))
       .|.|.|.filter("true")
       .|.|.|.expandAll("(c_inner)-[r2_inner]->(d_inner)")
       .|.|.|.filter("true")
@@ -2044,7 +2051,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .|.|.filter("b_inner:MIDDLE")
       .|.|.nodeHashJoin("b_inner")
       .|.|.|.allNodeScan("b_inner")
-      .|.|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
+      .|.|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"), isRepeatTrailUnique("r1_inner"))
       .|.|.expandAll("(a_inner)-[r1_inner]->(b_inner)")
       .|.|.argument("firstMiddle", "a_inner")
       .|.filter("true")
@@ -2072,7 +2079,11 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .|.|.|.filter("anon_end_inner:MIDDLE")
       .|.|.|.allNodeScan("anon_end_inner")
       .|.|.filter("true")
-      .|.|.filter("NOT anon_start_inner = anon_end_inner", isRepeatAcyclic("anon_end_inner"))
+      .|.|.filter(
+        "NOT anon_start_inner = anon_end_inner",
+        isRepeatAcyclic("anon_end_inner"),
+        isRepeatTrailUnique("anon_r_inner")
+      )
       .|.|.expandAll("(anon_start_inner)-[anon_r_inner]->(anon_end_inner)")
       .|.|.argument("start", "anon_start_inner")
       .|.nodeByLabelScan("start", "START", IndexOrderNone)
@@ -2324,8 +2335,8 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
   // so we can encounter previously-seen relationships even when we have not seen the nodes
   test("should respect relationship uniqueness when previously-seen relationships are provided") {
 
-    // MATCH (me:START) ((a)-[r:R1]->(b))* (you),
-    //       (other:START) ((d)-[rel]->(c) (another)
+    // MATCH ACYCLIC (me:START) ((a)-[r:R1]->(b))* (you),
+    //       ACYCLIC (other:START) ((d)-[rel]->(c))* (another)
     // RETURN me, r, you, other, rel, another
 
     val graph = givenGraph {
@@ -2350,8 +2361,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       groupRelationships = Set(("rel_inner", "rel")),
       innerRelationships = Set("rel_inner"),
       previouslyBoundRelationships = Set(),
-      previouslyBoundRelationshipGroups =
-        Set("r"), // we capture the r from the previous repeat to test it is not traversed again
+      previouslyBoundRelationshipGroups = Set("r"),
       reverseGroupVariableProjections = false,
       expansionMode = ExpandAll,
       accumulators = Set.empty
@@ -2361,7 +2371,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .produceResults("me", "r", "you", "other", "rel", "another")
       .apply()
       .|.repeatAcyclic(`(other) ((c)-[rel]->(d))* (another)`) // the second repeat should not traverse :R1
-      .|.|.filter("NOT c_inner = d_inner", isRepeatAcyclic("d_inner"))
+      .|.|.filter("NOT c_inner = d_inner", isRepeatAcyclic("d_inner"), isRepeatTrailUnique("rel_inner"))
       .|.|.expandAll("(c_inner)-[rel_inner]->(d_inner)")
       .|.|.argument("other", "c_inner", "me", "a", "r", "b", "you")
       .|.nodeByLabelScan("other", "START", IndexOrderNone, "me", "a", "r", "b", "you")
@@ -2646,8 +2656,8 @@ object RepeatAcyclicTestBase {
       innerEnd = "a_inner",
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
       innerNodes = Set("a_inner", "b_inner"),
-      previouslyBoundNodes = Set.empty,
-      previouslyBoundNodeGroups = Set.empty,
+      previouslyBoundNodes = Set(),
+      previouslyBoundNodeGroups = Set(),
       groupRelationships = Set(("r_inner", "r")),
       innerRelationships = Set("r_inner"),
       previouslyBoundRelationships = Set.empty,
@@ -2667,7 +2677,7 @@ object RepeatAcyclicTestBase {
       innerEnd = "c_inner",
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b"), ("c_inner", "c")),
       innerNodes = Set("a_inner", "b_inner", "c_inner"),
-      previouslyBoundNodes = Set.empty,
+      previouslyBoundNodes = Set("me"),
       previouslyBoundNodeGroups = Set.empty,
       groupRelationships = Set(("r_inner", "r"), ("rr_inner", "rr")),
       innerRelationships = Set("r_inner", "rr_inner"),
@@ -2769,7 +2779,7 @@ object RepeatAcyclicTestBase {
       innerEnd = "d_inner",
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b"), ("c_inner", "c"), ("d_inner", "d")),
       innerNodes = Set("a_inner", "b_inner", "c_inner", "d_inner"),
-      previouslyBoundNodes = Set.empty,
+      previouslyBoundNodes = Set("me"),
       previouslyBoundNodeGroups = Set.empty,
       groupRelationships = Set(("r_inner", "r"), ("rr_inner", "rr"), ("rrr_inner", "rrr")),
       innerRelationships = Set("r_inner", "rr_inner", "rrr_inner"),
@@ -3697,7 +3707,7 @@ trait OrderedAcyclicTestBase[CONTEXT <: RuntimeContext] {
       innerEnd = "c_inner",
       groupNodes = Set(("c_inner", "c")),
       innerNodes = Set("c_inner"),
-      previouslyBoundNodes = Set.empty,
+      previouslyBoundNodes = Set("a"),
       previouslyBoundNodeGroups = Set.empty,
       groupRelationships = Set(("f_inner", "f")),
       innerRelationships = Set("f_inner"),
@@ -3711,9 +3721,10 @@ trait OrderedAcyclicTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "e", "b", "f", "c")
       .repeatAcyclic(`(anon_start) [()-[f]->(c)]{1,*} (anon_end)`).withLeveragedOrder()
+      .|.filter("NOT c_inner = a") // TODO: required for legacy - fix!
       .|.filter("NOT anon_inner = c_inner", isRepeatAcyclic("c_inner"))
       .|.expandAll("(anon_inner)-[f_inner]->(c_inner)")
-      .|.argument("anon_inner")
+      .|.argument("a", "anon_inner")
       .sort("foo ASC")
       .projection("a.foo AS foo")
       .filter("a:START")
@@ -3727,13 +3738,11 @@ trait OrderedAcyclicTestBase[CONTEXT <: RuntimeContext] {
         Seq(
           Array(n0, r02, n2, listOf(r23), listOf(n3)),
           Array(n0, r02, n2, listOf(r23, r31), listOf(n3, n1)),
-          Array(n0, r02, n2, listOf(r23, r30), listOf(n3, n0)),
           Array(n0, r02, n2, listOf(r23, r31, r12), listOf(n3, n1, n2))
         ),
         Seq(
           Array(n1, r12, n2, listOf(r23), listOf(n3)),
           Array(n1, r12, n2, listOf(r23, r30), listOf(n3, n0)),
-          Array(n1, r12, n2, listOf(r23, r31), listOf(n3, n1)),
           Array(n1, r12, n2, listOf(r23, r30, r02), listOf(n3, n0, n2))
         )
       )
@@ -5323,12 +5332,20 @@ trait OrderedAcyclicTestBase[CONTEXT <: RuntimeContext] {
       .repeatAcyclic(RepeatAcyclicTestBase.`(me) [(a)-[r]->(b)-[rr]->(c)<-[rrr]-(d)]{0,1} (you)`).withLeveragedOrder()
       .|.filter(
         "NOT c_inner = d_inner",
-        isRepeatAcyclic("d_inner")
+        "NOT rrr_inner = rr_inner",
+        "NOT rrr_inner = r_inner",
+        isRepeatAcyclic("d_inner"),
+        isRepeatTrailUnique("rrr_inner")
       )
       .|.expandAll("(c_inner)<-[rrr_inner]-(d_inner)")
-      .|.filter("NOT b_inner = c_inner", isRepeatAcyclic("c_inner"))
+      .|.filter(
+        "NOT rr_inner = r_inner",
+        "NOT b_inner = c_inner",
+        isRepeatAcyclic("c_inner"),
+        isRepeatTrailUnique("rr_inner")
+      )
       .|.expandAll("(b_inner)-[rr_inner]->(c_inner)")
-      .|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
+      .|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"), isRepeatTrailUnique("r_inner"))
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
       .nodeByLabelScan("me", "START", IndexOrderNone)

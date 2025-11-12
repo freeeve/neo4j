@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasTypes
 import org.neo4j.cypher.internal.expressions.IsNotNull
 import org.neo4j.cypher.internal.expressions.IsNull
+import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
@@ -67,6 +68,7 @@ import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
+import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.AcyclicPlans
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.SlotConfigurations
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.TrailPlans
 import org.neo4j.cypher.internal.physicalplanning.SlottedRewriter.rewriteVariable
@@ -129,7 +131,12 @@ import org.neo4j.exceptions.InternalException
  */
 class SlottedRewriter(tokenContext: ReadTokenContext) {
 
-  def apply(in: LogicalPlan, slotConfigurations: SlotConfigurations, trailPlans: TrailPlans): LogicalPlan = {
+  def apply(
+    in: LogicalPlan,
+    slotConfigurations: SlotConfigurations,
+    trailPlans: TrailPlans,
+    acyclicPlans: AcyclicPlans
+  ): LogicalPlan = {
 
     val rewritePlanWithSlots =
       topDown(Rewriter.lift {
@@ -139,7 +146,8 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
         We need to use the incoming slot configuration for predicate rewriting
            */
           val incomingSlotConfiguration = slotConfigurations(oldPlan.source.id)
-          val incomingRewriter = rewriteCreator(incomingSlotConfiguration, oldPlan, slotConfigurations, trailPlans)
+          val incomingRewriter =
+            rewriteCreator(incomingSlotConfiguration, oldPlan, slotConfigurations, trailPlans, acyclicPlans)
 
           val newNodePredicates =
             oldPlan.nodePredicates.map(x => VariablePredicate(x.variable, x.predicate.endoRewrite(incomingRewriter)))
@@ -152,14 +160,16 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
             oldPlan.withNewPredicates(newNodePredicates, newRelationshipPredicates)(SameId(oldPlan.id))
 
           val slotConfiguration = slotConfigurations(oldPlan.id)
-          val rewriter = rewriteCreator(slotConfiguration, oldPlan, slotConfigurations, trailPlans)
+          val rewriter = rewriteCreator(slotConfiguration, oldPlan, slotConfigurations, trailPlans, acyclicPlans)
           val newPlan = oldPlanWithNewPredicates.endoRewrite(rewriter)
 
           newPlan
 
         case plan @ ValueHashJoin(lhs, rhs, e @ Equals(lhsExp, rhsExp)) =>
-          val lhsRewriter = rewriteCreator(slotConfigurations(lhs.id), plan, slotConfigurations, trailPlans)
-          val rhsRewriter = rewriteCreator(slotConfigurations(rhs.id), plan, slotConfigurations, trailPlans)
+          val lhsRewriter =
+            rewriteCreator(slotConfigurations(lhs.id), plan, slotConfigurations, trailPlans, acyclicPlans)
+          val rhsRewriter =
+            rewriteCreator(slotConfigurations(rhs.id), plan, slotConfigurations, trailPlans, acyclicPlans)
           val lhsExpAfterRewrite = lhsExp.endoRewrite(lhsRewriter)
           val rhsExpAfterRewrite = rhsExp.endoRewrite(rhsRewriter)
           plan.copy(join = Equals(lhsExpAfterRewrite, rhsExpAfterRewrite)(e.position))(SameId(plan.id))
@@ -173,7 +183,8 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
           ))
           val slotConfiguration = slotConfigurations(oldPlan.id)
           val incomingSlotConfiguration = slotConfigurations(leftPlan.id)
-          val incomingRewriter = rewriteCreator(incomingSlotConfiguration, oldPlan, slotConfigurations, trailPlans)
+          val incomingRewriter =
+            rewriteCreator(incomingSlotConfiguration, oldPlan, slotConfigurations, trailPlans, acyclicPlans)
           val newGroupingExpressions = oldPlan.groupingExpressions collect {
             case (column, expression) =>
               rewriteVariable(oldPlan, column, slotConfiguration) -> expression.endoRewrite(incomingRewriter)
@@ -202,7 +213,7 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
 
         case oldPlan: LogicalPlan =>
           val slotConfiguration = slotConfigurations(oldPlan.id)
-          val rewriter = rewriteCreator(slotConfiguration, oldPlan, slotConfigurations, trailPlans)
+          val rewriter = rewriteCreator(slotConfiguration, oldPlan, slotConfigurations, trailPlans, acyclicPlans)
           val newPlan = oldPlan.endoRewrite(rewriter)
 
           newPlan
@@ -227,7 +238,8 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
     slotConfiguration: SlotConfigurationBuilder,
     thisPlan: LogicalPlan,
     slotConfigurations: SlotConfigurations,
-    trailPlans: TrailPlans
+    trailPlans: TrailPlans,
+    acyclicPlans: AcyclicPlans
   ): Rewriter = {
     val innerRewriter = Rewriter.lift {
       case e: NestedPlanExpression =>
@@ -239,7 +251,7 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
             s"Missing slot configuration for plan with ${e.plan.id}"
           )
         )
-        val rewriter = rewriteCreator(innerSlotConf, thisPlan, slotConfigurations, trailPlans)
+        val rewriter = rewriteCreator(innerSlotConf, thisPlan, slotConfigurations, trailPlans, acyclicPlans)
         e match {
           case ce @ NestedPlanCollectExpression(_, projection, _) =>
             val rewrittenProjection = projection.endoRewrite(rewriter)
@@ -536,15 +548,36 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
         } else
           e
 
+      case IsRepeatAcyclic(innerNode: Variable) =>
+        val acyclicId: Id = acyclicPlans.getOrElse(
+          thisPlan.id,
+          throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            "Expected IsRepeatAcyclic to be under AcyclicRepeat"
+          )
+        )
+        ast.NodeUniqueness(SlotAllocation.ACYCLIC_STATE_METADATA_KEY, acyclicId.x, innerNode)
+
       case IsRepeatTrailUnique(innerRel: Variable) =>
         val trailId: Id = trailPlans.getOrElse(
           thisPlan.id,
           throw InternalException.internalError(
             this.getClass.getSimpleName,
-            "Expected IsRepeatTrailUnique to be under Trail"
+            "Expected IsRepeatTrailUnique to be under Trail or Acyclic"
           )
         )
-        ast.TrailRelationshipUniqueness(SlotAllocation.TRAIL_STATE_METADATA_KEY, trailId.x, innerRel)
+        if (trailId == Id.INVALID_ID) { // TODO: improve this solution
+          val acyclicId = acyclicPlans.getOrElse(
+            thisPlan.id,
+            throw InternalException.internalError(
+              this.getClass.getSimpleName,
+              "Expected IsRepeatTrailUnique to be under Trail or Acyclic"
+            )
+          )
+          ast.TrailRelationshipUniqueness(SlotAllocation.ACYCLIC_STATE_METADATA_KEY, acyclicId.x, innerRel)
+        } else {
+          ast.TrailRelationshipUniqueness(SlotAllocation.TRAIL_STATE_METADATA_KEY, trailId.x, innerRel)
+        }
 
       case ssp: StatefulShortestPath =>
         val nonExpressionVariables = (ssp.nfa.variables -- ssp.boundNodes).collect { case Variable(name) => name }
