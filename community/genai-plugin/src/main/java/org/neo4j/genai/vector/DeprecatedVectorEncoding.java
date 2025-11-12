@@ -73,10 +73,17 @@ public class DeprecatedVectorEncoding {
     @Context
     public HttpService httpService;
 
+    @Procedure(name = "genai.vector.listEncodingProviders")
+    @Description("Lists the available vector embedding providers.")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5})
+    public Stream<ProviderRow> listEncodingProvidersCypher5() {
+        return PROVIDERS.stream().map(ProviderRow::from);
+    }
+
     @Deprecated
     @Procedure(name = "genai.vector.listEncodingProviders", deprecatedBy = "ai.text.embed.providers")
     @Description("Lists the available vector embedding providers.")
-    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5, QueryLanguage.CYPHER_25})
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     public Stream<ProviderRow> listEncodingProviders() {
         return PROVIDERS.stream().map(ProviderRow::from);
     }
@@ -134,10 +141,37 @@ public class DeprecatedVectorEncoding {
         }
     }
 
+    @UserFunction(name = "genai.vector.encode")
+    @Description("Encode a given resource as a vector using the named provider.")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5})
+    public Value encodeCypher5(
+            @Name(value = "resource", description = "The object to transform into an embedding.") String resource,
+            @Name(
+                            value = "provider",
+                            description =
+                                    "The identifier of the provider: (\"VertexAI\", \"OpenAI\", \"AzureOpenAI\", \"Bedrock\").")
+                    String providerName,
+            @Sensitive
+                    @Name(
+                            value = "configuration",
+                            defaultValue = "{}",
+                            description =
+                                    """
+                            VertexAI: {token :: STRING, projectId :: STRING, model :: STRING, region :: STRING, taskType :: STRING, title :: STRING }
+
+                            OpenAI: {token :: STRING, model :: STRING, dimensions :: INTEGER}
+
+                            AzureOpenAI: {token :: STRING, resource :: STRING, deployment :: STRING, dimensions :: INTEGER}
+
+                            AmazonBedrock: {accessKeyId :: STRING, secretAccessKey :: STRING, model :: STRING, region :: STRING}""")
+                    AnyValue configuration) {
+        return encode(resource, providerName, configuration);
+    }
+
     @Deprecated
     @UserFunction(name = "genai.vector.encode", deprecatedBy = "ai.text.embed")
     @Description("Encode a given resource as a vector using the named provider.")
-    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5, QueryLanguage.CYPHER_25})
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     public Value encode(
             @Name(value = "resource", description = "The object to transform into an embedding.") String resource,
             @Name(
@@ -170,6 +204,26 @@ public class DeprecatedVectorEncoding {
         }
     }
 
+    @Procedure(name = "genai.vector.encodeBatch")
+    @Description(
+            """
+            Encode a given batch of resources as vectors using the named provider.
+            For each element in the given resource LIST this returns:
+                * the corresponding 'index' within that LIST,
+                * the original 'resource' element itself,
+                * and the encoded 'vector'.
+            """)
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5})
+    public Stream<InternalBatchRow> encodeCypher5(
+            @Name(value = "resources", description = "The object to transform into an embedding.")
+                    List<String> resources,
+            @Name(value = "provider", description = "The GenAI provider to use.") String providerName,
+            @Sensitive
+                    @Name(value = "configuration", defaultValue = "{}", description = "The provider specific settings.")
+                    AnyValue configuration) {
+        return encode(resources, providerName, configuration);
+    }
+
     @Deprecated
     @Procedure(name = "genai.vector.encodeBatch", deprecatedBy = "ai.text.embedBatch")
     @Description(
@@ -180,7 +234,7 @@ public class DeprecatedVectorEncoding {
                 * the original 'resource' element itself,
                 * and the encoded 'vector'.
             """)
-    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5, QueryLanguage.CYPHER_25})
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     public Stream<InternalBatchRow> encode(
             @Name(value = "resources", description = "The object to transform into an embedding.")
                     List<String> resources,
