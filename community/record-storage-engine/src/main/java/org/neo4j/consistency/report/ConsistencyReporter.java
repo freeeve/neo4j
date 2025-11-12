@@ -29,7 +29,6 @@ import org.neo4j.annotations.documented.Warning;
 import org.neo4j.consistency.RecordType;
 import org.neo4j.consistency.report.ConsistencyReport.CountsConsistencyReport;
 import org.neo4j.consistency.report.ConsistencyReport.DynamicConsistencyReport;
-import org.neo4j.consistency.report.ConsistencyReport.DynamicLabelConsistencyReport;
 import org.neo4j.consistency.report.ConsistencyReport.IndexConsistencyReport;
 import org.neo4j.consistency.report.ConsistencyReport.LabelScanConsistencyReport;
 import org.neo4j.consistency.report.ConsistencyReport.LabelTokenConsistencyReport;
@@ -69,8 +68,6 @@ public class ConsistencyReporter implements ConsistencyReport.Reporter {
     private static final ProxyFactory<PropertyKeyTokenConsistencyReport> PROPERTY_KEY_REPORT =
             create(PropertyKeyTokenConsistencyReport.class);
     private static final ProxyFactory<DynamicConsistencyReport> DYNAMIC_REPORT = create(DynamicConsistencyReport.class);
-    private static final ProxyFactory<DynamicLabelConsistencyReport> DYNAMIC_LABEL_REPORT =
-            create(DynamicLabelConsistencyReport.class);
     private static final ProxyFactory<LabelScanConsistencyReport> LABEL_SCAN_REPORT =
             create(LabelScanConsistencyReport.class);
     private static final ProxyFactory<RelationshipTypeScanConsistencyReport> RELATIONSHIP_TYPE_SCAN_REPORT =
@@ -246,11 +243,6 @@ public class ConsistencyReporter implements ConsistencyReport.Reporter {
     @Override
     public DynamicConsistencyReport forDynamicBlock(RecordType type, DynamicRecord record) {
         return report(DYNAMIC_REPORT, type, record);
-    }
-
-    @Override
-    public DynamicLabelConsistencyReport forDynamicLabelBlock(RecordType type, DynamicRecord record) {
-        return report(DYNAMIC_LABEL_REPORT, type, record);
     }
 
     @Override

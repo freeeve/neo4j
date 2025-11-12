@@ -60,8 +60,6 @@ public interface ConsistencyReport {
 
         DynamicConsistencyReport forDynamicBlock(RecordType type, DynamicRecord record);
 
-        DynamicLabelConsistencyReport forDynamicLabelBlock(RecordType type, DynamicRecord record);
-
         LabelScanConsistencyReport forNodeLabelScan(TokenScanDocument document);
 
         RelationshipTypeScanConsistencyReport forRelationshipTypeScan(TokenScanDocument document);
@@ -79,12 +77,6 @@ public interface ConsistencyReport {
 
         @Documented("The referenced property record is not the first in its property chain.")
         void propertyNotFirstInChain(PropertyRecord property);
-
-        @Documented("The referenced property is owned by another Node.")
-        void multipleOwners(NodeRecord node);
-
-        @Documented("The referenced property is owned by another Relationship.")
-        void multipleOwners(RelationshipRecord relationship);
 
         @Documented("The property chain contains multiple properties that have the same property key id, "
                 + "which means that the entity has at least one duplicate property.")
@@ -116,8 +108,6 @@ public interface ConsistencyReport {
         void idIsNotFreed();
     }
 
-    interface NeoStoreConsistencyReport extends PrimitiveConsistencyReport {}
-
     interface SchemaConsistencyReport extends PrimitiveConsistencyReport {
         @Documented("The label token record referenced from the schema is not in use.")
         void labelNotInUse(LabelTokenRecord label);
@@ -137,10 +127,6 @@ public interface ConsistencyReport {
         @Documented("The constraint index does not reference back to the given record")
         void constraintIndexRuleNotReferencingBack(SchemaRecord ruleRecord);
 
-        @Documented("The constraint index name is different from the name of its owning constraint")
-        void constraintIndexNameDoesNotMatchConstraintName(
-                SchemaRecord ruleRecord, String indexName, String constraintName);
-
         @Documented(
                 "This record is required to reference some other record of the given kind but no such obligation was found")
         void missingObligation(String kind);
@@ -152,10 +138,6 @@ public interface ConsistencyReport {
         @Documented("This record contains a schema rule which has the same content as the schema rule contained "
                 + "in the record given as parameter")
         void duplicateRuleContent(SchemaRecord record);
-
-        @Documented("This record contains a schema rule which has the same name as the schema rule contained "
-                + "in the record given as parameter")
-        void duplicateRuleName(SchemaRecord record, String name);
 
         @Documented("The schema rule is malformed (not deserializable)")
         void malformedSchemaRule();
@@ -300,17 +282,11 @@ public interface ConsistencyReport {
         @Documented("The key for this property is not in use.")
         void keyNotInUse(PropertyBlock block, PropertyKeyTokenRecord key);
 
-        @Documented("The previous property record is not in use.")
-        void prevNotInUse(PropertyRecord property);
-
         @Documented("The next property record is not in use.")
         void nextNotInUse(PropertyRecord property);
 
         @Documented("The property record is in use but the id is up for reuse in the id file.")
         void idIsFreed();
-
-        @Documented("The previous property record does not have this record as its next record.")
-        void previousDoesNotReferenceBack(PropertyRecord property);
 
         @Documented("The next property record does not have this record as its previous record.")
         void nextDoesNotReferenceBack(PropertyRecord property);
@@ -336,70 +312,18 @@ public interface ConsistencyReport {
          */
         @Documented("The property value is invalid.")
         void invalidPropertyValue(long propertyRecordId, int propertyKeyId);
-
-        @Documented(
-                "This record is first in a property chain, but no Node or Relationship records reference this record.")
-        void orphanPropertyChain();
-
-        @Documented("The string property is not referenced anymore, but the corresponding block has not been deleted.")
-        void stringUnreferencedButNotDeleted(PropertyBlock block);
-
-        @Documented("The array property is not referenced anymore, but the corresponding block as not been deleted.")
-        void arrayUnreferencedButNotDeleted(PropertyBlock block);
-
-        @Documented(
-                "This property was declared to be changed for a node or relationship, but that node or relationship "
-                        + "does not contain this property in its property chain.")
-        void ownerDoesNotReferenceBack();
-
-        @Documented(
-                "This property was declared to be changed for a node or relationship, but that node or relationship "
-                        + "did not contain this property in its property chain prior to the change. The property is referenced by another owner.")
-        void changedForWrongOwner();
-
-        @Documented("The string record referred from this property is also referred from a another property.")
-        void stringMultipleOwners(PropertyRecord otherOwner);
-
-        @Documented("The array record referred from this property is also referred from a another property.")
-        void arrayMultipleOwners(PropertyRecord otherOwner);
-
-        @Documented("The string record referred from this property is also referred from a another string record.")
-        void stringMultipleOwners(DynamicRecord dynamic);
-
-        @Documented("The array record referred from this property is also referred from a another array record.")
-        void arrayMultipleOwners(DynamicRecord dynamic);
     }
 
     interface NameConsistencyReport extends ConsistencyReport {
         @Documented("The name block is not in use.")
         void nameBlockNotInUse(DynamicRecord record);
-
-        @Warning
-        @Documented(
-                "The token name is empty. Empty token names are discouraged and also prevented in version 2.0.x and "
-                        + "above, but they can be accessed just like any other tokens. It's possible that this token have been "
-                        + "created in an earlier version where there were no checks for name being empty.")
-        void emptyName(DynamicRecord name);
-
-        @Documented("The string record referred from this name record is also referred from a another string record.")
-        void nameMultipleOwners(DynamicRecord otherOwner);
     }
 
-    interface RelationshipTypeConsistencyReport extends NameConsistencyReport {
-        @Documented(
-                "The string record referred from this relationship type is also referred from a another relationship type.")
-        void nameMultipleOwners(RelationshipTypeTokenRecord otherOwner);
-    }
+    interface RelationshipTypeConsistencyReport extends NameConsistencyReport {}
 
-    interface LabelTokenConsistencyReport extends NameConsistencyReport {
-        @Documented("The string record referred from this label name is also referred from a another label name.")
-        void nameMultipleOwners(LabelTokenRecord otherOwner);
-    }
+    interface LabelTokenConsistencyReport extends NameConsistencyReport {}
 
-    interface PropertyKeyTokenConsistencyReport extends NameConsistencyReport {
-        @Documented("The string record referred from this key is also referred from a another key.")
-        void nameMultipleOwners(PropertyKeyTokenRecord otherOwner);
-    }
+    interface PropertyKeyTokenConsistencyReport extends NameConsistencyReport {}
 
     interface RelationshipGroupConsistencyReport extends ConsistencyReport {
         @Documented("The relationship type field has an illegal value.")
@@ -478,36 +402,11 @@ public interface ConsistencyReport {
         @Documented("The block is empty.")
         void emptyBlock();
 
-        @Warning
-        @Documented("The next block is empty.")
-        void emptyNextBlock(DynamicRecord next);
-
         @Documented("The next block references a previous record in the chain.")
         void circularReferenceNext(DynamicRecord next);
-
-        @Documented("The next block of this record is also referenced by another dynamic record.")
-        void nextMultipleOwners(DynamicRecord otherOwner);
-
-        @Documented("The next block of this record is also referenced by a property record.")
-        void nextMultipleOwners(PropertyRecord otherOwner);
-
-        @Documented("The next block of this record is also referenced by a relationship type.")
-        void nextMultipleOwners(RelationshipTypeTokenRecord otherOwner);
-
-        @Documented("The next block of this record is also referenced by a property key.")
-        void nextMultipleOwners(PropertyKeyTokenRecord otherOwner);
-
-        @Documented("This record not referenced from any other dynamic block, or from any property or name record.")
-        void orphanDynamicRecord();
     }
 
-    interface DynamicLabelConsistencyReport extends ConsistencyReport {
-        @Documented("This label record is not referenced by its owning node record or that record is not in use.")
-        void orphanDynamicLabelRecordDueToInvalidOwner(NodeRecord owningNodeRecord);
-
-        @Documented("This label record does not have an owning node record.")
-        void orphanDynamicLabelRecord();
-    }
+    interface DynamicLabelConsistencyReport extends ConsistencyReport {}
 
     interface NodeInUseWithCorrectLabelsReport extends ConsistencyReport {
         void nodeNotInUse(NodeRecord referredNodeRecord);
@@ -538,10 +437,6 @@ public interface ConsistencyReport {
         @Override
         @Documented("This node record has a label that is not found in the label scan store entry for this node")
         void nodeLabelNotInIndex(NodeRecord referredNodeRecord, int missingLabelId);
-
-        @Warning
-        @Documented("Label index was not properly shutdown and rebuild is required.")
-        void dirtyIndex();
     }
 
     interface RelationshipTypeScanConsistencyReport extends RelationshipInUseWithCorrectRelationshipTypeReport {
@@ -559,10 +454,6 @@ public interface ConsistencyReport {
         @Documented(
                 "This relationship record has a type that is not found in the relationship type scan store entry for this relationship.")
         void relationshipTypeNotInIndex(RelationshipRecord referredRelationshipRecord, long missingTypeId);
-
-        @Warning
-        @Documented("Relationship type index was not properly shutdown and rebuild is required.")
-        void dirtyIndex();
     }
 
     interface IndexConsistencyReport
@@ -603,13 +494,6 @@ public interface ConsistencyReport {
         @Override
         @Documented("This node record has a label that is not found in the index for this node")
         void nodeLabelNotInIndex(NodeRecord referredNodeRecord, int missingLabelId);
-
-        @Warning
-        @Documented("Index was not properly shutdown and rebuild is required.")
-        void dirtyIndex();
-
-        @Documented("This index entry is for a relationship index, but it is used as a constraint index")
-        void relationshipConstraintIndex();
     }
 
     interface CountsConsistencyReport extends ConsistencyReport {
@@ -679,11 +563,6 @@ public interface ConsistencyReport {
         @Override
         public DynamicConsistencyReport forDynamicBlock(RecordType type, DynamicRecord record) {
             return (DynamicConsistencyReport) proxy;
-        }
-
-        @Override
-        public DynamicLabelConsistencyReport forDynamicLabelBlock(RecordType type, DynamicRecord record) {
-            return (DynamicLabelConsistencyReport) proxy;
         }
 
         @Override
