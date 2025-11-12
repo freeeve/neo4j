@@ -40,7 +40,7 @@ class unwrapParenthesizedPathTest extends CypherFunSuite with RewriteTest {
   }
 
   test("Unwrap a whole parenthesized pattern part") {
-    for (clause <- Seq("MATCH", "MERGE")) {
+    for (clause <- Seq("MATCH", "MERGE", "CREATE")) {
       assertRewrite(
         s"$clause ((a)-->(b)-->(c)) RETURN count(*)",
         s"$clause (a)-->(b)-->(c) RETURN count(*)"

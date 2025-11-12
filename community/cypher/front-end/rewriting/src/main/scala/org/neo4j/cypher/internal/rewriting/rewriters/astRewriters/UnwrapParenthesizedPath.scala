@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.Where
@@ -92,6 +93,7 @@ case object UnwrapParenthesizedPath extends StepSequencer.Step with DefaultPostC
           pattern = replaceParenthesizedPaths(pattern),
           where = newWhere
         )(m.position)
+      case c @ Create(pattern) => c.copy(pattern = replaceParenthesizedPaths(pattern))(c.position)
 
       case outer @ ParenthesizedPath(part, outerWhere) =>
         val newOuterWhere = extractPredicatesAndMergeWhereExpressions(part, outerWhere, outer.position)
