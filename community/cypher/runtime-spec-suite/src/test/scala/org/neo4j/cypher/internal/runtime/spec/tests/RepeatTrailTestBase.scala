@@ -3428,7 +3428,7 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
     // (n1:START) ↗
     val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
 
-    val expectedResult = Seq(
+    val expectedResult: Seq[Seq[Array[Object]]] = Seq(
       Seq(
         Array(n0, n2, listOf(n0), listOf(n2), listOf(r02))
       )
@@ -3443,7 +3443,7 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
     // (n1:START) ↗
     val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
 
-    val expectedResult = Seq(
+    val expectedResult: Seq[Seq[Array[Object]]] = Seq(
       Seq(
         Array(n0, n2, listOf(n0), listOf(n2), listOf(r02)),
         Array(n0, n2, listOf(n0), listOf(n2), listOf(r02))
@@ -3459,7 +3459,7 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
     // (n1:START) ↗
     val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
 
-    val expectedResult = Seq(
+    val expectedResult: Seq[Seq[Array[Object]]] = Seq(
       Seq(
         Array(n0, n2, listOf(n0), listOf(n2), listOf(r02)),
         Array(n0, n2, listOf(n0), listOf(n2), listOf(r02))

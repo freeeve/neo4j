@@ -376,7 +376,7 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
       case Parallel => 0.4
       case _        => 0.1
     }
-    compareMemoryUsage(logicalQuery1, logicalQuery2, input, input, toleratedDeviation = toleratedDeviation)
+    compareMemoryUsage(logicalQuery1, logicalQuery2, input _, input _, toleratedDeviation = toleratedDeviation)
   }
 
   test("should deallocate memory between right outer hash joins") {
@@ -428,7 +428,7 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
       case Parallel => 0.4
       case _        => 0.1
     }
-    compareMemoryUsage(logicalQuery1, logicalQuery2, input, input, toleratedDeviation = toleratedDeviation)
+    compareMemoryUsage(logicalQuery1, logicalQuery2, input _, input _, toleratedDeviation = toleratedDeviation)
   }
 
   test("should deallocate memory between value hash joins") {
@@ -814,8 +814,8 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
     val planWithDiscard = plan(discard = true)
 
     // then
-    val maxMemWithoutDiscard = maxAllocatedMem(planWithoutDiscard, createInput)
-    val maxMemWithDiscard = maxAllocatedMem(planWithDiscard, createInput)
+    val maxMemWithoutDiscard = maxAllocatedMem(planWithoutDiscard, createInput _)
+    val maxMemWithDiscard = maxAllocatedMem(planWithDiscard, createInput _)
 
     val expectedSavingsPerRow = Values.of(createInputRow()(0)).estimatedHeapUsage()
     val expectedSavings = nRows * expectedSavingsPerRow
@@ -855,8 +855,8 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
     val planWithDiscard = plan(true)
 
     // then
-    val maxMemWithoutDiscard = maxAllocatedMem(planWithoutDiscard, createInput)
-    val maxMemWithDiscard = maxAllocatedMem(planWithDiscard, createInput)
+    val maxMemWithoutDiscard = maxAllocatedMem(planWithoutDiscard, createInput _)
+    val maxMemWithDiscard = maxAllocatedMem(planWithDiscard, createInput _)
 
     val expectedSavingsPerRow = Values.of(createInputRow()(0)).estimatedHeapUsage()
     val expectedSavings = nRows * expectedSavingsPerRow
@@ -1127,7 +1127,7 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
     logicalQuery2: LogicalQuery,
     input1: () => InputDataStream = () => NoInput,
     input2: () => InputDataStream = () => NoInput,
-    toleratedDeviation: Double = 0.0,
+    toleratedDeviation: Double,
     minAllocated: Long = 0,
     txType: Option[KernelTransaction.Type] = None
   ): Unit = {

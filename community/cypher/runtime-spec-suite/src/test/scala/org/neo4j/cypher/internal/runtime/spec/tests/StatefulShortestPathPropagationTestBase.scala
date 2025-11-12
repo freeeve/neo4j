@@ -81,11 +81,11 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
 
   private def pattern(
     direction: SemanticDirection,
-    startNode: String = "x",
-    endNode: String = "y",
-    relationship: String = "r",
-    startLength: Option[Int] = None,
-    endLength: Option[Int] = upperLimit
+    startNode: String,
+    endNode: String,
+    relationship: String,
+    startLength: Option[Int],
+    endLength: Option[Int]
   ): String = {
     val relPattern = (startLength, endLength) match {
       case (Some(s), Some(e)) => s"$relationship*$s..$e"
@@ -110,9 +110,9 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
   ): String = pattern(SemanticDirection.OUTGOING, startNode, endNode, relationship, startLength, actualUpperLimit)
 
   private def incomingPattern(
-    startNode: String = "x",
-    endNode: String = "y",
-    relationship: String = "r",
+    startNode: String,
+    endNode: String,
+    relationship: String,
     startLength: Option[Int] = None,
     endLength: Option[Int] = upperLimit
   ): String =

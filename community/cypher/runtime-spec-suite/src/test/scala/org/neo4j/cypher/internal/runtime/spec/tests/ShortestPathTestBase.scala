@@ -608,7 +608,7 @@ abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
   test("all shortest paths in a lollipop graph") {
     // given
     val (start, end, r1, r2, r3) = givenGraph {
-      val (Seq(n1, _, n3), Seq(r1, r2, r3)) = lollipopGraph()
+      val (Seq(n1, _, n3), Seq(r1, r2, r3)) = lollipopGraph(): @unchecked
       n3.addLabel(label("END"))
       (n1, n3, r1, r2, r3)
     }
@@ -657,7 +657,7 @@ abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x", "r", "y", "path").withRows(Array(
-      Array(start, util.Arrays.asList(rels.toSeq: _*), end, TestPath(start, rels))
+      Array[Object](start, util.Arrays.asList(rels: _*), end, TestPath(start, rels))
     ))
   }
 
@@ -687,7 +687,7 @@ abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x", "r", "y", "path").withRows(Array(
-      Array(start, util.Arrays.asList(rels.toSeq: _*), end, TestPath(start, rels))
+      Array[Object](start, util.Arrays.asList(rels: _*), end, TestPath(start, rels))
     ))
   }
 
@@ -721,7 +721,7 @@ abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x", "r", "y", "path").withRows(Array(
-      Array(start, util.Arrays.asList(rels.toSeq: _*), end, TestPath(start, rels))
+      Array[Object](start, util.Arrays.asList(rels: _*), end, TestPath(start, rels))
     ))
   }
 
@@ -806,7 +806,7 @@ abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x", "r", "y", "path").withRows(Array(
-      Array(start, util.Arrays.asList(rels.toSeq: _*), end, TestPath(start, rels))
+      Array[Object](start, util.Arrays.asList(rels: _*), end, TestPath(start, rels))
     ))
   }
 
@@ -840,7 +840,7 @@ abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x", "r", "y", "path").withRows(Array(
-      Array(start, util.Arrays.asList(rels.toSeq: _*), end, TestPath(start, rels))
+      Array[Object](start, util.Arrays.asList(rels: _*), end, TestPath(start, rels))
     ))
   }
 
@@ -874,7 +874,7 @@ abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x", "r", "y", "path").withRows(Array(
-      Array(start, util.Arrays.asList(rels.toSeq: _*), end, TestPath(start, rels))
+      Array[Object](start, util.Arrays.asList(rels: _*), end, TestPath(start, rels))
     ))
   }
 

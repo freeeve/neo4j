@@ -511,7 +511,7 @@ abstract class MemoryManagementTestBase[CONTEXT <: RuntimeContext](
   test("should kill shortest undirected multiloop before it runs out of memory") {
     assume(!isParallel)
     // given a circle graph with 10 relations to each neighbour (except for start node)
-    val start = givenGraph {
+    givenGraph {
       val nodes = nodeGraph(10)
       val start = nodes.head
       start.createRelationshipTo(nodes(1), RelationshipType.withName("R"))
@@ -562,7 +562,7 @@ abstract class MemoryManagementTestBase[CONTEXT <: RuntimeContext](
   test("should kill shortest multiloop in walkmode before it runs out of memory") {
     assume(!isParallel)
     // given
-    val start = givenGraph {
+    givenGraph {
       val nodes = nodeGraph(10)
       val start = nodes.head
       for (i <- 1 until nodes.size - 1) {

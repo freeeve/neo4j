@@ -725,7 +725,7 @@ abstract class ValueHashJoinTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = nodes.map(n => Array(n, n, 1))
+    val expected = nodes.map(n => Array[Any](n, n, 1))
     runtimeResult should beColumns("x", "y", "z").withRows(expected)
   }
 }

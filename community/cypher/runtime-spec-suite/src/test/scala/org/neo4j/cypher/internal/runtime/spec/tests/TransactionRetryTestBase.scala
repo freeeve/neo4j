@@ -316,7 +316,6 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
       morselSize = 3,
       query = QueryTemplate.Custom
     )
-    val retryTimeoutSeconds = 0.1
     val nBatches = 3
     val failedBatchNumber = nBatches / 2
     val config = TestCaseConfig.withErrors(

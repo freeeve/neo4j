@@ -26,10 +26,8 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InvalidArgumentException
-import org.neo4j.exceptions.SyntaxException
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
-import org.neo4j.values.storable.FloatValue
 import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.Values.float32Vector
 import org.neo4j.values.storable.Values.float64Vector

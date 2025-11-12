@@ -90,7 +90,7 @@ abstract class RunQueryAtTestBase[CONTEXT <: RuntimeContext](
               def transactionFor(databaseReference: DatabaseReference)
                 : ConstituentTransactionFactory.ConstituentTransaction =
                 (query: String, parameters: MapValue, querySubscriber: QuerySubscriber) => {
-                  val ex = stubbedExecution.apply(query, parameters)
+                  val ex = stubbedExecution.apply((query, parameters))
                   ex.subscriber = querySubscriber
                   ex
                 }

@@ -28,6 +28,8 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.graphdb.Label
 
+import scala.annotation.unused
+
 object SubtractionLabelScanTestBase
 
 abstract class SubtractionLabelScanTestBase[CONTEXT <: RuntimeContext](
@@ -162,19 +164,19 @@ abstract class SubtractionLabelScanTestBase[CONTEXT <: RuntimeContext](
     // given
     val (aAndNoBNodes, cAndNoDNodes) = givenGraph {
       val aNodes = nodeGraph(10, "A")
-      val abNodes = nodeGraph(10, "A", "B")
+      @unused val abNodes = nodeGraph(10, "A", "B")
       val acNodes = nodeGraph(10, "A", "C")
       val adNodes = nodeGraph(10, "A", "D")
       val abcNodes = nodeGraph(10, "A", "B", "C")
       val acdNodes = nodeGraph(10, "A", "C", "D")
-      val abcdNodes = nodeGraph(10, "A", "B", "C", "D")
-      val bNodes = nodeGraph(10, "B")
+      @unused val abcdNodes = nodeGraph(10, "A", "B", "C", "D")
+      @unused val bNodes = nodeGraph(10, "B")
       val bcNodes = nodeGraph(10, "B", "C")
-      val bdNodes = nodeGraph(10, "B", "D")
-      val bcdNodes = nodeGraph(10, "B", "C", "D")
+      @unused val bdNodes = nodeGraph(10, "B", "D")
+      @unused val bcdNodes = nodeGraph(10, "B", "C", "D")
       val cNodes = nodeGraph(10, "C")
-      val cdNodes = nodeGraph(10, "C", "D")
-      val dNodes = nodeGraph(10, "D")
+      @unused val cdNodes = nodeGraph(10, "C", "D")
+      @unused val dNodes = nodeGraph(10, "D")
       (aNodes ++ acNodes ++ adNodes ++ acdNodes, acNodes ++ abcNodes ++ bcNodes ++ cNodes)
     }
 

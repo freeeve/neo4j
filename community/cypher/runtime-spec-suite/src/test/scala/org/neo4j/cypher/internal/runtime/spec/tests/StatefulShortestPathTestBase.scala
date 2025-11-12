@@ -162,7 +162,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     val x1 = givenGraph {
       val x1 = runtimeTestSupport.tx.createNode(Label.label("T")) // passes
-      val x2 = runtimeTestSupport.tx.createNode(Label.label("NOT_T")) // doesn't pass
+      runtimeTestSupport.tx.createNode(Label.label("NOT_T")) // doesn't pass
       x1
     }
 
@@ -265,7 +265,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
       x3.setProperty("passes", true)
 
       // doesn't pass label and doesn't have prop
-      val x4 = runtimeTestSupport.tx.createNode(Label.label("NOT_T"))
+      runtimeTestSupport.tx.createNode(Label.label("NOT_T"))
 
       x1
     }
@@ -327,7 +327,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
       x4.setProperty("passes", true)
 
       // doesn't pass any label and doesn't have prop
-      val x5 = runtimeTestSupport.tx.createNode()
+      runtimeTestSupport.tx.createNode()
 
       x1
     }
@@ -6862,7 +6862,6 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
   test("grid graph - top left to bottom right, shortest 2 groups as MRE") {
     val dim = 5
     val bottomRightLabel = s"`${dim - 1},${dim - 1}`"
-    val topLeftLabel = s"`0,0`"
 
     givenGraph {
       gridGraph(dim, dim)
@@ -6989,7 +6988,6 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
   test("grid graph - top left to bottom right, shortest 2 groups - ExpandInto") {
     val dim = 5
     val bottomRightLabel = s"${dim - 1},${dim - 1}"
-    val topLeftLabel = s"`0,0`"
 
     givenGraph {
       gridGraph(dim, dim)
@@ -7118,7 +7116,6 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
   test("grid graph - top left to bottom right, shortest 2 groups - ExpandInto as MRE") {
     val dim = 5
     val bottomRightLabel = s"${dim - 1},${dim - 1}"
-    val topLeftLabel = s"`0,0`"
 
     givenGraph {
       gridGraph(dim, dim)
@@ -7827,7 +7824,6 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
       .setFinalState(3)
       .build()
 
-    val vars = Seq("s", "n1", "r", "n2", "t")
     val retVars = Seq("l")
 
     val logicalQuery = new LogicalQueryBuilder(this)

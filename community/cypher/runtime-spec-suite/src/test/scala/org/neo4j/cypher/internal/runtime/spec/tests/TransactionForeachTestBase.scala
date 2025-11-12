@@ -1801,7 +1801,7 @@ object RandomisedTransactionForEachTests {
         .map { case (row, i) => InputRow(i, row) }
         .toIndexedSeq
 
-      val concurrency = concurrencyInt match {
+      concurrencyInt match {
         case 0           => Serial
         case 1           => Concurrent(None)
         case parallelism => Concurrent(Some(SignedDecimalIntegerLiteral(parallelism.toString)(NONE)))

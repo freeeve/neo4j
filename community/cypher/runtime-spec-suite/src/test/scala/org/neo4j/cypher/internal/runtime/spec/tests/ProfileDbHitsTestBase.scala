@@ -1334,7 +1334,7 @@ abstract class ProfileDbHitsTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     val runtimeResult = profile(logicalQuery, runtime)
-    val consumed = consume(runtimeResult)
+    consume(runtimeResult)
 
     // then
     val queryProfile = runtimeResult.runtimeResult.queryProfile()

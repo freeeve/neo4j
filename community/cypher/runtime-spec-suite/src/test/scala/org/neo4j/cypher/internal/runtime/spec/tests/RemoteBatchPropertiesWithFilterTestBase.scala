@@ -160,7 +160,11 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .build()
 
         val result =
-          execute(query, runtime, Map("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3)))
+          execute(
+            query,
+            runtime,
+            Map[String, Any]("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3))
+          )
         result should beColumns("prop1").withNoRows()
       }
     }
@@ -172,7 +176,8 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     }
 
     forEvery(nodePredicates) { (predicate: String) =>
-      val expected = if (predicate.contains("IS NULL")) List(Array(Values.NO_VALUE)) else List.empty
+      val expected: List[Array[AnyRef]] =
+        if (predicate.contains("IS NULL")) List(Array(Values.NO_VALUE)) else List.empty[Array[AnyRef]]
 
       withClue(s"predicate: $predicate") {
         val query = new LogicalQueryBuilder(this)
@@ -183,7 +188,11 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .build()
 
         val result =
-          execute(query, runtime, Map("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3)))
+          execute(
+            query,
+            runtime,
+            Map[String, Any]("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3))
+          )
         result should beColumns("prop1").withRows(expected)
       }
     }
@@ -206,7 +215,11 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .build()
 
         val result =
-          execute(query, runtime, Map("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3)))
+          execute(
+            query,
+            runtime,
+            Map[String, Any]("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3))
+          )
         result should beColumns("prop1").withNoRows()
       }
     }
@@ -236,7 +249,11 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .build()
 
         val result =
-          execute(query, runtime, Map("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3)))
+          execute(
+            query,
+            runtime,
+            Map[String, Any]("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3))
+          )
         result should beColumns("prop1", "prop2").withNoRows()
       }
     }
@@ -264,7 +281,11 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .build()
 
         val result =
-          execute(query, runtime, Map("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3)))
+          execute(
+            query,
+            runtime,
+            Map[String, Any]("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3))
+          )
         result should beColumns("prop1", "prop2").withNoRows()
       }
     }
@@ -364,7 +385,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .allNodeScan("x")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+        val result = execute(query, runtime, Map[String, Any]("param" -> 20, "listParam" -> Array(10, 30)))
         result should beColumns("prop").withRows(singleColumn(expected))
       }
     }
@@ -406,7 +427,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .allNodeScan("y")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+        val result = execute(query, runtime, Map[String, Any]("param" -> 20, "listParam" -> Array(10, 30)))
         result should beColumns("prop").withRows(singleColumn(expected))
       }
     }
@@ -439,7 +460,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .nodeByLabelScan("z", "START")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+        val result = execute(query, runtime, Map[String, Any]("param" -> 20, "listParam" -> Array(10, 30)))
 
         result should beColumns("prop").withRows(singleColumn(expected))
       }
@@ -468,7 +489,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .allNodeScan("n")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+        val result = execute(query, runtime, Map[String, Any]("param" -> 20, "listParam" -> Array(10, 30)))
         result should beColumns("prop").withRows(singleColumn(expected))
       }
     }
@@ -496,7 +517,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .allNodeScan("z")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+        val result = execute(query, runtime, Map[String, Any]("param" -> 20, "listParam" -> Array(10, 30)))
 
         result should beColumns("prop").withRows(singleColumn(expected))
       }
@@ -546,7 +567,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .allNodeScan("x")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> "prop", "contains" -> "prp"))
+        val result = execute(query, runtime, Map[String, Any]("param" -> "prop", "contains" -> "prp"))
         result should beColumns("prop").withRows(singleColumn(expected))
       }
     }
@@ -597,7 +618,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .allNodeScan("n")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> "prop", "contains" -> "prp"))
+        val result = execute(query, runtime, Map[String, Any]("param" -> "prop", "contains" -> "prp"))
         result should beColumns("prop").withRows(singleColumn(expected))
       }
     }
@@ -804,7 +825,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .allNodeScan("x")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> "b"))
+        val result = execute(query, runtime, Map[String, Any]("param" -> "b"))
         result should beColumns("prop").withRows(singleColumn(expected))
       }
     }
@@ -868,7 +889,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
 
     val rewrittenQuery = extractRuntimeConstants(new AnonymousVariableNameGenerator)(query).asInstanceOf[LogicalQuery]
 
-    val result = execute(rewrittenQuery, runtime, Map("param" -> DateValue.date(2025, 1, 1)))
+    val result = execute(rewrittenQuery, runtime, Map[String, Any]("param" -> DateValue.date(2025, 1, 1)))
     result should beColumns("created").withRows(singleColumn(Seq(expectedDate)))
   }
 
@@ -1038,7 +1059,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     }
 
     val rowN1 = Array(10, 11)
-    val rowN2 = Array(20, null)
+    val rowN2 = Array[Any](20, null)
     val rowN3 = Array(20, 20)
     val rowN4 = Array("one", "two")
 
@@ -1106,7 +1127,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .allNodeScan("x")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> 0))
+        val result = execute(query, runtime, Map[String, Any]("param" -> 0))
         val expected = (0 until sizeHint).filter(_ % 2 == 0).map(i => Array(0, i * 2))
         result should beColumns("prop1", "prop2").withRows(expected)
       }
@@ -1275,7 +1296,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
 
     }
 
-    val rowsWithNull = propertyPredicates.map {
+    val rowsWithNull: IndexedSeq[(String, Seq[Any])] = propertyPredicates.map {
       case (predicate, expected) if expected.isEmpty => (predicate, Seq(null, null))
       case (predicate, expected)                     => (predicate, expected ++ Seq(null))
     }
@@ -1296,7 +1317,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .nodeByLabelScan("s", "START")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+        val result = execute(query, runtime, Map[String, Any]("param" -> 20, "listParam" -> Array(10, 30)))
 
         result should beColumns("prop").withRows(singleColumn(expected))
       }
@@ -1695,7 +1716,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
           .allNodeScan("x")
           .build()
 
-        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+        val result = execute(query, runtime, Map[String, Any]("param" -> 20, "listParam" -> Array(10, 30)))
         result should beColumns("prop").withRows(singleColumn(expected))
       }
     }
@@ -1792,7 +1813,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       .allNodeScan("n")
       .build()
 
-    val result = execute(query, runtime, Map("paramMap" -> Map("value1" -> "one", "value2" -> 1)))
+    val result = execute(query, runtime, Map("paramMap" -> Map[String, Any]("value1" -> "one", "value2" -> 1)))
     result should beColumns("name", "prop1", "prop2").withSingleRow("node1", "one", 1)
   }
 
@@ -2266,7 +2287,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       .allNodeScan("n")
       .build()
 
-    val result = execute(query, runtime, Map("param" -> 2))
+    val result = execute(query, runtime, Map[String, Any]("param" -> 2))
     result should beColumns("p").withRows(singleColumn(Seq(3, 4, 5)))
   }
 
@@ -2340,7 +2361,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       .nodeByLabelScan("a", "A")
       .build()
 
-    val result = execute(query, runtime, parameters = Map("param" -> "value"))
+    val result = execute(query, runtime, parameters = Map[String, Any]("param" -> "value"))
 
     result should beColumns("total").withSingleRow(2)
   }
