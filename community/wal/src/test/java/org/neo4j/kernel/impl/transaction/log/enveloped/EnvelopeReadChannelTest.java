@@ -566,7 +566,7 @@ class EnvelopeReadChannelTest {
             assertThatThrownBy(channel::get)
                     .isInstanceOf(IOException.class)
                     .hasMessageContaining(
-                            "Log file with version 0 ended with an incomplete record type(BEGIN) and no following log file could be found.");
+                            "Log file with version 0 ended with an incomplete record type (BEGIN) and no following log file could be found.");
         }
     }
 
@@ -1220,7 +1220,7 @@ class EnvelopeReadChannelTest {
 
             assertThatThrownBy(channel::getShort)
                     .isInstanceOf(IncompleteEnvelopeReadException.class)
-                    .hasMessageContaining("Entry underflow. 2 bytes was requested but only 1 are available.");
+                    .hasMessageContaining("Entry underflow. 2 bytes was requested, but only 1 are available.");
         }
     }
 

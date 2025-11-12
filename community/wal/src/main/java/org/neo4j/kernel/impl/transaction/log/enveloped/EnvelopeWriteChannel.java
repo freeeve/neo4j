@@ -205,7 +205,11 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
                 channel != this.channel,
                 "Must NOT update the channel to the same instance otherwise we're overwriting data!");
         this.channel = channel;
-        checkState(channel.position() == segmentBlockSize, "must be positioned on first segment");
+        checkState(
+                channel.position() == segmentBlockSize,
+                "The set channel must be positioned on first segment at %d, but was at %d",
+                segmentBlockSize,
+                channel.position());
         initialPositions(segmentBlockSize);
     }
 
@@ -218,7 +222,10 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     @Override
     public long position() throws IOException {
         checkState(
-                buffer.position() == currentEnvelopeStart, "position() must be called right after endCurrentEntry()");
+                buffer.position() == currentEnvelopeStart,
+                "position() must be called right after endCurrentEntry() at offset %d but positioned at %d",
+                currentEnvelopeStart,
+                channel.position());
 
         long bufferViewStart = channel.position() - lastWrittenPosition;
         return bufferViewStart + currentEnvelopeStart;

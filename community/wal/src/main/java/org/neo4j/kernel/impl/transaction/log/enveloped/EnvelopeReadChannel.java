@@ -270,7 +270,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     @Override
     public void setLogPosition(LogPositionMarker positionMarker) throws IOException {
         if (positionMarker.getLogVersion() != channel.getLogVersion()) {
-            throw new IllegalArgumentException("Trying to set position with version %d while channel have version %d"
+            throw new IllegalArgumentException("Trying to set position with version: %d, while channel has version: %d."
                     .formatted(positionMarker.getLogVersion(), channel.getLogVersion()));
         }
 
@@ -279,7 +279,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         int newBufferOffset = getSegmentOffset(byteOffset);
 
         if (newSegment == 0) {
-            throw new IOException("Invalid position " + positionMarker);
+            throw new IOException("Invalid position: " + positionMarker);
         }
 
         if (newSegment == currentSegment) {
@@ -297,7 +297,11 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 enforceChecksumChain = false;
             }
         }
-        checkState(newBufferOffset == 0 || newBufferOffset <= payloadEndOffset, "Invalid end of payload.");
+        checkState(
+                newBufferOffset == 0 || newBufferOffset <= payloadEndOffset,
+                "Invalid end of payload offset: %d. Expected payloadEndOffset: %d.",
+                newBufferOffset,
+                payloadEndOffset);
 
         buffer.position(Math.max(newBufferOffset, payloadStartOffset));
     }
@@ -314,7 +318,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         int newBufferOffset = getSegmentOffset(byteOffset);
 
         if (newSegment == 0) {
-            throw new IOException("Invalid position " + byteOffset);
+            throw new IOException("Invalid position: " + byteOffset);
         }
 
         // Read previous if at boundary
@@ -328,7 +332,11 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
 
         readAllEnvelopesUpToIncluding(newBufferOffset, true);
-        checkState(newBufferOffset == 0 || newBufferOffset <= payloadEndOffset, "Invalid end of payload.");
+        checkState(
+                newBufferOffset == 0 || newBufferOffset <= payloadEndOffset,
+                "Invalid end of payload offset: %d. Expected payloadEndOffset: %d.",
+                newBufferOffset,
+                payloadEndOffset);
 
         buffer.position(Math.max(newBufferOffset, payloadStartOffset));
         return currentChecksum;
@@ -358,7 +366,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
      */
     public long goToEntry(long entryIndex) throws IOException {
         if (entryIndex < logHeader.getLastAppendIndex()) {
-            throw new IllegalArgumentException("Invalid entry index " + entryIndex + " is in a previous log file");
+            throw new IllegalArgumentException("Invalid entry index: " + entryIndex + " is in a previous log file");
         }
         if (channel.size() <= segmentBlockSize) {
             // nothing except the header in this file
@@ -647,7 +655,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     private void bufferCheck(int requestedNumberOfBytes) throws IOException {
         if (buffer.remaining() < requestedNumberOfBytes) {
             throw new IncompleteEnvelopeReadException(
-                    "Entry underflow. %d bytes was requested but only %d are available."
+                    "Entry underflow. %d bytes was requested, but only %d are available."
                             .formatted(requestedNumberOfBytes, buffer.remaining()));
         }
     }
@@ -655,7 +663,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     protected boolean checkForEndOfEnvelope() throws InvalidLogEnvelopeReadException {
         if (buffer.position() > payloadEndOffset) {
             throw new InvalidLogEnvelopeReadException(
-                    "Read has gone past an envelope boundary at position %d of segment %d. payloadEndOffset %d, Envelope type %s"
+                    "Read has gone past an envelope boundary at position: %d of segment: %d. payloadEndOffset: %d, Envelope type: %s."
                             .formatted(buffer.position(), currentSegment, payloadEndOffset, payloadType));
         }
         return buffer.position() == payloadEndOffset;
@@ -698,7 +706,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         final int remaining = Math.min(buffer.remaining(), 1024);
         final var excess = new byte[remaining];
         buffer.get(excess);
-        throw new InvalidLogEnvelopeReadException("Unexpected data found at end of buffer at position " + position
+        throw new InvalidLogEnvelopeReadException("Unexpected data found at end of buffer at position: " + position
                 + ". Expecting only zeros at this point. Found: " + Arrays.toString(excess));
     }
 
@@ -773,7 +781,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         payloadEndOffset = payloadStartOffset + nextPayloadLength;
         if (payloadEndOffset > segmentBlockSize) {
             throw new InvalidLogEnvelopeReadException(
-                    "Envelope span segment boundary: start=%d, length=%d, segmentBlockSize=%d"
+                    "Envelope span segment boundary - start: %d, length: %d, segmentBlockSize: %d."
                             .formatted(payloadStartOffset, nextPayloadLength, segmentBlockSize));
         }
 
@@ -796,7 +804,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 }
 
                 throw new ChecksumMismatchException(
-                        "Envelope checksum chain is broken. Previous checksum '%d', expected: '%d'.",
+                        "Envelope checksum chain is broken. Previous checksum: %d, expected: %d.",
                         currentChecksum, previousEnvelopeChecksumFromHeader);
             }
         } else {
@@ -902,7 +910,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             // no more channels - we cannot satisfy the requested number of bytes
             if (payloadType == EnvelopeType.BEGIN || payloadType == EnvelopeType.MIDDLE) {
                 throw new InvalidEndOfFileReadException(
-                        "Log file with version %d ended with an incomplete record type(%s) and no following log file could be found."
+                        "Log file with version %d ended with an incomplete record type (%s) and no following log file could be found."
                                 .formatted(channel.getLogVersion(), payloadType.name()));
             }
             throw ReadPastEndException.INSTANCE;
@@ -940,11 +948,16 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
         enforceChecksumChain = true;
 
-        checkState(segmentBlockSize == logHeader.getSegmentBlockSize(), "Changing segmentBlockSize not supported");
+        checkState(
+                segmentBlockSize == logHeader.getSegmentBlockSize(),
+                "Changing segmentBlockSize not supported. Initialized segmentBlockSize: %d. Actual header: %s.",
+                segmentBlockSize,
+                logHeader);
         checkState(
                 LogFormat.V10.getVersionByte()
                         <= logHeader.getLogFormatVersion().getVersionByte(),
-                "Envelopes are not supported in old versions");
+                "Envelopes are not supported in LogFormat versions older than V10, but found: %s.",
+                logHeader.getLogFormatVersion());
         checkState(
                 currentChecksum == logHeader.getPreviousLogFileChecksum(),
                 "Checksum chain broken. " + currentChecksum + " " + logHeader.getPreviousLogFileChecksum());
