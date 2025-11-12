@@ -34,6 +34,7 @@ import org.neo4j.server.http.cypher.format.api.ConnectionException;
 import org.neo4j.server.queryapi.exception.ExceptionsUnwrapper;
 import org.neo4j.server.queryapi.request.AutoCommitResultContainer;
 import org.neo4j.server.queryapi.response.format.QueryAPICodec;
+import org.neo4j.server.queryapi.response.format.QueryBodyFormatter;
 import org.neo4j.server.queryapi.response.format.View;
 
 abstract class AbstractDriverResultWriter implements MessageBodyWriter<AutoCommitResultContainer> {
@@ -48,15 +49,17 @@ abstract class AbstractDriverResultWriter implements MessageBodyWriter<AutoCommi
     public void writeDriverResult(JsonFactory factory, AutoCommitResultContainer result, OutputStream outputStream)
             throws IOException {
         var jsonGenerator = factory.createGenerator(outputStream);
-        var resultSerializer = new DriverResultSerializer(jsonGenerator);
+        var formatter = new QueryBodyFormatter(jsonGenerator);
 
         try (var session = result.session()) {
-            resultSerializer.writeRecords(result.result());
-            var resultSummary = result.result().consume();
-            resultSerializer.finish(
-                    resultSummary,
-                    session.lastBookmarks(),
-                    result.queryRequest().includeCounters());
+            formatter.json((singleBodyFormatter) -> {
+                singleBodyFormatter.data(result.result());
+                var resultSummary = result.result().consume();
+                singleBodyFormatter.metadata(
+                        resultSummary,
+                        session.lastBookmarks(),
+                        result.queryRequest().includeCounters());
+            });
         } catch (IOException ex) {
             ExceptionsUnwrapper.unwrapAndThrowNeo4jAndQueryApiExceptions(ex);
             throw new ConnectionException("Failed to write to the connection", ex);

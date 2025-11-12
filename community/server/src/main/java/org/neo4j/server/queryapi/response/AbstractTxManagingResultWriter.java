@@ -34,6 +34,7 @@ import org.neo4j.server.http.cypher.format.api.ConnectionException;
 import org.neo4j.server.queryapi.exception.ExceptionsUnwrapper;
 import org.neo4j.server.queryapi.request.TxManagedResultContainer;
 import org.neo4j.server.queryapi.response.format.QueryAPICodec;
+import org.neo4j.server.queryapi.response.format.QueryBodyFormatter;
 import org.neo4j.server.queryapi.response.format.View;
 import org.neo4j.server.queryapi.tx.TransactionManager;
 
@@ -70,23 +71,29 @@ abstract class AbstractTxManagingResultWriter implements MessageBodyWriter<TxMan
     public void writeDriverResult(TxManagedResultContainer result, OutputStream outputStream) throws IOException {
         var hasFailed = true;
         var jsonGenerator = jsonFactory.createGenerator(outputStream);
-        var resultSerializer = new DriverResultSerializer(jsonGenerator);
+        var formatter = new QueryBodyFormatter(jsonGenerator);
         try {
-            resultSerializer.writeRecords(result.transaction().retrieveResults());
+            formatter.json((singleBodyFormatter) -> {
+                singleBodyFormatter.data(result.transaction().retrieveResults());
 
-            if (result.requiresCommit()) {
-                var bookmarks = result.transaction().commit();
-                resultSerializer.finish(
-                        result.transaction().resultSummary(), bookmarks, null, null, result.requireSummaryCounters());
-            } else {
-                result.transaction().extendTimeout();
-                resultSerializer.finish(
-                        result.transaction().resultSummary(),
-                        null,
-                        result.transaction().id(),
-                        result.transaction().expiresAt(),
-                        result.requireSummaryCounters());
-            }
+                if (result.requiresCommit()) {
+                    var bookmarks = result.transaction().commit();
+                    singleBodyFormatter.metadata(
+                            result.transaction().resultSummary(),
+                            bookmarks,
+                            null,
+                            null,
+                            result.requireSummaryCounters());
+                } else {
+                    result.transaction().extendTimeout();
+                    singleBodyFormatter.metadata(
+                            result.transaction().resultSummary(),
+                            null,
+                            result.transaction().id(),
+                            result.transaction().expiresAt(),
+                            result.requireSummaryCounters());
+                }
+            });
             hasFailed = false;
         } catch (IOException ex) {
             ExceptionsUnwrapper.unwrapAndThrowNeo4jAndQueryApiExceptions(ex);
