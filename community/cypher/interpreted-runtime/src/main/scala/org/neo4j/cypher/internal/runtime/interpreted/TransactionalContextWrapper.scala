@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime.interpreted
 
 import org.neo4j.configuration.Config
 import org.neo4j.csv.reader.CharReadable
+import org.neo4j.cypher.internal.planner.spi.CachingSchemaReadDecorator
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.QueryTransactionalContext
 import org.neo4j.cypher.internal.runtime.debug.DebugSupport
@@ -216,9 +217,19 @@ class SingleThreadedTransactionalContextWrapper(tc: TransactionalContext)
   override def queryExecutingConfiguration: QueryExecutionConfiguration = tc.queryExecutingConfiguration()
 }
 
+class CachedSchemaSingleThreadedTransactionalContextWrapper(tc: TransactionalContext)
+    extends SingleThreadedTransactionalContextWrapper(tc) {
+
+  private val cachedSchemaRead = CachingSchemaReadDecorator(tc.kernelTransaction().schemaRead())
+
+  override def schemaRead: SchemaRead = cachedSchemaRead
+}
+
 object TransactionalContextWrapper {
 
-  def apply(tc: TransactionalContext): TransactionalContextWrapper = {
+  def apply(tc: TransactionalContext): TransactionalContextWrapper =
     new SingleThreadedTransactionalContextWrapper(tc)
-  }
+
+  def cachedSchemaWrapper(tc: TransactionalContext): TransactionalContextWrapper =
+    new CachedSchemaSingleThreadedTransactionalContextWrapper(tc)
 }

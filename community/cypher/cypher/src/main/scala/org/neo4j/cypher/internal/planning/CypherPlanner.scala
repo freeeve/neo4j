@@ -102,7 +102,6 @@ import org.neo4j.cypher.internal.planner.spi.DPPlannerName
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.IndexComparatorFactory
-import org.neo4j.cypher.internal.planner.spi.IndexStatisticsCachingGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planning.CypherPlanner.createQueryGraphSolver
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
@@ -127,6 +126,7 @@ import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.kernel.impl.api.SchemaStateKey
 import org.neo4j.kernel.impl.query.TransactionalContext
+import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode.SHARDED
 import org.neo4j.logging.InternalLog
 import org.neo4j.monitoring
 import org.neo4j.values.virtual.MapValue
@@ -144,14 +144,13 @@ object CypherPlanner {
    * This back-door is intended for quick handling of bugs and support cases
    * where we need to inject some specific indexes and statistics.
    */
-  var customPlanContextCreator
-    : Option[(
-      TransactionalContextWrapper,
-      InternalNotificationLogger,
-      InternalLog,
-      CypherVersion,
-      GraphStatistics => GraphStatistics
-    ) => PlanContext] =
+  var customPlanContextCreator: Option[(
+    TransactionalContextWrapper,
+    InternalNotificationLogger,
+    InternalLog,
+    CypherVersion,
+    GraphStatistics => GraphStatistics
+  ) => PlanContext] =
     None
 
   /**
@@ -327,7 +326,10 @@ case class CypherPlanner(
     notificationLogger: InternalNotificationLogger,
     sessionDatabase: DatabaseReference
   ): LogicalPlanResult = {
-    val transactionalContextWrapper = TransactionalContextWrapper(transactionalContext)
+    val transactionalContextWrapper = if (transactionalContext.databaseMode() == SHARDED)
+      TransactionalContextWrapper.cachedSchemaWrapper(transactionalContext)
+    else TransactionalContextWrapper(transactionalContext)
+
     val shadowedFunctions = transactionalContextWrapper.procedures.shadowedNamespaces(
       QueryLanguage.toKernelScope(preParsedQuery.resolvedLanguage)
     ).asScala.toSet
@@ -424,12 +426,8 @@ case class CypherPlanner(
         .view.mapValues(_.map(_._2))
         .toMap
 
-    val graphStatisticsDecorator: GraphStatistics => GraphStatistics = {
-      cacheIndexStatisticsForSpdDecorator(
-        transactionalContextWrapper,
-        graphStatisticsDecoratorWithHistogramsFromConfig(histogramsFromConfigWithIdsGrouped)
-      )
-    }
+    val graphStatisticsDecorator: GraphStatistics => GraphStatistics =
+      graphStatisticsDecoratorWithHistogramsFromConfig(histogramsFromConfigWithIdsGrouped)
 
     val planContext =
       new ExceptionTranslatingPlanContext(createPlanContext(
@@ -720,19 +718,6 @@ case class CypherPlanner(
         names += name
     }
     (names.distinct, mapBuilder.build())
-  }
-
-  private def cacheIndexStatisticsForSpdDecorator(
-    transactionalContextWrapper: TransactionalContextWrapper,
-    statisticsDecorator: GraphStatistics => GraphStatistics
-  ): GraphStatistics => GraphStatistics = {
-    if (
-      transactionalContextWrapper.kernelTransactionalContext.databaseMode() == TransactionalContext.DatabaseMode.SHARDED
-    ) {
-      statisticsDecorator andThen (new IndexStatisticsCachingGraphStatistics(_))
-    } else {
-      statisticsDecorator
-    }
   }
 }
 
