@@ -30,7 +30,7 @@ public abstract class CharReadableChunker implements Chunker {
     protected final CharReadable reader;
     protected final int chunkSize;
     protected volatile long position;
-    private char[] backBuffer; // grows on demand
+    protected char[] backBuffer; // grows on demand
     private int backBufferCursor;
 
     public CharReadableChunker(CharReadable reader, int chunkSize) {
@@ -83,15 +83,17 @@ public abstract class CharReadableChunker implements Chunker {
         private int startOffset;
         private int length;
         private String sourceDescription;
+        private long lineNumberOffset;
 
         public ChunkImpl(char[] buffer) {
             this.buffer = buffer;
         }
 
-        public void initialize(int startOffset, int length, String sourceDescription) {
+        public void initialize(int startOffset, int length, String sourceDescription, long lineNumberOffset) {
             this.startOffset = startOffset;
             this.length = length;
             this.sourceDescription = sourceDescription;
+            this.lineNumberOffset = lineNumberOffset;
         }
 
         @Override
@@ -122,6 +124,11 @@ public abstract class CharReadableChunker implements Chunker {
         @Override
         public int backPosition() {
             return startOffset;
+        }
+
+        @Override
+        public long lineNumberOffset() {
+            return lineNumberOffset;
         }
     }
 }

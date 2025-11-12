@@ -67,6 +67,11 @@ public class MultiReadable implements CharReadable {
     }
 
     @Override
+    public long lineNumber() {
+        return current.lineNumber();
+    }
+
+    @Override
     public float compressionRatio() {
         return previousCompressionRatio * (current.compressionRatio() * current.position() / position());
     }

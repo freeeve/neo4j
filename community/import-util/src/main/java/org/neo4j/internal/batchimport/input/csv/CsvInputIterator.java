@@ -160,7 +160,7 @@ class CsvInputIterator implements SourceTraceability, Closeable {
         // make the chunk slightly bigger than the header to not have the seeker think that it's reading
         // a value bigger than its max buffer size
         ChunkImpl firstChunk = new ChunkImpl(copyOf(data, data.length + 1));
-        firstChunk.initialize(0, data.length, sourceDescription);
+        firstChunk.initialize(0, data.length, sourceDescription, 0);
         return seeker(firstChunk, config);
     }
 
@@ -275,6 +275,11 @@ class CsvInputIterator implements SourceTraceability, Closeable {
     @Override
     public long position() {
         return chunker.position();
+    }
+
+    @Override
+    public long lineNumber() {
+        return stream.lineNumber();
     }
 
     @Override

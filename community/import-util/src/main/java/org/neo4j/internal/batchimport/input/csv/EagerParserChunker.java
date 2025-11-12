@@ -106,6 +106,7 @@ public class EagerParserChunker implements Chunker {
         private final HeaderSkipper headerSkipper;
         private SectionedCharBuffer charBuffer;
         private String sourceDescription;
+        private long lineNumberOffset;
 
         public AutoSkipHeaderSource(CharReadable reader, Configuration configuration, IdType idType, Header header) {
             this.reader = reader;
@@ -114,7 +115,7 @@ public class EagerParserChunker implements Chunker {
         }
 
         @Override
-        public Chunk nextChunk(int seekStartPos) throws IOException {
+        public synchronized Chunk nextChunk(int seekStartPos) throws IOException {
             charBuffer = reader.read(charBuffer, seekStartPos == -1 ? charBuffer.pivot() : seekStartPos);
             int back = charBuffer.back();
             int length = charBuffer.available();
@@ -130,9 +131,18 @@ public class EagerParserChunker implements Chunker {
                     startPosition += charsSkipped;
                 }
                 sourceDescription = newSourceDescription;
+                lineNumberOffset = 0;
             }
-            return new GivenChunk(
-                    charBuffer.array(), length, charBuffer.pivot(), reader.sourceDescription(), startPosition, back);
+            var chunk = new GivenChunk(
+                    charBuffer.array(),
+                    length,
+                    charBuffer.pivot(),
+                    reader.sourceDescription(),
+                    startPosition,
+                    back,
+                    lineNumberOffset);
+            lineNumberOffset = reader.lineNumber();
+            return chunk;
         }
 
         @Override

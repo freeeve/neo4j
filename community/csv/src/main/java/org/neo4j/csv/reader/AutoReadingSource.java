@@ -30,6 +30,8 @@ import java.io.IOException;
 public class AutoReadingSource implements Source {
     private final CharReadable reader;
     private SectionedCharBuffer charBuffer;
+    private long lineNumberOffset;
+    private String lastSeenSourceDescription;
 
     public AutoReadingSource(CharReadable reader, int bufferSize) {
         this(reader, new SectionedCharBuffer(bufferSize));
@@ -43,13 +45,20 @@ public class AutoReadingSource implements Source {
     @Override
     public Chunk nextChunk(int seekStartPos) throws IOException {
         charBuffer = reader.read(charBuffer, seekStartPos == -1 ? charBuffer.pivot() : seekStartPos);
-        return new GivenChunk(
+        if (!reader.sourceDescription().equals(lastSeenSourceDescription)) {
+            lastSeenSourceDescription = reader.sourceDescription();
+            lineNumberOffset = 0;
+        }
+        var result = new GivenChunk(
                 charBuffer.array(),
                 charBuffer.available(),
                 charBuffer.pivot(),
                 reader.sourceDescription(),
                 charBuffer.pivot(),
-                charBuffer.back());
+                charBuffer.back(),
+                lineNumberOffset);
+        lineNumberOffset = reader.lineNumber();
+        return result;
     }
 
     @Override

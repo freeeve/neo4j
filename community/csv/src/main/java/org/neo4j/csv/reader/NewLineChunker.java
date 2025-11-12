@@ -29,11 +29,12 @@ import org.neo4j.csv.reader.Source.Chunk;
  * into the next.
  */
 public abstract class NewLineChunker extends CharReadableChunker {
-
     private final HeaderSkipper headerSkip;
     private String lastSeenSourceDescription;
     private int fileIndex = -1;
     private long totalBackCopied;
+    private long lineNumberOffset;
+    private int numBackTrackedNewLines;
 
     protected NewLineChunker(CharReadable reader, int chunkSize, HeaderSkipper headerSkip) {
         super(reader, chunkSize);
@@ -69,6 +70,7 @@ public abstract class NewLineChunker extends CharReadableChunker {
                 // put the characters after the newline character(s) into the back buffer.
                 final var newlineOffset = offsetOfLastRow(chunkBuffer) + 1;
                 final var backCopied = storeInBackBuffer(chunkBuffer, newlineOffset, chunkSize - newlineOffset);
+                numBackTrackedNewLines = countNewLineCharacters(backBuffer, backCopied);
                 totalBackCopied += backCopied;
                 read -= backCopied;
                 emit = Emit.YES_WITH_BACK_COPY;
@@ -86,6 +88,9 @@ public abstract class NewLineChunker extends CharReadableChunker {
         }
 
         boolean newSource = crossedOverToNewSource();
+        if (newSource) {
+            lineNumberOffset = 0;
+        }
         if (emit.send) {
             if (emit.updateWithRead) {
                 position += read;
@@ -96,10 +101,21 @@ public abstract class NewLineChunker extends CharReadableChunker {
             }
 
             final var skipped = newSource && fileIndex >= 0 ? headerSkip.skipHeader(chunkBuffer, 0, offset) : 0;
-            into.initialize(skipped, offset - skipped, lastSeenSourceDescription);
+            into.initialize(skipped, offset - skipped, lastSeenSourceDescription, lineNumberOffset);
+            lineNumberOffset = reader.lineNumber() - numBackTrackedNewLines;
             return true;
         }
         return false;
+    }
+
+    private int countNewLineCharacters(char[] buffer, int length) {
+        int count = 0;
+        for (int i = 0; i < length; i++) {
+            if (buffer[i] == '\n') {
+                count++;
+            }
+        }
+        return count;
     }
 
     private boolean crossedOverToNewSource() {

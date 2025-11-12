@@ -80,4 +80,9 @@ class EagerCsvInputChunk implements CsvInputChunk, Source.Chunk {
     public int backPosition() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public long lineNumberOffset() {
+        throw new UnsupportedOperationException();
+    }
 }

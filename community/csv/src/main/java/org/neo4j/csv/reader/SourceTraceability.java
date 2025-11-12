@@ -41,6 +41,11 @@ public interface SourceTraceability {
     long position();
 
     /**
+     * @return the current line number.
+     */
+    long lineNumber();
+
+    /**
      * @return the observed compression ratio to use when compensating between situations where reported data source length
      * is a compressed length and {@link #position()} is decompressed position. Usually this value is 1.0, which means that
      * source length and position are aligned, but in some cases e.g. for GZIP this isn't efficiently possible and therefore
@@ -57,6 +62,11 @@ public interface SourceTraceability {
     abstract class Adapter implements SourceTraceability {
         @Override
         public long position() {
+            return 0;
+        }
+
+        @Override
+        public long lineNumber() {
             return 0;
         }
     }

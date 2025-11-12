@@ -30,7 +30,6 @@ import java.util.OptionalInt;
  * {@link Configuration#quotationCharacter()} setting.
  */
 public class MultiLineChunker extends NewLineChunker {
-
     private final char delimiter;
     private final char quotationCharacter;
 

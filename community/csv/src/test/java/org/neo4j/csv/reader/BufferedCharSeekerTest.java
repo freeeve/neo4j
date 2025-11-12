@@ -21,6 +21,7 @@ package org.neo4j.csv.reader;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -579,8 +580,8 @@ class BufferedCharSeekerTest {
         IllegalStateException stateException =
                 assertThrows(IllegalStateException.class, () -> seeker.seek(mark, COMMA));
         String source = seeker.sourceDescription();
-        assertTrue(stateException.getMessage().contains("Tried to read"));
-        assertTrue(stateException.getMessage().contains(source + ":3"));
+        assertThat(stateException.getMessage()).contains("Tried to read");
+        assertThat(stateException.getMessage()).contains(source + ":4");
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")

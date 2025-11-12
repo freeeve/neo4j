@@ -30,6 +30,7 @@ class WrappedCharReadable extends CharReadable.Adapter {
     private final Reader reader;
     private long position;
     private final String sourceDescription;
+    private long lineNumber;
 
     WrappedCharReadable(long length, Reader reader, String sourceDescription) {
         this.length = length;
@@ -58,7 +59,18 @@ class WrappedCharReadable extends CharReadable.Adapter {
             totalRead += read;
         }
         position += totalRead;
+        lineNumber += countLines(into, offset, length);
         return totalRead == 0 && eof ? -1 : totalRead;
+    }
+
+    private long countLines(char[] buffer, int offset, int length) {
+        long lines = 0;
+        for (int i = 0; i < length; i++) {
+            if (buffer[offset + i] == '\n') {
+                lines++;
+            }
+        }
+        return lines;
     }
 
     @Override
@@ -69,6 +81,11 @@ class WrappedCharReadable extends CharReadable.Adapter {
     @Override
     public long position() {
         return position;
+    }
+
+    @Override
+    public long lineNumber() {
+        return lineNumber;
     }
 
     @Override

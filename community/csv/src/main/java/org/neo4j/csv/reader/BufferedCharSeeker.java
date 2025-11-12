@@ -67,6 +67,7 @@ public class BufferedCharSeeker implements CharSeeker {
     private final Source source;
     private Chunk currentChunk;
     private final boolean trim;
+    private long lineNumberOffset;
 
     public BufferedCharSeeker(Source source, Configuration config) {
         this.source = source;
@@ -332,7 +333,8 @@ public class BufferedCharSeeker implements CharSeeker {
         }
         String sourceDescriptionAfterRead = nextChunk.sourceDescription();
         if (!sourceDescriptionAfterRead.equals(sourceDescription)) { // We moved over to a new source, reset line number
-            lineNumber = 0;
+            lineNumberOffset = nextChunk.lineNumberOffset();
+            lineNumber = 1;
             sourceDescription = sourceDescriptionAfterRead;
         }
         currentChunk = nextChunk;
@@ -355,7 +357,7 @@ public class BufferedCharSeeker implements CharSeeker {
     }
 
     public long lineNumber() {
-        return lineNumber;
+        return lineNumberOffset + lineNumber;
     }
 
     @Override

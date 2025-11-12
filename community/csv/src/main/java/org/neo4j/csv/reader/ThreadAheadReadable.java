@@ -87,6 +87,11 @@ public class ThreadAheadReadable extends ThreadAhead implements CharReadable {
     }
 
     @Override
+    public long lineNumber() {
+        return actual.lineNumber();
+    }
+
+    @Override
     public float compressionRatio() {
         return actual.compressionRatio();
     }

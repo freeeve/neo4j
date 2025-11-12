@@ -53,6 +53,12 @@ public interface Source extends Closeable {
         String sourceDescription();
 
         /**
+         * @return the line number offset of this chunk, i.e. one less that the first line number
+         * of the new data in this chunk.
+         */
+        long lineNumberOffset();
+
+        /**
          * @return position in the {@link #data()} array to start reading from
          */
         int startPosition();
@@ -66,10 +72,16 @@ public interface Source extends Closeable {
     }
 
     record GivenChunk(
-            char[] data, int length, int maxFieldSize, String sourceDescription, int startPosition, int backPosition)
+            char[] data,
+            int length,
+            int maxFieldSize,
+            String sourceDescription,
+            int startPosition,
+            int backPosition,
+            long lineNumberOffset)
             implements Chunk {}
 
-    Chunk EMPTY_CHUNK = new GivenChunk(null, 0, 0, SourceTraceability.EMPTY.sourceDescription(), 0, 0);
+    Chunk EMPTY_CHUNK = new GivenChunk(null, 0, 0, SourceTraceability.EMPTY.sourceDescription(), 0, 0, 0);
 
     static Source singleChunk(Chunk chunk) {
         return new Source() {
