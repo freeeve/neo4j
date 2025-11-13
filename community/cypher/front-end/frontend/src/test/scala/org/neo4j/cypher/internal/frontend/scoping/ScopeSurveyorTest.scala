@@ -1138,13 +1138,13 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               Ast("RETURN a"), // this is the query level
               Incoming(constants = Set("a")),
               Referenced(Set("a")),
-              Outgoing(variables = Set("a")),
+              Outgoing(),
               ExpectedResult.TableResult("a"),
               ExpectedWorkingScope(
                 Ast("RETURN a"),
                 Incoming(constants = Set("a")),
                 Referenced(Set("a")),
-                Outgoing(variables = Set("a")),
+                Outgoing(),
                 ExpectedResult.TableResult("a"),
                 ExpectedWorkingScope.varExp("a", Set("a"))
               )
@@ -3530,6 +3530,221 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
       ),
       version = CypherVersion.Cypher5,
       skipVariableChecker = false
+    )
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (a)
+         |  RETURN a
+         |  NEXT
+         |  RETURN a
+         |} AS x""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""MATCH (a)
+              |RETURN EXISTS {
+              |  MATCH (a)
+              |  RETURN a
+              |  NEXT
+              |  RETURN a
+              |} AS x""".stripMargin),
+        Outgoing(variables = Set("x")),
+        ExpectedResult.TableResult("x"),
+        ExpectedWorkingScope(
+          Ast("""MATCH (a)""".stripMargin),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope(
+            Ast("""(a)""".stripMargin),
+            PatternIncoming(predicate = Set("a")),
+            Declared(variables = Seq("a")),
+            Outgoing(variables = Set("a")),
+            ExpectedResult.TableResult("a")
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("""RETURN EXISTS {
+                |  MATCH (a)
+                |  RETURN a
+                |  NEXT
+                |  RETURN a
+                |} AS x""".stripMargin),
+          Incoming(variables = Set("a")),
+          Referenced(Set("a")),
+          Outgoing(variables = Set("x")),
+          ExpectedResult.TableResult("x"),
+          ExpectedWorkingScope(
+            Ast("""EXISTS {
+                  |  MATCH (a)
+                  |  RETURN a
+                  |  NEXT
+                  |  RETURN a
+                  |}""".stripMargin),
+            Incoming(constants = Set("a")),
+            Referenced(Set("a")),
+            ExpectedWorkingScope(
+              Ast("""MATCH (a)
+                    |RETURN a
+                    |NEXT
+                    |RETURN a""".stripMargin),
+              Incoming(constants = Set("a")),
+              Referenced(Set("a")),
+              ExpectedResult.TableResult("a"),
+              ExpectedWorkingScope(
+                Ast("""MATCH (a)
+                      |RETURN a""".stripMargin),
+                Incoming(constants = Set("a")),
+                Referenced(Set("a")),
+                ExpectedResult.TableResult("a"),
+                ExpectedWorkingScope(
+                  Ast("""MATCH (a)""".stripMargin),
+                  Incoming(constants = Set("a")),
+                  Referenced(Set("a")),
+                  Outgoing(constants = Set("a")),
+                  ExpectedWorkingScope(
+                    Ast("""(a)""".stripMargin),
+                    PatternIncoming(topology = Set("a"), predicate = Set("a")),
+                    Referenced(Set("a")),
+                    Outgoing(variables = Set("a")),
+                    ExpectedResult.TableResult("a")
+                  )
+                ),
+                ExpectedWorkingScope(
+                  Ast("""RETURN a""".stripMargin),
+                  Incoming(constants = Set("a")),
+                  Referenced(Set("a")),
+                  ExpectedResult.TableResult("a"),
+                  ExpectedWorkingScope.varExp("a", Set("a"))
+                )
+              ),
+              ExpectedWorkingScope(
+                Ast("""RETURN a""".stripMargin),
+                Incoming(constants = Set("a")),
+                Referenced(Set("a")),
+                ExpectedResult.TableResult("a"),
+                ExpectedWorkingScope(
+                  Ast("""RETURN a""".stripMargin),
+                  Incoming(constants = Set("a")),
+                  Referenced(Set("a")),
+                  ExpectedResult.TableResult("a"),
+                  ExpectedWorkingScope.varExp("a", Set("a"))
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
+  test("""UNWIND [1, 2, 3] AS x
+         |RETURN COLLECT {
+         |  UNWIND [1, 2] AS y
+         |  RETURN x, y
+         |  NEXT
+         |  RETURN x + COUNT(y)
+         |} AS y""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""UNWIND [1, 2, 3] AS x
+              |RETURN COLLECT {
+              |  UNWIND [1, 2] AS y
+              |  RETURN x, y
+              |  NEXT
+              |  RETURN x + COUNT(y)
+              |} AS y""".stripMargin),
+        Outgoing(variables = Set("y")),
+        ExpectedResult.TableResult("y"),
+        ExpectedWorkingScope(
+          Ast("""UNWIND [1, 2, 3] AS x""".stripMargin),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("x")),
+          ExpectedWorkingScope.constExp("[1, 2, 3]")
+        ),
+        ExpectedWorkingScope(
+          Ast("""RETURN COLLECT {
+                |  UNWIND [1, 2] AS y
+                |  RETURN x, y
+                |  NEXT
+                |  RETURN x + COUNT(y)
+                |} AS y""".stripMargin),
+          Incoming(variables = Set("x")),
+          Referenced(Set("x")),
+          Outgoing(variables = Set("y")),
+          ExpectedResult.TableResult("y"),
+          ExpectedWorkingScope(
+            Ast("""COLLECT {
+                  |  UNWIND [1, 2] AS y
+                  |  RETURN x, y
+                  |  NEXT
+                  |  RETURN x + COUNT(y)
+                  |}""".stripMargin),
+            Incoming(constants = Set("x")),
+            Referenced(Set("x")),
+            ExpectedWorkingScope(
+              Ast("""UNWIND [1, 2] AS y
+                    |RETURN x, y
+                    |NEXT
+                    |RETURN x + COUNT(y)""".stripMargin),
+              Incoming(constants = Set("x")),
+              Referenced(Set("x")),
+              Outgoing(variables = Set("x + COUNT(y)")),
+              ExpectedResult.TableResult("x + COUNT(y)"),
+              ExpectedWorkingScope(
+                Ast("""UNWIND [1, 2] AS y
+                      |RETURN x, y""".stripMargin),
+                Incoming(constants = Set("x")),
+                Referenced(Set("x")),
+                Outgoing(variables = Set("y")),
+                ExpectedResult.TableResult("x", "y"),
+                ExpectedWorkingScope(
+                  Ast("""UNWIND [1, 2] AS y""".stripMargin),
+                  Incoming(constants = Set("x")),
+                  Declared(variables = Seq("y")),
+                  Outgoing(constants = Set("x"), variables = Set("y")),
+                  ExpectedWorkingScope.constExp("[1, 2]", Set("x"))
+                ),
+                ExpectedWorkingScope(
+                  Ast("""RETURN x, y""".stripMargin),
+                  Incoming(constants = Set("x"), variables = Set("y")),
+                  Referenced(Set("x", "y")),
+                  Outgoing(variables = Set("y")),
+                  ExpectedResult.TableResult("x", "y"),
+                  ExpectedWorkingScope.varExp("x", Set("x", "y")),
+                  ExpectedWorkingScope.varExp("y", Set("x", "y"))
+                )
+              ),
+              ExpectedWorkingScope(
+                Ast("""RETURN x + COUNT(y)""".stripMargin),
+                Incoming(constants = Set("x"), variables = Set("y")),
+                Referenced(Set("x", "y")),
+                Outgoing(variables = Set("x + COUNT(y)")),
+                ExpectedResult.TableResult("x + COUNT(y)"),
+                ExpectedWorkingScope(
+                  Ast("""RETURN x + COUNT(y)""".stripMargin),
+                  Incoming(constants = Set("x"), variables = Set("y")),
+                  Referenced(Set("x", "y")),
+                  Outgoing(variables = Set("x + COUNT(y)")),
+                  ExpectedResult.TableResult("x + COUNT(y)"),
+                  ExpectedWorkingScope(
+                    Ast("x + COUNT(y)"),
+                    Incoming(constants = Set("x", "y")),
+                    Referenced(Set("x", "y")),
+                    ExpectedWorkingScope.varExp("x", Set("x", "y")),
+                    ExpectedWorkingScope(
+                      Ast("COUNT(y)"),
+                      Incoming(constants = Set("x", "y")),
+                      Referenced(Set("y")),
+                      ExpectedWorkingScope.varExp("y", Set("x", "y"))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
   }
 }

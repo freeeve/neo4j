@@ -426,9 +426,18 @@ object pegClause {
         // WITH
         val outgoing = RegularContext(constants = incoming.constants, variables = resultColumns.toSet)
         incoming.noResultScope(outgoing, children, referenced, declared = declared)
+      } else if (withTypeOpt.contains(ParsedAsYield) || projectionClause.isInstanceOf[Yield]) {
+        val outgoing = RegularContext(constants = unitVariables, variables = resultColumns.toSet)
+        incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced)
       } else {
         // RETURN
-        val outgoing = RegularContext(constants = unitVariables, variables = resultColumns.toSet)
+        val constantReturnItems = items.filter(ri =>
+          // removes item "c" and "c AS c" where c is a constant — a special case Cypher historically allows
+          ri.alias.exists(v => ri.isPassThrough && (incoming.constants contains v))
+        )
+        val (_, outgoingVariables) =
+          resultColumns.partition(v => constantReturnItems.exists(ri => ri.expression == v))
+        val outgoing = RegularContext(constants = unitVariables, variables = outgoingVariables.toSet)
         incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced)
       }
     } else {
@@ -516,9 +525,18 @@ object pegClause {
         // WITH
         val outgoing = RegularContext(constants = incoming.constants, variables = resultColumns.toSet)
         incoming.noResultScope(outgoing, children, referenced, declared = declared)
+      } else if (withTypeOpt.contains(ParsedAsYield) || projectionClause.isInstanceOf[Yield]) {
+        val outgoing = RegularContext(constants = unitVariables, variables = resultColumns.toSet)
+        incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced)
       } else {
         // RETURN
-        val outgoing = RegularContext(constants = unitVariables, variables = resultColumns.toSet)
+        val constantReturnItems = items.filter(ri =>
+          // removes item "c" and "c AS c" where c is a constant — a special case Cypher historically allows
+          ri.alias.exists(v => ri.isPassThrough && (incoming.constants contains v))
+        )
+        val (outgoingConstants, outgoingVariables) =
+          resultColumns.partition(v => constantReturnItems.exists(ri => ri.expression == v))
+        val outgoing = RegularContext(constants = unitVariables, variables = outgoingVariables.toSet)
         incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced)
       }
     }

@@ -1431,4 +1431,105 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |LIMIT 1""".stripMargin) {
     passes()
   }
+
+  test("""WITH 1 AS x
+         |RETURN *
+         |
+         |NEXT
+         |
+         |RETURN *
+         |
+         |NEXT
+         |
+         |WHEN true THEN RETURN x + 1 AS x
+         |
+         |NEXT
+         |
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (a)
+         |  RETURN a
+         |  NEXT
+         |  MATCH (b)
+         |  RETURN b AS a
+         |  NEXT
+         |  MATCH (a)
+         |  RETURN a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (a)
+         |  RETURN a
+         |  NEXT
+         |  MATCH (b)
+         |  RETURN a AS a
+         |  NEXT
+         |  MATCH (a)
+         |  RETURN a
+         |}""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (a)
+         |  RETURN a
+         |  NEXT
+         |  RETURN a
+         |}""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  WITH 1 AS a
+         |  RETURN a AS a
+         |  NEXT
+         |  RETURN a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (a)
+         |  RETURN a, 1 AS a
+         |  NEXT
+         |  RETURN a
+         |}""".stripMargin) {
+    error("42N38", "Return items must have unique names.")
+  }
+
+  test("""UNWIND [1,2,3] AS x
+         |RETURN COLLECT {
+         |  UNWIND [1,2] AS y
+         |  RETURN x, y
+         |  NEXT
+         |  RETURN x + COUNT(y)
+         |}""".stripMargin) {
+    passes()
+  }
+
+  test("""UNWIND [1,2,3] AS x
+         |RETURN COLLECT {
+         |  UNWIND [1,2] AS y
+         |  RETURN x, y
+         |  NEXT
+         |  RETURN x + y
+         |}""".stripMargin) {
+    passes()
+  }
 }

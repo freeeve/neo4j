@@ -221,9 +221,12 @@ case class VariableChecker(version: CypherVersion) {
 
   sealed trait ReturnContext
   case object Unopinionated extends ReturnContext
-  sealed trait Opinionated extends ReturnContext
-  case object SubqueryExpression extends Opinionated
-  case object NextStatement extends Opinionated
+
+  sealed trait Opinionated extends ReturnContext {
+    val constants: Set[LogicalVariable]
+  }
+  case class SubqueryExpression(override val constants: Set[LogicalVariable]) extends Opinionated
+  case class NextStatement(override val constants: Set[LogicalVariable]) extends Opinionated
 
   sealed trait VariableContext
   case object Default extends VariableContext
@@ -256,10 +259,10 @@ case class VariableChecker(version: CypherVersion) {
   private val checksUsingAcc: Seq[PartialFunction[(Acc, WorkingScope), Acc]] = Seq(
     // invalid use of RETURN *
     {
-      case (acc @ Acc(SubqueryExpression, _, _), StatementScope(Return.WithStar(r), in, _, _, _, _, _))
+      case (acc @ Acc(SubqueryExpression(_), _, _), StatementScope(Return.WithStar(r), in, _, _, _, _, _))
         if in.constantsAndVariables.isEmpty => acc(SemanticError.invalidUseOfReturnStar(r.position))
-      case (acc @ Acc(_: Opinionated, _, _), StatementScope(r @ Return(_, ri, _, _, _, _, _, _), in, _, _, _, _, _)) =>
-        acc(getAliasesShadowingConstants(ri.items, in, r.position))
+      case (acc @ Acc(o: Opinionated, _, _), StatementScope(r @ Return(_, ri, _, _, _, _, _, _), _, _, _, _, _, _)) =>
+        acc(getAliasesShadowingConstants(ri.items, o.constants, r.position))
       case (acc, StatementScope(Return.WithStar(r), in, _, _, _, _, _))
         if in.isVariablesEmpty =>
         acc(SemanticError.invalidUseOfReturnStar(r.position))
@@ -301,18 +304,18 @@ case class VariableChecker(version: CypherVersion) {
 
   private def getAliasesShadowingConstants(
     items: Seq[ReturnItem],
-    in: RegularContext,
+    constants: Set[LogicalVariable],
     pos: InputPosition
   ): Seq[SemanticError] =
     items
-      .filter(i => !i.isPassThrough && i.alias.isDefined && in.constants.contains(i.alias.get))
+      .filter(i => !i.isPassThrough && i.alias.isDefined && constants.contains(i.alias.get))
       .map(i => SemanticError.variableAlreadyDeclaredInOuterScope(i.name, pos))
 
   private def collectSemanticErrorsWithAcc(workingScope: WorkingScope) = workingScope.folder.treeFold(Acc.init) {
-    case ExpressionScope(_: FullSubqueryExpression, _, _, _, _) => acc =>
-        TraverseChildren(acc.inReturnContext(SubqueryExpression))
-    case StatementScope(_: NextStatement, _, _, _, _, _, children) => acc =>
-        val trunkAcc = folderWorkingScopes(children.dropRight(1), acc.inReturnContext(NextStatement))
+    case ExpressionScope(_: FullSubqueryExpression, in, _, _, _) => acc =>
+        TraverseChildren(acc.inReturnContext(SubqueryExpression(in.allSymbols)))
+    case StatementScope(_: NextStatement, in, _, _, _, _, children) => acc =>
+        val trunkAcc = folderWorkingScopes(children.dropRight(1), acc.inReturnContext(NextStatement(in.constants)))
         val tailAcc = folderWorkingScopes(children.tail, acc)
         SkipChildren(Acc(tailAcc.scopeContext, tailAcc.variableContext, trunkAcc.errors ++ tailAcc.errors))
     case StatementScope(c: CreateOrInsert, _, _, declared, _, _, _) => acc =>
