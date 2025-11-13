@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.unreleased
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings.cypher_enable_local_callables
 import org.neo4j.configuration.GraphDatabaseInternalSettings.cypher_vector_search_enabled
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25ErrorStrategyConf
@@ -32,6 +33,16 @@ class UnreleasedFeaturesTest extends CypherFunSuite {
       withClue(s"You need to remove SEARCH and SCORE from Cypher25ErrorStrategyConf.ignoredTokens!") {
         ignoredTokens should not contain Cypher25Parser.SEARCH
         ignoredTokens should not contain Cypher25Parser.SCORE
+      }
+    }
+  }
+
+  // When this test breaks: Update Cypher25ErrorStrategyConf().ignoredTokens to make it pass, then remove the test.
+  test("ignore DEFINE keyword as long as it's unreleased") {
+    val ignoredTokens = new Cypher25ErrorStrategyConf().ignoredTokens.asScala
+    if (cypher_enable_local_callables.defaultValue()) {
+      withClue(s"You need to remove DEFINE from Cypher25ErrorStrategyConf.ignoredTokens!") {
+        ignoredTokens should not contain Cypher25Parser.DEFINE
       }
     }
   }

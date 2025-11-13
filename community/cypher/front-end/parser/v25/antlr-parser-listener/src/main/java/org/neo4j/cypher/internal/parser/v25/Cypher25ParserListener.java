@@ -27,6 +27,24 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitStatement(Cypher25Parser.StatementContext ctx);
 
+    void exitQueryWithLocalDefinitions(Cypher25Parser.QueryWithLocalDefinitionsContext ctx);
+
+    void exitLocalDefinition(Cypher25Parser.LocalDefinitionContext ctx);
+
+    void exitLocalProcedureDefinition(Cypher25Parser.LocalProcedureDefinitionContext ctx);
+
+    void exitLocalFunctionDefinition(Cypher25Parser.LocalFunctionDefinitionContext ctx);
+
+    void exitLocalInputFieldsSignature(Cypher25Parser.LocalInputFieldsSignatureContext ctx);
+
+    void exitLocalOutputFieldsSignature(Cypher25Parser.LocalOutputFieldsSignatureContext ctx);
+
+    void exitLocalMandatoryFieldSignature(Cypher25Parser.LocalMandatoryFieldSignatureContext ctx);
+
+    void exitLocalOptionalFieldSignature(Cypher25Parser.LocalOptionalFieldSignatureContext ctx);
+
+    void exitLocalFunctionBody(Cypher25Parser.LocalFunctionBodyContext ctx);
+
     void exitNextStatement(Cypher25Parser.NextStatementContext ctx);
 
     void exitRegularQuery(Cypher25Parser.RegularQueryContext ctx);

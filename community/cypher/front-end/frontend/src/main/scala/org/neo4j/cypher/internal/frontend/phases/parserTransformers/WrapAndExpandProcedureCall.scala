@@ -62,7 +62,7 @@ case object WrapAndExpandProcedureCall extends StatementRewriter with ParsePipel
     Set(ContainsNoReturnAll, ProjectionClausesHaveSemanticInfo)
 
   private def expandWhere(call: UnresolvedCall): Seq[Clause] = call match {
-    case unresolved @ UnresolvedCall(_, _, _, Some(result @ ProcedureResult(_, optWhere @ Some(where))), _, _, _) =>
+    case unresolved @ UnresolvedCall(_, _, Some(result @ ProcedureResult(_, optWhere @ Some(where))), _, _, _) =>
       val newResult = result.copy(where = None)(result.position)
       val newUnresolved = unresolved.copy(declaredResult = Some(newResult))(unresolved.position)
       val newItems = ReturnItems(AdditiveProjection, Seq.empty)(where.position)
@@ -76,7 +76,7 @@ case object WrapAndExpandProcedureCall extends StatementRewriter with ParsePipel
   private val rewriter: Rewriter = bottomUp(Rewriter.lift {
     case query @ SingleQuery(clauses) =>
       val newClauses = clauses.flatMap {
-        case unresolved @ UnresolvedCall(_, _, _, Some(_), _, _, true) =>
+        case unresolved @ UnresolvedCall(_, _, Some(_), _, _, true) =>
           val pos = unresolved.position
           val expandedCall = expandWhere(unresolved.copy(optional = false)(pos))
           val returnItems = unresolved.returnVariables.explicitVariables.map(x => AliasedReturnItem(x))

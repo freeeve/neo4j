@@ -45,6 +45,24 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
         switch (ctx.getRuleIndex()) {
             case Cypher25Parser.RULE_statements -> exitStatements((Cypher25Parser.StatementsContext) ctx);
             case Cypher25Parser.RULE_statement -> exitStatement((Cypher25Parser.StatementContext) ctx);
+            case Cypher25Parser.RULE_queryWithLocalDefinitions ->
+                exitQueryWithLocalDefinitions((Cypher25Parser.QueryWithLocalDefinitionsContext) ctx);
+            case Cypher25Parser.RULE_localDefinition ->
+                exitLocalDefinition((Cypher25Parser.LocalDefinitionContext) ctx);
+            case Cypher25Parser.RULE_localProcedureDefinition ->
+                exitLocalProcedureDefinition((Cypher25Parser.LocalProcedureDefinitionContext) ctx);
+            case Cypher25Parser.RULE_localFunctionDefinition ->
+                exitLocalFunctionDefinition((Cypher25Parser.LocalFunctionDefinitionContext) ctx);
+            case Cypher25Parser.RULE_localInputFieldsSignature ->
+                exitLocalInputFieldsSignature((Cypher25Parser.LocalInputFieldsSignatureContext) ctx);
+            case Cypher25Parser.RULE_localOutputFieldsSignature ->
+                exitLocalOutputFieldsSignature((Cypher25Parser.LocalOutputFieldsSignatureContext) ctx);
+            case Cypher25Parser.RULE_localMandatoryFieldSignature ->
+                exitLocalMandatoryFieldSignature((Cypher25Parser.LocalMandatoryFieldSignatureContext) ctx);
+            case Cypher25Parser.RULE_localOptionalFieldSignature ->
+                exitLocalOptionalFieldSignature((Cypher25Parser.LocalOptionalFieldSignatureContext) ctx);
+            case Cypher25Parser.RULE_localFunctionBody ->
+                exitLocalFunctionBody((Cypher25Parser.LocalFunctionBodyContext) ctx);
             case Cypher25Parser.RULE_nextStatement -> exitNextStatement((Cypher25Parser.NextStatementContext) ctx);
             case Cypher25Parser.RULE_regularQuery -> exitRegularQuery((Cypher25Parser.RegularQueryContext) ctx);
             case Cypher25Parser.RULE_union -> exitUnion((Cypher25Parser.UnionContext) ctx);

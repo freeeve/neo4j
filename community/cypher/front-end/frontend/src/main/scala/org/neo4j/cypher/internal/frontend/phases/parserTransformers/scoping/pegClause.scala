@@ -120,7 +120,7 @@ object pegClause {
         )
 
       // unresolved named call
-      case UnresolvedCall(_, _, declaredArguments, declaredResult, isStandalone, _, _) =>
+      case UnresolvedCall(_, declaredArguments, declaredResult, isStandalone, _, _) =>
         val children =
           declaredArguments.map(
             _.map(arg => pegExpression(arg, incoming.constantChildContext()))

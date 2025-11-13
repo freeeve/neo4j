@@ -85,6 +85,10 @@ object SemanticFeature {
     override def name: String = "vector search in Cypher"
   }
 
+  case object LocalCallables extends SemanticFeature with FeatureToString {
+    override def name: String = "local callables"
+  }
+
   case object ScopeQueries extends SemanticFeature with FeatureToString {
     override def name: String = "scope queries"
   }
@@ -122,6 +126,7 @@ object SemanticFeature {
     VectorType,
     VectorSingleStageFilteringEnabled,
     VectorSearch,
+    LocalCallables,
     ScopeQueries,
     ShardedPropertyDatabase,
     AllowClauseWithMixedLabelSyntax,

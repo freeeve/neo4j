@@ -383,6 +383,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.cypher.enable_vector_type", BOOL, true).build();
 
     @Internal
+    @Description("Set this to enable the use of local callables.")
+    public static final Setting<Boolean> cypher_enable_local_callables =
+            newBuilder("internal.cypher.enable_local_callables", BOOL, false).build();
+
+    @Internal
     @Description("Set this to enable the use of the SCOPE queries.")
     public static final Setting<Boolean> cypher_enable_scope_queries =
             newBuilder("internal.cypher.enable_scope_queries", BOOL, false).build();

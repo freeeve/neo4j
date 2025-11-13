@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
 import org.neo4j.cypher.internal.expressions.AssertIsNode
 import org.neo4j.cypher.internal.expressions.BinaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.BinaryPredicateExpression
+import org.neo4j.cypher.internal.expressions.CallableName
 import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.ChainableBinaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.CoerceTo
@@ -195,8 +196,14 @@ private class DefaultExpressionStringifier(
   override def apply(ast: Expression, shouldBacktickEmpty: Boolean): String =
     stringify(ast, shouldBacktickEmpty)._1
 
-  override def apply(s: SymbolicName, shouldBacktickEmpty: Boolean): String =
-    backtick(s.name, shouldBacktickEmpty)
+  override def apply(s: SymbolicName, shouldBacktickEmpty: Boolean): String = s match {
+    case CallableName(namespace, name) =>
+      val ns = apply(namespace, shouldBacktickEmpty)
+      val p = if (namespace.parts.isEmpty) "" else "."
+      val n = backtick(name, shouldBacktickEmpty)
+      s"$ns$p$n"
+    case _ => backtick(s.name, shouldBacktickEmpty)
+  }
 
   override def apply(ns: Namespace, shouldBacktickEmpty: Boolean): String =
     ns.parts.map(backtick(_, shouldBacktickEmpty)).mkString(".")
@@ -371,10 +378,8 @@ private class DefaultExpressionStringifier(
           Seq(delimitedInner(ast, shouldBacktickEmpty)(vector), metric.metricName).mkString(", ")
         noEagerConsumption(s"$fn($as)")
 
-      case FunctionInvocation(FunctionName(namespace, functionName), distinct, args, order, _, _) =>
-        val ns = apply(namespace, shouldBacktickEmpty)
-        val fn = backtick(functionName, shouldBacktickEmpty)
-        val np = if (namespace.parts.isEmpty) "" else "."
+      case FunctionInvocation(functionName, distinct, args, order, _, _) =>
+        val fn = apply(functionName, shouldBacktickEmpty)
         val ds = if (distinct) "DISTINCT " else ""
         val as = args.map(delimitedInner(ast, shouldBacktickEmpty)).mkString(", ")
         // NOTE: because order is rendered this will produce Cypher that cannot be parsed
@@ -383,7 +388,7 @@ private class DefaultExpressionStringifier(
           case ArgumentDesc      => " DESC"
           case ArgumentUnordered => ""
         }
-        noEagerConsumption(s"$ns$np$fn($ds$as)$o")
+        noEagerConsumption(s"$fn($ds$as)$o")
 
       case functionInvocation: UserDefinedFunctionInvocation =>
         // noinspection RedundantDefaultArgument

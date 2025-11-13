@@ -308,7 +308,7 @@ class ExistsExpressionParserTest extends AstParsingTestBase {
       |WHERE EXISTS { MATCH (b) RETURN b WHERE true }
       |RETURN m""".stripMargin
   ) {
-    failsParsing[Statements].withMessageStart("Invalid input 'WHERE'")
+    failsParsing[Statements].withMessageStart("Invalid input")
   }
 
   test(

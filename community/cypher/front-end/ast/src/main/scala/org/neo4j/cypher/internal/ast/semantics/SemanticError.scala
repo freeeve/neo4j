@@ -903,6 +903,18 @@ object SemanticError {
     SemanticError(gql, msg, pos)
   }
 
+  def useClauseInLocalProcedureDefinitionNotSupported(pos: InputPosition): SemanticError = {
+    val msg = "USE clause is not supported in local procedure definitions."
+    val gql = GqlHelper.getGql42001_42NAF()
+    SemanticError(gql, msg, pos)
+  }
+
+  def useClauseInLocalFunctionDefinitionNotSupported(pos: InputPosition): SemanticError = {
+    val msg = "USE clause is not supported in local function definitions."
+    val gql = GqlHelper.getGql42001_42NAG()
+    SemanticError(gql, msg, pos)
+  }
+
   def invalidClauseCombination(clause1: String, clause2: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)

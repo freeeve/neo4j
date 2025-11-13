@@ -105,6 +105,10 @@ object CompositeQueryFragmenter {
         throw new IllegalStateException(
           "Next should have been rewritten to single queries by AST rewriting."
         )
+      case _: ast.QueryWithLocalDefinitions =>
+        throw new IllegalStateException(
+          "QueryWithLocalDefinitions should have been rewritten to single queries by AST rewriting."
+        )
 
     }
   }

@@ -67,7 +67,7 @@ case class UserFunctionSignature(
 object QualifiedName {
 
   def apply(unresolved: UnresolvedCall): QualifiedName =
-    QualifiedName(unresolved.procedureNamespace.parts, unresolved.procedureName.name)
+    QualifiedName(unresolved.procedureName.namespace.parts, unresolved.procedureName.name)
 
   def apply(unresolved: FunctionInvocation): QualifiedName =
     QualifiedName(unresolved.functionName.namespace.parts, unresolved.functionName.name)

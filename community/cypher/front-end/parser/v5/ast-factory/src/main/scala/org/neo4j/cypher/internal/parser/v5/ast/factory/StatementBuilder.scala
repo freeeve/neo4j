@@ -493,7 +493,7 @@ trait StatementBuilder extends Cypher5ParserListener {
   final override def exitCallClause(
     ctx: Cypher5Parser.CallClauseContext
   ): Unit = {
-    val (namespace, procedureName) = ctx.procedureName.ast[(Namespace, ProcedureName)]()
+    val procedureName = ctx.procedureName.ast[ProcedureName]()
     val procedureArguments =
       if (ctx.RPAREN() == null) None
       else
@@ -509,7 +509,6 @@ trait StatementBuilder extends Cypher5ParserListener {
       }
     }
     ctx.ast = UnresolvedCall(
-      namespace,
       procedureName,
       procedureArguments,
       procedureResults,
@@ -523,8 +522,8 @@ trait StatementBuilder extends Cypher5ParserListener {
     ctx: Cypher5Parser.ProcedureNameContext
   ): Unit = {
     val namespace = ctx.namespace().ast[Namespace]()
-    val procedureName = ProcedureName(ctx.symbolicNameString().ast())(pos(ctx.symbolicNameString()))
-    ctx.ast = (namespace, procedureName)
+    val procedureName = ctx.symbolicNameString().ast[String]()
+    ctx.ast = ProcedureName(namespace, procedureName)(pos(ctx.namespace()))
   }
 
   final override def exitProcedureArgument(

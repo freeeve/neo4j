@@ -364,7 +364,7 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
     val nodes = 100
 
     val ns = Namespace(List("my", "proc"))(pos)
-    val name = ProcedureName("foo")(pos)
+    val name = ProcedureName(ns, "foo")(pos)
     val qualifiedName = QualifiedName(ns.parts, name.name)
     val signature = ProcedureSignature(qualifiedName, IndexedSeq.empty, None, None, ProcedureReadWriteAccess, id = 42)
 
@@ -401,7 +401,7 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
     val nodes = 100
 
     val ns = Namespace(List("my", "proc"))(pos)
-    val name = ProcedureName("foo")(pos)
+    val name = ProcedureName(ns, "foo")(pos)
     val qualifiedName = QualifiedName(ns.parts, name.name)
     val signature =
       ProcedureSignature(qualifiedName, IndexedSeq.empty, None, None, ProcedureReadOnlyAccess, id = 42, eager = true)
@@ -439,7 +439,7 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
     val nodes = 100
 
     val ns = Namespace(List("my", "proc"))(pos)
-    val name = ProcedureName("foo")(pos)
+    val name = ProcedureName(ns, "foo")(pos)
     val qualifiedName = QualifiedName(ns.parts, name.name)
     val signature = ProcedureSignature(qualifiedName, IndexedSeq.empty, None, None, ProcedureReadOnlyAccess, id = 42)
 

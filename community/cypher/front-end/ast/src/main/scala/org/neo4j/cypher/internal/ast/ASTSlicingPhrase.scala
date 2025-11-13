@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.expressions.SubqueryExpression
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTNumber
+import org.neo4j.cypher.internal.util.symbols.TypeSpec
 
 // Skip/Limit
 trait ASTSlicingPhrase extends SemanticCheckable with SemanticAnalysisTooling {
@@ -46,6 +47,31 @@ trait ASTSlicingPhrase extends SemanticCheckable with SemanticAnalysisTooling {
 }
 
 object ASTSlicingPhrase extends SemanticAnalysisTooling {
+
+  /**
+   * Checks that the given expression
+   *
+   *  - contains no variable references
+   *  - does not try to read the graph
+   *
+   * @param expression  the expression to check
+   * @param name        the name of the construct. Used for error messages.
+   * @param acceptsZero if `true` then 0 is an accepted value, otherwise not.
+   * @param upperBound the upper bound of the value (by default Long.MaxValue)
+   * @return a SemanticCheck
+   */
+  def checkExpressionIsStatic(
+    expression: Expression,
+    name: String,
+    expectedType: TypeSpec
+  ): SemanticCheck =
+    // We need to check doesNotTouchTheGraph first. If we find a SubqueryExpression we already have an error,
+    // and it would not be safe to run containsNoVariables, since these SubqueryExpression haven't computed their
+    // scopeDependencies yet. Therefore we use `ifOkChain`.
+    doesNotTouchTheGraph(expression, name) ifOkChain
+      containsNoVariables(expression, name) chain
+      SemanticExpressionCheck.simple(expression) chain
+      expectType(expectedType, expression)
 
   /**
    * Checks that the given expression

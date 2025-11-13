@@ -109,8 +109,7 @@ class ParserTest extends CypherFunSuite with TestName with AstConstructionTestSu
 
   test("CALL") {
     val expected = UnresolvedCall(
-      Namespace(List("db", "my"))(pos),
-      ProcedureName("proc")(pos),
+      ProcedureName(Namespace(List("db", "my"))(pos), "proc")(pos),
       Some(Seq(SignedDecimalIntegerLiteral("1")(pos))),
       Some(ProcedureResult(IndexedSeq(
         ProcedureResultItem(None, varFor("foo"))(pos),

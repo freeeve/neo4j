@@ -662,6 +662,167 @@ class PrettifierIT extends CypherFunSuite {
         |
         |RETURN collect(msg) AS messages""".stripMargin
     ),
+    FailsInCypher5(
+      "define procedure bar() { return 1 as one } call bar() return one",
+      """DEFINE PROCEDURE bar() {
+        |  RETURN 1 AS one
+        |}
+        |
+        |CALL bar()
+        |RETURN one""".stripMargin
+    ),
+    FailsInCypher5(
+      "define procedure foo.bar(x :: int, y :: int | float = 1) :: (one::any<int | float>) { return x + 1 * y as one } call foo.bar(1) return one",
+      """DEFINE PROCEDURE foo.bar(x :: INTEGER, y :: INTEGER | FLOAT = 1) :: (one :: INTEGER | FLOAT) {
+        |  RETURN x + 1 * y AS one
+        |}
+        |
+        |CALL foo.bar(1)
+        |RETURN one""".stripMargin
+    ),
+    FailsInCypher5(
+      """define procedure foo.bar(x ::  any<int | float> =1)
+        |:: (one::any<int | float>, two::float)
+        |{ return x as one, x + 1 as two }
+        |call foo.bar(1) return one,two""".stripMargin,
+      """DEFINE PROCEDURE foo.bar(x :: INTEGER | FLOAT = 1) :: (one :: INTEGER | FLOAT, two :: FLOAT) {
+        |  RETURN x AS one, x + 1 AS two
+        |}
+        |
+        |CALL foo.bar(1)
+        |RETURN one, two""".stripMargin
+    ),
+    FailsInCypher5(
+      "define procedure foo.one() { return 1 as one } define procedure foo.two() { return 2 as two } { call foo.one() return one as x union call foo.two() return two as x }",
+      """DEFINE PROCEDURE foo.one() {
+        |  RETURN 1 AS one
+        |}
+        |DEFINE PROCEDURE foo.two() {
+        |  RETURN 2 AS two
+        |}
+        |
+        |{
+        |  CALL foo.one()
+        |  RETURN one AS x
+        |  UNION
+        |  CALL foo.two()
+        |  RETURN two AS x
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "{ define procedure foo.one() { return 1 as one } call foo.one() return one } next { define procedure foo.two() { return 2 as two } call foo.two() return one, two }",
+      """{
+        |  DEFINE PROCEDURE foo.one() {
+        |    RETURN 1 AS one
+        |  }
+        |
+        |  CALL foo.one()
+        |  RETURN one
+        |}
+        |
+        |NEXT
+        |
+        |{
+        |  DEFINE PROCEDURE foo.two() {
+        |    RETURN 2 AS two
+        |  }
+        |
+        |  CALL foo.two()
+        |  RETURN one, two
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "define procedure foo.two() { return 2 as two } call () { define procedure foo.one() { return 1 as one } call foo.one() call foo.two() return one, two } return one, two",
+      """DEFINE PROCEDURE foo.two() {
+        |  RETURN 2 AS two
+        |}
+        |
+        |CALL () {
+        |  DEFINE PROCEDURE foo.one() {
+        |    RETURN 1 AS one
+        |  }
+        |
+        |  CALL foo.one()
+        |  CALL foo.two()
+        |  RETURN one, two
+        |}
+        |RETURN one, two""".stripMargin
+    ),
+    FailsInCypher5(
+      "unwind [1, 2, 3] as x call (x) { define procedure foo.one(x) { return x * 1 as one } define function foo.two(x) = x * 2 return one, foo.two(x) as two } return one, two",
+      """UNWIND [1, 2, 3] AS x
+        |CALL (x) {
+        |  DEFINE PROCEDURE foo.one(x) {
+        |    RETURN x * 1 AS one
+        |  }
+        |  DEFINE FUNCTION foo.two(x) = x * 2
+        |
+        |  RETURN one, foo.two(x) AS two
+        |}
+        |RETURN one, two""".stripMargin
+    ),
+    FailsInCypher5(
+      "define function bar() { return 1 as one limit 1 } return bar() as one",
+      """DEFINE FUNCTION bar() {
+        |  RETURN 1 AS one
+        |    LIMIT 1
+        |}
+        |
+        |RETURN bar() AS one""".stripMargin
+    ),
+    FailsInCypher5(
+      "define function bar() = 1 return bar() as one",
+      """DEFINE FUNCTION bar() = 1
+        |
+        |RETURN bar() AS one""".stripMargin
+    ),
+    FailsInCypher5(
+      "define function foo.bar(x, y) =x= y return foo.bar(1, 2) as one",
+      """DEFINE FUNCTION foo.bar(x, y) = x = y
+        |
+        |RETURN foo.bar(1, 2) AS one""".stripMargin
+    ),
+    FailsInCypher5(
+      """define function foo.bar(x ::string , y:: string=['d', 'e', 'f'])::string =
+        |  reduce(acc = '', z in y | acc + x + z )
+        |return foo.bar('abc') as abc""".stripMargin,
+      """DEFINE FUNCTION foo.bar(x :: STRING, y :: STRING = ["d", "e", "f"]) :: STRING = reduce(acc = "", z IN y | (acc + x) + z)
+        |
+        |RETURN foo.bar("abc") AS abc""".stripMargin
+    ),
+    FailsInCypher5(
+      "define function foo.one() = 1 define function foo.two() = 2 return foo.one() as x union return foo.two() as x",
+      """DEFINE FUNCTION foo.one() = 1
+        |DEFINE FUNCTION foo.two() = 2
+        |
+        |RETURN foo.one() AS x
+        |UNION
+        |RETURN foo.two() AS x""".stripMargin
+    ),
+    FailsInCypher5(
+      "define function foo.two() = 2 { define function foo.one() = 1 return foo.one() as x union return foo.two() as x }",
+      """DEFINE FUNCTION foo.two() = 2
+        |
+        |{
+        |  DEFINE FUNCTION foo.one() = 1
+        |
+        |  RETURN foo.one() AS x
+        |  UNION
+        |  RETURN foo.two() AS x
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "define function foo.two() = 2 { define function foo.one() = 1 return foo.one() as x } union return foo.two() as x",
+      """DEFINE FUNCTION foo.two() = 2
+        |
+        |{
+        |  DEFINE FUNCTION foo.one() = 1
+        |
+        |  RETURN foo.one() AS x
+        |}
+        |UNION
+        |RETURN foo.two() AS x""".stripMargin
+    ),
     "load csv from '/import/data.csv' AS row create ({key: row[0]})" ->
       """LOAD CSV FROM "/import/data.csv" AS row
         |CREATE ({key: row[0]})""".stripMargin,

@@ -54,7 +54,7 @@ import scala.util.Try
 class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestSupport with Inside {
 
   private val ns = Namespace(List("my", "proc"))(pos)
-  private val name = ProcedureName("foo")(pos)
+  private val name = ProcedureName(ns, "foo")(pos)
   private val qualifiedName = QualifiedName(ns.parts, name.name)
   private val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
   private val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))
@@ -63,7 +63,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
     ProcedureSignature(qualifiedName, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
 
   test("should resolve standalone procedure calls") {
-    val unresolved = UnresolvedCall(ns, name, None, None, isStandalone = true)(pos)
+    val unresolved = UnresolvedCall(name, None, None, isStandalone = true)(pos)
     val original = SingleQuery(Seq(unresolved)) _
 
     val resolver = makeResolver()
@@ -94,7 +94,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
   }
 
   test("should resolve in-query procedure calls") {
-    val unresolved = UnresolvedCall(ns, name, None, None, isStandalone = false)(pos)
+    val unresolved = UnresolvedCall(name, None, None, isStandalone = false)(pos)
     val headClause = Unwind(v"x", v"y")(pos)
     val original = SingleQuery(Seq(headClause, unresolved))(pos)
 
@@ -110,7 +110,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
   }
 
   test("TryRewriteProcedureCalls should return original for unresolved procedures") {
-    val unresolved = UnresolvedCall(ns, name, None, None, isStandalone = false)(pos)
+    val unresolved = UnresolvedCall(name, None, None, isStandalone = false)(pos)
     val headClause = Unwind(v"x", v"y")(pos)
     val original = SingleQuery(Seq(headClause, unresolved))(pos)
 
@@ -132,7 +132,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
   test(
     "should not generate a Return clause when resolving a standalone procedure call with no output signature (aka unit procedure)"
   ) {
-    val unresolved = UnresolvedCall(ns, name, None, None, isStandalone = true)(pos)
+    val unresolved = UnresolvedCall(name, None, None, isStandalone = true)(pos)
     val original = SingleQuery(Seq(unresolved))(pos)
 
     val procLookupNoOutput: QualifiedName => ProcedureSignature = _ => signature.copy(outputSignature = None)
@@ -168,7 +168,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
   test(
     "should include the procedureSignatureVersion when resolving a procedure call"
   ) {
-    val unresolved = UnresolvedCall(ns, name, None, None, isStandalone = true)(pos)
+    val unresolved = UnresolvedCall(name, None, None, isStandalone = true)(pos)
     val original = SingleQuery(Seq(unresolved))(pos)
 
     val evaluate = (callable: InstrumentedProcedureSignatureResolver => _) => {

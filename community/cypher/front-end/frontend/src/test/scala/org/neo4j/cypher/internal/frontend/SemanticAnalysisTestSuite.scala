@@ -176,7 +176,7 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
     def hasNoErrors: Self = hasErrors()
 
-    def hasErrors(expected: SemanticError*): Self =
+    def hasErrors(expected: SemanticErrorDef*): Self =
       assert { result =>
         (result.errors, expected) match {
           case (Seq(error), Seq(expected)) =>

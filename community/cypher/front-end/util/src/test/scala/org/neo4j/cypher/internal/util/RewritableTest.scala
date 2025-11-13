@@ -500,6 +500,28 @@ class RewritableTest extends CypherFunSuite {
 
       assert(result === Add(Val(99), ExpList(List(Val(99), Val(99)))))
     }
+
+    test(s"$name should hit elements in DFS order") {
+      val ast = Add(Val(1), Add(Val(2), Val(3)))
+      var previous = 0
+      val result = bottomUpVariant(
+        ast,
+        {
+          case exp: Exp =>
+            previous = previous + 1
+            Mappings(Map(previous.toString -> exp))
+        }
+      )
+
+      assert(result ===
+        Mappings(Map("5" -> Add(
+          Mappings(Map("1" -> Val(1))),
+          Mappings(Map("4" -> Add(
+            Mappings(Map("2" -> Val(2))),
+            Mappings(Map("3" -> Val(3)))
+          )))
+        ))))
+    }
   }
 
   test("bottomUp should stop with a stopper") {

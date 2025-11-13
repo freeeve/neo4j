@@ -134,6 +134,7 @@ case class FabricFrontEnd(
             GraphDatabaseInternalSettings.cypher_enable_vector_type -> SemanticFeature.VectorType.productPrefix,
             GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> SemanticFeature.VectorSingleStageFilteringEnabled.productPrefix,
             GraphDatabaseInternalSettings.cypher_vector_search_enabled -> SemanticFeature.VectorSearch.productPrefix,
+            GraphDatabaseInternalSettings.cypher_enable_local_callables -> SemanticFeature.LocalCallables.productPrefix,
             GraphDatabaseInternalSettings.cypher_enable_scope_queries -> SemanticFeature.ScopeQueries.productPrefix
           ))
         ) ++ semanticFeatures,

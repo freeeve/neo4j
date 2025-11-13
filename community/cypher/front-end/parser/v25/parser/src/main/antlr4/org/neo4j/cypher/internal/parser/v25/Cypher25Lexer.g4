@@ -351,6 +351,10 @@ DEFAULT
    : D E F A U L T
    ;
 
+DEFINE
+   : D E F I N E
+   ;
+
 DEFINED
    : D E F I N E D
    ;

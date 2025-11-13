@@ -20,6 +20,8 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
@@ -1468,6 +1470,97 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     }
   }
 
+  test(
+    "DEFINE PROCEDURE foo() { MATCH (n) WITH n, 0 AS foo WITH n AS n ORDER BY foo, n.bar RETURN n } CALL foo() WITH n, 0 AS foo WITH n AS n ORDER BY foo, n.bar RETURN n"
+  ) {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """DEFINE PROCEDURE foo() {
+        |  MATCH (n)
+        |  WITH n, 0 AS foo
+        |  WITH n AS n ORDER BY foo, n.bar
+        |  RETURN n
+        |}
+        |
+        |CALL foo() YIELD n
+        |WITH n, 0 AS foo
+        |WITH n AS n ORDER BY foo, n.bar
+        |RETURN n
+      """.stripMargin,
+      """DEFINE PROCEDURE foo() {
+        |  MATCH (n)
+        |  WITH n AS n, 0 AS foo
+        |  WITH n AS n ORDER BY foo, n.bar
+        |  RETURN n AS n
+        |}
+        |
+        |CALL foo() YIELD n
+        |WITH n AS n, 0 AS foo
+        |WITH n AS n ORDER BY foo, n.bar
+        |RETURN n AS n
+      """.stripMargin,
+      LocalCallables
+    )
+  }
+
+  test(
+    "DEFINE FUNCTION foo() { MATCH (n) WITH n, 0 AS foo WITH n AS n ORDER BY foo, n.bar RETURN n LIMIT 1 } MATCH (n) WITH n, foo() AS foo RETURN n, foo"
+  ) {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """DEFINE FUNCTION foo() {
+        |  MATCH (n)
+        |  WITH n, 0 AS foo
+        |  WITH n AS n ORDER BY foo, n.bar
+        |  RETURN n LIMIT 1
+        |}
+        |
+        |MATCH (n)
+        |WITH n, foo() AS foo
+        |RETURN n, foo
+      """.stripMargin,
+      """DEFINE FUNCTION foo() {
+        |  MATCH (n)
+        |  WITH n AS n, 0 AS foo
+        |  WITH n AS n ORDER BY foo, n.bar
+        |  RETURN n AS n LIMIT 1
+        |}
+        |
+        |MATCH (n)
+        |WITH n AS n, foo() AS foo
+        |RETURN n AS n, foo AS foo
+      """.stripMargin,
+      LocalCallables
+    )
+  }
+
+  test(
+    "DEFINE FUNCTION foo() { MATCH (n) WITH n, 0 AS foo WITH n AS n ORDER BY foo, n.bar RETURN n LIMIT 1 } RETURN foo() AS foo"
+  ) {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """DEFINE FUNCTION foo() {
+        |  MATCH (n)
+        |  WITH n, 0 AS foo
+        |  WITH n AS n ORDER BY foo, n.bar
+        |  RETURN n LIMIT 1
+        |}
+        |
+        |RETURN foo() AS foo
+      """.stripMargin,
+      """DEFINE FUNCTION foo() {
+        |  MATCH (n)
+        |  WITH n AS n, 0 AS foo
+        |  WITH n AS n ORDER BY foo, n.bar
+        |  RETURN n AS n LIMIT 1
+        |}
+        |
+        |RETURN foo() AS foo
+      """.stripMargin,
+      LocalCallables
+    )
+  }
+
   private def rewrite(originalQuery: String, expectedQuery: String): SemanticCheckResult = {
     val original = parseForRewriting(originalQuery.replace("\r\n", "\n"))
     val expected = parseForRewriting(expectedQuery.replace("\r\n", "\n"))
@@ -1486,7 +1579,12 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
   }
 
-  private def rewrite(version: CypherVersion, originalQuery: String, expectedQuery: String): SemanticCheckResult = {
+  private def rewrite(
+    version: CypherVersion,
+    originalQuery: String,
+    expectedQuery: String,
+    semanticFeature: SemanticFeature*
+  ): SemanticCheckResult = {
     val original = parseForRewriting(version, originalQuery.replace("\r\n", "\n"))
     val expected = parseForRewriting(version, expectedQuery.replace("\r\n", "\n"))
     val result = endoRewrite(original, originalQuery)
@@ -1499,9 +1597,14 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     but was rewritten to:${prettifier.asString(result)}"""
     )
     result.semanticCheck.run(
-      SemanticState.clean.withFeatures(MultipleDatabases),
+      SemanticState.clean.withFeatures((MultipleDatabases +: semanticFeature): _*),
       CypherVersionHelpers.arbitrarySemanticContext
     )
+  }
+
+  override protected def assertRewrite(originalQuery: String, expectedQuery: String): Unit = {
+    val checkResult = rewrite(originalQuery, expectedQuery)
+    assert(checkResult.errors === Seq())
   }
 
   override protected def assertRewrite(version: CypherVersion, originalQuery: String, expectedQuery: String): Unit = {
@@ -1509,8 +1612,13 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     assert(checkResult.errors === Seq())
   }
 
-  override protected def assertRewrite(originalQuery: String, expectedQuery: String): Unit = {
-    val checkResult = rewrite(originalQuery, expectedQuery)
+  protected def assertRewrite(
+    version: CypherVersion,
+    originalQuery: String,
+    expectedQuery: String,
+    semanticFeature: SemanticFeature*
+  ): Unit = {
+    val checkResult = rewrite(version, originalQuery, expectedQuery, semanticFeature: _*)
     assert(checkResult.errors === Seq())
   }
 

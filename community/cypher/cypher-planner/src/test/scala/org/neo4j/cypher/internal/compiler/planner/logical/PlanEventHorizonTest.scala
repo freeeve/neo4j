@@ -93,7 +93,7 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
     // Given
     new givenConfig().withLogicalPlanningContextWithFakeAttributes { (_, context) =>
       val ns = Namespace(List("my", "proc"))(pos)
-      val name = ProcedureName("foo")(pos)
+      val name = ProcedureName(ns, "foo")(pos)
       val qualifiedName = QualifiedName(ns.parts, name.name)
       val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
       val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))

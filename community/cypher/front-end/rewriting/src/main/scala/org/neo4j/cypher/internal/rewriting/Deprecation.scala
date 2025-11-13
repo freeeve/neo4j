@@ -21,13 +21,18 @@ import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.CreateIndex
+import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.IsTyped
+import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
+import org.neo4j.cypher.internal.ast.LocalProcedureDefinition
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.Query
+import org.neo4j.cypher.internal.ast.QueryBody
+import org.neo4j.cypher.internal.ast.QueryWithLocalDefinitions
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetProperty
@@ -293,6 +298,11 @@ object Deprecations {
                 wh.branches.exists(b => includesExisting(b.query)) || wh.default.exists(d => includesExisting(d.query))
               case tlb: TopLevelBraces => includesExisting(tlb.query)
               case nxt: NextStatement  => nxt.queries.exists(includesExisting)
+              case QueryWithLocalDefinitions(definitions, query) => includesExisting(query) || definitions.exists {
+                  case LocalProcedureDefinition(_, _, _, body)             => includesExisting(body)
+                  case LocalFunctionDefinition(_, _, _, QueryBody(body))   => includesExisting(body)
+                  case LocalFunctionDefinition(_, _, _, ExpressionBody(_)) => false
+                }
             }
           }
 

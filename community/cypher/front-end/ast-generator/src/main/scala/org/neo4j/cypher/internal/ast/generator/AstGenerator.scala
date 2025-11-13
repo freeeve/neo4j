@@ -137,6 +137,7 @@ import org.neo4j.cypher.internal.ast.ExecuteBoostedProcedureAction
 import org.neo4j.cypher.internal.ast.ExecuteFunctionAction
 import org.neo4j.cypher.internal.ast.ExecuteProcedureAction
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.FileResource
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
@@ -190,6 +191,10 @@ import org.neo4j.cypher.internal.ast.LoadPrivilege
 import org.neo4j.cypher.internal.ast.LoadPrivilegeQualifier
 import org.neo4j.cypher.internal.ast.LoadUrlAction
 import org.neo4j.cypher.internal.ast.LoadUrlQualifier
+import org.neo4j.cypher.internal.ast.LocalDefinition
+import org.neo4j.cypher.internal.ast.LocalFieldSignature
+import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
+import org.neo4j.cypher.internal.ast.LocalProcedureDefinition
 import org.neo4j.cypher.internal.ast.LookupIndexes
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.MatchAction
@@ -245,6 +250,8 @@ import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineConstraintBody
 import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineKeyConstraint
 import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineUniquenessConstraint
 import org.neo4j.cypher.internal.ast.Query
+import org.neo4j.cypher.internal.ast.QueryBody
+import org.neo4j.cypher.internal.ast.QueryWithLocalDefinitions
 import org.neo4j.cypher.internal.ast.RangeIndexes
 import org.neo4j.cypher.internal.ast.ReadAction
 import org.neo4j.cypher.internal.ast.ReadOnlyAccess
@@ -1760,10 +1767,6 @@ class AstGenerator(
     actions <- oneOrMore(_mergeAction)
   } yield Merge(pattern, actions)(pos)
 
-  def _procedureName: Gen[ProcedureName] = for {
-    name <- _identifier
-  } yield ProcedureName(name)(pos)
-
   def _procedureOutput: Gen[ProcedureOutput] = for {
     name <- _identifier
   } yield ProcedureOutput(name)(pos)
@@ -1779,12 +1782,12 @@ class AstGenerator(
   } yield ProcedureResult(items.toIndexedSeq, where)(pos)
 
   def _call: Gen[UnresolvedCall] = for {
-    procedureNamespace <- _namespace
-    procedureName <- _procedureName
+    namespace <- _namespace
+    procedureName <- _identifier
     declaredArguments <- option(zeroOrMore(_expression))
     declaredResult <- option(_procedureResult)
     yieldAll <- if (declaredResult.isDefined) const(false) else boolean // can't have both YIELD * and declare results
-  } yield UnresolvedCall(procedureNamespace, procedureName, declaredArguments, declaredResult, yieldAll)(pos)
+  } yield UnresolvedCall(ProcedureName(namespace, procedureName)(pos), declaredArguments, declaredResult, yieldAll)(pos)
 
   def _foreach: Gen[Foreach] = for {
     variable <- _variable
@@ -1992,25 +1995,6 @@ class AstGenerator(
     )
   } yield union
 
-  def _branch: Gen[ConditionalQueryBranch] = for {
-    predicate <- _expression
-    query <- _partQuery
-  } yield ConditionalQueryBranch(Some(predicate), query)(pos)
-
-  def _when: Gen[ConditionalQueryWhen] = for {
-    branches <- oneOrMore(_branch)
-    default <- option[PartQuery](_partQuery)
-  } yield ConditionalQueryWhen(branches, default.map(x => ConditionalQueryBranch(None, x)(pos)))(pos)
-
-  def _topLevelBraces: Gen[TopLevelBraces] = for {
-    inner <- _query
-    use <- option(_use)
-  } yield TopLevelBraces(inner, use)(pos)
-
-  def _partQuery: Gen[PartQuery] = for {
-    partQuery <- oneOf(_singleQuery, _topLevelBraces)
-  } yield partQuery
-
   def _unionArgument: Gen[Query] = {
     if (usesCypher5) frequency(
       5 -> lzy(_singleQuery),
@@ -2023,6 +2007,29 @@ class AstGenerator(
     )
   }
 
+  def _topLevelBraces: Gen[TopLevelBraces] = for {
+    inner <- _query
+    use <- option(_use)
+  } yield TopLevelBraces(inner, use)(pos)
+
+  def _when: Gen[ConditionalQueryWhen] = for {
+    branches <- oneOrMore(_branch)
+    default <- option[PartQuery](_partQuery)
+  } yield ConditionalQueryWhen(branches, default.map(x => ConditionalQueryBranch(None, x)(pos)))(pos)
+
+  def _branch: Gen[ConditionalQueryBranch] = for {
+    predicate <- _expression
+    query <- _partQuery
+  } yield ConditionalQueryBranch(Some(predicate), query)(pos)
+
+  def _partQuery: Gen[PartQuery] = for {
+    partQuery <- oneOf(_singleQuery, _topLevelBraces)
+  } yield partQuery
+
+  def _next: Gen[NextStatement] = for {
+    queries <- listOfN(2, _nextArgument)
+  } yield NextStatement(queries)(pos)
+
   def _nextArgument: Gen[Query] =
     frequency(
       5 -> lzy(_singleQuery),
@@ -2031,9 +2038,68 @@ class AstGenerator(
       1 -> lzy(_when)
     )
 
-  def _next: Gen[NextStatement] = for {
-    queries <- listOfN(2, _nextArgument)
-  } yield NextStatement(queries)(pos)
+  def _queryWithLocalDefinition: Gen[QueryWithLocalDefinitions] = for {
+    s <- choose(1, 1)
+    localDefinitions <- listOfN(s, _localDefinition)
+    query <- _queryWithLocalDefinitionArgument
+  } yield QueryWithLocalDefinitions(localDefinitions, query)(pos)
+
+  def _queryWithLocalDefinitionArgument: Gen[Query] =
+    frequency(
+      5 -> lzy(_singleQuery),
+      1 -> lzy(_union),
+      1 -> lzy(_topLevelBraces),
+      1 -> lzy(_when),
+      1 -> lzy(_next)
+    )
+
+  def _localDefinition: Gen[LocalDefinition] = for {
+    definition <- oneOf(
+      _localProcedureDefinition,
+      _localFunctionDefinition
+    )
+  } yield definition
+
+  def _localProcedureDefinition: Gen[LocalProcedureDefinition] = for {
+    namespace <- _namespace
+    name <- _identifier
+    numInputFields <- choose(0, 3)
+    inputSignature <- listOfN(numInputFields, _optionalFieldSignature)
+    numOutputFields <- choose(1, 3)
+    outputSignature <- option(listOfN(numOutputFields, _mandatoryFieldSignature))
+    body <- _query
+  } yield LocalProcedureDefinition(ProcedureName(namespace, name)(pos), inputSignature, outputSignature, body)(pos)
+
+  def _localFunctionDefinition: Gen[LocalFunctionDefinition] = for {
+    namespace <- _namespace
+    name <- _identifier
+    numInputFields <- choose(0, 3)
+    inputSignature <- listOfN(numInputFields, _optionalFieldSignature)
+    outputSignature <- option(_cypherTypeName)
+    body <- oneOf(
+      _localFunctionQueryBody,
+      _localFunctionExpressionBody
+    )
+  } yield LocalFunctionDefinition(FunctionName(namespace, name)(pos), inputSignature, outputSignature, body)(pos)
+
+  def _localFunctionQueryBody: Gen[QueryBody] = for {
+    body <- _query
+  } yield QueryBody(body)(pos)
+
+  def _localFunctionExpressionBody: Gen[ExpressionBody] = for {
+    body <- _expression
+  } yield ExpressionBody(body)(pos)
+
+  def _mandatoryFieldSignature: Gen[LocalFieldSignature] = for {
+    name <- _identifier
+    typ <- option(_cypherTypeName)
+  } yield LocalFieldSignature(name, typ, None)(pos)
+
+  def _optionalFieldSignature: Gen[LocalFieldSignature] = for {
+    name <- _identifier
+    typ <- option(_cypherTypeName)
+    default <- option(_expression)
+  } yield LocalFieldSignature(name, typ, default)(pos)
 
   def _query: Gen[Query] = {
     if (usesCypher5) frequency(
@@ -2045,7 +2111,8 @@ class AstGenerator(
       1 -> lzy(_union),
       1 -> lzy(_topLevelBraces),
       1 -> lzy(_when),
-      1 -> lzy(_next)
+      1 -> lzy(_next),
+      1 -> lzy(_queryWithLocalDefinition)
     )
   }
 

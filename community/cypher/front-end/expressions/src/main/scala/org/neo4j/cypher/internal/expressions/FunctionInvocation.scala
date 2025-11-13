@@ -112,20 +112,3 @@ case class FunctionInvocation(
   override def isSimple: Boolean =
     isDeterministic && subExpressions.isEmpty
 }
-
-case class FunctionName(namespace: Namespace, name: String)(val position: InputPosition) extends SymbolicName {
-
-  override def equals(x: Any): Boolean = x match {
-    case FunctionName(otherNamespace, otherName) =>
-      otherNamespace == namespace && otherName.toLowerCase(Locale.ROOT) == name.toLowerCase(Locale.ROOT)
-    case _ => false
-  }
-  override def hashCode = name.toLowerCase(Locale.ROOT).hashCode
-}
-
-object FunctionName {
-
-  def apply(name: String)(position: InputPosition): FunctionName = {
-    FunctionName(Namespace()(position), name)(position)
-  }
-}

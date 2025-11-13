@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProjectingUnion
 import org.neo4j.cypher.internal.ast.Query
+import org.neo4j.cypher.internal.ast.QueryWithLocalDefinitions
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -104,6 +105,10 @@ case object AddDependenciesToProjectionsInSubqueryExpressions extends StepSequen
         )(union.position)
       case _: NextStatement =>
         throw new IllegalStateException("Didn't expect Next, only SingleQuery, UnionAll, or UnionDistinct.")
+      case _: QueryWithLocalDefinitions =>
+        throw new IllegalStateException(
+          "Didn't expect QueryWithLocalDefinitions, only SingleQuery, UnionAll, or UnionDistinct."
+        )
       case _: ConditionalQueryWhen =>
         throw new IllegalStateException("Didn't expect When, only SingleQuery, UnionAll, or UnionDistinct.")
       case _: TopLevelBraces =>

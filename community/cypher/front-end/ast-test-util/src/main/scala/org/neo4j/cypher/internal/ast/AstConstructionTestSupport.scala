@@ -1093,6 +1093,114 @@ trait AstConstructionTestSupport {
     FunctionInvocation(FunctionName(Relationships.name)(p.position), p)(p.position)
   }
 
+  def queryWithLocalDefinitions(definitions: LocalDefinition*)(query: Query): QueryWithLocalDefinitions =
+    QueryWithLocalDefinitions(definitions, query)(pos)
+
+  def singleQueryWithLocalDefinitions(definitions: LocalDefinition*)(cs: Clause*): QueryWithLocalDefinitions =
+    QueryWithLocalDefinitions(definitions, SingleQuery(cs)(pos))(pos)
+
+  def localProcedureDefinition(
+    dottedName: String,
+    inputSignature: LocalFieldSignature*
+  ): LocalProcedureDefinitionStub = {
+    val names = dottedName.split('.').toSeq
+    val namespace = names.dropRight(1).toList
+    val name = names.last
+    LocalProcedureDefinitionStub1(ProcedureName(Namespace(namespace)(pos), name)(pos), inputSignature)
+  }
+
+  def localProcedureDefinition(
+    namespace: Seq[String],
+    name: String,
+    inputSignature: LocalFieldSignature*
+  ): LocalProcedureDefinitionStub = {
+    LocalProcedureDefinitionStub1(ProcedureName(Namespace(namespace.toList)(pos), name)(pos), inputSignature)
+  }
+
+  trait LocalProcedureDefinitionStub {
+    def name: ProcedureName
+    def inputSignature: Seq[LocalFieldSignature]
+    def outputSignature: Option[Seq[LocalFieldSignature]]
+
+    def out(outputSignature: LocalFieldSignature*): LocalProcedureDefinitionStub =
+      LocalProcedureDefinitionStub2(name, inputSignature, Some(outputSignature))
+
+    def body(body: Query): LocalProcedureDefinition =
+      LocalProcedureDefinition(name, inputSignature, outputSignature, body)(pos)
+
+    def body(cs: Clause*): LocalProcedureDefinition =
+      LocalProcedureDefinition(name, inputSignature, outputSignature, SingleQuery(cs)(pos))(pos)
+  }
+
+  case class LocalProcedureDefinitionStub1(name: ProcedureName, inputSignature: Seq[LocalFieldSignature])
+      extends LocalProcedureDefinitionStub {
+    def outputSignature: Option[Seq[LocalFieldSignature]] = None
+  }
+
+  case class LocalProcedureDefinitionStub2(
+    name: ProcedureName,
+    inputSignature: Seq[LocalFieldSignature],
+    outputSignature: Option[Seq[LocalFieldSignature]]
+  ) extends LocalProcedureDefinitionStub
+
+  def localFunctionDefinition(
+    dottedName: String,
+    inputSignature: LocalFieldSignature*
+  ): LocalFunctionDefinitionStub = {
+    val names = dottedName.split('.').toSeq
+    val namespace = names.dropRight(1).toList
+    val name = names.last
+    LocalFunctionDefinitionStub1(FunctionName(Namespace(namespace)(pos), name)(pos), inputSignature)
+  }
+
+  def localFunctionDefinition(
+    namespace: Seq[String],
+    name: String,
+    inputSignature: LocalFieldSignature*
+  ): LocalFunctionDefinitionStub = {
+    LocalFunctionDefinitionStub1(FunctionName(Namespace(namespace.toList)(pos), name)(pos), inputSignature)
+  }
+
+  trait LocalFunctionDefinitionStub {
+    def name: FunctionName
+    def inputSignature: Seq[LocalFieldSignature]
+    def _typ: Option[CypherType]
+
+    def typ(typ: CypherType): LocalFunctionDefinitionStub =
+      LocalFunctionDefinitionStub2(name, inputSignature, Some(typ))
+
+    def body(body: Query): LocalFunctionDefinition =
+      LocalFunctionDefinition(name, inputSignature, _typ, QueryBody(body)(pos))(pos)
+
+    def body(cs: Clause*): LocalFunctionDefinition =
+      LocalFunctionDefinition(name, inputSignature, _typ, QueryBody(SingleQuery(cs)(pos))(pos))(pos)
+
+    def body(exp: Expression): LocalFunctionDefinition =
+      LocalFunctionDefinition(name, inputSignature, _typ, ExpressionBody(exp)(pos))(pos)
+  }
+
+  case class LocalFunctionDefinitionStub1(name: FunctionName, inputSignature: Seq[LocalFieldSignature])
+      extends LocalFunctionDefinitionStub {
+    def _typ: Option[CypherType] = None
+  }
+
+  case class LocalFunctionDefinitionStub2(
+    name: FunctionName,
+    inputSignature: Seq[LocalFieldSignature],
+    _typ: Option[CypherType]
+  ) extends LocalFunctionDefinitionStub
+
+  def localFieldSignature(name: String): LocalFieldSignature = LocalFieldSignature(name, None)(pos)
+
+  def localFieldSignature(name: String, typ: CypherType): LocalFieldSignature =
+    LocalFieldSignature(name, Some(typ))(pos)
+
+  def localFieldSignature(name: String, default: Expression): LocalFieldSignature =
+    LocalFieldSignature(name, None, Some(default))(pos)
+
+  def localFieldSignature(name: String, typ: CypherType, default: Expression): LocalFieldSignature =
+    LocalFieldSignature(name, Some(typ), Some(default))(pos)
+
   def nextStatement(queries: Query*): NextStatement =
     NextStatement(queries)(pos)
 
@@ -1107,6 +1215,12 @@ trait AstConstructionTestSupport {
 
   def topLevelBraces(query: Query, graph: UseGraph): TopLevelBraces =
     TopLevelBraces(query, Some(graph))(pos)
+
+  def topLevelBraces(cs: Clause*): TopLevelBraces =
+    topLevelBraces(SingleQuery(cs)(pos))
+
+  def topLevelBraces(graph: UseGraph, cs: Clause*): TopLevelBraces =
+    topLevelBraces(SingleQuery(cs)(pos), graph)
 
   def conditionalQueryDefault(query: PartQuery): Option[ConditionalQueryBranch] =
     Some(ConditionalQueryBranch(None, query)(pos))
@@ -1465,8 +1579,7 @@ trait AstConstructionTestSupport {
     standalone: Boolean = false
   ): UnresolvedCall =
     UnresolvedCall(
-      Namespace(ns.toList)(pos),
-      ProcedureName(name)(pos),
+      ProcedureName(Namespace(ns.toList)(pos), name)(pos),
       args,
       yields.map(vs =>
         ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)), where.map(p => Where(p)(pos)))(pos)
@@ -1482,8 +1595,7 @@ trait AstConstructionTestSupport {
     where: Option[Expression] = None
   ): UnresolvedCall =
     UnresolvedCall(
-      Namespace(ns.toList)(pos),
-      ProcedureName(name)(pos),
+      ProcedureName(Namespace(ns.toList)(pos), name)(pos),
       args,
       yields.map(vs =>
         ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)), where.map(p => Where(p)(pos)))(pos)

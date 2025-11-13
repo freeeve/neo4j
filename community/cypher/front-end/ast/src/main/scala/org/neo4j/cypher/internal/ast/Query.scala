@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.Symbol
+import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
@@ -978,6 +979,11 @@ sealed trait Union extends Query {
             "NEXT should never be directly contained within a UNION",
             position
           ))
+        case withLocalDefinitions: QueryWithLocalDefinitions => SemanticCheck.error(SemanticError.internalError(
+            "invalid union argument",
+            "DEFINE should never be directly contained within a UNION",
+            position
+          ))
       }
 
     SemanticCheck.fromState(state => {
@@ -1464,6 +1470,7 @@ case class ConditionalQueryWhen(
 }
 
 case object NextStatement extends UnaliasedNotAllowed {
+  val name: String = "NEXT"
   override val msg: String = "RETURN followed by NEXT"
 }
 
@@ -1567,7 +1574,7 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
     semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))
 
   override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
-    SemanticCheck.error(SemanticError.invalidUseOfOldCall("NEXT", position))
+    SemanticCheck.error(SemanticError.invalidUseOfOldCall(NextStatement.name, position))
 
   override def semanticCheckInSubqueryExpressionContext(
     canOmitReturn: Boolean,
@@ -1579,4 +1586,134 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
     semanticCheckAbstract(_.semanticCheckInContext(context))
 
+}
+
+case object QueryWithLocalDefinitions extends UnaliasedNotAllowed {
+  val name: String = "local callable definitions"
+  override val msg: String = "DEFINE"
+}
+
+case class QueryWithLocalDefinitions(definitions: Seq[LocalDefinition], query: Query)(val position: InputPosition)
+    extends Query {
+
+  override def containsUpdates: Boolean = query.containsUpdates
+
+  /**
+   * All Return clauses contained within this statement.
+   */
+  override def getReturns: Seq[Return] = query.getReturns
+
+  /**
+   * True iff this query part ends with a finish clause.
+   */
+  override def endsWithFinish: Boolean = query.endsWithFinish
+
+  /**
+   * Check this query part if it starts with an importing WITH
+   */
+  override def checkImportingWith: SemanticCheck = query.checkImportingWith
+
+  /**
+   * True if this query part starts with an importing WITH (has incoming arguments)
+   */
+  override def isCorrelated: Boolean = query.isCorrelated
+
+  /**
+   * Returns names of variables imported using importing WITH
+   */
+  override def importColumns: Seq[LogicalVariable] = query.importColumns
+
+  /**
+   * Returns the query stripped from importing WITH responsible for top-level importing.
+   */
+  override def withoutImportingWithAndGraphSelection: Option[Query] =
+    query.withoutImportingWithAndGraphSelection.map(q => QueryWithLocalDefinitions(definitions, q)(position))
+
+  override def getGraphSelections: Seq[GraphSelection] = query.getGraphSelections
+
+  /**
+   * Return a copy of this query where the mapping function f is applied
+   * to each returning single query, regardless if this a single query or a union query.
+   *
+   * If nextFirst is set to true the first query in the Next statement will be updated, not the last.
+   */
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean): Query =
+    query.mapEachSingleQuery(f, nextFirst)
+
+  override def getLastSingleQuery: SingleQuery = query.getLastSingleQuery
+
+  /**
+   * Used in UnwrapTopLevelBraces
+   */
+  override def getQuery(fromUnion: Boolean): Query = query.getQuery(fromUnion)
+
+  /**
+   * Return a list of all CommandClause's existing in this query.
+   */
+  override def getCommandClauses: Seq[CommandClause] = query.getCommandClauses
+
+  /**
+   * All variables that are explicitly listed to be returned from this statement.
+   * This also includes the information whether all other potentially existing variables in scope are also returned.
+   */
+  override def returnVariables: ReturnVariables = query.returnVariables
+
+  /**
+   * True iff this query part ends with a return clause.
+   */
+  override def isReturning: Boolean = query.isReturning
+
+  /**
+   * Given the root scope for this query part,
+   * looks up the final scope after the last clause
+   */
+  override def finalScope(scope: Scope): Scope = query.finalScope(scope)
+
+  private def semanticCheckAbstract(check: Query => SemanticCheck): SemanticCheck = {
+    requireFeatureSupport(
+      "The DEFINE keyword",
+      SemanticFeature.LocalCallables,
+      position
+    ) ifOkChain
+      definitions.foldSemanticCheck(definition => definition.semanticCheck) chain
+      check(query)
+  }
+
+  override def semanticCheck: SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInContext(QueryWithLocalDefinitions))
+
+  /**
+   * Semantic check for when this `Query` is enclosed in outer context
+   */
+  override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInContext(context))
+
+  /**
+   * Semantic check for when this `Query` is in a subquery, and might import
+   * variables from the `outer` scope
+   */
+  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))
+
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
+    requireFeatureSupport(
+      "The DEFINE keyword",
+      SemanticFeature.LocalCallables,
+      position
+    ) ifOkChain
+      SemanticCheck.error(SemanticError.invalidUseOfOldCall(QueryWithLocalDefinitions.name, position))
+
+  /**
+   * Exists and Count can omit the Return Statement
+   * Count still requires it for Distinct Unions as in this case the count
+   * changes based on which rows are distinct vs not
+   */
+  override def semanticCheckInSubqueryExpressionContext(
+    canOmitReturn: Boolean,
+    outer: SemanticState,
+    context: UnaliasedNotAllowed
+  ): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context))
+
+  override def invalidImportingWith: Seq[SemanticError] = query.invalidImportingWith
 }

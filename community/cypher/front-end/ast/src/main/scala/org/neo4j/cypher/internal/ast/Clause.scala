@@ -1659,7 +1659,6 @@ abstract class CallClause extends Clause {
 }
 
 case class UnresolvedCall(
-  procedureNamespace: Namespace,
   procedureName: ProcedureName,
   // None: No arguments given
   declaredArguments: Option[Seq[Expression]] = None,
@@ -1671,7 +1670,7 @@ case class UnresolvedCall(
   override val optional: Boolean = false
 )(val position: InputPosition) extends CallClause {
 
-  def fullName: String = procedureNamespace.parts.map(_ + ".").mkString("", "", procedureName.name)
+  def fullName: String = procedureName.fullName
 
   override def returnVariables: ReturnVariables =
     ReturnVariables(
@@ -2074,6 +2073,9 @@ case class Return(
     returnItems match {
       case ReturnItems(AdditiveProjection, _, _)
         if s.currentScope.isEmpty && context == ScopeClauseSubqueryCall =>
+        Seq(SemanticError.invalidUseOfReturnStar(position))
+      case ReturnItems(AdditiveProjection, _, _)
+        if s.currentScope.isEmpty && context == QueryWithLocalDefinitions =>
         Seq(SemanticError.invalidUseOfReturnStar(position))
       case ReturnItems(AdditiveProjection, _, _)
         if (s.currentScope.isEmpty && s.currentScope.parent.fold(true)(_.isEmpty))

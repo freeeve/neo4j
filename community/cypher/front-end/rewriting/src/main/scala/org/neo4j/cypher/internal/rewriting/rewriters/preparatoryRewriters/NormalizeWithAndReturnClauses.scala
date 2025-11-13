@@ -21,13 +21,18 @@ import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.DescSortItem
+import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
+import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
+import org.neo4j.cypher.internal.ast.LocalProcedureDefinition
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProjectingUnion
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Query
+import org.neo4j.cypher.internal.ast.QueryBody
+import org.neo4j.cypher.internal.ast.QueryWithLocalDefinitions
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ShowAliases
@@ -159,6 +164,22 @@ case class NormalizeWithAndReturnClauses(
         next.copy(
           queries.dropRight(1).endoRewrite(rewriteProjectionsRecursively) :+ rewriteTopLevelQuery(queries.last)
         )(next.position)
+      case qwld @ QueryWithLocalDefinitions(definitions, query) =>
+        // note that the inputSignature does not need to be rewritten here, because it is required to adhere to ASTSlicingPhrase.checkExpressionIsStatic
+        qwld.copy(
+          definitions = definitions.map {
+            case lpd @ LocalProcedureDefinition(_, _, _, body) => lpd.copy(
+                body = rewriteTopLevelQuery(body)
+              )(lpd.position)
+            case lfd @ LocalFunctionDefinition(_, _, _, qb @ QueryBody(query)) => lfd.copy(
+                body = qb.copy(query = rewriteTopLevelQuery(query))(qb.position)
+              )(lfd.position)
+            case lfd @ LocalFunctionDefinition(_, _, _, eb @ ExpressionBody(expression)) => lfd.copy(
+                body = eb.copy(expression = expression.endoRewrite(rewriteProjectionsRecursively))(eb.position)
+              )(lfd.position)
+          },
+          query = rewriteTopLevelQuery(query)
+        )(qwld.position)
       case _: ProjectingUnion =>
         throw new IllegalStateException("Didn't expect ProjectingUnion, only SingleQuery, UnionAll, or UnionDistinct.")
     }

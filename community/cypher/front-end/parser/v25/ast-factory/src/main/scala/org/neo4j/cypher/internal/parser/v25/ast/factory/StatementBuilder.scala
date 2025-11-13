@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Delete
 import org.neo4j.cypher.internal.ast.DescSortItem
+import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
 import org.neo4j.cypher.internal.ast.FreeProjection
@@ -37,6 +38,11 @@ import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.Insert
 import org.neo4j.cypher.internal.ast.Limit
 import org.neo4j.cypher.internal.ast.LoadCSV
+import org.neo4j.cypher.internal.ast.LocalDefinition
+import org.neo4j.cypher.internal.ast.LocalFieldSignature
+import org.neo4j.cypher.internal.ast.LocalFunctionBody
+import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
+import org.neo4j.cypher.internal.ast.LocalProcedureDefinition
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.NextStatement
@@ -52,6 +58,8 @@ import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProcedureResult
 import org.neo4j.cypher.internal.ast.ProcedureResultItem
 import org.neo4j.cypher.internal.ast.Query
+import org.neo4j.cypher.internal.ast.QueryBody
+import org.neo4j.cypher.internal.ast.QueryWithLocalDefinitions
 import org.neo4j.cypher.internal.ast.Remove
 import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.RemoveLabelItem
@@ -100,6 +108,7 @@ import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.expressions.AnonymousPatternPart
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
@@ -137,6 +146,7 @@ import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstUtil.nonEmpty
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NonEmptyList
+import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.GqlHelper
 
 import java.util.stream.Collectors
@@ -159,6 +169,65 @@ trait StatementBuilder extends Cypher25ParserListener {
       case sq @ SingleQuery(Seq(use: UseGraph, call: UnresolvedCall)) =>
         sq.copy(Seq(use, call.copy(isStandalone = true)(call.position)))(sq.position)
       case q => q
+    }
+  }
+
+  final override def exitQueryWithLocalDefinitions(ctx: Cypher25Parser.QueryWithLocalDefinitionsContext): Unit = {
+    val definitions = astSeq[LocalDefinition](ctx.localDefinition())
+    val query = ctx.nextStatement().ast[Query]()
+    ctx.ast =
+      if (definitions.isEmpty) query
+      else QueryWithLocalDefinitions(definitions, query)(pos(ctx))
+  }
+
+  final override def exitLocalDefinition(ctx: Cypher25Parser.LocalDefinitionContext): Unit = {
+    ctx.ast = ctxChild(ctx, 1).ast[LocalDefinition]()
+  }
+
+  final override def exitLocalProcedureDefinition(ctx: Cypher25Parser.LocalProcedureDefinitionContext): Unit = {
+    val name = ctxChild(ctx, 0).ast[ProcedureName]()
+    val inputSignature = ctxChild(ctx, 1).ast[Seq[LocalFieldSignature]]()
+    val outputSignature = astOpt[Seq[LocalFieldSignature]](ctx.outputType)
+    val body = ctx.queryWithLocalDefinitions().ast[Query]()
+    ctx.ast = LocalProcedureDefinition(name, inputSignature, outputSignature, body)(pos(ctx))
+  }
+
+  final override def exitLocalFunctionDefinition(ctx: Cypher25Parser.LocalFunctionDefinitionContext): Unit = {
+    val name = ctxChild(ctx, 0).ast[FunctionName]()
+    val inputSignature = ctxChild(ctx, 1).ast[Seq[LocalFieldSignature]]()
+    val outputSignature = astOpt[CypherType](ctx.outputType)
+    val body = ctx.localFunctionBody().ast[LocalFunctionBody]()
+    ctx.ast = LocalFunctionDefinition(name, inputSignature, outputSignature, body)(pos(ctx))
+  }
+
+  final override def exitLocalInputFieldsSignature(ctx: Cypher25Parser.LocalInputFieldsSignatureContext): Unit = {
+    ctx.ast = astSeq[LocalFieldSignature](ctx.localOptionalFieldSignature())
+  }
+
+  final override def exitLocalOutputFieldsSignature(ctx: Cypher25Parser.LocalOutputFieldsSignatureContext): Unit = {
+    ctx.ast = astSeq[LocalFieldSignature](ctx.localMandatoryFieldSignature())
+  }
+
+  final override def exitLocalMandatoryFieldSignature(ctx: Cypher25Parser.LocalMandatoryFieldSignatureContext): Unit = {
+    val fieldName = ctx.symbolicNameString().ast[String]()
+    val typ = astOpt[CypherType](ctx.`type`())
+    ctx.ast = LocalFieldSignature(fieldName, typ, None)(pos(ctx))
+  }
+
+  final override def exitLocalOptionalFieldSignature(ctx: Cypher25Parser.LocalOptionalFieldSignatureContext): Unit = {
+    val fieldName = ctx.symbolicNameString().ast[String]()
+    val default = astOpt[Expression](ctx.expression())
+    val typ = astOpt[CypherType](ctx.`type`())
+    ctx.ast = LocalFieldSignature(fieldName, typ, default)(pos(ctx))
+  }
+
+  final override def exitLocalFunctionBody(ctx: Cypher25Parser.LocalFunctionBodyContext): Unit = {
+    ctx.ast = ctx match {
+      case _: Cypher25Parser.ExpressionBodyContext =>
+        ExpressionBody(ctxChild(ctx, 1).ast[Expression]())(pos(ctx))
+      case _: Cypher25Parser.QueryBodyContext =>
+        QueryBody(ctxChild(ctx, 1).ast[Query]())(pos(ctx))
+      case _ => throw new IllegalStateException(s"Unexpected context $ctx")
     }
   }
 
@@ -210,8 +279,8 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitSingleQuery(ctx: Cypher25Parser.SingleQueryContext): Unit = {
-    ctx.ast = if (ctx.nextStatement() != null) {
-      TopLevelBraces(ctx.nextStatement().ast[Query], astOpt[UseGraph](ctx.useClause()))(pos(ctx))
+    ctx.ast = if (ctx.queryWithLocalDefinitions() != null) {
+      TopLevelBraces(ctx.queryWithLocalDefinitions().ast[Query], astOpt[UseGraph](ctx.useClause()))(pos(ctx))
     } else {
       SingleQuery(astSeq[Clause](ctx.children))(pos(ctx))
     }
@@ -557,7 +626,7 @@ trait StatementBuilder extends Cypher25ParserListener {
   final override def exitCallClause(
     ctx: Cypher25Parser.CallClauseContext
   ): Unit = {
-    val (namespace, procedureName) = ctx.procedureName.ast[(Namespace, ProcedureName)]()
+    val procedureName = ctx.procedureName.ast[ProcedureName]()
     val procedureArguments =
       if (ctx.RPAREN() == null) None
       else
@@ -573,7 +642,6 @@ trait StatementBuilder extends Cypher25ParserListener {
       }
     }
     ctx.ast = UnresolvedCall(
-      namespace,
       procedureName,
       procedureArguments,
       procedureResults,
@@ -587,8 +655,8 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.ProcedureNameContext
   ): Unit = {
     val namespace = ctx.namespace().ast[Namespace]()
-    val procedureName = ProcedureName(ctx.symbolicNameString().ast())(pos(ctx.symbolicNameString()))
-    ctx.ast = (namespace, procedureName)
+    val procedureName = ctx.symbolicNameString().ast[String]()
+    ctx.ast = ProcedureName(namespace, procedureName)(pos(ctx.namespace()))
   }
 
   final override def exitProcedureArgument(
@@ -631,7 +699,7 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = if (scope != null) {
       val (isImportingAll, importedVariables) = scope.ast[(Boolean, Seq[Variable])]()
       ScopeClauseSubqueryCall(
-        ctx.nextStatement().ast(),
+        ctx.queryWithLocalDefinitions().ast(),
         isImportingAll,
         importedVariables,
         astOpt(ctx.subqueryInTransactionsParameters()),
@@ -639,7 +707,7 @@ trait StatementBuilder extends Cypher25ParserListener {
       )(pos(ctx))
     } else {
       ImportingWithSubqueryCall(
-        ctx.nextStatement().ast(),
+        ctx.queryWithLocalDefinitions().ast(),
         astOpt(ctx.subqueryInTransactionsParameters()),
         ctx.OPTIONAL() != null
       )(pos(ctx))

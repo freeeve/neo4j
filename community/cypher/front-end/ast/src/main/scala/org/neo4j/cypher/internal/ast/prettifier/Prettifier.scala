@@ -73,6 +73,7 @@ import org.neo4j.cypher.internal.ast.ElementQualifier
 import org.neo4j.cypher.internal.ast.ElementsAllQualifier
 import org.neo4j.cypher.internal.ast.EnableServer
 import org.neo4j.cypher.internal.ast.ExecutableBy
+import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.ExternalAuth
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
@@ -106,6 +107,9 @@ import org.neo4j.cypher.internal.ast.LoadCSV
 import org.neo4j.cypher.internal.ast.LoadCidrQualifier
 import org.neo4j.cypher.internal.ast.LoadPrivilege
 import org.neo4j.cypher.internal.ast.LoadUrlQualifier
+import org.neo4j.cypher.internal.ast.LocalFieldSignature
+import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
+import org.neo4j.cypher.internal.ast.LocalProcedureDefinition
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.MergeAction
@@ -140,6 +144,8 @@ import org.neo4j.cypher.internal.ast.ProjectingUnionDistinct
 import org.neo4j.cypher.internal.ast.PropertiesResource
 import org.neo4j.cypher.internal.ast.PropertyResource
 import org.neo4j.cypher.internal.ast.Query
+import org.neo4j.cypher.internal.ast.QueryBody
+import org.neo4j.cypher.internal.ast.QueryWithLocalDefinitions
 import org.neo4j.cypher.internal.ast.ReadOnlyAccess
 import org.neo4j.cypher.internal.ast.ReadWriteAccess
 import org.neo4j.cypher.internal.ast.ReallocateDatabases
@@ -1030,6 +1036,33 @@ case class Prettifier(
             default.map(d => s"${INDENT}ELSE ${query(d.query).trim}")).mkString(NL)
         case NextStatement(queries) =>
           queries.map(query).mkString(s"$NL$NL${INDENT}NEXT$NL$NL")
+        case QueryWithLocalDefinitions(definitions, q) =>
+          def stringifyLFS(lfs: LocalFieldSignature): String = {
+            val defaultStr = lfs.default.map(d => s" = ${expr(d)}").getOrElse("")
+            val typeStr = lfs.typ.map(t => s" :: ${t.description}").getOrElse("")
+            s"${lfs.name}$typeStr$defaultStr"
+          }
+          val defs = definitions.map(ld => {
+            val ldStr = ld match {
+              case LocalProcedureDefinition(name, inputSignature, outputSignature, procedureBody) =>
+                val procedureName = expr(name)
+                val in = inputSignature.map(stringifyLFS).mkString("(", ", ", ")")
+                val out = outputSignature.map(_.map(stringifyLFS).mkString(" :: (", ", ", ")")).getOrElse("")
+                val body = s"{$NL${indented().query(procedureBody)}$NL$INDENT}"
+                s"PROCEDURE $procedureName$in$out $body"
+              case LocalFunctionDefinition(name, inputSignature, outputSignature, functionBody) =>
+                val functionName = expr(name)
+                val in = inputSignature.map(stringifyLFS).mkString("(", ", ", ")")
+                val out = outputSignature.map(t => s" :: ${t.description}").getOrElse("")
+                val body = functionBody match {
+                  case ExpressionBody(ex) => s"= ${expr(ex)}"
+                  case QueryBody(qu)      => s"{$NL${indented().query(qu)}$NL$INDENT}"
+                }
+                s"FUNCTION $functionName$in$out $body"
+            }
+            s"${INDENT}DEFINE $ldStr"
+          }).mkString(NL)
+          s"$defs$NL$NL${query(q)}"
       }
 
     def asString(clause: Clause): String = dispatch(clause)
@@ -1327,9 +1360,8 @@ case class Prettifier(
     }
 
     def asString(u: UnresolvedCall): String = {
-      val namespace = expr(u.procedureNamespace)
+      val name = expr(u.procedureName)
       val optional = if (u.optional) "OPTIONAL " else ""
-      val prefix = if (namespace.isEmpty) "" else namespace + "."
       val args = u.declaredArguments.map(_.filter {
         case CoerceTo(_: ImplicitProcedureArgument, _) => false
         case _: ImplicitProcedureArgument              => false
@@ -1340,7 +1372,7 @@ case class Prettifier(
       val yields =
         if (u.yieldAll) asNewLine(s"${indented().INDENT}YIELD *")
         else u.declaredResult.filter(_.items.nonEmpty).map(ind.asString).map(asNewLine).getOrElse("")
-      s"$INDENT${optional}CALL $prefix${expr(u.procedureName)}$arguments$yields"
+      s"$INDENT${optional}CALL $name$arguments$yields"
     }
 
     def asString(r: ProcedureResult): String = {

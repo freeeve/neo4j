@@ -317,7 +317,7 @@ public class CompletionEngine {
             if (preparserInfo.preparserStmt == null) {
                 return new CompletionResolution(parserInfo, preparserInfo, true, false);
             } else if (parserInfo.parserCtx.statement().stream()
-                    .anyMatch(statement -> statement.nextStatement() != null)) {
+                    .anyMatch(statement -> statement.queryWithLocalDefinitions() != null)) {
                 return new CompletionResolution(parserInfo, preparserInfo, false, true);
             } else {
                 return new CompletionResolution(parserInfo, preparserInfo, true, true);

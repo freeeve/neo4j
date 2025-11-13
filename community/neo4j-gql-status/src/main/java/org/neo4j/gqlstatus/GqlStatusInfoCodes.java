@@ -4101,6 +4101,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid CREATE DATABASE statement",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAF(
+            new GqlStatus("42NAF"),
+            "USE clause is not supported in local procedure definitions.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "not supported local procedure definition",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAG(
+            new GqlStatus("42NAG"),
+            "USE clause is not supported in local function definitions.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "not supported local function definition",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             new GqlStatus("42NFC"),
             "Authentication and/or authorization could not be validated. See security logs for details.",

@@ -1295,6 +1295,20 @@ public class GqlHelper {
                         .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42NAF() {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAF)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42NAG() {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAG)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42N51(String parameter, ErrorGqlStatusObject cause) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
                 .withParam(GqlParams.StringParam.param, parameter)

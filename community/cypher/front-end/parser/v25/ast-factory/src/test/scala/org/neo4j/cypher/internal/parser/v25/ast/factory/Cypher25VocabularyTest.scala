@@ -133,6 +133,7 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.DBMS -> "'DBMS'",
     Cypher25Parser.DEALLOCATE -> "'DEALLOCATE'",
     Cypher25Parser.DEFAULT -> "'DEFAULT'",
+    Cypher25Parser.DEFINE -> "'DEFINE'",
     Cypher25Parser.DEFINED -> "'DEFINED'",
     Cypher25Parser.DELETE -> "'DELETE'",
     Cypher25Parser.DENY -> "'DENY'",

@@ -1037,6 +1037,7 @@ class SubqueryCallSemanticAnalysisTest
   }
 
   override def messageProvider: ErrorMessageProvider = new ErrorMessageProviderAdapter {
+    override def createUseClauseUnsupportedError(): String = "A very nice message explaining why USE is not allowed"
 
     override def createDynamicGraphReferenceUnsupportedError(graphName: String): String =
       "A very nice message explaining why dynamic graph references are not allowed: " + graphName

@@ -23,7 +23,45 @@ statements
    ;
 
 statement
-   : command | nextStatement
+   : command | queryWithLocalDefinitions
+   ;
+
+queryWithLocalDefinitions
+   : (DEFINE localDefinition)* nextStatement
+   ;
+
+localDefinition
+   : PROCEDURE localProcedureDefinition
+   | FUNCTION localFunctionDefinition
+   ;
+
+localProcedureDefinition
+   : procedureName localInputFieldsSignature (typed outputType = localOutputFieldsSignature)? LCURLY queryWithLocalDefinitions RCURLY
+   ;
+
+localFunctionDefinition
+   : functionName localInputFieldsSignature (typed outputType = type)? localFunctionBody
+   ;
+
+localInputFieldsSignature
+    : LPAREN (localOptionalFieldSignature ( COMMA localOptionalFieldSignature )*)? RPAREN
+    ;
+
+localOutputFieldsSignature
+    : LPAREN (localMandatoryFieldSignature ( COMMA localMandatoryFieldSignature )*)? RPAREN
+    ;
+
+localMandatoryFieldSignature
+    : symbolicNameString (typed? type)?
+    ;
+
+localOptionalFieldSignature
+    : symbolicNameString (typed? type)? (EQ expression)?
+    ;
+
+localFunctionBody
+   : EQ expression                           # ExpressionBody
+   | LCURLY queryWithLocalDefinitions RCURLY # QueryBody
    ;
 
 nextStatement
@@ -52,7 +90,7 @@ elseBranch
 
 singleQuery
    : clause+
-   | useClause? LCURLY nextStatement RCURLY
+   | useClause? LCURLY queryWithLocalDefinitions RCURLY
    ;
 
 clause
@@ -261,7 +299,7 @@ foreachClause
    ;
 
 subqueryClause
-   : OPTIONAL? CALL subqueryScope? LCURLY nextStatement RCURLY subqueryInTransactionsParameters?
+   : OPTIONAL? CALL subqueryScope? LCURLY queryWithLocalDefinitions RCURLY subqueryInTransactionsParameters?
    ;
 
 subqueryScope
@@ -746,15 +784,15 @@ countStar
    ;
 
 existsExpression
-   : EXISTS LCURLY (nextStatement | matchMode? patternList whereClause?) RCURLY
+   : EXISTS LCURLY (queryWithLocalDefinitions | matchMode? patternList whereClause?) RCURLY
    ;
 
 countExpression
-   : COUNT LCURLY (nextStatement | matchMode? patternList whereClause?) RCURLY
+   : COUNT LCURLY (queryWithLocalDefinitions | matchMode? patternList whereClause?) RCURLY
    ;
 
 collectExpression
-   : COLLECT LCURLY nextStatement RCURLY
+   : COLLECT LCURLY queryWithLocalDefinitions RCURLY
    ;
 
 numberLiteral
@@ -2125,6 +2163,7 @@ unescapedSymbolicNameString_
    | DBMS
    | DEALLOCATE
    | DEFAULT
+   | DEFINE
    | DEFINED
    | DELETE
    | DENY

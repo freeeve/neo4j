@@ -21,6 +21,8 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpressionLeafName
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 
+import java.util.Locale
+
 trait SymbolicName extends ASTNode {
   def name: String
   def position: InputPosition
@@ -35,9 +37,39 @@ sealed trait RelTypeExpression extends ASTNode
 
 case class Namespace(parts: List[String] = List.empty)(val position: InputPosition) extends ASTNode
 
-case class ProcedureName(name: String)(val position: InputPosition) extends ASTNode with SymbolicName
+sealed trait CallableName extends SymbolicName {
+  def namespace: Namespace
+  def name: String
 
-case class ProcedureOutput(name: String)(val position: InputPosition) extends ASTNode with SymbolicName
+  def fullName: String = namespace.parts.map(_ + ".").mkString("", "", name)
+}
+
+object CallableName {
+
+  def unapply(callableName: CallableName): Option[(Namespace, String)] =
+    Some((callableName.namespace, callableName.name))
+}
+
+case class ProcedureName(namespace: Namespace, name: String)(val position: InputPosition) extends CallableName
+
+case class FunctionName(namespace: Namespace, name: String)(val position: InputPosition) extends CallableName {
+
+  override def equals(x: Any): Boolean = x match {
+    case FunctionName(otherNamespace, otherName) =>
+      otherNamespace == namespace && otherName.toLowerCase(Locale.ROOT) == name.toLowerCase(Locale.ROOT)
+    case _ => false
+  }
+  override def hashCode = name.toLowerCase(Locale.ROOT).hashCode
+}
+
+object FunctionName {
+
+  def apply(name: String)(position: InputPosition): FunctionName = {
+    FunctionName(Namespace()(position), name)(position)
+  }
+}
+
+case class ProcedureOutput(name: String)(val position: InputPosition) extends SymbolicName
 
 case class LabelName(name: String)(val position: InputPosition) extends LabelExpressionLeafName
     with StaticElementTypeName

@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProjectingUnion
 import org.neo4j.cypher.internal.ast.Query
+import org.neo4j.cypher.internal.ast.QueryWithLocalDefinitions
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.UnionAll
@@ -92,7 +93,10 @@ import org.neo4j.cypher.internal.util.topDown
 case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTransformerFactory with Step {
 
   override def preConditions: Set[StepSequencer.Condition] =
-    Set(BaseContains[SemanticTable](), StatementCondition(ContainsNoNextStatements))
+    Set(
+      BaseContains[SemanticTable](),
+      StatementCondition(ContainsNoNextStatements)
+    )
 
   override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(ContainsNoTopLevelBraces))
 
@@ -116,6 +120,7 @@ case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTra
         throw new IllegalStateException(
           "Didn't expect Next, only SingleQuery, TopLevelBraces, ConditionalWhen, UnionAll, or UnionDistinct."
         )
+      case d @ QueryWithLocalDefinitions(_, query) => d.copy(query = pushDownUse(query, use))(d.position)
     }
   }
 
