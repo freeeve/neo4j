@@ -138,6 +138,12 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
         // This is just a problem in log formats before V10, otherwise the correct previous kernel version
         // can be found in the header.
         if (channel.getLogFormatVersion() != logFormatVersionProvider.getCurrentLogFormat()) {
+            if (logHeader.getLogFormatVersion().getVersionByte()
+                    > channel.getLogFormatVersion().getVersionByte()) {
+                throw new IllegalStateException(
+                        "The current log format provider on checkpoint log start up would downgrade the format. The log format config is incorrectly configured. Current %s, last file %s"
+                                .formatted(channel.getLogFormatVersion(), logHeader.getLogFormatVersion()));
+            }
             rotate();
         }
     }

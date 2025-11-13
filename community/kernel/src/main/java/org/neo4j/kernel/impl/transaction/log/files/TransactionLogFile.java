@@ -172,6 +172,8 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         // ignored before envelopes since the format doesn't change.
         if (rotationNeededBecauseOfVersionMismatch(currentKernelVersion, logHeader)) {
             logger.debug("Rotation needed because of version mismatch. currentKernelVersion=" + currentKernelVersion
+                    + ", currentLogFormat="
+                    + transactionLogFilesProviders.getLogFormatVersionProvider().getCurrentLogFormat()
                     + ", file LogFormat=" + logHeader.getLogFormatVersion() + ", file KernelVersion="
                     + logHeader.getKernelVersion());
             KernelVersion logHeaderKernelVersion = logHeader.getKernelVersion();
@@ -205,6 +207,11 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     private boolean rotationNeededBecauseOfVersionMismatch(KernelVersion currentKernelVersion, LogHeader logHeader) {
         LogFormat currentLogFormat =
                 transactionLogFilesProviders.getLogFormatVersionProvider().getCurrentLogFormat();
+        if (logHeader.getLogFormatVersion().getVersionByte() > currentLogFormat.getVersionByte()) {
+            throw new IllegalStateException(
+                    "The current log format provider on transaction log start up would downgrade the format. The log format config is incorrectly configured. Current %s, last file %s"
+                            .formatted(currentLogFormat, logHeader.getLogFormatVersion()));
+        }
         return (currentLogFormat.usesSegments() && logHeader.getKernelVersion() != currentKernelVersion)
                 || currentLogFormat != logHeader.getLogFormatVersion();
     }

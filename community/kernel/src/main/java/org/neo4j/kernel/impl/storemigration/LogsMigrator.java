@@ -118,7 +118,9 @@ class LogsMigrator {
                 // Always migrate to the latest kernel version
                 KernelVersion latestVersion = KernelVersion.getLatestVersion(config);
                 logMetadataProvider.setKernelVersion(latestVersion);
-                logMetadataProvider.setCurrentLogFormat(LogFormat.fromConfigAndKernelVersion(config, latestVersion));
+                // Picking latest logformat while protecting from downgrade if feature flag has changed
+                logMetadataProvider.setCurrentLogFormat(LogFormat.pickLogFormatOnUpgrade(
+                        latestVersion, latestVersion, config, logMetadataProvider.getCurrentLogFormat()));
 
                 TransactionLogInitializer logInitializer =
                         new TransactionLogInitializer(fs, store, logMetadataProvider, storageEngineFactory);
