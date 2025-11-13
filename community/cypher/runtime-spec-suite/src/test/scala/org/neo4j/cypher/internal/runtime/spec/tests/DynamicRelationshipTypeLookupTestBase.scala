@@ -50,7 +50,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
-  val isProfilingDisabled: Boolean = canFuse // TODO: remove this when profiling works everywhere
 
   def outgoing(rel: Relationship): Array[Entity] = Array(rel, rel.getStartNode, rel.getEndNode)
 
@@ -1016,14 +1015,10 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = if (!isProfilingDisabled) {
-        beColumns("r", "x", "y").withRows(expectDirected(expected))
-          .usingIndexes(2, indexName)
-      } else {
-        beColumns("r", "x", "y").withRows(expectDirected(expected))
-      }
-
-      profile(logicalQuery, runtime) should matchExpectations
+      profile(
+        logicalQuery,
+        runtime
+      ) should beColumns("r", "x", "y").withRows(expectDirected(expected)).usingIndexes(2, indexName)
     }
   }
 
@@ -1062,14 +1057,8 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = if (!isProfilingDisabled) {
-        beColumns("r", "x", "y").withRows(expectUndirected(expected))
-          .usingIndexes(2, indexName)
-      } else {
-        beColumns("r", "x", "y").withRows(expectUndirected(expected))
-      }
-
-      profile(logicalQuery, runtime) should matchExpectations
+      profile(logicalQuery, runtime) should beColumns("r", "x", "y").withRows(expectUndirected(expected))
+        .usingIndexes(2, indexName)
     }
   }
 
@@ -1110,14 +1099,8 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = if (!isProfilingDisabled) {
-        beColumns("r", "x", "y").withRows(expectDirected(expected))
-          .usingIndexes(2, indexName)
-      } else {
-        beColumns("r", "x", "y").withRows(expectDirected(expected))
-      }
-
-      profile(logicalQuery, runtime) should matchExpectations
+      profile(logicalQuery, runtime) should beColumns("r", "x", "y").withRows(expectDirected(expected))
+        .usingIndexes(2, indexName)
     }
   }
 
@@ -1158,14 +1141,9 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = if (!isProfilingDisabled) {
+      profile(logicalQuery, runtime) should
         beColumns("r", "x", "y").withRows(expectUndirected(expected))
           .usingIndexes(2, indexName)
-      } else {
-        beColumns("r", "x", "y").withRows(expectUndirected(expected))
-      }
-
-      profile(logicalQuery, runtime) should matchExpectations
     }
   }
 
@@ -1206,14 +1184,9 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = if (!isProfilingDisabled) {
+      profile(logicalQuery, runtime) should
         beColumns("r", "x", "y").withRows(expectDirected(expected))
           .usingIndexes(2, indexName)
-      } else {
-        beColumns("r", "x", "y").withRows(expectDirected(expected))
-      }
-
-      profile(logicalQuery, runtime) should matchExpectations
     }
   }
 
@@ -1254,14 +1227,9 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
         )
         .build()
 
-      val matchExpectations = if (!isProfilingDisabled) {
+      profile(logicalQuery, runtime) should
         beColumns("r", "x", "y").withRows(expectUndirected(expected))
           .usingIndexes(2, indexName)
-      } else {
-        beColumns("r", "x", "y").withRows(expectUndirected(expected))
-      }
-
-      profile(logicalQuery, runtime) should matchExpectations
     }
   }
 }

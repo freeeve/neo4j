@@ -72,7 +72,9 @@ abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
   protected def empty: A
   protected def allLabels(labels: Array[Int]): A
   protected def anyLabel(labels: Array[Int]): A
-  protected def getIndexComparator: Comparator[IndexDescriptor]
+
+  private def getIndexComparator: Comparator[IndexDescriptor] =
+    state.indexComparatorFactory.createComparator(state.query.dataRead, state.query.transactionalContext.schemaRead)
 
   private def findIndicesForLabel(
     labelId: Int,
@@ -199,9 +201,6 @@ case class DynamicLabelNodeLookupIterator(
 ) extends DynamicLabelNodeLookupBase[ClosingLongIterator](state) {
 
   private lazy val nodeIterator = getNodes(labelExpression, operator, propertyConstraints)
-
-  override protected def getIndexComparator: Comparator[IndexDescriptor] =
-    state.indexComparatorFactory.createComparator(state.query.dataRead, state.query.transactionalContext.schemaRead)
 
   override protected def propertyFilter(
     iterator: ClosingLongIterator,

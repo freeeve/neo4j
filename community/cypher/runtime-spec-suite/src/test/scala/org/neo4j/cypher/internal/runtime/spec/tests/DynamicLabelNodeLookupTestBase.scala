@@ -43,8 +43,6 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
   sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
 
-  val isProfilingDisabled = canFuse // TODO: remove this when profiling works everywhere
-
   test("should throw error on invalid label name") {
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -583,8 +581,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1"))
       .build()
 
-    val matchExpectations = beColumns("x").withRows(singleColumn(expected))
-    profile(logicalQuery, runtime) should matchExpectations
+    profile(logicalQuery, runtime) should beColumns("x").withRows(singleColumn(expected))
   }
 
   test("should filter for a single label and single property using an index") {
@@ -611,14 +608,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1"))
       .build()
 
-    val matchExpectations =
-      if (isProfilingDisabled) {
-        beColumns("x").withRows(singleColumn(expected))
-      } else {
-        beColumns("x").withRows(singleColumn(expected)).usingIndexes(2, indexName)
-      }
-
-    profile(logicalQuery, runtime) should matchExpectations
+    profile(logicalQuery, runtime) should beColumns("x").withRows(singleColumn(expected)).usingIndexes(2, indexName)
   }
 
   test("should filter for a single label and multiple properties") {
@@ -643,8 +633,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1", "name" -> "'bob'"))
       .build()
 
-    val matchExpectations = beColumns("x").withRows(singleColumn(expected))
-    profile(logicalQuery, runtime) should matchExpectations
+    profile(logicalQuery, runtime) should beColumns("x").withRows(singleColumn(expected))
   }
 
   test("should filter for a single label and multiple properties using a single index") {
@@ -673,13 +662,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1", "name" -> "'bob'"))
       .build()
 
-    val matchExpectations =
-      if (isProfilingDisabled) {
-        beColumns("x").withRows(singleColumn(expected))
-      } else {
-        beColumns("x").withRows(singleColumn(expected)).usingIndexes(2, indexName)
-      }
-    profile(logicalQuery, runtime) should matchExpectations
+    profile(logicalQuery, runtime) should beColumns("x").withRows(singleColumn(expected)).usingIndexes(2, indexName)
   }
 
   test("should filter for all labels and a single property") {
@@ -711,14 +694,10 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "['A', 'B']", All, Map("prop" -> "1"))
       .build()
 
-    val matchExpectations =
-      if (isProfilingDisabled) {
-        beColumns("x").withRows(singleColumn(expected))
-      } else {
-        beColumns("x").withRows(singleColumn(expected)).usingAnyIndexes(2, index_a, index_b)
-      }
-
-    profile(logicalQuery, runtime) should matchExpectations
+    profile(
+      logicalQuery,
+      runtime
+    ) should beColumns("x").withRows(singleColumn(expected)).usingAnyIndexes(2, index_a, index_b)
   }
 
   test("should filter for all labels and multiple properties") {
@@ -748,8 +727,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "['B', 'A']", All, Map("age" -> "21", "name" -> "'bob'"))
       .build()
 
-    val matchExpectations = beColumns("x").withRows(singleColumn(expected))
-    profile(logicalQuery, runtime) should matchExpectations
+    profile(logicalQuery, runtime) should beColumns("x").withRows(singleColumn(expected))
   }
 
   test("should filter for multiple labels and multiple properties using any relevant index") {
@@ -787,27 +765,18 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "['A', 'B']", All, Map("age" -> "21", "name" -> "'bob'"))
       .build()
 
-    val matchExpectations =
-      if (isProfilingDisabled) {
-        beColumns("x").withRows(singleColumn(expected))
-      } else {
-        beColumns("x").withRows(singleColumn(expected))
-          .usingAnyIndexes(2, compoundIndex, ageIndex, nameIndex)
-      }
-
     val (res, prof) = executeAndProfile(logicalQuery, runtime, new InputValues(), defaultQueryRuntimeConfig)
 
-    res should matchExpectations
+    res should beColumns("x").withRows(singleColumn(expected))
+      .usingAnyIndexes(2, compoundIndex, ageIndex, nameIndex)
 
-    if (!isProfilingDisabled) {
-      val profiledIndexes = prof.find("DynamicLabelNodeLookup")
-        .head
-        .arguments
-        .collectFirst { case UsedIndexes(indexes) => indexes }
+    val profiledIndexes = prof.find("DynamicLabelNodeLookup")
+      .head
+      .arguments
+      .collectFirst { case UsedIndexes(indexes) => indexes }
 
-      profiledIndexes shouldBe defined
-      profiledIndexes.get.values.sum shouldBe 1
-    }
+    profiledIndexes shouldBe defined
+    profiledIndexes.get.values.sum shouldBe 1
   }
 
   test("should not try to use indexes that can't support the intended query") {
@@ -834,17 +803,10 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1"))
       .build()
 
-    val matchExpectations =
-      if (isProfilingDisabled) {
-        beColumns("x").withRows(singleColumn(expected))
-      } else {
-        beColumns("x").withRows(singleColumn(expected))
-          .notUsingIndexes(2, indexName)
-      }
-
     val (res, prof) = executeAndProfile(logicalQuery, runtime, new InputValues(), defaultQueryRuntimeConfig)
 
-    res should matchExpectations
+    res should beColumns("x").withRows(singleColumn(expected))
+      .notUsingIndexes(2, indexName)
 
     val args = prof.find("DynamicLabelNodeLookup")
       .head
