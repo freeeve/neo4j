@@ -24,7 +24,9 @@ import static org.neo4j.server.queryapi.response.error.HttpErrorResponse.fromDri
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import org.neo4j.driver.exceptions.ClientException;
+import org.neo4j.driver.exceptions.DatabaseException;
 import org.neo4j.driver.exceptions.FatalDiscoveryException;
+import org.neo4j.driver.exceptions.GqlStatusErrorClassification;
 import org.neo4j.driver.exceptions.Neo4jException;
 import org.neo4j.driver.exceptions.TransientException;
 
@@ -40,6 +42,13 @@ public class Neo4jExceptionMapper implements ExceptionMapper<Neo4jException> {
             return Response.Status.NOT_FOUND;
         } else if (e instanceof ClientException || e instanceof TransientException) {
             return Response.Status.BAD_REQUEST;
+        } else if (e instanceof DatabaseException) {
+            // use GQL Classification where possible.
+            if (e.classification()
+                    .filter(c -> c.equals(GqlStatusErrorClassification.CLIENT_ERROR))
+                    .isPresent()) {
+                return Response.Status.BAD_REQUEST;
+            }
         }
         // Database error and unclassified
         return Response.Status.INTERNAL_SERVER_ERROR;
