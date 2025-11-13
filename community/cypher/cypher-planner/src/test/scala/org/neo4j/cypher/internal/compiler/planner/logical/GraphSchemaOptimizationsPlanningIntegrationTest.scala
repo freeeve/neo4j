@@ -19,9 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.cypher.internal.ast.Ast.cachedNodeProp
-import org.neo4j.cypher.internal.ast.Ast.hasLabels
-import org.neo4j.cypher.internal.ast.Ast.prop
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
@@ -35,7 +33,9 @@ import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.schema.EndpointType
 
 class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
-    with LogicalPlanningIntegrationTestSupport with LogicalPlanningAttributesTestSupport {
+    with LogicalPlanningIntegrationTestSupport
+    with LogicalPlanningAttributesTestSupport
+    with AstConstructionTestSupport {
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
     super.plannerBuilder()

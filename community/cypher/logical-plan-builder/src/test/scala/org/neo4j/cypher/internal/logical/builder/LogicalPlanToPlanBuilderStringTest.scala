@@ -3347,10 +3347,13 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         interpreter.interpret(
           """import org.neo4j.cypher.internal.util.collection.immutable.ListSet
             |
-            |import org.neo4j.cypher.internal.ast.Ast.cachedNodePropFromStore
-            |import org.neo4j.cypher.internal.ast.Ast.literalInt
-            |import org.neo4j.cypher.internal.ast.Ast.literalFloat
+            |import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.cachedNodePropFromStore
+            |import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.labelName
+            |import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.literalInt
+            |import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.literalFloat
             |import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.parameter
+            |import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.propName
+            |import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.relTypeName
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
@@ -94,4 +95,7 @@ trait LogicalPlanConstructionTestSupport {
     new StubLabelAndRelTypeInfos,
     new StubCachedPropertiesPerPlan
   )
+
+  def propReadSetConflict(prop: String, id1: Int, id2: Int): EagernessReason.ReasonWithConflict =
+    EagernessReason.PropertyReadSetConflict(propName(prop)).withConflict(EagernessReason.Conflict(Id(id1), Id(id2)))
 }

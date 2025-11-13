@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.CypherVersion.Cypher25
 import org.neo4j.cypher.internal.CypherVersion.Cypher5
-import org.neo4j.cypher.internal.ast.Ast.p
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature

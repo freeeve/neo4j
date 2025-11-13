@@ -202,8 +202,6 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.language.implicitConversions
 
-object Ast extends AstConstructionTestSupport
-
 trait AstConstructionTestSupport {
   protected val pos: InputPosition.Range = InputPosition.NONE
   protected val defaultPos: InputPosition = InputPosition(0, 1, 1)

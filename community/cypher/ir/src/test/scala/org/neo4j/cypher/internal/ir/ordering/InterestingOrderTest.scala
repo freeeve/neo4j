@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class InterestingOrderTest extends CypherFunSuite with AstConstructionTestSupport {
 
-  test("should reverse project property to variable") {
+  test("should reverse project property to variable (ascending)") {
     val io = InterestingOrder.required(RequiredOrderCandidate.asc(varFor("xfoo")))
     // projection
     val projections = Map[LogicalVariable, Expression](v"xfoo" -> prop("x", "foo"))

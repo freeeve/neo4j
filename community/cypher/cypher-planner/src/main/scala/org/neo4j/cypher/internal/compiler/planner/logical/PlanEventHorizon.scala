@@ -49,10 +49,10 @@ import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 
-/*
-Planning event horizons means planning the WITH clauses between query patterns. Some of these clauses are inlined
-away when going from a string query to a QueryGraph. The remaining WITHs are the ones containing ORDER BY/LIMIT,
-aggregation and UNWIND.
+/**
+ * Planning event horizons means planning the WITH clauses between query patterns. Some of these clauses are inlined
+ * away when going from a string query to a QueryGraph. The remaining WITHs are the ones containing ORDER BY/LIMIT,
+ * aggregation and UNWIND.
  */
 case object PlanEventHorizon extends EventHorizonPlanner {
 

@@ -72,7 +72,7 @@ object PlanningAttributes {
  * @param providedOrders provided order for each plan
  * @param leveragedOrders a boolean flag if the plan leverages order of rows.
  * @param labelAndRelTypeInfos label and reltype info that is valid at the location of the plan.
- *                             Currently this is only set for Selection plans.
+ *                             Currently, this is only set for Selection plans.
  */
 case class PlanningAttributes(
   solveds: Solveds,

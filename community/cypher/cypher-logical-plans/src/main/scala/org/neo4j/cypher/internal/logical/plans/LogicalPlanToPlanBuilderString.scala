@@ -2384,11 +2384,11 @@ object LogicalPlanToPlanBuilderString {
 
   private def nonUniqueEagernessReasonStr(reason: EagernessReason.NonUnique): String = reason match {
     case EagernessReason.LabelReadSetConflict(label) =>
-      s"${objectName(EagernessReason.LabelReadSetConflict)}(LabelName(${wrapInQuotations(label.name)})(InputPosition.NONE))"
+      s"${objectName(EagernessReason.LabelReadSetConflict)}(labelName(${wrapInQuotations(label.name)}))"
     case EagernessReason.TypeReadSetConflict(relType) =>
-      s"${objectName(EagernessReason.TypeReadSetConflict)}(RelTypeName(${wrapInQuotations(relType.name)})(InputPosition.NONE))"
+      s"${objectName(EagernessReason.TypeReadSetConflict)}(relTypeName(${wrapInQuotations(relType.name)}))"
     case EagernessReason.LabelReadRemoveConflict(label) =>
-      s"${objectName(EagernessReason.LabelReadRemoveConflict)}(LabelName(${wrapInQuotations(label.name)})(InputPosition.NONE))"
+      s"${objectName(EagernessReason.LabelReadRemoveConflict)}(labelName(${wrapInQuotations(label.name)}))"
     case EagernessReason.UnknownLabelReadSetConflict =>
       s"${objectName(EagernessReason.UnknownLabelReadSetConflict)}"
     case EagernessReason.UnknownLabelReadRemoveConflict =>
@@ -2398,7 +2398,7 @@ object LogicalPlanToPlanBuilderString {
     case EagernessReason.ReadCreateConflict =>
       s"${objectName(EagernessReason.ReadCreateConflict)}"
     case EagernessReason.PropertyReadSetConflict(property) =>
-      s"${objectName(EagernessReason.PropertyReadSetConflict)}(PropertyKeyName(${wrapInQuotations(property.name)})(InputPosition.NONE))"
+      s"${objectName(EagernessReason.PropertyReadSetConflict)}(propName(${wrapInQuotations(property.name)}))"
     case EagernessReason.UnknownPropertyReadSetConflict =>
       s"${objectName(EagernessReason.UnknownPropertyReadSetConflict)}"
   }
