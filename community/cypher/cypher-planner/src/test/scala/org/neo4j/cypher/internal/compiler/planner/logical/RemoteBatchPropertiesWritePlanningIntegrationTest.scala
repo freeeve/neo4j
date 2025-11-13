@@ -1024,35 +1024,42 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       .emptyResult()
       .foreach(
         "value",
-        "cacheN[p.propList]",
+        "cacheN[p.propList]", // Use cached p.propList
         Seq(createPattern(Seq(createNodeFull(
           "anon_0",
           labels = Seq("Item"),
-          properties = Some("{name: value, price: 100 - cacheN[p.age]}")
+          properties = Some("{name: value, price: 100 - cacheN[p.age]}") // Use cached p.age
         ))))
       )
-      .remoteBatchProperties("cacheNFromStore[p.propList]", "cacheNFromStore[p.age]")
+      .remoteBatchProperties("cacheNFromStore[p.propList]", "cacheNFromStore[p.age]") // Cache p.age and p.propList
       .nodeByLabelScan("p", "Person")
       .build()
   }
 
-  test("Should rbps p.age and p.propList and use cached version - ForeachPattern - ForeachApply") {
+  test("Should rbps p.prop and p.propList and use cached version - ForeachPattern - ForeachApply") {
     val query = """MATCH (p:Person)
-                  |FOREACH (value IN p.propList | CREATE (:Post {name: value, price: 100 - p.age}))
+                  |FOREACH (
+                  |  value IN p.propList |
+                  |  CREATE (:Item
+                  |    {
+                  |      name: value,
+                  |      price: COUNT { MATCH (x:Person) WHERE x.prop < p.prop }
+                  |    }
+                  |  )
+                  |)
                   |""".stripMargin
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .emptyResult()
-      .foreach(
-        "value",
-        "cacheN[p.propList]", // Use cached p.propList
-        Seq(createPattern(Seq(createNodeFull(
-          "anon_0",
-          labels = Seq("Post"),
-          properties = Some("{name: value, price: 100 - cacheN[p.age]}") // Use cached p.age
-        ))))
-      )
-      .remoteBatchProperties("cacheNFromStore[p.age]", "cacheNFromStore[p.propList]") // Cache p.age and p.propList
+      .foreachApply("value", "cacheN[p.propList]") // Use cached p.propList
+      .|.create(createNodeFull("anon_0", labels = Seq("Item"), properties = Some("{name: value, price: anon_1}")))
+      .|.apply()
+      .|.|.aggregation(Seq(), Seq("count(*) AS anon_1"))
+      .|.|.filter("cacheN[x.prop] < cacheN[p.prop]") // Use cached p.prop
+      .|.|.remoteBatchProperties("cacheNFromStore[x.prop]")
+      .|.|.nodeByLabelScan("x", "Person", "p")
+      .|.argument("p", "value")
+      .remoteBatchProperties("cacheNFromStore[p.propList]", "cacheNFromStore[p.prop]") // Cache p.propList and p.prop
       .nodeByLabelScan("p", "Person")
       .build()
   }
@@ -1213,7 +1220,6 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
         .|.nodeIndexOperator(
           "anon_1:Person(id = 5)",
           argumentIds = Set("x"),
-          getValue = Map("id" -> GetValue),
           unique = true
         )
         .filter("cacheN[x.age] = 20")
@@ -1246,7 +1252,6 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
         .|.nodeIndexOperator(
           "anon_1:Person(id = 5)",
           argumentIds = Set("x"),
-          getValue = Map("id" -> GetValue),
           unique = true
         )
         .filter("cacheN[x.age] = 20")
@@ -1255,5 +1260,165 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
         ) // Should not fetch x.name here, since the merge invalidates them, and they are not needed before the merge
         .nodeByLabelScan("x", "Person")
         .build()
+  }
+
+  test("Should rbps p.age, p.birthPlace, p.cnt and c.cnt and use cached version - MergeNodePattern") {
+    val query = """MATCH (p:Person {age: 25})
+                  |MERGE (c:City {name: p.birthPlace})
+                  |  ON CREATE SET c.cnt = p.cnt
+                  |  ON MATCH SET c.cnt = c.cnt + p.cnt
+                  |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .apply()
+      .|.merge(
+        Seq(createNodeFull("c", labels = Seq("City"), properties = Some("{name: cacheN[p.birthPlace]}"))),
+        Seq(),
+        Seq(setNodeProperty("c", "cnt", "cacheN[c.cnt] + cacheN[p.cnt]")),
+        Seq(setNodeProperty("c", "cnt", "cacheN[p.cnt]")),
+        Set()
+      )
+      .|.remoteBatchProperties("cacheNFromStore[c.cnt]")
+      .|.nodeIndexOperator(
+        "c:City(name = cacheN[p.birthPlace])",
+        argumentIds = Set("p"),
+        getValue = Map("name" -> DoNotGetValue)
+      )
+      .filter("cacheN[p.age] = 25")
+      .remoteBatchProperties("cacheNFromStore[p.age]", "cacheNFromStore[p.cnt]", "cacheNFromStore[p.birthPlace]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test(
+    "Should rbps p.age, p.birthPlace, p.cnt, c.cnt and c.nameNoIndex (no index usage) and use cached version - MergeNodePattern"
+  ) {
+    val query = """MATCH (p:Person {age: 25})
+                  |MERGE (c:City {nameNoIndex: p.birthPlace})
+                  |  ON CREATE SET c.cnt = p.cnt
+                  |  ON MATCH SET c.cnt = c.cnt + p.cnt
+                  |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .apply()
+      .|.merge(
+        Seq(createNodeFull("c", labels = Seq("City"), properties = Some("{nameNoIndex: cacheN[p.birthPlace]}"))),
+        Seq(),
+        Seq(setNodeProperty("c", "cnt", "cacheN[c.cnt] + cacheN[p.cnt]")),
+        Seq(setNodeProperty("c", "cnt", "cacheN[p.cnt]")),
+        Set()
+      )
+      .|.filter("cacheN[c.nameNoIndex] = cacheN[p.birthPlace]")
+      .|.remoteBatchProperties("cacheNFromStore[c.nameNoIndex]", "cacheNFromStore[c.cnt]")
+      .|.nodeByLabelScan("c", "City", "p")
+      .filter("cacheN[p.age] = 25")
+      .remoteBatchProperties("cacheNFromStore[p.age]", "cacheNFromStore[p.cnt]", "cacheNFromStore[p.birthPlace]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test(
+    "Should invalidate cached properties due to SET in ON MATCH in a MergeNodePattern"
+  ) {
+    val query = """MATCH (p:Person {age: 25, cnt: 0})
+                  |MERGE (c:City {name: p.birthPlace})
+                  |  ON MATCH SET p.cnt = p.cnt + 1
+                  |RETURN p.cnt
+                  |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.cnt] AS `p.cnt`")
+      .remoteBatchProperties(
+        "cacheNFromStore[p.cnt]"
+      ) // cached property p.cnt was invalidated by the SET, so we need to fetch them again
+      .eager(ListSet(EagernessReason.PropertyReadSetConflict(
+        PropertyKeyName("cnt")(InputPosition.NONE)
+      ).withConflict(EagernessReason.Conflict(Id(5), Id(1)))))
+      .apply()
+      .|.merge(
+        Seq(createNodeFull("c", labels = Seq("City"), properties = Some("{name: cacheN[p.birthPlace]}"))),
+        Seq(),
+        Seq(setNodeProperty("p", "cnt", "cacheN[p.cnt] + 1")),
+        Seq(),
+        Set()
+      )
+      .|.nodeIndexOperator("c:City(name = cacheN[p.birthPlace])", argumentIds = Set("p"))
+      .filter("cacheN[p.age] = 25", "cacheN[p.cnt] = 0")
+      .remoteBatchProperties("cacheNFromStore[p.age]", "cacheNFromStore[p.cnt]", "cacheNFromStore[p.birthPlace]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test(
+    "Should invalidate cached properties due to SET in ON CREATE in a MergeNodePattern"
+  ) {
+    val query = """MATCH (p:Person {age: 25, cnt: 0})
+                  |MERGE (c:City {name: p.birthPlace})
+                  |  ON CREATE SET p.cnt = p.cnt + 1
+                  |RETURN p.cnt
+                  |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.cnt] AS `p.cnt`")
+      .remoteBatchProperties(
+        "cacheNFromStore[p.cnt]"
+      ) // cached property p.cnt was invalidated by the SET, so we need to fetch them again
+      .eager(ListSet(EagernessReason.PropertyReadSetConflict(
+        PropertyKeyName("cnt")(InputPosition.NONE)
+      ).withConflict(EagernessReason.Conflict(Id(5), Id(1)))))
+      .apply()
+      .|.merge(
+        Seq(createNodeFull("c", labels = Seq("City"), properties = Some("{name: cacheN[p.birthPlace]}"))),
+        Seq(),
+        Seq(),
+        Seq(setNodeProperty("p", "cnt", "cacheN[p.cnt] + 1")),
+        Set()
+      )
+      .|.nodeIndexOperator("c:City(name = cacheN[p.birthPlace])", argumentIds = Set("p"))
+      .filter("cacheN[p.age] = 25", "cacheN[p.cnt] = 0")
+      .remoteBatchProperties("cacheNFromStore[p.age]", "cacheNFromStore[p.cnt]", "cacheNFromStore[p.birthPlace]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test(
+    "Should rbps p.age, p.prop, p.birthPlace, p.cnt, r.pr and c.cnt and use cached version - MergeRelationshipPattern"
+  ) {
+    val query = """MATCH (p:Person {age: 25})
+                  |MERGE (p)-[r:IS_LOCATED_IN {pr: p.prop}]->(c:City {name: p.birthPlace})
+                  |  ON CREATE SET c.cnt = p.cnt
+                  |  ON MATCH SET c.cnt = c.cnt + p.cnt
+                  |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .apply()
+      .|.merge(
+        Seq(createNodeFull("c", labels = Seq("City"), properties = Some("{name: cacheN[p.birthPlace]}"))),
+        Seq(createRelationship("r", "p", "IS_LOCATED_IN", "c", OUTGOING, Some("{pr: cacheN[p.prop]}"))),
+        Seq(setNodeProperty("c", "cnt", "cacheN[c.cnt] + cacheN[p.cnt]")),
+        Seq(setNodeProperty("c", "cnt", "cacheN[p.cnt]")),
+        Set("p")
+      )
+      .|.remoteBatchProperties("cacheNFromStore[c.cnt]")
+      .|.filter("cacheR[r.pr] = cacheN[p.prop]")
+      .|.remoteBatchProperties("cacheRFromStore[r.pr]")
+      .|.expandInto("(p)-[r:IS_LOCATED_IN]->(c)")
+      .|.nodeIndexOperator(
+        "c:City(name = cacheN[p.birthPlace])",
+        argumentIds = Set("p"),
+        getValue = Map("name" -> DoNotGetValue)
+      )
+      .filter("cacheN[p.age] = 25")
+      .remoteBatchProperties(
+        "cacheNFromStore[p.birthPlace]",
+        "cacheNFromStore[p.prop]",
+        "cacheNFromStore[p.cnt]",
+        "cacheNFromStore[p.age]"
+      )
+      .nodeByLabelScan("p", "Person")
+      .build()
   }
 }

@@ -2594,8 +2594,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ctx.lhs,
         ForeachPattern(v"x", v"x", SinglePlannerQuery.empty),
         ctx.context,
-        v"x",
-        Seq.empty
+        v"x"
       )
     )
   }

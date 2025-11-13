@@ -71,16 +71,10 @@ case object PlanUpdates extends UpdatesPlanner {
   ): LogicalPlan = {
     val orderForPlanning = InterestingOrderConfig(query.interestingOrder)
 
-    case class Acc(updatePlan: LogicalPlan, patternsToPlan: IndexedSeq[MutatingPattern])
-
-    val Acc(updatePlan, _) = query.queryGraph.mutatingPatterns.foldLeft(Acc(plan, query.queryGraph.mutatingPatterns)) {
-      case (Acc(updatePlan, pattersToPlan), nextPatternToPlan) =>
-        val nextUpdatePlan = planUpdate(updatePlan, nextPatternToPlan, orderForPlanning, context)
-        val remainingPatternToPlan = pattersToPlan.tail
-
-        Acc(nextUpdatePlan, remainingPatternToPlan)
+    query.queryGraph.mutatingPatterns.foldLeft(plan) {
+      case (updatePlan, nextPatternToPlan) =>
+        planUpdate(updatePlan, nextPatternToPlan, orderForPlanning, context)
     }
-    updatePlan
   }
 
   private def planUpdate(
@@ -90,10 +84,14 @@ case object PlanUpdates extends UpdatesPlanner {
     context: LogicalPlanningContext
   ) = {
 
-    def planAllUpdatesRecursively(query: SinglePlannerQuery, plan: LogicalPlan): LogicalPlan = {
+    def planAllUpdatesRecursively(
+      query: SinglePlannerQuery,
+      plan: LogicalPlan,
+      updatedContext: LogicalPlanningContext
+    ): LogicalPlan = {
       query.allPlannerQueries.foldLeft((plan, true)) {
         case ((accPlan, innerFirst), plannerQuery) =>
-          val newPlan = this.plan(plannerQuery, accPlan, innerFirst, context)
+          val newPlan = this.plan(plannerQuery, accPlan, innerFirst, updatedContext)
           (newPlan, false)
       }._1
     }
@@ -112,8 +110,7 @@ case object PlanUpdates extends UpdatesPlanner {
             source,
             foreach,
             context,
-            foreach.expression,
-            sideEffects
+            foreach.expression
           )
         } else {
           val innerLeaf = context.staticComponents.logicalPlanProducer.planArgument(
@@ -123,12 +120,17 @@ case object PlanUpdates extends UpdatesPlanner {
             context,
             context.plannerState.previouslyCachedProperties
           )
-          val innerUpdatePlan = planAllUpdatesRecursively(foreach.innerUpdates, innerLeaf)
+          val updatedContext = context.withModifiedPlannerState(
+            _.withPreviouslyCachedProperties(
+              context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(source.id)
+            )
+          )
+          val innerUpdatePlan = planAllUpdatesRecursively(foreach.innerUpdates, innerLeaf, updatedContext)
           context.staticComponents.logicalPlanProducer.planForeachApply(
             source,
             innerUpdatePlan,
             foreach,
-            context,
+            updatedContext,
             foreach.expression
           )
         }

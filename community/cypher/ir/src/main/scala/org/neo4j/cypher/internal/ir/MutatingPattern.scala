@@ -52,7 +52,9 @@ sealed trait SimpleMutatingPattern extends MutatingPattern {
   override def mapExpressions(f: Expression => Expression): SimpleMutatingPattern
 }
 
-sealed trait SetMutatingPattern extends SimpleMutatingPattern with NoSymbols
+sealed trait SetMutatingPattern extends SimpleMutatingPattern with NoSymbols {
+  override def mapExpressions(f: Expression => Expression): SetMutatingPattern
+}
 
 sealed trait DeleteMutatingPattern extends SimpleMutatingPattern with NoSymbols
 
@@ -273,6 +275,10 @@ case class DeleteExpression(expression: Expression, detachDelete: Boolean) exten
 sealed trait MergePattern {
   self: MutatingPattern =>
   def matchGraph: QueryGraph
+  def createNodePatterns: Seq[CreateNode]
+  def createRelationshipPatterns: Seq[CreateRelationship]
+  def onMatchPatterns: Seq[SetMutatingPattern]
+  def onCreatePatterns: Seq[SetMutatingPattern]
 }
 
 case class MergeNodePattern(
@@ -289,11 +295,25 @@ case class MergeNodePattern(
       onCreate.flatMap(_.dependencies) ++
       onMatch.flatMap(_.dependencies)
 
-  override def mapExpressions(f: Expression => Expression): MergeNodePattern = this // Not implemented
+  override def mapExpressions(f: Expression => Expression): MergeNodePattern = copy(
+    createNode = createNode.mapExpressions(f),
+    onCreate = onCreate.map(_.mapExpressions(f)),
+    onMatch = onMatch.map(_.mapExpressions(f))
+  )
 
-  override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq.empty // Not implemented
+  override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = {
+    onCreate.flatMap(_.getExpressionsWithPossiblePropertyReferences) ++
+      onMatch.flatMap(_.getExpressionsWithPossiblePropertyReferences) ++
+      createNode.properties
+  }
 
-  override def invalidatesCachedProperties: Boolean = onMatch.exists(_.invalidatesCachedProperties)
+  override def invalidatesCachedProperties: Boolean = onMatch.exists(_.invalidatesCachedProperties) ||
+    onCreate.exists(_.invalidatesCachedProperties)
+
+  override def createNodePatterns: Seq[CreateNode] = Seq(createNode)
+  override def createRelationshipPatterns: Seq[CreateRelationship] = Seq.empty
+  override def onMatchPatterns: Seq[SetMutatingPattern] = onMatch
+  override def onCreatePatterns: Seq[SetMutatingPattern] = onCreate
 }
 
 case class MergeRelationshipPattern(
@@ -312,11 +332,27 @@ case class MergeRelationshipPattern(
       onCreate.flatMap(_.dependencies) ++
       onMatch.flatMap(_.dependencies)
 
-  override def mapExpressions(f: Expression => Expression): MergeRelationshipPattern = this // Not implemented
+  override def mapExpressions(f: Expression => Expression): MergeRelationshipPattern = copy(
+    createNodes = createNodes.map(_.mapExpressions(f)),
+    createRelationships = createRelationships.map(_.mapExpressions(f)),
+    onCreate = onCreate.map(_.mapExpressions(f)),
+    onMatch = onMatch.map(_.mapExpressions(f))
+  )
 
-  override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = Seq.empty // Not implemented
+  override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] = {
+    onCreate.flatMap(_.getExpressionsWithPossiblePropertyReferences) ++
+      onMatch.flatMap(_.getExpressionsWithPossiblePropertyReferences) ++
+      createNodes.flatMap(_.properties) ++
+      createRelationships.flatMap(_.properties)
+  }
 
-  override def invalidatesCachedProperties: Boolean = onMatch.exists(_.invalidatesCachedProperties)
+  override def invalidatesCachedProperties: Boolean = onMatch.exists(_.invalidatesCachedProperties) ||
+    onCreate.exists(_.invalidatesCachedProperties)
+
+  override def createNodePatterns: Seq[CreateNode] = createNodes
+  override def createRelationshipPatterns: Seq[CreateRelationship] = createRelationships
+  override def onMatchPatterns: Seq[SetMutatingPattern] = onMatch
+  override def onCreatePatterns: Seq[SetMutatingPattern] = onCreate
 }
 
 case class ForeachPattern(variable: LogicalVariable, expression: Expression, innerUpdates: SinglePlannerQuery)
@@ -332,8 +368,14 @@ case class ForeachPattern(variable: LogicalVariable, expression: Expression, inn
     )
   )
 
+  def getSimpleMutatingPatterns: collection.Seq[SimpleMutatingPattern] = {
+    innerUpdates.allPlannerQueries.flatMap(_.queryGraph.mutatingPatterns) collect {
+      case smp: SimpleMutatingPattern => smp
+    }
+  }
+
   override def getExpressionsWithPossiblePropertyReferences: Seq[Expression] =
-    innerUpdates.queryGraph.mutatingPatterns.flatMap(_.getExpressionsWithPossiblePropertyReferences)
+    expression +: innerUpdates.queryGraph.mutatingPatterns.flatMap(_.getExpressionsWithPossiblePropertyReferences)
 
   override def invalidatesCachedProperties: Boolean =
     innerUpdates.allPlannerQueries.exists(

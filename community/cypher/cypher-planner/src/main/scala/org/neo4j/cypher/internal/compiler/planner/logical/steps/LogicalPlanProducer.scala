@@ -132,7 +132,6 @@ import org.neo4j.cypher.internal.ir.SetRelationshipPropertiesFromMapPattern
 import org.neo4j.cypher.internal.ir.SetRelationshipPropertiesPattern
 import org.neo4j.cypher.internal.ir.SetRelationshipPropertyPattern
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
-import org.neo4j.cypher.internal.ir.SimpleMutatingPattern
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.ir.UnwindProjection
@@ -3554,7 +3553,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used in the CREATE
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
@@ -3581,39 +3580,59 @@ case class LogicalPlanProducer(
     // The read, which is the `inner` plan is free to use RollUpApply, etc.
     val rewriter = irExpressionRewriter(inner, context)
 
-    val patterns =
+    val (mergePattern, innerRewrittenRBPs, patternRewrittenCachedProps) =
       if (createRelationshipPatterns.isEmpty) {
-        MergeNodePattern(
+        val mergeNodePattern = MergeNodePattern(
           createNodePatterns.head,
           solveds(inner.id).asSinglePlannerQuery.queryGraph,
           onCreatePatterns,
           onMatchPatterns
         )
+        // Plan remoteBatchProperties when property references are used in the MERGE
+        val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+          context.settings.remoteBatchPropertiesStrategy
+            .planRemoteBatchPropertiesForMutatingPattern(inner, context, mergeNodePattern)
+
+        (mergeNodePattern, innerRewrittenRBPs, patternRewrittenCachedProps)
+
       } else {
-        MergeRelationshipPattern(
+        val mergeRelPattern = MergeRelationshipPattern(
           createNodePatterns,
           createRelationshipPatterns,
           solveds(inner.id).asSinglePlannerQuery.queryGraph,
           onCreatePatterns,
           onMatchPatterns
         )
-      }
-    val rewrittenNodePatterns = createNodePatterns.endoRewrite(rewriter)
-    val rewrittenRelPatterns = createRelationshipPatterns.endoRewrite(rewriter)
+        // Plan remoteBatchProperties when property references are used in the MERGE
+        val (innerRewrittenRBPs, patternRewrittenCachedProps) =
+          context.settings.remoteBatchPropertiesStrategy
+            .planRemoteBatchPropertiesForMutatingPattern(inner, context, mergeRelPattern)
 
-    val solved = RegularSinglePlannerQuery().amendQueryGraph(_.addMutatingPatterns(patterns))
+        (mergeRelPattern, innerRewrittenRBPs, patternRewrittenCachedProps)
+      }
+
+    val rewrittenNodePatterns = patternRewrittenCachedProps.createNodePatterns.endoRewrite(rewriter)
+    val rewrittenRelPatterns = patternRewrittenCachedProps.createRelationshipPatterns.endoRewrite(rewriter)
+
+    val solved = RegularSinglePlannerQuery().amendQueryGraph(_.addMutatingPatterns(mergePattern))
     val merge =
       Merge(
-        inner,
+        innerRewrittenRBPs,
         rewrittenNodePatterns,
         rewrittenRelPatterns,
-        onMatchPatterns,
-        onCreatePatterns,
+        patternRewrittenCachedProps.onMatchPatterns,
+        patternRewrittenCachedProps.onCreatePatterns,
         nodesToLock
       )
     val providedOrder =
-      providedOrderOfUpdate(merge, inner, context.settings.executionModel, context.providedOrderFactory)
-    annotate(merge, solved, providedOrder, cachedPropertiesAfterMutatingPattern(patterns, inner), context)
+      providedOrderOfUpdate(merge, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)
+    annotate(
+      merge,
+      solved,
+      providedOrder,
+      cachedPropertiesAfterMutatingPattern(mergePattern, innerRewrittenRBPs),
+      context
+    )
   }
 
   def planConditionalApply(
@@ -3712,7 +3731,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the node label
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
@@ -3738,7 +3757,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the node property
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
@@ -3768,7 +3787,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the node properties
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
@@ -3793,7 +3812,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the node properties
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
@@ -3823,7 +3842,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the relationship property
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
@@ -3853,7 +3872,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the relationship properties
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
@@ -3878,7 +3897,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the relationship properties
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
@@ -3908,7 +3927,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the properties
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
@@ -3934,7 +3953,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the property
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
@@ -3964,7 +3983,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the properties
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
@@ -3989,7 +4008,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to set the label
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
@@ -4015,7 +4034,7 @@ case class LogicalPlanProducer(
     // Plan remoteBatchProperties when property references are used to define the label that needs to be removed
     val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPattern(inner, context, pattern)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
@@ -4058,13 +4077,12 @@ case class LogicalPlanProducer(
     inner: LogicalPlan,
     pattern: ForeachPattern,
     context: LogicalPlanningContext,
-    expression: Expression,
-    mutations: collection.Seq[SimpleMutatingPattern]
+    expression: Expression
   ): LogicalPlan = {
     // Plan remoteBatchProperties when property references are used in the mutating patterns
-    val (innerRewrittenRBPs, mutationsRewrittenCachedProps) =
+    val (innerRewrittenRBPs, patternRewrittenCachedProps) =
       context.settings.remoteBatchPropertiesStrategy
-        .planRemoteBatchPropertiesForSimpleMutatingPatterns(inner, context, mutations.toSeq)
+        .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
       solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
@@ -4075,7 +4093,7 @@ case class LogicalPlanProducer(
       rewrittenLeft,
       pattern.variable,
       rewrittenExpression,
-      mutationsRewrittenCachedProps
+      patternRewrittenCachedProps.getSimpleMutatingPatterns
     )
     val providedOrder =
       providedOrderOfUpdate(plan, innerRewrittenRBPs, context.settings.executionModel, context.providedOrderFactory)

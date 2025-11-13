@@ -44,11 +44,11 @@ import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
+import org.neo4j.cypher.internal.ir.MutatingPattern
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.QueryHorizon
 import org.neo4j.cypher.internal.ir.RegularQueryProjection
-import org.neo4j.cypher.internal.ir.SimpleMutatingPattern
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
@@ -98,13 +98,7 @@ sealed trait RemoteBatchingStrategy {
     expressions: Iterable[Expression]
   ): RemoteBatchingResult
 
-  def planRemoteBatchPropertiesForSimpleMutatingPatterns(
-    source: LogicalPlan,
-    context: LogicalPlanningContext,
-    patterns: Seq[SimpleMutatingPattern]
-  ): (LogicalPlan, Seq[SimpleMutatingPattern])
-
-  def planRemoteBatchPropertiesForSimpleMutatingPattern[T <: SimpleMutatingPattern with HasMappableExpressions[T]](
+  def planRemoteBatchPropertiesForMutatingPattern[T <: MutatingPattern with HasMappableExpressions[T]](
     source: LogicalPlan,
     context: LogicalPlanningContext,
     pattern: T
@@ -241,21 +235,8 @@ object RemoteBatchingStrategy {
       )
     }
 
-    override def planRemoteBatchPropertiesForSimpleMutatingPatterns(
-      source: LogicalPlan,
-      context: LogicalPlanningContext,
-      patterns: Seq[SimpleMutatingPattern]
-    ): (LogicalPlan, Seq[SimpleMutatingPattern]) = {
-      val RemoteBatchingResult(rewrittenPatternExpressions, rewrittenInner) =
-        planRemoteBatchProperties(source, context, patterns.flatMap(_.getExpressionsWithPossiblePropertyReferences))
-      val rewrittenPattern = patterns.map(_.mapExpressions(
-        rewrittenPatternExpressions.rewrittenExpressionOrSelf
-      ))
-      (rewrittenInner, rewrittenPattern)
-    }
-
-    override def planRemoteBatchPropertiesForSimpleMutatingPattern[
-      T <: SimpleMutatingPattern with HasMappableExpressions[T]
+    override def planRemoteBatchPropertiesForMutatingPattern[
+      T <: MutatingPattern with HasMappableExpressions[T]
     ](
       source: LogicalPlan,
       context: LogicalPlanningContext,
@@ -740,7 +721,9 @@ object RemoteBatchingStrategy {
         val accumulatedPropertyAccesses = ContextualPropertyAccess(
           queryGraph = acc.queryGraph ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.queryGraph)),
           queryGraphMutatingPatterns = acc.queryGraphMutatingPatterns ++
-            PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.queryGraph.mutatingPatterns)),
+            PropertyAccessHelper.findPropertyAccesses(
+              currentQuery.queryGraph.mutatingPatterns.flatMap(_.getExpressionsWithPossiblePropertyReferences)
+            ),
           horizon =
             if (collectOnlyQgProps)
               acc.horizon
@@ -846,14 +829,8 @@ object RemoteBatchingStrategy {
     ): RemoteBatchingSubQueryResult =
       RemoteBatchingSubQueryResult(predicatesToSolve, input)
 
-    override def planRemoteBatchPropertiesForSimpleMutatingPatterns(
-      source: LogicalPlan,
-      context: LogicalPlanningContext,
-      patterns: Seq[SimpleMutatingPattern]
-    ): (LogicalPlan, Seq[SimpleMutatingPattern]) = (source, patterns)
-
-    override def planRemoteBatchPropertiesForSimpleMutatingPattern[
-      T <: SimpleMutatingPattern with HasMappableExpressions[T]
+    override def planRemoteBatchPropertiesForMutatingPattern[
+      T <: MutatingPattern with HasMappableExpressions[T]
     ](
       source: LogicalPlan,
       context: LogicalPlanningContext,
