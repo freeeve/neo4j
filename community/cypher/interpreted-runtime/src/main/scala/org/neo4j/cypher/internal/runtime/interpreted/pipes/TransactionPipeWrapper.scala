@@ -56,7 +56,6 @@ import org.neo4j.memory.MemoryTracker
 import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration.Duration
-import scala.util.Try
 import scala.util.control.NonFatal
 
 /**
@@ -193,9 +192,13 @@ trait TransactionPipeWrapper {
       case RecoverableCypherError(e) =>
         logError(state, transactionId, e)
 
-        Try(Option(innerIterator).foreach(_.close()))
-          .failed
-          .foreach(e.addSuppressed)
+        if (innerIterator != null) {
+          try {
+            innerIterator.close()
+          } catch {
+            case t: Throwable => e.addSuppressed(t)
+          }
+        }
 
         try {
           innerTxContext.rollback()

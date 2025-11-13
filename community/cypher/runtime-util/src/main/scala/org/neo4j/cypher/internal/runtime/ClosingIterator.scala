@@ -124,11 +124,32 @@ abstract class ClosingIterator[+T] extends AutoCloseable {
    */
   final def close(): Unit = {
     if (!closed) {
-      if (resources != null) {
-        IOUtils.closeAll(resources)
+      var err: Throwable = null
+      try {
+        if (resources != null) {
+          IOUtils.closeAll(resources)
+        }
+      } catch {
+        case t: Throwable =>
+          err = t
       }
-      closeMore()
+
+      try {
+        closeMore()
+      } catch {
+        case t: Throwable =>
+          if (err != null) {
+            err.addSuppressed(t)
+          } else {
+            err = t
+          }
+      }
+
       closed = true
+
+      if (err != null) {
+        throw err
+      }
     }
   }
 
