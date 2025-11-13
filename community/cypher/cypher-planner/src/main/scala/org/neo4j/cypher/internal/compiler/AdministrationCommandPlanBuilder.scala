@@ -1088,7 +1088,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
 
       // CREATE [OR REPLACE] DATABASE foo [IF NOT EXISTS] (with shards)
       case c @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, None, cypherVersion, Some(shardDef)) =>
-        Some(plans.AssertManagementActionNotBlocked(CreateDatabaseAction))
+        Some(plans.AssertManagementActionNotBlocked(c.name, CreateDatabaseAction))
           .map(plans.AssertAllowedDbmsActions(_, CreateDatabaseAction))
           .flatMap(canCreateCheck =>
             ifExistsDo match {
@@ -1119,7 +1119,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
 
       // CREATE [OR REPLACE] DATABASE foo [IF NOT EXISTS]
       case c @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, topology, cypherVersion, None) =>
-        Some(plans.AssertManagementActionNotBlocked(CreateDatabaseAction))
+        Some(plans.AssertManagementActionNotBlocked(c.name, CreateDatabaseAction))
           .map(plans.AssertAllowedDbmsActions(_, CreateDatabaseAction))
           .flatMap(canCreateCheck =>
             ifExistsDo match {
@@ -1157,7 +1157,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))
 
       case c @ CreateCompositeDatabase(dbName, ifExistsDo, options, waitUntilComplete, cypherVersion) =>
-        Some(plans.AssertManagementActionNotBlocked(CreateCompositeDatabaseAction))
+        Some(plans.AssertManagementActionNotBlocked(c.name, CreateCompositeDatabaseAction))
           .map(plans.AssertAllowedDbmsActions(_, CreateCompositeDatabaseAction))
           .flatMap(canCreateCheck =>
             ifExistsDo match {
@@ -1196,7 +1196,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
       // DROP [COMPOSITE] DATABASE foo [IF EXISTS] [DESTROY | DUMP DATA]
       case c @ DropDatabase(dbName, ifExists, composite, aliasAction, additionalAction, waitUntilComplete) =>
         val action = if (composite) DropCompositeDatabaseAction else DropDatabaseAction
-        val assertNotBlockedPlan = plans.AssertManagementActionNotBlocked(action)
+        val assertNotBlockedPlan = plans.AssertManagementActionNotBlocked(c.name, action)
         Some(
           if (composite) plans.AssertAllowedDbmsActions(assertNotBlockedPlan, DropCompositeDatabaseAction)
           else plans.AssertCanDropDatabase(assertNotBlockedPlan, dbName, DropDatabaseAction)
@@ -1262,7 +1262,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         val alterIsValidOnSystem =
           requiredPrivilegedActionsForDatabases == Seq(SetDatabaseDefaultLanguageAction(cypherVersionForPrivileges))
 
-        Some(plans.AssertManagementActionNotBlocked(requiredPrivilegedActionsForDatabases))
+        Some(plans.AssertManagementActionNotBlocked(c.name, requiredPrivilegedActionsForDatabases))
           .map(s =>
             plans.AssertCanAlterDatabase(
               s,
@@ -1374,7 +1374,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         val assertAllowed = plans.AssertAllowedDatabaseAction(
           StartDatabaseAction,
           dbName,
-          Some(plans.AssertManagementActionNotBlocked(StartDatabaseAction))
+          Some(plans.AssertManagementActionNotBlocked(c.name, StartDatabaseAction))
         )
         val plan = wrapInWait(plans.StartDatabase(assertAllowed, dbName), dbName, waitUntilComplete)
         Some(plans.LogSystemCommand(plan, prettifier.asString(c)))
@@ -1384,7 +1384,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         val assertAllowed = plans.AssertAllowedDatabaseAction(
           StopDatabaseAction,
           dbName,
-          Some(plans.AssertManagementActionNotBlocked(StopDatabaseAction))
+          Some(plans.AssertManagementActionNotBlocked(c.name, StopDatabaseAction))
         )
         val plan = wrapInWait(
           plans.StopDatabase(
@@ -1569,22 +1569,22 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           ))
 
       case c @ EnableServer(name, options) =>
-        val checkBlocked = plans.AssertManagementActionNotBlocked(ServerManagementAction)
+        val checkBlocked = plans.AssertManagementActionNotBlocked(c.name, ServerManagementAction)
         val assertAllowed = plans.AssertAllowedDbmsActions(checkBlocked, ServerManagementAction)
         Some(plans.LogSystemCommand(plans.EnableServer(assertAllowed, name, options), prettifier.asString(c)))
 
       case c @ AlterServer(name, options) =>
-        val checkBlocked = plans.AssertManagementActionNotBlocked(ServerManagementAction)
+        val checkBlocked = plans.AssertManagementActionNotBlocked(c.name, ServerManagementAction)
         val assertAllowed = plans.AssertAllowedDbmsActions(checkBlocked, ServerManagementAction)
         Some(plans.LogSystemCommand(plans.AlterServer(assertAllowed, name, options), prettifier.asString(c)))
 
       case c @ RenameServer(name, newName) =>
-        val checkBlocked = plans.AssertManagementActionNotBlocked(ServerManagementAction)
+        val checkBlocked = plans.AssertManagementActionNotBlocked(c.name, ServerManagementAction)
         val assertAllowed = plans.AssertAllowedDbmsActions(checkBlocked, ServerManagementAction)
         Some(plans.LogSystemCommand(plans.RenameServer(assertAllowed, name, newName), prettifier.asString(c)))
 
       case c @ DropServer(name) =>
-        val checkBlocked = plans.AssertManagementActionNotBlocked(ServerManagementAction)
+        val checkBlocked = plans.AssertManagementActionNotBlocked(c.name, ServerManagementAction)
         val assertAllowed = plans.AssertAllowedDbmsActions(checkBlocked, ServerManagementAction)
         Some(plans.LogSystemCommand(plans.DropServer(assertAllowed, name), prettifier.asString(c)))
 
@@ -1599,12 +1599,12 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ))
 
       case c @ DeallocateServers(dryRun, names) =>
-        val checkBlocked = plans.AssertManagementActionNotBlocked(ServerManagementAction)
+        val checkBlocked = plans.AssertManagementActionNotBlocked(c.name, ServerManagementAction)
         val assertAllowed = plans.AssertAllowedDbmsActions(checkBlocked, ServerManagementAction)
         Some(plans.LogSystemCommand(plans.DeallocateServer(assertAllowed, dryRun, names), prettifier.asString(c)))
 
       case c @ ReallocateDatabases(dryRun) =>
-        val checkBlocked = plans.AssertManagementActionNotBlocked(ServerManagementAction)
+        val checkBlocked = plans.AssertManagementActionNotBlocked(c.name, ServerManagementAction)
         Some(plans.LogSystemCommand(
           plans.ReallocateDatabases(plans.AssertAllowedDbmsActions(checkBlocked, ServerManagementAction), dryRun),
           prettifier.asString(c)

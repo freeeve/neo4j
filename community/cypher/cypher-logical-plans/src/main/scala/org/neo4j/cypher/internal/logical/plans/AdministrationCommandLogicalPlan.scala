@@ -263,13 +263,14 @@ case class AssertNotCurrentUser(
   errorGqlStatusObject: ErrorGqlStatusObject
 )(implicit idGen: IdGen) extends PrivilegePlan(Some(source))
 
-case class AssertManagementActionNotBlocked(action: Seq[AdministrationAction])(implicit idGen: IdGen)
+case class AssertManagementActionNotBlocked(command: String, action: Seq[AdministrationAction])(implicit idGen: IdGen)
     extends PrivilegePlan
 
 object AssertManagementActionNotBlocked {
 
-  def apply(administrationAction: AdministrationAction)(implicit idGen: IdGen): AssertManagementActionNotBlocked =
-    AssertManagementActionNotBlocked(Seq(administrationAction))
+  def apply(command: String, administrationAction: AdministrationAction)(implicit
+    idGen: IdGen): AssertManagementActionNotBlocked =
+    AssertManagementActionNotBlocked(command, Seq(administrationAction))
 }
 
 case class AssertNotBlockedRemoteAliasManagement()(implicit idGen: IdGen) extends PrivilegePlan

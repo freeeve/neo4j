@@ -522,7 +522,7 @@ case class CommunityAdministrationCommandRuntime(
         )
 
     // This is no-op in community
-    case AssertManagementActionNotBlocked(_) => _ =>
+    case _: AssertManagementActionNotBlocked => _ =>
         PredicateExecutionPlan(
           (_, _) => true,
           None,

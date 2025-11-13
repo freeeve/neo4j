@@ -795,7 +795,10 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       adminPlanDescription
     )
 
-    assertGood(attach(AssertManagementActionNotBlocked(CreateDatabaseAction), 1.0), adminPlanDescription)
+    assertGood(
+      attach(AssertManagementActionNotBlocked("CREATE DATABASE", CreateDatabaseAction), 1.0),
+      adminPlanDescription
+    )
 
     assertGood(attach(AssertNotBlockedRemoteAliasManagement(), 1.0), adminPlanDescription)
 

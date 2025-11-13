@@ -54,4 +54,12 @@ public class SecurityAdministrationException extends CypherExecutionException {
                 .build();
         return new SecurityAdministrationException(gql, oldMessage);
     }
+
+    public static SecurityAdministrationException unsupportedInAura(String feature, String oldMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N31)
+                .withParam(GqlParams.StringParam.feat, feature)
+                .withParam(GqlParams.StringParam.context, "Aura")
+                .build();
+        return new SecurityAdministrationException(gql, oldMessage);
+    }
 }
