@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.neo4j.graphdb.Resource;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 
 /**
@@ -50,6 +51,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 public record StoreSnapshot(
         Stream<StoreResource> unrecoverableFiles,
         Path[] recoverableFiles,
+        KernelVersion kernelVersion,
         TransactionId lastAppliedTransactionId,
         long checkpointAppendIndex,
         StoreId storeId,

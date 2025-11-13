@@ -253,8 +253,8 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             // info about last checkpoint is used only be store copy and so far we do not want to update protocol
             // to contain all the fields and state to make checkpoint identical after store copy.
             // To make it still work we are using the oldest non-visible index instead of the last batch plus state
-            var ongoingCheckpoint =
-                    new LatestCheckpointInfo(transactionId, oldestNotVisibleAppendIndex, checkpointedLogPosition);
+            var ongoingCheckpoint = new LatestCheckpointInfo(
+                    kernelVersion, transactionId, oldestNotVisibleAppendIndex, checkpointedLogPosition);
             String checkpointReason = triggerInfo.describe(ongoingCheckpoint);
             /*
              * Check kernel health before going into waiting for transactions to be closed, to avoid

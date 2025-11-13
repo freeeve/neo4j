@@ -80,8 +80,11 @@ class DefaultStoreSnapshotFactoryTest {
         when(database.getInternalLogProvider()).thenReturn(DatabaseLogProvider.nullDatabaseLogProvider());
         var checkPointer = mock(CheckPointer.class);
         when(checkPointer.latestCheckPointInfo())
-                .thenReturn(
-                        new LatestCheckpointInfo(UNKNOWN_TRANSACTION_ID, UNKNOWN_APPEND_INDEX, new LogPosition(1, 1)));
+                .thenReturn(new LatestCheckpointInfo(
+                        UNKNOWN_TRANSACTION_ID.kernelVersion(),
+                        UNKNOWN_TRANSACTION_ID,
+                        UNKNOWN_APPEND_INDEX,
+                        new LogPosition(1, 1)));
         LogFiles logFiles = mock(LogFiles.class);
         LogFile logFile = mock(LogFile.class);
         when(logFile.extractHeader(1))
