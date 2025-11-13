@@ -495,7 +495,7 @@ object ReadFinder {
         processNodeIndexPlan(node, labelName, Seq(property))
 
       case search: NodeVectorIndexSearch =>
-        processNodeIndexPlan(search.idName, search.label.name, search.properties)
+        processNodeIndexPlan(search.idName, search.labels.map(_.name), search.properties)
 
       case NodeByIdSeek(varName, _, _) =>
         // We could avoid eagerness when we have IdSeeks with a single ID.
@@ -1376,14 +1376,25 @@ object ReadFinder {
     labelName: String,
     properties: Seq[IndexedProperty]
   ): PlanReads = {
-    val lN = LabelName(labelName)(InputPosition.NONE)
-    val hasLabels = HasLabels(variable, Seq(lN))(InputPosition.NONE)
+    processNodeIndexPlan(variable, Seq(labelName), properties)
+  }
 
-    val r = PlanReads()
-      .withLabelRead(AccessedLabel(lN, Some(variable)))
+  private def processNodeIndexPlan(
+    variable: LogicalVariable,
+    labelNames: Seq[String],
+    properties: Seq[IndexedProperty]
+  ): PlanReads = {
+    val lNs = labelNames.map(labelName => LabelName(labelName)(InputPosition.NONE))
+    val predicates = lNs.map { labelName =>
+      HasLabels(variable, Seq(labelName))(InputPosition.NONE)
+    }
+    val filterExpression = Ors(predicates)(InputPosition.NONE)
+    val r = lNs.foldLeft(PlanReads())((acc, lN) =>
+      acc
+        .withLabelRead(AccessedLabel(lN, Some(variable)))
+    )
+      .withAddedNodeFilterExpression(variable, filterExpression)
       .withIntroducedNodeVariable(variable)
-      .withAddedNodeFilterExpression(variable, hasLabels)
-
     properties.foldLeft(r) {
       case (acc, IndexedProperty(PropertyKeyToken(property, _), _, _)) =>
         val propName = PropertyKeyName(property)(InputPosition.NONE)

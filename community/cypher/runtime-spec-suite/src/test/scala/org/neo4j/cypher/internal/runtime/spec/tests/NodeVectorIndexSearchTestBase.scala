@@ -19,15 +19,19 @@
  */
 package org.neo4j.cypher.internal.runtime.spec.tests
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.configuration.GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
+import org.neo4j.dbms.database.DbmsRuntimeVersion
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
+import org.neo4j.kernel.KernelVersion
 import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.Values.float32Vector
 import org.neo4j.values.storable.Values.float64Vector
@@ -44,7 +48,19 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
-) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
+) extends RuntimeTestSuite[CONTEXT](
+      edition.copyWith(
+        additionalConfigs =
+          GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> java.lang.Boolean.TRUE,
+        GraphDatabaseInternalSettings.latest_kernel_version -> java.lang.Byte.valueOf(
+          KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING.version
+        ),
+        GraphDatabaseInternalSettings.latest_runtime_version -> Integer.valueOf(
+          DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion
+        )
+      ),
+      runtime
+    ) {
 
   private val configurations = Seq(
     ("INT64", int64Vector(1L to sizeHint: _*)),
@@ -72,7 +88,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           .projection("n.id AS id")
           .nodeVectorIndexSearch(
             node = "n",
-            labelName = "Foo",
+            labelNames = Seq("Foo"),
             properties = Seq("v"),
             indexName = "VectorIndex",
             vector = "$vector",
@@ -103,7 +119,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           .projection("n.id AS id")
           .nodeVectorIndexSearch(
             node = "n",
-            labelName = "Foo",
+            labelNames = Seq("Foo"),
             properties = Seq("v"),
             indexName = "VectorIndex",
             vector = "$vector",
@@ -131,7 +147,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           .projection("n.id AS id")
           .nodeVectorIndexSearch(
             node = "n",
-            labelName = "Foo",
+            labelNames = Seq("Foo"),
             properties = Seq("v"),
             indexName = "VectorIndex",
             vector = s"${vectorAsCypherList(vector)}",
@@ -166,7 +182,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .apply()
       .|.nodeVectorIndexSearch(
         node = "m",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = "n.v",
@@ -198,7 +214,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .projection("n.id AS id")
       .nodeVectorIndexSearch(
         node = "n",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = s"${vectorAsCypherList(theVector)}",
@@ -228,7 +244,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .projection("n.id AS id")
       .nodeVectorIndexSearch(
         node = "n",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = s"${vectorAsCypherList(theVector)}",
@@ -260,7 +276,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .projection("n.id AS id")
       .nodeVectorIndexSearch(
         node = "n",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = s"'THIS IS NOT A VECTOR'",
@@ -294,7 +310,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .projection("n.id AS id")
       .nodeVectorIndexSearch(
         node = "n",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = "NULL",
@@ -323,7 +339,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .projection("n.id AS id")
       .nodeVectorIndexSearch(
         node = "n",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = s"[1, NULL, 3]",
@@ -357,7 +373,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .projection("n.id AS id")
       .nodeVectorIndexSearch(
         node = "n",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = "$vector",
@@ -388,7 +404,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .projection("n.id AS id")
       .nodeVectorIndexSearch(
         node = "n",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = "$vector",
@@ -419,7 +435,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .projection("n.id AS id")
       .nodeVectorIndexSearch(
         node = "n",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = "$vector",
@@ -454,7 +470,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       .projection("n.id AS id")
       .nodeVectorIndexSearch(
         node = "n",
-        labelName = "Foo",
+        labelNames = Seq("Foo"),
         properties = Seq("v"),
         indexName = "VectorIndex",
         vector = "$vector",
@@ -469,6 +485,78 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ))
     error.gqlStatus() shouldBe "22003"
     error.cause().get().gqlStatus() shouldBe "22N03"
+  }
+
+  test("should support multiple labels (on same node)") {
+    val random = new Random()
+
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo", "Bar", "Baz"), "v")
+      nodeGraph(sizeHint, "Foo", "Bar", "Baz").zipWithIndex.foreach({
+        case (n, i) =>
+          n.setProperty("id", i)
+          n.setProperty("v", float32Vector((1 to sizeHint).map(_ => random.between(0f, 10f)): _*))
+      })
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("labels")
+      .projection("labels(n) AS labels")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo", "Bar", "Baz"),
+        properties = Seq("v"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = "13"
+      ).build()
+
+    val runtimeResult =
+      execute(logicalQuery, runtime, parameters = Map("vector" -> float32Vector(Seq.fill(sizeHint)(5.0f): _*)))
+    runtimeResult should beColumns("labels").withRows(
+      Seq.fill(13)(Array(Array("Foo", "Bar", "Baz"))),
+      listInAnyOrder = true
+    )
+  }
+
+  test("should support multiple labels (on different nodes)") {
+    val random = new Random()
+
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo", "Bar", "Baz"), "v")
+      nodeGraph(1, "Foo").foreach(n =>
+        n.setProperty("v", float32Vector((1 to sizeHint).map(_ => random.between(0f, 10f)): _*))
+      )
+      nodeGraph(1, "Bar").foreach(n =>
+        n.setProperty("v", float32Vector((1 to sizeHint).map(_ => random.between(0f, 10f)): _*))
+      )
+      nodeGraph(1, "Baz").foreach(n =>
+        n.setProperty("v", float32Vector((1 to sizeHint).map(_ => random.between(0f, 10f)): _*))
+      )
+
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("labels")
+      .projection("labels(n) AS labels")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo", "Bar", "Baz"),
+        properties = Seq("v"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = "13"
+      ).build()
+
+    val runtimeResult =
+      execute(logicalQuery, runtime, parameters = Map("vector" -> float32Vector(Seq.fill(sizeHint)(5.0f): _*)))
+    runtimeResult should beColumns("labels").withRows(Seq(
+      Array(Array("Foo")),
+      Array(Array("Bar")),
+      Array(Array("Baz"))
+    ))
   }
 
   private def vectorAsCypherList(v: VectorValue): String = {

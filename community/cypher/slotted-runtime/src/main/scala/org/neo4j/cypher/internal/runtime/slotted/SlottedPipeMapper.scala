@@ -433,13 +433,13 @@ class SlottedPipeMapper(
           indexOrder
         )(id)
 
-      case NodeVectorIndexSearch(node, label, properties, score, indexName, vector, limit, _, _) =>
+      case NodeVectorIndexSearch(node, labels, properties, score, indexName, vector, limit, _, _) =>
         NodeVectorIndexSearchSlottedPipe(
           slots.longOffset(node.name),
           score.map(s => slots.refOffset(s.name)),
           convertExpressions(vector),
           convertExpressions(limit),
-          indexRegistrator.registerNamedQueryIndex(indexName, IndexType.VECTOR, label, properties)
+          indexRegistrator.registerNamedQueryIndex(indexName, IndexType.VECTOR, labels, properties)
         )(id)
 
       case NodeIndexSeek(column, label, properties, valueExpr, _, indexOrder, indexType, _) =>

@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.plans.AssertSameNode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
-import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
+import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekSingleLabelLeafPlan
 import org.neo4j.cypher.internal.runtime.spec.RewritingRuntimeTest
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.internal.util.Rewriter
@@ -45,7 +45,7 @@ trait MultiNodeIndexSeekCompatibilityTestRewriter[CONTEXT <: RuntimeContext] ext
   override def rewriter(logicalQuery: LogicalQuery): Rewriter = {
     bottomUp(
       Rewriter.lift {
-        case plan: NodeIndexSeekLeafPlan => MultiNodeIndexSeek(Array(plan))(logicalQuery.idGen)
+        case plan: NodeIndexSeekSingleLabelLeafPlan => MultiNodeIndexSeek(Array(plan))(logicalQuery.idGen)
       },
       stopper
     )

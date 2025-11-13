@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.logical.plans.DistinctColumns
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
-import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
+import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekSingleLabelLeafPlan
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.plandescription.Arguments.BatchSize
 import org.neo4j.cypher.internal.plandescription.Arguments.DbHits
@@ -1276,10 +1276,10 @@ class RenderAsTreeTableTest extends CypherFunSuite with BeforeAndAfterAll with A
   test("MultiNodeIndexSeek") {
     val logicalPlan = MultiNodeIndexSeek(Seq(
       nodeIndexSeek("x:Label(Prop = 10,Foo = 1,Distance = 6,Name = 'Karoline Getinge')", unique = true).asInstanceOf[
-        NodeIndexSeekLeafPlan
+        NodeIndexSeekSingleLabelLeafPlan
       ],
-      nodeIndexSeek("y:Label(Prop = 12, Name = 'Foo')").asInstanceOf[NodeIndexSeekLeafPlan],
-      nodeIndexSeek("z:Label(Prop > 100, Name = 'Bar')").asInstanceOf[NodeIndexSeekLeafPlan]
+      nodeIndexSeek("y:Label(Prop = 12, Name = 'Foo')").asInstanceOf[NodeIndexSeekSingleLabelLeafPlan],
+      nodeIndexSeek("z:Label(Prop > 100, Name = 'Bar')").asInstanceOf[NodeIndexSeekSingleLabelLeafPlan]
     ))
     val effectiveCardinalities = new EffectiveCardinalities
     effectiveCardinalities.set(logicalPlan.id, EffectiveCardinality(2.0))

@@ -1889,7 +1889,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       .apply()
       .|.nodeVectorIndexSearch(
         "y",
-        "L",
+        Seq("L"),
         Seq("prop"),
         "'rhsIndex'",
         "[1, 2, 3]",
@@ -1899,7 +1899,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       )
       .nodeVectorIndexSearch(
         "x",
-        "L",
+        Seq("L"),
         Seq("prop"),
         "'lhsIndex'",
         "[1, 2, 3]",

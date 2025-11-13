@@ -21,24 +21,26 @@ package org.neo4j.kernel.api.query;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.neo4j.util.Preconditions;
 
 public class SchemaIndexUsage extends IndexUsage {
-    private final String label;
+    private final String[] labels;
     private final String[] propertyKeys;
     private final int[] propertyKeyIds;
-    private final int labelId;
+    private final int[] labelIds;
 
     public SchemaIndexUsage(
-            String identifier, int labelId, String label, int[] propertyKeyIds, String... propertyKeys) {
+            String identifier, int[] labelIds, String[] labels, int[] propertyKeyIds, String[] propertyKeys) {
         super(identifier);
-        this.label = label;
-        this.labelId = labelId;
+        Preconditions.checkArgument(labelIds.length == labels.length, "label names and ids must match");
+        this.labels = labels;
+        this.labelIds = labelIds;
         this.propertyKeys = propertyKeys;
         this.propertyKeyIds = propertyKeyIds;
     }
 
-    public int getLabelId() {
-        return labelId;
+    public int[] getLabelIds() {
+        return labelIds;
     }
 
     public int[] getPropertyKeys() {
@@ -51,8 +53,12 @@ public class SchemaIndexUsage extends IndexUsage {
         map.put("indexType", "SCHEMA INDEX");
         map.put("entityType", "NODE");
         map.put("identifier", identifier);
-        map.put("label", label);
-        map.put("labelId", String.valueOf(labelId));
+        for (int i = 0; i < labels.length; i++) {
+            String labelKey = labels.length > 1 ? "label_" + i : "label";
+            String labelIdKey = labels.length > 1 ? "labelId_" + i : "labelId";
+            map.put(labelKey, labels[i]);
+            map.put(labelIdKey, String.valueOf(labelIds[i]));
+        }
         for (int i = 0; i < propertyKeys.length; i++) {
             String key = (propertyKeys.length > 1) ? "propertyKey_" + i : "propertyKey";
             map.put(key, propertyKeys[i]);

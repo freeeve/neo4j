@@ -8822,4 +8822,214 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
 
     result shouldEqual expectedPlan
   }
+
+  test("inserts eager between label set and label read (NodeVectorIndexSearch) if label overlap") {
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("1 AS result")
+      .setLabels("m", "N", "O")
+      .apply()
+      .|.nodeVectorIndexSearch("n", Seq("M", "N"), Seq("embedding"), "myIndex", "[1,2,3]", "11", argumentIds = Set("m"))
+      .allNodeScan("m")
+    val plan = planBuilder.build()
+    val result = eagerizePlan(planBuilder, plan)
+
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("result")
+        .projection("1 AS result")
+        .setLabels("m", "N", "O")
+        .eager(ListSet(LabelReadSetConflict(labelName("N")).withConflict(Conflict(Id(2), Id(4)))))
+        .apply()
+        .|.nodeVectorIndexSearch(
+          "n",
+          Seq("M", "N"),
+          Seq("embedding"),
+          "myIndex",
+          "[1,2,3]",
+          "11",
+          argumentIds = Set("m")
+        )
+        .allNodeScan("m")
+        .build()
+    )
+  }
+
+  test("do not insert eager between label set and label read (NodeVectorIndexSearch) if no label overlap") {
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("1 AS result")
+      .setLabels("m", "O", "P")
+      .apply()
+      .|.nodeVectorIndexSearch("n", Seq("M", "N"), Seq("embedding"), "myIndex", "[1,2,3]", "11", argumentIds = Set("m"))
+      .allNodeScan("m")
+    val plan = planBuilder.build()
+    val result = eagerizePlan(planBuilder, plan)
+
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("result")
+        .projection("1 AS result")
+        .setLabels("m", "O", "P")
+        .apply()
+        .|.nodeVectorIndexSearch(
+          "n",
+          Seq("M", "N"),
+          Seq("embedding"),
+          "myIndex",
+          "[1,2,3]",
+          "11",
+          argumentIds = Set("m")
+        )
+        .allNodeScan("m")
+        .build()
+    )
+  }
+
+  test("inserts eager between property set and property read (NodeVectorIndexSearch) if property overlap") {
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("1 AS result")
+      .setNodeProperty("m", "valid", "false")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        "n",
+        Seq("M", "N"),
+        Seq("embedding", "valid"),
+        "myIndex",
+        "[1,2,3]",
+        "11",
+        argumentIds = Set("m")
+      )
+      .allNodeScan("m")
+    val plan = planBuilder.build()
+    val result = eagerizePlan(planBuilder, plan)
+
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("result")
+        .projection("1 AS result")
+        .setNodeProperty("m", "valid", "false")
+        .eager(ListSet(PropertyReadSetConflict(propName("valid")).withConflict(Conflict(Id(2), Id(4)))))
+        .apply()
+        .|.nodeVectorIndexSearch(
+          "n",
+          Seq("M", "N"),
+          Seq("embedding", "valid"),
+          "myIndex",
+          "[1,2,3]",
+          "11",
+          argumentIds = Set("m")
+        )
+        .allNodeScan("m")
+        .build()
+    )
+  }
+
+  test(
+    "should not insert eager between property set and property read (NodeVectorIndexSearch) if no property overlap"
+  ) {
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("1 AS result")
+      .setNodeProperty("m", "inValid", "true")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        "n",
+        Seq("M", "N"),
+        Seq("embedding", "valid"),
+        "myIndex",
+        "[1,2,3]",
+        "11",
+        argumentIds = Set("m")
+      )
+      .allNodeScan("m")
+    val plan = planBuilder.build()
+    val result = eagerizePlan(planBuilder, plan)
+
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("result")
+        .projection("1 AS result")
+        .setNodeProperty("m", "inValid", "true")
+        .apply()
+        .|.nodeVectorIndexSearch(
+          "n",
+          Seq("M", "N"),
+          Seq("embedding", "valid"),
+          "myIndex",
+          "[1,2,3]",
+          "11",
+          argumentIds = Set("m")
+        )
+        .allNodeScan("m")
+        .build()
+    )
+  }
+
+  test("inserts eager between create and label read (NodeVectorIndexSearch) if label overlap") {
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("1 AS result")
+      .create(createNodeWithProperties("o", Seq("M"), "{embedding: [1,2,3]}"))
+      .apply()
+      .|.nodeVectorIndexSearch("n", Seq("M", "N"), Seq("embedding"), "myIndex", "[1,2,3]", "11", argumentIds = Set("m"))
+      .allNodeScan("m")
+    val plan = planBuilder.build()
+    val result = eagerizePlan(planBuilder, plan)
+
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("result")
+        .projection("1 AS result")
+        .create(createNodeWithProperties("o", Seq("M"), "{embedding: [1,2,3]}"))
+        .eager(ListSet(
+          LabelReadSetConflict(labelName("M")).withConflict(Conflict(Id(2), Id(4))),
+          PropertyReadSetConflict(propName("embedding")).withConflict(Conflict(Id(2), Id(4)))
+        ))
+        .apply()
+        .|.nodeVectorIndexSearch(
+          "n",
+          Seq("M", "N"),
+          Seq("embedding"),
+          "myIndex",
+          "[1,2,3]",
+          "11",
+          argumentIds = Set("m")
+        )
+        .allNodeScan("m")
+        .build()
+    )
+  }
+
+  test("should not insert eager between create and label read (NodeVectorIndexSearch) if no label overlap") {
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("1 AS result")
+      .create(createNodeWithProperties("o", Seq("O"), "{embedding: [1,2,3]}"))
+      .apply()
+      .|.nodeVectorIndexSearch("n", Seq("M", "N"), Seq("embedding"), "myIndex", "[1,2,3]", "11", argumentIds = Set("m"))
+      .allNodeScan("m")
+    val plan = planBuilder.build()
+    val result = eagerizePlan(planBuilder, plan)
+
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("result")
+        .projection("1 AS result")
+        .create(createNodeWithProperties("o", Seq("O"), "{embedding: [1,2,3]}"))
+        .apply()
+        .|.nodeVectorIndexSearch(
+          "n",
+          Seq("M", "N"),
+          Seq("embedding"),
+          "myIndex",
+          "[1,2,3]",
+          "11",
+          argumentIds = Set("m")
+        )
+        .allNodeScan("m")
+        .build()
+    )
+  }
 }

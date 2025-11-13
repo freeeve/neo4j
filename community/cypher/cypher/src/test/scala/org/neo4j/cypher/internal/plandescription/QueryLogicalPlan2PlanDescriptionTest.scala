@@ -166,7 +166,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
 import org.neo4j.cypher.internal.logical.plans.NodeCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
-import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
+import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekSingleLabelLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NonFuseable
@@ -945,7 +945,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       attach(
         NodeVectorIndexSearch(
           varFor("n"),
-          LabelToken("Label", LabelId(0)),
+          Seq(LabelToken("Label", LabelId(0))),
           Seq(IndexedProperty(PropertyKeyToken("prop", PropertyKeyId(0)), DoNotGetValue, NODE_TYPE)),
           None,
           "vectorIndex",
@@ -2200,8 +2200,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     assertGood(
       attach(
         MultiNodeIndexSeek(Seq(
-          nodeIndexSeek("x:Label(Prop = 10,Foo = 12)", unique = true).asInstanceOf[NodeIndexSeekLeafPlan],
-          nodeIndexSeek("y:Label(Prop = 12)", unique = false).asInstanceOf[NodeIndexSeekLeafPlan]
+          nodeIndexSeek("x:Label(Prop = 10,Foo = 12)", unique = true).asInstanceOf[NodeIndexSeekSingleLabelLeafPlan],
+          nodeIndexSeek("y:Label(Prop = 12)", unique = false).asInstanceOf[NodeIndexSeekSingleLabelLeafPlan]
         )),
         230.0
       ),

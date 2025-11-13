@@ -305,13 +305,13 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     val lookupIndexUsage = ListBuffer.empty[LookupIndexUsage]
 
     logicalPlan.indexUsage().foreach {
-      case SchemaLabelIndexUsage(identifier, labelId, label, propertyKeys) =>
+      case SchemaLabelIndexUsage(identifier, labels, propertyKeys) =>
         schemaIndexUsage.addOne(new SchemaIndexUsage(
           identifier.name,
-          labelId,
-          label,
+          labels.map(_.nameId.id).toArray,
+          labels.map(_.name).toArray,
           propertyKeys.map(_.nameId.id).toArray,
-          propertyKeys.map(_.name): _*
+          propertyKeys.map(_.name).toArray
         ))
 
       case SchemaRelationshipIndexUsage(identifier, relTypeId, relType, propertyKeys) =>

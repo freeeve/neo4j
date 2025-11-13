@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime
 
+import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
@@ -32,6 +33,7 @@ import org.neo4j.internal.helpers.collection.Iterators
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.internal.kernel.api.TokenReadSession
+import org.neo4j.internal.schema
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.SchemaDescriptors
 
@@ -57,15 +59,15 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
     registerQueryIndex(indexType, label, Seq(property))
 
   def registerQueryIndex(indexType: IndexType, label: LabelToken, properties: collection.Seq[IndexedProperty]): Int =
-    registerQueryIndex(indexType, label.nameId, properties, None)
+    registerQueryIndex(indexType, Seq(label.nameId), properties, None)
 
   def registerNamedQueryIndex(
     indexName: String,
     indexType: IndexType,
-    label: LabelToken,
+    labels: Seq[LabelToken],
     properties: collection.Seq[IndexedProperty]
   ): Int =
-    registerQueryIndex(indexType, label.nameId, properties, Some(indexName))
+    registerQueryIndex(indexType, labels.map(_.nameId), properties, Some(indexName))
 
   def registerQueryIndex(indexType: IndexType, typeToken: RelationshipTypeToken, property: IndexedProperty): Int =
     registerQueryIndex(indexType, typeToken, Seq(property))
@@ -75,11 +77,11 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
     relationshipTypeToken: RelationshipTypeToken,
     properties: collection.Seq[IndexedProperty]
   ): Int =
-    registerQueryIndex(indexType, relationshipTypeToken.nameId, properties, None)
+    registerQueryIndex(indexType, Seq(relationshipTypeToken.nameId), properties, None)
 
   private def registerQueryIndex(
     indexType: IndexType,
-    tokenNameId: NameId,
+    tokenNameId: collection.Seq[NameId],
     properties: collection.Seq[IndexedProperty],
     name: Option[String]
   ): Int = {
@@ -102,13 +104,27 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
   def result(): QueryIndexes = {
     val indexes =
       indexReferences.map {
-        case InternalIndexReference(LabelId(token), properties, indexType, None) =>
+        case InternalIndexReference(labels, properties, schema.IndexType.VECTOR, None)
+          if labels.forall(_.isInstanceOf[LabelId]) =>
+          schemaRead.indexForSchemaAndIndexTypeNonTransactional(
+            SchemaDescriptors.forSemanticSearch(EntityType.NODE, labels.map(_.id).toArray, properties.toArray),
+            schema.IndexType.VECTOR
+          )
+
+        case InternalIndexReference(Seq(LabelId(token)), properties, indexType, None) =>
           schemaRead.indexForSchemaAndIndexTypeNonTransactional(
             SchemaDescriptors.forLabel(token, properties.toSeq: _*),
             indexType
           )
 
-        case InternalIndexReference(RelTypeId(token), properties, indexType, None) =>
+        case InternalIndexReference(relypes, properties, schema.IndexType.VECTOR, None)
+          if relypes.forall(_.isInstanceOf[RelTypeId]) =>
+          schemaRead.indexForSchemaAndIndexTypeNonTransactional(
+            SchemaDescriptors.forSemanticSearch(EntityType.RELATIONSHIP, relypes.map(_.id).toArray, properties.toArray),
+            schema.IndexType.VECTOR
+          )
+
+        case InternalIndexReference(Seq(RelTypeId(token)), properties, indexType, None) =>
           schemaRead.indexForSchemaAndIndexTypeNonTransactional(
             SchemaDescriptors.forRelType(token, properties.toSeq: _*),
             indexType
@@ -149,7 +165,7 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
   }
 
   private case class InternalIndexReference(
-    token: NameId,
+    token: collection.Seq[NameId],
     properties: collection.Seq[Int],
     indexType: internal.schema.IndexType,
     name: Option[String]

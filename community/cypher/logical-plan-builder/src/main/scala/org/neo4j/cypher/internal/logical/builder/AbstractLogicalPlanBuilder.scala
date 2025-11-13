@@ -193,7 +193,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
-import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
+import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekSingleLabelLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NonFuseable
 import org.neo4j.cypher.internal.logical.plans.NonPipelined
@@ -2260,14 +2260,14 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   def multiNodeIndexSeekOperator(seeks: (IMPL => IdGen => NodeIndexLeafPlan)*): IMPL = {
     val planBuilder = (idGen: IdGen) => {
-      MultiNodeIndexSeek(seeks.map(_(this)(idGen).asInstanceOf[NodeIndexSeekLeafPlan]))(idGen)
+      MultiNodeIndexSeek(seeks.map(_(this)(idGen).asInstanceOf[NodeIndexSeekSingleLabelLeafPlan]))(idGen)
     }
     appendAtCurrentIndent(LeafOperator(planBuilder))
   }
 
   def nodeVectorIndexSearch(
     node: String,
-    labelName: String,
+    labelNames: Seq[String],
     properties: Seq[String],
     indexName: String,
     vector: Any,
@@ -2275,8 +2275,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     score: String = "",
     argumentIds: Set[String] = Set.empty
   ): IMPL = {
-    val labelToken = resolver.getLabelId(labelName)
-    val label = LabelToken(labelName, LabelId(labelToken))
+    val labels = labelNames.map(labelName => LabelToken(labelName, LabelId(resolver.getLabelId(labelName))))
     val propIDs = properties
       .map(p =>
         IndexedProperty(
@@ -2295,7 +2294,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     val planBuilder = (idGen: IdGen) => {
       NodeVectorIndexSearch(
         varFor(node),
-        label,
+        labels,
         propIDs,
         if (score.isEmpty) None else Some(varFor(score)),
         indexName,

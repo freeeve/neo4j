@@ -1704,7 +1704,7 @@ object LogicalPlanToPlanBuilderString {
         )
       case NodeVectorIndexSearch(
           idName,
-          labelToken,
+          labelTokens,
           properties,
           score,
           indexName,
@@ -1715,7 +1715,7 @@ object LogicalPlanToPlanBuilderString {
         ) =>
         params(
           idName,
-          labelToken.name.quoted,
+          seqParam(labelTokens.map(_.name.quoted)),
           seqParam(properties.map(_.propertyKeyToken.name.quoted)),
           indexName.quoted,
           vector.quoted,

@@ -113,8 +113,7 @@ sealed trait IndexUsage {
 
 final case class SchemaLabelIndexUsage(
   identifier: LogicalVariable,
-  labelId: Int,
-  label: String,
+  labels: Seq[LabelToken],
   propertyTokens: Seq[PropertyKeyToken]
 ) extends IndexUsage
 
@@ -357,8 +356,7 @@ sealed abstract class LogicalPlan(idGen: IdGen)
           acc :+
             SchemaLabelIndexUsage(
               nodeIndexPlan.idName,
-              nodeIndexPlan.label.nameId.id,
-              nodeIndexPlan.label.name,
+              nodeIndexPlan.labels,
               nodeIndexPlan.properties.map(_.propertyKeyToken)
             )
     }
@@ -518,7 +516,7 @@ sealed trait IndexedPropertyProvidingPlan {
 
 sealed abstract class NodeIndexLeafPlan(idGen: IdGen) extends NodeLogicalLeafPlan(idGen)
     with IndexedPropertyProvidingPlan {
-  def label: LabelToken
+  def labels: Seq[LabelToken]
 
   override def cachedProperties: Seq[CachedProperty] = properties.flatMap(_.maybeCachedProperty(idName))
 
@@ -539,6 +537,11 @@ sealed abstract class NodeIndexLeafPlan(idGen: IdGen) extends NodeLogicalLeafPla
   def indexType: IndexType
 
   def indexOrder: IndexOrder
+}
+
+sealed abstract class NodeIndexSingleLabelLeafPlan(idGen: IdGen) extends NodeIndexLeafPlan(idGen) {
+  def label: LabelToken
+  override def labels: Seq[LabelToken] = Seq(label)
 }
 
 sealed abstract class RelationshipIndexLeafPlan(idGen: IdGen) extends RelationshipLogicalLeafPlan(idGen)
@@ -593,6 +596,14 @@ sealed abstract class NodeIndexSeekLeafPlan(idGen: IdGen) extends NodeIndexLeafP
   def indexOrder: IndexOrder
 
   override def withMappedProperties(f: IndexedProperty => IndexedProperty): NodeIndexSeekLeafPlan
+}
+
+sealed abstract class NodeIndexSeekSingleLabelLeafPlan(idGen: IdGen) extends NodeIndexSeekLeafPlan(idGen) {
+  def label: LabelToken
+
+  override def labels: Seq[LabelToken] = Seq(label)
+
+  override def withMappedProperties(f: IndexedProperty => IndexedProperty): NodeIndexSeekSingleLabelLeafPlan
 }
 
 sealed abstract class MultiRelationshipIndexLeafPlan(idGen: IdGen) extends RelationshipLogicalLeafPlan(idGen)
@@ -962,12 +973,16 @@ case class ArgumentTracker(override val source: LogicalPlan)(implicit idGen: IdG
  * This operator is used on label/property combinations under uniqueness constraint, meaning that a single matching
  * node is guaranteed per seek.
  */
-case class AssertingMultiNodeIndexSeek(node: LogicalVariable, nodeIndexSeeks: Seq[NodeIndexSeekLeafPlan])(implicit
-  idGen: IdGen)
+case class AssertingMultiNodeIndexSeek(
+  node: LogicalVariable,
+  nodeIndexSeeks: Seq[NodeIndexSeekSingleLabelLeafPlan]
+)(implicit idGen: IdGen)
     extends MultiNodeIndexLeafPlan(idGen) with StableLeafPlan {
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
-    copy(nodeIndexSeeks = nodeIndexSeeks.map(_.addArgumentIds(argsToAdd).asInstanceOf[NodeIndexSeekLeafPlan]))(
+    copy(nodeIndexSeeks =
+      nodeIndexSeeks.map(_.addArgumentIds(argsToAdd).asInstanceOf[NodeIndexSeekSingleLabelLeafPlan])
+    )(
       SameId(this.id)
     )
 
@@ -986,12 +1001,14 @@ case class AssertingMultiNodeIndexSeek(node: LogicalVariable, nodeIndexSeeks: Se
     nodeIndexSeeks.flatMap(_.properties)
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): MultiNodeIndexLeafPlan =
-    copy(nodeIndexSeeks = nodeIndexSeeks.map(_.withoutArgumentIds(argsToExclude).asInstanceOf[NodeIndexSeekLeafPlan]))(
+    copy(nodeIndexSeeks =
+      nodeIndexSeeks.map(_.withoutArgumentIds(argsToExclude).asInstanceOf[NodeIndexSeekSingleLabelLeafPlan])
+    )(
       SameId(this.id)
     )
 
   override def removeArgumentIds(): MultiNodeIndexLeafPlan =
-    copy(nodeIndexSeeks = nodeIndexSeeks.map(_.removeArgumentIds().asInstanceOf[NodeIndexSeekLeafPlan]))(
+    copy(nodeIndexSeeks = nodeIndexSeeks.map(_.removeArgumentIds().asInstanceOf[NodeIndexSeekSingleLabelLeafPlan]))(
       SameId(this.id)
     )
 
@@ -3228,7 +3245,7 @@ case class LockNodes(override val source: LogicalPlan, nodesToLock: Set[LogicalV
  * This operator is used on label/property combinations under uniqueness constraint, meaning that a single matching
  * node is guaranteed per seek.
  */
-case class MultiNodeIndexSeek(nodeIndexSeeks: Seq[NodeIndexSeekLeafPlan])(implicit idGen: IdGen)
+case class MultiNodeIndexSeek(nodeIndexSeeks: Seq[NodeIndexSeekSingleLabelLeafPlan])(implicit idGen: IdGen)
     extends MultiNodeIndexLeafPlan(idGen) with StableLeafPlan {
 
   override val localAvailableSymbols: Set[LogicalVariable] =
@@ -3246,13 +3263,17 @@ case class MultiNodeIndexSeek(nodeIndexSeeks: Seq[NodeIndexSeekLeafPlan])(implic
     nodeIndexSeeks.flatMap(_.properties)
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): MultiNodeIndexLeafPlan =
-    copy(nodeIndexSeeks.map(_.withoutArgumentIds(argsToExclude).asInstanceOf[NodeIndexSeekLeafPlan]))(SameId(this.id))
+    copy(
+      nodeIndexSeeks.map(_.withoutArgumentIds(argsToExclude).asInstanceOf[NodeIndexSeekSingleLabelLeafPlan])
+    )(SameId(this.id))
 
   override def removeArgumentIds(): MultiNodeIndexLeafPlan =
-    copy(nodeIndexSeeks.map(_.removeArgumentIds().asInstanceOf[NodeIndexSeekLeafPlan]))(SameId(this.id))
+    copy(nodeIndexSeeks.map(_.removeArgumentIds().asInstanceOf[NodeIndexSeekSingleLabelLeafPlan]))(SameId(this.id))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
-    copy(nodeIndexSeeks = nodeIndexSeeks.map(_.addArgumentIds(argsToAdd).asInstanceOf[NodeIndexSeekLeafPlan]))(
+    copy(nodeIndexSeeks =
+      nodeIndexSeeks.map(_.addArgumentIds(argsToAdd).asInstanceOf[NodeIndexSeekSingleLabelLeafPlan])
+    )(
       SameId(this.id)
     )
 
@@ -3485,7 +3506,7 @@ case class NodeIndexContainsScan(
   indexOrder: IndexOrder,
   override val indexType: IndexType
 )(implicit idGen: IdGen)
-    extends NodeIndexLeafPlan(idGen) with StableLeafPlan {
+    extends NodeIndexSingleLabelLeafPlan(idGen) with StableLeafPlan {
 
   override def properties: Seq[IndexedProperty] = Seq(property)
 
@@ -3524,7 +3545,7 @@ case class NodeIndexEndsWithScan(
   indexOrder: IndexOrder,
   override val indexType: IndexType
 )(implicit idGen: IdGen)
-    extends NodeIndexLeafPlan(idGen) with StableLeafPlan {
+    extends NodeIndexSingleLabelLeafPlan(idGen) with StableLeafPlan {
 
   override def properties: Seq[IndexedProperty] = Seq(property)
 
@@ -3560,7 +3581,7 @@ case class NodeIndexScan(
   override val indexType: IndexType,
   supportPartitionedScan: Boolean
 )(implicit idGen: IdGen)
-    extends NodeIndexLeafPlan(idGen) with StableLeafPlan {
+    extends NodeIndexSingleLabelLeafPlan(idGen) with StableLeafPlan {
 
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName
 
@@ -3592,7 +3613,7 @@ case class PartitionedNodeIndexScan(
   argumentIds: Set[LogicalVariable],
   override val indexType: IndexType
 )(implicit idGen: IdGen)
-    extends NodeIndexLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
+    extends NodeIndexSingleLabelLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
 
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName
 
@@ -3618,7 +3639,7 @@ case class PartitionedNodeIndexScan(
 
 case class NodeVectorIndexSearch(
   idName: LogicalVariable,
-  label: LabelToken,
+  labels: Seq[LabelToken],
   properties: Seq[IndexedProperty],
   score: Option[LogicalVariable],
   indexName: String,
@@ -3666,7 +3687,7 @@ case class NodeIndexSeek(
   indexOrder: IndexOrder,
   override val indexType: IndexType,
   supportPartitionedScan: Boolean
-)(implicit idGen: IdGen) extends NodeIndexSeekLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
+)(implicit idGen: IdGen) extends NodeIndexSeekSingleLabelLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
 
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName
 
@@ -3695,7 +3716,7 @@ case class PartitionedNodeIndexSeek(
   valueExpr: QueryExpression[Expression],
   argumentIds: Set[LogicalVariable],
   override val indexType: IndexType
-)(implicit idGen: IdGen) extends NodeIndexSeekLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
+)(implicit idGen: IdGen) extends NodeIndexSingleLabelLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
 
   override def indexOrder: IndexOrder = IndexOrderNone
 
@@ -3738,7 +3759,7 @@ case class MergeUniqueNode(
   override val indexType: IndexType,
   onMatchProperties: Seq[(PropertyKeyName, Expression)],
   onCreateProperties: Seq[(PropertyKeyName, Expression)]
-)(implicit idGen: IdGen) extends NodeIndexLeafPlan(idGen) with StableLeafPlan with UpdatingPlan {
+)(implicit idGen: IdGen) extends NodeIndexSingleLabelLeafPlan(idGen) with StableLeafPlan with UpdatingPlan {
   override def localAvailableSymbols: Set[LogicalVariable] = Set(idName)
 
   override def usedVariables: Set[LogicalVariable] =
@@ -3776,7 +3797,7 @@ case class NodeUniqueIndexSeek(
   indexOrder: IndexOrder,
   override val indexType: IndexType,
   supportPartitionedScan: Boolean
-)(implicit idGen: IdGen) extends NodeIndexSeekLeafPlan(idGen) with StableLeafPlan {
+)(implicit idGen: IdGen) extends NodeIndexSeekSingleLabelLeafPlan(idGen) with StableLeafPlan {
 
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName
 

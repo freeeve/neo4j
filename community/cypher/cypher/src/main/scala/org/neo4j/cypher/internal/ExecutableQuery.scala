@@ -96,7 +96,8 @@ trait ExecutableQuery extends CacheabilityInfo {
    * Precomputed to reduce execution latency for very fast queries.
    */
   val labelIdsOfUsedIndexes: Map[Long, Array[Int]] = compilerInfo.indexes().asScala
-    .collect { case item: SchemaIndexUsage => item.getLabelId.toLong -> item.getPropertyKeys }
+    .collect { case item: SchemaIndexUsage => item.getLabelIds.map(lid => lid.toLong -> item.getPropertyKeys) }
+    .flatten
     .toMap
 
   /**

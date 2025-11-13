@@ -270,7 +270,7 @@ object IndexSeek {
     val label = LabelToken(labelStr, LabelId(labelId))
     val predicates = predicateStr.split(',').map(_.trim)
 
-    def createSeek(properties: Seq[IndexedProperty], valueExpr: QueryExpression[Expression]): NodeIndexSeekLeafPlan = {
+    def createSeek(properties: Seq[IndexedProperty], valueExpr: QueryExpression[Expression]): NodeIndexLeafPlan = {
       PartitionedNodeIndexSeek(varFor(node), label, properties, valueExpr, argumentIds.map(varFor), indexType)
     }
 
