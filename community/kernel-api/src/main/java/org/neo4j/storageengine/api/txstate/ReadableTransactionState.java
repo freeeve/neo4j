@@ -26,7 +26,6 @@ import org.eclipse.collections.impl.UnmodifiableMap;
 import org.neo4j.collection.diffset.DiffSets;
 import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.collection.diffset.LongDiffSets;
-import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
@@ -38,9 +37,7 @@ import org.neo4j.values.storable.ValueTuple;
  * This interface contains the methods for reading transaction state from the transaction state.
  * The implementation of these methods should be free of any side effects (such as initialising lazy state).
  */
-public interface ReadableTransactionState {
-    void accept(TxStateVisitor visitor) throws KernelException;
-
+public interface ReadableTransactionState extends VisitableTransactionState {
     boolean hasChanges();
 
     // ENTITY RELATED
