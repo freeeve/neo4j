@@ -526,7 +526,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("me", "you", "a", "b", "r")
       .repeatAcyclic(`(me) [(a)-[r]->()-[]->(b)]{0,*} (you)`)
-      .|.filter("NOT secret = b_inner", isRepeatAcyclic("b_inner"))
+      .|.filter("NOT secret = b_inner", isRepeatAcyclic("b_inner"), isRepeatTrailUnique("ranon"))
       .|.expandAll("(secret)-[ranon]->(b_inner)")
       .|.filter("NOT a_inner = secret", isRepeatAcyclic("secret"))
       .|.expandAll("(a_inner)-[r_inner]->(secret)")
@@ -752,7 +752,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       innerEnd = "c_inner",
       groupNodes = Set(("c_inner", "c")),
       innerNodes = Set("c_inner"),
-      previouslyBoundNodes = Set("a"),
+      previouslyBoundNodes = Set("a", "b"),
       previouslyBoundNodeGroups = Set(),
       groupRelationships = Set(("f_inner", "f")),
       innerRelationships = Set("f_inner"),
@@ -1328,18 +1328,23 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .apply()
       .|.projection(Map("path3" -> qppPath(varFor("middle"), Seq(varFor("c"), varFor("r2")), varFor("end"))))
       .|.repeatAcyclic(`(middle) [(c)-[r2]->(d:LOOP)]{0, *} (end:LOOP)`)
-      .|.|.filter("d_inner:LOOP", "NOT c_inner = d_inner", isRepeatAcyclic("d_inner"))
+      .|.|.filter("d_inner:LOOP", "NOT c_inner = d_inner", isRepeatAcyclic("d_inner"), isRepeatTrailUnique("r2_inner"))
       .|.|.expandAll("(c_inner)-[r2_inner]->(d_inner)")
       .|.|.argument("middle", "c_inner")
       .|.argument("middle")
       .filter("middle:MIDDLE:LOOP")
       .projection(Map("path2" -> qppPath(varFor("firstMiddle"), Seq(varFor("a"), varFor("r1")), varFor("middle"))))
       .repeatAcyclic(`(firstMiddle) [(a)-[r1]->(b:MIDDLE)]{0, *} (middle:MIDDLE:LOOP)`)
-      .|.filter("b_inner:MIDDLE", "NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
+      .|.filter("b_inner:MIDDLE", "NOT a_inner = b_inner", isRepeatAcyclic("b_inner"), isRepeatTrailUnique("r1_inner"))
       .|.expandAll("(a_inner)-[r1_inner]->(b_inner)")
       .|.argument("firstMiddle", "a_inner")
       .repeatAcyclic(`(start:START) [()-[]->(:MIDDLE)]{1, 1} (firstMiddle:MIDDLE)`)
-      .|.filter("anon_end_inner:MIDDLE", "NOT anon_start_inner = anon_end_inner")
+      .|.filter(
+        "anon_end_inner:MIDDLE",
+        "NOT anon_start_inner = anon_end_inner",
+        isRepeatAcyclic("anon_end_inner"),
+        isRepeatTrailUnique("anon_r_inner")
+      )
       .|.expandAll("(anon_start_inner)-[anon_r_inner]->(anon_end_inner)")
       .|.argument("start", "anon_start_inner")
       .nodeByLabelScan("start", "START", IndexOrderNone)
@@ -1806,14 +1811,14 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
         "end",
         "c_inner",
         "d_inner",
-        Set(("c_inner", "c"), ("d_inner", "d")),
-        Set(),
-        Set(),
-        Set(),
-        Set(("r2_inner", "r2")),
-        Set("r2_inner"),
-        Set(),
-        Set("r1"),
+        groupNodes = Set(("c_inner", "c"), ("d_inner", "d")),
+        innerNodes = Set("c_inner", "d_inner"),
+        previouslyBoundNodes = Set("start", "firstMiddle", "middle"),
+        previouslyBoundNodeGroups = Set("a", "b"),
+        groupRelationships = Set(("r2_inner", "r2")),
+        innerRelationships = Set("r2_inner"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set("r1"),
         false,
         expansionMode = ExpandAll,
         accumulators = Set.empty
@@ -1828,7 +1833,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .|.|.|.|.|.filter("NOT c_inner = d_inner", isRepeatAcyclic("d_inner"), isRepeatTrailUnique("r2_inner"))
       .|.|.|.|.|.expandAll("(c_inner)-[r2_inner]->(d_inner)")
       .|.|.|.|.|.argument("middle", "c_inner")
-      .|.|.|.|.argument("middle")
+      .|.|.|.|.argument("start", "firstMiddle", "middle")
       .|.|.|.filter("true")
       .|.|.|.sort("foo ASC")
       .|.|.|.projection("start.foo AS foo")
@@ -1841,7 +1846,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
         "a_inner",
         "b_inner",
         Set(("a_inner", "a"), ("b_inner", "b")),
-        Set(),
+        Set("a_inner", "b_inner"),
         Set(),
         Set(),
         Set(("r1_inner", "r1")),
@@ -1873,9 +1878,9 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         Set(),
-        Set("anon_r_inner"),
-        Set(),
-        Set(),
+        innerRelationships = Set("anon_r_inner"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set(),
         false,
         expansionMode = ExpandAll,
         accumulators = Set.empty
@@ -1904,14 +1909,14 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
         "end",
         "c_inner",
         "d_inner",
-        Set(("c_inner", "c"), ("d_inner", "d")),
-        Set(),
-        Set(),
-        Set(),
-        Set(("r2_inner", "r2")),
-        Set("r2_inner"),
-        Set(),
-        Set("r1"),
+        groupNodes = Set(("c_inner", "c"), ("d_inner", "d")),
+        innerNodes = Set(),
+        previouslyBoundNodes = Set("start", "firstMiddle", "middle"),
+        previouslyBoundNodeGroups = Set("a", "b"),
+        groupRelationships = Set(("r2_inner", "r2")),
+        innerRelationships = Set("r2_inner"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set("r1"),
         false,
         ExpandAll,
         Set.empty
@@ -1938,9 +1943,9 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
         "a_inner",
         "b_inner",
         Set(("a_inner", "a"), ("b_inner", "b")),
-        Set(),
-        Set(),
-        Set(),
+        Set("a_inner", "b_inner"),
+        Set("start", "firstMiddle"),
+        Set("anon_start_inner_group", "anon_end_inner_group"),
         Set(("r1_inner", "r1")),
         Set("r1_inner"),
         Set(),
@@ -1964,7 +1969,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
         "firstMiddle",
         "anon_start_inner",
         "anon_end_inner",
-        Set(),
+        Set(("anon_start_inner", "anon_start_inner_group"), ("anon_end_inner", "anon_end_inner_group")),
         Set(),
         Set(),
         Set(),
@@ -2000,14 +2005,14 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
         "end",
         "c_inner",
         "d_inner",
-        Set(("c_inner", "c"), ("d_inner", "d")),
-        Set(),
-        Set(),
-        Set(),
-        Set(("r2_inner", "r2")),
-        Set("r2_inner"),
-        Set(),
-        Set("r1"),
+        groupNodes = Set(("c_inner", "c"), ("d_inner", "d")),
+        innerNodes = Set(),
+        previouslyBoundNodes = Set(),
+        previouslyBoundNodeGroups = Set("a", "b"),
+        groupRelationships = Set(("r2_inner", "r2")),
+        innerRelationships = Set("r2_inner"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set("r1"),
         false,
         ExpandAll,
         Set.empty
@@ -2035,17 +2040,17 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
         "middle",
         "a_inner",
         "b_inner",
-        Set(("a_inner", "a"), ("b_inner", "b")),
-        Set(),
-        Set(),
-        Set(),
-        Set(("r1_inner", "r1")),
-        Set("r1_inner"),
-        Set(),
-        Set(),
-        false,
-        ExpandAll,
-        Set.empty
+        groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
+        innerNodes = Set(),
+        previouslyBoundNodeGroups = Set(),
+        previouslyBoundNodes = Set("start", "firstMiddle"),
+        groupRelationships = Set(("r1_inner", "r1")),
+        innerRelationships = Set("r1_inner"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set(),
+        reverseGroupVariableProjections = false,
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       ))
     val plan = plan3.|.|.filter("true")
       .|.|.filter("b_inner:MIDDLE")
@@ -2524,8 +2529,8 @@ object RepeatAcyclicTestBase {
       innerEnd = "d_inner",
       groupNodes = Set(("c_inner", "c"), ("d_inner", "d")),
       innerNodes = Set("c_inner", "d_inner"),
-      previouslyBoundNodes = Set.empty,
-      previouslyBoundNodeGroups = Set("a", "b"), // TODO: This may be incorrect, should we be able to repeat a and b?
+      previouslyBoundNodes = Set("me", "you"),
+      previouslyBoundNodeGroups = Set("a", "b"),
       groupRelationships = Set(("rr_inner", "rr")),
       innerRelationships = Set("rr_inner"),
       previouslyBoundRelationships = Set.empty,
@@ -2594,7 +2599,7 @@ object RepeatAcyclicTestBase {
     innerStart = "anon_start_inner",
     innerEnd = "anon_end_inner",
     groupNodes = Set(("anon_start_inner", "anon_start_inner_group"), ("anon_end_inner", "anon_end_inner_group")),
-    innerNodes = Set(),
+    innerNodes = Set("anon_start_inner", "anon_end_inner"),
     previouslyBoundNodes = Set("start"),
     previouslyBoundNodeGroups = Set.empty,
     groupRelationships = Set(),
@@ -2636,7 +2641,7 @@ object RepeatAcyclicTestBase {
     groupNodes = Set(("c_inner", "c"), ("d_inner", "d")),
     innerNodes = Set("c_inner", "d_inner"),
     previouslyBoundNodes = Set("firstMiddle", "start", "middle"),
-    previouslyBoundNodeGroups = Set("a", "b", "anon_start_inner_group", "anon_end_inner_group"),
+    previouslyBoundNodeGroups = Set("a", "b"),
     groupRelationships = Set(("r2_inner", "r2")),
     innerRelationships = Set("r2_inner"),
     previouslyBoundRelationships = Set.empty,
@@ -2767,7 +2772,7 @@ object RepeatAcyclicTestBase {
       reverseGroupVariableProjections = false,
       expansionMode = ExpandAll,
       accumulators = Set.empty
-    ) // TODO: how should this work? (also look at tests)
+    )
 
   val `(me) [(a)-[r]->(b)-[rr]->(c)<-[rrr]-(d)]{0,1} (you)`: AcyclicParameters =
     AcyclicParameters(
@@ -3721,8 +3726,8 @@ trait OrderedAcyclicTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "e", "b", "f", "c")
       .repeatAcyclic(`(anon_start) [()-[f]->(c)]{1,*} (anon_end)`).withLeveragedOrder()
-      .|.filter("NOT c_inner = a") // TODO: required for legacy - fix!
-      .|.filter("NOT anon_inner = c_inner", isRepeatAcyclic("c_inner"))
+      .|.filter("NOT c_inner = a") // TODO: required for legacy?
+      .|.filter("NOT anon_inner = c_inner", isRepeatAcyclic("c_inner"), isRepeatTrailUnique("f_inner"))
       .|.expandAll("(anon_inner)-[f_inner]->(c_inner)")
       .|.argument("a", "anon_inner")
       .sort("foo ASC")
