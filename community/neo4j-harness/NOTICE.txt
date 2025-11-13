@@ -60,6 +60,7 @@ Apache Software License, Version 2.0
   Arrow Vectors
   Byte Buddy (without dependencies)
   Caffeine cache
+  Commons Pool
   Core :: ALPN :: Java Server
   Core :: ALPN :: Server
   Core :: EE Common

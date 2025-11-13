@@ -42,6 +42,7 @@ Apache Software License, Version 2.0
   Apache Parquet Format Structures
   Apache Parquet Hadoop
   Caffeine cache
+  Commons Pool
   FindBugs-jsr305
   IPAddress
   Java Concurrency Tools Core Library

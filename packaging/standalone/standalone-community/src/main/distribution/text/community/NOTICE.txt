@@ -81,6 +81,7 @@ Apache Software License, Version 2.0
   bytebuffer
   Caffeine cache
   caseless
+  Commons Pool
   Core :: ALPN :: Java Server
   Core :: ALPN :: Server
   Core :: EE Common
