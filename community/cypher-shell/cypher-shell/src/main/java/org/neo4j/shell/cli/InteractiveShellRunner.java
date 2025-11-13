@@ -26,6 +26,7 @@ import static org.neo4j.shell.terminal.CypherShellTerminal.PROMPT_MAX_LENGTH;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.neo4j.driver.exceptions.Neo4jException;
 import org.neo4j.shell.Connector;
 import org.neo4j.shell.DatabaseManager;
 import org.neo4j.shell.Historian;
@@ -117,6 +118,15 @@ public class InteractiveShellRunner implements ShellRunner, UserInterruptHandler
                 // User pressed Ctrl-D and wants to exit
                 running = false;
             } catch (Throwable e) {
+                if (e instanceof Neo4jException ex
+                        && "system".equals(databaseManager.getActiveDatabaseAsSetByUser())
+                        && "Neo.ClientError.Security.CredentialsExpired".equalsIgnoreCase(ex.code())) {
+                    var message =
+                            "Password change required. To change your password use `:exit` and then `cypher-shell --change-password`.";
+                    log.info(message);
+                    terminal.write().println(message);
+                }
+
                 log.error(e);
                 if (currentStatement != null) {
                     printer.printError(e, currentStatement);
