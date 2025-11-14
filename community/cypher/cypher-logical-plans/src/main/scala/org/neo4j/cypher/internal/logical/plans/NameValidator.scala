@@ -61,6 +61,20 @@ object NameValidator {
     true
   }
 
+  def assertValidAuthRuleName(name: String): Boolean = {
+    if (name == null || name.isEmpty) {
+      throw InvalidArgumentException.providedStringEmpty("Auth rule name")
+    }
+    if (!usernamePattern.matcher(name).matches)
+      throw InvalidArgumentException.inputContainsInvalidCharacters(
+        name,
+        "auth rule name",
+        s"""Auth rule name '$name' contains illegal characters.
+           |Use ascii characters that are not ',', ':' or whitespaces.""".stripMargin
+      )
+    true
+  }
+
   def assertValidAliasName(name: String): Boolean = {
     if (name == null || name.isEmpty) {
       throw InvalidArgumentException.providedStringEmpty("Alias name", "Alias")

@@ -175,6 +175,13 @@ case class AssertMutablePrivilegesCanBeAssignedToRole(
   roleName: Either[String, Parameter]
 )(implicit idGen: IdGen) extends PrivilegePlan(Some(source))
 
+case class CreateAuthRule(
+  source: SecurityAdministrationLogicalPlan,
+  authRuleName: Either[String, Parameter],
+  condition: Expression,
+  enabled: Option[Boolean]
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(None)
+
 case class GrantRoleToUser(
   source: SecurityAdministrationLogicalPlan,
   roleName: Either[String, Parameter],
@@ -467,6 +474,7 @@ case class LogSystemCommand(source: AdministrationCommandLogicalPlan, command: S
 sealed trait RBACEntity
 case object UserEntity extends RBACEntity
 case object RoleEntity extends RBACEntity
+case object AuthRuleEntity extends RBACEntity
 
 case class DoNothingIfNotExists(
   source: PrivilegePlan,

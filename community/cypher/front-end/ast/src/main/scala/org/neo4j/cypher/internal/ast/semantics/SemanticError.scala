@@ -18,18 +18,22 @@ package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.StaticElementTypeName
 import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_22G03
+import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_22N01
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -949,6 +953,92 @@ object SemanticError {
   def badCommandWithOrReplace(cmd: String, cypherCmd: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N14("OR REPLACE", cypherCmd, position.offset, position.line, position.column)
     SemanticError(gql, s"Failed to $cmd: `OR REPLACE` cannot be used together with this command.", position)
+  }
+
+  def authRuleMustHaveACondition(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+      .atPosition(position.offset, position.line, position.column)
+      .withParam(GqlParams.ListParam.inputList, List("SET CONDITION").asJava)
+      .build()
+    SemanticError(gql, gql.getMessage, position)
+  }
+
+  def authRuleCannotHaveMoreThanOneCondition(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N19("SET CONDITION", position.offset, position.line, position.column)
+
+    SemanticError(gql, gql.getMessage, position)
+  }
+
+  def authRuleUserAttributeFunctionMustHaveStringArgument(
+    function: FunctionInvocation,
+    value: String,
+    invalidType: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I51)
+          .withParam(GqlParams.StringParam.procFun, function.name)
+          .withParam(
+            GqlParams.StringParam.sig,
+            function.function.signatures.headOption.map(_.getSignatureAsString).getOrElse("")
+          )
+          .withCause(
+            ErrorGqlStatusObjectImplementation.from(STATUS_22G03).withCause(
+              ErrorGqlStatusObjectImplementation.from(STATUS_22N01)
+                .withParam(GqlParams.StringParam.value, value)
+                .withParam(GqlParams.ListParam.valueTypeList, java.util.List.of(CTString.toCypherTypeString))
+                .withParam(GqlParams.StringParam.valueType, invalidType)
+                .build()
+            ).build()
+          ).build()
+      ).build()
+
+    SemanticError(gql, s"Failed to create the specified auth rule.", position)
+  }
+
+  def authRuleConditionCannotSubqueryExpression(
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
+          .atPosition(position.offset, position.line, position.column)
+          .withParam(GqlParams.StringParam.input, "subquery expression")
+          .withParam(GqlParams.StringParam.context, "auth rule condition")
+          .withParam(GqlParams.ListParam.inputList, java.util.List.of("boolean expression"))
+          .build()
+      ).build()
+
+    SemanticError(gql, gql.getMessage, position)
+  }
+
+  def authRuleConditionContainsNonAllowListedFunction(
+    functionName: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+          .atPosition(position.offset, position.line, position.column)
+          .withParam(GqlParams.StringParam.input, functionName)
+          .withParam(GqlParams.StringParam.context, "function in auth rule condition")
+          .build()
+      ).build()
+
+    SemanticError(gql, gql.getMessage, position)
+  }
+
+  // TODO: Remove when we support parameters in auth rules conditions
+  def authRuleConditionCannotContainParameter(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .build()
+
+    SemanticError(gql, gql.getMessage, position)
   }
 
   def denyMergeUnsupported(position: InputPosition): SemanticError = {

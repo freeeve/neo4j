@@ -811,7 +811,7 @@ final case class GrantRolesToUsers(
   override def semanticCheck: SemanticCheck = {
     super.semanticCheck chain
       semanticCheckFold(roleNames)(roleName => checkIsStringLiteralOrParameter("rolename", roleName)) chain
-      semanticCheckFold(userNames)(roleName => checkIsStringLiteralOrParameter("username", roleName)) chain
+      semanticCheckFold(userNames)(username => checkIsStringLiteralOrParameter("username", username)) chain
       SemanticState.recordCurrentScope(this)
   }
 }
@@ -826,8 +826,246 @@ final case class RevokeRolesFromUsers(
   override def semanticCheck: SemanticCheck =
     super.semanticCheck chain
       semanticCheckFold(roleNames)(roleName => checkIsStringLiteralOrParameter("rolename", roleName)) chain
-      semanticCheckFold(userNames)(roleName => checkIsStringLiteralOrParameter("username", roleName)) chain
+      semanticCheckFold(userNames)(username => checkIsStringLiteralOrParameter("username", username)) chain
       SemanticState.recordCurrentScope(this)
+}
+
+// AuthRule commands
+
+final case class CreateAuthRule(
+  authRuleName: Expression,
+  ifExistsDo: IfExistsDo,
+  setClauses: List[AuthRuleSetClause]
+)(val position: InputPosition) extends WriteAdministrationCommand {
+
+  private val featureCheck =
+    requireFeatureSupport(
+      s"The `$name` clause",
+      SemanticFeature.AttributeBasedAccessControl,
+      position
+    )
+
+  override def name: String = ifExistsDo match {
+    case IfExistsReplace | IfExistsInvalidSyntax => s"CREATE OR REPLACE AUTH RULE"
+    case _                                       => s"CREATE AUTH RULE"
+  }
+
+  override def semanticCheck: SemanticCheck =
+    ifExistsDo match {
+      case IfExistsInvalidSyntax =>
+        val name = Prettifier.escapeName(authRuleName)
+        SemanticCheck.error(SemanticError.bothOrReplaceAndIfNotExists("role", name, position))
+      case _ =>
+        super.semanticCheck chain
+          featureCheck chain
+          checkIsStringLiteralOrParameter("auth rule", authRuleName) chain
+          checkSetClauses chain
+          checkExpression chain
+          SemanticState.recordCurrentScope(this)
+    }
+
+  def condition: Option[AuthRuleCondition] = setClauses.collectFirst { case condition: AuthRuleCondition => condition }
+
+  def enabled: Option[AuthRuleEnabled] = setClauses.collectFirst { case enabled: AuthRuleEnabled => enabled }
+
+  private def checkSetClauses: SemanticCheck = {
+    val (conditions, enableds) = setClauses.partition {
+      case _: AuthRuleCondition => true
+      case _: AuthRuleEnabled   => false
+    }
+
+    val conditionCheck =
+      if (conditions.isEmpty)
+        SemanticCheck.error(SemanticError.authRuleMustHaveACondition(position))
+      else if (conditions.size > 1)
+        SemanticCheck.error(SemanticError.authRuleCannotHaveMoreThanOneCondition(position))
+      else SemanticCheck.success
+
+    val enabledCheck = enableds match {
+      case Seq(_, second, _*) =>
+        AdministrationCommandSemanticAnalysis.duplicateClauseError(
+          s"SET ENABLED",
+          s"Duplicate `SET ENABLED` clause.",
+          second.position
+        )
+      case _ => SemanticCheck.success
+    }
+
+    conditionCheck chain enabledCheck
+  }
+
+  private def checkExpression: SemanticCheck = {
+    condition.map(_.expression).toSeq
+      .flatMap(e => Seq(e) ++ e.subExpressions)
+      .foldSemanticCheck {
+        case subqueryExpression: SubqueryExpression => SemanticCheck.error(
+            SemanticError.authRuleConditionCannotSubqueryExpression(subqueryExpression.position)
+          )
+        case parameter: Parameter => SemanticCheck.error(
+            SemanticError.authRuleConditionCannotContainParameter(parameter.position)
+          )
+        case _ => SemanticCheck.success
+      } chain checkFunctions
+  }
+
+  private def checkFunctions: SemanticCheck = {
+    condition.map(_.expression).toSeq
+      .flatMap(e => Seq(e) ++ e.subExpressions)
+      .flatMap {
+        case f: FunctionInvocation => Some(f)
+        case _                     => None
+      }
+      .foldSemanticCheck(f => {
+        checkAllowlist(f) chain
+          checkAbacOidcUserAttributeFunction(f)
+      })
+  }
+
+  private def checkAllowlist(functionInvocation: FunctionInvocation): SemanticCheck = {
+    val allowListedFunctions = Seq(
+      // ABAC oidc user metadata function
+      "abac.oidc.user_attribute",
+      // List functions
+      "range",
+      "reduce",
+      "reverse",
+      "tail",
+      "toBooleanList",
+      "toFloatList",
+      "toIntegerList",
+      "toStringList",
+      // Numeric functions
+      "abs",
+      "ceil",
+      "floor",
+      "isNaN",
+      "round",
+      "sign",
+      // Predicate functions,
+      "all",
+      "any",
+      "exists",
+      "isEmpty",
+      "none",
+      "single",
+      // Scalar functions
+      "char_length",
+      "character_length",
+      "coalesce",
+      "head",
+      "last",
+      "nullIf",
+      "size",
+      "timestamp",
+      "toBoolean",
+      "toBooleanOrNull",
+      "toFloat",
+      "toFloatOrNull",
+      "toInteger",
+      "toIntegerOrNull",
+      // String Functions
+      "btrim",
+      "left",
+      "lower",
+      "ltrim",
+      "replace",
+      "reverse",
+      "right",
+      "rtrim",
+      "split",
+      "substring",
+      "toLower",
+      "toString",
+      "toStringOrNull",
+      "toUpper",
+      "trim",
+      "upper",
+      // Temporal duration functions
+      "duration",
+      "duration.between",
+      "duration.inDays",
+      "duration.inMonths",
+      "duration.inSeconds",
+      // Temporal instant functions
+      "date.transaction",
+      "date.truncate",
+      "datetime.transaction",
+      "datetime.fromEpoch",
+      "datetime.fromEpochMillis",
+      "datetime.truncate",
+      "localdatetime.transaction",
+      "localdatetime.truncate",
+      "localtime.transaction",
+      "localtime.truncate",
+      "time.transaction",
+      "time.truncate"
+    ).map(_.toLowerCase)
+
+    if (allowListedFunctions.contains(functionInvocation.name.toLowerCase))
+      SemanticCheck.success
+    else
+      SemanticCheck.error(SemanticError.authRuleConditionContainsNonAllowListedFunction(
+        functionInvocation.name,
+        position
+      ))
+  }
+
+  private def checkAbacOidcUserAttributeFunction(functionInvocation: FunctionInvocation): SemanticCheck = {
+    if (functionInvocation.name == "abac.oidc.user_attribute") {
+      lazy val argHeadOption = functionInvocation.args.headOption
+        .flatMap {
+          case _: Parameter             => None // cannot evaluate parameter so this will pass semantic check
+          case literal: Literal         => Some(literal)
+          case listLiteral: ListLiteral => Some(listLiteral)
+          case _                        => None // might want to evaluate the inner expression to fail more cases
+        }
+      if (functionInvocation.args.size != 1) {
+        // This will probably never be more than 1 since the parser gives one ListLiteral argument
+        SemanticError.functionCallWrongNumberOfArguments(
+          1,
+          functionInvocation.args.size,
+          functionInvocation.name,
+          "abac.oidc.user_attribute(attributeKey :: STRING) :: ANY",
+          functionInvocation.args.map(_.asCanonicalStringVal).mkString(", "),
+          functionInvocation.position
+        )
+      } else if (argHeadOption.exists(_.isInstanceOf[ListLiteral])) {
+        SemanticError.functionCallWrongNumberOfArguments(
+          1,
+          functionInvocation.args.head.asInstanceOf[ListLiteral].expressions.size,
+          functionInvocation.name,
+          "abac.oidc.user_attribute(attributeKey :: STRING) :: ANY",
+          functionInvocation.args.map(_.asCanonicalStringVal).mkString(", "),
+          functionInvocation.position
+        )
+      } else if (argHeadOption.nonEmpty && !argHeadOption.exists(_.isInstanceOf[StringLiteral])) {
+        val argLiteral = argHeadOption.get.asInstanceOf[Literal]
+        SemanticExpressionCheck.simple(argLiteral) chain
+          expectType(CTString.covariant, argLiteral)
+      } else {
+        SemanticCheck.success
+      }
+    } else {
+      SemanticCheck.success
+    }
+  }
+}
+
+sealed trait AuthRuleSetClause extends ASTNode {
+  def position: InputPosition
+  def name: String
+}
+
+final case class AuthRuleCondition(
+  expression: Expression
+)(val position: InputPosition) extends AuthRuleSetClause {
+  override val name: String = "SET CONDITION"
+}
+
+final case class AuthRuleEnabled(
+  enabled: Boolean
+)(val position: InputPosition) extends AuthRuleSetClause {
+  override val name: String = "SET ENABLED"
 }
 
 // Privilege commands

@@ -4101,6 +4101,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid CREATE DATABASE statement",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAD(
+            new GqlStatus("42NAD"),
+            "An auth rule with the name { %s } was not found. Verify that the spelling is correct.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.authRule},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "no such auth rule",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAE(
+            new GqlStatus("42NAE"),
+            "An auth rule with the name { %s } already exists.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.authRule},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "auth rule already exists",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NAF(
             new GqlStatus("42NAF"),
             "USE clause is not supported in local procedure definitions.",

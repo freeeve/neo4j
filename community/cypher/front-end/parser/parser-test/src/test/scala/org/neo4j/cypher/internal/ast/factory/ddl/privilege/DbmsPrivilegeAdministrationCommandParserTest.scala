@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.ast.factory.ddl.privilege
 
 import org.neo4j.cypher.internal.ast.AdministrationAction
 import org.neo4j.cypher.internal.ast.AllAliasManagementActions
+import org.neo4j.cypher.internal.ast.AllAuthRuleActions
 import org.neo4j.cypher.internal.ast.AllDatabaseManagementActions
 import org.neo4j.cypher.internal.ast.AllDbmsAction
 import org.neo4j.cypher.internal.ast.AllPrivilegeActions
@@ -65,7 +66,7 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
   // Impersonate and execute privileges have their own files and are not in this list
 
-  private val dbmsActionPrivileges: Seq[(String, Boolean => AdministrationAction)] =
+  private val dbmsActionPrivileges: Seq[(String, Boolean => AdministrationAction, Boolean)] =
     Seq(
       ("CREATE ROLE", CreateRoleAction),
       ("RENAME ROLE", RenameRoleAction),
@@ -85,6 +86,7 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
       ("SET USER HOME DATABASE", SetUserHomeDatabaseAction),
       ("ALTER USER", AlterUserAction),
       ("USER MANAGEMENT", AllUserActions),
+      ("AUTH RULE MANAGEMENT", AllAuthRuleActions),
       ("CREATE DATABASE", CreateDatabaseAction),
       ("DROP DATABASE", DropDatabaseAction),
       ("DATABASE MANAGEMENT", AllDatabaseManagementActions),
@@ -103,15 +105,23 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
       ("DROP ALIAS", DropAliasAction),
       ("ALTER ALIAS", AlterAliasAction),
       ("SHOW ALIAS", ShowAliasAction)
-    ).map { case (privilege: String, action: AdministrationAction) => (privilege, (_: Boolean) => action) }
+    ).map { case (privilege: String, action: AdministrationAction) =>
+      (privilege, (_: Boolean) => action, supportedInCypher5(action))
+    }
 
-  private val databaseActionPrivileges: Seq[(String, Boolean => AdministrationAction)] =
+  private val databaseActionPrivileges: Seq[(String, Boolean => AdministrationAction, Boolean)] =
     Seq(
       ("ALTER DATABASE", AlterDatabaseAction),
       ("SET DATABASE ACCESS", SetDatabaseAccessAction),
       ("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction),
       ("ALTER COMPOSITE DATABASE", AlterCompositeDatabaseAction)
-    )
+    ).map { case (privilege, action) => (privilege, action, true) }
+
+  private def supportedInCypher5(action: AdministrationAction): Boolean =
+    action match {
+      case AllAuthRuleActions => false
+      case _                  => true
+    }
 
   def privilegeTests(command: String, preposition: String, privilegeFunc: adminPrivilegeFunc): Unit = {
     Seq[Immutable](true, false).foreach {
@@ -121,11 +131,13 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
         // not unnecessary as `action: (Boolean => AdministrationAction)` fails to compile without the ()
         // noinspection ScalaUnnecessaryParentheses
         (dbmsActionPrivileges ++ databaseActionPrivileges).foreach {
-          case (privilege: String, action: (Boolean => AdministrationAction)) =>
+          case (privilege: String, action: (Boolean => AdministrationAction), supportedInCypher5) =>
             test(s"$command$immutableString $privilege ON DBMS $preposition role") {
               parsesIn[Statements] {
-                case Cypher5 =>
+                case Cypher5 if supportedInCypher5 =>
                   _.toAst(Statements(Seq(privilegeFunc(action(true), Seq(literalRole), immutable)(pos))))
+                case Cypher5 =>
+                  _.withSyntaxErrorContaining(command)
                 case _ =>
                   _.toAst(Statements(Seq(privilegeFunc(action(false), Seq(literalRole), immutable)(pos))))
               }
@@ -133,8 +145,10 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
             test(s"$command$immutableString $privilege ON DBMS $preposition role1, $$role2") {
               parsesIn[Statements] {
-                case Cypher5 =>
+                case Cypher5 if supportedInCypher5 =>
                   _.toAst(Statements(Seq(privilegeFunc(action(true), Seq(literalRole1, paramRole2), immutable)(pos))))
+                case Cypher5 =>
+                  _.withSyntaxErrorContaining(command)
                 case _ =>
                   _.toAst(Statements(Seq(privilegeFunc(action(false), Seq(literalRole1, paramRole2), immutable)(pos))))
               }
@@ -142,8 +156,10 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
             test(s"$command$immutableString $privilege ON DBMS $preposition `r:ole`") {
               parsesIn[Statements] {
-                case Cypher5 =>
+                case Cypher5 if supportedInCypher5 =>
                   _.toAst(Statements(Seq(privilegeFunc(action(true), Seq(literalRColonOle), immutable)(pos))))
+                case Cypher5 =>
+                  _.withSyntaxErrorContaining(command)
                 case _ =>
                   _.toAst(Statements(Seq(privilegeFunc(action(false), Seq(literalRColonOle), immutable)(pos))))
               }
@@ -151,58 +167,87 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
             test(s"$command$immutableString $privilege ON DBMS $preposition r:ole") {
               val offset = command.length + immutableString.length + 12 + privilege.length + preposition.length
-              failsParsing[Statements].withSyntaxErrorContaining(
-                s"""Invalid input ':': expected ',' or <EOF> (line 1, column ${offset + 1} (offset: $offset))"""
-              )
+              failsParsing[Statements].in {
+                case Cypher5 if !supportedInCypher5 =>
+                  _.withSyntaxErrorContaining(command)
+                case _ => _.withSyntaxErrorContaining(
+                    s"""Invalid input ':': expected ',' or <EOF> (line 1, column ${offset + 1} (offset: $offset))"""
+                  )
+              }
             }
 
             test(s"$command$immutableString $privilege ON DBMS $preposition") {
               val offset = command.length + immutableString.length + 10 + privilege.length + preposition.length
-              failsParsing[Statements].withSyntaxErrorContaining(
-                s"""Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))"""
-              )
+              failsParsing[Statements].in {
+                case Cypher5 if !supportedInCypher5 =>
+                  _.withSyntaxErrorContaining(command)
+                case _ => _.withSyntaxErrorContaining(
+                    s"""Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))"""
+                  )
+              }
             }
 
             test(s"$command$immutableString $privilege ON DBMS") {
               val offset = command.length + immutableString.length + 9 + privilege.length
-              failsParsing[Statements].withSyntaxErrorContaining(
-                s"""Invalid input '': expected '$preposition' (line 1, column ${offset + 1} (offset: $offset))"""
-              )
+              failsParsing[Statements].in {
+                case Cypher5 if !supportedInCypher5 =>
+                  _.withSyntaxErrorContaining(command)
+                case _ => _.withSyntaxErrorContaining(
+                    s"""Invalid input '': expected '$preposition' (line 1, column ${offset + 1} (offset: $offset))"""
+                  )
+              }
             }
         }
 
         // These tests are only reasonable for dbms privileges which do not have an ON DATABASE variant
         dbmsActionPrivileges.foreach {
-          case (privilege: String, _) =>
+          case (privilege: String, _, supportedInCypher5) =>
             test(s"$command$immutableString $privilege ON DATABASE $preposition role") {
-              failsParsing[Statements].withSyntaxErrorContaining("""Invalid input 'DATABASE': expected 'DBMS'""")
+              failsParsing[Statements].in {
+                case Cypher5 if !supportedInCypher5 =>
+                  _.withSyntaxErrorContaining(command)
+                case _ => _.withSyntaxErrorContaining("""Invalid input 'DATABASE': expected 'DBMS'""")
+              }
             }
 
             test(s"$command$immutableString $privilege ON HOME DATABASE $preposition role") {
-              failsParsing[Statements].withSyntaxErrorContaining("""Invalid input 'HOME': expected 'DBMS'""")
+              failsParsing[Statements].in {
+                case Cypher5 if !supportedInCypher5 =>
+                  _.withSyntaxErrorContaining(command)
+                case _ => _.withSyntaxErrorContaining("""Invalid input 'HOME': expected 'DBMS'""")
+              }
             }
 
             test(s"$command$immutableString $privilege DBMS $preposition role") {
               val offset = command.length + immutableString.length + 2 + privilege.length
-              failsParsing[Statements].withSyntaxErrorContaining((command, immutable, privilege) match {
-                // this case looks like granting/revoking a role named MANAGEMENT to/from a user
-                case ("GRANT", false, "ROLE MANAGEMENT") | ("REVOKE", false, "ROLE MANAGEMENT") =>
-                  s"Invalid input 'DBMS': expected ',', 'ON DBMS' or '$preposition'"
-                case _ => s"Invalid input 'DBMS': expected 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"
-              })
+              failsParsing[Statements].in {
+                case Cypher5 if !supportedInCypher5 =>
+                  _.withSyntaxErrorContaining(command)
+                case _ => _.withSyntaxErrorContaining((command, immutable, privilege) match {
+                    // this case looks like granting/revoking a role named MANAGEMENT to/from a user
+                    case ("GRANT", false, "ROLE MANAGEMENT") | ("REVOKE", false, "ROLE MANAGEMENT") =>
+                      s"Invalid input 'DBMS': expected ',', 'ON DBMS' or '$preposition'"
+                    case _ =>
+                      s"Invalid input 'DBMS': expected 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"
+                  })
+              }
             }
 
             test(s"$command$immutableString $privilege ON $preposition role") {
               val offset = command.length + immutableString.length + 5 + privilege.length
-              failsParsing[Statements].withSyntaxErrorContaining(
-                s"""Invalid input '$preposition': expected 'DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
-              )
+              failsParsing[Statements].in {
+                case Cypher5 if !supportedInCypher5 =>
+                  _.withSyntaxErrorContaining(command)
+                case _ => _.withSyntaxErrorContaining(
+                    s"""Invalid input '$preposition': expected 'DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
+                  )
+              }
             }
         }
 
         // These tests are only reasonable for dbms privileges which do have an ON DATABASE variant
         databaseActionPrivileges.foreach {
-          case (privilege: String, _) =>
+          case (privilege: String, _, _) =>
 
             test(s"$command$immutableString $privilege ON $preposition role") {
               val offset = command.length + immutableString.length + 5 + privilege.length

@@ -20,6 +20,8 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdministrationCommand.NATIVE_AUTH
 import org.neo4j.cypher.internal.ast.Auth
 import org.neo4j.cypher.internal.ast.AuthAttribute
+import org.neo4j.cypher.internal.ast.AuthRuleSetClause
+import org.neo4j.cypher.internal.ast.CreateAuthRule
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabase
 import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.ast.CreateDatabase
@@ -469,6 +471,18 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       setAuth,
       nativeAuth
+    )(pos(parent))
+  }
+
+  final override def exitCreateAuthRule(ctx: Cypher25Parser.CreateAuthRuleContext): Unit = {
+    val parent = ctx.getParent.asInstanceOf[CreateCommandContext]
+    val setClauses = ctx.authRuleSetClause().asScala.toList
+      .map(_.ast[AuthRuleSetClause])
+
+    ctx.ast = CreateAuthRule(
+      ctx.commandNameExpression().ast[Expression](),
+      ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
+      setClauses
     )(pos(parent))
   }
 

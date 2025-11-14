@@ -112,6 +112,10 @@ object SemanticFeature {
     override def name: String = "path modes"
   }
 
+  case object AttributeBasedAccessControl extends SemanticFeature with FeatureToString {
+    override def name: String = "Attribute based access control"
+  }
+
   private val allSemanticFeatures = Set(
     MultipleDatabases,
     MultipleGraphs,
@@ -130,7 +134,8 @@ object SemanticFeature {
     ScopeQueries,
     ShardedPropertyDatabase,
     AllowClauseWithMixedLabelSyntax,
-    PathModes
+    PathModes,
+    AttributeBasedAccessControl
   )
 
   def fromString(str: String): SemanticFeature =

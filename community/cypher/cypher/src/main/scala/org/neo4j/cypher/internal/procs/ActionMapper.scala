@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.procs
 import org.neo4j.cypher.internal.ast.AccessDatabaseAction
 import org.neo4j.cypher.internal.ast.AdministrationAction
 import org.neo4j.cypher.internal.ast.AllAliasManagementActions
+import org.neo4j.cypher.internal.ast.AllAuthRuleActions
 import org.neo4j.cypher.internal.ast.AllConstraintActions
 import org.neo4j.cypher.internal.ast.AllDatabaseAction
 import org.neo4j.cypher.internal.ast.AllDatabaseManagementActions
@@ -43,6 +44,7 @@ import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignRoleAction
 import org.neo4j.cypher.internal.ast.CompositeDatabaseManagementActions
 import org.neo4j.cypher.internal.ast.CreateAliasAction
+import org.neo4j.cypher.internal.ast.CreateAuthRuleAction
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateConstraintAction
 import org.neo4j.cypher.internal.ast.CreateDatabaseAction
@@ -55,6 +57,7 @@ import org.neo4j.cypher.internal.ast.CreateRoleAction
 import org.neo4j.cypher.internal.ast.CreateUserAction
 import org.neo4j.cypher.internal.ast.DeleteElementAction
 import org.neo4j.cypher.internal.ast.DropAliasAction
+import org.neo4j.cypher.internal.ast.DropAuthRuleAction
 import org.neo4j.cypher.internal.ast.DropCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.DropConstraintAction
 import org.neo4j.cypher.internal.ast.DropDatabaseAction
@@ -164,6 +167,10 @@ object ActionMapper {
     case DropRoleAction   => security.PrivilegeAction.DROP_ROLE
     case AssignRoleAction => security.PrivilegeAction.ASSIGN_ROLE
     case RemoveRoleAction => security.PrivilegeAction.REMOVE_ROLE
+
+    case AllAuthRuleActions   => security.PrivilegeAction.AUTH_RULE_MANAGEMENT
+    case CreateAuthRuleAction => security.PrivilegeAction.CREATE_AUTH_RULE
+    case DropAuthRuleAction   => security.PrivilegeAction.DROP_AUTH_RULE
 
     case AllDatabaseManagementActions        => security.PrivilegeAction.DATABASE_MANAGEMENT
     case CreateDatabaseAction                => security.PrivilegeAction.CREATE_DATABASE

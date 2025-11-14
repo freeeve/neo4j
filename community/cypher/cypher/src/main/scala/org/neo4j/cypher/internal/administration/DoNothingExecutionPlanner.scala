@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.logical.plans.AuthRuleEntity
 import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter
 import org.neo4j.cypher.internal.logical.plans.RBACEntity
 import org.neo4j.cypher.internal.logical.plans.RoleEntity
@@ -37,6 +38,8 @@ import org.neo4j.cypher.internal.logical.plans.UserEntity
 import org.neo4j.cypher.internal.procs.ParameterTransformer
 import org.neo4j.cypher.internal.procs.QueryHandler
 import org.neo4j.cypher.internal.procs.UpdatingSystemCommandExecutionPlan
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_RULE
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_RULE_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.ROLE
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.ROLE_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER
@@ -229,7 +232,8 @@ case class DoNothingExecutionPlanner(
   }
 
   private def getLabelAndNamePropKey(entity: RBACEntity): (String, String) = entity match {
-    case UserEntity => (USER, USER_NAME_PROPERTY)
-    case RoleEntity => (ROLE, ROLE_NAME_PROPERTY)
+    case UserEntity     => (USER, USER_NAME_PROPERTY)
+    case RoleEntity     => (ROLE, ROLE_NAME_PROPERTY)
+    case AuthRuleEntity => (AUTH_RULE, AUTH_RULE_NAME_PROPERTY)
   }
 }

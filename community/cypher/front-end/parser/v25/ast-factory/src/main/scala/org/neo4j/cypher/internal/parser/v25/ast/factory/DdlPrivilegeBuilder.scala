@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.AccessDatabaseAction
 import org.neo4j.cypher.internal.ast.ActionResource
 import org.neo4j.cypher.internal.ast.ActionResourceBase
 import org.neo4j.cypher.internal.ast.AllAliasManagementActions
+import org.neo4j.cypher.internal.ast.AllAuthRuleActions
 import org.neo4j.cypher.internal.ast.AllConstraintActions
 import org.neo4j.cypher.internal.ast.AllDatabaseAction
 import org.neo4j.cypher.internal.ast.AllDatabaseManagementActions
@@ -47,6 +48,8 @@ import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterUserAction
 import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignRoleAction
+import org.neo4j.cypher.internal.ast.AuthRuleCondition
+import org.neo4j.cypher.internal.ast.AuthRuleEnabled
 import org.neo4j.cypher.internal.ast.CompositeDatabaseManagementActions
 import org.neo4j.cypher.internal.ast.CreateAliasAction
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabaseAction
@@ -236,6 +239,30 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
     )
   }
 
+  // Auth rule
+
+  def exitAuthRuleKeywords(ctx: Cypher25Parser.AuthRuleKeywordsContext): Unit = {}
+
+  def exitAuthRuleNames(ctx: Cypher25Parser.AuthRuleNamesContext): Unit = {
+    ctx.ast = ctx.symbolicNameOrStringParameterList().ast[Seq[Either[String, Parameter]]]
+  }
+
+  def exitAuthRuleSetClause(ctx: Cypher25Parser.AuthRuleSetClauseContext): Unit = {
+    if (ctx.authRuleSetCondition() != null)
+      ctx.ast = ctx.authRuleSetCondition().ast[AuthRuleCondition]
+    else if (ctx.authRuleSetEnabled() != null)
+      ctx.ast = ctx.authRuleSetEnabled().ast[AuthRuleEnabled]
+  }
+
+  def exitAuthRuleSetCondition(ctx: Cypher25Parser.AuthRuleSetConditionContext): Unit = {
+    ctx.ast = AuthRuleCondition(ctx.expression().ast[Expression])(pos(ctx))
+  }
+
+  def exitAuthRuleSetEnabled(ctx: Cypher25Parser.AuthRuleSetEnabledContext): Unit = {
+    val enabled = if (ctx.TRUE() != null) true else false
+    ctx.ast = AuthRuleEnabled(enabled)(pos(ctx))
+  }
+
   // Privilege command contexts
 
   final override def exitPrivilege(
@@ -402,6 +429,7 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
             case Cypher25Parser.ROLE   => withQualifier(AllRoleActions)
             case Cypher25Parser.SERVER => withQualifier(ServerManagementAction)
             case Cypher25Parser.USER   => withQualifier(AllUserActions)
+            case Cypher25Parser.AUTH   => withQualifier(AllAuthRuleActions)
             case _                     => throw new IllegalStateException()
           }
         case _ => throw new IllegalStateException()

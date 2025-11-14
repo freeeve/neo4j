@@ -956,6 +956,7 @@ createCommand
       | createIndex
       | createRole
       | createUser
+      | createAuthRule
    )
    ;
 
@@ -1390,10 +1391,18 @@ roleNames
    : symbolicNameOrStringParameterList
    ;
 
+authRuleNames
+   : symbolicNameOrStringParameterList
+   ;
+
 roleToken
    : ROLES
    | ROLE
    ;
+
+authRuleKeywords
+    : AUTH (RULE | RULES)
+    ;
 
 // Server commands
 
@@ -1694,7 +1703,7 @@ dbmsPrivilege
    : (
       ALTER (ALIAS | COMPOSITE? DATABASE | USER)
       | ASSIGN (PRIVILEGE | ROLE)
-      | (ALIAS | COMPOSITE? DATABASE | PRIVILEGE | ROLE | SERVER | USER) MANAGEMENT
+      | (ALIAS | COMPOSITE? DATABASE | PRIVILEGE | ROLE | SERVER | USER | AUTH RULE) MANAGEMENT
       | dbmsPrivilegeExecute
       | RENAME (ROLE | USER)
       | IMPERSONATE userQualifier?
@@ -1832,6 +1841,24 @@ graphScope
    : HOME GRAPH
    | (GRAPH | GRAPHS) (TIMES | symbolicAliasNameList)
    ;
+
+// Attribute based role assignment
+
+createAuthRule
+    : AUTH RULE commandNameExpression (IF NOT EXISTS)? (authRuleSetClause)+
+    ;
+
+authRuleSetClause
+    : SET (authRuleSetCondition | authRuleSetEnabled)
+    ;
+
+authRuleSetCondition
+    : CONDITION expression
+    ;
+
+authRuleSetEnabled
+    : ENABLED (TRUE | FALSE) // do we not have a booleanLiteral??
+    ;
 
 // Database commands
 
@@ -2148,6 +2175,7 @@ unescapedSymbolicNameString_
    | CONTAINS
    | CONTINUE
    | COPY
+   | CONDITION
    | COSINE
    | COUNT
    | CREATE
@@ -2184,6 +2212,7 @@ unescapedSymbolicNameString_
    | ELEMENT
    | ELEMENTS
    | ELSE
+   | ENABLED
    | ENABLE
    | ENCRYPTED
    | END
@@ -2328,6 +2357,8 @@ unescapedSymbolicNameString_
    | ROLES
    | ROW
    | ROWS
+   | RULE
+   | RULES
    | SCAN
    | SCORE
    | SEARCH

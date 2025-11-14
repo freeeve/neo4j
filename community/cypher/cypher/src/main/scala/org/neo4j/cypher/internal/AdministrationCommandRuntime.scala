@@ -55,6 +55,7 @@ import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_CONSTRAINT
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_RULE
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.HAS_AUTH
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.ROLE
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER
@@ -654,6 +655,7 @@ object AdministrationCommandRuntime {
     val entity = entityType match {
       case PrivilegeGqlCodeEntity.USER           => USER
       case PrivilegeGqlCodeEntity.ROLE           => ROLE
+      case PrivilegeGqlCodeEntity.AUTHRULE       => AUTH_RULE
       case PrivilegeGqlCodeEntity.DATABASE       => DATABASE_NAME
       case PrivilegeGqlCodeEntity.DATABASE_ALIAS => DATABASE_NAME
     }

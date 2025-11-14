@@ -47,6 +47,7 @@ public class GqlParams {
         alloc(new IDENT()), // Allocator name
         allocType(new STRLIT()), // Allocation type
         auth(new IDENT()), // Auth provider name
+        authRule(new IDENT()), // Auth rule name
         boltServerState(new STRLIT()), // Bolt server state
         cause(new VERBATIM()), // Freeform cause
         cfgSetting(new VERBATIM()), // Configuration setting key | https.enable

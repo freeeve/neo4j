@@ -537,7 +537,11 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitRoleNames(Cypher25Parser.RoleNamesContext ctx);
 
+    void exitAuthRuleNames(Cypher25Parser.AuthRuleNamesContext ctx);
+
     void exitRoleToken(Cypher25Parser.RoleTokenContext ctx);
+
+    void exitAuthRuleKeywords(Cypher25Parser.AuthRuleKeywordsContext ctx);
 
     void exitEnableServerCommand(Cypher25Parser.EnableServerCommandContext ctx);
 
@@ -698,6 +702,14 @@ public interface Cypher25ParserListener extends ParseTreeListener {
     void exitDatabaseScope(Cypher25Parser.DatabaseScopeContext ctx);
 
     void exitGraphScope(Cypher25Parser.GraphScopeContext ctx);
+
+    void exitCreateAuthRule(Cypher25Parser.CreateAuthRuleContext ctx);
+
+    void exitAuthRuleSetClause(Cypher25Parser.AuthRuleSetClauseContext ctx);
+
+    void exitAuthRuleSetCondition(Cypher25Parser.AuthRuleSetConditionContext ctx);
+
+    void exitAuthRuleSetEnabled(Cypher25Parser.AuthRuleSetEnabledContext ctx);
 
     void exitCreateCompositeDatabase(Cypher25Parser.CreateCompositeDatabaseContext ctx);
 

@@ -104,6 +104,9 @@ public enum PrivilegeAction {
     ASSIGN_ROLE,
     REMOVE_ROLE,
 
+    CREATE_AUTH_RULE,
+    DROP_AUTH_RULE,
+
     SHOW_PRIVILEGE,
     ASSIGN_PRIVILEGE,
     REMOVE_PRIVILEGE,
@@ -267,6 +270,17 @@ public enum PrivilegeAction {
         }
     },
 
+    AUTH_RULE_MANAGEMENT {
+        @Override
+        public boolean satisfies(PrivilegeAction action) {
+            return switch (action) {
+                case CREATE_AUTH_RULE -> true;
+                case DROP_AUTH_RULE -> true;
+                default -> this == action;
+            };
+        }
+    },
+
     PRIVILEGE_MANAGEMENT {
         @Override
         public boolean satisfies(PrivilegeAction action) {
@@ -339,6 +353,7 @@ public enum PrivilegeAction {
         public boolean satisfies(PrivilegeAction action) {
             return ROLE_MANAGEMENT.satisfies(action)
                     || USER_MANAGEMENT.satisfies(action)
+                    || AUTH_RULE_MANAGEMENT.satisfies(action)
                     || DATABASE_MANAGEMENT.satisfies(action)
                     || ALIAS_MANAGEMENT.satisfies(action)
                     || PRIVILEGE_MANAGEMENT.satisfies(action)

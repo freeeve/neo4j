@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.AdministrationCommand.NATIVE_AUTH
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AllAliasManagementActions
+import org.neo4j.cypher.internal.ast.AllAuthRuleActions
 import org.neo4j.cypher.internal.ast.AllConstraintActions
 import org.neo4j.cypher.internal.ast.AllConstraints
 import org.neo4j.cypher.internal.ast.AllDatabaseAction
@@ -61,6 +62,8 @@ import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignRoleAction
 import org.neo4j.cypher.internal.ast.Auth
 import org.neo4j.cypher.internal.ast.AuthId
+import org.neo4j.cypher.internal.ast.AuthRuleCondition
+import org.neo4j.cypher.internal.ast.AuthRuleEnabled
 import org.neo4j.cypher.internal.ast.BuiltInFunctions
 import org.neo4j.cypher.internal.ast.CascadeAliases
 import org.neo4j.cypher.internal.ast.CatalogName
@@ -74,6 +77,7 @@ import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.CreateAliasAction
+import org.neo4j.cypher.internal.ast.CreateAuthRule
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabase
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateConstraint
@@ -3344,6 +3348,27 @@ class AstGenerator(
     _setOwnPassword
   )
 
+  // Auth rule commands
+
+  def _createAuthRule: Gen[CreateAuthRule] = for {
+    authRuleName <- _stringLiteralOrParameter
+    ifExistsDo <- _ifExistsDo
+    condition <- _authRuleCondition
+    enabled <- option(_AuthRuleEnabled)
+  } yield CreateAuthRule(authRuleName, ifExistsDo, List(condition) ++ enabled)(pos)
+
+  def _authRuleCondition: Gen[AuthRuleCondition] = for {
+    expression <- _expression
+  } yield AuthRuleCondition(expression)(pos)
+
+  def _AuthRuleEnabled: Gen[AuthRuleEnabled] = for {
+    enabled <- boolean
+  } yield AuthRuleEnabled(enabled)(pos)
+
+  // use oneOf when we have more than one auth rule command
+  def _authRuleCommand: Gen[AdministrationCommand] =
+    _createAuthRule.filterNot(_ => usesCypher5)
+
   // Role commands
 
   def _showRoles: Gen[ShowRoles] = for {
@@ -3393,7 +3418,7 @@ class AstGenerator(
 
   def _revokeType: Gen[RevokeType] = oneOf(RevokeGrantType()(pos), RevokeDenyType()(pos), RevokeBothType()(pos))
 
-  def _dbmsAction: Gen[DbmsAction] = oneOf(
+  def _dbmsAction: Gen[DbmsAction] = oneOf(Seq(
     AllDbmsAction,
     ExecuteProcedureAction,
     ExecuteBoostedProcedureAction,
@@ -3436,7 +3461,8 @@ class AstGenerator(
     ServerManagementAction,
     ShowServerAction,
     ShowSettingAction
-  )
+  ) ++ Seq(AllAuthRuleActions) // Actions not available in Cypher 5
+    .filterNot(_ => usesCypher5))
 
   def _databaseAction: Gen[DatabaseAction] = oneOf(
     StartDatabaseAction,
@@ -4035,7 +4061,15 @@ class AstGenerator(
 
   def _adminCommand: Gen[AdministrationCommand] = for {
     command <-
-      oneOf(_userCommand, _roleCommand, _privilegeCommand, _multiDatabaseCommand, _aliasCommands, _serverCommand)
+      oneOf(
+        _userCommand,
+        _authRuleCommand,
+        _roleCommand,
+        _privilegeCommand,
+        _multiDatabaseCommand,
+        _aliasCommands,
+        _serverCommand
+      )
     use <- frequency(1 -> some(_use), 9 -> const(None))
   } yield command.withGraph(use)
 

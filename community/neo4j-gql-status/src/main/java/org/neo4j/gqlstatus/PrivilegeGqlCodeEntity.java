@@ -27,6 +27,7 @@ import java.util.List;
  |--------------|----------------|---------------|
  | User         | 42N12          | 42N09         |
  | Role         | 42N13          | 42N10         |
+ | AuthRule     | 42NAE          | 42NAD         |
  | Database     | 42N11          | 42N00         |
  | Composite DB | 42N11          | 42N00         |
  | DB Alias     | 42N11          | 42N00         |
@@ -36,6 +37,7 @@ import java.util.List;
 public enum PrivilegeGqlCodeEntity {
     ROLE("Role"),
     USER("User"),
+    AUTHRULE("Auth rule"),
     // DB, ALIAS and COMPOSITE produce the exact same GQL status codes, but with different legacy messages.
     DATABASE("Database"),
     DATABASE_ALIAS("Database alias");
@@ -60,6 +62,7 @@ public enum PrivilegeGqlCodeEntity {
                 switch (entity) {
                     case USER -> userNotFound(name);
                     case ROLE -> roleNotFound(name);
+                    case AUTHRULE -> authRuleNotFound(name);
                     case DATABASE, DATABASE_ALIAS -> databaseNotFound(name);
                 };
 
@@ -82,6 +85,7 @@ public enum PrivilegeGqlCodeEntity {
         return switch (entity) {
             case USER -> invalidReference(userAlreadyExists(name));
             case ROLE -> invalidReference(roleAlreadyExists(name));
+            case AUTHRULE -> invalidReference(authRuleAlreadyExists(name));
             case DATABASE, DATABASE_ALIAS -> invalidReference(databaseAlreadyExists(name));
         };
     }
@@ -111,6 +115,12 @@ public enum PrivilegeGqlCodeEntity {
                 .build();
     }
 
+    private static ErrorGqlStatusObject authRuleNotFound(String name) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAD)
+                .withParam(GqlParams.StringParam.authRule, name)
+                .build();
+    }
+
     private static ErrorGqlStatusObject databaseNotFound(String name) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N00)
                 .withParam(GqlParams.StringParam.db, name)
@@ -126,6 +136,12 @@ public enum PrivilegeGqlCodeEntity {
     private static ErrorGqlStatusObject roleAlreadyExists(String name) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N13)
                 .withParam(GqlParams.StringParam.role, name)
+                .build();
+    }
+
+    private static ErrorGqlStatusObject authRuleAlreadyExists(String name) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAE)
+                .withParam(GqlParams.StringParam.authRule, name)
                 .build();
     }
 

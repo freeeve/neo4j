@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.semantics.FeatureError
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
@@ -3395,6 +3396,316 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         initialState,
         "rolename must be a String, or a String parameter.",
         pos.withInputLength(3)
+      ).errors
+  }
+
+  // Auth rule command tests
+  // TODO: change to verify the error code and error messages instead of calling the SemanticError methods directly
+
+  private def authRuleFeatureToggleError = FeatureError.notAvailableInThisImplementation(
+    SemanticFeature.AttributeBasedAccessControl,
+    "The `CREATE AUTH RULE` clause",
+    p
+  )
+
+  test("Create auth rule without feature flag") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(p)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError).errors
+  }
+
+  test("CREATE AUTH RULE authRule") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List.empty
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .error(initialState, SemanticError.authRuleMustHaveACondition(p)).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION 1=1 SET CONDITION 2=2") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(p),
+        AuthRuleCondition(equals(literalInt(2), literalInt(2)))(p)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .error(initialState, SemanticError.authRuleCannotHaveMoreThanOneCondition(p)).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION 1=1 SET ENABLED true SET ENABLED false") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(p),
+        AuthRuleEnabled(enabled = true)(pos1),
+        AuthRuleEnabled(enabled = false)(pos2)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .error(
+        getGql42N19_duplicateClause("SET ENABLED", pos2),
+        initialState,
+        "Duplicate `SET ENABLED` clause.",
+        pos2
+      ).errors
+
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION toLoWer('HELLO') = 'hello'") {
+    val functionInvocation = FunctionInvocation(
+      name = FunctionName("toLoWer")(p),
+      argument = literalString("HELLO")
+    )(p)
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(functionInvocation)(p)
+      )
+    )(p)
+
+    // Should succeed except for failure on feature flag
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('country') = 'SE'") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(Equals(
+          FunctionInvocation(
+            name = FunctionName("abac.oidc.user_attribute")(p),
+            argument = literalString("country")
+          )(p),
+          literalString("SE")
+        )(p))(p)
+      )
+    )(p)
+
+    // Should succeed except for failure on feature flag
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute($param) = 'SE'") {
+    val param = parameter("param", CTAny)
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(Equals(
+          FunctionInvocation(
+            name = FunctionName("abac.oidc.user_attribute")(p),
+            argument = param
+          )(p),
+          literalString("SE")
+        )(p))(p)
+      )
+    )(p)
+
+    // This is not supported yet
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .error(
+        initialState,
+        SemanticError.authRuleConditionCannotContainParameter(param.position)
+      ).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('hello' + 1) = 'SE'") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(Equals(
+          FunctionInvocation(
+            name = FunctionName("abac.oidc.user_attribute")(p),
+            argument = Add(literalString("hello"), literalInt(1))(p)
+          )(p),
+          literalString("SE")
+        )(p))(p)
+      )
+    )(p)
+
+    // Should succeed except for failure on feature flag
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute(1 + 1) = 'SE'") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(Equals(
+          FunctionInvocation(
+            name = FunctionName("abac.oidc.user_attribute")(p),
+            argument = Add(literalInt(1), literalInt(1))(p)
+          )(p),
+          literalString("SE")
+        )(p))(p)
+      )
+    )(p)
+
+    // Should succeed except for failure on feature flag
+    // Does not fail since we don't evaluate the inner expression
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION unknown.function('HELLO') = 'SE'") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(Equals(
+          FunctionInvocation(
+            name = FunctionName("unknown.function")(p),
+            argument = literalString("HELLO")
+          )(p),
+          literalString("SE")
+        )(p))(p)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .error(
+        initialState,
+        SemanticError.authRuleConditionContainsNonAllowListedFunction(
+          "unknown.function",
+          p
+        )
+      ).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION graph.byName('HELLO') = 'SE'") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(Equals(
+          FunctionInvocation(
+            name = FunctionName("graph.byName")(p),
+            argument = literalString("HELLO")
+          )(p),
+          literalString("SE")
+        )(p))(p)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .error(
+        initialState,
+        SemanticError.authRuleConditionContainsNonAllowListedFunction(
+          "graph.byName",
+          p
+        )
+      ).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute(toLower('HELLO')) = 'SE'") {
+    val innerFunctionInvocation = FunctionInvocation(
+      name = FunctionName("toLower")(p),
+      argument = literalString("HELLO")
+    )(p)
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(Equals(
+          FunctionInvocation(
+            name = FunctionName("abac.oidc.user_attribute")(p),
+            argument = innerFunctionInvocation
+          )(p),
+          literalString("SE")
+        )(p))(p)
+      )
+    )(p)
+
+    // Should succeed except for failure on feature flag
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('country', 'city') = 'SE_MALMÖ'") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(Equals(
+          FunctionInvocation(
+            name = FunctionName("abac.oidc.user_attribute")(p),
+            argument = listOf(literalString("country"), literalString("city"))
+          )(p),
+          literalString("SE_MALMÖ")
+        )(p))(p)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .error(
+        initialState,
+        SemanticError.functionCallWrongNumberOfArguments(
+          1,
+          2,
+          "abac.oidc.user_attribute",
+          "abac.oidc.user_attribute(attributeKey :: STRING) :: ANY",
+          "[country, city]",
+          p
+        )
+      ).errors
+  }
+
+  test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute(1) = 'SE_MALMÖ'") {
+    val functionInvocation = FunctionInvocation(
+      name = FunctionName("abac.oidc.user_attribute")(p),
+      argument = literalInt(1)
+    )(p)
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(Equals(functionInvocation, literalString("SE_MALMÖ"))(p))(p)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .error(
+        GqlHelper.getGql42001_22NB1(
+          java.util.List.of(CTString.toCypherTypeString),
+          "INTEGER",
+          0,
+          0,
+          0
+        ),
+        initialState,
+        "Type mismatch: expected String but was Integer",
+        InputPosition(0, 0, 0).withInputLength(0)
       ).errors
   }
 }

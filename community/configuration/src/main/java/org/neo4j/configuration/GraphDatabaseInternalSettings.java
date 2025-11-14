@@ -1473,6 +1473,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("A feature toggle behind which the attribute based access control feature is developed")
+    public static final Setting<Boolean> attribute_based_access_control = newBuilder(
+                    "internal.dbms.feature_flag.attribute_based_access_control", BOOL, false)
+            .build();
+
+    @Internal
     @Description("A feature toggle behind which show setting feature is developed")
     public static final Setting<Boolean> show_setting =
             newBuilder("internal.dbms.show_setting", BOOL, true).build();

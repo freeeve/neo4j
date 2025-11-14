@@ -89,6 +89,7 @@ import org.neo4j.cypher.internal.logical.plans.AssertNotBlockedDropAlias
 import org.neo4j.cypher.internal.logical.plans.AssertNotBlockedRemoteAliasManagement
 import org.neo4j.cypher.internal.logical.plans.AssertNotCurrentUser
 import org.neo4j.cypher.internal.logical.plans.CopyRolePrivileges
+import org.neo4j.cypher.internal.logical.plans.CreateAuthRule
 import org.neo4j.cypher.internal.logical.plans.CreateDatabase
 import org.neo4j.cypher.internal.logical.plans.CreateLocalDatabaseAlias
 import org.neo4j.cypher.internal.logical.plans.CreateRemoteDatabaseAlias
@@ -242,6 +243,13 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(RevokeRoleFromUser(privLhsLP, util.Left("role"), util.Left("user"), "REVOKE ROLE role FROM user"), 1.0),
+      adminPlanDescription
+    )
+  }
+
+  test("Auth rule commands") {
+    assertGood(
+      attach(CreateAuthRule(privLhsLP, util.Left("authRule"), literalBoolean(true), Some(true)), 1.0),
       adminPlanDescription
     )
   }

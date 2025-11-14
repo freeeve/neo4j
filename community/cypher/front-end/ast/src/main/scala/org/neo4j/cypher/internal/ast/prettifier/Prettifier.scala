@@ -35,10 +35,13 @@ import org.neo4j.cypher.internal.ast.AlterRemoteDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterServer
 import org.neo4j.cypher.internal.ast.AlterUser
 import org.neo4j.cypher.internal.ast.AscSortItem
+import org.neo4j.cypher.internal.ast.AuthRuleCondition
+import org.neo4j.cypher.internal.ast.AuthRuleEnabled
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Create
+import org.neo4j.cypher.internal.ast.CreateAuthRule
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabase
 import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.ast.CreateDatabase
@@ -655,6 +658,23 @@ case class Prettifier(
       case x @ RenameRole(fromRoleName, toRoleName, ifExists) =>
         Prettifier.prettifyRename(x.name, fromRoleName, toRoleName, ifExists)
 
+      case x @ CreateAuthRule(authRuleName, ifExistsDo, setClauses) =>
+        val setClausesString = setClauses.map(clause =>
+          (
+            clause.name,
+            clause match {
+              case condition: AuthRuleCondition => ExpressionStringifier().apply(condition.expression)
+              case enabled: AuthRuleEnabled     => if (enabled.enabled) "TRUE" else "FALSE"
+            }
+          )
+        ).map { case (name, value) => s"$name $value" }
+          .mkString(" ")
+
+        ifExistsDo match {
+          case IfExistsDoNothing | IfExistsInvalidSyntax =>
+            s"${x.name} ${Prettifier.escapeName(authRuleName)} IF NOT EXISTS $setClausesString"
+          case _ => s"${x.name} ${Prettifier.escapeName(authRuleName)} $setClausesString"
+        }
       case x @ DropRole(roleName, ifExists) =>
         if (ifExists) s"${x.name} ${Prettifier.escapeName(roleName)} IF EXISTS"
         else s"${x.name} ${Prettifier.escapeName(roleName)}"

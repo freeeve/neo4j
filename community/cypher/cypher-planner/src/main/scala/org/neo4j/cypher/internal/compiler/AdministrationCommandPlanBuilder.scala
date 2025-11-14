@@ -46,6 +46,8 @@ import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.CommandClauseAllowedOnSystem
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.CreateAliasAction
+import org.neo4j.cypher.internal.ast.CreateAuthRule
+import org.neo4j.cypher.internal.ast.CreateAuthRuleAction
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabase
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateDatabase
@@ -265,6 +267,35 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
     ): plans.DatabaseAdministrationLogicalPlan = waitUntilComplete match {
       case _: NoWait => logicalPlan
       case _         => plans.WaitForCompletion(logicalPlan, databaseName, waitUntilComplete)
+    }
+
+    def getSourceForCreateAuthRule(
+      authRuleName: Either[String, Parameter],
+      ifExistsDo: IfExistsDo
+    ): plans.SecurityAdministrationLogicalPlan = {
+      ifExistsDo match {
+        case IfExistsReplace =>
+          // TODO: Implement when drop is implemented
+          throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
+            "CREATE OR REPLACE AUTH RULE",
+            s"The following commands are not allowed on a system database: CREATE OR REPLACE AUTH RULE.",
+            false
+          )
+        case IfExistsDoNothing =>
+          plans.DoNothingIfExists(
+            plans.AssertAllowedDbmsActions(
+              None,
+              Seq(CreateAuthRuleAction)
+            ),
+            s"CREATE AUTH RULE",
+            plans.AuthRuleEntity,
+            authRuleName
+          )
+        case _ => plans.AssertAllowedDbmsActions(
+            None,
+            Seq(CreateAuthRuleAction)
+          )
+      }
     }
 
     def planSystemProcedureCall(
@@ -516,6 +547,14 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           )
         Some(plans.LogSystemCommand(
           plans.DropRole(AssertRoleCanBeDropped(source, roleName), roleName),
+          prettifier.asString(c)
+        ))
+
+      // CREATE [OR REPLACE] AUTH RULE foo [IF NOT EXISTS] SET CONDITION expr [SET ENABLED true|false]
+      case c @ CreateAuthRule(authRuleName, ifExistsDo, _) =>
+        val source = getSourceForCreateAuthRule(authRuleName, ifExistsDo)
+        Some(plans.LogSystemCommand(
+          plans.CreateAuthRule(source, authRuleName, c.condition.map(_.expression).get, c.enabled.map(_.enabled)),
           prettifier.asString(c)
         ))
 

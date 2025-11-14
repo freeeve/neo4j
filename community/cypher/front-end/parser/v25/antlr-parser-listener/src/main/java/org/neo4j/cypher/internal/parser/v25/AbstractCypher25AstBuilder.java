@@ -426,7 +426,10 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_revokeCommand -> exitRevokeCommand((Cypher25Parser.RevokeCommandContext) ctx);
             case Cypher25Parser.RULE_userNames -> exitUserNames((Cypher25Parser.UserNamesContext) ctx);
             case Cypher25Parser.RULE_roleNames -> exitRoleNames((Cypher25Parser.RoleNamesContext) ctx);
+            case Cypher25Parser.RULE_authRuleNames -> exitAuthRuleNames((Cypher25Parser.AuthRuleNamesContext) ctx);
             case Cypher25Parser.RULE_roleToken -> exitRoleToken((Cypher25Parser.RoleTokenContext) ctx);
+            case Cypher25Parser.RULE_authRuleKeywords ->
+                exitAuthRuleKeywords((Cypher25Parser.AuthRuleKeywordsContext) ctx);
             case Cypher25Parser.RULE_enableServerCommand ->
                 exitEnableServerCommand((Cypher25Parser.EnableServerCommandContext) ctx);
             case Cypher25Parser.RULE_alterServer -> exitAlterServer((Cypher25Parser.AlterServerContext) ctx);
@@ -540,6 +543,13 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_nodeToken -> exitNodeToken((Cypher25Parser.NodeTokenContext) ctx);
             case Cypher25Parser.RULE_databaseScope -> exitDatabaseScope((Cypher25Parser.DatabaseScopeContext) ctx);
             case Cypher25Parser.RULE_graphScope -> exitGraphScope((Cypher25Parser.GraphScopeContext) ctx);
+            case Cypher25Parser.RULE_createAuthRule -> exitCreateAuthRule((Cypher25Parser.CreateAuthRuleContext) ctx);
+            case Cypher25Parser.RULE_authRuleSetClause ->
+                exitAuthRuleSetClause((Cypher25Parser.AuthRuleSetClauseContext) ctx);
+            case Cypher25Parser.RULE_authRuleSetCondition ->
+                exitAuthRuleSetCondition((Cypher25Parser.AuthRuleSetConditionContext) ctx);
+            case Cypher25Parser.RULE_authRuleSetEnabled ->
+                exitAuthRuleSetEnabled((Cypher25Parser.AuthRuleSetEnabledContext) ctx);
             case Cypher25Parser.RULE_createCompositeDatabase ->
                 exitCreateCompositeDatabase((Cypher25Parser.CreateCompositeDatabaseContext) ctx);
             case Cypher25Parser.RULE_createDatabase -> exitCreateDatabase((Cypher25Parser.CreateDatabaseContext) ctx);
