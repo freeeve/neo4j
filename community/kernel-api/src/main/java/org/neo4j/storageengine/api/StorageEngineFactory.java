@@ -647,7 +647,6 @@ public interface StorageEngineFactory {
     }
 
     private static StorageEngineFactory findEngineForFormatOrThrow(String name) {
-
         return allAvailableStorageEngines().stream()
                 .filter(engine -> engine.supportedFormat(name))
                 .findFirst()

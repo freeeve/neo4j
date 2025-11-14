@@ -217,7 +217,7 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                         fileSystem,
                         pageCache,
                         pageCacheTracer,
-                        localConfig,
+                        config,
                         memoryTracker,
                         ReadBehaviour.INCLUSIVE_STRICT,
                         !keepNodeIds,
