@@ -3201,14 +3201,12 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .sort("`a.born` ASC")
         .projection("cacheN[a.born] AS `a.born`")
         .remoteBatchProperties("cacheNFromStore[a.born]")
-        .eager(ListSet(
-          propReadSetConflict("born", 7, 2)
-        ))
+        .eager(ListSet(propReadSetConflict("born", 7, 2)))
         .apply()
         .|.aggregation(Seq(), Seq("count(*) AS dummy"))
         .|.merge(
           nodes = Seq(createNodeFull("x", Seq("A"))),
-          onMatch = Seq(setNodeProperty("x", "born", "2020 - x.age"))
+          onMatch = Seq(setNodeProperty("x", "born", "2020 - cacheN[x.age]"))
         )
         .|.remoteBatchProperties("cacheNFromStore[x.age]")
         .|.nodeByLabelScan("x", "A", IndexOrderNone)
