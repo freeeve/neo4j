@@ -29,7 +29,7 @@ import java.util.Set;
 import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.kernel.impl.transaction.log.files.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFilesHelper;
 
 public class LogsRepository {
     static final long BASE_VERSION = 0;

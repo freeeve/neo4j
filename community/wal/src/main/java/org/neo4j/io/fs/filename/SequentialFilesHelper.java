@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log.files;
+package org.neo4j.io.fs.filename;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.regex.Pattern.compile;
@@ -93,12 +93,6 @@ public class SequentialFilesHelper {
             return filenameFilter.accept(path);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    public void accept(LogVersionVisitor visitor) throws IOException {
-        for (Path file : getFiles()) {
-            visitor.visit(file, getVersion(file));
         }
     }
 

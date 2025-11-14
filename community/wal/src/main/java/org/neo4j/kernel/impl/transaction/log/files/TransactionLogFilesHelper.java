@@ -25,6 +25,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
 import java.util.function.Predicate;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.filename.SequentialFilesHelper;
 
 public final class TransactionLogFilesHelper {
     public static final String DEFAULT_NAME = "neostore.transaction.db";

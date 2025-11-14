@@ -37,6 +37,7 @@ import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.io.fs.filename.SequentialFilesHelper;
 import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
@@ -47,7 +48,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.v50.LogEntryDetachedCheckpoin
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
-import org.neo4j.kernel.impl.transaction.log.files.SequentialFilesHelper;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
 import org.neo4j.kernel.impl.transaction.log.files.VersionedFile;

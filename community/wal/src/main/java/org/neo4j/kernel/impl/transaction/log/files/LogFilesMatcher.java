@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.transaction.log.files;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.filename.SequentialFilesHelper;
 
 public class LogFilesMatcher {
     private final SequentialFilesHelper checkpointFilesHelper;
