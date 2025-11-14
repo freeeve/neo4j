@@ -57,7 +57,7 @@ case object SimplifyIterablePredicates extends StepSequencer.Step with DefaultPo
   })
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
-    AddUniquenessPredicates.completed // Introduces AnyIterablePredicate and NoneIterablePredicate
+    AddElementUniquenessPredicates.completed // Introduces AnyIterablePredicate and NoneIterablePredicate
   )
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable // Introduces new AST nodes

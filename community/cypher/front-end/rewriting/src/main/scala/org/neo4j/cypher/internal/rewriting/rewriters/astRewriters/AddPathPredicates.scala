@@ -40,7 +40,7 @@ import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 import org.neo4j.cypher.internal.util.StepSequencer.Step
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 
-trait AddRelationshipPredicates[NC] extends Step with DefaultPostCondition with ASTRewriterFactory {
+trait AddPathPredicates[NC] extends Step with DefaultPostCondition with ASTRewriterFactory {
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     NoUnnamedNodesAndRelationships,
@@ -63,27 +63,6 @@ trait AddRelationshipPredicates[NC] extends Step with DefaultPostCondition with 
     version: CypherVersion
   ): Rewriter = rewriter
 
-  protected def rewriteSelectivePatternPart(part: PrefixedPatternPart): PrefixedPatternPart =
-    part.element match {
-      case path: ParenthesizedPath =>
-        val nodeConnections = collectNodeConnections(path.part.element)
-        val predicate = createPredicateFor(nodeConnections, path.position)
-        val whereExpr = path.optionalWhereClause
-        val newPredicate = Where.combineOrCreateExpressionBeforeCnf(whereExpr, predicate)(whereExpr.map(_.position))
-        val newElement = path.copy(optionalWhereClause = newPredicate)(path.position)
-        part.replaceElement(newElement)
-      case otherElement =>
-        val nodeConnections = collectNodeConnections(otherElement)
-        createPredicateFor(nodeConnections, part.position) match {
-          // We should not wrap the pattern in new parentheses if there is no predicate to add
-          case None => part
-          case Some(predicate) =>
-            val syntheticPatternPart = PathPatternPart(otherElement)
-            val newElement = ParenthesizedPath(syntheticPatternPart, Some(predicate))(part.position)
-            part.replaceElement(newElement)
-        }
-    }
-
   protected def withPredicates(pattern: ASTNode, nodeConnections: Seq[NC], where: Option[Where]): Option[Where] = {
     val pos = pattern.position
     val maybePredicate: Option[Expression] = createPredicateFor(nodeConnections, pos)
@@ -94,12 +73,32 @@ trait AddRelationshipPredicates[NC] extends Step with DefaultPostCondition with 
     createPredicatesFor(nodeConnections, pos).reduceOption(expressions.And(_, _)(pos))
   }
 
+  protected def rewriteSelectivePatternPart(
+    part: PrefixedPatternPart,
+    maybePredicate: Option[Expression]
+  ): PrefixedPatternPart = {
+    part.element match {
+      case path: ParenthesizedPath =>
+        val pos = path.optionalWhereClause.map(_.position).getOrElse(InputPosition.NONE)
+        val newPredicate = Where.combineOrCreateExpressionBeforeCnf(
+          path.optionalWhereClause,
+          maybePredicate
+        )(Some(pos))
+        val newElement = path.copy(optionalWhereClause = newPredicate)(path.position)
+        part.replaceElement(newElement)
+
+      case otherElement =>
+        maybePredicate match {
+          case None => part
+          case Some(predicate) =>
+            val syntheticPatternPart = PathPatternPart(otherElement)
+            val newElement = ParenthesizedPath(syntheticPatternPart, Some(predicate))(part.position)
+            part.replaceElement(newElement)
+        }
+    }
+  }
+
   def createPredicatesFor(nodeConnections: Seq[NC], pos: InputPosition): Seq[Expression]
 
   def collectNodeConnections(pattern: ASTNode): Seq[NC]
-
-  def createPredicatesFor(pattern: ASTNode): Seq[Expression] = {
-    val connections = collectNodeConnections(pattern)
-    createPredicatesFor(connections, pattern.position)
-  }
 }

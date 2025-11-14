@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
@@ -37,7 +38,7 @@ import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.bottomUp
 
-case object AddVarLengthPredicates extends AddRelationshipPredicates[RelationshipPattern] {
+case object AddVarLengthBoundPredicates extends AddPathPredicates[RelationshipPattern] {
 
   override val rewriter: Rewriter = bottomUp(Rewriter.lift {
     case matchClause @ Match(_, _, pattern: Pattern, _, where, _) =>
@@ -45,7 +46,14 @@ case object AddVarLengthPredicates extends AddRelationshipPredicates[Relationshi
       val newWhere = withPredicates(matchClause, relationships, where)
       matchClause.copy(where = newWhere)(matchClause.position)
     case part @ PrefixedPatternPart(_: SelectiveSelector, _, _) =>
-      rewriteSelectivePatternPart(part)
+      val maybePredicate = {
+        val element = part.element match {
+          case path: ParenthesizedPath => path.part.element
+          case otherElement            => otherElement
+        }
+        createPredicateFor(collectNodeConnections(element), part.position)
+      }
+      rewriteSelectivePatternPart(part, maybePredicate)
   })
 
   def collectNodeConnections(pattern: ASTNode): Seq[RelationshipPattern] =
@@ -91,6 +99,6 @@ case object AddVarLengthPredicates extends AddRelationshipPredicates[Relationshi
   override def preConditions: Set[StepSequencer.Condition] = {
     // we do not really need a dependency here but this is to deflake tests which assert on the order of predicates
     // generated in the WHERE clause.
-    super.preConditions + AddUniquenessPredicates.completed
+    super.preConditions + AddElementUniquenessPredicates.completed
   }
 }

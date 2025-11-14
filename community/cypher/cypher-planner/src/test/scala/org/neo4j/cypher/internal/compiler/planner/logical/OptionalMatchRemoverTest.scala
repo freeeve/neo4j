@@ -37,7 +37,7 @@ import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOpe
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.SimplePatternLength
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddElementUniquenessPredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeExistsPatternExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLabelsAndHasType
@@ -75,7 +75,7 @@ class OptionalMatchRemoverTest extends CypherFunSuite with PlannerQueryRewriterT
       LabelExpressionPredicateNormalizer.instance,
       NormalizeExistsPatternExpressions(orgAstState),
       NormalizeHasLabelsAndHasType(orgAstState),
-      AddUniquenessPredicates.rewriter,
+      AddElementUniquenessPredicates.rewriter,
       flattenBooleanOperators.instance(CancellationChecker.NeverCancelled)
     ))
     // computeDependenciesForExpressions needs a new run of SemanticChecker after normalizeExistsPatternExpressions

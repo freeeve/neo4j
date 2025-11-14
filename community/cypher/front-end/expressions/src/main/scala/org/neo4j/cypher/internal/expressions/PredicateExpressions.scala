@@ -435,6 +435,17 @@ case class DifferentRelationships(rel1: Expression, rel2: Expression)(val positi
 }
 
 /**
+ * Tests whether the two nodes given are different.
+ *
+ * @param node1 first node
+ * @param node2 second node
+ */
+case class DifferentNodes(node1: Expression, node2: Expression)(val position: InputPosition)
+    extends NodeUniquenessPredicate {
+  override def isConstantForQuery: Boolean = false
+}
+
+/**
  * Tests whether the relationship is none of the elements from the list.
  *
  * @param relationship the relationship

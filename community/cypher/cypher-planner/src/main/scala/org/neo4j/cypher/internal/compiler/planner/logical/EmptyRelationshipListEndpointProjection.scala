@@ -38,7 +38,7 @@ import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddElementUniquenessPredicates
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
@@ -159,7 +159,7 @@ case object EmptyRelationshipListEndpointProjection extends PlannerQueryRewriter
     // This works on the IR
     CompilationContains[PlannerQuery](),
     VarLengthQuantifierMerger.completed,
-    AddUniquenessPredicates.completed
+    AddElementUniquenessPredicates.completed
   )
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty

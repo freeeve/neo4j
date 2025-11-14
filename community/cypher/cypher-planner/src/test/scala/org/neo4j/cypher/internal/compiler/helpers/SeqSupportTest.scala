@@ -106,4 +106,20 @@ class SeqSupportTest extends CypherFunSuite with Matchers with CypherScalaCheckD
     xs.pluck(_ == "b") shouldEqual (Some("b"), Seq("a", "c"))
     xs.pluck(_ == "d") shouldEqual (None, xs)
   }
+
+  test("zipWithTail on empty sequence returns empty sequence") {
+    val xs = Seq.empty[Int]
+    xs.zipWithTail shouldEqual Seq.empty
+  }
+
+  test("zipWithTail zips each element with the remainder of the list at that point") {
+    val xs = Seq(1, 2, 3, 4)
+    xs.zipWithTail shouldEqual
+      Seq(
+        (1, Seq(2, 3, 4)),
+        (2, Seq(3, 4)),
+        (3, Seq(4)),
+        (4, Seq())
+      )
+  }
 }

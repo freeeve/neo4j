@@ -18,19 +18,26 @@ package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.rewriting.RewriteTest
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddVarLengthPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddVarLengthBoundPredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class AddVarLengthPredicatesTest extends CypherFunSuite with RewriteTest with AstConstructionTestSupport {
+class AddVarLengthBoundPredicatesTest extends CypherFunSuite with RewriteTest with AstConstructionTestSupport {
 
   test("should add predicates for simple var-length") {
     assertRewrite(
       "MATCH (a)-[r1:T*1..2]->(b) RETURN *",
       "MATCH (a)-[r1:T*1..2]->(b) WHERE size(r1) >= 1 AND size(r1) <= 2 RETURN *"
+    )
+  }
+
+  test("should add predicates for simple var-length under REPEATABLE ELEMENTS") {
+    assertRewrite(
+      "MATCH REPEATABLE ELEMENTS (a)-[r1:T*1..2]->(b) RETURN *",
+      "MATCH REPEATABLE ELEMENTS (a)-[r1:T*1..2]->(b) WHERE size(r1) >= 1 AND size(r1) <= 2 RETURN *"
     )
   }
 
@@ -73,7 +80,7 @@ class AddVarLengthPredicatesTest extends CypherFunSuite with RewriteTest with As
 
   def rewriterUnderTest: Rewriter = inSequence(
     NameAllPatternElements(new AnonymousVariableNameGenerator),
-    AddVarLengthPredicates.rewriter,
-    VarLengthRewriter
+    AddVarLengthBoundPredicates.rewriter,
+    VarLengthBoundPredicateRewriter
   )
 }

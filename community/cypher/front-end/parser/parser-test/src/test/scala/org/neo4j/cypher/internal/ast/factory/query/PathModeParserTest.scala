@@ -75,6 +75,22 @@ class PathModeParserTest extends AstParsingTestBase {
     }
   }
 
+  test("CREATE TRAIL (:A)-[:REL]->(:B)-[:REL]->(:C)") {
+    failsParsing[Clause].withMessageContaining("TRAIL")
+  }
+
+  test("INSERT WALK (:A)-[:REL]->(:B)-[:REL]->(:C)") {
+    failsParsing[Clause].withMessageContaining("WALK")
+  }
+
+  test("MERGE ACYCLIC (:A)-[:REL]->(:B)-[:REL]->(:C)") {
+    failsParsing[Clause].withMessageContaining("ACYCLIC")
+  }
+
+  test("RETURN [WALK (n)-[*]->(m) | n]") {
+    failsParsing[Clause].withMessageContaining("WALK")
+  }
+
   test("MATCH ANY ACYCLIC (n)-->(m)") {
     parsesIn[Clause] {
       case Cypher5 => _.withAnyFailure

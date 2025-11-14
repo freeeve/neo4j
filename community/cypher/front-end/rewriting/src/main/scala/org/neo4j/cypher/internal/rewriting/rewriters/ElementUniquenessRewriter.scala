@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
+import org.neo4j.cypher.internal.expressions.DifferentNodes
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Equals
@@ -35,7 +36,7 @@ import org.neo4j.cypher.internal.util.topDown
 /**
  * Removes [[Disjoint]] and [[Unique]] predicates into expressions that the runtime can evaluate.
  */
-case class UniquenessRewriter(anonymousVariableNameGenerator: AnonymousVariableNameGenerator) extends Rewriter
+case class ElementUniquenessRewriter(anonymousVariableNameGenerator: AnonymousVariableNameGenerator) extends Rewriter
     with TopDownMergeableRewriter {
 
   override val innerRewriter: Rewriter = Rewriter.lift {
@@ -65,6 +66,9 @@ case class UniquenessRewriter(anonymousVariableNameGenerator: AnonymousVariableN
 
     case p @ DifferentRelationships(rel1, rel2) =>
       Not(Equals(rel1, rel2)(p.position))(p.position)
+
+    case p @ DifferentNodes(node1, node2) =>
+      Not(Equals(node1, node2)(p.position))(p.position)
   }
 
   private val instance = topDown(innerRewriter)

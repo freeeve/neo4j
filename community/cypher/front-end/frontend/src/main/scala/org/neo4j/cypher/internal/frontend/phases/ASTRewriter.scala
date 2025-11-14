@@ -24,9 +24,9 @@ import org.neo4j.cypher.internal.rewriting.RewriterStep
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddElementUniquenessPredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddQuantifiedPathAnonymousVariableGroupings
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddVarLengthPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddVarLengthBoundPredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.CombineSetProperty
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.CypherTypeNormalizationRewriter
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.DesugarMapProjection
@@ -69,8 +69,8 @@ object ASTRewriter {
       Set(
         AddDependenciesToProjectionsInSubqueryExpressions,
         AddQuantifiedPathAnonymousVariableGroupings,
-        AddUniquenessPredicates,
-        AddVarLengthPredicates,
+        AddElementUniquenessPredicates,
+        AddVarLengthBoundPredicates,
         CombineSetProperty,
         CypherTypeNormalizationRewriter,
         DesugarMapProjection,

@@ -301,7 +301,10 @@ object PatternPart {
 case class PathConcatenation(factors: Seq[PathFactor])(val position: InputPosition) extends PatternElement {
   override def allVariables: Set[LogicalVariable] = factors.view.flatMap(_.allVariables).toSet
 
-  def allTopLevelVariablesLeftToRight: Seq[LogicalVariable] = factors.flatMap(_.allTopLevelVariablesLeftToRight)
+  override def allSingletonNodeVariables: Set[LogicalVariable] = factors.view.flatMap(_.allSingletonNodeVariables).toSet
+
+  override def allSingletonVariablesLeftToRight: Seq[LogicalVariable] =
+    factors.flatMap(_.allSingletonVariablesLeftToRight)
 
   override def variable: Option[LogicalVariable] = None
 
@@ -334,7 +337,9 @@ case class QuantifiedPath(
 
   override def allVariables: Set[LogicalVariable] = variableGroupings.map(_.group)
 
-  override def allTopLevelVariablesLeftToRight: Seq[LogicalVariable] = Seq.empty
+  override def allSingletonNodeVariables: Set[LogicalVariable] = Set.empty
+
+  override def allSingletonVariablesLeftToRight: Seq[LogicalVariable] = Seq.empty
 
   override def variable: Option[LogicalVariable] = None
 
@@ -431,19 +436,22 @@ case class ParenthesizedPath(
     extends PathFactor with PatternAtom {
 
   override def allVariables: Set[LogicalVariable] = part.element.allVariables
-  override def allTopLevelVariablesLeftToRight: Seq[LogicalVariable] = part.element.allTopLevelVariablesLeftToRight
+
+  override def allSingletonNodeVariables: Set[LogicalVariable] = part.element.allSingletonNodeVariables
+
+  override def allSingletonVariablesLeftToRight: Seq[LogicalVariable] = part.element.allSingletonVariablesLeftToRight
 
   override def variable: Option[LogicalVariable] = None
-
-  override def isBounded: Boolean = part.isBounded
-
-  override def isFixedLength: Boolean = part.isFixedLength
 
   override def mapExpressions(f: Expression => Expression): PatternElement =
     copy(part.mapExpressions(f), optionalWhereClause.map(f))(this.position)
 
   override def dependencies: Set[LogicalVariable] = part.dependencies ++
     optionalWhereClause.toSet[Expression].flatMap(_.dependencies)
+
+  override def isBounded: Boolean = part.isBounded
+
+  override def isFixedLength: Boolean = part.isFixedLength
 
   override def containsDynamicPattern: Boolean = optionalWhereClause.exists(_.containsDynamicExpression) ||
     part.containsDynamicPattern
@@ -458,10 +466,14 @@ object ParenthesizedPath {
 sealed abstract class PatternElement extends ASTNode with HasMappableExpressions[PatternElement] {
   def allVariables: Set[LogicalVariable]
 
+  // TODO Set may not be sufficient when we need to identify boundary nodes for the SIMPLE path mode
+  //  See PLAN-2343
+  def allSingletonNodeVariables: Set[LogicalVariable]
+
   /**
    * In contrast to allVariables, this does not return variables that are nested inside QPPs.
    */
-  def allTopLevelVariablesLeftToRight: Seq[LogicalVariable]
+  def allSingletonVariablesLeftToRight: Seq[LogicalVariable]
   def variable: Option[LogicalVariable]
   def isBounded: Boolean
   def isFixedLength: Boolean
@@ -482,12 +494,12 @@ object PatternElement {
     element match {
       // Either we have a simple pattern
       case pattern: SimplePattern =>
-        val allVars = pattern.allTopLevelVariablesLeftToRight
+        val allVars = pattern.allSingletonVariablesLeftToRight
         Set.empty ++ allVars.headOption ++ allVars.lastOption
       // or non-simple patterns (QPPs) have been padded (see QppsHavePaddedNodes)
       case PathConcatenation(factors) =>
-        val left = factors.head.asInstanceOf[SimplePattern].allTopLevelVariablesLeftToRight.headOption
-        val right = factors.last.asInstanceOf[SimplePattern].allTopLevelVariablesLeftToRight.lastOption
+        val left = factors.head.asInstanceOf[SimplePattern].allSingletonVariablesLeftToRight.headOption
+        val right = factors.last.asInstanceOf[SimplePattern].allSingletonVariablesLeftToRight.lastOption
         Set.empty ++ left ++ right
       case ParenthesizedPath(part, _) => boundaryNodes(part.element)
       case _                          => throw new IllegalStateException()
@@ -499,7 +511,7 @@ object PatternElement {
  * A part of the pattern that consists of alternating nodes and relationships, starting and ending in a node.
  */
 sealed abstract class SimplePattern extends PathFactor {
-  def allTopLevelVariablesLeftToRight: Seq[LogicalVariable]
+  def allSingletonVariablesLeftToRight: Seq[LogicalVariable]
 }
 
 case class RelationshipChain(
@@ -513,8 +525,10 @@ case class RelationshipChain(
 
   override def allVariables: Set[LogicalVariable] = element.allVariables ++ relationship.variable ++ rightNode.variable
 
-  override def allTopLevelVariablesLeftToRight: Seq[LogicalVariable] =
-    element.allTopLevelVariablesLeftToRight ++ relationship.variable.toSeq ++ rightNode.allTopLevelVariablesLeftToRight
+  override def allSingletonNodeVariables: Set[LogicalVariable] = element.allSingletonNodeVariables ++ rightNode.variable
+
+  override def allSingletonVariablesLeftToRight: Seq[LogicalVariable] =
+    element.allSingletonVariablesLeftToRight ++ relationship.variable ++ rightNode.variable
 
   override def isBounded: Boolean = relationship.isBounded && element.isBounded
 
@@ -553,7 +567,9 @@ case class NodePattern(
 
   override def allVariables: Set[LogicalVariable] = variable.toSet
 
-  override def allTopLevelVariablesLeftToRight: Seq[LogicalVariable] = variable.toSeq
+  override def allSingletonNodeVariables: Set[LogicalVariable] = variable.toSet
+
+  override def allSingletonVariablesLeftToRight: Seq[LogicalVariable] = variable.toSeq
 
   override def isSingleNode = true
 

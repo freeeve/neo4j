@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Contains
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
+import org.neo4j.cypher.internal.expressions.DifferentNodes
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Divide
@@ -759,6 +760,9 @@ private class DefaultExpressionStringifier(
 
       case DifferentRelationships(rel1, rel2) =>
         noEagerConsumption(s"NOT ${apply(rel1, shouldBacktickEmpty)} = ${apply(rel2, shouldBacktickEmpty)}")
+
+      case DifferentNodes(node1, node2) =>
+        noEagerConsumption(s"NOT ${apply(node1, shouldBacktickEmpty)} = ${apply(node2, shouldBacktickEmpty)}")
 
       case Disjoint(rel1, rel2) =>
         noEagerConsumption(s"disjoint(${apply(rel1, shouldBacktickEmpty)}, ${apply(rel2, shouldBacktickEmpty)})")

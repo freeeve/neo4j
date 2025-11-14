@@ -772,7 +772,7 @@ case class Match(
       SemanticPatternCheck.check(
         Pattern.SemanticContext.Match,
         pattern,
-        matchMode.requiresDifferentRelationships
+        matchMode
       ) ifOkChain {
         hints.semanticCheck chain
           uniqueHints chain

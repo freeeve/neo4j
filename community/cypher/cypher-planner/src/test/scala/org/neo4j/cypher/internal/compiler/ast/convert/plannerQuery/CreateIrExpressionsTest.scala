@@ -63,8 +63,8 @@ import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.rewriting.rewriters.PredicateNormalizer
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddVarLengthPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddElementUniquenessPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddVarLengthBoundPredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -140,8 +140,8 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
   private def rewrite(e: Expression, semanticTable: SemanticTable = new SemanticTable()): Expression = {
     val anonymousVariableNameGenerator = makeAnonymousVariableNameGenerator()
     val rewriter = inSequence(
-      AddUniquenessPredicates.rewriter,
-      AddVarLengthPredicates.rewriter,
+      AddElementUniquenessPredicates.rewriter,
+      AddVarLengthBoundPredicates.rewriter,
       NormalizePredicates(PredicateNormalizer.normalizeInlinedWhereClauses),
       NormalizePredicates(PredicateNormalizer.normalizeLabelAndPropertyPredicates(anonymousVariableNameGenerator)),
       flattenBooleanOperators.instance(CancellationChecker.NeverCancelled),

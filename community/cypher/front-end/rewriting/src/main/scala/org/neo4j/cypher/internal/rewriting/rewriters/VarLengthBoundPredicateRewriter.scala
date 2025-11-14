@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.util.topDown
 /**
  * Rewrites [[VarLengthLowerBound]] and [[VarLengthUpperBound]] predicates into expressions that the runtime can evaluate.
  */
-case object VarLengthRewriter extends Rewriter with TopDownMergeableRewriter {
+case object VarLengthBoundPredicateRewriter extends Rewriter with TopDownMergeableRewriter {
 
   override val innerRewriter: Rewriter = Rewriter.lift {
     case predicate: VarLengthBound => predicate.getRewrittenPredicate

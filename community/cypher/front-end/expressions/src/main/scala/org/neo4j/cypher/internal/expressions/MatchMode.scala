@@ -23,8 +23,9 @@ object MatchMode {
 
   sealed trait MatchMode extends ASTNode {
     def prettified: String
-    def requiresDifferentRelationships: Boolean
   }
+
+  def default(): MatchMode = default(InputPosition.NONE)
 
   def default(position: InputPosition): MatchMode = {
     DifferentRelationships(implicitlyCreated = true)(position)
@@ -32,8 +33,6 @@ object MatchMode {
 
   case class RepeatableElements()(val position: InputPosition) extends MatchMode {
     override def prettified: String = "REPEATABLE ELEMENTS"
-
-    override def requiresDifferentRelationships: Boolean = false
   }
 
   /**
@@ -45,7 +44,5 @@ object MatchMode {
    */
   case class DifferentRelationships(implicitlyCreated: Boolean = false)(val position: InputPosition) extends MatchMode {
     override def prettified: String = if (implicitlyCreated) "" else "DIFFERENT RELATIONSHIPS"
-
-    override def requiresDifferentRelationships: Boolean = true
   }
 }

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.expressions
 
+import org.neo4j.cypher.internal.expressions.MatchMode.MatchMode
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -39,4 +40,12 @@ object PathMode {
     def implicitlyCreated: Boolean = false
     override def prettified: String = "ACYCLIC"
   }
+
+  def effectivePathMode(matchMode: MatchMode, pathMode: PathMode): PathMode =
+    (matchMode, pathMode) match {
+      // The only case where the match mode is more restrictive than the path mode
+      // is DIFFERENT RELATIONSHIPS + WALK. Otherwise the path mode prevails.
+      case (MatchMode.DifferentRelationships(_), Walk(_)) => Trail()(pathMode.position)
+      case _                                              => pathMode
+    }
 }

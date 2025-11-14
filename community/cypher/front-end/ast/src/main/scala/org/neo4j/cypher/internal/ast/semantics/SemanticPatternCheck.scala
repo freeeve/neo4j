@@ -33,6 +33,9 @@ import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
+import org.neo4j.cypher.internal.expressions.MatchMode
+import org.neo4j.cypher.internal.expressions.MatchMode.DifferentRelationships
+import org.neo4j.cypher.internal.expressions.MatchMode.MatchMode
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -92,18 +95,15 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
   // Clauses like CREATE, MERGE, patternComprehension call this method.
   // Explicit match modes is not supported for them, therefore they always have the default: DIFFERENT RELATIONSHIPS
   def check(ctx: SemanticContext, pattern: Pattern): SemanticCheck =
-    check(ctx, pattern, requireDifferentRelationships = true)
+    check(ctx, pattern, MatchMode.default())
 
-  def check(ctx: SemanticContext, pattern: Pattern, requireDifferentRelationships: Boolean): SemanticCheck =
+  def check(ctx: SemanticContext, pattern: Pattern, matchMode: MatchMode): SemanticCheck =
     declareVariablesInSeparateScope(ctx, pattern.patternParts) chain
       semanticCheckFold(pattern.patternParts)(check(ctx)) ifOkChain
       semanticCheckFold(pattern.patternParts)(checkMinimumNodeCount) ifOkChain
       when(ctx != SemanticContext.Create && ctx != SemanticContext.Insert) {
         ensureNoOutOfScopePathReferences(pattern) chain
-          when(requireDifferentRelationships) {
-            ensureNoRepeatedRelationships(pattern) chain
-              ensureNoRepeatedVarLengthRelationships(pattern)
-          }
+          ensureDifferentRelationships(pattern, matchMode)
       }
 
   private def declareVariablesInSeparateScope(ctx: SemanticContext, parts: Seq[PatternPart]): SemanticCheck = {
@@ -128,24 +128,25 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
     } yield recordedScopes
 
   def check(ctx: SemanticContext, pattern: RelationshipsPattern): SemanticCheck =
-    check(ctx, pattern, requireDifferentRelationships = true)
+    check(ctx, pattern, MatchMode.default())
 
   def check(
     ctx: SemanticContext,
     pattern: RelationshipsPattern,
-    requireDifferentRelationships: Boolean
+    matchMode: MatchMode
   ): SemanticCheck = {
-    var checkPipeline =
+    val checkPipeline =
       declareVariables(ctx, pattern.element) chain
         check(ctx, pattern.element)
 
-    if (requireDifferentRelationships) {
-      checkPipeline = checkPipeline chain
-        ensureNoRepeatedRelationships(pattern) chain
-        ensureNoRepeatedVarLengthRelationships(pattern)
+    matchMode match {
+      case _: DifferentRelationships =>
+        checkPipeline chain
+          ensureNoRepeatedRelationships(pattern) chain
+          ensureNoRepeatedVarLengthRelationships(pattern)
+      case _ =>
+        checkPipeline
     }
-
-    checkPipeline
   }
 
   def declareVariables(ctx: SemanticContext)(part: PatternPart): SemanticCheck =
@@ -779,6 +780,15 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       SemanticCheckResult(state, errors.toSeq)
     }
   }
+
+  private def ensureDifferentRelationships(pattern: Pattern, matchMode: MatchMode): SemanticCheck =
+    matchMode match {
+      case _: DifferentRelationships =>
+        ensureNoRepeatedRelationships(pattern) chain
+          ensureNoRepeatedVarLengthRelationships(pattern)
+      case _ =>
+        success
+    }
 
   /**
    * Traverse the sub-tree at astNode. If any repeated relationships are found in that sub-tree, warn on the first occurrence.

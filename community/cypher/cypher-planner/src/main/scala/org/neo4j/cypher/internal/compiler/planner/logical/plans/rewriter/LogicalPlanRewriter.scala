@@ -39,8 +39,8 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardina
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LabelAndRelTypeInfos
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
-import org.neo4j.cypher.internal.rewriting.rewriters.UniquenessRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.VarLengthRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.ElementUniquenessRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.VarLengthBoundPredicateRewriter
 import org.neo4j.cypher.internal.rewriting.rewriters.combineHasLabels
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Rewriter
@@ -156,8 +156,8 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
       )),
       Some(combineHasLabels),
       Some(truncateDatabaseDeeagerizer),
-      Some(UniquenessRewriter(anonymousVariableNameGenerator)),
-      Some(VarLengthRewriter),
+      Some(ElementUniquenessRewriter(anonymousVariableNameGenerator)),
+      Some(VarLengthBoundPredicateRewriter),
       Some(extractRuntimeConstants(
         anonymousVariableNameGenerator,
         context.cancellationChecker

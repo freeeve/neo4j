@@ -16,7 +16,10 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.label_expressions.BinaryLabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
@@ -30,9 +33,10 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.label_expressions.MultiOperatorLabelExpression
 import org.neo4j.cypher.internal.rewriting.RewriteTest
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates.evaluate
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates.getRelTypesToConsider
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddElementUniquenessPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddElementUniquenessPredicates.evaluate
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddElementUniquenessPredicates.getRelTypesToConsider
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RelationshipUniqueness.SingleRelationship
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
@@ -46,7 +50,7 @@ import org.scalactic.anyvals.PosZInt
 
 import scala.annotation.tailrec
 
-class AddUniquenessPredicatesTest extends CypherFunSuite with RewriteTest with AstConstructionTestSupport {
+class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest with AstConstructionTestSupport {
 
   private def disjoint(lhs: String, rhs: String): String =
     s"NONE(`  UNNAMED0` IN $lhs WHERE `  UNNAMED0` IN $rhs)"
@@ -474,13 +478,132 @@ class AddUniquenessPredicatesTest extends CypherFunSuite with RewriteTest with A
     )
   }
 
-  def rewriterUnderTest: Rewriter = inSequence(
-    AddUniquenessPredicates.rewriter,
-    UniquenessRewriter(new AnonymousVariableNameGenerator)
-  )
+  test("Should insert node uniqueness predicates - fixed path - one path pattern") {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC (a)-[r]-(b)-[s]-(c)
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC (a)-[r]-(b)-[s]-(c)
+         |WHERE NOT a = b AND NOT a = c AND NOT b = c
+         |RETURN *""".stripMargin
+    )
+  }
+
+  override protected def getFeatures(): Seq[SemanticFeature] =
+    Seq(SemanticFeature.PathModes)
+
+  test("Should insert node uniqueness predicates - fixed path - two path patterns") {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC (a)-[r]-(b)-[s]-(c), ACYCLIC (d)-[t]-(e)
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC (a)-[r]-(b)-[s]-(c), ACYCLIC (d)-[t]-(e)
+         |WHERE NOT s = t AND NOT r = t AND NOT a = b AND NOT a = c
+         |  AND NOT b = c AND NOT d = e
+         |RETURN *""".stripMargin
+    )
+  }
+
+  test("Should insert node uniqueness predicates - fixed path - two path patterns - different path mode") {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC (a)-[r]-(b)-[s]-(c), (d)-[t]-(e)
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC (a)-[r]-(b)-[s]-(c), (d)-[t]-(e)
+         |WHERE NOT s = t AND NOT r = t AND NOT a = b AND NOT a = c AND NOT b = c
+         |RETURN *""".stripMargin
+    )
+  }
+
+  test("Should insert node uniqueness predicates - quantified path") {
+    // TODO: once there is no exception anymore, we should see the asserted result
+    the[IllegalArgumentException] thrownBy
+      assertRewriteWithFeatures(
+        CypherVersion.Cypher25,
+        """MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d))+
+          |RETURN *""".stripMargin,
+        s"""MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d))+
+           |WHERE NOT a = b
+           |  AND NOT a IN d
+           |  AND ${unique("c")} AND ${unique("d")}
+           |  AND ${disjoint("c", "d")}
+           |RETURN *""".stripMargin
+      ) should have message "ACYCLIC path mode is not supported for patterns with variable-length relationships at line 1, column 15 (offset: 14)"
+  }
+
+  test("Should insert node uniqueness predicates - quantified path - 2 relationships") {
+    // TODO: once there is no exception anymore, we should see the asserted result
+    the[IllegalArgumentException] thrownBy
+      assertRewriteWithFeatures(
+        CypherVersion.Cypher25,
+        """MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d)-[t]-(e))+
+          |RETURN *""".stripMargin,
+        s"""MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d)-[t]-(e) WHERE NOT c = d AND NOT c = e AND NOT d = e)+
+           |WHERE NOT a = b AND NOT a IN (d + e) AND NOT b IN (d + e)
+           |  AND ${unique("c")} AND ${unique("d")} AND ${unique("e")}
+           |  AND ${disjoint("c", "d")}
+           |  AND ${disjoint("d", "e")}
+           |  AND ${disjoint("c", "e")}
+           |RETURN *""".stripMargin
+      ) should have message "ACYCLIC path mode is not supported for patterns with variable-length relationships at line 1, column 15 (offset: 14)"
+  }
+
+  test("Should insert node uniqueness predicates - quantified relationship") {
+    // TODO: once there is no exception anymore, we should see the asserted result
+    the[IllegalArgumentException] thrownBy
+      assertRewriteWithFeatures(
+        CypherVersion.Cypher25,
+        """MATCH ACYCLIC (a)-[r]-(b)-[s]-+(c)
+          |RETURN *""".stripMargin,
+        s"""MATCH ACYCLIC (a)-[r]-(b)-[s]-+(c)
+           |WHERE NOT a = b AND NOT a = c AND NOT b = c
+           |  AND ${unique("c")} AND ${unique("d")}
+           |  AND ${disjoint("c", "d")}
+           |RETURN *""".stripMargin
+      ) should have message "ACYCLIC path mode is not supported for patterns with variable-length relationships at line 1, column 15 (offset: 14)"
+  }
+
+  test("Should insert node uniqueness predicates - var-length relationship") {
+    // TODO: once there is no exception anymore, we should see the asserted result
+    the[IllegalArgumentException] thrownBy
+      assertRewriteWithFeatures(
+        CypherVersion.Cypher25,
+        """MATCH ACYCLIC (a)-[r]-(b)-[s*]-(c)
+          |RETURN *""".stripMargin,
+        s"""MATCH ACYCLIC (a)-[r]-(b)-[s*]-(c)
+           |WHERE NOT a = b AND NOT a = c AND NOT b = c
+           |  AND ${unique("c")} AND ${unique("d")}
+           |  AND ${disjoint("c", "d")}
+           |RETURN *""".stripMargin
+      ) should have message "ACYCLIC path mode is not supported for patterns with variable-length relationships at line 1, column 15 (offset: 14)"
+  }
+
+  test("Should insert node uniqueness predicates - shortest path") {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH SHORTEST 1 ACYCLIC (a)-[r]-(b)-[s]-(c)
+        |RETURN *""".stripMargin,
+      s"""MATCH SHORTEST 1 ACYCLIC ((a)-[r]-(b)-[s]-(c)
+         |WHERE NOT a = b AND NOT a = c AND NOT b = c)
+         |RETURN *""".stripMargin
+    )
+  }
+
+  override protected def parseForRewriting(version: CypherVersion, queryText: String): Statement =
+    super.parseForRewriting(version, queryText).endoRewrite(
+      NameAllPatternElements(new AnonymousVariableNameGenerator())
+    )
+
+  def rewriterUnderTest: Rewriter =
+    inSequence(
+      AddElementUniquenessPredicates.rewriter,
+      ElementUniquenessRewriter(new AnonymousVariableNameGenerator())
+      // TODO: flatten the Ands
+      //  Blocked by PLAN-3011 (moving Cnf over from front-end to rewriting)
+    )
 }
 
-class AddUniquenessPredicatesPropertyTest extends CypherFunSuite with CypherScalaCheckDrivenPropertyChecks
+class AddElementUniquenessPredicatesPropertyTest extends CypherFunSuite with CypherScalaCheckDrivenPropertyChecks
     with RelationshipTypeExpressionGenerators with AstConstructionTestSupport {
 
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
@@ -602,10 +725,10 @@ trait RelationshipTypeExpressionGenerators {
   case class RelationshipTypeExpression(value: LabelExpression) {
 
     def overlaps(other: RelationshipTypeExpression): Boolean = {
-      val allTypes = AddUniquenessPredicates.getRelTypesToConsider(Some(value)).concat(
-        AddUniquenessPredicates.getRelTypesToConsider(Some(other.value))
+      val allTypes = AddElementUniquenessPredicates.getRelTypesToConsider(Some(value)).concat(
+        AddElementUniquenessPredicates.getRelTypesToConsider(Some(other.value))
       )
-      AddUniquenessPredicates.overlaps(allTypes, Some(value), Some(other.value))
+      AddElementUniquenessPredicates.overlaps(allTypes, Some(value), Some(other.value))
     }
 
     def unary_! : RelationshipTypeExpression =

@@ -139,5 +139,11 @@ object SeqSupport {
           (Some(inner(index)), inner.patch(index, Nil, 1))
       }
     }
+
+    /**
+     * Zips each element in the sequence with the tail of the sequence starting from the next element.
+     */
+    def zipWithTail: Seq[(T, Seq[T])] =
+      inner.zip(inner.tails.drop(1))
   }
 }

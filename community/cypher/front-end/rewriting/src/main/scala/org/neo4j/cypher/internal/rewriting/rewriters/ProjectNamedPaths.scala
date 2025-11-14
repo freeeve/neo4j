@@ -366,7 +366,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
     element match {
       case rc @ RelationshipChain(_, RelationshipPattern(_, _, _, _, _, _), _) =>
         // Leave out last variable because it will be the same as the toNode
-        rc.allTopLevelVariablesLeftToRight.init
+        rc.allSingletonVariablesLeftToRight.init
 
       case _ =>
         throw new IllegalArgumentException("Only relationships allowed in QPPs.")

@@ -54,6 +54,7 @@ import org.neo4j.cypher.internal.expressions.Contains
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
+import org.neo4j.cypher.internal.expressions.DifferentNodes
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Divide
@@ -360,6 +361,12 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
         check(ctx, x.arguments) chain
           expectType(CTRelationship, lhs) chain
           expectType(CTRelationship, rhs) chain
+          specifyType(CTBoolean, x)
+
+      case x @ DifferentNodes(lhs, rhs) =>
+        check(ctx, x.arguments) chain
+          expectType(CTNode, lhs) chain
+          expectType(CTNode, rhs) chain
           specifyType(CTBoolean, x)
 
       case x @ NoneOfRelationships(relationship, relationshipList) =>

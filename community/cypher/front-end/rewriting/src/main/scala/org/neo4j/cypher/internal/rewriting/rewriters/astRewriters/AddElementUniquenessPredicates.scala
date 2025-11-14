@@ -20,12 +20,21 @@ import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.expressions
+import org.neo4j.cypher.internal.expressions.DifferentNodes
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.MatchMode
+import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
+import org.neo4j.cypher.internal.expressions.ParenthesizedPath
+import org.neo4j.cypher.internal.expressions.PathMode
+import org.neo4j.cypher.internal.expressions.PathMode.Acyclic
+import org.neo4j.cypher.internal.expressions.PathMode.Trail
+import org.neo4j.cypher.internal.expressions.PathMode.Walk
+import org.neo4j.cypher.internal.expressions.PathMode.effectivePathMode
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
@@ -48,8 +57,8 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates.getRelTypesToConsider
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates.overlaps
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddElementUniquenessPredicates.getRelTypesToConsider
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddElementUniquenessPredicates.overlaps
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RelationshipUniqueness.NodeConnection
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RelationshipUniqueness.RelationshipGroup
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RelationshipUniqueness.SingleRelationship
@@ -59,31 +68,119 @@ import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenNewAccForSiblings
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
 import org.neo4j.cypher.internal.util.bottomUp
 
 import scala.util.control.TailCalls
 import scala.util.control.TailCalls.TailRec
 
-case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnection] {
+case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnection] {
 
   override val rewriter: Rewriter = bottomUp(Rewriter.lift {
-    case m @ Match(_, matchMode, pattern: Pattern, _, where, _) if matchMode.requiresDifferentRelationships =>
-      val nodeConnections = collectNodeConnections(pattern)
-      val newWhere = withPredicates(m, nodeConnections, where)
-      val newPattern = pattern.endoRewrite(patternRewriter)
+    case m @ Match(_, matchMode, pattern: Pattern, _, where, _) =>
+      val acrossPredicates = matchMode match {
+        case _: MatchMode.DifferentRelationships => getPredicatesAcrossPathPatterns(pattern)
+        case _                                   => Seq.empty
+      }
+      val withinPredicates =
+        pattern.patternParts
+          .filter(!_.isSelective)
+          .flatMap { p =>
+            val mode = effectivePathMode(matchMode, p.pathMode)
+            getPredicatesWithinPathPattern(p.part, mode)
+          }
+      val maybePredicate = (acrossPredicates ++ withinPredicates)
+        .reduceOption(expressions.And(_, _)(m.position))
+      val newWhere = Where.combineOrCreateBeforeCnf(where, maybePredicate)(m.position)
+      // TODO we need to address different path modes here when implementing for variable-length patterns
+      //  See PLAN-2338
+      val newPattern =
+        pattern.copy(
+          pattern.patternParts.map { part =>
+            part.endoRewrite(patternRewriter(effectivePathMode(matchMode, part.pathMode)))
+          }
+        )(pattern.position)
       m.copy(pattern = newPattern, where = newWhere)(m.position)
+
+    // Merge only supports Trail path mode for its Match phase, so we only add relationship uniqueness predicates
     case m @ Merge(pattern: PatternPart, _, where) =>
       val nodeConnections = collectNodeConnections(pattern)
       val newWhere = withPredicates(m, nodeConnections, where)
       m.copy(where = newWhere)(m.position)
   })
 
-  private val patternRewriter: Rewriter = bottomUp(Rewriter.lift {
+  private def getPredicatesAcrossPathPatterns(pattern: Pattern.ForMatch): Seq[Expression] = {
+    val relsByPathPatterns: Seq[Seq[NodeConnection]] = pattern.patternParts.map(collectNodeConnections(_))
+    val pairs: Seq[(NodeConnection, NodeConnection)] =
+      for {
+        (relsInPathPattern, relsPerSubsequentPathPattern: Seq[Seq[NodeConnection]]) <- relsByPathPatterns.zipWithTail
+        rel <- relsInPathPattern
+        relsInSubsequentPathPattern <- relsPerSubsequentPathPattern
+        otherRel <- relsInSubsequentPathPattern
+      } yield (rel, otherRel)
+    createInterRelUniquenessPredicates(pairs, pattern.position)
+  }
+
+  private def getPredicatesWithinPathPattern(
+    // we cannot make this a PatternElement because it could be a
+    // ShortestPathsPatternPart that we do not want to traverse into
+    part: NonPrefixedPatternPart,
+    pathMode: PathMode
+  ): IterableOnce[Expression] = {
+    pathMode match {
+      case Acyclic() =>
+        val containsGroupVariables =
+          part.element.folder.treeExists {
+            case _: QuantifiedPath                           => true
+            case RelationshipPattern(_, _, Some(_), _, _, _) => true
+          }
+        if (containsGroupVariables) {
+          throw new IllegalArgumentException(
+            s"ACYCLIC path mode is not supported for patterns with variable-length relationships at ${part.position}"
+          )
+        }
+        val nodeVariables = part.element.allSingletonNodeVariables
+        nodeVariables
+          .subsets(2)
+          .map(_.toSeq)
+          .map {
+            case Seq(x, y) =>
+              DifferentNodes(x.copyId, y.copyId)(part.position)
+            case _ =>
+              throw new IllegalStateException("Expected only pairs of node variables")
+          }
+
+      case Trail() =>
+        val nodeConnections = collectNodeConnections(part)
+        createPredicatesFor(nodeConnections, part.position)
+
+      case Walk(_) =>
+        // WALK semantics means we do not create any uniqueness predicates
+        Seq.empty
+    }
+  }
+
+  private def getMaybePredicatesWithinPathPattern(
+    part: NonPrefixedPatternPart,
+    pathMode: PathMode
+  ): Option[Expression] =
+    getPredicatesWithinPathPattern(part, pathMode).iterator.reduceOption(expressions.And(_, _)(part.position))
+
+  private def patternRewriter(pathMode: PathMode): Rewriter = bottomUp(Rewriter.lift {
     case part @ PrefixedPatternPart(_: SelectiveSelector, _, _) =>
-      rewriteSelectivePatternPart(part)
+      val maybePredicate = {
+        val element = part.element match {
+          case path: ParenthesizedPath => path.part
+          case _                       => part.part
+        }
+        getMaybePredicatesWithinPathPattern(element, pathMode)
+      }
+      rewriteSelectivePatternPart(part, maybePredicate)
+
     case qpp @ QuantifiedPath(patternPart, _, where, _) =>
-      val relationships = collectNodeConnections(patternPart)
-      val newWhere = withPredicates(qpp, relationships, where.map(Where(_)(qpp.position))).map(_.expression)
+      val maybePredicate = getMaybePredicatesWithinPathPattern(patternPart, pathMode)
+      val newWhere =
+        Where.combineOrCreateExpressionBeforeCnf(where, maybePredicate)(Some(qpp.position))
       qpp.copy(optionalWhereExpression = newWhere)(qpp.position)
   })
 
@@ -139,7 +236,19 @@ case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnec
       y <- nodeConnections.drop(i + 1)
     } yield (x, y)
 
-    val interRelUniqueness = pairs.collect {
+    val interRelUniqueness = createInterRelUniquenessPredicates(pairs, pos)
+
+    val intraRelUniqueness = nodeConnections.collect {
+      case rg: RelationshipGroup =>
+        val singleList = reduceLists(rg.innerRelationships.map(_.variable.copyId), pos)
+        Unique(singleList)(pos)
+    }
+
+    interRelUniqueness ++ intraRelUniqueness
+  }
+
+  private def createInterRelUniquenessPredicates(pairs: Seq[(NodeConnection, NodeConnection)], pos: InputPosition) = {
+    pairs.collect {
       case (x: SingleRelationship, y: SingleRelationship) if x.name == y.name =>
         Seq(False()(pos.zeroLength))
 
@@ -177,14 +286,6 @@ case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnec
           }
         }
     }.flatten
-
-    val intraRelUniqueness = nodeConnections.collect {
-      case rg: RelationshipGroup =>
-        val singleList = reduceLists(rg.innerRelationships.map(_.variable.copyId), pos)
-        Unique(singleList)(pos)
-    }
-
-    interRelUniqueness ++ intraRelUniqueness
   }
 
   private def reduceLists(vars: Seq[LogicalVariable], pos: InputPosition): Expression =
