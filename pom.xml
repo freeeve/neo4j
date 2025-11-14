@@ -213,7 +213,7 @@
     <javapoet.version>1.13.0</javapoet.version>
     <grpc.version>1.76.0</grpc.version>
     <testcontainers.version>1.21.3</testcontainers.version>
-    <build-resources.version>2024-12.1</build-resources.version>
+    <build-resources.version>2025.11.1</build-resources.version>
     <s3mock.version>4.9.1</s3mock.version>
     <shiro.version>2.0.5</shiro.version>
     <cypherdsl.version>2025.0.3</cypherdsl.version>
