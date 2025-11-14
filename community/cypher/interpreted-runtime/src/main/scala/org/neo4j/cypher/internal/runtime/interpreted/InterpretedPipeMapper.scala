@@ -1076,13 +1076,15 @@ case class InterpretedPipeMapper(
           indexOrder
         )(id = id)
 
-      case NodeVectorIndexSearch(node, labels, properties, score, indexName, vector, limit, _, _) =>
+      case NodeVectorIndexSearch(node, labels, properties, score, indexName, vector, limit, maybeFilter, _) =>
         NodeVectorIndexSearchPipe(
           node.name,
           score.map(_.name),
+          properties.map(_.propertyKeyId).toArray,
           buildExpression(vector),
           buildExpression(limit),
-          indexRegistrator.registerNamedQueryIndex(indexName, IndexType.VECTOR, labels, properties)
+          indexRegistrator.registerNamedQueryIndex(indexName, IndexType.VECTOR, labels, properties),
+          maybeFilter.map(_.map(buildExpression))
         )(id)
 
       case ShowIndexes(indexType, columns, yields, _, _, _) =>

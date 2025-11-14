@@ -24,6 +24,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
@@ -68,19 +69,18 @@ final class Lucene10ValueFields {
         }
 
         static Query newRangeQuery(String field, boolean lowerValueInclusive, boolean upperValueInclusive) {
-            Preconditions.checkArgument(
-                    lowerValueInclusive == false || upperValueInclusive == true,
-                    "Upper bound for boolean range cannot be lower than the lower bound");
-            if (lowerValueInclusive) {
+            if (lowerValueInclusive && !upperValueInclusive) {
+                return new MatchNoDocsQuery();
+            } else if (lowerValueInclusive) {
                 // range from [true, true]
                 return newExactQuery(field, true);
-            }
-            if (upperValueInclusive == false) {
+            } else if (!upperValueInclusive) {
                 // range from [false, false]
                 return newExactQuery(field, false);
+            } else {
+                // range from [false, true]
+                return new FieldExistsQuery(field);
             }
-            // range from [false, true]
-            return new FieldExistsQuery(field);
         }
     }
 
@@ -122,9 +122,6 @@ final class Lucene10ValueFields {
 
         static Query newRangeQuery(String field, long lowerValueInclusive, long upperValueInclusive) {
             Preconditions.requireNonNull(field, "Field cannot be null");
-            Preconditions.checkArgument(
-                    lowerValueInclusive <= upperValueInclusive,
-                    "Upper bound for integral range cannot be lower than the lower bound");
             return new PointRangeQuery(field, longToBytes(lowerValueInclusive), longToBytes(upperValueInclusive), 1) {
                 @Override
                 protected String toString(int dimension, byte[] value) {
@@ -187,9 +184,6 @@ final class Lucene10ValueFields {
                     !Double.isNaN(lowerValueInclusive), "NaN is not a valid lower bound for a range");
             Preconditions.checkArgument(
                     !Double.isNaN(upperValueInclusive), "NaN is not a valid upper bound for a range");
-            Preconditions.checkArgument(
-                    Double.compare(lowerValueInclusive, upperValueInclusive) <= 0,
-                    "Upper bound for floating range cannot be lower than the lower bound");
             return new PointRangeQuery(
                     field, doubleToBytes(lowerValueInclusive), doubleToBytes(upperValueInclusive), 1) {
                 @Override

@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.logical.plans.InequalitySeekRange
 import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
 import org.neo4j.cypher.internal.logical.plans.MinMaxOrdering
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
@@ -44,6 +45,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Inequa
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.PointBoundingBoxSeekRangeExpression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.PointDistanceSeekRangeExpression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.PrefixSeekRangeExpression
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.EntityIndexSeeker.computeIndexRangeQuery
 import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
@@ -169,8 +171,6 @@ trait EntityIndexSeeker {
     case IndexOrderDescending => CompositeValueIndexCursor.descending(cursors)
   }
 
-  private val BY_VALUE: MinMaxOrdering[Value] = MinMaxOrdering(Ordering.comparatorToOrdering(Values.COMPARATOR))
-
   def computeIndexQueries(state: QueryState, row: ReadableRow): collection.Seq[Seq[PropertyIndexQuery]] =
     valueExpr match {
 
@@ -228,46 +228,10 @@ trait EntityIndexSeeker {
         }
 
       case InequalitySeekRangeExpression(innerRange) =>
-        innerRange.flatMapBounds(expr => makeValueNeoSafe.safeOrEmpty(expr(row, state))) match {
-          case None => Nil
-          case Some(valueRange) =>
-            val groupedRanges = valueRange.groupBy(bound => bound.endPoint.valueGroup())
-            if (groupedRanges.size > 1) {
-              Nil // predicates of more than one value group mean that no node can ever match
-            } else {
-              val (valueGroup, range) = groupedRanges.head
-              range match {
-                case rangeLessThan: RangeLessThan[Value] =>
-                  rangeLessThan.limit(BY_VALUE).map(limit =>
-                    PropertyIndexQuery.range(propertyId, null, false, limit.endPoint, limit.isInclusive)
-                  ).toSeq
-
-                case rangeGreaterThan: RangeGreaterThan[Value] =>
-                  rangeGreaterThan.limit(BY_VALUE).map(limit =>
-                    PropertyIndexQuery.range(propertyId, limit.endPoint, limit.isInclusive, null, false)
-                  ).toSeq
-
-                case RangeBetween(rangeGreaterThan, rangeLessThan) =>
-                  val greaterThanLimit = rangeGreaterThan.limit(BY_VALUE).get
-                  val lessThanLimit = rangeLessThan.limit(BY_VALUE).get
-                  val compare = Values.COMPARATOR.compare(greaterThanLimit.endPoint, lessThanLimit.endPoint)
-                  if (compare < 0) {
-                    List(PropertyIndexQuery.range(
-                      propertyId,
-                      greaterThanLimit.endPoint,
-                      greaterThanLimit.isInclusive,
-                      lessThanLimit.endPoint,
-                      lessThanLimit.isInclusive
-                    ))
-
-                  } else if (compare == 0 && greaterThanLimit.isInclusive && lessThanLimit.isInclusive) {
-                    List(PropertyIndexQuery.exact(propertyId, lessThanLimit.endPoint))
-                  } else {
-                    Nil
-                  }
-              }
-            }
-        }
+        computeIndexRangeQuery(
+          innerRange.flatMapBounds(expr => makeValueNeoSafe.safeOrEmpty(expr(row, state))),
+          propertyId
+        )
 
       case PointDistanceSeekRangeExpression(range) =>
         (
@@ -411,4 +375,54 @@ trait EntityIndexSeeker {
       case ExistenceQueryExpression() =>
         Seq(PropertyIndexQuery.exists(propertyId))
     }
+}
+
+object EntityIndexSeeker {
+  private val BY_VALUE: MinMaxOrdering[Value] = MinMaxOrdering(Ordering.comparatorToOrdering(Values.COMPARATOR))
+
+  def computeIndexRangeQuery(
+    maybeSeekRange: Option[InequalitySeekRange[Value]],
+    propertyId: Int
+  ): Array[PropertyIndexQuery] = {
+    maybeSeekRange match {
+      case None => Array.empty
+      case Some(valueRange) =>
+        val groupedRanges = valueRange.groupBy(bound => bound.endPoint.valueGroup())
+        if (groupedRanges.size > 1) {
+          Array.empty // predicates of more than one value group mean that no node can ever match
+        } else {
+          val (_, range) = groupedRanges.head
+          range match {
+            case rangeLessThan: RangeLessThan[Value] =>
+              rangeLessThan.limit(BY_VALUE).map(limit =>
+                PropertyIndexQuery.range(propertyId, null, false, limit.endPoint, limit.isInclusive)
+              ).toArray
+
+            case rangeGreaterThan: RangeGreaterThan[Value] =>
+              rangeGreaterThan.limit(BY_VALUE).map(limit =>
+                PropertyIndexQuery.range(propertyId, limit.endPoint, limit.isInclusive, null, false)
+              ).toArray
+
+            case RangeBetween(rangeGreaterThan, rangeLessThan) =>
+              val greaterThanLimit = rangeGreaterThan.limit(BY_VALUE).get
+              val lessThanLimit = rangeLessThan.limit(BY_VALUE).get
+              val compare = Values.COMPARATOR.compare(greaterThanLimit.endPoint, lessThanLimit.endPoint)
+              if (compare < 0) {
+                Array(PropertyIndexQuery.range(
+                  propertyId,
+                  greaterThanLimit.endPoint,
+                  greaterThanLimit.isInclusive,
+                  lessThanLimit.endPoint,
+                  lessThanLimit.isInclusive
+                ))
+
+              } else if (compare == 0 && greaterThanLimit.isInclusive && lessThanLimit.isInclusive) {
+                Array(PropertyIndexQuery.exact(propertyId, lessThanLimit.endPoint))
+              } else {
+                Array.empty
+              }
+          }
+        }
+    }
+  }
 }

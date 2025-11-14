@@ -2273,7 +2273,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     vector: Any,
     limit: Any,
     score: String = "",
-    argumentIds: Set[String] = Set.empty
+    argumentIds: Set[String] = Set.empty,
+    filter: Option[QueryExpression[Expression]] = None
   ): IMPL = {
     val labels = labelNames.map(labelName => LabelToken(labelName, LabelId(resolver.getLabelId(labelName))))
     val propIDs = properties
@@ -2300,7 +2301,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         indexName,
         compile(vector),
         compile(limit),
-        None,
+        filter,
         argumentIds.map(varFor)
       )(idGen)
     }

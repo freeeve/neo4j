@@ -76,6 +76,8 @@ public class Lucene10FilterQueryBuilderTest {
                 .isEqualTo(0.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, "alpha")))
                 .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, Values.charValue('a'))))
+                .isEqualTo(0.0f);
     }
 
     @Test
@@ -112,13 +114,11 @@ public class Lucene10FilterQueryBuilderTest {
 
     @Test
     public void testFiniteFloatExact() {
-        assertThatThrownBy(() -> scoreForQuery(4, PropertyIndexQuery.exact(1, Double.NaN)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Floating point value for query must be finite");
-
-        assertThatThrownBy(() -> scoreForQuery(4, PropertyIndexQuery.exact(1, Double.POSITIVE_INFINITY)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Floating point value for query must be finite");
+        assertThat(scoreForQuery(4, PropertyIndexQuery.exact(1, Double.NaN))).isEqualTo(0.0f);
+        assertThat(scoreForQuery(4, PropertyIndexQuery.exact(1, Double.POSITIVE_INFINITY)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(4, PropertyIndexQuery.exact(1, Double.NEGATIVE_INFINITY)))
+                .isEqualTo(0.0f);
     }
 
     @Test
@@ -184,10 +184,6 @@ public class Lucene10FilterQueryBuilderTest {
         int keyIndex = 4;
         addField(keyIndex, Values.of(42));
 
-        assertThatThrownBy(() -> scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, Values.of('a'))))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unexpected value type in filter predicate");
-
         assertThatThrownBy(
                         () -> scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, Values.of(LocalTime.of(10, 30, 45)))))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -230,6 +226,10 @@ public class Lucene10FilterQueryBuilderTest {
                 .isEqualTo(1.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, "alpha", false, "bravo", false)))
                 .isEqualTo(0.0f);
+        assertThat(scoreForQuery(
+                        keyIndex,
+                        PropertyIndexQuery.range(1, Values.charValue('a'), true, Values.charValue('b'), true)))
+                .isEqualTo(0.0f);
     }
 
     @Test
@@ -265,12 +265,11 @@ public class Lucene10FilterQueryBuilderTest {
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.3f, false, 42.5, false)))
                 .isEqualTo(0.0f);
 
-        assertThatThrownBy(() -> scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5f, false, 42.3, false)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Upper bound for floating range cannot be lower than the lower bound");
-        assertThatThrownBy(() -> scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 44, false, 43, false)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Upper bound for integral range cannot be lower than the lower bound");
+        // empty ranges
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5f, false, 42.3, false)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 44, false, 43, false)))
+                .isEqualTo(0.0f);
     }
 
     @Test
@@ -295,12 +294,11 @@ public class Lucene10FilterQueryBuilderTest {
                 .isEqualTo(1.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5, true, 42.5, true)))
                 .isEqualTo(1.0f);
-        assertThatThrownBy(() -> scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5, true, 42.5, false)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Upper bound for floating range cannot be lower than the lower bound");
-        assertThatThrownBy(() -> scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5, false, 42.5, true)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Upper bound for floating range cannot be lower than the lower bound");
+        // check empty range queries
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5, true, 42.5, false)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5, false, 42.5, true)))
+                .isEqualTo(0.0f);
     }
 
     @Test
@@ -318,13 +316,10 @@ public class Lucene10FilterQueryBuilderTest {
 
     @Test
     public void testFiniteFloatRange() {
-        assertThatThrownBy(() -> scoreForQuery(4, PropertyIndexQuery.range(1, Double.NaN, true, 42, true)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Range \"from\" must be finite");
-
-        assertThatThrownBy(() -> scoreForQuery(4, PropertyIndexQuery.range(1, 42, true, Double.NaN, true)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Range \"to\" must be finite");
+        assertThat(scoreForQuery(4, PropertyIndexQuery.range(1, Double.NaN, true, 42, true)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(4, PropertyIndexQuery.range(1, 42, true, Double.NaN, true)))
+                .isEqualTo(0.0f);
     }
 
     @Test
@@ -343,18 +338,14 @@ public class Lucene10FilterQueryBuilderTest {
                 .isEqualTo(1.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(true), true)))
                 .isEqualTo(1.0f);
-        assertThatThrownBy(() -> scoreForQuery(
-                        keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(true), true)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Lower bound true for boolean range may not be exclusive");
-        assertThatThrownBy(() -> scoreForQuery(
+        // empty ranges
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(true), true)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(
                         keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(false), false)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Lower bound true for boolean range may not be exclusive");
-        assertThatThrownBy(() -> scoreForQuery(
-                        keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(false), true)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Lower bound true for boolean range may not be exclusive");
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(false), true)))
+                .isEqualTo(0.0f);
     }
 
     @Test
@@ -373,19 +364,13 @@ public class Lucene10FilterQueryBuilderTest {
                 .isEqualTo(0.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(true), true)))
                 .isEqualTo(0.0f);
-        assertThatThrownBy(() -> scoreForQuery(
-                        keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(true), true)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Lower bound true for boolean range may not be exclusive");
-        assertThatThrownBy(() -> scoreForQuery(
-                        keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(false), false)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining(
-                        "Upper bound false for boolean range may not be exclusive. The range will always be empty.");
-        assertThatThrownBy(() -> scoreForQuery(
-                        keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(false), true)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Upper bound for boolean range cannot be lower than the lower bound");
+        // empty ranges
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(true), true)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(false), false)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(false), true)))
+                .isEqualTo(0.0f);
     }
 
     @Test
@@ -393,16 +378,11 @@ public class Lucene10FilterQueryBuilderTest {
         int keyIndex = 4;
         addField(keyIndex, Values.of(42));
 
-        assertThatThrownBy(() ->
-                        scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(41), true, Values.of('b'), true)))
+        assertThatThrownBy(() -> scoreForQuery(
+                        keyIndex, PropertyIndexQuery.range(1, Values.of(41), true, Values.charValue('b'), true)))
                 .isInstanceOf(ClassCastException.class)
                 .hasMessageContaining(
                         "class org.neo4j.values.storable.CharValue cannot be cast to class org.neo4j.values.storable.NumberValue");
-
-        assertThatThrownBy(() -> scoreForQuery(
-                        keyIndex, PropertyIndexQuery.range(1, Values.of('a'), true, Values.of('b'), true)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unexpected value type in filter predicate");
 
         assertThatThrownBy(() -> scoreForQuery(
                         keyIndex,

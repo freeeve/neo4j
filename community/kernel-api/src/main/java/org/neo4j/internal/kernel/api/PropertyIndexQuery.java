@@ -43,6 +43,7 @@ import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.Values;
 
 public abstract class PropertyIndexQuery implements IndexQuery {
+
     /**
      * Scans over the whole index
      *
@@ -142,6 +143,12 @@ public abstract class PropertyIndexQuery implements IndexQuery {
             }
             default -> new RangePredicate<>(propertyKeyId, valueGroup, from, fromInclusive, to, toInclusive);
         };
+    }
+
+    public static <VALUE extends Value> RangePredicate<?> emptyRange(
+            int propertyKeyId, VALUE from, boolean fromInclusive, VALUE to, boolean toInclusive) {
+        return new IncomparableRangePredicate<>(
+                propertyKeyId, ValueGroup.UNKNOWN, from, fromInclusive, to, toInclusive);
     }
 
     public static BoundingBoxPredicate boundingBox(int propertyKeyId, PointValue from, PointValue to) {

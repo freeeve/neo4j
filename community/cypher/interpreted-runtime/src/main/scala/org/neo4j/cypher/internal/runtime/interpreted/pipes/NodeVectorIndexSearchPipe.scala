@@ -20,14 +20,23 @@
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.logical.plans.QueryExpression
+import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
+import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
+import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.InequalitySeekRangeExpression
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.EntityIndexSeeker.computeIndexRangeQuery
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeVectorIndexSearchPipe.vectorSearchCursor
+import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherCoercions.validateAndConvertVectorIndexQuery
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
 import org.neo4j.internal.kernel.api.PropertyIndexQuery
@@ -37,9 +46,11 @@ import org.neo4j.values.storable.Values.floatValue
 import org.neo4j.values.virtual.VirtualValues
 
 abstract class BaseNodeVectorIndexSearchPipe(
+  properties: Array[Int],
   vectorExpression: Expression,
   limitExpression: Expression,
-  queryIndexId: Int
+  queryIndexId: Int,
+  filterExpression: Option[QueryExpression[Expression]]
 ) extends Pipe {
 
   protected def newRow(row: CypherRow, cursor: NodeValueIndexCursor): CypherRow
@@ -55,7 +66,17 @@ abstract class BaseNodeVectorIndexSearchPipe(
       ClosingIterator.empty
     } else {
       new ClosingIterator[CypherRow]() {
-        private[this] val cursor = vectorSearchCursor(query, index, limitExpression(incomingRow, state), vector)
+        private[this] val cursor = vectorSearchCursor(
+          query,
+          index,
+          limitExpression,
+          vector,
+          filterExpression,
+          properties,
+          incomingRow,
+          state
+        )
+
         private[this] var _hasNext: java.lang.Boolean = _
         override protected[this] def closeMore(): Unit = cursor.close()
         override def next(): CypherRow = {
@@ -81,11 +102,19 @@ abstract class BaseNodeVectorIndexSearchPipe(
 case class NodeVectorIndexSearchPipe(
   node: String,
   score: Option[String],
+  properties: Array[Int],
   vectorExpression: Expression,
   limitExpression: Expression,
-  queryIndexId: Int
+  queryIndexId: Int,
+  filterExpression: Option[QueryExpression[Expression]]
 )(val id: Id = Id.INVALID_ID)
-    extends BaseNodeVectorIndexSearchPipe(vectorExpression, limitExpression, queryIndexId) {
+    extends BaseNodeVectorIndexSearchPipe(
+      properties,
+      vectorExpression,
+      limitExpression,
+      queryIndexId,
+      filterExpression
+    ) {
 
   private[this] val _newRow: (CypherRow, NodeValueIndexCursor) => CypherRow = score match {
     case Some(value) => (incomingRow: CypherRow, cursor: NodeValueIndexCursor) =>
@@ -108,22 +137,78 @@ object NodeVectorIndexSearchPipe {
   def vectorSearchCursor(
     query: QueryContext,
     index: IndexReadSession,
-    limit: AnyValue,
-    vector: AnyValue
+    limit: Expression,
+    vector: AnyValue,
+    filter: Option[QueryExpression[Expression]],
+    properties: Array[Int],
+    row: CypherRow,
+    state: QueryState
   ): NodeValueIndexCursor = {
-    val l = CypherFunctions.asNonNegativeIntExact(limit)
+    val l = CypherFunctions.asNonNegativeIntExact(limit(row, state))
     if (l == 0) {
       NodeValueIndexCursor.EMPTY
     } else {
-      query.nodeIndexSeek(
-        index,
-        needsValues = false,
-        IndexOrderNone,
-        Seq(PropertyIndexQuery.nearestNeighbors(
-          l,
-          validateAndConvertVectorIndexQuery(index.reference(), vector)
-        ))
-      )
+      val queries =
+        predicate(l, validateAndConvertVectorIndexQuery(index.reference(), vector), filter, properties, row, state)
+      if (queries.nonEmpty) {
+        query.nodeIndexSeek(
+          index,
+          needsValues = false,
+          IndexOrderNone,
+          queries
+        )
+      } else {
+        NodeValueIndexCursor.EMPTY
+      }
+    }
+  }
+
+  def predicate(
+    limit: Int,
+    vector: Array[Float],
+    filter: Option[QueryExpression[Expression]],
+    properties: Array[Int],
+    row: ReadableRow,
+    state: QueryState
+  ): Array[PropertyIndexQuery] = {
+    val nearestPredicate = PropertyIndexQuery.nearestNeighbors(limit, vector)
+
+    filter match {
+      case Some(SingleQueryExpression(expression)) =>
+        checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
+        makeValueNeoSafe.safeOrEmpty(expression(row, state)) match {
+          case Some(value) => Array(nearestPredicate, PropertyIndexQuery.exact(properties(1), value))
+          case None        => Array(nearestPredicate)
+        }
+
+      case Some(RangeQueryExpression(rangeWrapper)) =>
+        checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
+        rangeWrapper match {
+          case InequalitySeekRangeExpression(innerRange) =>
+            val inner = computeIndexRangeQuery(
+              innerRange.flatMapBounds(expr => makeValueNeoSafe.safeOrEmpty(expr(row, state))),
+              properties(1)
+            )
+            // empty means no possible results
+            if (inner.isEmpty) {
+              Array.empty
+            } else {
+              nearestPredicate +: inner
+            }
+
+          case notSupported =>
+            throw InternalException.internalError(
+              this.getClass.getSimpleName,
+              s"$notSupported not supported in vector searches"
+            )
+        }
+
+      case Some(notSupported) =>
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"$notSupported not supported in vector searches"
+        )
+      case None => Array(nearestPredicate)
     }
   }
 }

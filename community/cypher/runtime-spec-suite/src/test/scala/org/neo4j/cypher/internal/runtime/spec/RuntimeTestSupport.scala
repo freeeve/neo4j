@@ -78,12 +78,12 @@ import org.neo4j.kernel.impl.query.QuerySubscriberProbe
 import org.neo4j.kernel.impl.query.RecordingQuerySubscriber
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.kernel.impl.query.WrappingTransactionalContextFactory
+import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.kernel.lifecycle.LifeSupport
 import org.neo4j.logging.InternalLogProvider
 import org.neo4j.monitoring.Monitors
 import org.neo4j.storageengine.api.TransactionIdStore
 import org.neo4j.values.AnyValue
-import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.VirtualValues
 
@@ -1052,8 +1052,8 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     val (keys, values) =
       parameters.mapValues {
         case m: MapValue  => m
-        case m: Map[_, _] => VirtualValues.map(m.keys.map(_.toString).toArray, m.values.map(Values.of).toArray)
-        case v            => Values.of(v)
+        case m: Map[_, _] => VirtualValues.map(m.keys.map(_.toString).toArray, m.values.map(ValueUtils.of).toArray)
+        case v            => ValueUtils.of(v)
       }.unzip match { case (a, b) => (a.toArray, b.toArray[AnyValue]) }
 
     val paramsMap = VirtualValues.map(keys, values)

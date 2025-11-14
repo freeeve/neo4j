@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.slotted.pipes
 
+import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.BaseNodeVectorIndexSearchPipe
@@ -29,11 +30,19 @@ import org.neo4j.values.storable.Values
 case class NodeVectorIndexSearchSlottedPipe(
   offset: Int,
   score: Option[Int],
+  properties: Array[Int],
   vectorExpression: Expression,
   limitExpression: Expression,
-  queryIndexId: Int
+  queryIndexId: Int,
+  filterExpression: Option[QueryExpression[Expression]]
 )(val id: Id = Id.INVALID_ID)
-    extends BaseNodeVectorIndexSearchPipe(vectorExpression, limitExpression, queryIndexId) {
+    extends BaseNodeVectorIndexSearchPipe(
+      properties,
+      vectorExpression,
+      limitExpression,
+      queryIndexId,
+      filterExpression
+    ) {
 
   private[this] val _newRow: (CypherRow, NodeValueIndexCursor) => CypherRow = score match {
     case Some(value) => (row: CypherRow, cursor: NodeValueIndexCursor) =>
