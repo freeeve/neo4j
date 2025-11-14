@@ -106,7 +106,6 @@ public class ProcedureRegistry {
                                 "Procedure `%s` is in a deprecated namespace. Please rename to an unused namespace."
                                         .formatted(name.toString()));
                     }
-                    procedures.unregister(name, scope);
                 } else {
                     throw ProcedureException.procedureNameAlreadyInUse(name.toString());
                 }
@@ -142,7 +141,7 @@ public class ProcedureRegistry {
 
             if (aggregationFunctions.contains(name, scope)) {
                 if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
-                    aggregationFunctions.unregister(name, scope);
+                    // pass
                 } else {
                     throw ProcedureException.aggregationFunctionNameAlreadyInUseAsAggregationFunction(name.toString());
                 }
@@ -150,7 +149,7 @@ public class ProcedureRegistry {
 
             if (functions.contains(name, scope)) {
                 if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
-                    functions.unregister(name, scope);
+                    // pass
                 } else {
                     throw ProcedureException.functionNameAlreadyInUse(name.toString());
                 }
@@ -183,7 +182,7 @@ public class ProcedureRegistry {
 
             if (functions.contains(name, scope)) {
                 if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
-                    functions.unregister(name, scope);
+                    // pass
                 } else {
                     throw ProcedureException.aggregationFunctionNameAlreadyInUseAsFunction(name.toString());
                 }
@@ -191,7 +190,7 @@ public class ProcedureRegistry {
 
             if (aggregationFunctions.contains(name, scope)) {
                 if (!signature.isBuiltIn() && NamingRestrictions.isDeprecatedFunctionNamespace(name, scope)) {
-                    aggregationFunctions.unregister(name, scope);
+                    // pass
                 } else {
                     throw ProcedureException.aggregationFunctionNameAlreadyInUse(name.toString());
                 }
