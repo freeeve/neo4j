@@ -78,18 +78,13 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STATUS_PROPERT
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STOPPED_AT_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_GRAPH_SHARD
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTY_SHARD
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.SPD
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.kernel.database.DefaultDatabaseResolver
-import org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME
 import org.neo4j.values.virtual.VirtualValues
 
 case class ShowDatabasesExecutionPlanner(
@@ -138,24 +133,8 @@ case class ShowDatabasesExecutionPlanner(
            |props.$OPTIONS_COL as $OPTIONS_COL,
            |d:$COMPOSITE_DATABASE as $isCompositeKey,
            |$defaultLanguage as $DEFAULT_LANGUAGE_COL,
-           |
-           |CASE
-           |  WHEN d:$COMPOSITE_DATABASE|$GRAPH_SHARD|$PROPERTY_SHARD OR d.$NAME_PROPERTY = '$SYSTEM_DATABASE_NAME' THEN NULL 
-           |  WHEN d:$SPD THEN COLLECT {
-           |    MATCH (d)-[:$HAS_GRAPH_SHARD]->(graphShardName:$GRAPH_SHARD)
-           |    RETURN graphShardName.$NAME_PROPERTY
-           |  }
-           |  ELSE [d.$NAME_PROPERTY]
-           |END as $GRAPH_SHARDS_COL,
-           |
-           |CASE
-           |  WHEN d:$COMPOSITE_DATABASE|$GRAPH_SHARD|$PROPERTY_SHARD OR d.$NAME_PROPERTY = '$SYSTEM_DATABASE_NAME' THEN NULL
-           |  ELSE COLLECT {
-           |    MATCH (d)-[:$HAS_GRAPH_SHARD]->($GRAPH_SHARD)-[:$HAS_PROPERTY_SHARD]-(propertyShard:$PROPERTY_SHARD)
-           |    RETURN propertyShard.$NAME_PROPERTY
-           |    ORDER BY propertyShard.$NAME_PROPERTY
-           |  }
-           |END as $PROPERTY_SHARDS_COL
+           |props.$GRAPH_SHARDS_COL as $GRAPH_SHARDS_COL,
+           |props.$PROPERTY_SHARDS_COL as $PROPERTY_SHARDS_COL
            |
            |with *,
            |CASE WHEN $isCompositeKey THEN NULL ELSE $OPTIONS_COL END as $OPTIONS_COL,

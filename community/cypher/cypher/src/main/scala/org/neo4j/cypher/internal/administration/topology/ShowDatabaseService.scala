@@ -28,6 +28,7 @@ import org.neo4j.dbms.database.DatabaseDetails.STATUS_MIXED
 import org.neo4j.dbms.database.TopologyInfoService
 import org.neo4j.graphdb.Transaction
 import org.neo4j.internal.kernel.api.security.SecurityContext
+import org.neo4j.kernel.database.DatabaseId
 import org.neo4j.kernel.database.DatabaseIdFactory
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
@@ -40,7 +41,10 @@ import org.neo4j.values.virtual.MapValue
 
 import java.util.UUID
 
+import scala.collection.MapView
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SetHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.jdk.OptionConverters.RichOption
@@ -55,7 +59,9 @@ case class ShowDatabaseServiceContext(
 case class ShowDatabaseResult(
   details: DatabaseDetails,
   constituents: Seq[String],
-  aliases: Seq[String]
+  aliases: Seq[String],
+  graphShards: Option[Seq[String]],
+  propertyShards: Option[Seq[String]] = None
 )
 
 class ShowDatabaseService(
@@ -98,7 +104,7 @@ class ShowDatabaseService(
     filteredReferences: Set[DatabaseReference],
     context: ShowDatabaseServiceContext
   ): Seq[ShowDatabaseResult] = {
-    val allReferences = referenceResolver.getAllDatabaseReferences.asScala
+    val allReferences = sortAliases(referenceResolver.getAllDatabaseReferences.asScala)
 
     val filteredReferencesWithShards: Set[DatabaseReference] = filteredReferences.flatMap {
       case db: DatabaseReferenceImpl.VirtualSPD =>
@@ -108,7 +114,8 @@ class ShowDatabaseService(
       case db => Set(db)
     }
 
-    val allDbInfos: Set[ShowDatabaseResult] = lookupDbInfos(filteredReferencesWithShards, allReferences, context)
+    val allDbInfos: Set[ShowDatabaseResult] =
+      lookupDbInfos(allReferences.view.filterKeys(filteredReferencesWithShards.contains), context)
 
     val accessibleDatabases = filteredReferences.collect {
       case db
@@ -141,7 +148,9 @@ class ShowDatabaseService(
           ShowDatabaseResult(
             databaseDetailsForGraphShard(databaseInfo.details, status, statusMessage, spdId),
             Seq.empty,
-            aliasesForReference(allReferences, databaseInfo.details.namedDatabaseId().databaseId().uuid())
+            allReferences(ref).map(_.name()),
+            Some(Seq(ref.graphShard().name())),
+            Some(ref.graphShard().propertyShards().asScala.map { case (_, propShard) => propShard.name() }.toSeq)
           )
         )
     }.toList.flatten
@@ -178,18 +187,39 @@ class ShowDatabaseService(
   )
 
   private def lookupDbInfos(
-    references: Set[DatabaseReference],
-    allReferences: Iterable[DatabaseReference],
+    dbsToLookup: MapView[DatabaseReference, Seq[DatabaseReference]],
     context: ShowDatabaseServiceContext
   ): Set[ShowDatabaseResult] = {
 
-    val dbids: Map[NamedDatabaseId, (Seq[String], Seq[String])] = references.map {
-      case db: DatabaseReferenceImpl.Composite =>
-        (db.namedDatabaseId(), (db.constituents().asScala.map(_.name()).toSeq, Seq.empty))
+    case class DatabaseLinks(
+      constituents: Seq[String],
+      alias: Seq[String],
+      graphShards: Option[Seq[String]] = None,
+      propertyShards: Option[Seq[String]] = None
+    )
+
+    val dbids: Map[NamedDatabaseId, DatabaseLinks] = dbsToLookup.map {
+      case (db: DatabaseReferenceImpl.Composite, _) =>
+        (db.namedDatabaseId(), DatabaseLinks(db.constituents().asScala.map(_.name()).toSeq, Seq.empty))
       // aliases should go on the virtual db so a GraphShard has no aliases
-      case db: GraphShard => (db.namedDatabaseId(), (Seq.empty, Seq.empty))
-      case db             => (db.namedDatabaseId(), (Seq.empty, aliasesForReference(allReferences, db.id())))
-    }.toMap[NamedDatabaseId, (Seq[String], Seq[String])]
+      case (db: GraphShard, _) => (db.namedDatabaseId(), DatabaseLinks(Seq.empty, Seq.empty))
+      // these get filtered anyway and replaced with spdMetadata
+      case (db: DatabaseReferenceImpl.VirtualSPD, _) => (db.namedDatabaseId(), DatabaseLinks(Seq.empty, Seq.empty))
+      case (db: DatabaseReferenceImpl.PropertyShard, _) =>
+        (db.namedDatabaseId(), DatabaseLinks(Seq.empty, Seq.empty))
+      case (db, aliases) if db.id() == DatabaseId.SYSTEM_DATABASE_ID.uuid() =>
+        (db.namedDatabaseId(), DatabaseLinks(Seq.empty, aliases.map(_.name())))
+      case (db, aliases) =>
+        (
+          db.namedDatabaseId(),
+          DatabaseLinks(
+            Seq.empty,
+            aliases.map(_.name()),
+            Some(Seq(db.name())),
+            Some(Seq.empty)
+          )
+        )
+    }.toMap[NamedDatabaseId, DatabaseLinks]
 
     val details = infoService.databases(
       context.transaction,
@@ -198,15 +228,43 @@ class ShowDatabaseService(
     )
 
     details.asScala.map(d => {
-      val (constituents, aliases) = dbids.getOrElse(d.namedDatabaseId(), (Seq.empty, Seq.empty))
-      ShowDatabaseResult(d, constituents, aliases)
+      val DatabaseLinks(constituents, aliases, graphShards, propertyShards) = dbids(d.namedDatabaseId())
+      ShowDatabaseResult(d, constituents, aliases, graphShards, propertyShards)
     })
   }.toSet
 
-  private def aliasesForReference(references: Iterable[DatabaseReference], databaseUuid: UUID): Seq[String] = {
-    references.collect {
-      case comp: Composite => aliasesForReference(comp.constituents().asScala, databaseUuid)
-      case ref if !ref.isPrimary && ref.id() == databaseUuid => Seq(ref.name())
-    }.flatten.toSeq.sorted
+  // Sort DatabaseReferences into primary references and aliases.
+  private def sortAliases(references: Iterable[DatabaseReference]): Map[DatabaseReference, Seq[DatabaseReference]] = {
+
+    val queue = mutable.Queue[DatabaseReference]()
+    queue.addAll(references)
+    queue.sortInPlaceBy(!_.isPrimary)
+
+    val sorted = mutable.Map[DatabaseReference, mutable.Buffer[DatabaseReference]]()
+    val uuidToKey = mutable.Map[UUID, DatabaseReference]()
+
+    while (queue.nonEmpty) {
+      queue.dequeue() match {
+        case comp: Composite =>
+          sorted += (comp -> mutable.ListBuffer.empty)
+          uuidToKey += (comp.id() -> comp)
+          queue.enqueueAll(comp.constituents().asScala)
+        case _: DatabaseReferenceImpl.External                    => ()
+        case db: DatabaseReferenceImpl.GraphShard if db.isPrimary =>
+          // Graph shard and SPD virtual have the same UUID. We only want to track the
+          // aliases against the SPD virtual
+          sorted += (db -> mutable.ListBuffer.empty)
+        case db if db.isPrimary =>
+          sorted += (db -> mutable.ListBuffer.empty)
+          uuidToKey += (db.id -> db)
+        case db =>
+          val uuid = db.id()
+          uuidToKey.get(uuid) match {
+            case None             => () // alias which doesn't have a primary
+            case Some(primaryRef) => sorted(primaryRef) += db
+          }
+      }
+    }
+    sorted.view.mapValues(_.toSeq).toMap
   }
 }

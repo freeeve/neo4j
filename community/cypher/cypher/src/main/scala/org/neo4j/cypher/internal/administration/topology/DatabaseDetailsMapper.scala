@@ -28,10 +28,12 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_SECONDARIES_COUNT_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_STATUS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.DATABASE_ID_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.DEFAULT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.GRAPH_SHARDS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.HOME_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_COMMITTED_TX_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.NAME_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.OPTIONS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.PROPERTY_SHARDS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.REPLICATION_LAG_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.ROLE_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.SERVER_ID_COL
@@ -58,7 +60,9 @@ object DatabaseDetailsMapper {
   ): AnyValue = {
     val databaseDetails = showDatabaseResult.details
     val constituentValue = buildStringListValue(showDatabaseResult.constituents)
-    val aliasesValue = buildStringListValue(showDatabaseResult.aliases)
+    val aliasesValue = buildStringListValue(showDatabaseResult.aliases.sorted)
+    val graphShardValue = showDatabaseResult.graphShards.map(buildStringListValue).getOrElse(Values.NO_VALUE)
+    val propertyShardValue = showDatabaseResult.propertyShards.map(buildStringListValue).getOrElse(Values.NO_VALUE)
 
     VirtualValues.map(
       Array(
@@ -82,7 +86,9 @@ object DatabaseDetailsMapper {
         SHARD_TX_LAG_COL,
         OPTIONS_COL,
         CONSTITUENTS_COL,
-        ALIASES_COL
+        ALIASES_COL,
+        GRAPH_SHARDS_COL,
+        PROPERTY_SHARDS_COL
       ),
       Array(
         Values.stringValue(databaseDetails.namedDatabaseId().name()),
@@ -110,7 +116,9 @@ object DatabaseDetailsMapper {
           VirtualValues.fromMap(valueOptions, valueOptions.size, 0)
         },
         constituentValue,
-        aliasesValue
+        aliasesValue,
+        graphShardValue,
+        propertyShardValue
       )
     )
   }
