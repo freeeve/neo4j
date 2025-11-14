@@ -506,8 +506,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
         VOLUMETRIC
     }
 
-    @Description(
-            """
+    @Description("""
             Configures the general policy for when checkpoints should occur.
             Possible values are:
 
@@ -753,8 +752,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
             .addConstraint(min(1))
             .build();
 
-    @Description(
-            """
+    @Description("""
             Log executed queries. Valid values are `OFF`, `INFO`, or `VERBOSE`.
 
             `OFF`::  no logging.
@@ -775,8 +773,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
         VERBOSE
     }
 
-    @Description(
-            """
+    @Description("""
             Log the start and end of a transaction. Valid values are `OFF`, `INFO`, or `VERBOSE`.
 
             `OFF`::  no logging.
@@ -796,8 +793,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
         FLAT_JSON
     }
 
-    @Description(
-            """
+    @Description("""
             The format to use for the JSON annotation data.
 
             `CYPHER`:: Formatted as a Cypher map. E.g. `{foo: 'bar', baz: {k: 1}}`.

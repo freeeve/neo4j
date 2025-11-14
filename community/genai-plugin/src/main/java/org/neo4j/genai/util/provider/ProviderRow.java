@@ -33,9 +33,15 @@ import org.neo4j.procedure.Description;
 
 public record ProviderRow(
         @Description("Provider name.") String name,
-        @Description("The signature of the required config map.") String requiredConfigType,
-        @Description("The signature of the optional config map.") String optionalConfigType,
-        @Description("The default values for the GenAI provider.") Map<String, Object> defaultConfig) {
+
+        @Description("The signature of the required config map.")
+        String requiredConfigType,
+
+        @Description("The signature of the optional config map.")
+        String optionalConfigType,
+
+        @Description("The default values for the GenAI provider.")
+        Map<String, Object> defaultConfig) {
     public static ProviderRow from(NamedProvider provider) {
         final var parameters = Parameters.getParameters(provider.paramType());
 

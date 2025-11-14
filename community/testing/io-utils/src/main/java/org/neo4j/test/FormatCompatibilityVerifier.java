@@ -116,13 +116,11 @@ public abstract class FormatCompatibilityVerifier {
         var mismatchOffset = Files.mismatch(storeFile, tempFile);
         if (mismatchOffset != -1L) {
             ZipUtils.zip(globalFs, storeFile, globalDir.file(zipName));
-            fail(String.format(
-                    """
+            fail(String.format("""
                                 Generated file %s is binary different to the committed file %s extracted from %s. The first mismatch offset is %d.
                                 This could mean hidden change in format that is not detected by other means.
                                 If change is intentional a store file with this new format should be committed.
-                                %s""",
-                    storeFile, tempFile, zipName, mismatchOffset, moveInstruction(zipName)));
+                                %s""", storeFile, tempFile, zipName, mismatchOffset, moveInstruction(zipName)));
         }
     }
 

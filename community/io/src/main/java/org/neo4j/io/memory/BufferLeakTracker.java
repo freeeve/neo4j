@@ -61,8 +61,7 @@ public sealed interface BufferLeakTracker
             if (trackerBuffers.isEmpty()) {
                 return;
             }
-            var exceptionBuilder = new StringBuilder(
-                    """
+            var exceptionBuilder = new StringBuilder("""
                                                           ***WARNING***
                     Native buffer leak(s) has been detected by the buffer leak tracker. The test session will be marked as failed.
                     Please review the details of unreleased allocations from the tests executed in the current session below.

@@ -2806,12 +2806,10 @@ class BFSPruningVarExpandCursorTest {
 
         private BFSGraph(List<LongList> graph, IntList distance) {
             if (graph.size() != distance.size()) {
-                throw new IllegalStateException(format(
-                        """
+                throw new IllegalStateException(format("""
                                 Collections 'graph' and 'distance' must have same length but did not.
                                 'graph' = %s
-                                'distance' = %s""",
-                        graph, distance));
+                                'distance' = %s""", graph, distance));
             }
             this.graph = graph;
             this.distance = distance;

@@ -76,7 +76,8 @@ abstract class BootloaderOsAbstraction {
                 case NeoBootstrapper.INVALID_CONFIGURATION_ERROR_CODE -> "Configuration is invalid.";
                 case NeoBootstrapper.LICENSE_NOT_ACCEPTED_ERROR_CODE -> "License agreement has not been accepted.";
                 default -> "Unexpected Neo4j server failure.";
-            } + " See log for more info.";
+            }
+            + " See log for more info.";
 
     static class ConsoleProcess implements ProcessStages {
         private final boolean installShutdownHooksForParentProcess;

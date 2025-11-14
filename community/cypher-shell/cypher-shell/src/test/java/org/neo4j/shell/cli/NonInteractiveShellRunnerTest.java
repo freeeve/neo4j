@@ -80,8 +80,7 @@ class NonInteractiveShellRunnerTest {
 
     @Test
     void testFailFast() {
-        String input =
-                """
+        String input = """
                 good1;
                 bad;
                 good2;
@@ -102,8 +101,7 @@ class NonInteractiveShellRunnerTest {
 
     @Test
     void testFailAtEnd() {
-        String input =
-                """
+        String input = """
                 good1;
                 bad;
                 good2;
@@ -129,8 +127,7 @@ class NonInteractiveShellRunnerTest {
         RuntimeException boom = new RuntimeException("BOOM");
         doThrow(boom).when(statementParser).parse(any(Reader.class));
 
-        String input =
-                """
+        String input = """
                 good1;
                 bad;
                 good2;
@@ -154,8 +151,7 @@ class NonInteractiveShellRunnerTest {
     @Test
     void runUntilEndExitsImmediatelyOnExitCommand() throws Exception {
         // given
-        String input =
-                """
+        String input = """
                 good1;
                 bad;
                 good2;

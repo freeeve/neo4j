@@ -387,13 +387,15 @@ public class BuiltInProcedures {
         }
     }
 
-    public record PropertyKeyResult(@Description("A property key in the database.") String propertyKey) {}
+    public record PropertyKeyResult(
+            @Description("A property key in the database.") String propertyKey) {}
 
     public record DatabaseInfo(
             @Description("The id of the database.") String id,
             @Description("The name of the database.") String name,
+
             @Description("The creation date of the database, formatted according to the ISO-8601 Standard.")
-                    String creationDate) {}
+            String creationDate) {}
 
     public static class RelationshipTypeResult {
         @Description("A relationship type in the database.")
@@ -405,7 +407,8 @@ public class BuiltInProcedures {
     }
 
     public record BooleanResult(
-            @Description("Whether or not the connection call to the database has been successful.") Boolean success) {}
+            @Description("Whether or not the connection call to the database has been successful.")
+            Boolean success) {}
 
     public record NodeResult(Node node) {}
 

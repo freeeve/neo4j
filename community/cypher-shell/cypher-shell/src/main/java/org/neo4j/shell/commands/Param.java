@@ -58,8 +58,7 @@ public record Param(Printer printer, ParameterService parameters) implements Com
         @Override
         public Metadata metadata() {
             var help = "Set the specified query parameter to the value given";
-            var usage =
-                    """
+            var usage = """
                     list or :param - Lists all parameters
                     :param clear - Clears all parameters
                     :param {a: 1} - Sets the parameter a to value 1

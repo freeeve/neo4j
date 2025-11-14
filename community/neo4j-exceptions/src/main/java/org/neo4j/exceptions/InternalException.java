@@ -53,27 +53,19 @@ public class InternalException extends Neo4jException {
     public static InternalException foundNoSolutionForBlock(int blockSize, String blockCandidates, String table) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N24)
                 .build();
-        return new InternalException(
-                gql,
-                String.format(
-                        """
+        return new InternalException(gql, String.format("""
                                 Found no solution for block with size %d,
-                                |%s were the selected candidates from the table %s""",
-                        blockSize, blockCandidates, table));
+                                |%s were the selected candidates from the table %s""", blockSize, blockCandidates, table));
     }
 
     public static InternalException foundNoPlanWithinConstraints(String setting1, String setting2) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N24)
                 .build();
-        return new InternalException(
-                gql,
-                String.format(
-                        """
+        return new InternalException(gql, String.format("""
              Unfortunately, the planner was unable to find a plan within the constraints provided.
              |Try increasing the config values `%s`
              |and `%s` to allow
-             |for a larger sub-plan table and longer planning time.""",
-                        setting1, setting2));
+             |for a larger sub-plan table and longer planning time.""", setting1, setting2));
     }
 
     public static InternalException indexNotApplicable(String indexName, String msg) {

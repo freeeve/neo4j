@@ -103,23 +103,17 @@ class DeprecatedBedrockTest {
         @Override
         Collection<Arguments> parseResponse() {
             return List.of(
-                    Arguments.of(
-                            new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})),
-                            """
+                    Arguments.of(new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})), """
                             {
                                 "embedding": [1.0, 2.0, 3.0]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})),
-                            """
+                    Arguments.of(new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})), """
                             {
                                 "embedding": [1, 2, 3]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})),
-                            """
+                    Arguments.of(new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})), """
                             {
                                 "embedding": ["1.0", "2.0", "3.0"]
                             }
@@ -140,9 +134,7 @@ class DeprecatedBedrockTest {
                                 "vector": [1.0, 2.0, 3.0]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedError(List.of("hello"), "Expected embedding to be an array"),
-                            """
+                    Arguments.of(new ExpectedError(List.of("hello"), "Expected embedding to be an array"), """
                             {
                                 "embedding": 123
                             }

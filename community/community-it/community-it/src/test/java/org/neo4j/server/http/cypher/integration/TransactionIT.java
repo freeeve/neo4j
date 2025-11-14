@@ -609,8 +609,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
 
                 // begin and execute and commit
                 // language=json
-                var query = String.format(
-                        """
+                var query = String.format("""
                         {
                           "statements": [
                             {
@@ -618,8 +617,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
                             }
                           ]
                         }
-                        """,
-                        url, batch);
+                        """, url, batch);
 
                 response = POST(transactionCommitUri(), quotedJson(query));
                 times++;
@@ -642,8 +640,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
         int batchSize = 2;
 
         // language=json
-        var query =
-                """
+        var query = """
                 {
                   "statements": [
                     {
@@ -681,8 +678,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
     public void begin_and_execute_multiple_call_in_tx_last_and_commit() throws Exception {
 
         // language=json
-        var query =
-                """
+        var query = """
                 {
                   "statements": [
                     {
@@ -709,8 +705,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
     public void begin_and_execute_call_in_tx_followed_by_another_statement_and_commit() throws Exception {
 
         // language=json
-        var query =
-                """
+        var query = """
                 {
                   "statements": [
                     {
@@ -1205,8 +1200,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
         var nodesAtStart = countNodes();
 
         // language=json
-        var query =
-                """
+        var query = """
                 {
                   "statements": [
                     {
@@ -1237,8 +1231,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
         var nodesAtStart = countNodes();
 
         // language=json
-        var query =
-                """
+        var query = """
                 {
                   "statements": [
                     {

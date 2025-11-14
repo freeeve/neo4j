@@ -90,9 +90,15 @@ public class DeprecatedVectorEncoding {
 
     public record ProviderRow(
             @Description("The name of the GenAI provider.") String name,
-            @Description("The signature of the required config map.") String requiredConfigType,
-            @Description("The signature of the optional config map.") String optionalConfigType,
-            @Description("The default values for the GenAI provider.") Map<String, Object> defaultConfig) {
+
+            @Description("The signature of the required config map.")
+            String requiredConfigType,
+
+            @Description("The signature of the optional config map.")
+            String optionalConfigType,
+
+            @Description("The default values for the GenAI provider.")
+            Map<String, Object> defaultConfig) {
         public static ProviderRow from(Provider<?> provider) {
             final var parameters = Parameters.getParameters(provider.parameterDeclarations());
 
@@ -151,20 +157,14 @@ public class DeprecatedVectorEncoding {
                             description =
                                     "The identifier of the provider: (\"VertexAI\", \"OpenAI\", \"AzureOpenAI\", \"Bedrock\").")
                     String providerName,
-            @Sensitive
-                    @Name(
-                            value = "configuration",
-                            defaultValue = "{}",
-                            description =
-                                    """
+            @Sensitive @Name(value = "configuration", defaultValue = "{}", description = """
                             VertexAI: {token :: STRING, projectId :: STRING, model :: STRING, region :: STRING, taskType :: STRING, title :: STRING }
 
                             OpenAI: {token :: STRING, model :: STRING, dimensions :: INTEGER}
 
                             AzureOpenAI: {token :: STRING, resource :: STRING, deployment :: STRING, dimensions :: INTEGER}
 
-                            AmazonBedrock: {accessKeyId :: STRING, secretAccessKey :: STRING, model :: STRING, region :: STRING}""")
-                    AnyValue configuration) {
+                            AmazonBedrock: {accessKeyId :: STRING, secretAccessKey :: STRING, model :: STRING, region :: STRING}""") AnyValue configuration) {
         return encode(resource, providerName, configuration);
     }
 
@@ -179,20 +179,14 @@ public class DeprecatedVectorEncoding {
                             description =
                                     "The identifier of the provider: (\"VertexAI\", \"OpenAI\", \"AzureOpenAI\", \"Bedrock\").")
                     String providerName,
-            @Sensitive
-                    @Name(
-                            value = "configuration",
-                            defaultValue = "{}",
-                            description =
-                                    """
+            @Sensitive @Name(value = "configuration", defaultValue = "{}", description = """
                                     VertexAI: {token :: STRING, projectId :: STRING, model :: STRING, region :: STRING, taskType :: STRING, title :: STRING }
 
                                     OpenAI: {token :: STRING, model :: STRING, dimensions :: INTEGER}
 
                                     AzureOpenAI: {token :: STRING, resource :: STRING, deployment :: STRING, dimensions :: INTEGER}
 
-                                    AmazonBedrock: {accessKeyId :: STRING, secretAccessKey :: STRING, model :: STRING, region :: STRING}""")
-                    AnyValue configuration) {
+                                    AmazonBedrock: {accessKeyId :: STRING, secretAccessKey :: STRING, model :: STRING, region :: STRING}""") AnyValue configuration) {
         requireNonNull(providerName, "'provider' must not be null");
         final var configurationMap = requireNonNullMap(configuration);
         final var provider = getProvider(providerName);
@@ -205,8 +199,7 @@ public class DeprecatedVectorEncoding {
     }
 
     @Procedure(name = "genai.vector.encodeBatch")
-    @Description(
-            """
+    @Description("""
             Encode a given batch of resources as vectors using the named provider.
             For each element in the given resource LIST this returns:
                 * the corresponding 'index' within that LIST,
@@ -226,8 +219,7 @@ public class DeprecatedVectorEncoding {
 
     @Deprecated
     @Procedure(name = "genai.vector.encodeBatch", deprecatedBy = "ai.text.embedBatch")
-    @Description(
-            """
+    @Description("""
             Encode a given batch of resources as vectors using the named provider.
             For each element in the given resource LIST this returns:
                 * the corresponding 'index' within that LIST,
@@ -325,9 +317,13 @@ public class DeprecatedVectorEncoding {
     public record BatchRow(long index, String resource, float[] vector) {}
 
     public record InternalBatchRow(
-            @Description("The index of the corresponding element in the input list.") long index,
+            @Description("The index of the corresponding element in the input list.")
+            long index,
+
             @Description("The name of the input resource.") String resource,
-            @Description("The generated vector embedding for the resource.") Value vector) {
+
+            @Description("The generated vector embedding for the resource.")
+            Value vector) {
         InternalBatchRow(BatchRow row) {
             this(row.index(), row.resource(), Values.of(row.vector));
         }

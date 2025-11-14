@@ -93,9 +93,7 @@ class QueryResourceErrorWithAuthIT {
         var response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertThat(response.statusCode()).isEqualTo(400);
-        assertThat(response.body())
-                .contains(
-                        """
+        assertThat(response.body()).contains("""
                         {"errors":[{"code":"Neo.ClientError.Statement.ArgumentError","message":"Impersonation is not supported in community edition."}]}""");
     }
 }

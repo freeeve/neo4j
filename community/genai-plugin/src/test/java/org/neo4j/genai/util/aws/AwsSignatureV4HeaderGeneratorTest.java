@@ -121,8 +121,7 @@ class AwsSignatureV4HeaderGeneratorTest {
             final var datetime = "19700101T000000Z";
             final var scope = "19700101/fake-region/bedrock/aws4_request";
 
-            final var request =
-                    """
+            final var request = """
                     POST
                     /path/to/resource
                     exists=&param=other&param=value
@@ -131,8 +130,7 @@ class AwsSignatureV4HeaderGeneratorTest {
 
                     content-type;host
                     973153f86ec2da1748e63f0cf85b89835b42f8ee8018c549868a1308a19f6ca3""";
-            final var hashedRequestPrefix =
-                    """
+            final var hashedRequestPrefix = """
                     AWS4-HMAC-SHA256
                     19700101T000000Z
                     19700101/fake-region/bedrock/aws4_request

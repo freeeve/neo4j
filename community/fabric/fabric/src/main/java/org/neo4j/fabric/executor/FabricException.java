@@ -101,15 +101,10 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
                 .withParam(GqlParams.StringParam.cfgSetting, ROUTING_ENABLED_SETTING)
                 .build();
         return new FabricException(
-                gql,
-                Status.Cluster.NotALeader,
-                String.format(
-                        """
+                gql, Status.Cluster.NotALeader, String.format("""
                         No longer possible to write to database '%s' on this instance and unable to route write operation to leader. Server-side routing is disabled.
                         Either connect to the database directly using the driver (or interactively with the :use command),
-                        or enable server-side routing by setting `%s=true`""",
-                        dbName, ROUTING_ENABLED_SETTING),
-                dbName);
+                        or enable server-side routing by setting `%s=true`""", dbName, ROUTING_ENABLED_SETTING), dbName);
     }
 
     public static FabricException routingDisabled(String dbName) {
@@ -118,15 +113,10 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
                 .withParam(GqlParams.StringParam.cfgSetting, ROUTING_ENABLED_SETTING)
                 .build();
         return new FabricException(
-                gql,
-                Status.Cluster.Routing,
-                String.format(
-                        """
+                gql, Status.Cluster.Routing, String.format("""
          Unable to route to database '%s'. Server-side routing is disabled.
          Either connect to the database directly using the driver (or interactively with the :use command),
-         or enable server-side routing by setting `%s=true`""",
-                        dbName, ROUTING_ENABLED_SETTING),
-                dbName);
+         or enable server-side routing by setting `%s=true`""", dbName, ROUTING_ENABLED_SETTING), dbName);
     }
 
     public static FabricException failedToParseBookmark(Exception exception) {

@@ -95,8 +95,7 @@ public class ProcedureProcessorTest extends ExtensionTestBase {
                 .onLine(52);
 
         // Paper-cut for subtypes such as Hashmap
-        var errors =
-                """
+        var errors = """
                 Record definition error: field HashMap#table must be public
                 Record definition error: field HashMap#entrySet must be public
                 Record definition error: field HashMap#size must be public
@@ -109,8 +108,7 @@ public class ProcedureProcessorTest extends ExtensionTestBase {
                 Record definition error: field HashMap#modCount of type int is not supported
                 Record definition error: field HashMap#threshold of type int is not supported
                 Record definition error: field HashMap#loadFactor of type float is not supported
-                """
-                        .split("\n");
+                """.split("\n");
         for (var error : errors) {
             compiler.withErrorContaining(error);
         }

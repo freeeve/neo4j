@@ -618,7 +618,7 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
             case TRUE -> configBuilder = configBuilder.withEncryption();
             case FALSE -> configBuilder = configBuilder.withoutEncryption();
             default -> {}
-                // Do nothing
+            // Do nothing
         }
         return driverProvider.apply(connectionConfig.uri(), authToken, configBuilder.build());
     }

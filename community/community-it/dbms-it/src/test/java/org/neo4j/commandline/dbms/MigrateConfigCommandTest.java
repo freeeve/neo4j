@@ -65,8 +65,7 @@ import picocli.CommandLine;
 @Neo4jLayoutExtension
 class MigrateConfigCommandTest {
 
-    private static final String OLD_CONFIG =
-            """
+    private static final String OLD_CONFIG = """
                     #Some initial comment
 
                     #Some comment on a setting that will migrate
@@ -103,8 +102,7 @@ class MigrateConfigCommandTest {
 
                     #Tail comment
                     """;
-    static final String MIGRATED_CONFIG =
-            """
+    static final String MIGRATED_CONFIG = """
                     #Some initial comment
 
                     #Some comment on a setting that will migrate
@@ -142,8 +140,7 @@ class MigrateConfigCommandTest {
                     #Tail comment
                     """;
 
-    private static final String OLD_CONFIG_APOC =
-            """
+    private static final String OLD_CONFIG_APOC = """
                     #A removed setting
                     dbms.record_format=high_limit
                     db.tx_log.preallocate=true
@@ -158,8 +155,7 @@ class MigrateConfigCommandTest {
                     apoc.export.file.enabled=true
                     """;
 
-    private static final String MIGRATED_CONFIG_APOC =
-            """
+    private static final String MIGRATED_CONFIG_APOC = """
                     #A removed setting
                     # dbms.record_format=high_limit REMOVED SETTING
                     db.tx_log.preallocate=true
@@ -174,8 +170,7 @@ class MigrateConfigCommandTest {
                     # apoc.export.file.enabled=true REMOVED SETTING
                     """;
 
-    private static final String NEW_CONFIG_APOC =
-            """
+    private static final String NEW_CONFIG_APOC = """
                     apoc.trigger.refresh=50000
                     apoc.export.file.enabled=true
                     """;
@@ -190,9 +185,7 @@ class MigrateConfigCommandTest {
         try (var out = new PrintStream(baos)) {
             CommandLine.usage(command, new PrintStream(out), CommandLine.Help.Ansi.OFF);
         }
-        assertThat(baos.toString().trim())
-                .isEqualToIgnoringNewLines(
-                        """
+        assertThat(baos.toString().trim()).isEqualToIgnoringNewLines("""
                                 Migrate server configuration from the previous major version.
 
                                 USAGE

@@ -178,8 +178,7 @@ class SchemaCommandTest {
     @Test
     void indexTypesSanityCheck() {
         assertThat(Set.copyOf(AllIndexProviderDescriptors.INDEX_TYPES.values()))
-                .as(
-                        """
+                .as("""
                 === Sanity check that we are not missing any IndexType(s) ===
                 Different versions of the IndexProviderDescriptor should be covered in the SchemaCommandConverter which
                 would catch changes to the commands themselves. This check is to ensure we don't miss any new IndexType(s)

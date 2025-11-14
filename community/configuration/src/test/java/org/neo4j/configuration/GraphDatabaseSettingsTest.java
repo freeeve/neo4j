@@ -329,9 +329,7 @@ class GraphDatabaseSettingsTest {
 
     @Test
     void rememberTestingWhenCypher25IsDefault() {
-        assertThat(default_language.defaultValue())
-                .as(
-                        """
+        assertThat(default_language.defaultValue()).as("""
                         You have set the default query language to Cypher 25.
                         Do not forget:
                         - Some nightly test builds runs with `-p default-query-lang-cypher-25`,
@@ -342,7 +340,6 @@ class GraphDatabaseSettingsTest {
                           Configurations there probably assume the default is Cypher 5.
                         - Go though CypherFeatureTests.scala and make sure all versions are covered.
                         - Update the assertion of this test to pass, to be reminded the next time we update the default.
-                        """)
-                .isEqualTo(GraphDatabaseSettings.CypherVersion.Cypher5);
+                        """).isEqualTo(GraphDatabaseSettings.CypherVersion.Cypher5);
     }
 }

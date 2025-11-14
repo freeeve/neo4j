@@ -90,15 +90,13 @@ public class ExpectTestExtension implements BeforeAllCallback, AfterAllCallback 
                 : new String[] {"expect", expectScriptFilename};
         final var execution = expectContainer.execInContainer(args);
         if (execution.getExitCode() != 0 || !execution.getStderr().isEmpty()) {
-            final var message =
-                    """
+            final var message = """
                     Exit Code: %d
                     ==================================== stderr ====================================
                     %s
                     ==================================== stdout ====================================
                     %s
-                    """
-                            .formatted(execution.getExitCode(), execution.getStderr(), execution.getStdout());
+                    """.formatted(execution.getExitCode(), execution.getStderr(), execution.getStdout());
             fail(message);
         }
         assertEqualInteraction(execution.getStdout(), expected);

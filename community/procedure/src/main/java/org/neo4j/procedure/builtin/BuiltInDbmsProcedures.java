@@ -468,9 +468,14 @@ public class BuiltInDbmsProcedures {
     }
 
     public record SystemGraphComponentStatusResult(
-            @Description("The upgrade status of the system database.") String status,
-            @Description("Information describing the upgrade status.") String description,
-            @Description("Information about the steps necessary to upgrade.") String resolution) {
+            @Description("The upgrade status of the system database.")
+            String status,
+
+            @Description("Information describing the upgrade status.")
+            String description,
+
+            @Description("Information about the steps necessary to upgrade.")
+            String resolution) {
         public static final String CANNOT_UPGRADE_STATUS = "CANNOT_UPGRADE";
         public static final String CANNOT_UPGRADE_RESOLUTION =
                 "Wait for upgraded versions to be observed, or upgrade other cluster members so all are on the same version.";

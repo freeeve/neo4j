@@ -39,9 +39,7 @@ class DiagnosticsReportCommandTest {
             CommandLine commandLine = new CommandLine(command, new ContextInjectingFactory(ctx));
             commandLine.usage(new PrintStream(out), CommandLine.Help.Ansi.OFF);
         }
-        assertThat(baos.toString().trim())
-                .isEqualToIgnoringNewLines(
-                        """
+        assertThat(baos.toString().trim()).isEqualToIgnoringNewLines("""
                 Produces a zip/tar of the most common information needed for remote assessments.
 
                 USAGE

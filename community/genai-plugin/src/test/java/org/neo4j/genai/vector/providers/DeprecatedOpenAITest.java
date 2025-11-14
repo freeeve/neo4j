@@ -61,27 +61,21 @@ class DeprecatedOpenAITest {
         @Override
         Collection<Arguments> parseResponse() {
             return List.of(
-                    Arguments.of(
-                            new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})),
-                            """
+                    Arguments.of(new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})), """
                             {
                                 "data": [{
                                     "embedding": [1.0, 2.0, 3.0]
                                 }]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})),
-                            """
+                    Arguments.of(new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})), """
                             {
                                 "data": [{
                                     "embedding": [1, 2, 3]
                                 }]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})),
-                            """
+                    Arguments.of(new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})), """
                             {
                                 "data": [{
                                     "embedding": ["1.0", "2.0", "3.0"]
@@ -128,9 +122,7 @@ class DeprecatedOpenAITest {
                                 "data": 123
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedError(List.of("hello"), "Expected to receive 1", "however got 2"),
-                            """
+                    Arguments.of(new ExpectedError(List.of("hello"), "Expected to receive 1", "however got 2"), """
                             {
                                 "data": [{
                                     "embedding": [1.0, 2.0, 3.0]
@@ -149,9 +141,7 @@ class DeprecatedOpenAITest {
                                 }]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedError(List.of("hello"), "Expected embedding to be an array"),
-                            """
+                    Arguments.of(new ExpectedError(List.of("hello"), "Expected embedding to be an array"), """
                             {
                                 "data": [{
                                     "embedding": 123

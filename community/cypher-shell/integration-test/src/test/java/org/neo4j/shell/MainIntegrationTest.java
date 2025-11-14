@@ -649,8 +649,7 @@ class MainIntegrationTest extends TestHarness {
     @Test
     void shouldHandleMultiLineHistory() throws Exception {
         final var history = Files.createTempFile("temp-cypher-shell-history", null);
-        var expected =
-                """
+        var expected = """
                 > :history
                  1  return
                     'hej' as greeting;
@@ -676,8 +675,7 @@ class MainIntegrationTest extends TestHarness {
         final var history = historyDirectory.resolve("dir").resolve("dir").resolve("the-history");
         assertFalse(Files.exists(history));
 
-        var expected =
-                """
+        var expected = """
                 > :history
                  1  return 1;
                  2  :history
@@ -697,8 +695,7 @@ class MainIntegrationTest extends TestHarness {
     void historyFromEnvironment() throws Exception {
         final var history = Files.createTempFile("temp-cypher-shell-history", null);
 
-        var expected1 =
-                """
+        var expected1 = """
                 > :history
                  1  return 1;
                  2  :history
@@ -713,8 +710,7 @@ class MainIntegrationTest extends TestHarness {
                 .assertThatOutput(contains(expected1), endsWithInteractiveExit);
         assertTrue(Files.exists(history));
 
-        var expected2 =
-                """
+        var expected2 = """
                 > :history
                  1  return 1;
                  2  :history
@@ -765,8 +761,7 @@ class MainIntegrationTest extends TestHarness {
         assertThat(readHistory.get(1)).is(endsWith("return 2;"));
         assertThat(readHistory.get(2)).is(endsWith(":exit"));
 
-        var expected1 =
-                """
+        var expected1 = """
                 > :history
                  1  return 1;
                  2  return 2;
@@ -800,9 +795,7 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines("return 1;", "return 2;", ":history", ":exit")
                 .run()
                 .assertSuccessAndConnected()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         neo4j@neo4j> return 1;
                         1
                         1
@@ -823,9 +816,7 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines("return 3;", "return 4;", ":history", ":exit")
                 .run()
                 .assertSuccessAndConnected()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         neo4j@neo4j> return 3;
                         3
                         3
@@ -947,9 +938,7 @@ class MainIntegrationTest extends TestHarness {
                         ":exit")
                 .run()
                 .assertSuccessAndConnected(true)
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         vector([1, 2, 3], 3, INTEGER NOT NULL), "VECTOR<INTEGER NOT NULL>(3) NOT NULL"
                         """));
     }
@@ -996,9 +985,7 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines(userInput)
                 .run()
                 .assertSuccessAndConnected()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                                         > :params
                                         {
                                           ` backticks `: true,
@@ -1042,9 +1029,7 @@ class MainIntegrationTest extends TestHarness {
                                           string_escape: '\\'yes?\\'',
                                           string_escape2_judgement_day: '\\"mjau\\"',
                                           time: time('02:00:00Z')
-                                        }"""),
-                        contains(
-                                """
+                                        }"""), contains("""
                                         result
                                         {int: TRUE}
                                         {float: TRUE}
@@ -1076,17 +1061,13 @@ class MainIntegrationTest extends TestHarness {
                 .addArgs("--param", "easyAs => 1 + 2 + 3")
                 .addArgs("--param", "{a: 1, b: duration({seconds:1}), c:'hi'}")
                 .addArgs("--param", "{a: 2*2, d: toString(3)}")
-                .userInputLines(
-                        ":params",
-                        """
+                .userInputLines(":params", """
                         unwind [$purple,$advice,$when,$repeatAfterMe,$easyAs,$a,$b,$c,$d] as param
                         return param;
                         """)
                 .run()
                 .assertSuccessAndConnected()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                                  > :params
                                  {
                                    a: 4,
@@ -1098,9 +1079,7 @@ class MainIntegrationTest extends TestHarness {
                                    purple: 'rain',
                                    repeatAfterMe: 'ABC',
                                    when: date('2021-01-12')
-                                 }"""),
-                        contains(
-                                """
+                                 }"""), contains("""
                                  neo4j@neo4j> unwind [$purple,$advice,$when,$repeatAfterMe,$easyAs,$a,$b,$c,$d] as param
                                               return param;
                                  param
@@ -1136,9 +1115,7 @@ class MainIntegrationTest extends TestHarness {
                         ":params", "return $purple, $white, $advice, $when, $repeatAfterMe, $easyAs, $dt, $dt2;")
                 .run()
                 .assertSuccessAndConnected()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                             > :params
                             {
                               advice: ['talk', 'less', 'smile', 'more'],
@@ -1149,9 +1126,7 @@ class MainIntegrationTest extends TestHarness {
                               repeatAfterMe: 'ABC',
                               when: date('2021-01-12'),
                               white: 'space'
-                            }"""),
-                        contains(
-                                """
+                            }"""), contains("""
                              > return $purple, $white, $advice, $when, $repeatAfterMe, $easyAs, $dt, $dt2;
                              $purple, $white, $advice, $when, $repeatAfterMe, $easyAs, $dt, $dt2
                              "rain", "space", ["talk", "less", "smile", "more"], 2021-01-12, "ABC", 6, 2023-02-06T00:00-06:00[America/Chicago], 2023-02-06T00:00-06:00[America/Chicago]
@@ -1176,9 +1151,7 @@ class MainIntegrationTest extends TestHarness {
                         "unwind [$purple,$advice,$when,$repeatAfterMe,$easyAs,$a,$b,$c,$d,$nope] as param return param;")
                 .run()
                 .assertSuccessAndConnected()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         > :params
                         {
                           a: {
@@ -1194,9 +1167,7 @@ class MainIntegrationTest extends TestHarness {
                           repeatAfterMe: 'ABC',
                           when: date('2021-01-12')
                         }
-                        """),
-                        contains(
-                                """
+                        """), contains("""
                         > unwind [$purple,$advice,$when,$repeatAfterMe,$easyAs,$a,$b,$c,$d,$nope] as param return param;
                         param
                         "rain"
@@ -1227,9 +1198,7 @@ class MainIntegrationTest extends TestHarness {
                         "return $purple, $advice, $when, $repeatAfterMe, $easyAs, $dt, $dt2;")
                 .run()
                 .assertSuccessAndConnected()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                                         > :params
                                         {
                                           advice: ['talk', 'less', 'smile', 'more'],
@@ -1239,9 +1208,7 @@ class MainIntegrationTest extends TestHarness {
                                           purple: 'rain',
                                           repeatAfterMe: 'ABC',
                                           when: date('2021-01-12')
-                                        }"""),
-                        contains(
-                                """
+                                        }"""), contains("""
                                         > return $purple, $advice, $when, $repeatAfterMe, $easyAs, $dt, $dt2;
                                         $purple, $advice, $when, $repeatAfterMe, $easyAs, $dt, $dt2
                                         "rain", ["talk", "less", "smile", "more"], 2021-01-12, "ABC", 6, 2023-02-06T00:00-06:00[America/Chicago], 2023-02-06T00:00-06:00[America/Chicago]
@@ -1267,9 +1234,7 @@ class MainIntegrationTest extends TestHarness {
                                 "Parameter values needs to have a literal type (not nodes, relationships or paths), but found: `a`: [node"),
                         contains(
                                 "Parameter values needs to have a literal type (not nodes, relationships or paths), but found: `b`: {a: [[node"))
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         neo4j@neo4j> create ();
                         neo4j@neo4j> :params { a: 1 }
                         neo4j@neo4j> :params { a: collect { match (n) return n } }
@@ -1296,9 +1261,7 @@ class MainIntegrationTest extends TestHarness {
                         ":exit")
                 .run()
                 .assertSuccess()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         neo4j@neo4j> create ( { p: 'x' });
                         neo4j@neo4j> :params { a: 1 }
                         neo4j@neo4j> :params { a: collect { match (n) return n.p } }
@@ -1318,8 +1281,7 @@ class MainIntegrationTest extends TestHarness {
     void shouldShowPlanDescription() throws Exception {
         assumeAtLeastVersion("4.4.0");
 
-        var expected = serverVersion.major() >= 5
-                ? """
+        var expected = serverVersion.major() >= 5 ? """
                                 +-----------------+----+---------+----------------+---------------------+
                                 | Operator        | Id | Details | Estimated Rows | Pipeline            |
                                 +-----------------+----+---------+----------------+---------------------+
@@ -1327,8 +1289,7 @@ class MainIntegrationTest extends TestHarness {
                                 | |               +----+---------+----------------+                     |
                                 | +AllNodesScan   |  1 | n       |             10 | Fused in Pipeline 0 |
                                 +-----------------+----+---------+----------------+---------------------+
-                                """
-                : """
+                                """ : """
                                +-----------------------+---------+----------------+---------------------+
                                | Operator              | Details | Estimated Rows | Other               |
                                +-----------------------+---------+----------------+---------------------+
@@ -1375,9 +1336,7 @@ class MainIntegrationTest extends TestHarness {
                 .run()
                 .assertSuccessAndConnected()
                 .assertThatOutput(
-                        contains("as user neo4j impersonating impersonate_me"),
-                        contains(
-                                """
+                        contains("as user neo4j impersonating impersonate_me"), contains("""
                                 neo4j(impersonate_me)@neo4j> :impersonate
                                 neo4j@neo4j> :impersonate impersonate_me
                                 neo4j(impersonate_me)@neo4j> :impersonate neo4j
@@ -1388,8 +1347,7 @@ class MainIntegrationTest extends TestHarness {
                                 +----------------------------------------+
                                 | (:ImpersonationTest {otherProp: "hi"}) |
                                 +----------------------------------------+
-                                """),
-                        endsWithInteractiveExit);
+                                """), endsWithInteractiveExit);
     }
 
     @Test
@@ -1420,14 +1378,11 @@ class MainIntegrationTest extends TestHarness {
                         .containsAnyOf(
                                 "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                                 "Cannot impersonate user 'impersonate_me'."))
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                                 alice@neo4j> :impersonate impersonate_me
                                 Disconnected> MATCH (n:ImpersonationTest) RETURN n;
                                 Disconnected> :exit
-                                """),
-                        endsWithInteractiveExit);
+                                """), endsWithInteractiveExit);
     }
 
     @Test
@@ -1438,13 +1393,10 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines("SHOW CURRENT USER YIELD user;", ":exit")
                 .run()
                 .assertSuccess()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                                 user
                                 "the_undertaker"
-                                """),
-                        endsWithInteractiveExit);
+                                """), endsWithInteractiveExit);
     }
 
     @Test
@@ -1456,13 +1408,10 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines("SHOW CURRENT USER YIELD user;", ":exit")
                 .run()
                 .assertSuccess()
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                                 user
                                 "hulk_hogan"
-                                """),
-                        endsWithInteractiveExit);
+                                """), endsWithInteractiveExit);
     }
 
     @Test
@@ -1539,9 +1488,7 @@ class MainIntegrationTest extends TestHarness {
                 .run()
                 .assertSuccess(false)
                 .assertThatErrorOutput(contains("Connect to a database to use :sysinfo"))
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                                 Disconnected> :sysinfo
                                 Disconnected> :exit
                                 """));
@@ -1556,9 +1503,7 @@ class MainIntegrationTest extends TestHarness {
                 .run()
                 .assertSuccessAndConnected(false)
                 .assertThatErrorOutput(contains(":sysinfo is only supported since 4.4.0"))
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                                 neo4j@neo4j> :sysinfo
                                 neo4j@neo4j> :exit
                                 """));
@@ -1707,15 +1652,13 @@ class MainIntegrationTest extends TestHarness {
     void errorFormatGql() throws Exception {
         final String expected;
         if (isAtLeastVersion("5.27.0")) {
-            expected =
-                    """
+            expected = """
                     42N08: syntax error or access rule violation - no such procedure. The procedure dibs() was not found. Verify that the spelling is correct.
                       42001: syntax error or access rule violation - invalid syntax
 
                     """;
         } else {
-            expected =
-                    """
+            expected = """
                     There is no procedure with the name `dibs` registered for this database instance. Please ensure you've spelled the procedure name correctly and that the procedure is properly deployed.
                     """;
         }
@@ -1724,9 +1667,7 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines("call dibs;", ":exit")
                 .run()
                 .assertSuccess(false)
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         neo4j@neo4j> call dibs;
                         neo4j@neo4j> :exit"""))
                 .errorOutputSatisfies(err ->
@@ -1737,8 +1678,7 @@ class MainIntegrationTest extends TestHarness {
     void errorFormatGqlWithPosition() throws Exception {
         final String expected;
         if (isAtLeastVersion("5.27.0")) {
-            expected =
-                    """
+            expected = """
                     42N62: syntax error or access rule violation - variable not defined. Variable `m` not defined. (line 2, column 9 (offset: 19))
                     " RETURN m"
                              ^
@@ -1746,8 +1686,7 @@ class MainIntegrationTest extends TestHarness {
 
                     """;
         } else {
-            expected =
-                    """
+            expected = """
                     Variable `m` not defined (line 2, column 9 (offset: 19))
                     " RETURN m"
                              ^
@@ -1758,9 +1697,7 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines("MATCH (n) \n RETURN m;", ":exit")
                 .run()
                 .assertSuccess(false)
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                                 neo4j@neo4j> MATCH (n)\s
                                               RETURN m;
                                 neo4j@neo4j> :exit"""))
@@ -1775,15 +1712,10 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines("call dibs;", ":exit")
                 .run()
                 .assertSuccess(false)
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         neo4j@neo4j> call dibs;
                         neo4j@neo4j> :exit"""))
-                .errorOutputSatisfies(
-                        err -> assertThat(err)
-                                .isEqualTo(
-                                        """
+                .errorOutputSatisfies(err -> assertThat(err).isEqualTo("""
                         There is no procedure with the name `dibs` registered for this database instance. Please ensure you've spelled the procedure name correctly and that the procedure is properly deployed.
                         """));
     }
@@ -1792,15 +1724,13 @@ class MainIntegrationTest extends TestHarness {
     void errorFormatDefault() throws Exception {
         final String expected;
         if (isAtLeastVersion("5.27.0")) {
-            expected =
-                    """
+            expected = """
                     42N08: syntax error or access rule violation - no such procedure. The procedure dibs() was not found. Verify that the spelling is correct.
                       42001: syntax error or access rule violation - invalid syntax
 
                     """;
         } else {
-            expected =
-                    """
+            expected = """
                     There is no procedure with the name `dibs` registered for this database instance. Please ensure you've spelled the procedure name correctly and that the procedure is properly deployed.
                     """;
         }
@@ -1809,9 +1739,7 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines("call dibs;", ":exit")
                 .run()
                 .assertSuccess(false)
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         neo4j@neo4j> call dibs;
                         neo4j@neo4j> :exit"""))
                 .errorOutputSatisfies(err ->
@@ -1836,9 +1764,7 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines("call dibs;", ":exit")
                 .run()
                 .assertSuccess(false)
-                .assertThatOutput(
-                        contains(
-                                """
+                .assertThatOutput(contains("""
                         neo4j@neo4j> call dibs;
                         neo4j@neo4j> :exit"""))
                 .errorOutputSatisfies(err -> assertThat(err).contains(expected));

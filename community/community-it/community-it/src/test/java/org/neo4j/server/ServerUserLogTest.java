@@ -70,8 +70,7 @@ class ServerUserLogTest {
 
         // when
         try {
-            String xml =
-                    """
+            String xml = """
                     <Configuration packages="org.neo4j.logging.log4j">
                         <Appenders>
                             <Console name="console" target="SYSTEM_OUT" follow="true">

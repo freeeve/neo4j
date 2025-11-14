@@ -75,8 +75,7 @@ class ParamTest {
 
     @Test
     void listParams() throws CommandException {
-        final var params =
-                """
+        final var params = """
             {
               int: 1,
               duration: duration({hours: 1}),
@@ -92,9 +91,7 @@ class ParamTest {
         cmd.execute(List.of(params));
         cmd.execute(List.of());
 
-        verify(printer)
-                .printOut(
-                        """
+        verify(printer).printOut("""
             {
               ` backticks `: 12,
               bool: true,
@@ -130,9 +127,7 @@ class ParamTest {
         cmd.execute(List.of("{a:1,b:[2,2],c:{cc:1}}"));
         assertFalse(parameters.parameters().isEmpty());
         cmd.execute(List.of());
-        verify(printer)
-                .printOut(
-                        """
+        verify(printer).printOut("""
                     {
                       a: 1,
                       b: [2, 2],

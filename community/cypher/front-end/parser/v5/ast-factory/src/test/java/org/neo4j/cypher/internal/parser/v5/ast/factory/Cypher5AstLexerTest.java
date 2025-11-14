@@ -180,8 +180,7 @@ public class Cypher5AstLexerTest {
                 var resultSub = IntStream.range(i, Math.min(i + 12, result.length))
                         .mapToObj(j -> pretty(result[j]))
                         .collect(joining(", "));
-                var message =
-                        """
+                var message = """
                     %nExpected to find: %s
                     Position in result (codepoint offset): %s
                     Position in input (char offset): %s

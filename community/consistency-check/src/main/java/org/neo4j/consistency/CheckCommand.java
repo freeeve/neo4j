@@ -59,18 +59,13 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(
-        name = "check",
-        header = "Check the consistency of a database.",
-        description =
-                """
+@Command(name = "check", header = "Check the consistency of a database.", description = """
                 This command allows for checking the consistency of a database, or a dump or backup thereof.
                 It cannot be used with a database which is currently in use.
 
                 Some checks can be quite expensive, so it may be useful to turn some of them off
                 for very large databases. Increasing the heap size can also be a good idea.
-                See 'neo4j-admin help' for details.""",
-        sortOptions = false)
+                See 'neo4j-admin help' for details.""", sortOptions = false)
 public class CheckCommand extends AbstractAdminCommand {
     private final ConsistencyCheckService consistencyCheckService;
 
@@ -130,12 +125,7 @@ public class CheckCommand extends AbstractAdminCommand {
         }
 
         private static final class FromAndTemp {
-            @Option(
-                    names = "--from-path",
-                    paramLabel = "<path>",
-                    required = true,
-                    description =
-                            """
+            @Option(names = "--from-path", paramLabel = "<path>", required = true, description = """
                             Path to a backup file or a directory containing dump/backup artifacts.
                               If the path is to a single file, that artifact is selected and checked for consistency.
                               If a directory is provided, the tool selects the most recent backup chain
@@ -270,12 +260,10 @@ public class CheckCommand extends AbstractAdminCommand {
             Config additionalConfiguration,
             MemoryTracker memoryTracker) {
         if (checkRecoveryState(fs, databaseLayout, additionalConfiguration, memoryTracker)) {
-            throw new CommandFailedException(
-                    """
+            throw new CommandFailedException("""
                     Active logical log detected, this might be a source of inconsistencies.
                     Please recover database before running the consistency check.
-                    To perform recovery please start database and perform clean shutdown.""",
-                    ExitCode.FAIL);
+                    To perform recovery please start database and perform clean shutdown.""", ExitCode.FAIL);
         }
     }
 

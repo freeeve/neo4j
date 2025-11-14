@@ -188,11 +188,9 @@ public class TextCompletionTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(RequiredConfArguments.class)
     void completionWithRequiredArgs(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 with %s as conf
-                return ai.text.completion('Hello!', '%s', conf) as result"""
-                        .formatted(args.conf(), args.provider());
+                return ai.text.completion('Hello!', '%s', conf) as result""".formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
@@ -202,12 +200,10 @@ public class TextCompletionTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(AllOptionsArguments.class)
     void completionWithAllArgs(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 with %s as conf
                 return ai.text.completion('Hello!', '%s', conf) as result
-                """
-                        .formatted(args.conf(), args.provider());
+                """.formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
@@ -220,8 +216,7 @@ public class TextCompletionTest implements GenAITestExtension {
                 .map(m -> m.get("name").toString())
                 .sorted()
                 .collect(Collectors.joining("', '", "'", "'."));
-        final var showFuncQuery =
-                """
+        final var showFuncQuery = """
                 show functions yield name, argumentDescription
                 where name = 'ai.text.completion'
                 return *
@@ -269,9 +264,7 @@ class AllOptionsArguments implements ProviderArguments {
     @Override
     public Stream<ProviderArgs> providers() {
         return Stream.of(
-                new ProviderArgs(
-                        "openai",
-                        """
+                new ProviderArgs("openai", """
                         {
                           token: 'dummy-openai-token',
                           model: 'gpt-5',
@@ -280,9 +273,7 @@ class AllOptionsArguments implements ProviderArguments {
                             store: false
                           }
                         }"""),
-                new ProviderArgs(
-                        "azure-openai",
-                        """
+                new ProviderArgs("azure-openai", """
                         {
                           token: 'dummy-azure-token',
                           resource: 'dummy',
@@ -292,9 +283,7 @@ class AllOptionsArguments implements ProviderArguments {
                             store: false
                           }
                         }"""),
-                new ProviderArgs(
-                        "vertexai",
-                        """
+                new ProviderArgs("vertexai", """
                         {
                           token: 'dummy-vertex-token',
                           model: 'gemini-3',
@@ -306,9 +295,7 @@ class AllOptionsArguments implements ProviderArguments {
                             labels: { labelA: 'x' }
                           }
                         }"""),
-                new ProviderArgs(
-                        "bedrock-nova:model by name",
-                        """
+                new ProviderArgs("bedrock-nova:model by name", """
                         {
                           model: 'eu.amazon.nova-micro-v1:0',
                           region: 'eu-north-1',
@@ -320,9 +307,7 @@ class AllOptionsArguments implements ProviderArguments {
                           }
                         }
                         """),
-                new ProviderArgs(
-                        "bedrock-nova:custom nova type model",
-                        """
+                new ProviderArgs("bedrock-nova:custom nova type model", """
                         {
                           model: 'arn:aws:bedrock:xxx:001:custom-model/custom.nova',
                           region: 'eu-north-1',
@@ -334,9 +319,7 @@ class AllOptionsArguments implements ProviderArguments {
                           }
                         }
                         """),
-                new ProviderArgs(
-                        "bedrock-nova:foundation model by arn",
-                        """
+                new ProviderArgs("bedrock-nova:foundation model by arn", """
                         {
                           model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-micro-v1:0',
                           region: 'eu-north-1',
@@ -348,9 +331,7 @@ class AllOptionsArguments implements ProviderArguments {
                           }
                         }
                         """),
-                new ProviderArgs(
-                        "bedrock-titan:model by name",
-                        """
+                new ProviderArgs("bedrock-titan:model by name", """
                         {
                           model: 'amazon.titan-text-lite-v2',
                           region: 'eu-west-2',
@@ -363,9 +344,7 @@ class AllOptionsArguments implements ProviderArguments {
                           }
                         }
                         """),
-                new ProviderArgs(
-                        "bedrock-titan:custom titan type model",
-                        """
+                new ProviderArgs("bedrock-titan:custom titan type model", """
                         {
                           model: 'arn:aws:bedrock:xxx:002:custom-model/custom.titan',
                           region: 'eu-west-2',
@@ -378,9 +357,7 @@ class AllOptionsArguments implements ProviderArguments {
                           }
                         }
                         """),
-                new ProviderArgs(
-                        "bedrock-titan:foundation model by arn",
-                        """
+                new ProviderArgs("bedrock-titan:foundation model by arn", """
                         {
                           model: 'arn:aws:bedrock:eu-west-2::foundation-model/amazon.titan-text-lite-v2',
                           region: 'eu-west-2',

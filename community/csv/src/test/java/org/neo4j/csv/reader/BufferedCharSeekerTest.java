@@ -506,8 +506,7 @@ class BufferedCharSeekerTest {
     @ValueSource(booleans = {false, true})
     void shouldListenToMusic(boolean threadAhead) throws Exception {
         // GIVEN
-        String data =
-                """
+        String data = """
                 "1","ABBA","1992"
                 "2","Roxette","1986"
                 "3","Europe","1979"

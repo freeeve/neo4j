@@ -51,8 +51,7 @@ import picocli.CommandLine;
 class ValidateConfigCommandIT {
 
     private static final String SKIPPED_PART = "Skipped validation part";
-    private static final String CONFIG_WITH_APOC_SETTING =
-            """
+    private static final String CONFIG_WITH_APOC_SETTING = """
                     dbms.ssl.policy.bolt.enabled=true
                     db.tx_log.rotation.retention_policy=3 days
 

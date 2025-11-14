@@ -420,9 +420,7 @@ class InteractiveShellRunnerTest {
 
         // then
 
-        verify(printer)
-                .printIfVerbose(
-                        """
+        verify(printer).printIfVerbose("""
                             Connected to Neo4j at [1mneo4j://localhost:7687[22m as user [1mmyusername[22m.
                             Type [1m:help[22m for a list of available commands or [1m:exit[22m to exit the shell.
                             Note that Cypher queries must end with a [1msemicolon.[22;0m""");

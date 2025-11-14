@@ -111,8 +111,7 @@ class LoggingSettingsMigrator {
                 LogConfig.STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE,
                 false);
 
-        sb.append(
-                """
+        sb.append("""
 
                         <!-- Only used by "neo4j console", will be ignored otherwise -->
                 """);
@@ -123,8 +122,7 @@ class LoggingSettingsMigrator {
                 DEFAULT_PLAIN_LAYOUT,
                 LogConfig.STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE,
                 false);
-        sb.append(
-                """
+        sb.append("""
                         </Console>
                     </Appenders>
 
@@ -190,8 +188,7 @@ class LoggingSettingsMigrator {
                 LogConfig.STRUCTURED_LOG_JSON_TEMPLATE,
                 false);
 
-        sb.append(
-                """
+        sb.append("""
                     </Appenders>
 
                     <Loggers>
@@ -200,8 +197,7 @@ class LoggingSettingsMigrator {
                         <!-- The debug log is used as the root logger to catch everything -->
                 """);
         sb.append(format("        <Root level=\"%s\">%n", getSettingValue(OldSettings.store_internal_log_level)));
-        sb.append(
-                """
+        sb.append("""
                             <AppenderRef ref="DebugLog"/> <!-- Keep this -->
                         </Root>
 
@@ -220,8 +216,7 @@ class LoggingSettingsMigrator {
         sb.append(format(
                 "        <Logger name=\"SecurityLogger\" level=\"%s\" additivity=\"false\">%n",
                 getSettingValue(OldSettings.security_log_level)));
-        sb.append(
-                """
+        sb.append("""
                             <AppenderRef ref="SecurityLog"/>
                         </Logger>
                     </Loggers>
@@ -278,8 +273,7 @@ class LoggingSettingsMigrator {
     }
 
     private void appendHeader(StringBuilder sb) {
-        sb.append(
-                """
+        sb.append("""
                 <?xml version="1.0" encoding="UTF-8"?>
                 <!--
                     This is a log4j 2 configuration file that provides maximum flexibility.

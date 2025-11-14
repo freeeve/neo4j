@@ -171,11 +171,9 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(RequiredConfArguments.class)
     void embeddingWithRequiredArgs(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 WITH %s AS conf
-                RETURN ai.text.embed('Hello!', '%s', conf) IS :: VECTOR<FLOAT32> AS result"""
-                        .formatted(args.conf(), args.provider());
+                RETURN ai.text.embed('Hello!', '%s', conf) IS :: VECTOR<FLOAT32> AS result""".formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
@@ -185,12 +183,10 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(AllOptionsArguments.class)
     void embeddingWithAllArgs(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 WITH %s as conf
                 RETURN ai.text.embed('Hello!', '%s', conf) IS :: VECTOR<FLOAT32> AS result
-                """
-                        .formatted(args.conf(), args.provider());
+                """.formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
@@ -200,8 +196,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(RequiredConfArguments.class)
     void batchEmbeddingWithRequiredArgs1(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                     CALL ai.text.embedBatch(
                       ['Hello!'],
                       '%s',
@@ -209,8 +204,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                     )
                     YIELD index, vector, resource
                     RETURN index, resource, vector IS :: VECTOR<FLOAT32> AS vector
-                """
-                        .formatted(args.provider(), args.conf());
+                """.formatted(args.provider(), args.conf());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .containsExactly(Map.of("vector", true, "index", 0L, "resource", "Hello!"));
@@ -219,8 +213,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(RequiredConfArguments.class)
     void batchEmbeddingWithRequiredArgs2(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                     CALL ai.text.embedBatch(
                       [null, 'Hello!'],
                       '%s',
@@ -229,8 +222,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                     YIELD index, vector, resource
                     LET vectorResult = CASE WHEN vector IS NULL THEN null ELSE vector IS :: VECTOR<FLOAT32> END
                     RETURN index, resource, vectorResult AS vector
-                """
-                        .formatted(args.provider(), args.conf());
+                """.formatted(args.provider(), args.conf());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .containsExactly(
@@ -243,8 +235,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(AllOptionsArguments.class)
     void batchEmbeddingWithAllArgs1(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                     CALL ai.text.embedBatch(
                       ['Hello!'],
                       '%s',
@@ -252,8 +243,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                     )
                     YIELD index, vector, resource
                     RETURN index, resource, vector IS :: VECTOR<FLOAT32> AS vector
-                """
-                        .formatted(args.provider(), args.conf());
+                """.formatted(args.provider(), args.conf());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .containsExactly(Map.of("vector", true, "index", 0L, "resource", "Hello!"));
@@ -262,8 +252,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(AllOptionsArguments.class)
     void batchEmbedWithAllArgs2(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                     CALL ai.text.embedBatch(
                       [null, 'Hello!'],
                       '%s',
@@ -272,8 +261,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                     YIELD index, vector, resource
                     LET vectorResult = CASE WHEN vector IS NULL THEN null ELSE vector IS :: VECTOR<FLOAT32> END
                     RETURN index, resource, vectorResult AS vector
-                """
-                        .formatted(args.provider(), args.conf());
+                """.formatted(args.provider(), args.conf());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .containsExactly(
@@ -286,11 +274,9 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(RequiredConfArguments.class)
     void embeddingWithNullResource(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 WITH %s AS conf
-                RETURN ai.text.embed(null, '%s', conf) AS result"""
-                        .formatted(args.conf(), args.provider());
+                RETURN ai.text.embed(null, '%s', conf) AS result""".formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
@@ -300,13 +286,11 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(RequiredConfArguments.class)
     void embeddingBatchWithNullResource(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 WITH %s AS conf
                 CALL ai.text.embedBatch(null, '%s', conf)
                 YIELD index, vector, resource
-                RETURN vector AS result"""
-                        .formatted(args.conf(), args.provider());
+                RETURN vector AS result""".formatted(args.conf(), args.provider());
         assertThatThrownBy(() -> db.executeTransactionally(
                         query, Map.of(), r -> r.stream().toList()))
                 .isExactlyInstanceOf(QueryExecutionException.class)
@@ -316,11 +300,9 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(RequiredConfArguments.class)
     void embeddingWithEmptyStringResource(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 WITH %s AS conf
-                RETURN ai.text.embed('', '%s', conf) AS result"""
-                        .formatted(args.conf(), args.provider());
+                RETURN ai.text.embed('', '%s', conf) AS result""".formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
@@ -330,13 +312,11 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(RequiredConfArguments.class)
     void embeddingBatchWithEmptyStringResource(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 WITH %s AS conf
                 CALL ai.text.embedBatch([''], '%s', conf)
                 YIELD index, vector, resource
-                RETURN vector AS result"""
-                        .formatted(args.conf(), args.provider());
+                RETURN vector AS result""".formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
@@ -346,13 +326,11 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(RequiredConfArguments.class)
     void embeddingBatchWithEmptyResource(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 WITH %s AS conf
                 CALL ai.text.embedBatch([], '%s', conf)
                 YIELD index, vector, resource
-                RETURN count(index) AS result"""
-                        .formatted(args.conf(), args.provider());
+                RETURN count(index) AS result""".formatted(args.conf(), args.provider());
         assertThat(db.executeTransactionally(query, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query)
                 .singleElement(resultMap())
@@ -422,12 +400,10 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(MissingSecretsArguments.class)
     void missingSecretsEmbed(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 WITH %s AS conf
                 RETURN ai.text.embed('Hello world', '%s', conf) AS result
-                """
-                        .formatted(args.conf(), args.provider());
+                """.formatted(args.conf(), args.provider());
         assertThatThrownBy(() -> db.executeTransactionally(
                         query, Map.of(), r -> r.stream().toList()))
                 .isExactlyInstanceOf(QueryExecutionException.class)
@@ -437,13 +413,11 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     @ParameterizedTest
     @ArgumentsSource(MissingSecretsArguments.class)
     void missingSecretsEmbedBatch(ProviderArgs args) {
-        final var query =
-                """
+        final var query = """
                 WITH %s AS conf
                 CALL ai.text.embedBatch(['Hello world'], '%s', conf)
                 YIELD index, vector, resource
-                RETURN index, vector, resource"""
-                        .formatted(args.conf(), args.provider());
+                RETURN index, vector, resource""".formatted(args.conf(), args.provider());
         assertThatThrownBy(() -> db.executeTransactionally(
                         query, Map.of(), r -> r.stream().toList()))
                 .isExactlyInstanceOf(QueryExecutionException.class)
@@ -458,8 +432,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                 .collect(Collectors.joining("', '", "'", "'."));
         final var expectedFunctionSignature =
                 "ai.text.embed(resource :: STRING, provider :: STRING, configuration = {} :: MAP) :: VECTOR";
-        final var showFuncQuery =
-                """
+        final var showFuncQuery = """
                         SHOW FUNCTIONS YIELD name, argumentDescription, signature
                         WHERE name = 'ai.text.embed'
                         RETURN *
@@ -474,8 +447,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
 
         final var expectedProcedureSignature =
                 "ai.text.embedBatch(resources :: LIST<STRING>, provider :: STRING, configuration = {} :: MAP) :: (index :: INTEGER, resource :: STRING, vector :: VECTOR)";
-        final var showProcQuery =
-                """
+        final var showProcQuery = """
                         SHOW PROCEDURES YIELD name, argumentDescription, signature
                         WHERE name = 'ai.text.embedBatch'
                         RETURN *
@@ -514,9 +486,7 @@ class AllOptionsArguments implements ProviderArguments {
     @Override
     public Stream<ProviderArgs> providers() {
         return Stream.of(
-                new ProviderArgs(
-                        "azure-openai",
-                        """
+                new ProviderArgs("azure-openai", """
                         {
                           token: 'dummy-azure-token',
                           resource: 'dummy',
@@ -526,17 +496,13 @@ class AllOptionsArguments implements ProviderArguments {
                             user: 'gem'
                           }
                         }"""),
-                new ProviderArgs(
-                        "openai",
-                        """
+                new ProviderArgs("openai", """
                         {
                           token: 'dummy-openai-token',
                           model: 'text-embedding-3-small',
                           vendorOptions: { dimensions: 1536, user: 'gem' }
                         }"""),
-                new ProviderArgs(
-                        "vertexai",
-                        """
+                new ProviderArgs("vertexai", """
                         {
                           token: 'dummy-vertex-token',
                           model: 'gemini-embedding-001',
@@ -545,9 +511,7 @@ class AllOptionsArguments implements ProviderArguments {
                           publisher: 'google',
                           vendorOptions: { autoTruncate: true, task_type: 'QUESTION_ANSWERING' }
                         }"""),
-                new ProviderArgs(
-                        "bedrock-titan:model by name",
-                        """
+                new ProviderArgs("bedrock-titan:model by name", """
                 {
                   model: 'amazon.titan-embed-text-v1',
                   region: 'eu-north-1',
@@ -560,9 +524,7 @@ class AllOptionsArguments implements ProviderArguments {
                   }
                 }
                 """),
-                new ProviderArgs(
-                        "bedrock-titan:foundation model by arn",
-                        """
+                new ProviderArgs("bedrock-titan:foundation model by arn", """
                         {
                           model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0',
                           region: 'us-east-1',

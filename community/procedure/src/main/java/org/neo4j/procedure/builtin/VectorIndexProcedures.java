@@ -101,8 +101,7 @@ public class VectorIndexProcedures {
     public SpdBuiltInProcedures spdBuiltInProcedures;
 
     @Deprecated(since = "5.26.0", forRemoval = true)
-    @Description(
-            """
+    @Description("""
             Create a named node vector index for the specified label and property with the given vector dimensionality using either the EUCLIDEAN or COSINE similarity function.
             Both similarity functions are case-insensitive.
             Use the `db.index.vector.queryNodes` procedure to query the named index.
@@ -140,8 +139,7 @@ public class VectorIndexProcedures {
                 .create();
     }
 
-    @Description(
-            """
+    @Description("""
             Query the given node vector index.
             Returns requested number of nearest neighbors to the provided query vector,
             and their similarity score to that query vector, based on the configured similarity function for the index.
@@ -162,8 +160,7 @@ public class VectorIndexProcedures {
                 .query(Math.toIntExact(numberOfNearestNeighbours), query);
     }
 
-    @Description(
-            """
+    @Description("""
             Query the given relationship vector index.
             Returns requested number of nearest neighbors to the provided query vector,
             and their similarity score to that query vector, based on the configured similarity function for the index.
@@ -225,7 +222,9 @@ public class VectorIndexProcedures {
     }
 
     // specifically for the deprecated `db.create.setVectorProperty`
-    public record NodeRecord(@Description("The node on which the vector property was set.") Node node) {}
+    public record NodeRecord(
+            @Description("The node on which the vector property was set.")
+            Node node) {}
 
     @Description(
             "Set a vector property on a given relationship in a more space efficient representation than Cypher's SET.")
@@ -403,8 +402,11 @@ public class VectorIndexProcedures {
      * @param score similarity in [0, 1]; 0 indicates furthest, 1 closest.
      */
     public record NodeNeighbor(
-            @Description("A node which contains a vector property similar to the query object.") Node node,
-            @Description("The score measuring how similar the node property is to the query object.") double score)
+            @Description("A node which contains a vector property similar to the query object.")
+            Node node,
+
+            @Description("The score measuring how similar the node property is to the query object.")
+            double score)
             implements Neighbor<Node, NodeNeighbor> {
         @Override
         public Node entity() {
@@ -427,9 +429,10 @@ public class VectorIndexProcedures {
      */
     public record RelationshipNeighbor(
             @Description("A relationship which contains a vector property similar to the query object.")
-                    Relationship relationship,
+            Relationship relationship,
+
             @Description("The score measuring how similar the relationship property is to the query object.")
-                    double score)
+            double score)
             implements Neighbor<Relationship, RelationshipNeighbor> {
         @Override
         public Relationship entity() {

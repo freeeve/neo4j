@@ -51,9 +51,7 @@ class ConfigValidationHelperTest {
 
         summary.print(out, false);
         summary.printClosingStatement(out);
-        assertThat(output.toString())
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(output.toString()).isEqualToNormalizingNewlines("""
                         Validating Neo4j
                         No issues found.
 
@@ -78,9 +76,7 @@ class ConfigValidationHelperTest {
 
         summary.print(out, false);
         summary.printClosingStatement(out);
-        assertThat(output.toString())
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(output.toString()).isEqualToNormalizingNewlines("""
                         Validating Neo4j
                         1 issue found.
                         Warning: warning 1
@@ -106,9 +102,7 @@ class ConfigValidationHelperTest {
         summary.print(out, false);
         summary.printClosingStatement(out);
 
-        assertThat(output.toString())
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(output.toString()).isEqualToNormalizingNewlines("""
                                 Validating Neo4j
                                 1 issue found.
                                 Error: error
@@ -138,9 +132,7 @@ class ConfigValidationHelperTest {
         var summary = helper.validateAll(null);
         summary.print(out, false);
         summary.printClosingStatement(out);
-        assertThat(output.toString())
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(output.toString()).isEqualToNormalizingNewlines("""
                 Error when validating Neo4j: exception
 
                 Skipping Log4j validation due to previous issues.

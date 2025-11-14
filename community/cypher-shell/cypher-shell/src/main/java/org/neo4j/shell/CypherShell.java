@@ -50,22 +50,19 @@ import org.neo4j.shell.state.LicenseDetails;
  */
 public class CypherShell implements StatementExecuter, Connector, TransactionHandler, DatabaseManager {
     private static final Logger log = Logger.create();
-    private static final String LICENSE_EXPIRED_WARNING =
-            """
+    private static final String LICENSE_EXPIRED_WARNING = """
             Thank you for installing Neo4j. This is a time limited trial, and the
             %d days have expired. Please contact https://neo4j.com/contact-us/
             to continue using the software. Use of this Software without
             a proper commercial or evaluation license with Neo4j, Inc. or
             its affiliates is prohibited.
             """;
-    private static final String LICENSE_DAYS_LEFT_WARNING =
-            """
+    private static final String LICENSE_DAYS_LEFT_WARNING = """
             Thank you for installing Neo4j. This is a time limited trial.
             You have %d days remaining out of %d days. Please
             contact https://neo4j.com/contact-us/ if you require more time.
             """;
-    private static final String LICENSE_NOT_ACCEPTED_WARNING =
-            """
+    private static final String LICENSE_NOT_ACCEPTED_WARNING = """
             A Neo4j license has not been accepted. To accept the commercial license agreement, run
                 neo4j-admin server license --accept-commercial.
             To accept the terms of the evaluation agreement, run

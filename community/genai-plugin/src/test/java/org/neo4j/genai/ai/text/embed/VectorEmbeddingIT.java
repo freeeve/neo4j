@@ -191,39 +191,33 @@ abstract class VectorEmbeddingITBase implements GenAITestExtension {
     @Test
     void embedWithRequiredArgs() {
         for (final var conf : confRequired()) {
-            assertNonNullVectorResult(
-                    """
+            assertNonNullVectorResult("""
                             WITH %s AS conf
                             WITH ai.text.embed('Hello!', '%s', conf) AS result
-                            RETURN result"""
-                            .formatted(conf, provider()));
+                            RETURN result""".formatted(conf, provider()));
         }
     }
 
     @Test
     void embedWithAllArgs() {
         for (final var conf : confWithVendorOptions()) {
-            assertNonNullVectorResult(
-                    """
+            assertNonNullVectorResult("""
                             WITH %s AS conf
                             WITH ai.text.embed('Hello!', '%s', conf) AS result
-                            RETURN result"""
-                            .formatted(conf, provider()));
+                            RETURN result""".formatted(conf, provider()));
         }
     }
 
     @Test
     void batchEmbedWithRequiredArgs() {
         for (final var conf : confRequired()) {
-            final var query =
-                    """
+            final var query = """
                             CALL ai.text.embedBatch(
                               ['Testing', null, 'Hello!'],
                               '%s',
                               %s
                             )
-                            """
-                            .formatted(provider(), conf);
+                            """.formatted(provider(), conf);
             assertThat(db.executeTransactionally(query, params(), consume()))
                     .as("Query:%n```%n%s%n```%n", query)
                     .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));
@@ -233,15 +227,13 @@ abstract class VectorEmbeddingITBase implements GenAITestExtension {
     @Test
     void batchEmbedWithAllArgs() {
         for (final var conf : confWithVendorOptions()) {
-            final var query =
-                    """
+            final var query = """
                             CALL ai.text.embedBatch(
                               ['Testing', null, 'Hello!'],
                               '%s',
                               %s
                             )
-                            """
-                            .formatted(provider(), conf);
+                            """.formatted(provider(), conf);
             assertThat(db.executeTransactionally(query, params(), consume()))
                     .as("Query:%n```%n%s%n```%n", query)
                     .satisfiesExactly(batchedNonBlankRow(0), batchedNullRow(1), batchedNonBlankRow(2));

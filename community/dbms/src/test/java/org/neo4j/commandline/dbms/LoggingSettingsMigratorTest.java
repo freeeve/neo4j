@@ -93,9 +93,7 @@ class LoggingSettingsMigratorTest {
     @Test
     void defaultValues() throws IOException {
         migrateConfig("");
-        assertThat(migratedUserLogs.stripIndent())
-                .contains(
-                        """
+        assertThat(migratedUserLogs.stripIndent()).contains("""
                     <Appenders>
                         <RandomAccessFile name="Neo4jLog" fileName="${config:server.directories.logs}/neo4j.log">
                             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSSZ}{GMT+0} %-5p %m%n"/>
@@ -115,9 +113,7 @@ class LoggingSettingsMigratorTest {
                         </Root>
                     </Loggers>
                 """);
-        assertThat(migratedServerLogs.stripIndent())
-                .contains(
-                        """
+        assertThat(migratedServerLogs.stripIndent()).contains("""
                     <Appenders>
                         <RollingRandomAccessFile name="DebugLog" fileName="${config:server.directories.logs}/debug.log"
                                 filePattern="${config:server.directories.logs}/debug.log.%02i">
@@ -181,14 +177,11 @@ class LoggingSettingsMigratorTest {
 
     @Test
     void userLogsRotationSettings() throws IOException {
-        migrateConfig(
-                """
+        migrateConfig("""
                 dbms.logs.user.rotation.size=10K
                 dbms.logs.user.rotation.keep_number=5
                 """);
-        assertThat(migratedUserLogs.stripIndent())
-                .contains(
-                        """
+        assertThat(migratedUserLogs.stripIndent()).contains("""
                             <Policies>
                                 <SizeBasedTriggeringPolicy size="10 KB"/>
                             </Policies>
@@ -198,8 +191,7 @@ class LoggingSettingsMigratorTest {
 
     @Test
     void serverLogsRotationSettings() throws IOException {
-        migrateConfig(
-                """
+        migrateConfig("""
                 dbms.logs.debug.rotation.size=10K
                 dbms.logs.debug.rotation.keep_number=2
                 dbms.logs.http.rotation.size=10M
@@ -209,9 +201,7 @@ class LoggingSettingsMigratorTest {
                 dbms.logs.security.rotation.size=1024
                 dbms.logs.security.rotation.keep_number=9
                 """);
-        assertThat(migratedServerLogs.stripIndent())
-                .contains(
-                        """
+        assertThat(migratedServerLogs.stripIndent()).contains("""
                         <RollingRandomAccessFile name="DebugLog" fileName="${config:server.directories.logs}/debug.log"
                                 filePattern="${config:server.directories.logs}/debug.log.%02i">
                             <Policies>
@@ -249,8 +239,7 @@ class LoggingSettingsMigratorTest {
 
     @Test
     void serverLogsLevels() throws IOException {
-        migrateConfig(
-                """
+        migrateConfig("""
                 dbms.logs.debug.level=ERROR
                 dbms.logs.security.level=WARN
                 """);
@@ -260,8 +249,7 @@ class LoggingSettingsMigratorTest {
 
     @Test
     void relativePath() throws IOException {
-        migrateConfig(
-                """
+        migrateConfig("""
                 dbms.logs.user.path=dir/neo.log
                 dbms.logs.debug.path=../../debug.log
                 """);
@@ -272,8 +260,7 @@ class LoggingSettingsMigratorTest {
 
     @Test
     void jsonFormat() throws IOException {
-        migrateConfig(
-                """
+        migrateConfig("""
                 # Set to 0 to get smaller output
                 dbms.logs.user.rotation.size=0
                 dbms.logs.debug.rotation.size=0
@@ -287,9 +274,7 @@ class LoggingSettingsMigratorTest {
         assertThat(migratedUserLogs)
                 .contains(
                         "<JsonTemplateLayout eventTemplateUri=\"classpath:org/neo4j/logging/StructuredLayoutWithMessage.json\"/>");
-        assertThat(migratedServerLogs.stripIndent())
-                .contains(
-                        """
+        assertThat(migratedServerLogs.stripIndent()).contains("""
                         <RandomAccessFile name="DebugLog" fileName="${config:server.directories.logs}/debug.log">
                             <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/StructuredLayoutWithCategory.json"/>
                         </RandomAccessFile>

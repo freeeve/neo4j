@@ -299,8 +299,7 @@ public final class Weaviate implements VectorDatabaseProvider {
                         RowMappingConfig.Keys.FIELDS.get(List.class, configuration),
                         "You have to define `field` list of parameter to be returned"));
 
-        var queryTemplate =
-                """
+        var queryTemplate = """
                 {
                   Get {
                     %s(limit: %s, nearVector: {vector: %s } %s) {%s  %s}

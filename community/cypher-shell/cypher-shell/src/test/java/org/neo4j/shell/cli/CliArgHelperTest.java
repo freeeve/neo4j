@@ -572,8 +572,7 @@ class CliArgHelperTest extends LocaleDependentTestBase {
             System.setOut(defaultOut);
         }
 
-        var expectedHelpText =
-                """
+        var expectedHelpText = """
 usage: cypher-shell [-h] [-a ADDRESS] [-u USERNAME] [--impersonate IMPERSONATE] [-p PASSWORD]
                     [--encryption {true,false,default}] [-d DATABASE] [--access-mode {read,write}]
                     [--enable-autocompletions] [--format {auto,verbose,plain}] [-P PARAM]

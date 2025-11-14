@@ -96,9 +96,7 @@ class StoreInfoCommandTest {
         try (var out = new PrintStream(baos)) {
             CommandLine.usage(command, new PrintStream(out), CommandLine.Help.Ansi.OFF);
         }
-        assertThat(baos.toString().trim())
-                .isEqualToIgnoringNewLines(
-                        """
+        assertThat(baos.toString().trim()).isEqualToIgnoringNewLines("""
                 Print information about a Neo4j database store.
 
                 USAGE

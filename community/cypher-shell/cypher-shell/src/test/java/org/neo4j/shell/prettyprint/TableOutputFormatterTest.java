@@ -700,9 +700,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
     void printWithHeading() {
         final var result = mockResult(asList("c1", "c2"), "aaaaaaa", 42, "b", 43);
 
-        assertThat(formatResultWithHeading(result, "My Table"))
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(formatResultWithHeading(result, "My Table")).isEqualToNormalizingNewlines("""
                         +----------------+
                         | My Table       |
                         +----------------+
@@ -715,8 +713,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
                         """);
 
         assertThat(formatResultWithHeading(result, "Long long long, so very long, heading"))
-                .isEqualToNormalizingNewlines(
-                        """
+                .isEqualToNormalizingNewlines("""
                         +------------------------------------------+
                         | Long long long, so very long, heading    |
                         +------------------------------------------+
@@ -777,9 +774,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         var legacySummary = mock(ResultSummary.class);
         given(legacySummary.gqlStatusObjects()).willReturn(Set.of());
         given(legacySummary.notifications()).willReturn(notifications);
-        assertThat(formatNotifications(legacySummary))
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(formatNotifications(legacySummary)).isEqualToNormalizingNewlines("""
 
             info: desc1 (code1)
 
@@ -790,9 +785,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         var summary = mock(ResultSummary.class);
         given(summary.gqlStatusObjects()).willReturn(gqlStatusObjects);
         given(summary.notifications()).willReturn(notifications);
-        assertThat(formatNotifications(summary))
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(formatNotifications(summary)).isEqualToNormalizingNewlines("""
 
             statusDesc1 (12345)
 
@@ -817,8 +810,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         assertThat(formatNotifications(summary)).isEmpty();
     }
 
-    final String longSpec =
-            """
+    final String longSpec = """
             {
              (:`City` => {`name` :: STRING NOT NULL, `population` :: INTEGER}),
              (:`Person` => :`Resident` {`name` :: STRING, `ssn` :: INTEGER}),
@@ -842,9 +834,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         new TableOutputFormatter(true, 2).formatAndCount(new ListBoltResult(result.list(), result.consume()), printer);
         String table = printer.result();
 
-        assertThat(table)
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(table).isEqualToNormalizingNewlines("""
                     +-----------------------------------------------------------------------------------------------------------------------------+
                     | type   | specification                                                                                                      |
                     +-----------------------------------------------------------------------------------------------------------------------------+
@@ -877,9 +867,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         new TableOutputFormatter(true, 2).formatAndCount(new ListBoltResult(result.list(), result.consume()), printer);
         String table = printer.result();
 
-        assertThat(table)
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(table).isEqualToNormalizingNewlines("""
                     +------------------------------------------------------------------------------------------------------------------------------------------------+
                     | type   | specificationnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn |
                     +------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -911,9 +899,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         String table = printer.result();
 
         // Not great, perhaps we could show more by using ␤
-        assertThat(table)
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(table).isEqualToNormalizingNewlines("""
                     +------------------------+
                     | type   | specification |
                     +------------------------+
@@ -931,9 +917,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         new TableOutputFormatter(true, 2).formatAndCount(new ListBoltResult(result.list(), result.consume()), printer);
         String table = printer.result();
 
-        assertThat(table)
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(table).isEqualToNormalizingNewlines("""
                     +--------------+
                     | a  | b  | c  |
                     +--------------+
@@ -967,9 +951,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         new TableOutputFormatter(true, 2).formatAndCount(new ListBoltResult(result.list(), result.consume()), printer);
         String table = printer.result();
 
-        assertThat(table)
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(table).isEqualToNormalizingNewlines("""
                     +----------------+
                     | a  | b  | c    |
                     +----------------+

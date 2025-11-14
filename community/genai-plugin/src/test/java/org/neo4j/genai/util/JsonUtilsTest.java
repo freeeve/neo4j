@@ -70,8 +70,7 @@ class JsonUtilsTest {
 
     @Test
     void shouldGetExpectedNested() throws IOException {
-        final var json = OBJECT_MAPPER.readTree(
-                """
+        final var json = OBJECT_MAPPER.readTree("""
                     { "nested": { "exists" : true } }
                     """);
 

@@ -1538,8 +1538,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description(
-            """
+    @Description("""
                     Ask page cache to close memory allocator on shutdown to clear native memory allocated for page cache pages.
                     WARNING: This setting is dangerous and must only be enabled if you completely confident that there are no leaked page cursors.
                     Otherwise it can result in VM crashes

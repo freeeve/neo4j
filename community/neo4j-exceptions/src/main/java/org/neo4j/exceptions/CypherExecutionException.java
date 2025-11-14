@@ -66,13 +66,10 @@ public class CypherExecutionException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N49)
                         .build())
                 .build();
-        return new CypherExecutionException(
-                gql,
-                """
+        return new CypherExecutionException(gql, """
                 Tried to read a field larger than the current buffer size.
                  Make sure that the field doesn't have an unterminated quote,
-                 if it doesn't you can try increasing the buffer size via `dbms.import.csv.buffer_size`.""",
-                cause);
+                 if it doesn't you can try increasing the buffer size via `dbms.import.csv.buffer_size`.""", cause);
     }
 
     public static CypherExecutionException internalError(String msgTitle, String msg) {

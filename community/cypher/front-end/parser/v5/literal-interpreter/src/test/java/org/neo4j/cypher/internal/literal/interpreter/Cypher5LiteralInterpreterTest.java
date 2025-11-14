@@ -246,8 +246,7 @@ public class Cypher5LiteralInterpreterTest {
         assertThatThrownBy(() -> parseExpression("{}}"))
                 .isInstanceOf(SyntaxException.class)
                 .message()
-                .isEqualToIgnoringNewLines(
-                        """
+                .isEqualToIgnoringNewLines("""
                                 Invalid cypher expression
                                 "{}}"
                                    ^

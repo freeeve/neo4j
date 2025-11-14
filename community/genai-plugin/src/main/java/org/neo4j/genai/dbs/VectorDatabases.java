@@ -82,8 +82,7 @@ public class VectorDatabases {
 
     @Internal
     @Procedure("genai.vector.external.info")
-    @Description(
-            """
+    @Description("""
             Get information about an existing collection or throws an error if it does not exist.
 
             In Neo4j-Browser you can declare the configuration parameter as shown in the following examples.
@@ -130,8 +129,7 @@ public class VectorDatabases {
 
     @Internal
     @Procedure("genai.vector.external.createCollection")
-    @Description(
-            """
+    @Description("""
             Creates a named collection.
 
             In Neo4j-Browser you can declare the configuration parameter as shown in the following examples.
@@ -171,8 +169,7 @@ public class VectorDatabases {
 
     @Internal
     @Procedure("genai.vector.external.deleteCollection")
-    @Description(
-            """
+    @Description("""
             Deletes a named collection.
 
             In Neo4j-Browser you can declare the configuration parameter as shown in the following examples.
@@ -209,8 +206,7 @@ public class VectorDatabases {
 
     @Internal
     @Procedure("genai.vector.external.delete")
-    @Description(
-            """
+    @Description("""
             Deletes the vectors with the specified `ids` from the given collection
 
             In Neo4j-Browser you can declare the configuration parameter as shown in the following examples.
@@ -246,8 +242,7 @@ public class VectorDatabases {
 
     @Internal
     @Procedure("genai.vector.external.get")
-    @Description(
-            """
+    @Description("""
             Retrieves the vectors with the specified `ids` from the given collection.
 
             In Neo4j-Browser you can declare the configuration parameter as shown in the following examples.
@@ -272,8 +267,7 @@ public class VectorDatabases {
 
     @Internal
     @Procedure(value = "genai.vector.external.getAndUpdate", mode = Mode.WRITE)
-    @Description(
-            """
+    @Description("""
             Retrieves the vectors with the specified `ids` from the given collection and updates existing Neo4j entities(Nodes or relationships).
             In Neo4j-Browser you can declare the configuration parameter as shown in the following examples.
 
@@ -349,8 +343,7 @@ public class VectorDatabases {
 
     @Internal
     @Procedure("genai.vector.external.upsert")
-    @Description(
-            """
+    @Description("""
             Creates or updates the vectors in the given collection.
             Depending on the provider, this procedure will issue more than one request.
             In Neo4j-Browser you can declare the configuration parameter as shown in the following examples.
@@ -405,8 +398,7 @@ public class VectorDatabases {
 
     @Internal
     @Procedure(value = "genai.vector.external.query")
-    @Description(
-            """
+    @Description("""
             Queries the closes vectors near the given vector in the named collection.
             In Neo4j-Browser you can declare the configuration parameter as shown in the following examples.
 
@@ -434,8 +426,7 @@ public class VectorDatabases {
 
     @Internal
     @Procedure(value = "genai.vector.external.queryAndUpdate", mode = Mode.WRITE)
-    @Description(
-            """
+    @Description("""
             Queries the closes vectors near the given vector in the named collection and updates existing Neo4j entities(Nodes or relationships).
             In Neo4j-Browser you can declare the configuration parameter as shown in the following examples.
 

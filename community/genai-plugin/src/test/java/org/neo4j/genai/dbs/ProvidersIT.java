@@ -183,8 +183,7 @@ final class ProvidersIT extends IntegrationTestBase {
     @Test
     void shouldHandleWeaviateErrors() {
         try (Transaction tx = database.beginTx()) {
-            var query =
-                    """
+            var query = """
 				WITH
 				    $url AS uri,
 				    $token AS token,
@@ -278,9 +277,7 @@ final class ProvidersIT extends IntegrationTestBase {
         var createCollectionRequest = HttpRequest.newBuilder(
                         URI.create(QDRANT_BASE_URL + "/collections/" + COLLECTION_NAME))
                 .header("Authorization", "Bearer " + ADMIN_KEY)
-                .PUT(
-                        HttpRequest.BodyPublishers.ofString(
-                                """
+                .PUT(HttpRequest.BodyPublishers.ofString("""
 			{
 						"vectors": {
 							"size": 4,
@@ -295,14 +292,12 @@ final class ProvidersIT extends IntegrationTestBase {
         var insertIntoCollectionRequest = HttpRequest.newBuilder(
                         URI.create(QDRANT_BASE_URL + "/collections/" + COLLECTION_NAME + "/points?wait=true"))
                 .header(RequestConfig.Keys.AUTHORIZATION.key(), "Bearer " + ADMIN_KEY)
-                .PUT(HttpRequest.BodyPublishers.ofString(
-                        """
+                .PUT(HttpRequest.BodyPublishers.ofString("""
 			{
 			  "points": [
 				{"id": "%s", "vector": [0.05, 0.61, 0.76, 0.74], "payload": {"city": "Berlin", "foo": "one"}},
 				{"id": "%s", "vector": [0.19, 0.81, 0.75, 0.11], "payload": {"city": "London", "foo": "two"}}
-			]}"""
-                                .formatted(ID_1, ID_2)))
+			]}""".formatted(ID_1, ID_2)))
                 .build();
 
         client.send(insertIntoCollectionRequest, HttpResponse.BodyHandlers.discarding());
@@ -313,9 +308,7 @@ final class ProvidersIT extends IntegrationTestBase {
             createCollectionRequest = HttpRequest.newBuilder(
                             URI.create(QDRANT_BASE_URL + "/collections/" + COLLECTION_TO_BE_DELETED + b))
                     .header("Authorization", "Bearer " + ADMIN_KEY)
-                    .PUT(
-                            HttpRequest.BodyPublishers.ofString(
-                                    """
+                    .PUT(HttpRequest.BodyPublishers.ofString("""
                             {
                             			"vectors": {
                             				"size": 4,
@@ -348,14 +341,12 @@ final class ProvidersIT extends IntegrationTestBase {
                         URI.create(CHROMA_BASE_URL + "/api/v1/collections/" + CHROMA_COLLECTION_ID + "/upsert"))
                 .header("Authorization", "Bearer " + ADMIN_KEY)
                 .version(HttpClient.Version.HTTP_1_1)
-                .POST(HttpRequest.BodyPublishers.ofString(
-                        """
+                .POST(HttpRequest.BodyPublishers.ofString("""
                 {
                     "ids": ["%s", "%s"],
                     "embeddings": [[0.05, 0.61, 0.76, 0.74], [0.19, 0.81, 0.75, 0.11]],
                     "metadatas": [{"city": "Berlin", "foo": "one"},{"city": "London", "foo": "two"}]
-                }"""
-                                .formatted(ID_1, ID_2)))
+                }""".formatted(ID_1, ID_2)))
                 .build();
         client.send(createVectorsRequest, HttpResponse.BodyHandlers.discarding());
 
@@ -384,50 +375,41 @@ final class ProvidersIT extends IntegrationTestBase {
                 var createReadOnlyUser = HttpRequest.newBuilder(
                                 URI.create(MILVUS_BASE_URL + "/v2/vectordb/users/create"))
                         .header("Authorization", "Bearer root:Milvus")
-                        .POST(HttpRequest.BodyPublishers.ofString(
-                                """
-                    {"userName":"readOnly", "password": "%s"}"""
-                                        .formatted(READONLY_KEY)))
+                        .POST(HttpRequest.BodyPublishers.ofString("""
+                    {"userName":"readOnly", "password": "%s"}""".formatted(READONLY_KEY)))
                         .build();
 
                 client.send(createReadOnlyUser, HttpResponse.BodyHandlers.discarding());
                 var grantPublicRoleRequest = HttpRequest.newBuilder(
                                 URI.create(MILVUS_BASE_URL + "/v2/vectordb/users/grant_role"))
                         .header("Authorization", "Bearer root:Milvus")
-                        .POST(HttpRequest.BodyPublishers.ofString(
-                                """
+                        .POST(HttpRequest.BodyPublishers.ofString("""
                     {"userName": "readOnly", "roleName":"public"}"""))
                         .build();
                 client.send(grantPublicRoleRequest, HttpResponse.BodyHandlers.discarding());
                 var setAdminPasswordRequest = HttpRequest.newBuilder(
                                 URI.create(MILVUS_BASE_URL + "/v2/vectordb/users/update_password"))
                         .header("Authorization", "Bearer root:Milvus")
-                        .POST(HttpRequest.BodyPublishers.ofString(
-                                """
-                    {"userName": "root", "password":"Milvus", "newPassword":"%s"}"""
-                                        .formatted(ADMIN_KEY)))
+                        .POST(HttpRequest.BodyPublishers.ofString("""
+                    {"userName": "root", "password":"Milvus", "newPassword":"%s"}""".formatted(ADMIN_KEY)))
                         .build();
                 client.send(setAdminPasswordRequest, HttpResponse.BodyHandlers.discarding());
                 var createCollectionRequest = HttpRequest.newBuilder(
                                 URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/create"))
                         .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                        .POST(HttpRequest.BodyPublishers.ofString(
-                                """
-                    {"collectionName": "%s", "dimension":4, "metricType":"COSINE"}"""
-                                        .formatted(COLLECTION_NAME)))
+                        .POST(HttpRequest.BodyPublishers.ofString("""
+                    {"collectionName": "%s", "dimension":4, "metricType":"COSINE"}""".formatted(COLLECTION_NAME)))
                         .build();
                 client.send(createCollectionRequest, HttpResponse.BodyHandlers.discarding());
                 var createVectorsRequest = HttpRequest.newBuilder(
                                 URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/upsert"))
                         .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                        .POST(HttpRequest.BodyPublishers.ofString(
-                                """
+                        .POST(HttpRequest.BodyPublishers.ofString("""
                 {"data": [
                     {"id": "%s", "vector": [0.05, 0.61, 0.76, 0.74], "payload": {"city": "Berlin", "foo": "one"}},
                     {"id": "%s", "vector": [0.19, 0.81, 0.75, 0.11], "payload": {"city": "London", "foo": "two"}}
                     ],
-                 "collectionName":"%s"}"""
-                                        .formatted(LONG_ID_1, LONG_ID_2, COLLECTION_NAME)))
+                 "collectionName":"%s"}""".formatted(LONG_ID_1, LONG_ID_2, COLLECTION_NAME)))
                         .build();
                 client.send(createVectorsRequest, HttpResponse.BodyHandlers.discarding());
 
@@ -435,8 +417,7 @@ final class ProvidersIT extends IntegrationTestBase {
                 var getCollectionRequest = HttpRequest.newBuilder(
                                 URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/describe"))
                         .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                        .POST(HttpRequest.BodyPublishers.ofString(
-                                """
+                        .POST(HttpRequest.BodyPublishers.ofString("""
                     {"collectionName":"%s"}""".formatted(COLLECTION_NAME)))
                         .build();
                 var getCollectionResponse = client.send(getCollectionRequest, HttpResponse.BodyHandlers.ofString());
@@ -516,10 +497,8 @@ final class ProvidersIT extends IntegrationTestBase {
                     var verifyCollectionRequest = HttpRequest.newBuilder(
                                     URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/describe"))
                             .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                            .POST(HttpRequest.BodyPublishers.ofString(
-                                    """
-                                {"collectionName":"%s"}"""
-                                            .formatted(COLLECTION_TO_BE_CREATED)))
+                            .POST(HttpRequest.BodyPublishers.ofString("""
+                                {"collectionName":"%s"}""".formatted(COLLECTION_TO_BE_CREATED)))
                             .build();
                     var response = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
                     assertThat(response.statusCode()).isEqualTo(200);
@@ -572,10 +551,8 @@ final class ProvidersIT extends IntegrationTestBase {
                     var verifyCollectionRequest = HttpRequest.newBuilder(
                                     URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/describe"))
                             .header("Authorization", "Bearer " + ADMIN_KEY)
-                            .POST(HttpRequest.BodyPublishers.ofString(
-                                    """
-                                {"collectionName": "%s"}"""
-                                            .formatted(COLLECTION_TO_BE_DELETED)))
+                            .POST(HttpRequest.BodyPublishers.ofString("""
+                                {"collectionName": "%s"}""".formatted(COLLECTION_TO_BE_DELETED)))
                             .build();
                     var response = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
                     assertThat(response.statusCode()).isEqualTo(200);
@@ -617,14 +594,12 @@ final class ProvidersIT extends IntegrationTestBase {
             var insertIntoCollectionRequest = HttpRequest.newBuilder(
                             URI.create(QDRANT_BASE_URL + "/collections/" + COLLECTION_NAME + "/points?wait=true"))
                     .header(RequestConfig.Keys.AUTHORIZATION.key(), "Bearer " + ADMIN_KEY)
-                    .PUT(HttpRequest.BodyPublishers.ofString(
-                            """
+                    .PUT(HttpRequest.BodyPublishers.ofString("""
                     {
                     "points": [
                     {"id": "%s", "vector": [0.05, 0.61, 0.76, 0.74], "payload": {"city": "Braunschweig", "foo": "three"}},
                     {"id": "%s", "vector": [0.19, 0.81, 0.75, 0.11], "payload": {"city": "Aachen", "foo": "four"}}
-                    ]}"""
-                                    .formatted(ID_3, ID_4)))
+                    ]}""".formatted(ID_3, ID_4)))
                     .build();
             client.send(insertIntoCollectionRequest, HttpResponse.BodyHandlers.ofString());
             client.close();
@@ -635,14 +610,12 @@ final class ProvidersIT extends IntegrationTestBase {
                             URI.create(CHROMA_BASE_URL + "/api/v1/collections/" + CHROMA_COLLECTION_ID + "/upsert"))
                     .header("Authorization", "Bearer " + ADMIN_KEY)
                     .version(HttpClient.Version.HTTP_1_1)
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            """
+                    .POST(HttpRequest.BodyPublishers.ofString("""
             {
                 "ids": ["%s", "%s"],
                 "embeddings": [[0.05, 0.61, 0.76, 0.74], [0.19, 0.81, 0.75, 0.11]],
                 "metadatas": [{"city": "Braunschweig", "foo": "three"},{"city": "Aachen", "foo": "four"}]
-            }"""
-                                    .formatted(ID_3, ID_4)))
+            }""".formatted(ID_3, ID_4)))
                     .build();
             client.send(createVectorsRequest, HttpResponse.BodyHandlers.discarding());
             client.close();
@@ -651,14 +624,12 @@ final class ProvidersIT extends IntegrationTestBase {
             var createVectorsRequest = HttpRequest.newBuilder(
                             URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/upsert"))
                     .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            """
+                    .POST(HttpRequest.BodyPublishers.ofString("""
                     {"data": [
                     {"id": %s, "vector": [0.05, 0.61, 0.76, 0.74], "payload": {"city": "Braunschweig", "foo": "three"}},
                     {"id": %s, "vector": [0.19, 0.81, 0.75, 0.11], "payload": {"city": "Aachen", "foo": "four"}}
                         ],
-                     "collectionName":"%s"}"""
-                                    .formatted(LONG_ID_3, LONG_ID_4, COLLECTION_NAME)))
+                     "collectionName":"%s"}""".formatted(LONG_ID_3, LONG_ID_4, COLLECTION_NAME)))
                     .build();
             client.send(createVectorsRequest, HttpResponse.BodyHandlers.discarding());
 
@@ -698,14 +669,12 @@ final class ProvidersIT extends IntegrationTestBase {
             var verifyDeletionRequest = HttpRequest.newBuilder(
                             URI.create(QDRANT_BASE_URL + "/collections/" + COLLECTION_NAME + "/points"))
                     .header(RequestConfig.Keys.AUTHORIZATION.key(), "Bearer " + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            """
+                    .POST(HttpRequest.BodyPublishers.ofString("""
                     {
                     "ids": [
                     "%s", "%s"
                     ]}
-                    """
-                                    .formatted(ID_3, ID_4)))
+                    """.formatted(ID_3, ID_4)))
                     .build();
 
             HttpClient client = HttpClient.newHttpClient();
@@ -814,8 +783,7 @@ final class ProvidersIT extends IntegrationTestBase {
             var deleteVectorRequest = HttpRequest.newBuilder(URI.create(
                             CHROMA_BASE_URL + "/api/v1/collections/" + getCollectionName(provider) + "/delete"))
                     .header("Authorization", "Bearer " + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            """
+                    .POST(HttpRequest.BodyPublishers.ofString("""
             {"ids":["%s","%s"]}""".formatted(ID_5, ID_6)))
                     .build();
             client.send(deleteVectorRequest, HttpResponse.BodyHandlers.discarding());
@@ -949,8 +917,7 @@ final class ProvidersIT extends IntegrationTestBase {
             var deleteVectorRequest = HttpRequest.newBuilder(URI.create(
                             CHROMA_BASE_URL + "/api/v1/collections/" + getCollectionName(provider) + "/delete"))
                     .header("Authorization", "Bearer " + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            """
+                    .POST(HttpRequest.BodyPublishers.ofString("""
             {"ids":["%s","%s"]}""".formatted(ID_5, ID_6)))
                     .build();
             client.send(deleteVectorRequest, HttpResponse.BodyHandlers.discarding());

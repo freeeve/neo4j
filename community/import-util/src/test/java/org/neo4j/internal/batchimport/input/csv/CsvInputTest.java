@@ -267,9 +267,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldCopeWithLinesThatHasTooFewValuesButStillValidates(MultilineSetting setting) throws Exception {
         // GIVEN
-        Iterable<DataFactory> data = dataIterable(
-                data(
-                        """
+        Iterable<DataFactory> data = dataIterable(data("""
                         1,ultralisk,ZERG,10
                         2,corruptor,ZERG
                         3,mutalisk,ZERG,3"""));
@@ -329,14 +327,12 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldHandleMultipleInputGroups(MultilineSetting setting) throws Exception {
         // GIVEN multiple input groups, each with their own, specific, header
-        DataFactory group1 = data(
-                """
+        DataFactory group1 = data("""
                 :ID,name,kills:int,health:int
                 1,Jim,10,100
                 2,Abathur,0,200
                 """);
-        DataFactory group2 =
-                data("""
+        DataFactory group2 = data("""
                 :ID,type
                 3,zergling
                 4,csv
@@ -369,13 +365,11 @@ class CsvInputTest {
     void shouldProvideAdditiveLabels(MultilineSetting setting) throws Exception {
         // GIVEN
         String[] addedLabels = {"Two", "AddTwo"};
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                         :ID,name,:LABEL
                         0,First,
                         1,Second,One
-                        2,Third,One;Two""",
-                InputEntityDecorators.additiveLabels(addedLabels));
+                        2,Third,One;Two""", InputEntityDecorators.additiveLabels(addedLabels));
         Iterable<DataFactory> dataIterable = dataIterable(data);
         Input input = new CsvInput(
                 dataIterable,
@@ -433,8 +427,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldAllowNodesWithoutIdHeader(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 name:string,level:int
                 Mattias,1
                 Johan,2
@@ -465,8 +458,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldAllowSomeNodesToBeAnonymous(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                         :ID,name:string,level:int
                         abc,Mattias,1
                         ,Johan,2
@@ -497,8 +489,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldAllowNodesToBeAnonymousEvenIfIdHeaderIsNamed(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                         id:ID,name:string,level:int
                         abc,Mattias,1
                         ,Johan,2
@@ -529,8 +520,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldNotHaveIdSetAsPropertyIfIdHeaderEntryIsNamedForActualIds(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                         myId:ID,name:string,level:int
                         0,Mattias,1
                         1,Johan,2
@@ -562,8 +552,7 @@ class CsvInputTest {
     void shouldIgnoreEmptyPropertyValues(MultilineSetting setting) throws Exception {
         // GIVEN
         // here we leave out "extra" property
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,extra
                 0,Mattias,
                 1,Johan,Additional
@@ -595,8 +584,7 @@ class CsvInputTest {
     void shouldIgnoreEmptyIntPropertyValues(MultilineSetting setting) throws Exception {
         // GIVEN
         // here we leave out "extra" property
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,extra:int
                 0,Mattias,
                 1,Johan,10
@@ -627,8 +615,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParsePointPropertyValues(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,point:Point
                 0,Mattias,"{x: 2.7, y:3.2 }"
                 1,Johan," { height :0.01 ,longitude:5, latitude : -4.2 } "
@@ -675,8 +662,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldNotParsePointPropertyValuesWithDuplicateKeys(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,point:Point
                 1,Johan," { height :0.01 ,longitude:5, latitude : -4.2, latitude : 4.2 } "
                 """);
@@ -701,8 +687,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParsePointPropertyValuesWithCRSInHeader(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,point:Point{crs:WGS-84-3D}
                 0,Johan," { height :0.01 ,longitude:5, latitude : -4.2 } "
                 """);
@@ -739,8 +724,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldUseHeaderInformationToParsePoint(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,point:Point{crs:WGS-84}
                 0,Johan," { x :1 ,y:2 } "
                 """);
@@ -773,8 +757,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParseDatePropertyValues(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,date:Date
                 0,Mattias,2018-02-27
                 1,Johan,2018-03-01
@@ -805,8 +788,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParseTimePropertyValues(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                         :ID,name,time:Time
                         0,Mattias,13:37
                         1,Johan,"16:20:01"
@@ -842,8 +824,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParseTimePropertyValuesWithTimezoneInHeader(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,time:Time{timezone:+02:00}
                 0,Mattias,13:37
                 1,Johan,"16:20:01"
@@ -879,8 +860,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParseDateTimePropertyValues(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,time:DateTime
                 0,Mattias,2018-02-27T13:37
                 1,Johan,"2018-03-01T16:20:01"
@@ -926,8 +906,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParseDateTimePropertyValuesWithTimezoneInHeader(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,time:DateTime{timezone:Europe/Stockholm}
                 0,Mattias,2018-02-27T13:37
                 1,Johan,"2018-03-01T16:20:01"
@@ -981,8 +960,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParseLocalTimePropertyValues(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,time:LocalTime
                 0,Mattias,13:37
                 1,Johan,"16:20:01"
@@ -1015,8 +993,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParseLocalDateTimePropertyValues(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                         :ID,name,time:LocalDateTime
                         0,Mattias,2018-02-27T13:37
                         1,Johan,"2018-03-01T16:20:01"
@@ -1055,8 +1032,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldParseDurationPropertyValues(MultilineSetting setting) throws Exception {
         // GIVEN
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                 :ID,name,duration:Duration
                 0,Mattias,P3MT13H37M
                 1,Johan,"P-1YT4H20M"
@@ -1237,13 +1213,11 @@ class CsvInputTest {
     void shouldDoWithoutRelationshipTypeHeaderIfDefaultSupplied(MultilineSetting setting) throws Exception {
         // GIVEN relationship data w/o :TYPE header
         String defaultType = "HERE";
-        DataFactory data = data(
-                """
+        DataFactory data = data("""
                         :START_ID,:END_ID,name
                         0,1,First
                         2,3,Second
-                        """,
-                InputEntityDecorators.defaultRelationshipType(defaultType));
+                        """, InputEntityDecorators.defaultRelationshipType(defaultType));
         Iterable<DataFactory> dataIterable = dataIterable(data);
         Input input = new CsvInput(
                 datas(),
@@ -1270,9 +1244,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldIgnoreNodeEntriesMarkedIgnoreUsingHeader(MultilineSetting setting) throws Exception {
         // GIVEN
-        Iterable<DataFactory> data = datas(
-                CsvInputTest.data(
-                        """
+        Iterable<DataFactory> data = datas(CsvInputTest.data("""
                         :ID,name:IGNORE,other:int,:LABEL
                         1,Mattias,10,Person
                         2,Johan,111,Person
@@ -1302,9 +1274,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldIgnoreRelationshipEntriesMarkedIgnoreUsingHeader(MultilineSetting setting) throws Exception {
         // GIVEN
-        Iterable<DataFactory> data = datas(
-                CsvInputTest.data(
-                        """
+        Iterable<DataFactory> data = datas(CsvInputTest.data("""
                         :START_ID,:TYPE,:END_ID,prop:IGNORE,other:int
                         1,KNOWS,2,Mattias,10
                         2,KNOWS,3,Johan,111
@@ -1359,9 +1329,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldNotIncludeEmptyArraysInEntities(MultilineSetting setting) throws Exception {
         // GIVEN
-        Iterable<DataFactory> data = datas(
-                CsvInputTest.data(
-                        """
+        Iterable<DataFactory> data = datas(CsvInputTest.data("""
                         :ID,sprop:String[],lprop:long[]
                         1,,
                         2,a;b,10;20"""));
@@ -1418,8 +1386,7 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldIgnoreEmptyExtraColumns(MultilineSetting setting) throws Exception {
         // GIVEN
-        Iterable<DataFactory> data = datas(CsvInputTest.data(
-                """
+        Iterable<DataFactory> data = datas(CsvInputTest.data("""
                 :ID,one
                 1,test,
                 2,test,,additional"""));
@@ -2189,8 +2156,7 @@ class CsvInputTest {
 
     @Test
     void shouldHandleMultipleNodeIdColumnsWithSameGroup() throws IOException {
-        Iterable<DataFactory> nodeData = datas(data(
-                """
+        Iterable<DataFactory> nodeData = datas(data("""
                  id1:ID(g1),id2:ID(g1),name
                  foo,bar,ABC
                  """));
@@ -2241,14 +2207,11 @@ class CsvInputTest {
     @Test
     void shouldHandleMultipleStartAndEndIdColumns() throws IOException {
         // given
-        Iterable<DataFactory> nodeData =
-                datas(data("""
+        Iterable<DataFactory> nodeData = datas(data("""
                 id1:ID,id2:ID,name
                 foo,bar,ABC
                 """));
-        Iterable<DataFactory> relData = datas(
-                data(
-                        """
+        Iterable<DataFactory> relData = datas(data("""
                 :START_ID,:START_ID,:END_ID,:END_ID,:TYPE
                 a,b,c,d,KNOWS
                 b,c,d,e,KNOWS
@@ -2288,19 +2251,14 @@ class CsvInputTest {
 
     @Test
     void shouldHandleMultipleStartAndEndIdColumnsWithSameGroup() throws IOException {
-        Iterable<DataFactory> nodeData = datas(
-                data("""
+        Iterable<DataFactory> nodeData = datas(data("""
                  id1:ID(g1),id2:ID(g1),name
                  foo,bar,ABC
-                 """),
-                data(
-                        """
+                 """), data("""
                  id1:ID(g2),id2:ID(g2),id3:ID(g2),name
                  foo,bar,baz,DEF
                  """));
-        Iterable<DataFactory> relData = datas(
-                data(
-                        """
+        Iterable<DataFactory> relData = datas(data("""
                  :START_ID(g1),:START_ID(g1),:END_ID(g2),:END_ID(g2),:END_ID(g2),:TYPE
                  foo,bar,foo,bar,baz,TTT
                  """));
@@ -2332,19 +2290,14 @@ class CsvInputTest {
 
     @Test
     void shouldHandleMultipleStartAndEndIdColumnsWithSameGroupMultipleNodeFiles() throws IOException {
-        Iterable<DataFactory> nodeData = datas(
-                data("""
+        Iterable<DataFactory> nodeData = datas(data("""
                  id1:ID(g1),id2:ID(g1),name
                  foo,bar,ABC
-                 """),
-                data(
-                        """
+                 """), data("""
                  id1:ID(g1),id2:ID(g1),name
                  foo,baz,DEF
                  """));
-        Iterable<DataFactory> relData = datas(
-                data(
-                        """
+        Iterable<DataFactory> relData = datas(data("""
                  :START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE
                  foo,bar,foo,baz,TTT
                  """));
@@ -2376,19 +2329,14 @@ class CsvInputTest {
 
     @Test
     void shouldHandleMultipleStartAndEndIdColumnsWithGlobalGroup() throws IOException {
-        Iterable<DataFactory> nodeData = datas(
-                data("""
+        Iterable<DataFactory> nodeData = datas(data("""
                  id1:ID(g1),id2:ID(g1),name
                  foo,bar,ABC
-                 """),
-                data(
-                        """
+                 """), data("""
                  id1:ID,id2:ID,id3:ID,name
                  foo,bar,baz,DEF
                  """));
-        Iterable<DataFactory> relData = datas(
-                data(
-                        """
+        Iterable<DataFactory> relData = datas(data("""
                  :START_ID(g1),:START_ID(g1),:END_ID,:END_ID,:END_ID,:TYPE
                  foo,bar,foo,bar,baz,TTT
                  """));
@@ -2508,18 +2456,14 @@ class CsvInputTest {
 
     @Test
     void shouldBeAbleToUseSingleIdInOneNodeFileAndCompositeIdInAnother() throws IOException {
-        Iterable<DataFactory> nodeData = datas(
-                data("""
+        Iterable<DataFactory> nodeData = datas(data("""
                  id1:ID(g1),id2:ID(g1),name
                  foo,bar,ABC
-                 """),
-                data("""
+                 """), data("""
                  id1:ID(g1),name
                  foo,DEF
                  """));
-        Iterable<DataFactory> relData = datas(
-                data(
-                        """
+        Iterable<DataFactory> relData = datas(data("""
                  :START_ID(g1),:END_ID(g1),:TYPE
                  foobar,foo,TTT
                  """));
@@ -2652,30 +2596,20 @@ class CsvInputTest {
 
     @Test
     void shouldBeAbleToReferToCompositeIdAndSingleIdsWithMatchingNumberOfStartIdAndEndColumns() throws IOException {
-        Iterable<DataFactory> nodeData = datas(
-                data(
-                        """
+        Iterable<DataFactory> nodeData = datas(data("""
                         id1:ID(g1),id2:ID(g1),name
                         foo,bar,ABC
-                        """),
-                data(
-                        """
+                        """), data("""
                         id1:ID(g2),name
                         baz,DEF
                         """));
-        Iterable<DataFactory> relData = datas(
-                data(
-                        """
+        Iterable<DataFactory> relData = datas(data("""
                         :START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE
                         foo,bar,foo,bar,T1
-                        """),
-                data(
-                        """
+                        """), data("""
                         :START_ID(g2),:END_ID(g1),:END_ID(g1),:TYPE
                         baz,foo,bar,T2
-                        """),
-                data(
-                        """
+                        """), data("""
                         :START_ID(g2),:END_ID(g2),:TYPE
                         baz,baz,T3
                         """));

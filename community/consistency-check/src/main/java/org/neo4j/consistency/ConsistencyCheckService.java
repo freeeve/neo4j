@@ -730,8 +730,7 @@ public class ConsistencyCheckService {
                 Optional.empty(),
                 memoryTracker,
                 DatabaseTracers.EMPTY)) {
-            throw new IllegalStateException(
-                    """
+            throw new IllegalStateException("""
                     Active logical log detected, this might be a source of inconsistencies.
                     Please recover database.
                     To perform recovery please start database in single mode and perform clean shutdown.""");

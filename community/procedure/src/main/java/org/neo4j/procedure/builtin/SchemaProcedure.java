@@ -159,10 +159,12 @@ public class SchemaProcedure {
     private record LabelNameId(String name, int id) {}
 
     public record GraphResult(
-            @Description("A list of virtual nodes representing each label in the database.") List<Node> nodes,
+            @Description("A list of virtual nodes representing each label in the database.")
+            List<Node> nodes,
+
             @Description(
-                            "A list of virtual relationships representing all combinations between start and end nodes in the database.")
-                    List<Relationship> relationships) {}
+                    "A list of virtual relationships representing all combinations between start and end nodes in the database.")
+            List<Relationship> relationships) {}
 
     private static VirtualNodeHack getOrCreateLabel(
             String label, Map<String, Object> properties, final Map<String, VirtualNodeHack> nodeMap) {

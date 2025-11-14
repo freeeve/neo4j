@@ -100,8 +100,7 @@ class PrettyPrinterTest {
         String actual = plainPrinter.format(result);
 
         // then
-        String expected =
-                """
+        String expected = """
                 Plan: "PROFILE"
                 Statement: "READ_ONLY"
                 Version: "3.1"
@@ -142,8 +141,7 @@ class PrettyPrinterTest {
         String actual = plainPrinter.format(result);
 
         // then
-        String expected =
-                """
+        String expected = """
                 Plan: "PROFILE"
                 Statement: "READ_ONLY"
                 Version: "3.1"
@@ -181,8 +179,7 @@ class PrettyPrinterTest {
         String actual = plainPrinter.format(result);
 
         // then
-        String expected =
-                """
+        String expected = """
                 Plan: "EXPLAIN"
                 Statement: "READ_ONLY"
                 Version: "3.1"

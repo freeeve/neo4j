@@ -60,12 +60,10 @@ public class TimeoutGuardExtension implements PreInterruptCallback {
             for (StackTraceElement stackTraceElement : testThread.getStackTrace()) {
                 if (clazz.equals(stackTraceElement.getClassName())
                         && methodName.equals(stackTraceElement.getMethodName())) {
-                    String message =
-                            """
+                    String message = """
                                                       ***WARNING***
                             Test monitor terminating hanging execution for test %s.%s
-                            After the test timeout was reached, an interruption attempt was made; however, the test did not progress within the allocated grace period. Terminating the VM."""
-                                    .formatted(clazz, methodName);
+                            After the test timeout was reached, an interruption attempt was made; however, the test did not progress within the allocated grace period. Terminating the VM.""".formatted(clazz, methodName);
 
                     printWarning(System.out, message);
                     printWarning(System.err, message);

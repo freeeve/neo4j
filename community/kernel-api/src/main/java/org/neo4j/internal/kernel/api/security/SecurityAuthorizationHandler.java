@@ -154,7 +154,7 @@ public class SecurityAuthorizationHandler {
                                 "Schema operation '%s' on database '%s' is denied for %s.",
                                 action, securityContext.database(), securityContext.description()));
             default:
-                // All is well
+            // All is well
         }
     }
 

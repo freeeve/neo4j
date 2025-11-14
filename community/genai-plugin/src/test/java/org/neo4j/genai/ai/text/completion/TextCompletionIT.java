@@ -222,24 +222,20 @@ abstract class TextCompletionITBase implements GenAITestExtension {
     @Test
     void completionWithRequiredArgs() {
         for (final var conf : confRequired()) {
-            assertNonBlankResult(
-                    """
+            assertNonBlankResult("""
                     with %s as conf
                     with ai.text.completion('Hello!', '%s', conf) as result
-                    return result"""
-                            .formatted(conf, provider()));
+                    return result""".formatted(conf, provider()));
         }
     }
 
     @Test
     void completionWithAllArgs() {
         for (final var conf : confWithVendorOptions()) {
-            assertNonBlankResult(
-                    """
+            assertNonBlankResult("""
                     with %s as conf
                     with ai.text.completion('Hello!', '%s', conf) as result
-                    return result"""
-                            .formatted(conf, provider()));
+                    return result""".formatted(conf, provider()));
         }
     }
 

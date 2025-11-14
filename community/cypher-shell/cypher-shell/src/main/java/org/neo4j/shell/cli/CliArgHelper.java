@@ -250,11 +250,9 @@ public class CliArgHelper {
             return uri;
         } catch (URISyntaxException e) {
             log.error(e);
-            var message =
-                    """
+            var message = """
                     cypher-shell: error: Failed to parse address: '%s'
-                    Address should be of the form: [scheme://][username:password@][host][:port]"""
-                            .formatted(address);
+                    Address should be of the form: [scheme://][username:password@][host][:port]""".formatted(address);
             throw new ArgumentParserException(message, e, parser);
         }
     }
@@ -342,8 +340,7 @@ public class CliArgHelper {
                 .action(Arguments.storeTrue());
 
         parser.addArgument("--format")
-                .help(
-                        """
+                .help("""
                                 Desired output format. Displays the results in tabular format if you use the shell interactively \
                                 and with minimal formatting if you use it for scripting.
                                 `verbose` displays results in tabular format and prints statistics.

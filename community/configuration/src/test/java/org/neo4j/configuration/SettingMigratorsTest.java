@@ -656,9 +656,7 @@ class SettingMigratorsTest {
                         "dbms.jvm.additional=-XX:+TrustFinalNonStaticFields"));
 
         Config config = Config.newBuilder().fromFile(confFile).build();
-        assertThat(config.get(additional_jvm))
-                .isEqualToIgnoringNewLines(
-                        """
+        assertThat(config.get(additional_jvm)).isEqualToIgnoringNewLines("""
                 -XX:+UseG1GC
                 -XX:-OmitStackTraceInFastThrow
                 -XX:+TrustFinalNonStaticFields""");

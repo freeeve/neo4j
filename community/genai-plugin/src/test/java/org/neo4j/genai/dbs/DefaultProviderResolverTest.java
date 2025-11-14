@@ -27,9 +27,7 @@ class DefaultProviderResolverTest {
 
     private final DefaultProviderResolver resolver = new DefaultProviderResolver();
 
-    @CsvSource(
-            textBlock =
-                    """
+    @CsvSource(textBlock = """
 		https://cloud.qdrant.io, qdrant
 		https://api.pinecone.io, pinecone
 		semantic-search-c01b5b5.svc.us-west1-gcp.pinecone.io, pinecone

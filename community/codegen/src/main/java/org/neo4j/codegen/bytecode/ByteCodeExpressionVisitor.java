@@ -684,7 +684,7 @@ class ByteCodeExpressionVisitor implements ExpressionVisitor {
                             INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
                     break;
                 default:
-                    // do nothing, expression is already boxed
+                // do nothing, expression is already boxed
             }
         }
     }

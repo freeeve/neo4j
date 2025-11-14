@@ -123,8 +123,7 @@ public class SysInfo implements Command {
     }
 
     private void printDatabases() throws CommandException {
-        final var query =
-                """
+        final var query = """
                 SHOW DATABASES YIELD
                   name AS Name,
                   address AS Address,
@@ -138,8 +137,7 @@ public class SysInfo implements Command {
     }
 
     private void printMetrics(ClientConfig config, String database, MetricGroup group) throws CommandException {
-        final var query =
-                """
+        final var query = """
                 UNWIND $metrics as metric
                 CALL dbms.queryJmx(metric.name) YIELD name, attributes
                 WITH metric.displayName AS Name, attributes.Value.value AS value, attributes.Count.value AS count

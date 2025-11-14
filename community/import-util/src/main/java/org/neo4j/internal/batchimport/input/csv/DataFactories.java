@@ -335,7 +335,7 @@ public class DataFactories {
                         singletonEntries.put(entry.type(), entry);
                     }
                     default -> {}
-                        // No need to validate other headers
+                    // No need to validate other headers
                 }
             }
 

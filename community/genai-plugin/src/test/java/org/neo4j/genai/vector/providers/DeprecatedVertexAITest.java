@@ -109,9 +109,7 @@ class DeprecatedVertexAITest {
         @Override
         Collection<Arguments> parseResponse() {
             return List.of(
-                    Arguments.of(
-                            new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})),
-                            """
+                    Arguments.of(new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})), """
                             {
                                 "predictions": [{
                                     "embeddings": {
@@ -120,9 +118,7 @@ class DeprecatedVertexAITest {
                                 }]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})),
-                            """
+                    Arguments.of(new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})), """
                             {
                                 "predictions": [{
                                     "embeddings": {
@@ -131,9 +127,7 @@ class DeprecatedVertexAITest {
                                 }]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})),
-                            """
+                    Arguments.of(new ExpectedVectors(List.of("hello"), List.of(new float[] {1.f, 2.f, 3.f})), """
                             {
                                 "predictions": [{
                                     "embeddings": {
@@ -192,9 +186,7 @@ class DeprecatedVertexAITest {
                                 "predictions": 123
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedError(List.of("hello"), "Expected to receive 1", "however got 2"),
-                            """
+                    Arguments.of(new ExpectedError(List.of("hello"), "Expected to receive 1", "however got 2"), """
                             {
                                 "predictions": [{
                                     "embeddings": {
@@ -221,9 +213,7 @@ class DeprecatedVertexAITest {
                                 }]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedError(List.of("hello"), "Expected 'embeddings' to be an object"),
-                            """
+                    Arguments.of(new ExpectedError(List.of("hello"), "Expected 'embeddings' to be an object"), """
                             {
                                 "predictions": [{
                                     "embeddings": 123
@@ -242,9 +232,7 @@ class DeprecatedVertexAITest {
                                 }]
                             }
                             """),
-                    Arguments.of(
-                            new ExpectedError(List.of("hello"), "Expected embedding to be an array"),
-                            """
+                    Arguments.of(new ExpectedError(List.of("hello"), "Expected embedding to be an array"), """
                             {
                                 "predictions": [{
                                     "embeddings": {

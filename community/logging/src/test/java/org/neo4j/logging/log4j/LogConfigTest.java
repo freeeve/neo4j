@@ -346,8 +346,7 @@ class LogConfigTest {
     }
 
     private void useConsoleLogger(boolean daemonMode) throws IOException {
-        String xml =
-                """
+        String xml = """
                 <Configuration packages="org.neo4j.logging.log4j">
                    <Appenders>
                        <File name="Neo4jLog" fileName="${config:server.directories.logs}/neo4j.log">

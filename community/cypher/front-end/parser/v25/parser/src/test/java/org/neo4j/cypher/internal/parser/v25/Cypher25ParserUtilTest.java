@@ -33,8 +33,7 @@ class Cypher25ParserUtilTest {
     @Test
     void assertDFACacheClearingDoesNotChange() throws IOException {
 
-        String expectedDFAImplementation =
-                """
+        String expectedDFAImplementation = """
 				    static {
 				        _decisionToDFA = new DFA[_ATN.getNumberOfDecisions()];
 				        for (int i = 0; i < _ATN.getNumberOfDecisions(); i++) {

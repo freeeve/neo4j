@@ -86,8 +86,7 @@ public class VectorEmbedding {
     }
 
     @Procedure(name = "ai.text.embedBatch")
-    @Description(
-            """
+    @Description("""
             Encode a given batch of resources as vectors using the named provider.
             For each element in the given resource LIST this returns:
                 * the corresponding 'index' within that LIST,
@@ -154,7 +153,11 @@ public class VectorEmbedding {
     }
 
     public record InternalBatchRow(
-            @Description("The index of the corresponding element in the input list.") long index,
+            @Description("The index of the corresponding element in the input list.")
+            long index,
+
             @Description("The name of the input resource.") String resource,
-            @Description("The generated vector embedding for the resource.") VectorValue vector) {}
+
+            @Description("The generated vector embedding for the resource.")
+            VectorValue vector) {}
 }

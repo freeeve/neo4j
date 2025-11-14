@@ -103,9 +103,7 @@ class CheckCommandIT {
         try (var out = new PrintStream(baos)) {
             cmd.usage(new PrintStream(out), CommandLine.Help.Ansi.OFF);
         }
-        assertThat(baos.toString().trim())
-                .isEqualToIgnoringNewLines(
-                        """
+        assertThat(baos.toString().trim()).isEqualToIgnoringNewLines("""
                         Check the consistency of a database.
 
                         USAGE

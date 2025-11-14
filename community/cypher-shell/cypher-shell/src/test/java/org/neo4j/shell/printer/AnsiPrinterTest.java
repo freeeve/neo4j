@@ -177,9 +177,7 @@ class AnsiPrinterTest {
                                         new IntegerValue(4)))),
                         new NullPointerException("yahoo")),
                 Optional.empty());
-        assertThat(actual)
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(actual).isEqualToNormalizingNewlines("""
                 \u001B[91m42XXX: status descr
                 \u001B[m""");
     }
@@ -203,9 +201,7 @@ class AnsiPrinterTest {
                                         new IntegerValue(4)))),
                         new NullPointerException("yahoo")),
                 Optional.of("my query"));
-        assertThat(actual)
-                .isEqualToNormalizingNewlines(
-                        """
+        assertThat(actual).isEqualToNormalizingNewlines("""
                 \u001B[91m42XXX: status descr (line 1, column 4 (offset: 3))
                 "my query"
                     ^

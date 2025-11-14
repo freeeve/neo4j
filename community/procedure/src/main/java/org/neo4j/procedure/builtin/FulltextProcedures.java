@@ -113,8 +113,7 @@ public class FulltextProcedures {
     }
 
     @SystemProcedure
-    @Description(
-            """
+    @Description("""
             Query the given full-text index. Returns the matching nodes and their Lucene query score, ordered by score.
             Valid _key: value_ pairs for the `options` map are:
 
@@ -199,8 +198,7 @@ public class FulltextProcedures {
     }
 
     @SystemProcedure
-    @Description(
-            """
+    @Description("""
             Query the given full-text index. Returns the matching relationships and their Lucene query score, ordered by score.
             Valid _key: value_ pairs for the `options` map are:
 

@@ -63,8 +63,7 @@ public class AccessMode implements Command {
         @Override
         public Metadata metadata() {
             var help = "View or set access mode";
-            var usage =
-                    """
+            var usage = """
                     - Display current access mode
                     :access-mode read - Reconnect with read access mode
                     :access-mode write - Reconnect with write access mode
