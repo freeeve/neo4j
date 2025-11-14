@@ -11,7 +11,7 @@
     <properties>
         <moduleName>org.neo4j.gbptree.tests</moduleName>
         <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
-        <dependnency.analyze.failOnWarning>true</dependnency.analyze.failOnWarning>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <modelVersion>4.0.0</modelVersion>
