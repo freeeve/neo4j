@@ -292,7 +292,7 @@ class ErrorTest {
         }
 
         static CypherExecutionException gqlException() {
-            return CypherExecutionException.createEntity("foo", "bar");
+            return CypherExecutionException.internalError("foo", "bar");
         }
     }
 }

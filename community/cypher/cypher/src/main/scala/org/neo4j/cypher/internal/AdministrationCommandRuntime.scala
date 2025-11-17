@@ -337,11 +337,6 @@ object AdministrationCommandRuntime {
           ) ++ homeDatabaseFields.map(_.displayNameValue) ++ changeRequiredOption.map(Values.booleanValue)
       ),
       QueryHandler
-        .handleNoResult(params =>
-          Some(ThrowException(
-            CypherExecutionException.createEntity("user", runtimeStringValue(userName, params))
-          ))
-        )
         .handleError((error, params) =>
           (error, error.getCause) match {
             case (_, e: UniquePropertyValueValidationException) =>
