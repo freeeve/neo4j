@@ -123,7 +123,8 @@ case object QueryPlanner
       labelInferenceStrategy = context.labelInferenceStrategy,
       idpLogger = IDPLogger.givenDebugOptions(context.debugOptions),
       graphSchemaOptimizations =
-        GraphSchemaOptimizations.fromConfig(enableGraphSchemaOptimizations, context.planContext)
+        GraphSchemaOptimizations.fromConfig(enableGraphSchemaOptimizations, context.planContext),
+      planningStepsLogger = PlanningStepsLogger.givenDebugOptions(context.debugOptions)
     )
 
     val settings = Settings(

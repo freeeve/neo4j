@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.planner.logical.PlanEventHorizon.HorizonStep.combine
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.BestResults
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SubqueryExpressionSolver
@@ -48,6 +49,7 @@ import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
+import org.neo4j.cypher.internal.util.NonEmptyList
 
 /**
  * Planning event horizons means planning the WITH clauses between query patterns. Some of these clauses are inlined
@@ -78,47 +80,55 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         context
       )
 
+    def planHorizon(
+      description: String,
+      basePlan: LogicalPlan,
+      orderConfig: InterestingOrderConfig
+    ) = {
+      context.staticComponents.planningStepsLogger.log(s"    $description")
+      val plan = planHorizonForPlan(
+        plannerQuery,
+        basePlan,
+        prevInterestingOrder,
+        context,
+        orderConfig
+      )
+      val functionLog = context.staticComponents.planningStepsLogger.flushFunctionLog()
+      context.staticComponents.planningStepsLogger.log(s"      $functionLog")
+      context.staticComponents.planningStepsLogger.log(s"      Resulted in:")
+      context.staticComponents.planningStepsLogger.log(s"        ${plan.toString.replace("\n", "\n        ")}")
+      plan
+    }
+
     // Plans horizon on top of the current best-overall plan, ensuring ordering only if required by the current query part.
-    def planSortIfSelfRequired = planHorizonForPlan(
-      plannerQuery,
-      incomingPlans.bestResult,
-      prevInterestingOrder,
-      context,
-      sortIfSelfRequiredConfig
-    )
+    lazy val planSortIfSelfRequired =
+      planHorizon("BEST + SELF_SORT", incomingPlans.bestResult, sortIfSelfRequiredConfig)
+
     // Plans horizon on top of the current best-overall plan, ensuring ordering if required by the current OR later query part.
-    def planSortIfTailOrSelfRequired = planHorizonForPlan(
-      plannerQuery,
-      incomingPlans.bestResult,
-      prevInterestingOrder,
-      context,
-      sortIfTailOrSelfRequiredConfig
-    )
+    lazy val planSortIfTailOrSelfRequired =
+      planHorizon("BEST + TAIL_SORT", incomingPlans.bestResult, sortIfTailOrSelfRequiredConfig)
+
     // Plans horizon on top of the current best-sorted plan
-    def maintainSort = incomingPlans.bestSortedResult.map(planHorizonForPlan(
-      plannerQuery,
-      _,
-      prevInterestingOrder,
-      context,
-      sortIfTailOrSelfRequiredConfig
-    ))
+    lazy val maintainSort: Option[LogicalPlan] =
+      incomingPlans.bestSortedResult.map(planHorizon(
+        "SORT + TAIL_SORT",
+        _,
+        sortIfTailOrSelfRequiredConfig
+      ))
 
     // maintain properties and plan sort if required
-    lazy val maintainPropertiesAndSortOnSelfRequired = incomingPlans.bestExtraPropertiesResult.map(planHorizonForPlan(
-      plannerQuery,
-      _,
-      prevInterestingOrder,
-      context,
-      sortIfSelfRequiredConfig
-    ))
+    lazy val maintainPropertiesAndSortOnSelfRequired =
+      incomingPlans.bestExtraPropertiesResult.map(planHorizon(
+        "PROP + SELF_SORT",
+        _,
+        sortIfSelfRequiredConfig
+      ))
 
     // maintain properties and plan sort on tail if required
     lazy val maintainPropertiesAndSortOnTailOrSelfIfRequired =
-      incomingPlans.bestExtraPropertiesResult.map(planHorizonForPlan(
-        plannerQuery,
+      incomingPlans.bestExtraPropertiesResult.map(planHorizon(
+        "PROP + TAIL_SORT",
         _,
-        prevInterestingOrder,
-        context,
         sortIfTailOrSelfRequiredConfig
       ))
 
@@ -127,6 +137,9 @@ case object PlanEventHorizon extends EventHorizonPlanner {
 
     if (currentPartHasRequiredOrder) {
       // Both best-overall and best-sorted plans must fulfill the required order, so at this point we can pick one of them
+      context.staticComponents.planningStepsLogger.log(
+        s"""    required order: current""".stripMargin
+      )
       val bestOverall = pickBest(
         Seq(planSortIfSelfRequired) ++ maintainSort ++ maintainPropertiesAndSortOnSelfRequired,
         "best overall plan with horizon"
@@ -138,6 +151,9 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       )
     } else if (tailHasRequiredOrder) {
       // For best-overall keep the current best-overall plan
+      context.staticComponents.planningStepsLogger.log(
+        s"    required order: tail"
+      )
       val bestOverall = planSortIfSelfRequired
       // For best-sorted we can choose between the current best-sorted and the current best-overall with sorting planned on top
       val bestSorted =
@@ -152,6 +168,9 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       )
     } else {
       // No ordering requirements, only keep the best-overall plan
+      context.staticComponents.planningStepsLogger.log(
+        s"    required order: none"
+      )
       val bestOverall = pickBest(
         Seq(planSortIfSelfRequired) ++ maintainPropertiesAndSortOnSelfRequired,
         "best overall plan with horizon"
@@ -164,6 +183,24 @@ case object PlanEventHorizon extends EventHorizonPlanner {
     }
   }
 
+  // Utility to wrap a LogicalPlan function with a name
+  case class HorizonStep(name: String, func: LogicalPlan => LogicalPlan, logger: PlanningStepsLogger) {
+
+    def apply(plan: LogicalPlan): LogicalPlan = {
+      logger.startFunction(name, plan)
+      val result = func(plan)
+      logger.stopFunction(result)
+      result
+    }
+  }
+
+  object HorizonStep {
+
+    def combine(steps: NonEmptyList[HorizonStep]): LogicalPlan => LogicalPlan = {
+      plan => steps.foldLeft(plan)((p, step) => step.apply(p))
+    }
+  }
+
   private[logical] def planHorizonForPlan(
     query: SinglePlannerQuery,
     plan: LogicalPlan,
@@ -171,18 +208,33 @@ case object PlanEventHorizon extends EventHorizonPlanner {
     context: LogicalPlanningContext,
     interestingOrderConfig: InterestingOrderConfig
   ): LogicalPlan = {
+
+    def step(name: String)(func: LogicalPlan => LogicalPlan): HorizonStep =
+      HorizonStep(name, func, context.staticComponents.planningStepsLogger)
+
+    def combineToStep(name: String, steps: NonEmptyList[HorizonStep]): HorizonStep =
+      HorizonStep(
+        name,
+        combine(steps),
+        context.staticComponents.planningStepsLogger
+      )
+
     val selectedPlan =
       context.plannerState.config.applySelections(plan, query.queryGraph, interestingOrderConfig, context)
     // We only want to mark a planned Sort (or a projection for a Sort) as solved if the ORDER BY comes from the current horizon.
     val updateSolvedOrdering = query.interestingOrder.requiredOrderCandidate.nonEmpty
 
-    def planSort(interestingOrderConfigToUse: InterestingOrderConfig = interestingOrderConfig)
-      : LogicalPlan => LogicalPlan =
-      SortPlanner.ensureSortedPlanWithSolved(_, interestingOrderConfigToUse, context, updateSolvedOrdering)
+    def planSort(interestingOrderConfigToUse: InterestingOrderConfig = interestingOrderConfig) =
+      step("planSort")(SortPlanner.ensureSortedPlanWithSolved(
+        _,
+        interestingOrderConfigToUse,
+        context,
+        updateSolvedOrdering
+      ))
 
-    val planSkipAndLimit: LogicalPlan => LogicalPlan = skipAndLimit(_, query, context)
+    val planSkipAndLimit = step("planSkipAndLimit")(skipAndLimit(_, query, context))
 
-    def planWhere(selections: Selections): LogicalPlan => LogicalPlan = (p: LogicalPlan) =>
+    def planWhere(selections: Selections) = step("planWhere")((p: LogicalPlan) =>
       if (selections.isEmpty) {
         p
       } else {
@@ -201,6 +253,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           context = context
         )
       }
+    )
 
     def planRemoteBatchProperties(
       expressions: Iterable[Expression],
@@ -214,13 +267,15 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         (rewrittenExpressions, planWithProperties)
       }
 
-    def planShardOperators(queryProjection: QueryProjection): LogicalPlan => LogicalPlan =
-      context.settings.shardOperatorPushdownStrategy.skipAndLimit(
-        _,
-        query.queryGraph,
-        queryProjection,
-        interestingOrderConfig,
-        context
+    def planShardOperators(queryProjection: QueryProjection) =
+      step("planShardOperators")(
+        context.settings.shardOperatorPushdownStrategy.skipAndLimit(
+          _,
+          query.queryGraph,
+          queryProjection,
+          interestingOrderConfig,
+          context
+        )
       )
 
     def solveSubqueryExpressions(
@@ -254,7 +309,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
 
         def planAggregation(
           rewrittenExpressions: RewrittenExpressions
-        ): LogicalPlan => LogicalPlan = (p: LogicalPlan) =>
+        ) = step("planAggregation")((p: LogicalPlan) =>
           aggregation(
             p,
             aggregatingProjection,
@@ -263,6 +318,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
             previousInterestingOrder,
             context
           )
+        )
 
         val (rewrittenExprsAfterRemoteBatching, remoteBatchPropertiesPlan) = planRemoteBatchProperties(
           aggregatingProjection.groupingExpressions.values ++
@@ -283,7 +339,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
             // collect and some user-defined-functions need to preserve the order defined in the previous clause, which was broken
             // so we should re-plan the previous sort first before the aggregation.
             // any order by in the current clause will still be handled after the aggregation, since the aggregation will include the renames.
-            Function.chain(Seq(
+            combine(NonEmptyList(
               planSort(InterestingOrderConfig(
                 orderToReport = InterestingOrder.empty,
                 orderToSolve = previousInterestingOrder.get
@@ -297,17 +353,19 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           case (rewrittenExpressions, rewrittenPlan) =>
             // for aggregation, sort happens after the projection. The provided order of the aggregation plan will include
             // renames of the projection, thus we need to rename this as well for the required order before considering planning a sort.
-            Function.chain(Seq(
-              planAggregation(rewrittenExpressions),
-              planShardOperators(aggregatingProjection),
-              planSort(),
-              planSkipAndLimit,
-              planWhere(aggregatingProjection.selections)
-            ))(rewrittenPlan)
+            combine(
+              NonEmptyList(
+                planAggregation(rewrittenExpressions),
+                planShardOperators(aggregatingProjection),
+                planSort(),
+                planSkipAndLimit,
+                planWhere(aggregatingProjection.selections)
+              )
+            )(rewrittenPlan)
         }
 
       case regularProjection: RegularQueryProjection =>
-        val projectSubqueryExpressions: LogicalPlan => LogicalPlan = (p: LogicalPlan) => {
+        val projectSubqueryExpressions = step("projectSubqueryExpressions")((p: LogicalPlan) => {
           val subqueryExpressionProjections =
             regularProjection.projections.filter(_._2.folder.treeFindByClass[IRExpression].nonEmpty)
           projection(
@@ -316,16 +374,16 @@ case object PlanEventHorizon extends EventHorizonPlanner {
             Some(subqueryExpressionProjections),
             context
           )
-        }
+        })
 
-        val projectRemoteProperties: LogicalPlan => LogicalPlan = (plan: LogicalPlan) => {
+        val projectRemoteProperties = step("projectRemoteProperties")((plan: LogicalPlan) => {
           // Not passing the rewritten expressions is correct, as we will look up cached properties later on.
           // If we find that we could use rewritten expressions as performance improvement, we can still add them later on.
           val (_, remoteBatchPropertiesPlan) = planRemoteBatchProperties(regularProjection.projections.values, plan)
           remoteBatchPropertiesPlan
-        }
+        })
 
-        val planProjection: LogicalPlan => LogicalPlan = (p: LogicalPlan) =>
+        val planProjection = step("planProjection")((p: LogicalPlan) =>
           if (regularProjection.projections.isEmpty && query.tail.isEmpty) {
             if (context.plannerState.isInSubquery) {
               p
@@ -340,21 +398,28 @@ case object PlanEventHorizon extends EventHorizonPlanner {
               context
             )
           }
+        )
 
-        def sortFirst = Function.chain(Seq(
-          planSort(),
-          planSkipAndLimit,
-          planProjection,
-          planWhere(regularProjection.selections)
-        ))
-        def projectNonOrderPreservingExpressionsFirst = Function.chain(Seq(
-          projectSubqueryExpressions,
-          planShardOperators(regularProjection),
-          projectRemoteProperties,
-          sortFirst
-        ))
+        def sortFirst = combineToStep(
+          "sortFirst",
+          NonEmptyList(
+            planSort(),
+            planSkipAndLimit,
+            planProjection,
+            planWhere(regularProjection.selections)
+          )
+        )
+        def projectNonOrderPreservingExpressionsFirst = combineToStep(
+          "projectNonOrderPreservingExpressionsFirst",
+          NonEmptyList(
+            projectSubqueryExpressions,
+            planShardOperators(regularProjection),
+            projectRemoteProperties,
+            sortFirst
+          )
+        )
 
-        def sortFirstWithFallback(initialPlan: LogicalPlan): LogicalPlan = {
+        def sortFirstWithFallback = step("sortFirstWithFallback") { initialPlan =>
           val sortedPlan = sortFirst(initialPlan)
           SortPlanner.orderSatisfaction(interestingOrderConfig, context, sortedPlan) match {
             case InterestingOrder.FullSatisfaction() => sortedPlan
@@ -368,19 +433,22 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         // where the projection only needs to be applied to fewer rows.
         // If the runtime is not order preserving, we should do subquery expression projections and remote batch property
         // projections (which can invalidate an incoming order) before sorting.
-        if (context.settings.executionModel.providedOrderPreserving)
-          (planShardOperators(regularProjection).andThen(sortFirstWithFallback))(selectedPlan)
-        else projectNonOrderPreservingExpressionsFirst(selectedPlan)
+        if (context.settings.executionModel.providedOrderPreserving) {
+          combine(NonEmptyList(
+            planShardOperators(regularProjection),
+            sortFirstWithFallback
+          ))(selectedPlan)
+        } else projectNonOrderPreservingExpressionsFirst(selectedPlan)
 
       case distinctProjection: DistinctQueryProjection =>
-        def planDistinct(rewrittenExpressions: RewrittenExpressions): LogicalPlan => LogicalPlan =
-          (p: LogicalPlan) =>
-            distinct(
-              p,
-              distinctProjection,
-              rewrittenExpressions,
-              context
-            )
+        def planDistinct(rewrittenExpressions: RewrittenExpressions) = step("planDistinct")(
+          distinct(
+            _,
+            distinctProjection,
+            rewrittenExpressions,
+            context
+          )
+        )
 
         // for distinct, sort happens after the projection. The provided order of the distinct plan will include
         // renames of the projection, thus we need to rename this as well for the required order before considering planning a sort.
@@ -398,7 +466,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           remoteBatchPropertiesPlan
         )
 
-        Function.chain(Seq(
+        combine(NonEmptyList(
           planDistinct(rewrittenExpressions),
           planSort(),
           planSkipAndLimit,

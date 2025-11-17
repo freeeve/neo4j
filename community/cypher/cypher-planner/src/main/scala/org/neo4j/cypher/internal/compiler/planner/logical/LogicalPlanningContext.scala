@@ -102,7 +102,8 @@ object LogicalPlanningContext {
     readOnly: Boolean,
     labelInferenceStrategy: LabelInferenceStrategy,
     idpLogger: IDPLogger = IDPLogger.NoLogging,
-    graphSchemaOptimizations: GraphSchemaOptimizations = GraphSchemaOptimizations.Disabled
+    graphSchemaOptimizations: GraphSchemaOptimizations = GraphSchemaOptimizations.Disabled,
+    planningStepsLogger: PlanningStepsLogger = PlanningStepsLogger.NoLogging
   )
 
   /**

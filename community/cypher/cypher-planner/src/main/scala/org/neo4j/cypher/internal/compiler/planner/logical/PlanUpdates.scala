@@ -69,6 +69,16 @@ case object PlanUpdates extends UpdatesPlanner {
     firstPlannerQuery: Boolean,
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    if (query.queryGraph.mutatingPatterns.isEmpty)
+      return plan
+
+    context.staticComponents.planningStepsLogger.log(
+      s"""Planning UPDATES for ${query.queryGraph.mutatingPatterns}
+         |  on top of
+         |    ${plan.toString.replace("\n", "\n    ")}
+         |""".stripMargin
+    )
+
     val orderForPlanning = InterestingOrderConfig(query.interestingOrder)
 
     query.queryGraph.mutatingPatterns.foldLeft(plan) {

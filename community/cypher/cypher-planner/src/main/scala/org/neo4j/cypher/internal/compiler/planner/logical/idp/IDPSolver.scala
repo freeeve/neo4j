@@ -74,6 +74,16 @@ case class BestResults[+Result](
    * Gets the bestResultFulfillingReq if present, otherwise gets bestResult
    */
   def result: Result = bestSortedResult.orElse(bestExtraPropertiesResult).getOrElse(bestResult)
+
+  override def toString: String =
+    s"""BestResults(
+       |  bestResult =
+       |    ${bestResult.toString.replace("\n", "\n    ")},
+       |  bestSortedResult =
+       |    ${bestSortedResult.map(_.toString.replace("\n", "\n    ")).getOrElse("None")},
+       |  bestExtraPropertiesResult =
+       |    ${bestExtraPropertiesResult.map(_.toString.replace("\n", "\n    ")).getOrElse("None")}
+       |)""".stripMargin
 }
 
 /**

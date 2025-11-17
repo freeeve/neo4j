@@ -107,8 +107,12 @@ object PlannerType {
 trait MatchPlanner {
   protected def doPlan(query: SinglePlannerQuery, context: LogicalPlanningContext, rhsPart: Boolean): BestPlans
 
-  final def plan(query: SinglePlannerQuery, context: LogicalPlanningContext, rhsPart: Boolean = false): BestPlans =
+  final def plan(query: SinglePlannerQuery, context: LogicalPlanningContext, rhsPart: Boolean = false): BestPlans = {
+    context.staticComponents.planningStepsLogger.log(
+      s"Planning MATCH for ${query.queryGraph.withMutatingPattern(IndexedSeq.empty)}"
+    )
     doPlan(query, context.withModifiedPlannerState(_.withActivePlanner(PlannerType.Match)), rhsPart)
+  }
 }
 
 trait EventHorizonPlanner {
@@ -131,13 +135,19 @@ trait EventHorizonPlanner {
     incomingPlans: BestResults[LogicalPlan],
     prevInterestingOrder: Option[InterestingOrder],
     context: LogicalPlanningContext
-  ): BestResults[LogicalPlan] =
+  ): BestResults[LogicalPlan] = {
+    context.staticComponents.planningStepsLogger.log(
+      s"""Planning HORIZON
+         |  ${plannerQuery.horizon}:
+         |  on top of $incomingPlans""".stripMargin
+    )
     doPlanHorizon(
       plannerQuery,
       incomingPlans,
       prevInterestingOrder,
       context.withModifiedPlannerState(_.withActivePlanner(PlannerType.Horizon))
     )
+  }
 }
 
 trait HeadPlanner {

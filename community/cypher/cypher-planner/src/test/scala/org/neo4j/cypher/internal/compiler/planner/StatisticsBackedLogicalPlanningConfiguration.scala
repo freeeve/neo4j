@@ -680,6 +680,10 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     enableDebugOption(CypherDebugOption.printCostComparisons, enable)
   }
 
+  def enablePlanningStepsLogging(enable: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    enableDebugOption(CypherDebugOption.logPlanningSteps, enable)
+  }
+
   def enableConnectComponentsPlanner(enable: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     this.copy(options = options.copy(connectComponentsPlanner = enable))
   }
