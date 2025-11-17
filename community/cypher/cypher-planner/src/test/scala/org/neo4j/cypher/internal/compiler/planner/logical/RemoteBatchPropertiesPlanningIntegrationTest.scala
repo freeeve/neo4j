@@ -3331,6 +3331,49 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     )
   }
 
+  test(
+    "should replace projected variables with corresponding parameters or constants in remoteBatchPropertiesWithFilter"
+  ) {
+    val planner =
+      spdPlanner
+        .setAllNodesCardinality(1000)
+        .build()
+
+    val query =
+      """WITH $param1 AS param1, $param2 AS param2
+        |MATCH (n)
+        |WHERE n.prop < (param1 + 5) * 2 - param2
+        |RETURN n""".stripMargin
+
+    val plan = planner.plan(query)
+
+    val expressionToPushdown =
+      subtract(
+        multiply(
+          add(
+            parameter("param1", CTAny),
+            literalInt(5)
+          ),
+          literalInt(2)
+        ),
+        parameter("param2", CTAny)
+      )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("n")
+        .remoteBatchPropertiesWithFilter("cacheNFromStore[n.prop]")(
+          lessThan(
+            prop("n", "prop"),
+            expressionToPushdown
+          )
+        )
+        .projection("$param1 AS param1", "$param2 AS param2") // this is projection is not needed
+        .allNodeScan("n")
+        .build()
+    )
+  }
+
   def function(signature: UserFunctionSignature, arguments: Expression*): ResolvedFunctionInvocation =
     ResolvedFunctionInvocation(
       signature.name,
