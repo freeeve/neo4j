@@ -463,7 +463,7 @@ public class StubStorageCursors implements StorageReader {
         private Iterator<Long> iterator;
 
         @Override
-        public void scan() {
+        public void scan(boolean includeChangesFromThisTransaction) {
             this.iterator = nodeData.keySet().iterator();
             this.current = null;
         }
@@ -611,7 +611,7 @@ public class StubStorageCursors implements StorageReader {
         private long next;
 
         @Override
-        public void scan() {
+        public void scan(boolean includeChangesFromThisTransaction) {
             iterator = relationshipData.keySet().iterator();
             next = NO_ID;
         }

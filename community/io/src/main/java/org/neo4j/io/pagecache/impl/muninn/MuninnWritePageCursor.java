@@ -197,6 +197,8 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
             versionStamp = versionContext.stamp();
             long pagePointer = pointer;
             long headVersion = getLongAt(pagePointer, littleEndian);
+            assert cursorContext.includeCurrentTransaction()
+                    : "write cursor always must see current transaction, if you got this assert, you are doing something wrong";
             if (isOldHead(versionContext, headVersion)) {
                 long copyPageReference = versionStorage.createPageSnapshot(this, versionContext, headVersion, pinEvent);
 

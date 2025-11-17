@@ -24,7 +24,16 @@ public interface StorageEntityScanCursor<S extends Scan> extends StorageEntityCu
      * Initializes this cursor so that it will scan over all existing entities. Each call to {@link #next()} will
      * advance the cursor so that the next entity is read.
      */
-    void scan();
+    default void scan() {
+        scan(true);
+    }
+
+    /**
+     * Initializes this cursor so that it will scan over all existing entities. Each call to {@link #next()} will
+     * advance the cursor so that the next entity is read.
+     * @param includeChangesFromThisTransaction if {@code true} then changes made in this transaction will be included in the scan.
+     */
+    void scan(boolean includeChangesFromThisTransaction);
 
     /**
      * Initializes this cursor to perform batched scan.

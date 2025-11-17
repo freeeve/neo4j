@@ -89,7 +89,7 @@ class PropertyKeyTokenStoreTest extends TokenStoreTestTemplate<PropertyKeyTokenR
         }
 
         @Override
-        public PageCursor readCursor(CursorType type) {
+        public PageCursor readCursor(CursorType type, boolean includeChangesFromThisTransaction) {
             return switch ((RecordCursorTypes) type) {
                 case PROPERTY_KEY_TOKEN_CURSOR -> {
                     if (storeCursor == null) {

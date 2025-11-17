@@ -27,8 +27,8 @@ import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
 public class UnboundedReadVersionContext implements VersionContext {
     private static final long INVALID_TRANSACTION_ID = 0;
     private final long oldestTransactionId;
-    private long committingTransactionId = INVALID_TRANSACTION_ID;
-    private long committingAppendIndex = INVALID_TRANSACTION_ID;
+    private long committingTransactionId;
+    private long committingAppendIndex;
 
     public UnboundedReadVersionContext() {
         this(INVALID_TRANSACTION_ID, INVALID_TRANSACTION_ID, INVALID_TRANSACTION_ID);

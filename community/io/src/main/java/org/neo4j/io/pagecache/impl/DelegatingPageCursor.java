@@ -273,6 +273,11 @@ public class DelegatingPageCursor extends PageCursor {
         return delegate.getByteOrder();
     }
 
+    @Override
+    public boolean includesChangesFromThisTransaction() {
+        return delegate.includesChangesFromThisTransaction();
+    }
+
     public PageCursor unwrap() {
         return delegate;
     }

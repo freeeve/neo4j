@@ -23,6 +23,7 @@ import static org.neo4j.io.pagecache.context.TransactionIdSnapshot.isNotVisible;
 
 import java.io.IOException;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.io.pagecache.context.VersionContext;
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.PinEvent;
 
@@ -82,7 +83,7 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
             long pagePointer = pointer;
             version = getLongAt(pagePointer, littleEndian);
             versionContext.observedChainHead(version);
-            if (shouldLoadSnapshot(version)) {
+            if (shouldLoadSnapshot(version, versionContext, cursorContext.includeCurrentTransaction())) {
                 versionContext.markHeadInvisible();
                 if (chainFollow) {
                     versionStorage.loadReadSnapshot(this, versionContext, pinEvent);
@@ -91,10 +92,13 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
         }
     }
 
-    private boolean shouldLoadSnapshot(long pageVersion) {
-        return pageVersion != versionContext.committingTransactionId()
-                && (pageVersion > versionContext.highestClosed()
-                        || isNotVisible(versionContext.notVisibleTransactionIds(), pageVersion));
+    private static boolean shouldLoadSnapshot(
+            long pageVersion, VersionContext versionContext, boolean includeCurrentTransaction) {
+        if (pageVersion == versionContext.committingTransactionId()) {
+            return !includeCurrentTransaction;
+        }
+        return pageVersion > versionContext.highestClosed()
+                || isNotVisible(versionContext.notVisibleTransactionIds(), pageVersion);
     }
 
     @Override
@@ -228,5 +232,10 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
     @Override
     public void setPageHorizon(long horizon) {
         throw new IllegalStateException("Cannot mark read only page");
+    }
+
+    @Override
+    public boolean includesChangesFromThisTransaction() {
+        return multiVersioned && cursorContext.includeCurrentTransaction();
     }
 }

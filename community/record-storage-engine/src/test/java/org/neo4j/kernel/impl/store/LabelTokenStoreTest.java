@@ -89,7 +89,7 @@ class LabelTokenStoreTest extends TokenStoreTestTemplate<LabelTokenRecord> {
         }
 
         @Override
-        public PageCursor readCursor(CursorType type) {
+        public PageCursor readCursor(CursorType type, boolean includeChangesFromThisTransaction) {
             return switch ((RecordCursorTypes) type) {
                 case LABEL_TOKEN_CURSOR -> {
                     if (storeCursor == null) {

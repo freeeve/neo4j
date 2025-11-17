@@ -27,18 +27,35 @@ import org.neo4j.io.pagecache.tracing.cursor.CursorStatisticSnapshot;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 
 public class CursorContext implements AutoCloseable {
-    public static final CursorContext NULL_CONTEXT =
-            new CursorContext(NULL_CONTEXT_FACTORY, PageCursorTracer.NULL, EMPTY_VERSION_CONTEXT);
+    public static final CursorContext NULL_CONTEXT = new NullCursorContext();
 
     private final PageCursorTracer cursorTracer;
     private final VersionContext versionContext;
+    private final CursorContext noCurrentTransactionContext;
     private final CursorContextFactory contextFactory;
+    private final boolean includeCurrentTransaction;
 
     protected CursorContext(
             CursorContextFactory contextFactory, PageCursorTracer cursorTracer, VersionContext versionContext) {
+        this(
+                contextFactory,
+                requireNonNull(cursorTracer),
+                requireNonNull(versionContext),
+                new CursorContext(contextFactory, cursorTracer, versionContext, null, false),
+                true);
+    }
+
+    private CursorContext(
+            CursorContextFactory contextFactory,
+            PageCursorTracer cursorTracer,
+            VersionContext versionContext,
+            CursorContext noCurrentTransactionContext,
+            boolean includeCurrentTransaction) {
+        this.contextFactory = contextFactory;
         this.cursorTracer = requireNonNull(cursorTracer);
         this.versionContext = requireNonNull(versionContext);
-        this.contextFactory = contextFactory;
+        this.noCurrentTransactionContext = noCurrentTransactionContext == null ? this : noCurrentTransactionContext;
+        this.includeCurrentTransaction = includeCurrentTransaction;
     }
 
     public PageCursorTracer getCursorTracer() {
@@ -47,6 +64,17 @@ public class CursorContext implements AutoCloseable {
 
     public VersionContext getVersionContext() {
         return versionContext;
+    }
+
+    public CursorContext noCurrentTransactionContext() {
+        return noCurrentTransactionContext;
+    }
+
+    /**
+     * @return if cursors using this context should include versions created by the current transaction
+     */
+    public boolean includeCurrentTransaction() {
+        return includeCurrentTransaction;
     }
 
     @Override
@@ -71,5 +99,16 @@ public class CursorContext implements AutoCloseable {
 
     public CursorContext createUnboundedRelatedContext() {
         return new CursorContext(contextFactory, cursorTracer, EMPTY_VERSION_CONTEXT);
+    }
+
+    private static class NullCursorContext extends CursorContext {
+        private NullCursorContext() {
+            super(NULL_CONTEXT_FACTORY, PageCursorTracer.NULL, EMPTY_VERSION_CONTEXT);
+        }
+
+        @Override
+        public String toString() {
+            return "!!!THIS IS THE NULL CURSOR CONTEXT!!!";
+        }
     }
 }

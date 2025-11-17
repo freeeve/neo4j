@@ -101,7 +101,7 @@ public class StorageRelationshipByNodeScanCursor
     }
 
     @Override
-    public void scan() {
+    public void scan(boolean includeChangesFromThisTransaction) {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 

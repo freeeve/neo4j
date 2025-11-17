@@ -89,7 +89,7 @@ class RelationshipTypeTokenStoreTest extends TokenStoreTestTemplate<Relationship
         }
 
         @Override
-        public PageCursor readCursor(CursorType type) {
+        public PageCursor readCursor(CursorType type, boolean includeChangesFromThisTransaction) {
             return switch ((RecordCursorTypes) type) {
                 case REL_TYPE_TOKEN_CURSOR -> {
                     if (storeCursor == null) {

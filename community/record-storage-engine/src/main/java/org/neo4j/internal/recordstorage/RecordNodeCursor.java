@@ -93,7 +93,7 @@ public class RecordNodeCursor extends NodeRecord implements StorageNodeCursor {
     }
 
     @Override
-    public void scan() {
+    public void scan(boolean includeChangesFromThisTransaction) {
         if (getId() != LongReference.NULL) {
             resetState();
         }

@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.store.cursor;
 
 import static org.neo4j.util.FeatureToggles.flag;
 
+import java.util.function.Consumer;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -33,12 +34,14 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
     protected CursorContext cursorContext;
     private final int numTypes;
 
-    protected PageCursor[] cursorsByType;
+    private PageCursor[] cursorsByType;
+    private PageCursor[] noCurrentTransactionCursorsByType;
 
     public AbstractCachedStoreCursors(CursorContext cursorContext, int numTypes) {
         this.cursorContext = cursorContext;
         this.numTypes = numTypes;
         this.cursorsByType = createEmptyCursorArray();
+        this.noCurrentTransactionCursorsByType = createEmptyCursorArray();
     }
 
     @Override
@@ -48,8 +51,15 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
     }
 
     protected void resetCursors() {
-        for (int i = 0; i < cursorsByType.length; i++) {
-            PageCursor pageCursor = cursorsByType[i];
+        reset(cursorsByType);
+        reset(noCurrentTransactionCursorsByType);
+        cursorsByType = createEmptyCursorArray();
+        noCurrentTransactionCursorsByType = createEmptyCursorArray();
+    }
+
+    private void reset(PageCursor[] cursors) {
+        for (int i = 0; i < cursors.length; i++) {
+            PageCursor pageCursor = cursors[i];
             if (pageCursor != null) {
                 if (CHECK_READ_CURSORS) {
                     checkReadCursor(pageCursor, i, "");
@@ -57,21 +67,28 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
                 pageCursor.close();
             }
         }
-        cursorsByType = createEmptyCursorArray();
     }
 
     @Override
-    public PageCursor readCursor(CursorType type) {
-        int value = type.value();
-        var cursor = cursorsByType[value];
-        if (cursor == null) {
-            cursor = createReadCursor(type);
-            cursorsByType[value] = cursor;
+    public PageCursor readCursor(CursorType type, boolean includeChangesFromThisTransaction) {
+        if (includeChangesFromThisTransaction) {
+            return readCursorFrom(type, cursorsByType, cursorContext);
         }
-        return cursor;
+        return readCursorFrom(type, noCurrentTransactionCursorsByType, cursorContext.noCurrentTransactionContext());
     }
 
-    protected abstract PageCursor createReadCursor(CursorType type);
+    private PageCursor readCursorFrom(CursorType type, PageCursor[] cursorsArray, CursorContext context) {
+        int value = type.value();
+        var cursor = cursorsArray[value];
+        if (cursor != null) {
+            return cursor;
+        }
+        var newCursor = createReadCursor(type, context);
+        cursorsArray[value] = newCursor;
+        return newCursor;
+    }
+
+    protected abstract PageCursor createReadCursor(CursorType type, CursorContext cursorContext);
 
     @Override
     public void close() {
@@ -80,6 +97,19 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
 
     private PageCursor[] createEmptyCursorArray() {
         return new PageCursor[numTypes];
+    }
+
+    public void visit(Consumer<PageCursor> procedure) {
+        visit(procedure, cursorsByType);
+        visit(procedure, noCurrentTransactionCursorsByType);
+    }
+
+    private void visit(Consumer<PageCursor> procedure, PageCursor[] cursors) {
+        for (var pageCursor : cursors) {
+            if (pageCursor != null) {
+                procedure.accept(pageCursor);
+            }
+        }
     }
 
     protected static void checkReadCursor(PageCursor pageCursor, int type, String prefix) {

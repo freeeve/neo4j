@@ -27,7 +27,7 @@ public class StoreCursorsAdapter implements StoreCursors {
     public void reset(CursorContext cursorContext) {}
 
     @Override
-    public PageCursor readCursor(CursorType type) {
+    public PageCursor readCursor(CursorType type, boolean includeChangesFromThisTransaction) {
         return null;
     }
 

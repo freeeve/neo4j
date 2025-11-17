@@ -437,4 +437,12 @@ public abstract class PageCursor implements AutoCloseable {
      * @return the byte order used to read and write.
      */
     public abstract ByteOrder getByteOrder();
+
+    /**
+     * @return {@code true} if this cursor includes changes from the current transaction.
+     * This method can return {@code false} only in multiversion mode.
+     */
+    public boolean includesChangesFromThisTransaction() {
+        return true;
+    }
 }

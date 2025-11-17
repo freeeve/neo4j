@@ -35,7 +35,14 @@ public interface StoreCursors extends AutoCloseable {
 
     void reset(CursorContext cursorContext);
 
-    PageCursor readCursor(CursorType type);
+    default PageCursor readCursor(CursorType type) {
+        return readCursor(type, true);
+    }
+
+    /**
+     * If {@code includeChangesFromThisTransaction} is {@code false} then cursor will not include changes from this transaction in mutliversion enabled storage
+     */
+    PageCursor readCursor(CursorType type, boolean includeChangesFromThisTransaction);
 
     PageCursor writeCursor(CursorType type);
 

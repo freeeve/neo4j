@@ -64,7 +64,7 @@ public class CachedStoreCursors extends AbstractCachedStoreCursors {
     }
 
     @Override
-    protected PageCursor createReadCursor(CursorType type) {
+    protected PageCursor createReadCursor(CursorType type, CursorContext cursorContext) {
         return switch (cast(type)) {
             case NODE_CURSOR -> neoStores.getNodeStore().openPageCursorForReading(0, cursorContext);
             case GROUP_CURSOR -> neoStores.getRelationshipGroupStore().openPageCursorForReading(0, cursorContext);
