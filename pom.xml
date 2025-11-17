@@ -181,24 +181,24 @@
     <metrics.version>4.2.37</metrics.version>
     <scala.target.vm>${vm.target.version}</scala.target.vm>
     <jersey.version>2.43</jersey.version>
-    <junit.version>6.0.0</junit.version>
-    <junit.platform.version>6.0.0</junit.platform.version>
+    <junit.version>6.0.1</junit.version>
+    <junit.platform.version>6.0.1</junit.platform.version>
     <mockito.version>5.20.0</mockito.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
-    <cucumber.version>7.30.0</cucumber.version>
-    <cucumber.scala.version>8.26.1</cucumber.scala.version>
-    <caffeine.version>3.2.2</caffeine.version>
+    <cucumber.version>7.31.0</cucumber.version>
+    <cucumber.scala.version>8.36.0</cucumber.scala.version>
+    <caffeine.version>3.2.3</caffeine.version>
     <required.maven.version>3.9.11</required.maven.version>
-    <jackson.version>2.20.0</jackson.version>
-    <jackson-databind.version>2.20.0</jackson-databind.version>
+    <jackson.version>2.20.1</jackson.version>
+    <jackson-databind.version>2.20.1</jackson-databind.version>
     <amazon-sdk.version>1.12.791</amazon-sdk.version>
-    <awssdk.version>2.35.5</awssdk.version>
-    <awssdk-crt.version>0.39.0</awssdk-crt.version>
-    <guava.version>33.4.8-jre</guava.version>
+    <awssdk.version>2.38.6</awssdk.version>
+    <awssdk-crt.version>0.39.4</awssdk-crt.version>
+    <guava.version>33.5.0-jre</guava.version>
     <awaitility.version>4.3.0</awaitility.version>
     <log4j.version>2.25.2</log4j.version>
     <slf4j.version>2.0.17</slf4j.version>
-    <neo4j-java-driver.version>6.0.1</neo4j-java-driver.version>
+    <neo4j-java-driver.version>6.0.2</neo4j-java-driver.version>
     <!-- there is a non-standard behaviour of map merge in the 13.0 version can't upgrade for now-->
     <eclipse-collections.version>11.1.0</eclipse-collections.version>
     <parquet-floor.version>1.59</parquet-floor.version>
@@ -207,16 +207,16 @@
     <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
     <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
     <antlr.version>4.13.2</antlr.version> <!-- You MUST re-generate the parsers after changing this value! -->
-    <error_prone.version>2.42.0</error_prone.version>
-    <protobuf.version>4.32.1</protobuf.version>
+    <error_prone.version>2.44.0</error_prone.version>
+    <protobuf.version>4.33.1</protobuf.version>
     <teavm.version>0.13.0</teavm.version>
     <javapoet.version>1.13.0</javapoet.version>
     <grpc.version>1.76.0</grpc.version>
     <testcontainers.version>1.21.3</testcontainers.version>
     <build-resources.version>2025.11.1</build-resources.version>
-    <s3mock.version>4.9.1</s3mock.version>
-    <shiro.version>2.0.5</shiro.version>
-    <cypherdsl.version>2025.0.3</cypherdsl.version>
+    <s3mock.version>4.10.0</s3mock.version>
+    <shiro.version>2.0.6</shiro.version>
+    <cypherdsl.version>2025.2.0</cypherdsl.version>
     <jsr305.version>3.0.2</jsr305.version>
     <json4s.version>3.6.11</json4s.version>
     <java-jwt.version>4.5.0</java-jwt.version>
@@ -1603,7 +1603,7 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.19.0</version>
+        <version>1.20.0</version>
       </dependency>
 
       <dependency>
@@ -1824,7 +1824,7 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.20.0</version>
+        <version>2.21.0</version>
       </dependency>
       <dependency>
         <groupId>commons-logging</groupId>
@@ -1849,7 +1849,7 @@
       <dependency>
         <groupId>com.github.luben</groupId>
         <artifactId>zstd-jni</artifactId>
-        <version>1.5.7-5</version>
+        <version>1.5.7-6</version>
       </dependency>
 
       <!--
@@ -1859,7 +1859,7 @@
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
-        <version>4.2.6.Final</version>
+        <version>4.2.7.Final</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -2138,7 +2138,7 @@
       <dependency>
         <groupId>net.bytebuddy</groupId>
         <artifactId>byte-buddy</artifactId>
-        <version>1.17.8</version>
+        <version>1.18.1</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>

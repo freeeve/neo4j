@@ -261,6 +261,7 @@ MIT License
   sourcecode_2.13
   TeamCity Formatter
   TestNG XML Formatter
+  Usage Formatter
 
 MIT No Attribution License
   reactive-streams

@@ -36,7 +36,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.provider.Arguments;
-import org.openapitools.db_control.client.model.DeletionProtection;
 import org.openapitools.db_control.client.model.IndexModel;
 import org.openapitools.db_control.client.model.IndexModelStatus;
 
@@ -83,7 +82,7 @@ final class PineconeIT extends IntegrationTestBase {
         Runnable doAssert = () -> {
             try {
                 IndexModel im = pc.describeIndex(indexName);
-                assertThat(im.getStatus().getState()).isEqualTo(IndexModelStatus.StateEnum.READY);
+                assertThat(im.getStatus().getState()).isEqualTo(IndexModelStatus.SERIALIZED_NAME_READY);
             } catch (PineconeNotFoundException ex) {
                 Assertions.fail();
             }
@@ -281,12 +280,11 @@ final class PineconeIT extends IntegrationTestBase {
                             4,
                             "aws",
                             "us-east-1",
-                            indexName.equals("somecollection")
-                                    ? DeletionProtection.ENABLED
-                                    : DeletionProtection.DISABLED,
+                            indexName.equals("somecollection") ? "enabled" : "disabled",
                             emptyMap());
                 }
-                return im.getStatus().getState() != IndexModelStatus.StateEnum.READY;
+                return !IndexModelStatus.SERIALIZED_NAME_READY.equals(
+                        im.getStatus().getState());
             });
         }
 
