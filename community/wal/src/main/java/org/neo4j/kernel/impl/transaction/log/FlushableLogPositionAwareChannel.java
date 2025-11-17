@@ -31,4 +31,6 @@ public interface FlushableLogPositionAwareChannel extends FlushableChannel, LogP
     int write(ByteBuffer buffer, long offset) throws IOException;
 
     boolean handlesRotationInternally();
+
+    default void prepareWrite() throws IOException {}
 }

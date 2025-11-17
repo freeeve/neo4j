@@ -404,16 +404,19 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
     @Override
     public byte markAndGetVersion(LogPositionMarker marker) throws IOException {
-        // initialise the marker in case the channel is empty or already at the correct position
-        getCurrentLogPosition(marker);
+        // Mark before reading since getVersion can throw ReadPastEndException
+        marker.mark(channel.getLogVersion(), position());
 
         byte versionByte = getVersion();
         checkState(versionByte != IGNORE_CONTENT_VERSION, "Could not find a valid envelope header.");
 
-        if (!marker.isMarkerInLog(channel.getLogVersion())) {
-            // reading the header forced the channel to move to the next log - let's re-mark at the correct location
-            marker.mark(channel.getLogVersion(), position() - HEADER_SIZE);
+        // Mark position to start of envelope
+        long position = position();
+        if (buffer.position() == payloadStartOffset) {
+            position -= HEADER_SIZE;
         }
+        marker.mark(channel.getLogVersion(), position);
+
         return versionByte;
     }
 

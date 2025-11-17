@@ -41,4 +41,6 @@ public interface PhysicalLogChannel extends FlushableChannel {
     PhysicalLogChannel directPutAll(ByteBuffer buffer, long offset) throws IOException;
 
     boolean handlesRotationInternally();
+
+    default void prepareWrite() throws IOException {}
 }

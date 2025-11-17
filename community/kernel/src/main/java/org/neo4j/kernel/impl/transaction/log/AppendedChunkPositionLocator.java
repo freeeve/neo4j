@@ -47,59 +47,53 @@ public class AppendedChunkPositionLocator implements LogFile.LogFileVisitor {
     @Override
     public boolean visit(ReadableLogPositionAwareChannel channel) throws IOException {
         LogPosition lastStartPosition = null;
-        LogEntry logEntry;
+        channel.alignWithStartEntry();
 
-        long offset = channel.alignWithStartEntry();
-        LogPosition logPosition =
-                new LogPosition(channel.getCurrentLogPosition().getLogVersion(), offset);
-
-        do {
-            logEntry = logEntryReader.readLogEntry(channel);
-            if (logEntry != null) {
-                switch (logEntry.getType()) {
-                    case TX_START -> {
-                        if (logEntry instanceof LogEntryStart entryStart) {
-                            if (entryStart.kernelVersion().isAtLeast(VERSION_APPEND_INDEX_INTRODUCED)
-                                    && (entryStart.getAppendIndex() == appendIndex)) {
-                                position = logPosition;
-                                return false;
-                            }
-                            lastStartPosition = logPosition;
-                        }
-                    }
-                    case CHUNK_START -> {
-                        if (logEntry instanceof LogEntryChunkStart chunkStart) {
-                            if (chunkStart.getAppendIndex() == appendIndex) {
-                                position = logPosition;
-                                return false;
-                            }
-                        }
-                    }
-                    case TX_ROLLBACK -> {
-                        if (logEntry instanceof LogEntryRollback rollback) {
-                            if (rollback.getAppendIndex() == appendIndex) {
-                                position = logPosition;
-                                return false;
-                            }
-                        }
-                    }
-                    case TX_COMMIT -> {
-                        if (logEntry instanceof LogEntryCommit commit) {
-                            if (commit.kernelVersion().isLessThan(VERSION_APPEND_INDEX_INTRODUCED)
-                                    && (commit.getTxId() == appendIndex)) {
-                                position = lastStartPosition;
-                                return false;
-                            }
-                        }
-                    }
-                    default -> {} // just skip commands
-                }
-                logPosition = channel.getCurrentLogPosition();
+        while (true) {
+            LogEntry logEntry = logEntryReader.readLogEntry(channel);
+            if (logEntry == null) {
+                // Reached end, fallback to file position
+                position = channel.getCurrentLogPosition();
+                return true;
             }
-        } while (logEntry != null);
 
-        position = channel.getCurrentLogPosition();
-        return true;
+            position = logEntryReader.lastPosition();
+            switch (logEntry.getType()) {
+                case TX_START -> {
+                    if (logEntry instanceof LogEntryStart entryStart) {
+                        if (entryStart.kernelVersion().isAtLeast(VERSION_APPEND_INDEX_INTRODUCED)
+                                && (entryStart.getAppendIndex() == appendIndex)) {
+                            return false;
+                        }
+                        lastStartPosition = position;
+                    }
+                }
+                case CHUNK_START -> {
+                    if (logEntry instanceof LogEntryChunkStart chunkStart) {
+                        if (chunkStart.getAppendIndex() == appendIndex) {
+                            return false;
+                        }
+                    }
+                }
+                case TX_ROLLBACK -> {
+                    if (logEntry instanceof LogEntryRollback rollback) {
+                        if (rollback.getAppendIndex() == appendIndex) {
+                            return false;
+                        }
+                    }
+                }
+                case TX_COMMIT -> {
+                    if (logEntry instanceof LogEntryCommit commit) {
+                        if (commit.kernelVersion().isLessThan(VERSION_APPEND_INDEX_INTRODUCED)
+                                && (commit.getTxId() == appendIndex)) {
+                            position = lastStartPosition;
+                            return false;
+                        }
+                    }
+                }
+                default -> {} // just skip commands
+            }
+        }
     }
 
     public LogPosition getLogPositionOrThrow() throws NoSuchLogEntryException {

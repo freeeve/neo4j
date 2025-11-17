@@ -179,9 +179,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     }
 
     public void prepareNextEnvelope() throws IOException {
-        if ((buffer.position() + LogEnvelopeHeader.HEADER_SIZE) >= nextSegmentOffset) {
-            padSegmentAndGoToNext();
-        }
+        prepareWrite();
         beginNewEnvelope();
     }
 
@@ -421,6 +419,13 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     @Override
     public boolean handlesRotationInternally() {
         return true;
+    }
+
+    @Override
+    public void prepareWrite() throws IOException {
+        if ((buffer.position() + LogEnvelopeHeader.HEADER_SIZE) >= nextSegmentOffset) {
+            padSegmentAndGoToNext();
+        }
     }
 
     public void putTerm(long term) {

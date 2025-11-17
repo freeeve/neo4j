@@ -2413,6 +2413,74 @@ class EnvelopeWriteChannelTest {
         }
     }
 
+    @Test
+    void prepareWriteWillPositionForWriting() throws IOException {
+        int segmentSize = 128;
+        int padding = 2;
+        int maxLogFileSize = segmentSize * 3;
+        int payloadSize = segmentSize - HEADER_SIZE - padding;
+        byte[] byteData = bytes(random, payloadSize);
+
+        long initialLogVersion = 0L;
+
+        int[] checksums = new int[] {0x79978646, 0x93333558};
+
+        final var fileChannel = storeChannel(initialLogVersion);
+
+        Path rotatedPath = logPath(initialLogVersion + 1);
+
+        final var buffer = buffer(segmentSize * 3);
+        try (var channel = writeChannel(
+                fileChannel,
+                segmentSize,
+                buffer,
+                logRotation(fileChannel, header(segmentSize), maxLogFileSize),
+                LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+
+            assertThat(channel.position()).isEqualTo(segmentSize + segmentSize - padding);
+            assertThat(fileSystem.fileExists(rotatedPath))
+                    .as("should not have created the second log file yet")
+                    .isFalse();
+
+            // After this prepareWrite the padding should have been added and we should be at the next segment boundary
+            channel.prepareWrite();
+            assertThat(channel.position()).isEqualTo(segmentSize + segmentSize);
+
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+
+            assertThat(channel.position()).isEqualTo(segmentSize + segmentSize + segmentSize - padding);
+            assertThat(fileSystem.fileExists(rotatedPath))
+                    .as("should not have created the second log file yet")
+                    .isFalse();
+
+            // After this prepareWrite the padding should have been added and file rotated
+            channel.prepareWrite();
+            assertThat(fileSystem.fileExists(rotatedPath))
+                    .as("should have created the second log file")
+                    .isTrue();
+            assertThat(channel.position()).isEqualTo(segmentSize);
+
+            assertEnvelopeContents(
+                    channelData(fileChannel, segmentSize),
+                    envelope(EnvelopeType.FULL, FIRST_INDEX, byteData, checksums[0]),
+                    envelope(EnvelopeType.ZERO, 0, new byte[padding], 0),
+                    envelope(EnvelopeType.FULL, FIRST_INDEX + 1, byteData, checksums[1]));
+        }
+    }
+
     private PhysicalLogVersionedStoreChannel storeChannel() throws IOException {
         return storeChannel(1L);
     }

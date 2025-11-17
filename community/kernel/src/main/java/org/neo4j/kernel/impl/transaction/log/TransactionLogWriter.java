@@ -105,6 +105,7 @@ public class TransactionLogWriter {
             previousKernelVersion = kernelVersion;
             channel.resetAppendedBytesCounter();
         }
+        channel.prepareWrite();
         channel.getCurrentLogPosition(logPositionMarker);
 
         if (batch.isRollback()) {
