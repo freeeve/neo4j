@@ -64,7 +64,9 @@ object InterestingOrderConfig {
     isRhs: Boolean,
     isHorizon: Boolean
   ): InterestingOrderConfig = {
-    if (isRhs) {
+    val readOnly = if (isHorizon) query.tail.forall(_.readOnly) else query.readOnly
+
+    if (isRhs || !readOnly) {
       InterestingOrderConfig(query.interestingOrder.asInteresting)
     } else {
       val orderToReport = query.interestingOrder

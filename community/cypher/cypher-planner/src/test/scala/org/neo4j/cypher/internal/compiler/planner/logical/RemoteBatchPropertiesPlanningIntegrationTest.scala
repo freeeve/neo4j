@@ -44,8 +44,6 @@ import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
-import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
-import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
@@ -3173,73 +3171,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .projection("anon_0 - 5 AS count")
         .aggregation(Seq(), Seq("count(*) AS anon_0"))
         .argument()
-        .build()
-    )
-  }
-
-  test("Order by property that is already sorted when doing complicated write") {
-
-    val query =
-      """MATCH (a:A)
-        |WITH a ORDER BY a.born
-        |CALL () {
-        |  MERGE (x:A) ON MATCH SET x.born = 2020 - x.age
-        |  RETURN count(*) AS dummy
-        |}
-        |RETURN a.born ORDER BY a.born
-        |""".stripMargin
-
-    val planner =
-      spdPlanner
-        .setAllNodesCardinality(1000)
-        .setLabelCardinality("A", 100)
-        .build()
-
-    planner.plan(query) should equal(
-      planner.planBuilder()
-        .produceResults("`a.born`")
-        .sort("`a.born` ASC")
-        .projection("cacheN[a.born] AS `a.born`")
-        .remoteBatchProperties("cacheNFromStore[a.born]")
-        .eager(ListSet(propReadSetConflict("born", 7, 2)))
-        .apply()
-        .|.aggregation(Seq(), Seq("count(*) AS dummy"))
-        .|.merge(
-          nodes = Seq(createNodeFull("x", Seq("A"))),
-          onMatch = Seq(setNodeProperty("x", "born", "2020 - cacheN[x.age]"))
-        )
-        .|.remoteBatchProperties("cacheNFromStore[x.age]")
-        .|.nodeByLabelScan("x", "A", IndexOrderNone)
-        .sort("`a.born` ASC")
-        .projection("cacheN[a.born] AS `a.born`")
-        .remoteBatchProperties("cacheNFromStore[a.born]")
-        .nodeByLabelScan("a", "A", IndexOrderNone)
-        .build()
-    )
-  }
-
-  test("should sort before mutation") {
-
-    val query =
-      """MATCH (a)
-        |WITH a ORDER BY a.prop
-        |CREATE (x {prop: a.prop})
-        |""".stripMargin
-
-    val planner =
-      spdPlanner
-        .setAllNodesCardinality(1000)
-        .setLabelCardinality("A", 100)
-        .build()
-
-    planner.plan(query).stripProduceResults should equal(
-      planner.subPlanBuilder()
-        .emptyResult()
-        .create(createNodeFull("x", properties = Some("{prop: cacheN[a.prop]}")))
-        .sort("`a.prop` ASC")
-        .projection("cacheN[a.prop] AS `a.prop`")
-        .remoteBatchProperties("cacheNFromStore[a.prop]")
-        .allNodeScan("a")
         .build()
     )
   }
