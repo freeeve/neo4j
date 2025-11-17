@@ -135,7 +135,7 @@ class ShowDatabaseService(
         val propertyShardInfos =
           allDbInfos.filter(info => propertyShardDatabaseIds.contains(info.details.namedDatabaseId()))
         val groupedStatus = (graphShardInfos ++ propertyShardInfos).map(databaseDetail =>
-          databaseDetail.details.status()
+          databaseDetail.details.actualStatus()
         ).groupBy(identity).view.mapValues(_.size)
         val (status, statusMessage) = if (groupedStatus.size == 1) {
           (groupedStatus.head._1, "")
@@ -146,7 +146,7 @@ class ShowDatabaseService(
 
         graphShardInfos.map(databaseInfo =>
           ShowDatabaseResult(
-            databaseDetailsForGraphShard(databaseInfo.details, status, statusMessage, spdId),
+            databaseDetailsForSPD(databaseInfo.details, status, statusMessage, spdId),
             Seq.empty,
             allReferences(ref).map(_.name()),
             Some(Seq(ref.graphShard().name())),
@@ -158,9 +158,9 @@ class ShowDatabaseService(
     spdMetadata ++ allDbInfos.filter(info => accessibleDatabases.contains(info.details.namedDatabaseId())).toSeq
   }
 
-  private def databaseDetailsForGraphShard(
+  private def databaseDetailsForSPD(
     databaseDetails: DatabaseDetails,
-    status: String,
+    actualStatus: String,
     statusMessage: String,
     spdId: NamedDatabaseId
   ): DatabaseDetails = new DatabaseDetails(
@@ -169,21 +169,27 @@ class ShowDatabaseService(
     databaseDetails.boltAddress(),
     databaseDetails.role,
     databaseDetails.writer(),
-    status,
+    actualStatus,
     statusMessage,
     Option.empty.toJava,
     Option.empty.toJava,
     Option.empty.toJava,
     // database level values - will be the same for all members
     spdId,
-    // replace with spd
+    databaseDetails.requestedStatus(),
     DatabaseDetails.TYPE_STANDARD,
     // this is not great as these are the options of the graph shard which is not the same as the options of spd
     databaseDetails.options,
     Option.empty.toJava,
     databaseDetails.externalStoreId(),
     null,
-    null
+    null,
+    null,
+    null,
+    databaseDetails.creationTime(),
+    databaseDetails.lastStartTime(),
+    databaseDetails.lastStopTime(),
+    databaseDetails.cypherVersion()
   )
 
   private def lookupDbInfos(

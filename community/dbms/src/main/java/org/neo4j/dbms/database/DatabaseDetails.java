@@ -19,9 +19,11 @@
  */
 package org.neo4j.dbms.database;
 
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Optional;
 import org.neo4j.configuration.helpers.SocketAddress;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.dbms.identity.ServerId;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel;
 import org.neo4j.kernel.database.NamedDatabaseId;
@@ -36,19 +38,26 @@ public record DatabaseDetails(
         Optional<SocketAddress> boltAddress,
         Optional<String> role,
         boolean writer,
-        String status,
+        String actualStatus,
         String statusMessage,
         Optional<Long> lastCommittedTxId,
         Optional<Long> txCommitLag,
         Optional<Long> shardCommitLag,
         // database level values - will be the same for all members
         NamedDatabaseId namedDatabaseId,
+        String requestedStatus,
         String type,
         Map<String, String> options,
         Optional<StoreId> storeId,
         Optional<ExternalStoreId> externalStoreId,
+        Integer requestedPrimariesCount,
         Integer actualPrimariesCount,
-        Integer actualSecondariesCount) {
+        Integer requestedSecondariesCount,
+        Integer actualSecondariesCount,
+        Optional<ZonedDateTime> creationTime,
+        Optional<ZonedDateTime> lastStartTime,
+        Optional<ZonedDateTime> lastStopTime,
+        Optional<CypherVersion> cypherVersion) {
 
     public static final String ROLE_PRIMARY = "primary";
     public static final String ROLE_SECONDARY = "secondary";

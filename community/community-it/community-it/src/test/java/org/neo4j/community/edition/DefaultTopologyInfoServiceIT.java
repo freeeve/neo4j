@@ -88,16 +88,20 @@ public class DefaultTopologyInfoServiceIT {
         allDatabases.add(nonExistingDatabase);
 
         // when
-        // DefaultTopologyInfoService does not use the transaction
-        var results = topologyInfoService.databases(null, allDatabases, TopologyInfoService.RequestedExtras.NONE);
-        var returnedDatabases =
-                results.stream().collect(Collectors.toMap(DatabaseDetails::namedDatabaseId, Function.identity()));
+        try (var tx = dbms.database(SYSTEM_DATABASE_NAME).beginTx()) {
+            var results = topologyInfoService.databases(tx, allDatabases, TopologyInfoService.RequestedExtras.NONE);
+            var returnedDatabases =
+                    results.stream().collect(Collectors.toMap(DatabaseDetails::namedDatabaseId, Function.identity()));
 
-        // then
-        assertThat(returnedDatabases.size()).isEqualTo(allDatabases.size());
-        assertThat(returnedDatabases.get(nonExistingDatabase).status()).isEqualTo("unknown");
-        assertThat(returnedDatabases.get(existingDatabases.iterator().next()).status())
-                .isEqualTo("online");
+            // then
+            assertThat(returnedDatabases.size()).isEqualTo(allDatabases.size());
+            assertThat(returnedDatabases.get(nonExistingDatabase).actualStatus())
+                    .isEqualTo("unknown");
+            assertThat(returnedDatabases
+                            .get(existingDatabases.iterator().next())
+                            .actualStatus())
+                    .isEqualTo("online");
+        }
     }
 
     NamedDatabaseId getIdForName(String name) {

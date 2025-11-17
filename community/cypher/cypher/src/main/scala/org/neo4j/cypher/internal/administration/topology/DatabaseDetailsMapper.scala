@@ -99,7 +99,7 @@ object DatabaseDetailsMapper {
         Values.booleanValue(databaseDetails.writer()),
         Values.booleanValue(databaseDetails.namedDatabaseId().name().equals(defaultDatabase)),
         Values.booleanValue(databaseDetails.namedDatabaseId().name().equals(homeDatabase)),
-        Values.stringValue(databaseDetails.status()),
+        Values.stringValue(databaseDetails.actualStatus()),
         Values.stringValue(databaseDetails.statusMessage()),
         databaseDetails.readableExternalStoreId().map[AnyValue](s => Values.stringValue(s)).orElse(Values.NO_VALUE),
         databaseDetails.serverId().map[AnyValue](s => Values.stringValue(s.uuid().toString)).orElse(Values.NO_VALUE),

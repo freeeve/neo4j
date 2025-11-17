@@ -29,11 +29,16 @@ import static org.neo4j.dbms.database.DatabaseDetails.ROLE_PRIMARY;
 import static org.neo4j.dbms.database.DatabaseDetails.TYPE_STANDARD;
 import static org.neo4j.dbms.database.DatabaseDetails.TYPE_SYSTEM;
 import static org.neo4j.dbms.database.TopologyInfoService.RequestedExtras.ALL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_CREATED_AT_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STARTED_AT_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DatabaseAccess.READ_WRITE;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DatabaseStatus.ONLINE;
 import static org.neo4j.kernel.database.DatabaseId.SYSTEM_DATABASE_ID;
 import static org.neo4j.kernel.database.NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID;
 import static org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME;
 
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -41,12 +46,15 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.connectors.BoltConnector;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.dbms.DatabaseState;
 import org.neo4j.dbms.DatabaseStateService;
 import org.neo4j.dbms.OperatorState;
 import org.neo4j.dbms.database.readonly.DefaultReadOnlyDatabases;
 import org.neo4j.dbms.identity.ServerId;
 import org.neo4j.dbms.systemgraph.InstanceModeConstraint;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.database.DatabaseIdFactory;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.internal.Version;
@@ -92,8 +100,28 @@ class DefaultTopologyInfoServiceTest {
         var service = new DefaultTopologyInfoService(
                 serverId, config, stateService, new DefaultReadOnlyDatabases(), extrasProvider);
 
+        var systemNode = mock(Node.class);
+        var systemTime = ZonedDateTime.now().minusHours(1);
+        when(systemNode.getProperty(DATABASE_CREATED_AT_PROPERTY, null)).thenReturn(systemTime);
+        when(systemNode.getProperty(DATABASE_STARTED_AT_PROPERTY, null)).thenReturn(systemTime);
+        when(systemNode.getProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, null))
+                .thenReturn(CypherVersion.Cypher5.persistedValue);
+
+        var userNode = mock(Node.class);
+        var userTime = ZonedDateTime.now();
+        when(userNode.getProperty(DATABASE_CREATED_AT_PROPERTY, null)).thenReturn(userTime);
+        when(userNode.getProperty(DATABASE_STARTED_AT_PROPERTY, null)).thenReturn(userTime);
+        when(userNode.getProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, null))
+                .thenReturn(CypherVersion.Cypher25.persistedValue);
+
+        var tx = mock(Transaction.class);
+        when(tx.findNode(any(), any(), eq(SYSTEM_DATABASE_ID.uuid().toString())))
+                .thenReturn(systemNode);
+        when(tx.findNode(any(), any(), eq(databaseId.databaseId().uuid().toString())))
+                .thenReturn(userNode);
+
         // when
-        var result = service.databases(null, Set.of(NAMED_SYSTEM_DATABASE_ID, databaseId), ALL);
+        var result = service.databases(tx, Set.of(NAMED_SYSTEM_DATABASE_ID, databaseId), ALL);
 
         // then
         assertThat(result).hasSize(2);
@@ -102,11 +130,14 @@ class DefaultTopologyInfoServiceTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(systemDetails.databaseAccess()).isEqualTo(READ_WRITE);
-        assertThat(systemDetails.status()).isEqualTo(status);
+        assertThat(systemDetails.requestedStatus()).isEqualTo(ONLINE.statusName());
+        assertThat(systemDetails.actualStatus()).isEqualTo(status);
         assertThat(systemDetails.statusMessage()).isEmpty();
         assertThat(systemDetails.role()).hasValue(ROLE_PRIMARY);
         assertThat(systemDetails.writer()).isTrue();
+        assertThat(systemDetails.requestedPrimariesCount()).isOne();
         assertThat(systemDetails.actualPrimariesCount()).isOne();
+        assertThat(systemDetails.requestedSecondariesCount()).isZero();
         assertThat(systemDetails.actualSecondariesCount()).isZero();
         assertThat(systemDetails.type()).isEqualTo(TYPE_SYSTEM);
         assertThat(systemDetails.namedDatabaseId()).isEqualTo(NAMED_SYSTEM_DATABASE_ID);
@@ -117,17 +148,24 @@ class DefaultTopologyInfoServiceTest {
         assertThat(systemDetails.externalStoreId()).hasValue(systemExternalStoreId);
         assertThat(systemDetails.serverId()).hasValue(serverId);
         assertThat(systemDetails.boltAddress()).hasValue(boltAddress);
+        assertThat(systemDetails.creationTime()).hasValue(systemTime);
+        assertThat(systemDetails.lastStartTime()).hasValue(systemTime);
+        assertThat(systemDetails.lastStopTime()).isEmpty();
+        assertThat(systemDetails.cypherVersion()).hasValue(CypherVersion.Cypher5);
 
         var userDetails = result.stream()
                 .filter(d -> !d.namedDatabaseId().isSystemDatabase())
                 .findFirst()
                 .orElseThrow();
         assertThat(userDetails.databaseAccess()).isEqualTo(READ_WRITE);
-        assertThat(userDetails.status()).isEqualTo(status);
+        assertThat(userDetails.requestedStatus()).isEqualTo(ONLINE.statusName());
+        assertThat(userDetails.actualStatus()).isEqualTo(status);
         assertThat(userDetails.statusMessage()).isEmpty();
         assertThat(userDetails.role()).hasValue(ROLE_PRIMARY);
         assertThat(userDetails.writer()).isTrue();
+        assertThat(userDetails.requestedPrimariesCount()).isOne();
         assertThat(userDetails.actualPrimariesCount()).isOne();
+        assertThat(userDetails.requestedSecondariesCount()).isZero();
         assertThat(userDetails.actualSecondariesCount()).isZero();
         assertThat(userDetails.type()).isEqualTo(TYPE_STANDARD);
         assertThat(userDetails.namedDatabaseId()).isEqualTo(databaseId);
@@ -138,6 +176,10 @@ class DefaultTopologyInfoServiceTest {
         assertThat(userDetails.externalStoreId()).hasValue(userExternalStoreId);
         assertThat(userDetails.serverId()).hasValue(serverId);
         assertThat(userDetails.boltAddress()).hasValue(boltAddress);
+        assertThat(userDetails.creationTime()).hasValue(userTime);
+        assertThat(userDetails.lastStartTime()).hasValue(userTime);
+        assertThat(userDetails.lastStopTime()).isEmpty();
+        assertThat(userDetails.cypherVersion()).hasValue(CypherVersion.Cypher25);
     }
 
     @Test
