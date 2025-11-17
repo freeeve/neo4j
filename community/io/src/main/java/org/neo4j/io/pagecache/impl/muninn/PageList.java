@@ -92,7 +92,6 @@ class PageList implements PageReferenceTranslator {
     private final int cachePageSize;
     private final MemoryAllocator memoryAllocator;
     private final SwapperSet swappers;
-    private final long victimPageAddress;
     private final long baseAddress;
     private final long bufferAlignment;
 
@@ -101,35 +100,15 @@ class PageList implements PageReferenceTranslator {
             int cachePageSize,
             MemoryAllocator memoryAllocator,
             SwapperSet swappers,
-            long victimPageAddress,
             long bufferAlignment) {
         this.pageCount = pageCount;
         this.cachePageSize = cachePageSize;
         this.memoryAllocator = memoryAllocator;
         this.swappers = swappers;
-        this.victimPageAddress = victimPageAddress;
         long bytes = ((long) pageCount) * META_DATA_BYTES_PER_PAGE;
         this.baseAddress = memoryAllocator.allocateAligned(bytes, Long.BYTES);
         this.bufferAlignment = bufferAlignment;
         clearMemory(baseAddress, pageCount);
-    }
-
-    /**
-     * This copy-constructor is useful for classes that want to extend the {@code PageList} class to inline its fields.
-     * All data and state will be shared between this and the given {@code PageList}. This means that changing the page
-     * list state through one has the same effect as changing it through the other – they are both effectively the same
-     * object.
-     *
-     * @param pageList The {@code PageList} instance whose state to copy.
-     */
-    PageList(PageList pageList) {
-        this.pageCount = pageList.pageCount;
-        this.cachePageSize = pageList.cachePageSize;
-        this.memoryAllocator = pageList.memoryAllocator;
-        this.swappers = pageList.swappers;
-        this.victimPageAddress = pageList.victimPageAddress;
-        this.baseAddress = pageList.baseAddress;
-        this.bufferAlignment = pageList.bufferAlignment;
     }
 
     private static void clearMemory(long baseAddress, long pageCount) {

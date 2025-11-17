@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.io.ByteUnit.MebiByte;
-import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -109,8 +108,7 @@ public class AbstractPageListTest {
         pageSize = UnsafeUtil.pageSize();
 
         swappers = new SwapperSet();
-        long victimPage = VictimPageReference.getVictimPage(pageSize, INSTANCE);
-        pageList = new PageList(pageIds.length, pageSize, mman, swappers, victimPage, ALIGNMENT);
+        pageList = new PageList(pageIds.length, pageSize, mman, swappers, ALIGNMENT);
         pageRef = pageList.deref(pageId);
         prevPageRef = pageList.deref(prevPageId);
         nextPageRef = pageList.deref(nextPageId);
@@ -122,14 +120,13 @@ public class AbstractPageListTest {
         init(pageId);
 
         int pageCount;
-        long victimPage = VictimPageReference.getVictimPage(pageSize, INSTANCE);
 
         pageCount = 3;
-        assertThat(new PageList(pageCount, pageSize, mman, swappers, victimPage, ALIGNMENT).getPageCount())
+        assertThat(new PageList(pageCount, pageSize, mman, swappers, ALIGNMENT).getPageCount())
                 .isEqualTo(pageCount);
 
         pageCount = 42;
-        assertThat(new PageList(pageCount, pageSize, mman, swappers, victimPage, ALIGNMENT).getPageCount())
+        assertThat(new PageList(pageCount, pageSize, mman, swappers, ALIGNMENT).getPageCount())
                 .isEqualTo(pageCount);
     }
 
@@ -1323,7 +1320,7 @@ public class AbstractPageListTest {
     public void mustExposeCachePageSize(int pageId) {
         init(pageId);
 
-        PageList list = new PageList(0, 42, mman, swappers, VictimPageReference.getVictimPage(42, INSTANCE), ALIGNMENT);
+        PageList list = new PageList(0, 42, mman, swappers, ALIGNMENT);
         assertThat(list.getCachePageSize()).isEqualTo(42);
     }
 

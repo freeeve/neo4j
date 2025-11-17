@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.io.ByteUnit.MebiByte;
-import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.ByteUnit;
@@ -43,9 +42,7 @@ class AsyncCheckpointFailureHandlerTest {
 
         try (MemoryAllocator mman = MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
             SwapperSet swappers = new SwapperSet();
-            long victimPage = VictimPageReference.getVictimPage(pageSize, INSTANCE);
-
-            PageList pageList = new PageList(pages, pageSize, mman, swappers, victimPage, Long.BYTES);
+            PageList pageList = new PageList(pages, pageSize, mman, swappers, Long.BYTES);
 
             long pageRef = pageList.deref(0);
             PageList.unlockExclusive(pageRef);
@@ -80,9 +77,7 @@ class AsyncCheckpointFailureHandlerTest {
 
         try (MemoryAllocator mman = MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
             SwapperSet swappers = new SwapperSet();
-            long victimPage = VictimPageReference.getVictimPage(pageSize, INSTANCE);
-
-            PageList pageList = new PageList(pages, pageSize, mman, swappers, victimPage, Long.BYTES);
+            PageList pageList = new PageList(pages, pageSize, mman, swappers, Long.BYTES);
 
             long pageRef1 = pageList.deref(0);
             long pageRef2 = pageList.deref(1);
@@ -149,9 +144,7 @@ class AsyncCheckpointFailureHandlerTest {
             try (MemoryAllocator mman =
                     MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
                 SwapperSet swappers = new SwapperSet();
-                long victimPage = VictimPageReference.getVictimPage(pageSize, INSTANCE);
-
-                PageList pageList = new PageList(pages, pageSize, mman, swappers, victimPage, Long.BYTES);
+                PageList pageList = new PageList(pages, pageSize, mman, swappers, Long.BYTES);
 
                 long pageRef1 = pageList.deref(0);
                 long pageRef2 = pageList.deref(1);

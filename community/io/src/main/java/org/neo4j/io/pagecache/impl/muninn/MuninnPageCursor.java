@@ -73,6 +73,7 @@ public abstract class MuninnPageCursor extends PageCursor {
     protected final CursorContext cursorContext;
 
     protected final MuninnPagedFile pagedFile;
+    final PageList pageList;
     protected final PageSwapper swapper;
     final VersionStorage versionStorage;
     protected VersionState versionState;
@@ -120,8 +121,14 @@ public abstract class MuninnPageCursor extends PageCursor {
     private static final VarHandle CURRENT_PAGE_ID = getVarHandle(lookup(), "currentPageId");
 
     MuninnPageCursor(
-            MuninnPagedFile pagedFile, int pf_flags, long victimPage, CursorContext cursorContext, long pageId) {
+            MuninnPagedFile pagedFile,
+            PageList pageList,
+            int pf_flags,
+            long victimPage,
+            CursorContext cursorContext,
+            long pageId) {
         this.pagedFile = pagedFile;
+        this.pageList = pageList;
         this.swapper = pagedFile.swapper;
         this.swapperId = pagedFile.swapperId;
         this.filePageSize = pagedFile.filePageSize;
@@ -177,7 +184,7 @@ public abstract class MuninnPageCursor extends PageCursor {
         this.pageSize = filePageSize;
         this.payloadSize = filePayloadSize;
         this.pointer = PageList.getAddress(pageRef);
-        pinEvent.setCachePageId(pagedFile.toId(pageRef));
+        pinEvent.setCachePageId(pageList.toId(pageRef));
         if (updateUsage) {
             PageList.incrementUsage(pageRef);
         }
@@ -333,7 +340,7 @@ public abstract class MuninnPageCursor extends PageCursor {
                 // kind of lock on the page, and check that it is indeed bound to what we expect. If not, then it has
                 // been evicted, and possibly even page faulted into something else. In this case, we discard the
                 // item and try again, as the eviction thread would have set the chunk array slot to null.
-                long pageRef = pagedFile.deref(mappedPageId);
+                long pageRef = pageList.deref(mappedPageId);
                 boolean locked = tryLockPage(pageRef);
                 if (locked && PageList.isBoundTo(pageRef, swapperId, filePageId)) {
                     pinCursorToPage(pinEvent, pageRef, filePageId, swapper);
@@ -418,7 +425,7 @@ public abstract class MuninnPageCursor extends PageCursor {
                 // check before page.fault(), because that would otherwise reopen
                 // the file channel.
                 assertCursorOpenFileMappedAndGetIdOfLastPage();
-                pagedFile.initBuffer(pageRef);
+                pageList.initBuffer(pageRef);
                 if (noLoad) {
                     setSwapperId(pageRef, swapperId); // Page now considered isBoundTo( swapper, filePageId )
                 } else {
@@ -435,7 +442,7 @@ public abstract class MuninnPageCursor extends PageCursor {
             }
             // Put the page in the translation table before we undo the exclusive lock, as we could otherwise race with
             // eviction, and the onEvict callback expects to find a MuninnPage object in the table.
-            pageId = pagedFile.toId(pageRef);
+            pageId = pageList.toId(pageRef);
             faultEvent.setCachePageId(pageId);
             MuninnPagedFile.TRANSLATION_TABLE_ARRAY.setVolatile(chunk, chunkIndex, pageId);
             // Once we page has been published to the translation table, we can convert our exclusive lock to whatever

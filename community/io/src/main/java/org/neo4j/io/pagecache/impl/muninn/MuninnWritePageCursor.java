@@ -40,8 +40,13 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
             : null;
 
     MuninnWritePageCursor(
-            MuninnPagedFile pagedFile, int pf_flags, long victimPage, CursorContext cursorContext, long pageId) {
-        super(pagedFile, pf_flags, victimPage, cursorContext, pageId);
+            MuninnPagedFile pagedFile,
+            PageList pageList,
+            int pf_flags,
+            long victimPage,
+            CursorContext cursorContext,
+            long pageId) {
+        super(pagedFile, pageList, pf_flags, victimPage, cursorContext, pageId);
     }
 
     @Override

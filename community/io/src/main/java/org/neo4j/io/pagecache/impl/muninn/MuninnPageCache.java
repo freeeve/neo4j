@@ -420,7 +420,6 @@ public class MuninnPageCache implements PageCache {
                 cachePageSize,
                 configuration.memoryAllocator,
                 new SwapperSet(),
-                victimPage,
                 getBufferAlignment(cachePageSize));
         this.scheduler = jobScheduler;
         this.clock = configuration.clock;
@@ -578,6 +577,7 @@ public class MuninnPageCache implements PageCache {
         var pagedFile = new MuninnPagedFile(
                 path,
                 this,
+                pages,
                 filePageSize,
                 swapperFactory,
                 pageCacheTracer,

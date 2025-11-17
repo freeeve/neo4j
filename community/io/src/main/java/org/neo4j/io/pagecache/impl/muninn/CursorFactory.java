@@ -24,21 +24,23 @@ import org.neo4j.io.pagecache.context.CursorContext;
 final class CursorFactory {
     private final MuninnPagedFile pagedFile;
     private final long victimPage;
+    private final PageList pageList;
 
     /**
      * Cursor factory construction
      * @param pagedFile paged file for which cursor is created
      */
-    CursorFactory(MuninnPagedFile pagedFile) {
+    CursorFactory(MuninnPagedFile pagedFile, PageList pageList, long victimPage) {
         this.pagedFile = pagedFile;
-        this.victimPage = pagedFile.pageCache.victimPage;
+        this.victimPage = victimPage;
+        this.pageList = pageList;
     }
 
     MuninnReadPageCursor takeReadCursor(long pageId, int pf_flags, CursorContext cursorContext) {
-        return new MuninnReadPageCursor(pagedFile, pf_flags, victimPage, cursorContext, pageId);
+        return new MuninnReadPageCursor(pagedFile, pageList, pf_flags, victimPage, cursorContext, pageId);
     }
 
     MuninnWritePageCursor takeWriteCursor(long pageId, int pf_flags, CursorContext cursorContext) {
-        return new MuninnWritePageCursor(pagedFile, pf_flags, victimPage, cursorContext, pageId);
+        return new MuninnWritePageCursor(pagedFile, pageList, pf_flags, victimPage, cursorContext, pageId);
     }
 }

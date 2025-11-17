@@ -409,7 +409,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         try (MuninnPageCache pageCache = createPageCache(fs, 50, new DefaultPageCacheTracer())) {
             MutableIntSet swapperIds = IntSets.mutable.empty();
             ArrayList<CursorSwapperId> cursorWithIds = new ArrayList<>();
-            SwapperSet swapperSet = extractSwapperSet(pageCache);
+            SwapperSet swapperSet = pageCache.pages.getSwappers();
 
             while (!swapperSet.skipSweep()) {
                 CursorSwapperId cursorSwapperId = pagedFileCursorSwapperId(pageCache);
@@ -2559,12 +2559,6 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         assertThat(buffer.getLong()).isEqualTo(valueA);
         buffer.position(buffer.position() + reservedBytes);
         assertThat(buffer.getLong()).isEqualTo(valueB);
-    }
-
-    private SwapperSet extractSwapperSet(MuninnPageCache pageCache) throws IOException {
-        try (var pagedFile = (MuninnPagedFile) map(pageCache, file("a"), 8)) {
-            return pagedFile.getSwappers();
-        }
     }
 
     private static class CursorSwapperId implements AutoCloseable {

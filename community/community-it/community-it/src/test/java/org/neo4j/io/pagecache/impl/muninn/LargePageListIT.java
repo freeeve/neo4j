@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.io.ByteUnit.GibiByte;
-import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -43,9 +42,8 @@ class LargePageListIT {
 
         try (MemoryAllocator mman = MemoryAllocator.createAllocator(GibiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
             SwapperSet swappers = new SwapperSet();
-            long victimPage = VictimPageReference.getVictimPage(pageSize, INSTANCE);
 
-            PageList pageList = new PageList(pages, pageSize, mman, swappers, victimPage, Long.BYTES);
+            PageList pageList = new PageList(pages, pageSize, mman, swappers, Long.BYTES);
 
             // Verify we end up with the correct number of pages.
             assertThat(pageList.getPageCount()).isEqualTo(pages);
