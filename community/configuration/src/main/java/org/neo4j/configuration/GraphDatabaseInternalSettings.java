@@ -28,7 +28,6 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.neo4j.configuration.SettingConstraints.lessThanOrEqualLong;
 import static org.neo4j.configuration.SettingConstraints.max;
 import static org.neo4j.configuration.SettingConstraints.min;
-import static org.neo4j.configuration.SettingConstraints.minSize;
 import static org.neo4j.configuration.SettingConstraints.range;
 import static org.neo4j.configuration.SettingConstraints.resolution;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
@@ -1721,41 +1720,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description(
-            "Enables returning the client address provided by a driver as the sole router in routing tables. This makes it easier for networking "
-                    + "middleware to migrate workload to new Neo4j servers, or even a new DBMS.")
-    public static final Setting<Boolean> client_provided_router_enabled = newBuilder(
-                    "internal.dbms.routing.client_provided_router_enabled", BOOL, false)
-            .build();
-
-    @Internal
-    @Description(
-            "A list of prefixes to append to the client provided router address when the server cycles through addresses to force a routing table "
-                    + "update.")
-    public static final Setting<List<String>> client_provided_router_prefixes = newBuilder(
-                    "internal.dbms.routing.client_provided_router_prefixes",
-                    listOf(STRING),
-                    List.of("a", "b", "c", "d"))
-            .addConstraint(minSize(2))
-            .build();
-
-    @Internal
-    @Description(
-            "The period of time for the server to wait between cycling client provided router address prefixes to force a routing table update.")
-    public static final Setting<Duration> client_provided_router_prefix_rotation_period = newBuilder(
-                    "internal.dbms.routing.client_provided_router_rotation_period", DURATION, Duration.ofMinutes(1))
-            .addConstraint(range(Duration.ofSeconds(10), Duration.ofDays(1)))
-            .build();
-
-    @Internal
-    @Description(
-            "The suffix we expect on the client provided address in order to trigger the behaviour of client_provided_router_enabled and return said "
-                    + "address as the sole router in routing tables.")
-    public static final Setting<String> client_provided_router_suffix = newBuilder(
-                    "internal.dbms.routing.client_provided_address_suffix", STRING, "endpoints.neo4j.io")
-            .build();
-
-    @Internal
     @Description("Enforce index commands generation.")
     public static final Setting<Boolean> multiversion_index_commands_enabled = newBuilder(
                     "internal.db.multiversion.index.commands.enabled", BOOL, true)
@@ -1793,11 +1757,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     ofEnum(ProcedureClassPreloading.class),
                     ProcedureClassPreloading.ANNOTATED)
             .build();
-
-    @Internal
-    @Description("Use new routing stack")
-    public static final Setting<Boolean> use_new_routing_stack =
-            newBuilder("internal.dbms.routing.new_stack_enabled", BOOL, false).build();
 
     // Heap estimator cache settings
 
@@ -1856,37 +1815,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     + "This means a performance improvement for short transactions that fetch only very little data from property shards.")
     public static final Setting<Boolean> spd_asynchronous_shard_transaction_close = newBuilder(
                     "internal.dbms.sharded_property_database.asynchronous_shard_transaction_close", BOOL, true)
-            .build();
-
-    @Internal
-    @Description(
-            "Enables templatized rewriting of addresses in routing table based on source address and client provided address")
-    public static final Setting<Boolean> routing_address_rewriting_enabled = newBuilder(
-                    "internal.dbms.routing.routing_address_rewriting_enabled", BOOL, false)
-            .build();
-
-    @Internal
-    @Description(
-            "Template used when address rewriting enabled. It is of the form ${t:1}.${c:2} where ${t:1} substitutes the first captured "
-                    + "group from the table supplied hostname, and ${c:2} substitutes the second captured group from the client supplied hostname")
-    public static final Setting<String> routing_address_rewriting_template = newBuilder(
-                    "internal.dbms.routing_address_rewriting_template", STRING, null)
-            .build();
-
-    @Internal
-    @Description(
-            "Regular expression used when address rewriting enabled. Must match on hostname of routing table supplied address and capture "
-                    + "groups that can be used in template.")
-    public static final Setting<String> routing_address_rewriting_table_regex = newBuilder(
-                    "internal.dbms.routing_address_rewriting_table_regex", STRING, null)
-            .build();
-
-    @Internal
-    @Description(
-            "Regular expression used when address rewriting enabled. Must match on hostname of client supplied address and capture groups "
-                    + "that can be used in template.")
-    public static final Setting<String> routing_address_rewriting_client_regex = newBuilder(
-                    "internal.dbms.routing_address_rewriting_client_regex", STRING, null)
             .build();
 
     @Internal

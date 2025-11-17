@@ -29,7 +29,6 @@ import org.neo4j.bolt.tx.TransactionManager;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.configuration.database.readonly.ConfigBasedLookupFactory;
 import org.neo4j.configuration.database.readonly.ConfigReadOnlyDatabaseListener;
 import org.neo4j.dbms.DbmsRuntimeVersionProvider;
@@ -45,12 +44,8 @@ import org.neo4j.dbms.database.readonly.ReadOnlyChangeListener;
 import org.neo4j.dbms.database.readonly.ReadOnlyDatabases;
 import org.neo4j.dbms.database.readonly.SystemGraphReadOnlyDatabaseLookupFactory;
 import org.neo4j.dbms.routing.ClientRoutingDomainChecker;
-import org.neo4j.dbms.routing.RoutingOption;
 import org.neo4j.dbms.routing.RoutingService;
-import org.neo4j.dbms.routing.RoutingTableTTLProvider;
-import org.neo4j.dbms.routing.ServerSideRoutingTableProvider;
 import org.neo4j.dbms.routing.SimpleClientRoutingDomainChecker;
-import org.neo4j.dbms.routing.SingleAddressRoutingTableProvider;
 import org.neo4j.dbms.systemgraph.SystemDatabaseProvider;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.facade.DatabaseManagementServiceFactory;
@@ -235,15 +230,6 @@ public abstract class AbstractEditionModule {
                 .getTransactionEventListeners()
                 .registerTransactionEventListener(SYSTEM_DATABASE_NAME, dbmsRuntimeRepository);
         return dbmsRuntimeRepository;
-    }
-
-    protected ServerSideRoutingTableProvider serverSideRoutingTableProvider(GlobalModule globalModule) {
-        ConnectorPortRegister portRegister = globalModule.getConnectorPortRegister();
-        Config config = globalModule.getGlobalConfig();
-        InternalLogProvider logProvider = globalModule.getLogService().getInternalLogProvider();
-        RoutingTableTTLProvider ttlProvider = RoutingTableTTLProvider.ttlFromConfig(config);
-        return new SingleAddressRoutingTableProvider(
-                portRegister, RoutingOption.ROUTE_WRITE_AND_READ, config, logProvider, ttlProvider);
     }
 
     public abstract TopologyInfoService createTopologyInfoService(DatabaseContextProvider<?> databaseContextProvider);

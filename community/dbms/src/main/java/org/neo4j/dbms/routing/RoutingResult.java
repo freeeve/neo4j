@@ -20,81 +20,19 @@
 package org.neo4j.dbms.routing;
 
 import java.util.List;
-import java.util.Objects;
 import org.neo4j.configuration.helpers.SocketAddress;
 
 /**
  * The outcome of applying a load balancing plugin, which will be used by client
  * software for scheduling work at the endpoints.
  */
-public class RoutingResult {
-    private final List<SocketAddress> routeEndpoints;
-    private final List<SocketAddress> writeEndpoints;
-    private final List<SocketAddress> readEndpoints;
-    private final long timeToLiveMillis;
-
+public record RoutingResult(
+        List<SocketAddress> routeEndpoints,
+        List<SocketAddress> writeEndpoints,
+        List<SocketAddress> readEndpoints,
+        long ttlMillis) {
     public static RoutingResult single(SocketAddress singleEndpoint, long ttlMillis) {
         var list = List.of(singleEndpoint);
         return new RoutingResult(list, list, list, ttlMillis);
-    }
-
-    public RoutingResult(
-            List<SocketAddress> routeEndpoints,
-            List<SocketAddress> writeEndpoints,
-            List<SocketAddress> readEndpoints,
-            long timeToLiveMillis) {
-        this.routeEndpoints = routeEndpoints;
-        this.writeEndpoints = writeEndpoints;
-        this.readEndpoints = readEndpoints;
-        this.timeToLiveMillis = timeToLiveMillis;
-    }
-
-    public long ttlMillis() {
-        return timeToLiveMillis;
-    }
-
-    public List<SocketAddress> routeEndpoints() {
-        return routeEndpoints;
-    }
-
-    public List<SocketAddress> writeEndpoints() {
-        return writeEndpoints;
-    }
-
-    public List<SocketAddress> readEndpoints() {
-        return readEndpoints;
-    }
-
-    public boolean containsNoEndpoints() {
-        return routeEndpoints.isEmpty() && writeEndpoints.isEmpty() && readEndpoints.isEmpty();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        var that = (RoutingResult) o;
-        return timeToLiveMillis == that.timeToLiveMillis
-                && Objects.equals(routeEndpoints, that.routeEndpoints)
-                && Objects.equals(writeEndpoints, that.writeEndpoints)
-                && Objects.equals(readEndpoints, that.readEndpoints);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(routeEndpoints, writeEndpoints, readEndpoints, timeToLiveMillis);
-    }
-
-    @Override
-    public String toString() {
-        return "RoutingResult{" + "routeEndpoints="
-                + routeEndpoints + ", writeEndpoints="
-                + writeEndpoints + ", readEndpoints="
-                + readEndpoints + ", timeToLiveMillis="
-                + timeToLiveMillis + '}';
     }
 }

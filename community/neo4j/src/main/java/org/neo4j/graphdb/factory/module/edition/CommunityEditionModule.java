@@ -22,14 +22,12 @@ package org.neo4j.graphdb.factory.module.edition;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.initial_default_database;
 import static org.neo4j.dbms.database.DatabaseContextProviderDelegate.delegate;
-import static org.neo4j.dbms.routing.RoutingTableTTLProvider.ttlFromConfig;
 
 import java.util.Set;
 import org.neo4j.bolt.dbapi.BoltGraphDatabaseManagementServiceSPI;
 import org.neo4j.bolt.tx.TransactionManager;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.CommunityDatabaseState;
 import org.neo4j.dbms.CommunityDatabaseStateService;
@@ -63,12 +61,7 @@ import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.dbms.identity.ServerIdentityFactory;
 import org.neo4j.dbms.routing.ClientRoutingDomainChecker;
 import org.neo4j.dbms.routing.CommunityRoutingService;
-import org.neo4j.dbms.routing.DefaultDatabaseAvailabilityChecker;
-import org.neo4j.dbms.routing.DefaultRoutingService;
-import org.neo4j.dbms.routing.LocalRoutingTableServiceValidator;
-import org.neo4j.dbms.routing.RoutingOption;
 import org.neo4j.dbms.routing.RoutingService;
-import org.neo4j.dbms.routing.SingleAddressRoutingTableProvider;
 import org.neo4j.dbms.systemgraph.CommunityDefaultQueryLanguageLookup;
 import org.neo4j.dbms.systemgraph.CommunityTopologyGraphComponent;
 import org.neo4j.dbms.systemgraph.ContextBasedSystemDatabaseProvider;
@@ -256,36 +249,11 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
     @Override
     public RoutingService createRoutingService(
             DatabaseContextProvider<?> databaseContextProvider, ClientRoutingDomainChecker clientRoutingDomainChecker) {
-        var config = globalModule.getGlobalConfig();
-        if (config.get(GraphDatabaseInternalSettings.use_new_routing_stack)) {
-            return new CommunityRoutingService(
-                    databaseContextProvider,
-                    defaultDatabaseResolver,
-                    globalModule.getConnectorPortRegister(),
-                    globalModule.getGlobalConfig());
-        }
-        var logService = globalModule.getLogService();
-        var portRegister = globalModule.getConnectorPortRegister();
-        var logProvider = globalModule.getLogService().getInternalLogProvider();
-        var databaseAvailabilityChecker = new DefaultDatabaseAvailabilityChecker(databaseContextProvider);
-
-        LocalRoutingTableServiceValidator validator =
-                new LocalRoutingTableServiceValidator(databaseAvailabilityChecker);
-        SingleAddressRoutingTableProvider routingTableProvider = new SingleAddressRoutingTableProvider(
-                portRegister, RoutingOption.ROUTE_WRITE_AND_READ, config, logProvider, ttlFromConfig(config));
-
-        return new DefaultRoutingService(
-                logService.getInternalLogProvider(),
-                validator,
-                routingTableProvider,
-                routingTableProvider,
-                clientRoutingDomainChecker,
-                config,
-                () -> true,
+        return new CommunityRoutingService(
+                databaseContextProvider,
                 defaultDatabaseResolver,
-                databaseReferenceRepo,
-                true,
-                globalModule.getGlobalClock());
+                globalModule.getConnectorPortRegister(),
+                globalModule.getGlobalConfig());
     }
 
     @Override
