@@ -711,6 +711,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitAuthRuleSetEnabled(Cypher25Parser.AuthRuleSetEnabledContext ctx);
 
+    void exitDropAuthRule(Cypher25Parser.DropAuthRuleContext ctx);
+
     void exitCreateCompositeDatabase(Cypher25Parser.CreateCompositeDatabaseContext ctx);
 
     void exitCreateDatabase(Cypher25Parser.CreateDatabaseContext ctx);

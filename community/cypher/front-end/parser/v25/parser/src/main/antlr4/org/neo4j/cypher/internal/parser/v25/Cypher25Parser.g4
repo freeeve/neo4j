@@ -980,6 +980,7 @@ dropCommand
       | dropRole
       | dropServer
       | dropUser
+      | dropAuthRule
    )
    ;
 
@@ -1858,6 +1859,10 @@ authRuleSetCondition
 
 authRuleSetEnabled
     : ENABLED (TRUE | FALSE) // do we not have a booleanLiteral??
+    ;
+
+dropAuthRule
+    : AUTH RULE commandNameExpression (IF EXISTS)?
     ;
 
 // Database commands

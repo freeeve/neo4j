@@ -399,7 +399,19 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   }
 
   test("drop") {
-    invalid("", "'ALIAS', 'COMPOSITE', 'CONSTRAINT', 'DATABASE', 'INDEX', 'ROLE', 'SERVER' or 'USER'", 4)
+    invalid({
+      case Cypher5 => (
+          "",
+          "'ALIAS', 'COMPOSITE', 'CONSTRAINT', 'DATABASE', 'INDEX', 'ROLE', 'SERVER' or 'USER'",
+          4
+        )
+      // ≥ Cypher25
+      case _ => (
+          "",
+          "'ALIAS', 'COMPOSITE', 'CONSTRAINT', 'DATABASE', 'INDEX', 'ROLE', 'AUTH RULE', 'SERVER' or 'USER'",
+          4
+        )
+    })
   }
 
   test("grant") {

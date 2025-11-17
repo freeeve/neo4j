@@ -3402,9 +3402,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
   // Auth rule command tests
   // TODO: change to verify the error code and error messages instead of calling the SemanticError methods directly
 
-  private def authRuleFeatureToggleError = FeatureError.notAvailableInThisImplementation(
+  private def authRuleFeatureToggleError(verb: String) = FeatureError.notAvailableInThisImplementation(
     SemanticFeature.AttributeBasedAccessControl,
-    "The `CREATE AUTH RULE` clause",
+    s"The `$verb AUTH RULE` clause",
     p
   )
 
@@ -3418,7 +3418,17 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
-      .error(initialState, authRuleFeatureToggleError).errors
+      .error(initialState, authRuleFeatureToggleError("CREATE")).errors
+  }
+
+  test("Drop auth rule without feature flag") {
+    val authRule = DropAuthRule(
+      literalString("authRule"),
+      ifExists = false
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError("DROP")).errors
   }
 
   test("CREATE AUTH RULE authRule") {
@@ -3429,7 +3439,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
-      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(initialState, SemanticError.authRuleMustHaveACondition(p)).errors
   }
 
@@ -3444,7 +3454,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
-      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(initialState, SemanticError.authRuleCannotHaveMoreThanOneCondition(p)).errors
   }
 
@@ -3460,7 +3470,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
-      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET ENABLED", pos2),
         initialState,
@@ -3485,7 +3495,29 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     // Should succeed except for failure on feature flag
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
-      .error(initialState, authRuleFeatureToggleError).errors
+      .error(initialState, authRuleFeatureToggleError("CREATE")).errors
+  }
+
+  test("DROP AUTH RULE authRule") {
+    val authRule = DropAuthRule(
+      literalString("authRule"),
+      ifExists = false
+    )(p)
+
+    // Should succeed except for failure on feature flag
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError("DROP")).errors
+  }
+
+  test("DROP AUTH RULE authRule IF EXISTS") {
+    val authRule = DropAuthRule(
+      literalString("authRule"),
+      ifExists = true
+    )(p)
+
+    // Should succeed except for failure on feature flag
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError("DROP")).errors
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('country') = 'SE'") {
@@ -3505,7 +3537,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     // Should succeed except for failure on feature flag
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
-      .error(initialState, authRuleFeatureToggleError).errors
+      .error(initialState, authRuleFeatureToggleError("CREATE")).errors
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute($param) = 'SE'") {
@@ -3526,7 +3558,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     // This is not supported yet
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
-      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError.authRuleConditionCannotContainParameter(param.position)
@@ -3550,7 +3582,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     // Should succeed except for failure on feature flag
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
-      .error(initialState, authRuleFeatureToggleError).errors
+      .error(initialState, authRuleFeatureToggleError("CREATE")).errors
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute(1 + 1) = 'SE'") {
@@ -3571,7 +3603,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     // Should succeed except for failure on feature flag
     // Does not fail since we don't evaluate the inner expression
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
-      .error(initialState, authRuleFeatureToggleError).errors
+      .error(initialState, authRuleFeatureToggleError("CREATE")).errors
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION unknown.function('HELLO') = 'SE'") {
@@ -3590,7 +3622,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
-      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError.authRuleConditionContainsNonAllowListedFunction(
@@ -3616,7 +3648,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
-      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError.authRuleConditionContainsNonAllowListedFunction(
@@ -3647,7 +3679,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     // Should succeed except for failure on feature flag
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
-      .error(initialState, authRuleFeatureToggleError).errors
+      .error(initialState, authRuleFeatureToggleError("CREATE")).errors
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('country', 'city') = 'SE_MALMÖ'") {
@@ -3666,7 +3698,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
-      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError.functionCallWrongNumberOfArguments(
@@ -3694,7 +3726,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
-      .filterNot(_.equals(authRuleFeatureToggleError)) shouldBe SemanticCheckResult
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of(CTString.toCypherTypeString),

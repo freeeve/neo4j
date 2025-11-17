@@ -64,6 +64,7 @@ import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.Delete
 import org.neo4j.cypher.internal.ast.DenyPrivilege
 import org.neo4j.cypher.internal.ast.DescSortItem
+import org.neo4j.cypher.internal.ast.DropAuthRule
 import org.neo4j.cypher.internal.ast.DropConstraintOnName
 import org.neo4j.cypher.internal.ast.DropDatabase
 import org.neo4j.cypher.internal.ast.DropDatabaseAlias
@@ -675,6 +676,11 @@ case class Prettifier(
             s"${x.name} ${Prettifier.escapeName(authRuleName)} IF NOT EXISTS $setClausesString"
           case _ => s"${x.name} ${Prettifier.escapeName(authRuleName)} $setClausesString"
         }
+
+      case x @ DropAuthRule(ruleName, ifExists) =>
+        if (ifExists) s"${x.name} ${Prettifier.escapeName(ruleName)} IF EXISTS"
+        else s"${x.name} ${Prettifier.escapeName(ruleName)}"
+
       case x @ DropRole(roleName, ifExists) =>
         if (ifExists) s"${x.name} ${Prettifier.escapeName(roleName)} IF EXISTS"
         else s"${x.name} ${Prettifier.escapeName(roleName)}"

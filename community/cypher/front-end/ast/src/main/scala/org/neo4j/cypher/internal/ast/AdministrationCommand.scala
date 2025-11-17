@@ -1068,6 +1068,25 @@ final case class AuthRuleEnabled(
   override val name: String = "SET ENABLED"
 }
 
+final case class DropAuthRule(authRuleName: Expression, ifExists: Boolean)(val position: InputPosition)
+    extends WriteAdministrationCommand {
+
+  override def name = "DROP AUTH RULE"
+
+  override def semanticCheck: SemanticCheck =
+    super.semanticCheck chain
+      featureCheck chain
+      checkIsStringLiteralOrParameter("auth rule", authRuleName) chain
+      SemanticState.recordCurrentScope(this)
+
+  private val featureCheck =
+    requireFeatureSupport(
+      s"The `$name` clause",
+      SemanticFeature.AttributeBasedAccessControl,
+      position
+    )
+}
+
 // Privilege commands
 
 final case class ShowPrivileges(

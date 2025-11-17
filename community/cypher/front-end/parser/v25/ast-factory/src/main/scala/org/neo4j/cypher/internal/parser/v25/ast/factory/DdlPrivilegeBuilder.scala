@@ -72,6 +72,7 @@ import org.neo4j.cypher.internal.ast.DbmsPrivilege
 import org.neo4j.cypher.internal.ast.DeleteElementAction
 import org.neo4j.cypher.internal.ast.DenyPrivilege
 import org.neo4j.cypher.internal.ast.DropAliasAction
+import org.neo4j.cypher.internal.ast.DropAuthRule
 import org.neo4j.cypher.internal.ast.DropCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.DropConstraintAction
 import org.neo4j.cypher.internal.ast.DropDatabaseAction
@@ -261,6 +262,10 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
   def exitAuthRuleSetEnabled(ctx: Cypher25Parser.AuthRuleSetEnabledContext): Unit = {
     val enabled = if (ctx.TRUE() != null) true else false
     ctx.ast = AuthRuleEnabled(enabled)(pos(ctx))
+  }
+
+  def exitDropAuthRule(ctx: Cypher25Parser.DropAuthRuleContext): Unit = {
+    ctx.ast = DropAuthRule(ctx.commandNameExpression().ast(), ctx.EXISTS() != null)(pos(ctx.getParent))
   }
 
   // Privilege command contexts

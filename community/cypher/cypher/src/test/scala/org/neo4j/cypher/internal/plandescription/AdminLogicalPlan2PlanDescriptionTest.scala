@@ -102,6 +102,7 @@ import org.neo4j.cypher.internal.logical.plans.DenyGraphAction
 import org.neo4j.cypher.internal.logical.plans.DenyLoadAction
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExists
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfNotExists
+import org.neo4j.cypher.internal.logical.plans.DropAuthRule
 import org.neo4j.cypher.internal.logical.plans.DropDatabase
 import org.neo4j.cypher.internal.logical.plans.DropDatabaseAlias
 import org.neo4j.cypher.internal.logical.plans.DropRole
@@ -250,6 +251,11 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
   test("Auth rule commands") {
     assertGood(
       attach(CreateAuthRule(privLhsLP, util.Left("authRule"), literalBoolean(true), Some(true)), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(DropAuthRule(privLhsLP, util.Left("authRule")), 1.0),
       adminPlanDescription
     )
   }

@@ -182,6 +182,11 @@ case class CreateAuthRule(
   enabled: Option[Boolean]
 )(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(None)
 
+case class DropAuthRule(
+  source: SecurityAdministrationLogicalPlan,
+  authRuleName: Either[String, Parameter]
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(None)
+
 case class GrantRoleToUser(
   source: SecurityAdministrationLogicalPlan,
   roleName: Either[String, Parameter],

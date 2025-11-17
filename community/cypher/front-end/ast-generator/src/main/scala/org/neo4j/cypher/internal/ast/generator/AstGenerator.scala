@@ -113,6 +113,7 @@ import org.neo4j.cypher.internal.ast.DenyPrivilege
 import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.DestroyData
 import org.neo4j.cypher.internal.ast.DropAliasAction
+import org.neo4j.cypher.internal.ast.DropAuthRule
 import org.neo4j.cypher.internal.ast.DropCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.DropConstraintAction
 import org.neo4j.cypher.internal.ast.DropConstraintOnName
@@ -3357,6 +3358,11 @@ class AstGenerator(
     enabled <- option(_AuthRuleEnabled)
   } yield CreateAuthRule(authRuleName, ifExistsDo, List(condition) ++ enabled)(pos)
 
+  def _dropAuthRule: Gen[DropAuthRule] = for {
+    authRuleName <- _stringLiteralOrParameter
+    ifExists <- boolean
+  } yield DropAuthRule(authRuleName, ifExists)(pos)
+
   def _authRuleCondition: Gen[AuthRuleCondition] = for {
     expression <- _expression
   } yield AuthRuleCondition(expression)(pos)
@@ -3365,9 +3371,11 @@ class AstGenerator(
     enabled <- boolean
   } yield AuthRuleEnabled(enabled)(pos)
 
-  // use oneOf when we have more than one auth rule command
   def _authRuleCommand: Gen[AdministrationCommand] =
-    _createAuthRule.filterNot(_ => usesCypher5)
+    oneOf(
+      _createAuthRule.filterNot(_ => usesCypher5),
+      _dropAuthRule.filterNot(_ => usesCypher5)
+    )
 
   // Role commands
 

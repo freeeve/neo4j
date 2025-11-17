@@ -67,6 +67,7 @@ import org.neo4j.cypher.internal.ast.DeallocateServers
 import org.neo4j.cypher.internal.ast.DenyPrivilege
 import org.neo4j.cypher.internal.ast.DestroyData
 import org.neo4j.cypher.internal.ast.DropAliasAction
+import org.neo4j.cypher.internal.ast.DropAuthRule
 import org.neo4j.cypher.internal.ast.DropCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.DropDatabase
 import org.neo4j.cypher.internal.ast.DropDatabaseAction
@@ -557,6 +558,25 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           plans.CreateAuthRule(source, authRuleName, c.condition.map(_.expression).get, c.enabled.map(_.enabled)),
           prettifier.asString(c)
         ))
+
+      // DROP AUTH RULE foo [IF EXISTS]
+      case d @ DropAuthRule(authRuleName, ifExists) =>
+        val assertAllowed = plans.AssertAllowedDbmsActions(
+          None,
+          Seq(CreateRoleAction)
+        ) // TODO: plans.AssertAllowedDbmsActions(None, Seq(AuthRuleManagement)),
+        val source =
+          if (ifExists)
+            plans.DoNothingIfNotExists(assertAllowed, "DROP AUTH RULE", plans.AuthRuleEntity, authRuleName, "delete")
+          else plans.EnsureNodeExists(
+            assertAllowed,
+            "DROP AUTH RULE",
+            plans.AuthRuleEntity,
+            authRuleName,
+            labelDescription = "Auth Rule",
+            action = "delete"
+          )
+        Some(plans.LogSystemCommand(plans.DropAuthRule(source, authRuleName), prettifier.asString(d)))
 
       // GRANT roles TO users
       case c: GrantRolesToUsers =>
