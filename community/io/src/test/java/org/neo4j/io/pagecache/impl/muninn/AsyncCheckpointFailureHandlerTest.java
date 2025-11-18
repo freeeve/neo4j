@@ -41,8 +41,7 @@ class AsyncCheckpointFailureHandlerTest {
         int pages = 10;
 
         try (MemoryAllocator mman = MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
-            SwapperSet swappers = new SwapperSet();
-            PageList pageList = new PageList(pages, pageSize, mman, swappers, Long.BYTES);
+            PageList pageList = new PageList(pages, pageSize, mman, Long.BYTES);
 
             long pageRef = pageList.deref(0);
             PageList.unlockExclusive(pageRef);
@@ -76,8 +75,7 @@ class AsyncCheckpointFailureHandlerTest {
         int pages = 10;
 
         try (MemoryAllocator mman = MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
-            SwapperSet swappers = new SwapperSet();
-            PageList pageList = new PageList(pages, pageSize, mman, swappers, Long.BYTES);
+            PageList pageList = new PageList(pages, pageSize, mman, Long.BYTES);
 
             long pageRef1 = pageList.deref(0);
             long pageRef2 = pageList.deref(1);
@@ -143,8 +141,7 @@ class AsyncCheckpointFailureHandlerTest {
         try (DatabaseFlushEvent databaseFlush = defaultPageCacheTracer.beginDatabaseFlush()) {
             try (MemoryAllocator mman =
                     MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
-                SwapperSet swappers = new SwapperSet();
-                PageList pageList = new PageList(pages, pageSize, mman, swappers, Long.BYTES);
+                PageList pageList = new PageList(pages, pageSize, mman, Long.BYTES);
 
                 long pageRef1 = pageList.deref(0);
                 long pageRef2 = pageList.deref(1);

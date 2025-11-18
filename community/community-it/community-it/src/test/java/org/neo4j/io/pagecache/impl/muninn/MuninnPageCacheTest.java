@@ -409,7 +409,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         try (MuninnPageCache pageCache = createPageCache(fs, 50, new DefaultPageCacheTracer())) {
             MutableIntSet swapperIds = IntSets.mutable.empty();
             ArrayList<CursorSwapperId> cursorWithIds = new ArrayList<>();
-            SwapperSet swapperSet = pageCache.pages.getSwappers();
+            SwapperSet swapperSet = pageCache.swapperSet();
 
             while (!swapperSet.skipSweep()) {
                 CursorSwapperId cursorSwapperId = pagedFileCursorSwapperId(pageCache);
@@ -2155,7 +2155,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
     void transientCursorShouldNotUpdateUsageCounter() throws IOException {
         try (MuninnPageCache pageCache = createPageCache(fs, 40, PageCacheTracer.NULL);
                 PagedFile pagedFile = map(pageCache, file("a"), 8 + reservedBytes)) {
-            PageList pages = pageCache.pages;
+            PageList pages = pageCache.pageList();
             long zeroPageRef = pages.deref(0);
 
             // Pretend to read some data
@@ -2189,7 +2189,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         try (MuninnPageCache pageCache = createPageCache(fs, maxPages, pageCacheTracer);
                 PagedFile pagedFile = map(pageCache, file("a"), 8 + reservedBytes, immutable.of(MULTI_VERSIONED))) {
 
-            pagesReferenceHolder.set(pageCache.pages);
+            pagesReferenceHolder.set(pageCache.pageList());
 
             try (PageCursor cursor = pagedFile.io(
                     0, PF_SHARED_WRITE_LOCK, contextFactory.create("pageHorizonIsZeroAfterFlushOrEviction"))) {
@@ -2223,7 +2223,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         try (MuninnPageCache pageCache = createPageCache(fs, maxPages, pageCacheTracer);
                 PagedFile pagedFile = map(pageCache, file("a"), 8 + reservedBytes)) {
 
-            pagesReferenceHolder.set(pageCache.pages);
+            pagesReferenceHolder.set(pageCache.pageList());
 
             try (PageCursor cursor = pagedFile.io(
                     0, PF_SHARED_WRITE_LOCK, contextFactory.create("pageHorizonIsZeroAfterFileTruncate"))) {
@@ -2509,11 +2509,11 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
     }
 
     private static void evictAllPages(MuninnPageCache pageCache) throws IOException {
-        PageList pages = pageCache.pages;
+        PageList pages = pageCache.pageList();
         for (int pageId = 0; pageId < pages.getPageCount(); pageId++) {
             long pageReference = pages.deref(pageId);
             while (PageList.isLoaded(pageReference)) {
-                pages.tryEvict(pageReference, EvictionRunEvent.NULL);
+                EvictionLogic.tryEvict(pageReference, EvictionRunEvent.NULL, pageCache.swapperSet(), pages);
             }
         }
         for (int pageId = 0; pageId < pages.getPageCount(); pageId++) {

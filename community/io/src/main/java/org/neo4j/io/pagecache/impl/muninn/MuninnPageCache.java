@@ -187,11 +187,12 @@ public class MuninnPageCache implements PageCache {
     private final MemoryTracker memoryTracker;
     private final boolean closeAllocatorOnShutdown;
     private final boolean asyncIO;
-    final PageList pages;
+    private final PageList pages;
+    private final SwapperSet swapperSet;
     // All PageCursors are initialised with their pointers pointing to the victim page. This way, we don't have to throw
     // exceptions on bounds checking failures; we can instead return the victim page pointer, and permit the page
     // accesses to take place without fear of segfaulting newly allocated cursors.
-    final long victimPage;
+    private final long victimPage;
 
     // The freelist is a thread-safe linked-list of FreePage objects, or an AtomicInteger, or null.
     // Initially, the field is an AtomicInteger that counts from zero to the max page count, at which point all of the
@@ -415,12 +416,9 @@ public class MuninnPageCache implements PageCache {
         this.printExceptionsOnClose = true;
         this.bufferFactory = configuration.bufferFactory;
         this.victimPage = VictimPageReference.getVictimPage(cachePageSize, configuration.memoryTracker);
-        this.pages = new PageList(
-                maxPages,
-                cachePageSize,
-                configuration.memoryAllocator,
-                new SwapperSet(),
-                getBufferAlignment(cachePageSize));
+        this.swapperSet = new SwapperSet();
+        this.pages =
+                new PageList(maxPages, cachePageSize, configuration.memoryAllocator, getBufferAlignment(cachePageSize));
         this.scheduler = jobScheduler;
         this.clock = configuration.clock;
         this.memoryTracker = configuration.memoryTracker;
@@ -578,6 +576,7 @@ public class MuninnPageCache implements PageCache {
                 path,
                 this,
                 pages,
+                swapperSet,
                 filePageSize,
                 swapperFactory,
                 pageCacheTracer,
@@ -593,7 +592,8 @@ public class MuninnPageCache implements PageCache {
                 contextVersionUpdates,
                 multiVersioned ? pageReservedBytes : 0,
                 versionStorage,
-                littleEndian);
+                littleEndian,
+                victimPage);
         pagedFile.incrementRefCount();
         pagedFile.setDeleteOnClose(deleteOnClose);
         mappedFiles.put(filePath, pagedFile);
@@ -824,6 +824,16 @@ public class MuninnPageCache implements PageCache {
         return bufferFactory;
     }
 
+    @VisibleForTesting
+    SwapperSet swapperSet() {
+        return swapperSet;
+    }
+
+    @VisibleForTesting
+    PageList pageList() {
+        return pages;
+    }
+
     int getPageCacheId() {
         return pageCacheId;
     }
@@ -913,7 +923,7 @@ public class MuninnPageCache implements PageCache {
             }
             long pageRef = pages.deref(nextPage);
             if (PageList.isLoaded(pageRef) && PageList.decrementUsage(pageRef)) {
-                if (pages.tryEvict(pageRef, faultEvent)) {
+                if (EvictionLogic.tryEvict(pageRef, faultEvent, swapperSet, pages)) {
                     return pageRef;
                 }
             }
@@ -1053,7 +1063,7 @@ public class MuninnPageCache implements PageCache {
             long pageRef = pages.deref(clockArm.nextPage());
             if (PageList.isLoaded(pageRef) && PageList.decrementUsage(pageRef)) {
                 try {
-                    if (pages.tryEvict(pageRef, evictionRunEvent)) {
+                    if (EvictionLogic.tryEvict(pageRef, evictionRunEvent, swapperSet, pages)) {
                         clearEvictorException();
                         addFreePageToFreelist(pageRef, evictionRunEvent);
                     }
@@ -1082,7 +1092,8 @@ public class MuninnPageCache implements PageCache {
             if (PageList.isLoaded(pageRef) && PageList.decrementUsage(pageRef)) {
                 AsyncEvictionStatus evictionStatus = null;
                 try {
-                    evictionStatus = pages.tryEvictAsync(blockAccessor, pageRef, evictionRunEvent);
+                    evictionStatus =
+                            EvictionLogic.tryEvictAsync(blockAccessor, pageRef, evictionRunEvent, swapperSet, pages);
                     if (evictionStatus == EVICTED) {
                         clearEvictorException();
                         addFreePageToFreelist(pageRef, evictionRunEvent);
@@ -1107,7 +1118,7 @@ public class MuninnPageCache implements PageCache {
         // data on single page write is a pageRef
         try (var evictionCompletion = pageCacheTracer.asyncEvictionCompletion()) {
             // in write completed case result is the number of written bytes
-            pages.onPageEvictionCompletion(data, resultBytes, evictionCompletion);
+            EvictionLogic.onPageEvictionCompletion(data, resultBytes, evictionCompletion, swapperSet);
             clearEvictorException();
             addFreePageToFreelist(data, evictionCompletion);
         }
@@ -1116,7 +1127,7 @@ public class MuninnPageCache implements PageCache {
     private void onPageEvictionFailure(AsyncBlockAccessor asyncBlockAccessor, long data, int result, String message) {
         // data on single page write is a pageRef
         try (var evictionFailure = pageCacheTracer.asyncEvictionFailure()) {
-            pages.onPageEvictionFailure(data);
+            EvictionLogic.onPageEvictionFailure(data);
             evictorException = new IOException(message);
         }
     }
@@ -1185,7 +1196,7 @@ public class MuninnPageCache implements PageCache {
                 for (int i = 0; i < pageCount; i++) {
                     long pageRef = pages.deref(i);
                     while (swapperIds.contains(PageList.getSwapperId(pageRef))) {
-                        if (pages.tryEvict(pageRef, evictionEvent)) {
+                        if (EvictionLogic.tryEvict(pageRef, evictionEvent, swappers, pages)) {
                             addFreePageToFreelist(pageRef, evictionEvent);
                             break;
                         }

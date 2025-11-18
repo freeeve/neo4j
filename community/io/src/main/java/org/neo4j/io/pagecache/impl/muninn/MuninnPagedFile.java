@@ -103,6 +103,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
 
     private final MuninnPageCache pageCache;
     private final PageList pageList;
+    private final SwapperSet swapperSet;
     final int filePageSize;
     private final int fileReservedPageBytes;
     final VersionStorage versionStorage;
@@ -175,12 +176,14 @@ final class MuninnPagedFile implements PagedFile, Flushable {
      * @param multiVersioned    if file is mutli versioned
      * @param versionStorage    page file old versioned pages storage
      * @param littleEndian      page file endianess
+     * @param victimPage        victim page pointer
      * @throws IOException If the {@link PageSwapper} could not be created.
      */
     MuninnPagedFile(
             Path path,
             MuninnPageCache pageCache,
             PageList pageList,
+            SwapperSet swapperSet,
             int filePageSize,
             PageSwapperFactory swapperFactory,
             PageCacheTracer pageCacheTracer,
@@ -196,17 +199,19 @@ final class MuninnPagedFile implements PagedFile, Flushable {
             boolean contextVersionUpdates,
             int reservedBytes,
             VersionStorage versionStorage,
-            boolean littleEndian)
+            boolean littleEndian,
+            long victimPage)
             throws IOException {
         this.pageList = pageList;
         this.pageCache = pageCache;
+        this.swapperSet = swapperSet;
         this.filePageSize = filePageSize;
         this.fileReservedPageBytes = reservedBytes;
         this.versionStorage = versionStorage;
         this.multiVersioned = multiVersioned;
         this.contextVersionUpdates = contextVersionUpdates;
         this.littleEndian = littleEndian;
-        this.cursorFactory = new CursorFactory(this, pageList, pageCache.victimPage);
+        this.cursorFactory = new CursorFactory(this, pageList, victimPage);
         this.pageCacheTracer = pageCacheTracer;
         this.pageFaultLatches = new LatchMap(faultLockStriping);
         this.bufferFactory = pageCache.getBufferFactory();
@@ -239,7 +244,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
                 useDirectIo,
                 ioController,
                 evictionBouncer,
-                this.pageList.getSwappers());
+                swapperSet);
         if (truncateExisting) {
             swapper.truncate();
         }
@@ -352,7 +357,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
         } else {
             swapper.closeAndDelete();
         }
-        pageCache.sweep(pageList.getSwappers());
+        pageCache.sweep(swapperSet);
     }
 
     private void evictPages() throws IOException {
@@ -375,7 +380,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
                         // in this case we will deal with this page later on postponed sweep or eviction will do its
                         // business
                         if (isLoaded(pageRef)) {
-                            if (pages.tryEvict(pageRef, evictionEvent)) {
+                            if (EvictionLogic.tryEvict(pageRef, evictionEvent, swapperSet, pages)) {
                                 pageCache.addFreePageToFreelist(pageRef, evictionEvent);
                                 evictedPages++;
                             }
@@ -385,11 +390,10 @@ final class MuninnPagedFile implements PagedFile, Flushable {
                 }
             }
         }
-        SwapperSet swappers = pages.getSwappers();
         if (totalPages == evictedPages) {
-            swappers.free(swapperId);
+            swapperSet.free(swapperId);
         } else {
-            swappers.postponedFree(swapperId);
+            swapperSet.postponedFree(swapperId);
         }
     }
 

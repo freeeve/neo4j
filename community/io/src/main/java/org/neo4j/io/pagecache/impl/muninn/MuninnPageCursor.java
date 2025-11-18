@@ -72,11 +72,11 @@ public abstract class MuninnPageCursor extends PageCursor {
     protected final VersionContext versionContext;
     protected final CursorContext cursorContext;
 
-    protected final MuninnPagedFile pagedFile;
-    final PageList pageList;
-    protected final PageSwapper swapper;
+    final MuninnPagedFile pagedFile;
+    private final PageList pageList;
+    final PageSwapper swapper;
     final VersionStorage versionStorage;
-    protected VersionState versionState;
+    VersionState versionState;
     private final long victimPage;
     protected final int swapperId;
     private final int filePageSize;
@@ -151,6 +151,18 @@ public abstract class MuninnPageCursor extends PageCursor {
         this.cursorContext = cursorContext;
 
         openCursor(pageId);
+    }
+
+    @SuppressWarnings("CopyConstructorMissesField")
+    @VisibleForTesting
+    MuninnPageCursor(MuninnPageCursor cursor) {
+        this(
+                cursor.pagedFile,
+                cursor.pageList,
+                cursor.pf_flags,
+                cursor.victimPage,
+                cursor.cursorContext,
+                cursor.nextPageId);
     }
 
     private void openCursor(long pageId) {
