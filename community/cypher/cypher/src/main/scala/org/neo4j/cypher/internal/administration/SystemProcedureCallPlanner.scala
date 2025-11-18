@@ -48,10 +48,6 @@ case class SystemProcedureCallPlanner(
     returns: Option[Return],
     checkCredentialsExpired: Boolean
   ): ExecutionPlan = {
-    // Procedures can have different signatures and results between cypher versions,
-    // so it's important to use the same cypher version in the inner query as the outer.
-    val preparserOptionsString = version.description
-
     val queryString = returns match {
       case Some(rs @ Return(_, ReturnItems(_, items, _), _, _, _, _, _, _)) if items.nonEmpty =>
         QueryRenderer.render(Seq(call, rs))
@@ -72,11 +68,14 @@ case class SystemProcedureCallPlanner(
       "SystemProcedure",
       normalExecutionEngine,
       securityAuthorizationHandler,
-      preparserOptionsString + " " + queryString,
+      queryString,
       MapValue.EMPTY,
       checkCredentialsExpired = checkCredentialsExpired,
       parameterTransformer = ParameterTransformer().convert((_, params) => addParameterDefaults(params)),
-      modeConverter = s => s.withMode(new OverriddenAccessMode(s.mode(), StaticAccessMode.READ))
+      modeConverter = s => s.withMode(new OverriddenAccessMode(s.mode(), StaticAccessMode.READ)),
+      // Procedures can have different signatures and results between cypher versions,
+      // so it's important to use the same cypher version in the inner query as the outer.
+      cypherVersion = version
     )
   }
 

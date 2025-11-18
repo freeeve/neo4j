@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.RuntimeName
 import org.neo4j.cypher.internal.SystemCommandRuntimeName
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.plandescription.Argument
+import org.neo4j.cypher.internal.procs.AdministrationChainedExecutionPlan.formatQuery
 import org.neo4j.cypher.internal.result.InternalExecutionResult
 import org.neo4j.cypher.internal.runtime.ExecutionMode
 import org.neo4j.cypher.internal.runtime.ProfileMode
@@ -54,7 +55,7 @@ case class SystemCommandExecutionPlan(
   checkCredentialsExpired: Boolean = true,
   parameterTransformer: ParameterTransformerFunction = ParameterTransformer(),
   modeConverter: SecurityContext => SecurityContext = s => s.withMode(StaticAccessMode.READ),
-  cypherVersion: Option[CypherVersion] = None
+  cypherVersion: CypherVersion
 ) extends AdministrationChainedExecutionPlan(source) {
 
   override def runSpecific(

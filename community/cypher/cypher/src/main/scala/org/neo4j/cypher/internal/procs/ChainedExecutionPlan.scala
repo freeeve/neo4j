@@ -111,11 +111,6 @@ abstract class ChainedExecutionPlan[T <: QueryContext with CountingQueryContext]
 
 abstract class AdministrationChainedExecutionPlan(source: Option[ExecutionPlan])
     extends ChainedExecutionPlan[SystemUpdateCountingQueryContext](source) {
-  // To avoid code generation for administration commands
-  final private val queryPrefix: String = "CYPHER operatorEngine=interpreted expressionEngine=interpreted "
-
-  def queryPrefix(cypherVersion: CypherVersion) =
-    s"CYPHER $cypherVersion operatorEngine=interpreted expressionEngine=interpreted "
 
   override def createContext(originalCtx: QueryContext): SystemUpdateCountingQueryContext =
     SystemUpdateCountingQueryContext.from(originalCtx)
@@ -128,9 +123,18 @@ abstract class AdministrationChainedExecutionPlan(source: Option[ExecutionPlan])
     }
 
   override def runtimeName: RuntimeName = SystemCommandRuntimeName
+}
 
-  protected def formatQuery(cypher: String, cypherVersion: Option[CypherVersion]): String = {
-    cypherVersion.map(queryPrefix(_)).getOrElse(queryPrefix) + cypher
+object AdministrationChainedExecutionPlan {
+
+  // To avoid code generation for administration commands
+  // also set the runtime to not rely on default (to avoid being blocked if default is set to parallel runtime as it doesn't allow updates)
+  // Slotted is picked as it is available in both Community and Enterprise, and handles all kinds of commands.
+  final private val codeGenerationPreParserOptions: String =
+    "operatorEngine=interpreted expressionEngine=interpreted runtime=slotted"
+
+  def formatQuery(cypher: String, cypherVersion: CypherVersion): String = {
+    s"CYPHER $cypherVersion $codeGenerationPreParserOptions $cypher"
   }
 }
 

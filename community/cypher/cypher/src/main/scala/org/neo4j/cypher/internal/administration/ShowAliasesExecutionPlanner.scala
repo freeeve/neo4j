@@ -127,7 +127,7 @@ case class ShowAliasesExecutionPlanner(
           .validate(aliasNameFields.map(aliasNameFields =>
             checkNamespaceExists(aliasNameFields, context)(_, _)
           ).getOrElse((_, p) => (p, Set.empty))),
-      cypherVersion = Some(context.runtimeContext.cypherVersion)
+      cypherVersion = context.runtimeContext.cypherVersion
     )
   }
 

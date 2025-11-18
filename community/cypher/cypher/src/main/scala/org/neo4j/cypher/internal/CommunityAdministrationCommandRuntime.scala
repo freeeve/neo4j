@@ -660,7 +660,7 @@ case class CommunityAdministrationCommandRuntime(
           // While running against system will override most pre-parser options.
           // However, we shouldn't override the Cypher version,
           // so let's prepend the inner query with the relevant Cypher version.
-          cypherVersion = Some(context.runtimeContext.cypherVersion)
+          cypherVersion = context.runtimeContext.cypherVersion
         )
 
     // Ignore the log command in community

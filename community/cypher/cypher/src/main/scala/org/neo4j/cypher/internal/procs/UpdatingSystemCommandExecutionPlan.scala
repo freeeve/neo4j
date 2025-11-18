@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.procs
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.RuntimeName
@@ -26,6 +27,7 @@ import org.neo4j.cypher.internal.SystemCommandRuntimeName
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.plandescription.Argument
+import org.neo4j.cypher.internal.procs.AdministrationChainedExecutionPlan.formatQuery
 import org.neo4j.cypher.internal.result.InternalExecutionResult
 import org.neo4j.cypher.internal.runtime.ExecutionMode
 import org.neo4j.cypher.internal.runtime.ProfileMode
@@ -110,7 +112,8 @@ abstract class UpdatingSystemCommandExecutionPlanBase(
       assertCanWrite(tc, systemSubscriber)
       initAndFinally.execute(ctx, systemSubscriber, previousNotifications ++ notifications, updatedParams) { () =>
         val execution = normalExecutionEngine.executeSubquery(
-          formatQuery(query, None),
+          // Use Cypher 25 for all inner queries of updating commands
+          formatQuery(query, CypherVersion.Cypher25),
           updatedParams,
           tc,
           isOutermostQuery = false,

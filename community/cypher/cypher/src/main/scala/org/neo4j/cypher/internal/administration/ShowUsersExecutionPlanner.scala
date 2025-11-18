@@ -71,7 +71,7 @@ case class ShowUsersExecutionPlanner(
          |""".stripMargin,
       VirtualValues.EMPTY_MAP,
       source = sourcePlan,
-      cypherVersion = Some(context.runtimeContext.cypherVersion)
+      cypherVersion = context.runtimeContext.cypherVersion
     )
   }
 
@@ -98,7 +98,7 @@ case class ShowUsersExecutionPlanner(
           Array(Values.utf8Value(securityContext.subject().executingUser()))
         )
       ),
-      cypherVersion = Some(context.runtimeContext.cypherVersion)
+      cypherVersion = context.runtimeContext.cypherVersion
     )
   }
 }
