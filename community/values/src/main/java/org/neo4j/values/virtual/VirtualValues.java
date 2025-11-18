@@ -129,6 +129,10 @@ public final class VirtualValues {
         }
     }
 
+    public static MapValue singletonMap(String key, AnyValue value) {
+        return new SingletonMapValue(key, value);
+    }
+
     public static MapValue fromMap(Map<String, AnyValue> map, long mapSize, long payloadSize) {
         return new MapValue.MapWrappingMapValue(map, mapSize, payloadSize);
     }

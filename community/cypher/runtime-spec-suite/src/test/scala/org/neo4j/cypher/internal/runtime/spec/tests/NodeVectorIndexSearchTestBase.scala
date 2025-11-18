@@ -44,13 +44,11 @@ import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
 import org.neo4j.kernel.KernelVersion
-import org.neo4j.values.storable.BooleanValue
 import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.RandomValues
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.ValueType
 import org.neo4j.values.storable.Values
-import org.neo4j.values.storable.Values.booleanValue
 import org.neo4j.values.storable.Values.byteValue
 import org.neo4j.values.storable.Values.doubleValue
 import org.neo4j.values.storable.Values.float32Vector
