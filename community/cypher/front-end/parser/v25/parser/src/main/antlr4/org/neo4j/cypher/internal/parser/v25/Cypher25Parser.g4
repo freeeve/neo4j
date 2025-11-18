@@ -1458,12 +1458,17 @@ showRoles
    ;
 
 grantRole
-   : roleNames TO userNames
+   : roleNames TO usersOrAuthRule
    ;
 
 revokeRole
-   : roleNames FROM userNames
+   : roleNames FROM usersOrAuthRule
    ;
+
+usersOrAuthRule
+    : authRuleKeywords authRuleNames
+    | (USER | USERS)? userNames
+    ;
 
 // User commands
 

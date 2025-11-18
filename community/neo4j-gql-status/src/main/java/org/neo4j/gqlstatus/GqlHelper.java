@@ -1228,23 +1228,6 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42NA8_ifRelevant42N51_42N00(
-            String command, String db, String paramName) {
-        var invalidDbCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N00)
-                .withParam(GqlParams.StringParam.db, db)
-                .build();
-
-        return getGql42001_42NA8_ifRelevant42N51_cause(command, invalidDbCause, paramName);
-    }
-
-    public static ErrorGqlStatusObject getGql42001_42N09(String user) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N09)
-                        .withParam(GqlParams.StringParam.user, user)
-                        .build())
-                .build();
-    }
-
     public static ErrorGqlStatusObject getGql42001_42N81(String param, List<?> paramList) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N81)
@@ -1254,45 +1237,83 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42NA8_ifRelevant42N51_42N09(
-            String command, String user, String paramName) {
+    public static ErrorGqlStatusObject get42N00_databaseNotFound(String command, String db, String paramName) {
+        var invalidDbCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N00)
+                .withParam(GqlParams.StringParam.db, db);
+
+        return invalidSyntax()
+                .withCause(invalidReference(command)
+                        .withCause(
+                                maybeInvalidParameter(paramName, invalidDbCause).build())
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject get42N09_userNotFound(String user) {
         var invalidUserCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N09)
                 .withParam(GqlParams.StringParam.user, user)
                 .build();
 
-        return getGql42001_42NA8_ifRelevant42N51_cause(command, invalidUserCause, paramName);
+        return invalidSyntax().withCause(invalidUserCause).build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42NA8_ifRelevant42N51_42N10(
-            String command, String role, String paramName) {
-        var invalidRoleCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N10)
-                .withParam(GqlParams.StringParam.role, role)
+    public static ErrorGqlStatusObject get42N09_userNotFound(String command, String user, String paramName) {
+        var invalidUserCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N09)
+                .withParam(GqlParams.StringParam.user, user);
+
+        return invalidSyntax()
+                .withCause(invalidReference(command)
+                        .withCause(maybeInvalidParameter(paramName, invalidUserCause)
+                                .build())
+                        .build())
                 .build();
-
-        return getGql42001_42NA8_ifRelevant42N51_cause(command, invalidRoleCause, paramName);
     }
 
-    private static ErrorGqlStatusObject getGql42001_42NA8_ifRelevant42N51_cause(
-            String command, ErrorGqlStatusObject cause, String paramName) {
-        var gqlBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001);
-        var invalidCommandCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA8)
+    public static ErrorGqlStatusObject get42N10_roleNotFound(String command, String role, String paramName) {
+        var invalidRoleCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N10)
+                .withParam(GqlParams.StringParam.role, role);
+
+        return invalidSyntax()
+                .withCause(invalidReference(command)
+                        .withCause(maybeInvalidParameter(paramName, invalidRoleCause)
+                                .build())
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject get42NAD_authRuleNotFound(String command, String role, String paramName) {
+        var invalidRoleCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAD)
+                .withParam(GqlParams.StringParam.authRule, role);
+
+        return invalidSyntax()
+                .withCause(invalidReference(command)
+                        .withCause(maybeInvalidParameter(paramName, invalidRoleCause)
+                                .build())
+                        .build())
+                .build();
+    }
+
+    private static ErrorGqlStatusObjectImplementation.Builder invalidSyntax() {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001);
+    }
+
+    private static ErrorGqlStatusObjectImplementation.Builder invalidReference(String command) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA8)
                 .withParam(GqlParams.StringParam.cmd, command);
+    }
 
-        var invalidParamCause = paramName == null
-                ? null
-                : ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
-                        .withParam(GqlParams.StringParam.param, paramName)
-                        .withCause(cause)
-                        .build();
+    private static ErrorGqlStatusObjectImplementation.Builder invalidParameter(String paramName) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
+                .withParam(GqlParams.StringParam.param, paramName);
+    }
 
-        return invalidParamCause != null
-                ? gqlBuilder
-                        .withCause(
-                                invalidCommandCause.withCause(invalidParamCause).build())
-                        .build()
-                : gqlBuilder
-                        .withCause(invalidCommandCause.withCause(cause).build())
-                        .build();
+    private static ErrorGqlStatusObjectImplementation.Builder maybeInvalidParameter(
+            String paramName, ErrorGqlStatusObjectImplementation.Builder cause) {
+        if (paramName != null) {
+            return invalidParameter(paramName).withCause(cause.build());
+        } else {
+            return cause;
+        }
     }
 
     public static ErrorGqlStatusObject getGql42001_42NAF() {

@@ -201,6 +201,20 @@ case class RevokeRoleFromUser(
   command: String
 )(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 
+case class GrantRoleToAuthRule(
+  source: SecurityAdministrationLogicalPlan,
+  roleName: Either[String, Parameter],
+  ruleName: Either[String, Parameter],
+  command: String
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
+case class RevokeRoleFromAuthRule(
+  source: SecurityAdministrationLogicalPlan,
+  roleName: Either[String, Parameter],
+  ruleName: Either[String, Parameter],
+  command: String
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
 case class RequireRole(source: SecurityAdministrationLogicalPlan, name: Either[String, Parameter])(implicit
   idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 

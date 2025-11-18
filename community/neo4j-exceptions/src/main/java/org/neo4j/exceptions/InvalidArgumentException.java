@@ -539,27 +539,43 @@ public class InvalidArgumentException extends Neo4jException {
                 command);
     }
 
+    public static InvalidArgumentException grantRoleToAuthRuleMissingAuthRule(
+            String role, String username, String paramName, String command) {
+        return failedActionEntityNotFound(
+                "grant role '%s' to auth rule '%s'".formatted(role, username),
+                PrivilegeGqlCodeEntity.AUTHRULE,
+                username,
+                paramName,
+                command);
+    }
+
     public static InvalidArgumentException invalidCommandMissingUser(
             String command, String username, String parameterName) {
-        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N09(command, username, parameterName);
+        var gql = GqlHelper.get42N09_userNotFound(command, username, parameterName);
+        return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
+    }
+
+    public static InvalidArgumentException invalidCommandMissingAuthRule(
+            String command, String username, String parameterName) {
+        var gql = GqlHelper.get42NAD_authRuleNotFound(command, username, parameterName);
         return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
     }
 
     public static InvalidArgumentException invalidCommandMissingRole(
             String command, String role, String parameterName) {
-        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N10(command, role, parameterName);
+        var gql = GqlHelper.get42N10_roleNotFound(command, role, parameterName);
         return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
     }
 
     public static InvalidArgumentException invalidCommandMissingRoleWithLegacyMessage(
             String msg, String command, String role, String parameterName) {
-        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N10(command, role, parameterName);
+        var gql = GqlHelper.get42N10_roleNotFound(command, role, parameterName);
         return new InvalidArgumentException(gql, msg);
     }
 
     public static InvalidArgumentException invalidCommandDatabaseDoesNotExists(
             String command, String dbname, String parameterName) {
-        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N00(command, dbname, parameterName);
+        var gql = GqlHelper.get42N00_databaseNotFound(command, dbname, parameterName);
         return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
     }
 

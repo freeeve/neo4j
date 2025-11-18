@@ -197,8 +197,18 @@ public class CypherExecutionException extends Neo4jException {
         return genericAdministrationException(msg, cause);
     }
 
+    public static CypherExecutionException grantRoleToAuthRule(String role, String userName, Throwable cause) {
+        var msg = String.format("Failed to grant role '%s' to auth rule '%s'.", role, userName);
+        return genericAdministrationException(msg, cause);
+    }
+
     public static CypherExecutionException revokeRole(String role, String userName, Throwable cause) {
         var msg = String.format("Failed to revoke role '%s' from user '%s'.", role, userName);
+        return genericAdministrationException(msg, cause);
+    }
+
+    public static CypherExecutionException revokeRoleFromAuthRule(String role, String userName, Throwable cause) {
+        var msg = String.format("Failed to revoke role '%s' from auth rule '%s'.", role, userName);
         return genericAdministrationException(msg, cause);
     }
 

@@ -84,6 +84,7 @@ import org.neo4j.cypher.internal.ast.Foreach
 import org.neo4j.cypher.internal.ast.FunctionAllQualifier
 import org.neo4j.cypher.internal.ast.FunctionQualifier
 import org.neo4j.cypher.internal.ast.GrantPrivilege
+import org.neo4j.cypher.internal.ast.GrantRolesToAuthRules
 import org.neo4j.cypher.internal.ast.GrantRolesToUsers
 import org.neo4j.cypher.internal.ast.GraphAction
 import org.neo4j.cypher.internal.ast.GraphDirectReference
@@ -172,6 +173,7 @@ import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ReturnPartOfShowCommand
 import org.neo4j.cypher.internal.ast.RevokePrivilege
+import org.neo4j.cypher.internal.ast.RevokeRolesFromAuthRules
 import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
@@ -689,9 +691,19 @@ case class Prettifier(
         val start = if (roleNames.length > 1) s"${x.name}S" else x.name
         s"$start ${roleNames.map(Prettifier.escapeName).mkString(", ")} TO ${userNames.map(Prettifier.escapeName).mkString(", ")}"
 
+      case _ @GrantRolesToAuthRules(roleNames, ruleNames) =>
+        val start = if (roleNames.length > 1) "GRANT ROLES" else "GRANT ROLE"
+        val authRules = if (ruleNames.length > 1) "AUTH RULES" else "AUTH RULE"
+        s"$start ${roleNames.map(Prettifier.escapeName).mkString(", ")} TO $authRules ${ruleNames.map(Prettifier.escapeName).mkString(", ")}"
+
       case x @ RevokeRolesFromUsers(roleNames, userNames) =>
         val start = if (roleNames.length > 1) s"${x.name}S" else x.name
         s"$start ${roleNames.map(Prettifier.escapeName).mkString(", ")} FROM ${userNames.map(Prettifier.escapeName).mkString(", ")}"
+
+      case _ @RevokeRolesFromAuthRules(roleNames, ruleNames) =>
+        val start = if (roleNames.length > 1) "REVOKE ROLES" else "REVOKE ROLE"
+        val authRules = if (ruleNames.length > 1) "AUTH RULES" else "AUTH RULE"
+        s"$start ${roleNames.map(Prettifier.escapeName).mkString(", ")} FROM $authRules ${ruleNames.map(Prettifier.escapeName).mkString(", ")}"
 
       // Privilege commands
       // dbms privileges

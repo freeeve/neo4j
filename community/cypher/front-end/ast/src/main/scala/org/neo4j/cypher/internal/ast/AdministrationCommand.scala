@@ -816,6 +816,29 @@ final case class GrantRolesToUsers(
   }
 }
 
+final case class GrantRolesToAuthRules(
+  roleNames: Seq[Expression],
+  ruleNames: Seq[Expression]
+)(val position: InputPosition) extends WriteAdministrationCommand {
+
+  override def name = "GRANT ROLE TO AUTH RULE"
+
+  private val featureCheck =
+    requireFeatureSupport(
+      s"The `$name` clause",
+      SemanticFeature.AttributeBasedAccessControl,
+      position
+    )
+
+  override def semanticCheck: SemanticCheck = {
+    super.semanticCheck chain
+      featureCheck chain
+      semanticCheckFold(roleNames)(roleName => checkIsStringLiteralOrParameter("rolename", roleName)) chain
+      semanticCheckFold(ruleNames)(ruleName => checkIsStringLiteralOrParameter("rulename", ruleName)) chain
+      SemanticState.recordCurrentScope(this)
+  }
+}
+
 final case class RevokeRolesFromUsers(
   roleNames: Seq[Expression],
   userNames: Seq[Expression]
@@ -827,6 +850,28 @@ final case class RevokeRolesFromUsers(
     super.semanticCheck chain
       semanticCheckFold(roleNames)(roleName => checkIsStringLiteralOrParameter("rolename", roleName)) chain
       semanticCheckFold(userNames)(username => checkIsStringLiteralOrParameter("username", username)) chain
+      SemanticState.recordCurrentScope(this)
+}
+
+final case class RevokeRolesFromAuthRules(
+  roleNames: Seq[Expression],
+  ruleNames: Seq[Expression]
+)(val position: InputPosition) extends WriteAdministrationCommand {
+
+  override def name = "REVOKE ROLE FROM AUTH RULE"
+
+  private val featureCheck =
+    requireFeatureSupport(
+      s"The `$name` clause",
+      SemanticFeature.AttributeBasedAccessControl,
+      position
+    )
+
+  override def semanticCheck: SemanticCheck =
+    super.semanticCheck chain
+      featureCheck chain
+      semanticCheckFold(roleNames)(roleName => checkIsStringLiteralOrParameter("rolename", roleName)) chain
+      semanticCheckFold(ruleNames)(ruleName => checkIsStringLiteralOrParameter("rulename", ruleName)) chain
       SemanticState.recordCurrentScope(this)
 }
 

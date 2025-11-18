@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.ast.test.util.Parses
 import org.neo4j.cypher.internal.util.InputPosition
 
 class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
@@ -621,6 +622,27 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
       u.map(userName => literalString(userName))
     )
 
+  test("GRANT ROLE foo TO USER bar") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'bar': expected ',' or <EOF> (line 1, column 24 (offset: 23))
+            |"GRANT ROLE foo TO USER bar"
+            |                        ^""".stripMargin
+        )
+      case _ => _.toAst(Statements(Seq(
+          grantRole(Seq("foo"), Seq("bar"))(defaultPos)
+        )))
+    }
+  }
+
+  test("GRANT ROLE foo TO USER") {
+    parsesTo[Statements](grantRole(Seq("foo"), Seq("USER"))(defaultPos))
+  }
+
+  test("GRANT ROLE foo TO USER,bar") {
+    parsesTo[Statements](grantRole(Seq("foo"), Seq("USER", "bar"))(defaultPos))
+  }
+
   Seq("ROLE", "ROLES").foreach {
     roleKeyword =>
       Seq(
@@ -628,35 +650,51 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
         ("REVOKE", "FROM", revokeRole: grantOrRevokeRoleFunc)
       ).foreach {
         case (verb: String, preposition: String, func: grantOrRevokeRoleFunc) =>
-          test(s"$verb $roleKeyword foo $preposition abc") {
-            parsesTo[Statements](func(Seq("foo"), Seq("abc"))(defaultPos))
-          }
+          Seq("", " USER", " USERS").foreach(userKeyword => {
 
-          test(s"$verb $roleKeyword foo, bar $preposition abc") {
-            parsesTo[Statements](func(Seq("foo", "bar"), Seq("abc"))(defaultPos))
-          }
+            def parses(ast: Statements): Parses[Statements] = {
+              val usesCypher25Feature = userKeyword.nonEmpty
+              if (usesCypher25Feature) {
+                parsesIn[Statements] {
+                  case Cypher5 => _.withSyntaxErrorContaining(userKeyword)
+                  case _       => _.toAst(ast)
+                }
+              } else {
+                parsesTo[Statements](ast)
+              }
+            }
 
-          test(s"$verb $roleKeyword foo $preposition abc, def") {
-            parsesTo[Statements](func(Seq("foo"), Seq("abc", "def"))(defaultPos))
-          }
+            test(s"$verb $roleKeyword foo $preposition$userKeyword abc") {
+              parses(func(Seq("foo"), Seq("abc"))(defaultPos))
+            }
 
-          test(s"$verb $roleKeyword foo,bla,roo $preposition bar, baz,abc,  def") {
-            parsesTo[Statements](func(Seq("foo", "bla", "roo"), Seq("bar", "baz", "abc", "def"))(defaultPos))
-          }
+            test(s"$verb $roleKeyword foo, bar $preposition$userKeyword abc") {
+              parses(func(Seq("foo", "bar"), Seq("abc"))(defaultPos))
+            }
 
-          test(s"$verb $roleKeyword `fo:o` $preposition bar") {
-            parsesTo[Statements](func(Seq("fo:o"), Seq("bar"))(defaultPos))
-          }
+            test(s"$verb $roleKeyword foo $preposition$userKeyword abc, def") {
+              parses(func(Seq("foo"), Seq("abc", "def"))(defaultPos))
+            }
 
-          test(s"$verb $roleKeyword foo $preposition `b:ar`") {
-            parsesTo[Statements](func(Seq("foo"), Seq("b:ar"))(defaultPos))
-          }
+            test(s"$verb $roleKeyword foo,bla,roo $preposition$userKeyword bar, baz,abc,  def") {
+              parses(func(Seq("foo", "bla", "roo"), Seq("bar", "baz", "abc", "def"))(defaultPos))
+            }
 
-          test(s"$verb $roleKeyword `$$f00`,bar $preposition abc,`$$a&c`") {
-            parsesTo[Statements](func(Seq("$f00", "bar"), Seq("abc", s"$$a&c"))(defaultPos))
-          }
+            test(s"$verb $roleKeyword `fo:o` $preposition$userKeyword bar") {
+              parses(func(Seq("fo:o"), Seq("bar"))(defaultPos))
+            }
 
-          // Should fail to parse if not following the pattern $command $roleKeyword role(s) $preposition user(s)
+            test(s"$verb $roleKeyword foo $preposition$userKeyword `b:ar`") {
+              parses(func(Seq("foo"), Seq("b:ar"))(defaultPos))
+            }
+
+            test(s"$verb $roleKeyword `$$f00`,bar $preposition$userKeyword abc,`$$a&c`") {
+              parses(func(Seq("$f00", "bar"), Seq("abc", s"$$a&c"))(defaultPos))
+            }
+
+          })
+
+          // Should fail to parse if not following the pattern $command $roleKeyword role(s) $preposition [$userKeyword] user(s)
 
           test(s"$verb $roleKeyword") {
             failsParsing[Statements].withSyntaxErrorContaining(roleKeyword match {
@@ -673,9 +711,14 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
           }
 
           test(s"$verb $roleKeyword foo $preposition") {
-            failsParsing[Statements].withSyntaxErrorContaining(
-              """Invalid input '': expected a parameter or an identifier""".stripMargin
-            )
+            parsesIn[Statement] {
+              case Cypher5 => _.withSyntaxErrorContaining(
+                  """Invalid input '': expected a parameter or an identifier""".stripMargin
+                )
+              case _ => _.withSyntaxErrorContaining(
+                  """Invalid input '': expected a parameter, an identifier, 'AUTH', 'USER' or 'USERS'""".stripMargin
+                )
+            }
           }
 
           test(s"$verb $roleKeyword $preposition abc") {
@@ -705,25 +748,55 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
   }
 
   test(s"GRANT ROLE $$a TO $$x") {
-    parsesTo[Statements](GrantRolesToUsers(Seq(stringParam("a")), Seq(stringParam("x")))(defaultPos))
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(
+          GrantRolesToUsers(Seq(stringParam("a")), Seq(stringParam("x")))(defaultPos)
+        )
+      case _ => _.toAst(
+          GrantRolesToUsers(Seq(stringParam("a")), Seq(stringParam("x")))(defaultPos)
+        )
+    }
   }
 
   test(s"REVOKE ROLE $$a FROM $$x") {
-    parsesTo[Statements](RevokeRolesFromUsers(Seq(stringParam("a")), Seq(stringParam("x")))(defaultPos))
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(
+          RevokeRolesFromUsers(Seq(stringParam("a")), Seq(stringParam("x")))(defaultPos)
+        )
+      case _ => _.toAst(
+          RevokeRolesFromUsers(Seq(stringParam("a")), Seq(stringParam("x")))(defaultPos)
+        )
+    }
   }
 
   test(s"GRANT ROLES a, $$b, $$c TO $$x, y, z") {
-    parsesTo[Statements](GrantRolesToUsers(
-      Seq(literal("a"), stringParam("b"), stringParam("c")),
-      Seq(stringParam("x"), literal("y"), literal("z"))
-    )(defaultPos))
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(GrantRolesToUsers(
+          Seq(literal("a"), stringParam("b"), stringParam("c")),
+          Seq(stringParam("x"), literal("y"), literal("z"))
+        )(defaultPos))
+      case _ => _.toAst(GrantRolesToUsers(
+          Seq(literal("a"), stringParam("b"), stringParam("c")),
+          Seq(stringParam("x"), literal("y"), literal("z"))
+        )(defaultPos))
+    }
   }
 
   test(s"REVOKE ROLES a, $$b, $$c FROM $$x, y, z") {
-    parsesTo[Statements](RevokeRolesFromUsers(
-      Seq(literal("a"), stringParam("b"), stringParam("c")),
-      Seq(stringParam("x"), literal("y"), literal("z"))
-    )(defaultPos))
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(
+          RevokeRolesFromUsers(
+            Seq(literal("a"), stringParam("b"), stringParam("c")),
+            Seq(stringParam("x"), literal("y"), literal("z"))
+          )(defaultPos)
+        )
+      case _ => _.toAst(
+          RevokeRolesFromUsers(
+            Seq(literal("a"), stringParam("b"), stringParam("c")),
+            Seq(stringParam("x"), literal("y"), literal("z"))
+          )(defaultPos)
+        )
+    }
   }
 
   // ROLE[S] TO USER only have GRANT and REVOKE and not DENY

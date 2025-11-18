@@ -56,6 +56,7 @@ import org.neo4j.cypher.internal.notification.ExhaustiveShortestPathForbiddenNot
 import org.neo4j.cypher.internal.notification.ExternalAuthNotEnabled
 import org.neo4j.cypher.internal.notification.FixedLengthRelationshipInShortestPath
 import org.neo4j.cypher.internal.notification.GrantRoleCommandHasNoEffectNotification
+import org.neo4j.cypher.internal.notification.GrantRoleToAuthRuleCommandHasNoEffectNotification
 import org.neo4j.cypher.internal.notification.HomeDatabaseNotPresent
 import org.neo4j.cypher.internal.notification.ImpossibleRevokeCommandWarning
 import org.neo4j.cypher.internal.notification.IndexHintUnfulfillableNotification
@@ -81,6 +82,7 @@ import org.neo4j.cypher.internal.notification.RepeatedVarLengthRelationshipRefer
 import org.neo4j.cypher.internal.notification.RequestedTopologyMatchedCurrentTopology
 import org.neo4j.cypher.internal.notification.RevokePrivilegeCommandHasNoEffectNotification
 import org.neo4j.cypher.internal.notification.RevokeRoleCommandHasNoEffectNotification
+import org.neo4j.cypher.internal.notification.RevokeRoleFromAuthRuleCommandHasNoEffectNotification
 import org.neo4j.cypher.internal.notification.RuntimeUnsatisfiableRelationshipTypeExpression
 import org.neo4j.cypher.internal.notification.RuntimeUnsupportedNotification
 import org.neo4j.cypher.internal.notification.ServerAlreadyCordoned
@@ -466,6 +468,18 @@ object NotificationWrapping {
 
     case RevokeRoleCommandHasNoEffectNotification(command) =>
       NotificationCodeWithDescription.commandHasNoEffectRevokeRole(
+        graphdb.InputPosition.empty,
+        command
+      )
+
+    case GrantRoleToAuthRuleCommandHasNoEffectNotification(command) =>
+      NotificationCodeWithDescription.commandHasNoEffectGrantRoleToAuthRule(
+        graphdb.InputPosition.empty,
+        command
+      )
+
+    case RevokeRoleFromAuthRuleCommandHasNoEffectNotification(command) =>
+      NotificationCodeWithDescription.commandHasNoEffectRevokeRoleToAuthRule(
         graphdb.InputPosition.empty,
         command
       )

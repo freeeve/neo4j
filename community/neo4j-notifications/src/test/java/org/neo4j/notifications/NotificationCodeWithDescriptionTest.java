@@ -29,8 +29,10 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.cartesianP
 import static org.neo4j.notifications.NotificationCodeWithDescription.codeGenerationFailed;
 import static org.neo4j.notifications.NotificationCodeWithDescription.commandHasNoEffectAssignPrivilege;
 import static org.neo4j.notifications.NotificationCodeWithDescription.commandHasNoEffectGrantRole;
+import static org.neo4j.notifications.NotificationCodeWithDescription.commandHasNoEffectGrantRoleToAuthRule;
 import static org.neo4j.notifications.NotificationCodeWithDescription.commandHasNoEffectRevokePrivilege;
 import static org.neo4j.notifications.NotificationCodeWithDescription.commandHasNoEffectRevokeRole;
+import static org.neo4j.notifications.NotificationCodeWithDescription.commandHasNoEffectRevokeRoleToAuthRule;
 import static org.neo4j.notifications.NotificationCodeWithDescription.cordonedServersExist;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedBooleanCoercion;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedConnectComponentsPlannerPreParserOption;
@@ -1576,6 +1578,56 @@ class NotificationCodeWithDescriptionTest {
     }
 
     @Test
+    void shouldConstructNotificationsFor_COMMAND_HAS_NO_EFFECT_GRANT_ROLE_TO_AUTH_RULE() {
+        NotificationImplementation notification =
+                commandHasNoEffectGrantRoleToAuthRule(InputPosition.empty, "GRANT ROLE role TO AUTH RULE authRule");
+
+        verifyNotification(
+                notification,
+                "`GRANT ROLE role TO AUTH RULE authRule` has no effect.",
+                SeverityLevel.INFORMATION,
+                "Neo.ClientNotification.Security.CommandHasNoEffect",
+                "The auth rule already has the role. See Status Codes documentation for more information.",
+                NotificationCategory.SECURITY,
+                NotificationClassification.SECURITY,
+                "00N70",
+                new DiagnosticRecord(
+                                info,
+                                NotificationClassification.SECURITY,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("cmd", "GRANT ROLE role TO AUTH RULE authRule"))
+                        .asMap(),
+                "note: successful completion - role or privilege already assigned. The command 'GRANT ROLE role TO AUTH RULE authRule' has no effect. The role or privilege is already assigned.");
+    }
+
+    @Test
+    void shouldConstructNotificationsFor_COMMAND_HAS_NO_EFFECT_REVOKE_ROLE_TO_AUTH_RULE() {
+        NotificationImplementation notification =
+                commandHasNoEffectRevokeRoleToAuthRule(InputPosition.empty, "REVOKE ROLE role FROM AUTH RULE authRule");
+
+        verifyNotification(
+                notification,
+                "`REVOKE ROLE role FROM AUTH RULE authRule` has no effect.",
+                SeverityLevel.INFORMATION,
+                "Neo.ClientNotification.Security.CommandHasNoEffect",
+                "The auth rule does not have the role. See Status Codes documentation for more information.",
+                NotificationCategory.SECURITY,
+                NotificationClassification.SECURITY,
+                "00N71",
+                new DiagnosticRecord(
+                                info,
+                                NotificationClassification.SECURITY,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("cmd", "REVOKE ROLE role FROM AUTH RULE authRule"))
+                        .asMap(),
+                "note: successful completion - role or privilege not assigned. The command 'REVOKE ROLE role FROM AUTH RULE authRule' has no effect. The role or privilege is not assigned.");
+    }
+
+    @Test
     void shouldConstructNotificationsFor_IMPOSSIBLE_REVOKE_COMMAND() {
         NotificationImplementation notification =
                 impossibleRevokeCommand(InputPosition.empty, "REVOKE admina FROM ALICE", "Role does not exist.");
@@ -2205,6 +2257,7 @@ class NotificationCodeWithDescriptionTest {
      * If this test fails, you have added, changed or removed a notification.
      * To get it approved, follow the instructions on
      * https://trello.com/c/9L3lbeSY/27-update-to-notification-name
+     * Or linear: https://linear.app/neo4j/team/SURF/new?template=fb219e16-d9e6-4105-86b1-7dffb7442292
      * When your changes have been approved, please change the expected byte[] below.
      */
     @Test
@@ -2229,8 +2282,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -28, 75, 69, -92, 48, 79, -46, -59, 8, 68, -34, 44, 100, 72, 95, -69, -112, 56, 97, -69, -46, -108, 59,
-            -120, -64, 36, 102, 76, 28, -94, 61, -94
+            -119, -64, 26, 67, -54, -56, -23, -24, 99, -93, -78, -20, -59, 84, 39, 67, -34, -24, 109, -103, -127, -100,
+            113, 15, -54, 106, 101, 85, -106, -81, 103, 90
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

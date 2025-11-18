@@ -571,6 +571,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitRevokeRole(Cypher25Parser.RevokeRoleContext ctx);
 
+    void exitUsersOrAuthRule(Cypher25Parser.UsersOrAuthRuleContext ctx);
+
     void exitCreateUser(Cypher25Parser.CreateUserContext ctx);
 
     void exitDropUser(Cypher25Parser.DropUserContext ctx);

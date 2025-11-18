@@ -70,6 +70,8 @@ object InternalNotifications {
     "RevokePrivilegeCommandHasNoEffectNotification",
     "GrantRoleCommandHasNoEffectNotification",
     "RevokeRoleCommandHasNoEffectNotification",
+    "GrantRoleToAuthRuleCommandHasNoEffectNotification",
+    "RevokeRoleFromAuthRuleCommandHasNoEffectNotification",
     "ImpossibleRevokeCommandWarning",
     "ServerAlreadyEnabled",
     "ServerAlreadyCordoned",
@@ -211,6 +213,8 @@ case class AssignPrivilegeCommandHasNoEffectNotification(command: String) extend
 case class RevokePrivilegeCommandHasNoEffectNotification(command: String) extends InternalNotification
 case class GrantRoleCommandHasNoEffectNotification(command: String) extends InternalNotification
 case class RevokeRoleCommandHasNoEffectNotification(command: String) extends InternalNotification
+case class GrantRoleToAuthRuleCommandHasNoEffectNotification(command: String) extends InternalNotification
+case class RevokeRoleFromAuthRuleCommandHasNoEffectNotification(command: String) extends InternalNotification
 
 case class ShardedPerformanceNotification() extends InternalNotification
 

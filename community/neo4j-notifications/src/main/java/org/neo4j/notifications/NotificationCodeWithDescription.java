@@ -310,6 +310,16 @@ public enum NotificationCodeWithDescription {
             GqlStatusInfoCodes.STATUS_00N71,
             "The user does not have the role. See Status Codes documentation for more information."),
 
+    COMMAND_HAS_NO_EFFECT_GRANT_ROLE_TO_AUTH_RULE(
+            Status.Security.CommandHasNoEffect,
+            GqlStatusInfoCodes.STATUS_00N70,
+            "The auth rule already has the role. See Status Codes documentation for more information."),
+
+    COMMAND_HAS_NO_EFFECT_REVOKE_ROLE_TO_AUTH_RULE(
+            Status.Security.CommandHasNoEffect,
+            GqlStatusInfoCodes.STATUS_00N71,
+            "The auth rule does not have the role. See Status Codes documentation for more information."),
+
     AUTH_PROVIDER_NOT_DEFINED(
             Status.Security.AuthProviderNotDefined,
             GqlStatusInfoCodes.STATUS_00N72,
@@ -855,6 +865,18 @@ public enum NotificationCodeWithDescription {
 
     public static NotificationImplementation commandHasNoEffectRevokeRole(InputPosition position, String titleParam) {
         return COMMAND_HAS_NO_EFFECT_REVOKE_ROLE.notificationWithTitleAndDescriptionDetails(
+                position, titleParam, new String[] {}, new String[] {titleParam});
+    }
+
+    public static NotificationImplementation commandHasNoEffectGrantRoleToAuthRule(
+            InputPosition position, String titleParam) {
+        return COMMAND_HAS_NO_EFFECT_GRANT_ROLE_TO_AUTH_RULE.notificationWithTitleAndDescriptionDetails(
+                position, titleParam, new String[] {}, new String[] {titleParam});
+    }
+
+    public static NotificationImplementation commandHasNoEffectRevokeRoleToAuthRule(
+            InputPosition position, String titleParam) {
+        return COMMAND_HAS_NO_EFFECT_REVOKE_ROLE_TO_AUTH_RULE.notificationWithTitleAndDescriptionDetails(
                 position, titleParam, new String[] {}, new String[] {titleParam});
     }
 

@@ -24,4 +24,5 @@ package object ast {
   //   * Nothing in which case we just SHOW everything
   // This type represents these options as they come out of the parser
   type YieldOrWhere = Option[Either[(ast.Yield, Option[ast.Return]), ast.Where]]
+
 }

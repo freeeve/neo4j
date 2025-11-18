@@ -89,6 +89,7 @@ import org.neo4j.cypher.internal.ast.ExecuteProcedureAction
 import org.neo4j.cypher.internal.ast.FileResource
 import org.neo4j.cypher.internal.ast.FunctionQualifier
 import org.neo4j.cypher.internal.ast.GrantPrivilege
+import org.neo4j.cypher.internal.ast.GrantRolesToAuthRules
 import org.neo4j.cypher.internal.ast.GrantRolesToUsers
 import org.neo4j.cypher.internal.ast.GraphPrivilege
 import org.neo4j.cypher.internal.ast.GraphPrivilegeQualifier
@@ -130,6 +131,7 @@ import org.neo4j.cypher.internal.ast.RevokeBothType
 import org.neo4j.cypher.internal.ast.RevokeDenyType
 import org.neo4j.cypher.internal.ast.RevokeGrantType
 import org.neo4j.cypher.internal.ast.RevokePrivilege
+import org.neo4j.cypher.internal.ast.RevokeRolesFromAuthRules
 import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.ServerManagementAction
 import org.neo4j.cypher.internal.ast.SetAuthAction
@@ -174,6 +176,13 @@ import scala.collection.immutable.ArraySeq
 
 trait DdlPrivilegeBuilder extends Cypher25ParserListener {
 
+  sealed trait UsernamesOrAuthRuleNames
+
+  private object UsernamesOrAuthRuleNames {
+    case class UserNames(names: Seq[Expression]) extends UsernamesOrAuthRuleNames
+    case class AuthRuleNames(names: Seq[Expression]) extends UsernamesOrAuthRuleNames
+  }
+
   final override def exitGrantCommand(
     ctx: Cypher25Parser.GrantCommandContext
   ): Unit = {
@@ -184,9 +193,13 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
       val roleNames = ctx.roleNames.ast[ArraySeq[Expression]]()
       GrantPrivilege(privilegeType, ctx.IMMUTABLE() != null, resource, qualifier, roleNames)(p)
     } else {
-      val (rolenames, usernames) =
-        ctx.grantRole().ast[(Seq[Expression], Seq[Expression])]()
-      GrantRolesToUsers(rolenames, usernames)(p)
+      val (rolenames, usernamesOrAutRuleNames) =
+        ctx.grantRole().ast[(Seq[Expression], UsernamesOrAuthRuleNames)]()
+
+      usernamesOrAutRuleNames match {
+        case UsernamesOrAuthRuleNames.UserNames(names)     => GrantRolesToUsers(rolenames, names)(p)
+        case UsernamesOrAuthRuleNames.AuthRuleNames(names) => GrantRolesToAuthRules(rolenames, names)(p)
+      }
     }
   }
 
@@ -214,9 +227,12 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
         else RevokeBothType()(p)
       RevokePrivilege(privilegeType, ctx.IMMUTABLE() != null, resource, qualifier, roleNames, revokeType)(p)
     } else {
-      val (rolenames, usernames) =
-        ctx.revokeRole().ast[(Seq[Expression], Seq[Expression])]()
-      RevokeRolesFromUsers(rolenames, usernames)(p)
+      val (rolenames, usernamesOrAutRuleNames) =
+        ctx.revokeRole().ast[(Seq[Expression], UsernamesOrAuthRuleNames)]()
+      usernamesOrAutRuleNames match {
+        case UsernamesOrAuthRuleNames.UserNames(names)     => RevokeRolesFromUsers(rolenames, names)(p)
+        case UsernamesOrAuthRuleNames.AuthRuleNames(names) => RevokeRolesFromAuthRules(rolenames, names)(p)
+      }
     }
   }
 
@@ -227,7 +243,7 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
   ): Unit = {
     ctx.ast = (
       ctx.roleNames.ast[Seq[Expression]](),
-      ctx.userNames.ast[Seq[Expression]]()
+      ctx.usersOrAuthRule.ast[UsernamesOrAuthRuleNames]()
     )
   }
 
@@ -236,7 +252,7 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
   ): Unit = {
     ctx.ast = (
       ctx.roleNames.ast[Seq[Either[String, Parameter]]](),
-      ctx.userNames.ast[Seq[Either[String, Parameter]]]()
+      ctx.usersOrAuthRule.ast[UsernamesOrAuthRuleNames]()
     )
   }
 
@@ -266,6 +282,13 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
 
   def exitDropAuthRule(ctx: Cypher25Parser.DropAuthRuleContext): Unit = {
     ctx.ast = DropAuthRule(ctx.commandNameExpression().ast(), ctx.EXISTS() != null)(pos(ctx.getParent))
+  }
+
+  def exitUsersOrAuthRule(ctx: Cypher25Parser.UsersOrAuthRuleContext): Unit = {
+    ctx.ast =
+      if (ctx.authRuleKeywords() != null)
+        UsernamesOrAuthRuleNames.AuthRuleNames(ctx.authRuleNames().ast[Seq[Expression]]())
+      else UsernamesOrAuthRuleNames.UserNames(ctx.userNames().ast[Seq[Expression]]())
   }
 
   // Privilege command contexts

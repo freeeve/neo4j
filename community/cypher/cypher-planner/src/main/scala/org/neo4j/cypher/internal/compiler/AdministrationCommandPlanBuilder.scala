@@ -80,6 +80,7 @@ import org.neo4j.cypher.internal.ast.DropUserAction
 import org.neo4j.cypher.internal.ast.EnableServer
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.GrantPrivilege
+import org.neo4j.cypher.internal.ast.GrantRolesToAuthRules
 import org.neo4j.cypher.internal.ast.GrantRolesToUsers
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.GraphPrivilege
@@ -109,6 +110,7 @@ import org.neo4j.cypher.internal.ast.RevokeBothType
 import org.neo4j.cypher.internal.ast.RevokeDenyType
 import org.neo4j.cypher.internal.ast.RevokeGrantType
 import org.neo4j.cypher.internal.ast.RevokePrivilege
+import org.neo4j.cypher.internal.ast.RevokeRolesFromAuthRules
 import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.RevokeType
 import org.neo4j.cypher.internal.ast.ServerManagementAction
@@ -615,6 +617,49 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               source,
               roleName,
               userName,
+              prettifier.asString(subCommand)
+            )
+        }
+        Some(plans.LogSystemCommand(plan, prettifier.asString(c)))
+
+      // GRANT roles TO AUTH RULE[S] rules
+      case c: GrantRolesToAuthRules =>
+        val plan = (for (ruleName <- c.ruleNames; roleName <- c.roleNames) yield {
+          roleName -> ruleName
+        }).foldLeft(
+          plans.AssertAllowedDbmsActions(AssignRoleAction).asInstanceOf[plans.SecurityAdministrationLogicalPlan]
+        ) {
+          case (source, (roleName, ruleName)) =>
+            val subCommand = c.copy(
+              roleNames = List(roleName),
+              ruleNames = List(ruleName)
+            )(c.position)
+            plans.GrantRoleToAuthRule(
+              source,
+              roleName,
+              ruleName,
+              prettifier.asString(subCommand)
+            )
+        }
+        Some(plans.LogSystemCommand(plan, prettifier.asString(c)))
+
+      // REVOKE roles FROM AUTH RULE[S] rules
+      case c: RevokeRolesFromAuthRules =>
+        val plan = (for (ruleName <- c.ruleNames; roleName <- c.roleNames) yield {
+          roleName -> ruleName
+        }).foldLeft(
+          // TODO are these the right privileges?
+          plans.AssertAllowedDbmsActions(RemoveRoleAction).asInstanceOf[plans.SecurityAdministrationLogicalPlan]
+        ) {
+          case (source, (roleName, ruleName)) =>
+            val subCommand = c.copy(
+              roleNames = List(roleName),
+              ruleNames = List(ruleName)
+            )(c.position)
+            plans.RevokeRoleFromAuthRule(
+              source,
+              roleName,
+              ruleName,
               prettifier.asString(subCommand)
             )
         }

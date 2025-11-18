@@ -2636,6 +2636,8 @@ class PrettifierIT extends CypherFunSuite {
       "GRANT ROLES abc, def TO xyz",
     "grant roles abc, def to xyz, qwr" ->
       "GRANT ROLES abc, def TO xyz, qwr",
+    FailsInCypher5("grant roles abc to user xyz, qwr", "GRANT ROLE abc TO xyz, qwr"),
+    FailsInCypher5("grant role abc, def to users xyz, qwr", "GRANT ROLES abc, def TO xyz, qwr"),
     "revoke role abc from xyz" ->
       "REVOKE ROLE abc FROM xyz",
     "revoke roles abc from xyz" ->
@@ -2649,7 +2651,26 @@ class PrettifierIT extends CypherFunSuite {
     "revoke roles abc, def from xyz, qwr" ->
       "REVOKE ROLES abc, def FROM xyz, qwr",
     "revoke role `ab%$c` from `x%^yz`" ->
-      "REVOKE ROLE `ab%$c` FROM `x%^yz`"
+      "REVOKE ROLE `ab%$c` FROM `x%^yz`",
+    FailsInCypher5("revoke roles abc from user xyz, qwr", "REVOKE ROLE abc FROM xyz, qwr"),
+    FailsInCypher5("revoke role abc, def from users xyz, qwr", "REVOKE ROLES abc, def FROM xyz, qwr")
+  )
+
+  def authRuleTests(): Seq[Test] = Seq[Test](
+    FailsInCypher5("grant role abc to auth rule xyz", "GRANT ROLE abc TO AUTH RULE xyz"),
+    FailsInCypher5("grant roles abc to auth rule xyz", "GRANT ROLE abc TO AUTH RULE xyz"),
+    FailsInCypher5("grant roles abc to auth rule xyz, qwe", "GRANT ROLE abc TO AUTH RULES xyz, qwe"),
+    FailsInCypher5("grant role abc to auth rule xyz, qwe", "GRANT ROLE abc TO AUTH RULES xyz, qwe"),
+    FailsInCypher5("grant role `ab%$c` to auth rules `x%^yz`", "GRANT ROLE `ab%$c` TO AUTH RULE `x%^yz`"),
+    FailsInCypher5("grant roles abc, def to auth rule xyz", "GRANT ROLES abc, def TO AUTH RULE xyz"),
+    FailsInCypher5("grant roles abc, def to auth rule xyz, qwr", "GRANT ROLES abc, def TO AUTH RULES xyz, qwr"),
+    FailsInCypher5("revoke role abc from auth rule xyz", "REVOKE ROLE abc FROM AUTH RULE xyz"),
+    FailsInCypher5("revoke roles abc from auth rule xyz", "REVOKE ROLE abc FROM AUTH RULE xyz"),
+    FailsInCypher5("revoke role abc, def from auth rule xyz", "REVOKE ROLES abc, def FROM AUTH RULE xyz"),
+    FailsInCypher5("revoke roles abc, def from auth rule xyz", "REVOKE ROLES abc, def FROM AUTH RULE xyz"),
+    FailsInCypher5("revoke role abc from auth rule xyz, qwr", "REVOKE ROLE abc FROM AUTH RULES xyz, qwr"),
+    FailsInCypher5("revoke roles abc, def from auth rule xyz, qwr", "REVOKE ROLES abc, def FROM AUTH RULES xyz, qwr"),
+    FailsInCypher5("revoke role `ab%$c` from auth rules `x%^yz`", "REVOKE ROLE `ab%$c` FROM AUTH RULE `x%^yz`")
   )
 
   def showPrivilegeCommandTests(): Seq[Test] = Seq[Test](
@@ -3207,7 +3228,7 @@ class PrettifierIT extends CypherFunSuite {
   )
 
   def administrationTests(): Seq[Test] =
-    userCommandTests() ++ roleCommandTests() ++ showPrivilegeCommandTests() ++ databaseCommandTests() ++
+    userCommandTests() ++ roleCommandTests() ++ authRuleTests() ++ showPrivilegeCommandTests() ++ databaseCommandTests() ++
       aliasCommandTests() ++ serverCommandTests() ++ privilegeTests()
 
   def privilegeTests(): Seq[Test] = {

@@ -150,6 +150,7 @@ import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.FulltextIndexes
 import org.neo4j.cypher.internal.ast.FunctionQualifier
 import org.neo4j.cypher.internal.ast.GrantPrivilege
+import org.neo4j.cypher.internal.ast.GrantRolesToAuthRules
 import org.neo4j.cypher.internal.ast.GrantRolesToUsers
 import org.neo4j.cypher.internal.ast.GraphAction
 import org.neo4j.cypher.internal.ast.GraphDirectReference
@@ -294,6 +295,7 @@ import org.neo4j.cypher.internal.ast.RevokeBothType
 import org.neo4j.cypher.internal.ast.RevokeDenyType
 import org.neo4j.cypher.internal.ast.RevokeGrantType
 import org.neo4j.cypher.internal.ast.RevokePrivilege
+import org.neo4j.cypher.internal.ast.RevokeRolesFromAuthRules
 import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.RevokeType
 import org.neo4j.cypher.internal.ast.SchemaCommand
@@ -3403,15 +3405,45 @@ class AstGenerator(
     ifExists <- boolean
   } yield DropRole(roleName, ifExists)(pos)
 
-  def _grantRole: Gen[GrantRolesToUsers] = for {
+  def _grantRolesToUsers: Gen[GrantRolesToUsers] = for {
     roleNames <- _listOfStringLiteralOrParam
     userNames <- _listOfStringLiteralOrParam
   } yield GrantRolesToUsers(roleNames, userNames)(pos)
 
-  def _revokeRole: Gen[RevokeRolesFromUsers] = for {
+  def _grantRolesToAuthRules: Gen[GrantRolesToAuthRules] = for {
+    roleNames <- _listOfStringLiteralOrParam
+    ruleNames <- _listOfStringLiteralOrParam
+  } yield GrantRolesToAuthRules(roleNames, ruleNames)(pos)
+
+  def _grantRole: Gen[AdministrationCommand] = {
+    whenAstDifferUseCypherVersion match {
+      case CypherVersion.Cypher5 => _grantRolesToUsers
+      case _ => oneOf(
+          _grantRolesToUsers,
+          _grantRolesToAuthRules
+        )
+    }
+  }
+
+  def _revokeRolesFromUsers: Gen[RevokeRolesFromUsers] = for {
     roleNames <- _listOfStringLiteralOrParam
     userNames <- _listOfStringLiteralOrParam
   } yield RevokeRolesFromUsers(roleNames, userNames)(pos)
+
+  def _revokeRolesFromAuthRules: Gen[RevokeRolesFromAuthRules] = for {
+    roleNames <- _listOfStringLiteralOrParam
+    ruleNames <- _listOfStringLiteralOrParam
+  } yield RevokeRolesFromAuthRules(roleNames, ruleNames)(pos)
+
+  def _revokeRole: Gen[AdministrationCommand] = {
+    whenAstDifferUseCypherVersion match {
+      case CypherVersion.Cypher5 => _revokeRolesFromUsers
+      case _ => oneOf(
+          _revokeRolesFromUsers,
+          _revokeRolesFromAuthRules
+        )
+    }
+  }
 
   def _roleCommand: Gen[AdministrationCommand] = oneOf(
     _showRoles,

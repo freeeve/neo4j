@@ -197,7 +197,7 @@ public class DatabaseNotFoundHelper {
 
     public static DatabaseNotFoundException invalidCommandDatabaseDoesNotExistsWithLegacyMessage(
             String msg, String command, String dbname, String parameterName) {
-        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N00(command, dbname, parameterName);
+        var gql = GqlHelper.get42N00_databaseNotFound(command, dbname, parameterName);
         return new DatabaseNotFoundException(gql, msg);
     }
 

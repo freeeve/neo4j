@@ -448,6 +448,8 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_showRoles -> exitShowRoles((Cypher25Parser.ShowRolesContext) ctx);
             case Cypher25Parser.RULE_grantRole -> exitGrantRole((Cypher25Parser.GrantRoleContext) ctx);
             case Cypher25Parser.RULE_revokeRole -> exitRevokeRole((Cypher25Parser.RevokeRoleContext) ctx);
+            case Cypher25Parser.RULE_usersOrAuthRule ->
+                exitUsersOrAuthRule((Cypher25Parser.UsersOrAuthRuleContext) ctx);
             case Cypher25Parser.RULE_createUser -> exitCreateUser((Cypher25Parser.CreateUserContext) ctx);
             case Cypher25Parser.RULE_dropUser -> exitDropUser((Cypher25Parser.DropUserContext) ctx);
             case Cypher25Parser.RULE_renameUser -> exitRenameUser((Cypher25Parser.RenameUserContext) ctx);

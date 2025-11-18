@@ -116,6 +116,7 @@ import org.neo4j.cypher.internal.logical.plans.GrantDatabaseAction
 import org.neo4j.cypher.internal.logical.plans.GrantDbmsAction
 import org.neo4j.cypher.internal.logical.plans.GrantGraphAction
 import org.neo4j.cypher.internal.logical.plans.GrantLoadAction
+import org.neo4j.cypher.internal.logical.plans.GrantRoleToAuthRule
 import org.neo4j.cypher.internal.logical.plans.GrantRoleToUser
 import org.neo4j.cypher.internal.logical.plans.HomeScope
 import org.neo4j.cypher.internal.logical.plans.LogSystemCommand
@@ -128,6 +129,7 @@ import org.neo4j.cypher.internal.logical.plans.RevokeDatabaseAction
 import org.neo4j.cypher.internal.logical.plans.RevokeDbmsAction
 import org.neo4j.cypher.internal.logical.plans.RevokeGraphAction
 import org.neo4j.cypher.internal.logical.plans.RevokeLoadAction
+import org.neo4j.cypher.internal.logical.plans.RevokeRoleFromAuthRule
 import org.neo4j.cypher.internal.logical.plans.RevokeRoleFromUser
 import org.neo4j.cypher.internal.logical.plans.SetOwnPassword
 import org.neo4j.cypher.internal.logical.plans.ShowAliases
@@ -246,6 +248,20 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       attach(RevokeRoleFromUser(privLhsLP, util.Left("role"), util.Left("user"), "REVOKE ROLE role FROM user"), 1.0),
       adminPlanDescription
     )
+
+    assertGood(
+      attach(GrantRoleToAuthRule(privLhsLP, util.Left("role"), util.Left("rule"), "GRANT ROLE role TO rule"), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        RevokeRoleFromAuthRule(privLhsLP, util.Left("role"), util.Left("rule"), "REVOKE ROLE role FROM rule"),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
   }
 
   test("Auth rule commands") {
