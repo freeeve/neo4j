@@ -44,6 +44,7 @@ import static org.neo4j.kernel.impl.newapi.IndexTxStateUpdater.LabelChangeType.R
 import static org.neo4j.lock.ResourceType.INDEX_ENTRY;
 import static org.neo4j.lock.ResourceType.SCHEMA_NAME;
 import static org.neo4j.storageengine.api.RelationshipSelection.selection;
+import static org.neo4j.token.api.TokenConstants.NO_TOKEN;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.ArrayList;
@@ -823,24 +824,48 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private int[] loadSortedNodePropertyKeyList(NodeCursor nodeCursor, PropertyCursor propertyCursor) {
         nodeCursor.properties(propertyCursor, PropertySelection.ALL_PROPERTY_KEYS);
-        return doLoadSortedPropertyKeyList(propertyCursor);
+        return doLoadSortedPropertyKeyListAndSingleValue(propertyCursor, NO_TOKEN)
+                .propertyKeyIds();
     }
 
     private int[] loadSortedRelationshipPropertyKeyList(
             RelationshipCursor relationshipCursor, PropertyCursor propertyCursor) {
         relationshipCursor.properties(propertyCursor, PropertySelection.ALL_PROPERTY_KEYS);
-        return doLoadSortedPropertyKeyList(propertyCursor);
+        return doLoadSortedPropertyKeyListAndSingleValue(propertyCursor, NO_TOKEN)
+                .propertyKeyIds();
     }
 
-    private int[] doLoadSortedPropertyKeyList(PropertyCursor propertyCursor) {
+    private record LoadResult(int[] propertyKeyIds, Value propertyValue) {}
+
+    private LoadResult loadSortedNodePropertyKeyListAndSingleValue(
+            NodeCursor nodeCursor, PropertyCursor propertyCursor, int propKeyToFetchValueFor) {
+        nodeCursor.properties(
+                propertyCursor, PropertySelection.selection(i -> i == propKeyToFetchValueFor, (int[]) null));
+        return doLoadSortedPropertyKeyListAndSingleValue(propertyCursor, propKeyToFetchValueFor);
+    }
+
+    private LoadResult loadSortedRelationshipPropertyKeyListAndSingleValue(
+            RelationshipCursor relationshipCursor, PropertyCursor propertyCursor, int propKeyToFetchValueFor) {
+        relationshipCursor.properties(
+                propertyCursor, PropertySelection.selection(i -> i == propKeyToFetchValueFor, (int[]) null));
+        return doLoadSortedPropertyKeyListAndSingleValue(propertyCursor, propKeyToFetchValueFor);
+    }
+
+    private LoadResult doLoadSortedPropertyKeyListAndSingleValue(
+            PropertyCursor propertyCursor, int propKeyToFetchValueFor) {
+        Value value = NO_VALUE;
+
         if (!propertyCursor.next()) {
-            return EMPTY_INT_ARRAY;
+            return new LoadResult(EMPTY_INT_ARRAY, value);
         }
 
         int[] propertyKeyIds = new int[4]; // just some arbitrary starting point, it grows on demand
         int cursor = 0;
         boolean isSorted = true;
         do {
+            if (propertyCursor.propertyKey() == propKeyToFetchValueFor) {
+                value = propertyCursor.propertyValue();
+            }
             if (cursor == propertyKeyIds.length) {
                 propertyKeyIds = Arrays.copyOf(propertyKeyIds, cursor * 2);
             }
@@ -857,7 +882,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         if (!isSorted) {
             Arrays.sort(propertyKeyIds);
         }
-        return propertyKeyIds;
+        return new LoadResult(propertyKeyIds, value);
     }
 
     private boolean nodeDelete(long node, boolean lock) {
@@ -962,17 +987,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         PropertyIndexQuery.ExactPredicate[] values = new PropertyIndexQuery.ExactPredicate[schemaPropertyIds.length];
 
         int nMatched = 0;
-        cursor.properties(localPropertyCursor, PropertySelection.selection(schemaPropertyIds));
-        while (localPropertyCursor.next()) {
-            int entityPropertyId = localPropertyCursor.propertyKey();
-            int k = indexOf(schemaPropertyIds, entityPropertyId);
-            if (k >= 0) {
-                if (entityPropertyId != NO_SUCH_PROPERTY_KEY) {
-                    values[k] = PropertyIndexQuery.exact(entityPropertyId, localPropertyCursor.propertyValue());
-                }
-                nMatched++;
-            }
-        }
 
         // This is true if we are adding a property
         if (changedPropertyKeyId != NO_SUCH_PROPERTY_KEY) {
@@ -980,6 +994,21 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             if (k >= 0) {
                 values[k] = PropertyIndexQuery.exact(changedPropertyKeyId, changedValue);
                 nMatched++;
+            }
+        }
+
+        // Only read properties if we're missing some.
+        if (nMatched < values.length) {
+            cursor.properties(localPropertyCursor, PropertySelection.selection(schemaPropertyIds));
+            while (localPropertyCursor.next()) {
+                int entityPropertyId = localPropertyCursor.propertyKey();
+                int k = indexOf(schemaPropertyIds, entityPropertyId);
+                if (k >= 0 && values[k] == null) {
+                    if (entityPropertyId != NO_SUCH_PROPERTY_KEY) {
+                        values[k] = PropertyIndexQuery.exact(entityPropertyId, localPropertyCursor.propertyValue());
+                    }
+                    nMatched++;
+                }
             }
         }
 
@@ -1260,8 +1289,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         ktx.securityContext(), this::resolvePropertyKey, Labels.from(labels), propertyKey);
 
         if (storageReader.hasRelatedSchema(labels, propertyKey, NODE)) {
-            Value existingValue = readNodeProperty(propertyKey);
-            int[] existingPropertyKeyIds = loadSortedNodePropertyKeyList(localNodeCursor, localPropertyCursor);
+            LoadResult loadResult =
+                    loadSortedNodePropertyKeyListAndSingleValue(localNodeCursor, localPropertyCursor, propertyKey);
+            int[] existingPropertyKeyIds = loadResult.propertyKeyIds();
+            Value existingValue = loadResult.propertyValue();
 
             checkUniquenessConstraints(node, propertyKey, value, labels, existingPropertyKeyIds);
 
@@ -1734,9 +1765,11 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         ktx.securityAuthorizationHandler()
                 .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, type, propertyKey);
         if (storageReader.hasRelatedSchema(new int[] {type}, propertyKey, RELATIONSHIP)) {
-            Value existingValue = readRelationshipProperty(propertyKey);
-            int[] existingPropertyKeyIds =
-                    loadSortedRelationshipPropertyKeyList(localRelationshipCursor, localPropertyCursor);
+            LoadResult loadResult = loadSortedRelationshipPropertyKeyListAndSingleValue(
+                    localRelationshipCursor, localPropertyCursor, propertyKey);
+            int[] existingPropertyKeyIds = loadResult.propertyKeyIds();
+            Value existingValue = loadResult.propertyValue();
+
             checkRelationshipUniquenessConstraints(relationship, propertyKey, value, type, existingPropertyKeyIds);
             if (existingValue == NO_VALUE) {
                 updater.onPropertyAdd(
