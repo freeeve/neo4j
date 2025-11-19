@@ -31,27 +31,9 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class TransactionFailureException extends GqlRuntimeException implements Status.HasStatus {
     public final Status status;
 
-    /**
-     * @deprecated replaced by {@link #TransactionFailureException(ErrorGqlStatusObject, String)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public TransactionFailureException(String message) {
-        super(message);
-        this.status = Status.Database.Unknown;
-    }
-
     public TransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
         this.status = Status.Database.Unknown;
-    }
-
-    /**
-     * @deprecated replaced by {@link #TransactionFailureException(ErrorGqlStatusObject, String, Throwable)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public TransactionFailureException(String message, Throwable cause) {
-        super(message, cause);
-        this.status = (cause instanceof Status.HasStatus se) ? se.status() : Status.Database.Unknown;
     }
 
     public TransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
@@ -59,26 +41,8 @@ public class TransactionFailureException extends GqlRuntimeException implements 
         this.status = (cause instanceof Status.HasStatus se) ? se.status() : Status.Database.Unknown;
     }
 
-    /**
-     * @deprecated replaced by {@link #TransactionFailureException(ErrorGqlStatusObject, String, Status)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public TransactionFailureException(String message, Status status) {
-        super(message);
-        this.status = status;
-    }
-
     public TransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String message, Status status) {
         super(gqlStatusObject, message);
-        this.status = status;
-    }
-
-    /**
-     * @deprecated replaced by {@link #TransactionFailureException(ErrorGqlStatusObject, String, Throwable, Status)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public TransactionFailureException(String message, Throwable cause, Status status) {
-        super(message, cause);
         this.status = status;
     }
 

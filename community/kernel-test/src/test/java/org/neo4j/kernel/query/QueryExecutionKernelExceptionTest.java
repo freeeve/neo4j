@@ -22,8 +22,10 @@ package org.neo4j.kernel.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.api.exceptions.Status.General.InvalidArguments;
+import static org.neo4j.kernel.api.exceptions.Status.Statement.ConstraintVerificationFailed;
 
 import org.junit.jupiter.api.Test;
+import org.neo4j.exceptions.ConstraintViolationException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlException;
@@ -144,19 +146,19 @@ public class QueryExecutionKernelExceptionTest {
     }
 
     @Test
-    void testNonGqlExceptionWrapping() {
-        var notGqlException = new InvalidArgumentsException("message");
+    void testExceptionWrappingForExceptionWithoutGqlStatus() {
+        var notGqlException = new ConstraintViolationException("message", null);
         var translatedGqlException = QueryExecutionKernelException.wrapError(notGqlException);
         assertEquals("50N42", translatedGqlException.gqlStatus());
         assertEquals("50N42", translatedGqlException.gqlStatusObject().gqlStatus());
-        assertEquals(InvalidArguments, translatedGqlException.status());
+        assertEquals(ConstraintVerificationFailed, translatedGqlException.status());
         assertEquals("message", translatedGqlException.getMessage());
         // It should set a cause since we are not wrapping a gql exception
         assertEquals(notGqlException, translatedGqlException.getCause());
 
         var userException = translatedGqlException.asUserException();
         assertEquals("50N42", userException.gqlStatus());
-        assertEquals("Neo.ClientError.General.InvalidArguments", userException.getStatusCode());
+        assertEquals("Neo.ClientError.Statement.ConstraintVerificationFailed", userException.getStatusCode());
         assertEquals("message", userException.getMessage());
     }
 

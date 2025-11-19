@@ -29,16 +29,6 @@ import org.neo4j.kernel.api.exceptions.Status;
 @PublicApi
 public class DatabaseLimitReachedException extends DatabaseManagementException {
 
-    /**
-     * @deprecated replaced by {@link #DatabaseLimitReachedException(ErrorGqlStatusObject, String)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseLimitReachedException(String startOfErrorMessage) {
-        super(
-                startOfErrorMessage + " The total limit of databases is already reached. "
-                        + "To create more you need to either drop databases or change the limit via the config setting 'dbms.max_databases'");
-    }
-
     public DatabaseLimitReachedException(ErrorGqlStatusObject gqlStatusObject, String startOfErrorMessage) {
         super(
                 gqlStatusObject,

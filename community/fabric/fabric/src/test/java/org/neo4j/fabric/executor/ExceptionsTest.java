@@ -22,11 +22,13 @@ package org.neo4j.fabric.executor;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.kernel.api.exceptions.Status.General.InvalidArguments;
+import static org.neo4j.kernel.api.exceptions.Status.Statement.ConstraintVerificationFailed;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.neo4j.exceptions.ConstraintViolationException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -62,11 +64,11 @@ class ExceptionsTest {
     }
 
     @Test
-    void testCompositeNonGqlExceptionTranslation() {
-        var notGqlException = new InvalidArgumentsException("message");
+    void testCompositeExceptionTranslationForExceptionWithoutGqlStatus() {
+        var notGqlException = new ConstraintViolationException("message", null);
         var translatedGqlException = FabricException.translateLocalError(notGqlException);
         assertEquals("50N42", translatedGqlException.gqlStatus());
-        assertEquals(InvalidArguments, translatedGqlException.status());
+        assertEquals(ConstraintVerificationFailed, translatedGqlException.status());
         assertEquals("message", translatedGqlException.getMessage());
     }
 

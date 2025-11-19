@@ -54,9 +54,6 @@ final case class SemanticError(
 
 object SemanticError {
 
-  @deprecated("Use the case class constructor with gqlStatusObject", since = "2025-04")
-  def apply(msg: String, position: InputPosition): SemanticError = new SemanticError(null, msg, position)
-
   def unapply(errorDef: SemanticErrorDef): Option[(ErrorGqlStatusObject, String, InputPosition)] =
     Some((errorDef.gqlStatusObject, errorDef.msg, errorDef.position))
 

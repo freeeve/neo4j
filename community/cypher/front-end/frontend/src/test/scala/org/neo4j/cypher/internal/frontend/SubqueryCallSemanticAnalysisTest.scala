@@ -483,7 +483,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    run(query, withSingleGraph).hasErrorsIn {
+    run(query, withSingleGraph).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -520,7 +520,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    run(query, withSingleGraph).hasErrorsIn {
+    run(query, withSingleGraph).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -589,7 +589,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withMultiGraphs).hasErrorsIn {
+    run(query, withMultiGraphs).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -652,7 +652,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withMultiGraphs).hasErrorsIn {
+    run(query, withMultiGraphs).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -681,7 +681,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withMultiGraphs).hasErrorsIn {
+    run(query, withMultiGraphs).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -815,7 +815,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withSingleGraph).hasErrorsIn {
+    run(query, withSingleGraph).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }

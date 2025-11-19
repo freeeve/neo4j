@@ -29,8 +29,6 @@ org.neo4j.gqlstatus.GqlException::GqlException(org.neo4j.gqlstatus.ErrorGqlStatu
 org.neo4j.gqlstatus.GqlException::gqlStatusObject() org.neo4j.gqlstatus.ErrorGqlStatusObject public
 org.neo4j.gqlstatus.GqlException::legacyMessage() java.lang.String public
 org.neo4j.gqlstatus.GqlRuntimeException public abstract class extends java.lang.RuntimeException implements org.neo4j.gqlstatus.ErrorGqlStatusObject
-org.neo4j.gqlstatus.GqlRuntimeException::GqlRuntimeException(java.lang.String) void protected
-org.neo4j.gqlstatus.GqlRuntimeException::GqlRuntimeException(java.lang.String, boolean, boolean) void protected
 org.neo4j.gqlstatus.GqlRuntimeException::GqlRuntimeException(java.lang.String, java.lang.Throwable) void protected
 org.neo4j.gqlstatus.GqlRuntimeException::GqlRuntimeException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String) void protected
 org.neo4j.gqlstatus.GqlRuntimeException::GqlRuntimeException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String, boolean, boolean) void protected

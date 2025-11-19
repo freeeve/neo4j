@@ -32,24 +32,8 @@ import org.neo4j.kernel.api.exceptions.Status;
 @PublicApi
 public class DatabaseManagementException extends GqlRuntimeException implements Status.HasStatus {
 
-    /**
-     * @deprecated replaced by {@link #DatabaseManagementException(ErrorGqlStatusObject)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseManagementException() {
-        super("");
-    }
-
     public DatabaseManagementException(ErrorGqlStatusObject gqlStatusObject) {
         super(gqlStatusObject, "");
-    }
-
-    /**
-     * @deprecated replaced by {@link #DatabaseManagementException(ErrorGqlStatusObject, String)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseManagementException(String message) {
-        super(message);
     }
 
     public DatabaseManagementException(ErrorGqlStatusObject gqlStatusObject, String message) {

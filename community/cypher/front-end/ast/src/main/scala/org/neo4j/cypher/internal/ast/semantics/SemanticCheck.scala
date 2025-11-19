@@ -168,10 +168,6 @@ object SemanticCheckResult {
   def error(state: SemanticState, error: SemanticErrorDef): SemanticCheckResult =
     SemanticCheckResult(state, Vector(error))
 
-  @deprecated("Use the method with gqlStatusObject", since = "2025-04")
-  def error(state: SemanticState, msg: String, position: InputPosition): SemanticCheckResult =
-    error(state, SemanticError(msg, position))
-
   def error(
     gql: ErrorGqlStatusObject,
     state: SemanticState,

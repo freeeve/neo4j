@@ -38,24 +38,23 @@ class SemanticAnalysisTestSuiteTest extends CypherFunSuite with SemanticAnalysis
   test("success assertion") {
     val randVersion = randomVersion()
     val assertion = run("return 1")
+    val gqlError = getGql42001_42N57("Bla", 17, 2, 8)
 
-    intercept[TestFailedException](assertion.hasError("hej", p(1, 2, 3)))
-    intercept[TestFailedException](assertion.hasError(getGql42001_42N57("Bla", 17, 2, 8), "hej", p(0)))
+    intercept[TestFailedException](assertion.hasError(gqlError, "hej", p(0)))
     intercept[TestFailedException](assertion.hasErrors(
-      getGql42001_42N57("Bla", 17, 2, 8),
+      gqlError,
       "hej",
       p(0),
-      getGql42001_42N57("Bla", 17, 2, 8),
+      gqlError,
       "hej",
       p(0)
     ))
-    intercept[TestFailedException](assertion.hasErrors(SemanticError("hej", p(1, 2, 3))))
-    intercept[TestFailedException](assertion.hasErrorsIn {
-      case `randVersion` => Seq(("hej", p(0)))
+    intercept[TestFailedException](assertion.hasGQLErrorsIn {
+      case `randVersion` => Seq((gqlError, "hej", p(0)))
       case _             => Seq.empty
     })
     intercept[TestFailedException](assertion.hasSemanticErrorsIn {
-      case `randVersion` => Seq(SemanticError("hej", p(0)))
+      case `randVersion` => Seq(SemanticError(gqlError, "hej", p(0)))
       case _             => Seq.empty
     })
     intercept[TestFailedException](assertion.hasNotificationsIn {
@@ -69,6 +68,8 @@ class SemanticAnalysisTestSuiteTest extends CypherFunSuite with SemanticAnalysis
 
   test("partial success assertion") {
     val randVersion = randomVersion()
+    val gqlError = getGql42001_42N57("Bla", 17, 2, 8)
+
     val assertion = createAssertions {
       case `randVersion` => run("invalid query!!!").results(randVersion)
       case v             => run("return 1").results(v)
@@ -84,23 +85,22 @@ class SemanticAnalysisTestSuiteTest extends CypherFunSuite with SemanticAnalysis
     intercept[TestFailedException](assertion.assertTry(t => t.isSuccess shouldBe true))
     intercept[TestFailedException](assertion.hasNoErrors)
     intercept[TestFailedException](assertion.hasNoNotifications)
-    intercept[TestFailedException](assertion.hasError("hej", p(1, 2, 3)))
-    intercept[TestFailedException](assertion.hasError(getGql42001_42N57("Bla", 17, 2, 8), "hej", p(0)))
+    intercept[TestFailedException](assertion.hasError(gqlError, "hej", p(0)))
     intercept[TestFailedException](assertion.hasErrors(
-      getGql42001_42N57("Bla", 17, 2, 8),
+      gqlError,
       "hej",
       p(0),
-      getGql42001_42N57("Bla", 17, 2, 8),
+      gqlError,
       "hej",
       p(0)
     ))
-    intercept[TestFailedException](assertion.hasErrors(SemanticError("hej", p(1, 2, 3))))
-    intercept[TestFailedException](assertion.hasErrorsIn {
-      case `randVersion` => Seq(("hej", p(0)))
+    intercept[TestFailedException](assertion.hasErrors(SemanticError(gqlError, "hej", p(1, 2, 3))))
+    intercept[TestFailedException](assertion.hasGQLErrorsIn {
+      case `randVersion` => Seq((gqlError, "hej", p(0)))
       case _             => Seq.empty
     })
     intercept[TestFailedException](assertion.hasSemanticErrorsIn {
-      case `randVersion` => Seq(SemanticError("hej", p(0)))
+      case `randVersion` => Seq(SemanticError(gqlError, "hej", p(0)))
       case _             => Seq.empty
     })
     intercept[TestFailedException](assertion.hasNotificationsIn {
@@ -115,35 +115,38 @@ class SemanticAnalysisTestSuiteTest extends CypherFunSuite with SemanticAnalysis
 
   test("partial error") {
     val randVersion = randomVersion()
+    val gqlError = getGql42001_42N57("Bla", 17, 2, 8)
 
     val assertion = createAssertions {
-      case `randVersion` => Success(result(randVersion, Seq(SemanticError("hej", p(0))), Seq()))
+      case `randVersion` => Success(result(randVersion, Seq(SemanticError(gqlError, "hej", p(0))), Seq()))
       case v             => Success(result(v, Seq.empty, Seq.empty))
     }
-    assertion.hasErrorsIn {
-      case `randVersion` => Seq(("hej", p(0)))
+    assertion.hasGQLErrorsIn {
+      case `randVersion` => Seq((gqlError, "hej", p(0)))
       case _             => Seq.empty
     }
     assertion.hasNoNotifications
-    intercept[TestFailedException](assertion.hasErrorsIn {
-      case `randVersion` => Seq(("hej", p(1)))
+    intercept[TestFailedException](assertion.hasGQLErrorsIn {
+      case `randVersion` => Seq((gqlError, "hej", p(1)))
       case _             => Seq.empty
     })
-    intercept[TestFailedException](assertion.hasError("hej", p(1, 2, 3)))
-    intercept[TestFailedException](assertion.hasError("hej", p(0)))
+    intercept[TestFailedException](assertion.hasError(gqlError, "hej", p(1, 2, 3)))
+    intercept[TestFailedException](assertion.hasError(gqlError, "hej", p(0)))
   }
 
   test("one error") {
+    val gqlError = getGql42001_42N57("Bla", 17, 2, 8)
     val assertion = createAssertions {
-      v => Success(result(v, Seq(SemanticError("hej", p(0))), Seq()))
+      v => Success(result(v, Seq(SemanticError(gqlError, "hej", p(0))), Seq()))
     }
     assertion.hasNoNotifications
-    assertion.hasError("hej", p(0))
-    intercept[TestFailedException](assertion.hasError("hej", p(1)))
-    intercept[TestFailedException](assertion.hasError("hej?", p(0)))
+    assertion.hasError(gqlError, "hej", p(0))
+    intercept[TestFailedException](assertion.hasError(gqlError, "hej", p(1)))
+    intercept[TestFailedException](assertion.hasError(gqlError, "hej?", p(0)))
   }
 
   test("one notification") {
+    val gqlError = getGql42001_42N57("Bla", 17, 2, 8)
     val assertion = createAssertions {
       v => Success(result(v, Seq.empty, Seq(DeprecatedFunctionNotification(p(0), "old", Some("new")))))
     }
@@ -161,7 +164,7 @@ class SemanticAnalysisTestSuiteTest extends CypherFunSuite with SemanticAnalysis
       Some("new?")
     )))
     intercept[TestFailedException](assertion.hasNoNotifications)
-    intercept[TestFailedException](assertion.hasError("hej", p(0)))
+    intercept[TestFailedException](assertion.hasError(gqlError, "hej", p(0)))
   }
 
   private def createAssertions(f: CypherVersion => Try[SemanticAnalysisResult]): AnalysisAssertions = {

@@ -42,20 +42,12 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.messages.MessageUtil;
+import org.neo4j.util.CalledFromGeneratedCode;
 
 public class InvalidArgumentException extends Neo4jException {
-    @Deprecated
-    public InvalidArgumentException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public InvalidArgumentException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
-    }
-
-    @Deprecated
-    public InvalidArgumentException(String message) {
-        super(message);
     }
 
     public InvalidArgumentException(ErrorGqlStatusObject gqlStatusObject, String message) {
@@ -1173,8 +1165,9 @@ public class InvalidArgumentException extends Neo4jException {
         return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
+    @CalledFromGeneratedCode
     public static InvalidArgumentException entityShouldBeNodeOrRel(String entity, String resolvedEntity) {
-        var gql = getGql22G03_22N27(entity, resolvedEntity, List.of("NODE", "RELATIONSHIP"));
+        var gql = getGql22G03_22N27(resolvedEntity, entity, List.of("NODE", "RELATIONSHIP"));
         return new InvalidArgumentException(
                 gql,
                 String.format(

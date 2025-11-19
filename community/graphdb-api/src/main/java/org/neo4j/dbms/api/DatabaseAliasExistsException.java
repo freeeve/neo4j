@@ -29,48 +29,16 @@ import org.neo4j.kernel.api.exceptions.Status;
 @PublicApi
 public class DatabaseAliasExistsException extends DatabaseManagementException {
 
-    /**
-     * @deprecated replaced by {@link #DatabaseAliasExistsException(ErrorGqlStatusObject)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseAliasExistsException() {
-        super();
-    }
-
     public DatabaseAliasExistsException(ErrorGqlStatusObject gqlStatusObject) {
         super(gqlStatusObject);
-    }
-
-    /**
-     * @deprecated replaced by {@link #DatabaseAliasExistsException(ErrorGqlStatusObject, String)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseAliasExistsException(String message) {
-        super(message);
     }
 
     public DatabaseAliasExistsException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 
-    /**
-     * @deprecated replaced by {@link #DatabaseAliasExistsException(ErrorGqlStatusObject, String, Throwable)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseAliasExistsException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
     public DatabaseAliasExistsException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
-    }
-
-    /**
-     * @deprecated replaced by {@link #DatabaseAliasExistsException(ErrorGqlStatusObject, Throwable)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseAliasExistsException(Throwable cause) {
-        super(cause);
     }
 
     public DatabaseAliasExistsException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {

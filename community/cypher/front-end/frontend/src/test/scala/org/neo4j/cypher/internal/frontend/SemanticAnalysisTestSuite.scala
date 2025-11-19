@@ -225,7 +225,6 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
       SemanticError(gql4, msg4, p4)
     )
 
-    def hasError(msg: String, pos: Pos): Self = hasErrors(SemanticError(msg, pos))
     def hasError(gql: GqlError, msg: String, pos: Pos): Self = hasErrors(SemanticError(gql, msg, pos))
 
     def hasErrorMessages(expected: String*): Self =
@@ -243,9 +242,6 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
     def hasErrorMessagesIn(f: CypherVersion => Seq[String]): Self =
       assertIn(v => r => r.errorMessages should contain theSameElementsAs f(v))
-
-    def hasErrorsIn(f: CypherVersion => Seq[(String, Pos)]): Self =
-      assertIn(v => r => r.errors should contain theSameElementsAs f(v).map(toSemErr))
 
     def hasGQLErrorsIn(f: CypherVersion => Seq[(GqlError, String, Pos)]): Self =
       assertIn(v => r => r.errors should contain theSameElementsAs f(v).map(toSemErr))
@@ -293,8 +289,6 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
       }
       this
     }
-
-    private def toSemErr(a: (String, Pos)): SemanticError = SemanticError(a._1, a._2)
 
     private def toSemErr(a: (GqlError, String, Pos)): SemanticError = SemanticError(a._1, a._2, a._3)
 

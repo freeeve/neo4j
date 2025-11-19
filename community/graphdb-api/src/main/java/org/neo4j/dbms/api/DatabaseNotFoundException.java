@@ -29,48 +29,16 @@ import org.neo4j.kernel.api.exceptions.Status;
 @PublicApi
 public class DatabaseNotFoundException extends DatabaseManagementException {
 
-    /**
-     * @deprecated replaced by {@link #DatabaseNotFoundException(ErrorGqlStatusObject)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseNotFoundException() {
-        super();
-    }
-
     public DatabaseNotFoundException(ErrorGqlStatusObject gqlStatusObject) {
         super(gqlStatusObject);
-    }
-
-    /**
-     * @deprecated replaced by {@link #DatabaseNotFoundException(ErrorGqlStatusObject, String)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseNotFoundException(String message) {
-        super(message);
     }
 
     public DatabaseNotFoundException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 
-    /**
-     * @deprecated replaced by {@link #DatabaseNotFoundException(ErrorGqlStatusObject, String, Throwable)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseNotFoundException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
     public DatabaseNotFoundException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
-    }
-
-    /**
-     * @deprecated replaced by {@link #DatabaseNotFoundException(ErrorGqlStatusObject, Throwable)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public DatabaseNotFoundException(Throwable cause) {
-        super(cause);
     }
 
     public DatabaseNotFoundException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {

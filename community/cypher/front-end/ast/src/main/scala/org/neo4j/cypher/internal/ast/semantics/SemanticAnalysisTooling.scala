@@ -423,9 +423,6 @@ trait SemanticAnalysisTooling {
         SemanticCheckResult.success(s)
     }
 
-  @deprecated("Use the method with gqlStatusObject", since = "2025-04")
-  def error(msg: String, position: InputPosition): SemanticCheck = SemanticCheck.error(SemanticError(msg, position))
-
   def error(gqlStatusObject: ErrorGqlStatusObject, msg: String, position: InputPosition): SemanticCheck =
     SemanticCheck.error(SemanticError(gqlStatusObject, msg, position))
 

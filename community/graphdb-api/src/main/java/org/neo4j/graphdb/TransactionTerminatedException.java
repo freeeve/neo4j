@@ -31,28 +31,8 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class TransactionTerminatedException extends TransactionFailureException implements Status.HasStatus {
     private final Status status;
 
-    /**
-     * @deprecated replaced by {@link TransactionTerminatedException(ErrorGqlStatusObject, Status)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    public TransactionTerminatedException(Status status) {
-        this(status, "");
-    }
-
     public TransactionTerminatedException(ErrorGqlStatusObject gqlStatusObject, Status status) {
         this(gqlStatusObject, status, "");
-    }
-    /**
-     * @deprecated replaced by {@link TransactionTerminatedException(ErrorGqlStatusObject, Status, String)}
-     */
-    @Deprecated(forRemoval = true, since = "5.26")
-    protected TransactionTerminatedException(Status status, String additionalInfo) {
-        super(
-                "The transaction has been terminated. Retry your operation in a new transaction, "
-                        + "and you should see a successful result. "
-                        + status.code().description() + " " + additionalInfo,
-                status);
-        this.status = status;
     }
 
     protected TransactionTerminatedException(

@@ -1,30 +1,19 @@
 org.neo4j.dbms.api.DatabaseAliasExistsException public class extends org.neo4j.dbms.api.DatabaseManagementException
-org.neo4j.dbms.api.DatabaseAliasExistsException::DatabaseAliasExistsException() void public
-org.neo4j.dbms.api.DatabaseAliasExistsException::DatabaseAliasExistsException(java.lang.String) void public
-org.neo4j.dbms.api.DatabaseAliasExistsException::DatabaseAliasExistsException(java.lang.String, java.lang.Throwable) void public
-org.neo4j.dbms.api.DatabaseAliasExistsException::DatabaseAliasExistsException(java.lang.Throwable) void public
 org.neo4j.dbms.api.DatabaseAliasExistsException::DatabaseAliasExistsException(org.neo4j.gqlstatus.ErrorGqlStatusObject) void public
 org.neo4j.dbms.api.DatabaseAliasExistsException::DatabaseAliasExistsException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String) void public
 org.neo4j.dbms.api.DatabaseAliasExistsException::DatabaseAliasExistsException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String, java.lang.Throwable) void public
 org.neo4j.dbms.api.DatabaseAliasExistsException::DatabaseAliasExistsException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.Throwable) void public
 org.neo4j.dbms.api.DatabaseAliasExistsException::status() org.neo4j.kernel.api.exceptions.Status public
 org.neo4j.dbms.api.DatabaseExistsException public class extends org.neo4j.dbms.api.DatabaseManagementException
-org.neo4j.dbms.api.DatabaseExistsException::DatabaseExistsException() void public
-org.neo4j.dbms.api.DatabaseExistsException::DatabaseExistsException(java.lang.String) void public
-org.neo4j.dbms.api.DatabaseExistsException::DatabaseExistsException(java.lang.String, java.lang.Throwable) void public
-org.neo4j.dbms.api.DatabaseExistsException::DatabaseExistsException(java.lang.Throwable) void public
 org.neo4j.dbms.api.DatabaseExistsException::DatabaseExistsException(org.neo4j.gqlstatus.ErrorGqlStatusObject) void public
 org.neo4j.dbms.api.DatabaseExistsException::DatabaseExistsException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String) void public
 org.neo4j.dbms.api.DatabaseExistsException::DatabaseExistsException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String, java.lang.Throwable) void public
 org.neo4j.dbms.api.DatabaseExistsException::DatabaseExistsException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.Throwable) void public
 org.neo4j.dbms.api.DatabaseExistsException::status() org.neo4j.kernel.api.exceptions.Status public
 org.neo4j.dbms.api.DatabaseLimitReachedException public class extends org.neo4j.dbms.api.DatabaseManagementException
-org.neo4j.dbms.api.DatabaseLimitReachedException::DatabaseLimitReachedException(java.lang.String) void public
 org.neo4j.dbms.api.DatabaseLimitReachedException::DatabaseLimitReachedException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String) void public
 org.neo4j.dbms.api.DatabaseLimitReachedException::status() org.neo4j.kernel.api.exceptions.Status public
 org.neo4j.dbms.api.DatabaseManagementException public class extends org.neo4j.gqlstatus.GqlRuntimeException implements org.neo4j.kernel.api.exceptions.Status.HasStatus
-org.neo4j.dbms.api.DatabaseManagementException::DatabaseManagementException() void public
-org.neo4j.dbms.api.DatabaseManagementException::DatabaseManagementException(java.lang.String) void public
 org.neo4j.dbms.api.DatabaseManagementException::DatabaseManagementException(java.lang.String, java.lang.Throwable) void public
 org.neo4j.dbms.api.DatabaseManagementException::DatabaseManagementException(java.lang.Throwable) void public
 org.neo4j.dbms.api.DatabaseManagementException::DatabaseManagementException(org.neo4j.gqlstatus.ErrorGqlStatusObject) void public
@@ -48,10 +37,6 @@ org.neo4j.dbms.api.DatabaseManagementService::startDatabase(java.lang.String) vo
 org.neo4j.dbms.api.DatabaseManagementService::unregisterDatabaseEventListener(org.neo4j.graphdb.event.DatabaseEventListener) void public abstract
 org.neo4j.dbms.api.DatabaseManagementService::unregisterTransactionEventListener(java.lang.String, org.neo4j.graphdb.event.TransactionEventListener<?>) void public abstract
 org.neo4j.dbms.api.DatabaseNotFoundException public class extends org.neo4j.dbms.api.DatabaseManagementException
-org.neo4j.dbms.api.DatabaseNotFoundException::DatabaseNotFoundException() void public
-org.neo4j.dbms.api.DatabaseNotFoundException::DatabaseNotFoundException(java.lang.String) void public
-org.neo4j.dbms.api.DatabaseNotFoundException::DatabaseNotFoundException(java.lang.String, java.lang.Throwable) void public
-org.neo4j.dbms.api.DatabaseNotFoundException::DatabaseNotFoundException(java.lang.Throwable) void public
 org.neo4j.dbms.api.DatabaseNotFoundException::DatabaseNotFoundException(org.neo4j.gqlstatus.ErrorGqlStatusObject) void public
 org.neo4j.dbms.api.DatabaseNotFoundException::DatabaseNotFoundException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String) void public
 org.neo4j.dbms.api.DatabaseNotFoundException::DatabaseNotFoundException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String, java.lang.Throwable) void public
@@ -352,10 +337,6 @@ org.neo4j.graphdb.Transaction::schema() org.neo4j.graphdb.schema.Schema public a
 org.neo4j.graphdb.Transaction::terminate() void public abstract
 org.neo4j.graphdb.Transaction::traversalDescription() org.neo4j.graphdb.traversal.TraversalDescription public abstract
 org.neo4j.graphdb.TransactionFailureException public class extends org.neo4j.gqlstatus.GqlRuntimeException implements org.neo4j.kernel.api.exceptions.Status.HasStatus
-org.neo4j.graphdb.TransactionFailureException::TransactionFailureException(java.lang.String) void public
-org.neo4j.graphdb.TransactionFailureException::TransactionFailureException(java.lang.String, java.lang.Throwable) void public
-org.neo4j.graphdb.TransactionFailureException::TransactionFailureException(java.lang.String, java.lang.Throwable, org.neo4j.kernel.api.exceptions.Status) void public
-org.neo4j.graphdb.TransactionFailureException::TransactionFailureException(java.lang.String, org.neo4j.kernel.api.exceptions.Status) void public
 org.neo4j.graphdb.TransactionFailureException::TransactionFailureException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String) void public
 org.neo4j.graphdb.TransactionFailureException::TransactionFailureException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String, java.lang.Throwable) void public
 org.neo4j.graphdb.TransactionFailureException::TransactionFailureException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String, java.lang.Throwable, org.neo4j.kernel.api.exceptions.Status) void public
@@ -365,8 +346,6 @@ org.neo4j.graphdb.TransactionFailureException::status() org.neo4j.kernel.api.exc
 org.neo4j.graphdb.TransactionTerminatedException public class extends org.neo4j.graphdb.TransactionFailureException implements org.neo4j.kernel.api.exceptions.Status.HasStatus
 org.neo4j.graphdb.TransactionTerminatedException::TransactionTerminatedException(org.neo4j.gqlstatus.ErrorGqlStatusObject, org.neo4j.kernel.api.exceptions.Status) void public
 org.neo4j.graphdb.TransactionTerminatedException::TransactionTerminatedException(org.neo4j.gqlstatus.ErrorGqlStatusObject, org.neo4j.kernel.api.exceptions.Status, java.lang.String) void protected
-org.neo4j.graphdb.TransactionTerminatedException::TransactionTerminatedException(org.neo4j.kernel.api.exceptions.Status) void public
-org.neo4j.graphdb.TransactionTerminatedException::TransactionTerminatedException(org.neo4j.kernel.api.exceptions.Status, java.lang.String) void protected
 org.neo4j.graphdb.TransactionTerminatedException::status() org.neo4j.kernel.api.exceptions.Status public
 org.neo4j.graphdb.Vector public abstract interface
 org.neo4j.graphdb.Vector.CoordinateType public static final enum extends java.lang.Enum<org.neo4j.graphdb.Vector.CoordinateType>

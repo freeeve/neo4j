@@ -41,19 +41,8 @@ import org.neo4j.values.virtual.MapValue;
 public class InvalidArgumentsException extends GqlException implements Status.HasStatus {
     private final Status status;
 
-    @Deprecated
-    public InvalidArgumentsException(String message) {
-        this(message, null);
-    }
-
     public InvalidArgumentsException(ErrorGqlStatusObject gqlStatusObject, String message) {
         this(gqlStatusObject, message, null);
-    }
-
-    @Deprecated
-    public InvalidArgumentsException(String message, Throwable cause) {
-        super(message, cause);
-        this.status = Status.General.InvalidArguments;
     }
 
     private InvalidArgumentsException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
