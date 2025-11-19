@@ -225,7 +225,8 @@ object LogicalPlanStringTest {
       classOf[ast.GraphFunctionReference] -> "print",
       classOf[ast.GraphDirectReference] -> "print",
       classOf[plans.DynamicElement.SetOperator] -> "name",
-      classOf[plans.NodeVectorIndexSearch] -> "indexName"
+      classOf[plans.NodeVectorIndexSearch] -> "indexName",
+      classOf[expressions.VectorSearchPredicate] -> "indexName"
     )
 
     val whiteListedClasses: Set[Class[_]] = Set[Class[_]](

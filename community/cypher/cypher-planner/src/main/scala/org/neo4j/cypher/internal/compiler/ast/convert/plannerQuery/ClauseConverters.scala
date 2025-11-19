@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.ast.RemovePropertyItem
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.SetClause
 import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
@@ -214,6 +215,12 @@ object ClauseConverters extends LabelExpressionConversion {
 
   private def asSelections(optWhere: Option[Where]) =
     Selections(optWhere.map(_.expression.asPredicates).getOrElse(Set.empty))
+
+  private def asSelections(optWhere: Option[Where], search: Option[Search]) =
+    Selections(
+      optWhere.map(_.expression.asPredicates).getOrElse(Set.empty) ++
+        search.map(_.asExpression.asPredicates).getOrElse(Set.empty)
+    )
 
   private def asQueryProjection(
     distinct: Boolean,
@@ -597,7 +604,7 @@ object ClauseConverters extends LabelExpressionConversion {
         .withHorizon(PassthroughAllHorizon())
         .withTail(acc.emptySinglePlannerQuery)
 
-    val selections = asSelections(clause.where)
+    val selections = asSelections(clause.where, clause.search)
 
     val (accWithMaybeHorizon, remainingSelections) =
       if (acc.currentQueryGraph.containsUpdates) {

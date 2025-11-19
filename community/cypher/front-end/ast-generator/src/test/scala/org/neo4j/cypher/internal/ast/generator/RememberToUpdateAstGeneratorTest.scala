@@ -144,6 +144,7 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.expressions.VariableGrouping",
     "org.neo4j.cypher.internal.expressions.VarLengthLowerBound",
     "org.neo4j.cypher.internal.expressions.VarLengthUpperBound",
+    "org.neo4j.cypher.internal.expressions.VectorSearchPredicate",
     "org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonConjunction",
     "org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction",
     "org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate",
