@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
+import org.neo4j.values.storable.ValueGroup;
+
 public abstract class VectorDocumentStructure {
     public static final String ENTITY_ID_KEY = "id";
 
@@ -32,5 +34,5 @@ public abstract class VectorDocumentStructure {
 
     public abstract String textValueKeyFor(int propertyIndex);
 
-    public abstract String temporalValueKeyFor(int propertyIndex);
+    public abstract String temporalValueKeyFor(int propertyIndex, ValueGroup group);
 }

@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
+import org.neo4j.values.storable.ValueGroup;
+
 class VectorDocumentStructures {
     static VectorDocumentStructure documentStructureFor(VectorIndexVersion version) {
         return switch (version) {
@@ -58,7 +60,7 @@ class VectorDocumentStructures {
         }
 
         @Override
-        public String temporalValueKeyFor(int propertyIndex) {
+        public String temporalValueKeyFor(int propertyIndex, ValueGroup group) {
             throw new UnsupportedOperationException("V1 does not support single stage filtering");
         }
     };
@@ -92,7 +94,7 @@ class VectorDocumentStructures {
         }
 
         @Override
-        public String temporalValueKeyFor(int propertyIndex) {
+        public String temporalValueKeyFor(int propertyIndex, ValueGroup group) {
             throw new UnsupportedOperationException("V2 does not support single stage filtering");
         }
     };
@@ -126,8 +128,9 @@ class VectorDocumentStructures {
         }
 
         @Override
-        public String temporalValueKeyFor(int propertyIndex) {
-            return "temporal-" + propertyIndex;
+        public String temporalValueKeyFor(int propertyIndex, ValueGroup group) {
+
+            return "temporal-" + group.name() + "-" + propertyIndex;
         }
     };
 }

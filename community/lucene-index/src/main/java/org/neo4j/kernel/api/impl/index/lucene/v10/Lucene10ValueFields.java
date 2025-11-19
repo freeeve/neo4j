@@ -19,6 +19,13 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
+import java.time.DateTimeException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.OffsetTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
@@ -31,6 +38,12 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.neo4j.util.Preconditions;
+import org.neo4j.values.storable.DateTimeValue;
+import org.neo4j.values.storable.DateValue;
+import org.neo4j.values.storable.LocalDateTimeValue;
+import org.neo4j.values.storable.LocalTimeValue;
+import org.neo4j.values.storable.TemporalValue;
+import org.neo4j.values.storable.TimeValue;
 
 final class Lucene10ValueFields {
     private Lucene10ValueFields() {}
@@ -131,6 +144,57 @@ final class Lucene10ValueFields {
         }
     }
 
+    static final class SingleInstantField extends Field {
+        private static final FieldType TYPE;
+
+        static {
+            FieldType type = new FieldType();
+            type.setDimensions(1, INSTANT_BYTES);
+            type.freeze();
+            TYPE = type;
+        }
+
+        SingleInstantField(String name, Instant value) {
+            super(name, TYPE);
+            fieldsData = value;
+        }
+
+        @Override
+        public BytesRef binaryValue() {
+            return new BytesRef(instantToBytes((Instant) fieldsData));
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " <" + name + ':' + fieldsData + '>';
+        }
+
+        static Query newExactQuery(String field, Instant value) {
+            Preconditions.requireNonNull(field, "Field cannot be null");
+            byte[] encodedValue = instantToBytes(value);
+            return new PointRangeQuery(field, encodedValue, encodedValue, 1) {
+                @Override
+                protected String toString(int dimension, byte[] value) {
+                    return bytesToInstant(value).toString();
+                }
+            };
+        }
+
+        static Query newRangeQuery(String field, Instant lowerValueInclusive, Instant upperValueInclusive) {
+            Preconditions.requireNonNull(field, "Field cannot be null");
+            Preconditions.checkArgument(
+                    !(lowerValueInclusive.isAfter(upperValueInclusive)),
+                    "Upper bound for integral range cannot be lower than the lower bound");
+            return new PointRangeQuery(
+                    field, instantToBytes(lowerValueInclusive), instantToBytes(upperValueInclusive), 1) {
+                @Override
+                protected String toString(int dimension, byte[] value) {
+                    return bytesToInstant(value).toString();
+                }
+            };
+        }
+    }
+
     static final class SingleDoubleField extends Field {
         private static final FieldType TYPE;
 
@@ -199,9 +263,66 @@ final class Lucene10ValueFields {
         }
     }
 
+    private static Instant instantOf(ZonedDateTime zdt) {
+        return Instant.ofEpochSecond(zdt.toEpochSecond(), zdt.getNano());
+    }
+
+    /// Express a temporal value in terms of an Instant
+    /// Two instants from 2 different temporal values of the same type
+    /// are comparable in the natural way as (epoch seconds, nano within second)
+    ///
+    /// Instant values returned are only comparable for the same subtypes of temporal values
+    /// This is fine because different types are stored in different namespaces,
+    /// so they are never actually compared.
+    ///
+    /// Some of these values could be 8 bytes
+    /// Whereas an instant in general requires 12 bytes
+    ///
+    static Instant instantFromTemporal(TemporalValue<?, ?> tv) {
+
+        try {
+            return switch (tv) {
+                case DateTimeValue dateTimeValue -> instantOf(dateTimeValue.asObjectCopy());
+                case LocalDateTimeValue localDateTimeValue ->
+                    instantOf(ZonedDateTime.of(localDateTimeValue.asObjectCopy(), ZoneOffset.UTC));
+                case LocalTimeValue localTimeValue -> {
+                    var offset = Duration.between(LocalTime.MIN, localTimeValue.asObjectCopy());
+                    yield Instant.ofEpochSecond(offset.getSeconds(), offset.getNano());
+                }
+                case DateValue dateValue ->
+                    // 00:00:00 UTC on the date in question
+                    instantOf(ZonedDateTime.of(dateValue.asObjectCopy(), LocalTime.ofSecondOfDay(0), ZoneOffset.UTC));
+                case TimeValue timeValue -> {
+                    // a fake instant calculated as duration from the earliest possible offset time
+                    var offset = Duration.between(OffsetTime.MIN, timeValue.asObjectCopy());
+                    yield Instant.ofEpochSecond(offset.getSeconds(), offset.getNano());
+                }
+                default -> null;
+            };
+        } catch (DateTimeException e) {
+            throw new IllegalArgumentException(
+                    String.format("Temporal value must represent a valid date/time %s", tv), e);
+        }
+    }
+
     private static byte[] longToBytes(long value) {
         byte[] data = new byte[Long.BYTES];
         NumericUtils.longToSortableBytes(value, data, 0);
         return data;
+    }
+
+    private static final int INSTANT_BYTES = Long.BYTES + Integer.BYTES;
+
+    private static byte[] instantToBytes(Instant value) {
+        byte[] data = new byte[INSTANT_BYTES];
+        NumericUtils.longToSortableBytes(value.getEpochSecond(), data, 0);
+        NumericUtils.intToSortableBytes(value.getNano(), data, Long.BYTES);
+        return data;
+    }
+
+    private static Instant bytesToInstant(byte[] data) {
+        long seconds = NumericUtils.sortableBytesToLong(data, 0);
+        int nanos = NumericUtils.sortableBytesToInt(data, Long.BYTES);
+        return Instant.ofEpochSecond(seconds, nanos);
     }
 }

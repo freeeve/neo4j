@@ -19,12 +19,11 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
-import java.time.temporal.ChronoField;
+import java.time.Instant;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
@@ -32,6 +31,7 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.BooleanField;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleDoubleField;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleInstantField;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleLongField;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
@@ -130,13 +130,6 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
         }
     }
 
-    /**
-     *
-     * @param vectorDocumentStructure used to infer the name of the index field
-     * @param index {@code i}-th field in the index filter parameters
-     * @param value to index the document with
-     * @return a Lucene indexable field, or null if the input {@code value} is null
-     */
     static IndexableField indexableField(VectorDocumentStructure vectorDocumentStructure, int index, Value value) {
         return switch (value) {
             case BooleanValue bv ->
@@ -151,12 +144,11 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
                 new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(index), dv.value());
             case TextValue tv ->
                 new StringField(vectorDocumentStructure.textValueKeyFor(index), tv.stringValue(), Store.NO);
-            case TemporalValue<?, ?> tv ->
-                new LongPoint(
-                        vectorDocumentStructure.temporalValueKeyFor(index),
-                        tv.getLong(ChronoField.EPOCH_DAY),
-                        tv.getLong(ChronoField.NANO_OF_DAY),
-                        tv.getLong(ChronoField.OFFSET_SECONDS));
+            case TemporalValue<?, ?> tv -> {
+                Instant instant = Lucene10ValueFields.instantFromTemporal(tv);
+                yield new SingleInstantField(
+                        vectorDocumentStructure.temporalValueKeyFor(index, tv.valueGroup()), instant);
+            }
             case null -> null;
             default ->
                 throw new IllegalArgumentException(String.format(

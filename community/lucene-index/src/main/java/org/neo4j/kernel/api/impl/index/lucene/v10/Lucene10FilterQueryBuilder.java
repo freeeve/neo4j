@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.impl.index.lucene.v10;
 
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
+import java.time.Instant;
 import org.apache.lucene.document.KeywordField;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
@@ -33,7 +34,6 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.RangePredicate;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
-import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.FloatingPointValue;
 import org.neo4j.values.storable.IntegralValue;
@@ -41,6 +41,7 @@ import org.neo4j.values.storable.NoValue;
 import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.NumberValues;
 import org.neo4j.values.storable.StringValue;
+import org.neo4j.values.storable.TemporalValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
@@ -80,7 +81,7 @@ final class Lucene10FilterQueryBuilder {
                         vectorDocumentStructure.integralValueKeyFor(propertyIndex), i.longValue());
                 Query floatingPointQuery = Lucene10ValueFields.SingleDoubleField.newExactQuery(
                         vectorDocumentStructure.floatingValueKeyFor(propertyIndex), i.doubleValue());
-                yield eitherQuery(integralQuery, floatingPointQuery);
+                yield anyQuery(integralQuery, floatingPointQuery);
             }
             case FloatingPointValue f when !Double.isFinite(f.doubleValue()) -> new MatchNoDocsQuery();
             case FloatingPointValue f -> {
@@ -92,13 +93,18 @@ final class Lucene10FilterQueryBuilder {
                     Query integralQuery = Lucene10ValueFields.SingleLongField.newExactQuery(
                             vectorDocumentStructure.integralValueKeyFor(propertyIndex), f.longValue());
 
-                    yield eitherQuery(integralQuery, floatingPointQuery);
+                    yield anyQuery(integralQuery, floatingPointQuery);
                 } else {
                     yield floatingPointQuery;
                 }
             }
             case TextValue s ->
                 KeywordField.newExactQuery(vectorDocumentStructure.textValueKeyFor(propertyIndex), s.stringValue());
+            case TemporalValue<?, ?> tv -> {
+                Instant instant = Lucene10ValueFields.instantFromTemporal(tv);
+                yield Lucene10ValueFields.SingleInstantField.newExactQuery(
+                        vectorDocumentStructure.temporalValueKeyFor(propertyIndex, tv.valueGroup()), instant);
+            }
             case null -> null;
             default ->
                 throw new IllegalArgumentException(
@@ -107,20 +113,18 @@ final class Lucene10FilterQueryBuilder {
     }
 
     private Query queryForNumericRangeFrom(
-            int propertyIndex, NumberValue from, boolean fromInclusive, Value to, boolean toInclusive) {
-        Preconditions.checkArgument(to instanceof NumberValue, "Range \"to\" value must be a number");
+            int propertyIndex, NumberValue from, boolean fromInclusive, NumberValue to, boolean toInclusive) {
         double fromDouble = from.doubleValue();
-        NumberValue toValue = (NumberValue) to;
-        double toDouble = toValue.doubleValue();
+        double toDouble = to.doubleValue();
 
-        boolean rangeIsIntegral = from instanceof IntegralValue && toValue instanceof IntegralValue;
+        boolean rangeIsIntegral = from instanceof IntegralValue && to instanceof IntegralValue;
         Query longQuery = null;
         if (rangeIsIntegral) {
             // if both from and to are integral values, the bounds should be stepped as integers
             // and we should do the integral checking first
             long fromLong = from.longValue();
             if (!fromInclusive && fromLong < Long.MAX_VALUE) fromLong++;
-            long toLong = toValue.longValue();
+            long toLong = to.longValue();
             if (!toInclusive && toLong > Long.MIN_VALUE) toLong--;
             longQuery = Lucene10ValueFields.SingleLongField.newRangeQuery(
                     vectorDocumentStructure.integralValueKeyFor(propertyIndex), fromLong, toLong);
@@ -144,7 +148,7 @@ final class Lucene10FilterQueryBuilder {
             longQuery = Lucene10ValueFields.SingleLongField.newRangeQuery(
                     vectorDocumentStructure.integralValueKeyFor(propertyIndex), fromIntegral, toIntegral);
         }
-        return eitherQuery(longQuery, doubleQuery);
+        return anyQuery(longQuery, doubleQuery);
     }
 
     private Query queryForRange(int propertyIndex, RangePredicate<?> predicate) {
@@ -164,7 +168,19 @@ final class Lucene10FilterQueryBuilder {
             if (from instanceof BooleanValue bFrom && to instanceof BooleanValue bTo) {
                 return booleanRangeQuery(bFrom, fromInclusive, bTo, toInclusive, propertyIndex);
             } else if (from instanceof NumberValue nFrom && to instanceof NumberValue nTo) {
-                return queryForNumericRangeFrom(propertyIndex, nFrom, fromInclusive, to, toInclusive);
+                return queryForNumericRangeFrom(propertyIndex, nFrom, fromInclusive, nTo, toInclusive);
+            } else if (from instanceof TemporalValue<?, ?> tvFrom && to instanceof TemporalValue<?, ?> tvTo) {
+                Instant fromInstant =
+                        Lucene10ValueFields.instantFromTemporal(tvFrom).plusNanos(fromInclusive ? 0 : 1);
+                Instant toInstant =
+                        Lucene10ValueFields.instantFromTemporal(tvTo).minusNanos(toInclusive ? 0 : 1);
+                if (fromInstant.isAfter(toInstant)) {
+                    return new MatchNoDocsQuery();
+                }
+                return Lucene10ValueFields.SingleInstantField.newRangeQuery(
+                        vectorDocumentStructure.temporalValueKeyFor(propertyIndex, tvFrom.valueGroup()),
+                        fromInstant,
+                        toInstant);
             } else if (from instanceof TextValue sFrom && to instanceof TextValue sTo) {
                 return TermRangeQuery.newStringRange(
                         vectorDocumentStructure.textValueKeyFor(propertyIndex),
@@ -215,6 +231,11 @@ final class Lucene10FilterQueryBuilder {
                         sTo.stringValue(),
                         false,
                         toInclusive);
+            case TemporalValue<?, ?> tTo ->
+                Lucene10ValueFields.SingleInstantField.newRangeQuery(
+                        vectorDocumentStructure.temporalValueKeyFor(propertyIndex, tTo.valueGroup()),
+                        Instant.MIN,
+                        Lucene10ValueFields.instantFromTemporal(tTo).minusNanos(toInclusive ? 0 : 1));
             case null -> null;
             default ->
                 throw new IllegalArgumentException(String.format("Unexpected value type in filter predicate '%s'", to));
@@ -243,6 +264,11 @@ final class Lucene10FilterQueryBuilder {
                         null,
                         fromInclusive,
                         false);
+            case TemporalValue<?, ?> tFrom ->
+                Lucene10ValueFields.SingleInstantField.newRangeQuery(
+                        vectorDocumentStructure.temporalValueKeyFor(propertyIndex, tFrom.valueGroup()),
+                        Lucene10ValueFields.instantFromTemporal(tFrom).plusNanos(fromInclusive ? 0 : 1),
+                        Instant.MAX);
             case null -> null;
             default ->
                 throw new IllegalArgumentException(
@@ -250,12 +276,12 @@ final class Lucene10FilterQueryBuilder {
         };
     }
 
-    private static BooleanQuery eitherQuery(Query q1, Query q2) {
-        return new BooleanQuery.Builder()
-                .setMinimumNumberShouldMatch(1)
-                .add(new ConstantScoreQuery(q1), Occur.SHOULD)
-                .add(new ConstantScoreQuery(q2), Occur.SHOULD)
-                .build();
+    private static BooleanQuery anyQuery(Query... queries) {
+        var builder = new BooleanQuery.Builder().setMinimumNumberShouldMatch(1);
+        for (Query query : queries) {
+            builder.add(new ConstantScoreQuery(query), Occur.SHOULD);
+        }
+        return builder.build();
     }
 
     /**
@@ -263,24 +289,24 @@ final class Lucene10FilterQueryBuilder {
      * @param documentStructure how to map field indexes to Lucene document key values
      * @param filterQueryFrom first query which is a filter query (e.g. 1 when preceded by a vector query)
      * @param filterQueries list of queries
-     * @return
+     * @return A Lucene 10 query restricting document search to documents matching all the `filterQueries`
      */
     static Query build(
             VectorDocumentStructure documentStructure, int filterQueryFrom, PropertyIndexQuery... filterQueries) {
-        BooleanQuery.Builder builder = null;
-        var queryFactory = new Lucene10FilterQueryBuilder(documentStructure);
+        BooleanQuery.Builder booleanQueryBuilder = null;
+        var lucene10FilterQueryBuilder = new Lucene10FilterQueryBuilder(documentStructure);
         for (int i = filterQueryFrom; i < filterQueries.length; i++) {
             var filterQuery = filterQueries[i];
             if (filterQuery != null) {
-                if (builder == null) {
-                    builder = new BooleanQuery.Builder();
+                if (booleanQueryBuilder == null) {
+                    booleanQueryBuilder = new BooleanQuery.Builder();
                 }
-                builder.add(queryFactory.queryForPredicate(i, filterQuery), Occur.FILTER);
+                booleanQueryBuilder.add(lucene10FilterQueryBuilder.queryForPredicate(i, filterQuery), Occur.FILTER);
             }
         }
-        if (builder == null) {
+        if (booleanQueryBuilder == null) {
             return new MatchAllDocsQuery();
         }
-        return builder.build();
+        return booleanQueryBuilder.build();
     }
 }
