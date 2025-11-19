@@ -187,7 +187,7 @@ abstract class AuthRuleManagementAction(override val name: String) extends DbmsA
 
 case object CreateAuthRuleAction extends AuthRuleManagementAction("CREATE AUTH RULE")
 
-case object DropAuthRuleAction extends AuthRuleManagementAction("CREATE AUTH RULE")
+case object DropAuthRuleAction extends AuthRuleManagementAction("DROP AUTH RULE")
 
 case object AllAuthRuleActions extends RoleManagementAction("AUTH RULE MANAGEMENT")
 

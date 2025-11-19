@@ -68,6 +68,7 @@ import org.neo4j.cypher.internal.ast.DenyPrivilege
 import org.neo4j.cypher.internal.ast.DestroyData
 import org.neo4j.cypher.internal.ast.DropAliasAction
 import org.neo4j.cypher.internal.ast.DropAuthRule
+import org.neo4j.cypher.internal.ast.DropAuthRuleAction
 import org.neo4j.cypher.internal.ast.DropCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.DropDatabase
 import org.neo4j.cypher.internal.ast.DropDatabaseAction
@@ -565,8 +566,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
       case d @ DropAuthRule(authRuleName, ifExists) =>
         val assertAllowed = plans.AssertAllowedDbmsActions(
           None,
-          Seq(CreateRoleAction)
-        ) // TODO: plans.AssertAllowedDbmsActions(None, Seq(AuthRuleManagement)),
+          Seq(DropAuthRuleAction)
+        )
         val source =
           if (ifExists)
             plans.DoNothingIfNotExists(assertAllowed, "DROP AUTH RULE", plans.AuthRuleEntity, authRuleName, "delete")
