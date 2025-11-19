@@ -39,12 +39,16 @@ import org.neo4j.internal.schema.SchemaUserDescription;
 public class DetailedProgressReportBase {
     private final MutableStats nodeStats = new MutableStats();
     private final MutableStats relationshipStats = new MutableStats();
-    private final PerTokenMutableStats perLabelStats = new PerTokenMutableStats();
-    private final PerTokenMutableStats perRelationshipTypeStats = new PerTokenMutableStats();
+    private final PerTokenMutableStats nodePerLabelStats = new PerTokenMutableStats();
+    private final PerTokenMutableStats relationshipPerTypeStats = new PerTokenMutableStats();
     private final MutableStats nodeIndexStats = new MutableStats();
     private final MutableStats nodeConstraintStats = new MutableStats();
+    private final PerTokenMutableStats nodeIndexPerLabelStats = new PerTokenMutableStats();
+    private final PerTokenMutableStats nodeConstraintPerLabelStats = new PerTokenMutableStats();
     private final MutableStats relationshipIndexStats = new MutableStats();
     private final MutableStats relationshipConstraintStats = new MutableStats();
+    private final PerTokenMutableStats relationshipIndexPerTypeStats = new PerTokenMutableStats();
+    private final PerTokenMutableStats relationshipConstraintPerTypeStats = new PerTokenMutableStats();
     private final Timer schemaTimer = new Timer();
     private final Timer nodeTimer = new Timer();
     private final Timer relationshipTimer = new Timer();
@@ -107,14 +111,43 @@ public class DetailedProgressReportBase {
     public void registerNodeStats(ApplicationMode applicationMode, IntSet... entityTokens) {
         nodeStats.register(applicationMode);
         if (trackPerEntityTokenStats) {
-            perLabelStats.register(applicationMode, entityTokens);
+            nodePerLabelStats.register(applicationMode, entityTokens);
         }
     }
 
     public void registerRelationshipStats(ApplicationMode applicationMode, int relationshipType) {
         relationshipStats.register(applicationMode);
         if (trackPerEntityTokenStats) {
-            perRelationshipTypeStats.register(applicationMode, relationshipType);
+            relationshipPerTypeStats.register(applicationMode, relationshipType);
+        }
+    }
+
+    private PerTokenMutableStats splitIndexStats(EntityType entityType) {
+        return switch (entityType) {
+            case NODE -> nodeIndexPerLabelStats;
+            case RELATIONSHIP -> relationshipIndexPerTypeStats;
+        };
+    }
+
+    private PerTokenMutableStats splitConstraintStats(EntityType entityType) {
+        return switch (entityType) {
+            case NODE -> nodeConstraintPerLabelStats;
+            case RELATIONSHIP -> relationshipConstraintPerTypeStats;
+        };
+    }
+
+    public void registerIndexStats(ApplicationMode applicationMode, EntityType entityType, IntSet... entityTokens) {
+        indexStats(entityType).register(applicationMode);
+        if (trackPerEntityTokenStats) {
+            splitIndexStats(entityType).register(applicationMode, entityTokens);
+        }
+    }
+
+    public void registerConstraintStats(
+            ApplicationMode applicationMode, EntityType entityType, IntSet... entityTokens) {
+        constraintStats(entityType).register(applicationMode);
+        if (trackPerEntityTokenStats) {
+            splitConstraintStats(entityType).register(applicationMode, entityTokens);
         }
     }
 
@@ -124,12 +157,16 @@ public class DetailedProgressReportBase {
                 estimatedTotalNumberOfRelationships,
                 nodeStats.snapshot(),
                 relationshipStats.snapshot(),
-                perLabelStats.snapshot(tokenNameLookup::labelGetName),
-                perRelationshipTypeStats.snapshot(tokenNameLookup::relationshipTypeGetName),
+                nodePerLabelStats.snapshot(tokenNameLookup::labelGetName),
+                relationshipPerTypeStats.snapshot(tokenNameLookup::relationshipTypeGetName),
                 nodeIndexStats.snapshot(),
                 nodeConstraintStats.snapshot(),
+                nodeIndexPerLabelStats.snapshot(tokenNameLookup::labelGetName),
+                nodeConstraintPerLabelStats.snapshot(tokenNameLookup::labelGetName),
                 relationshipIndexStats.snapshot(),
                 relationshipConstraintStats.snapshot(),
+                relationshipIndexPerTypeStats.snapshot(tokenNameLookup::relationshipTypeGetName),
+                relationshipConstraintPerTypeStats.snapshot(tokenNameLookup::relationshipTypeGetName),
                 nodeTimer.snapshot(),
                 relationshipTimer.snapshot(),
                 schemaTimer.snapshot());
