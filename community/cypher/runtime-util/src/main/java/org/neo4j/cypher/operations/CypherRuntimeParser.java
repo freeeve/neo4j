@@ -162,32 +162,80 @@ abstract class CypherRuntimeParser {
      * Returns the parsed value converted to LongValue, or NoValue if parsing fails.
      */
     public static Value parseAsLongOrElseNoValue(String expression) {
+        // This route is significantly faster than parsing cypher, so try this first.
+        // Note, parseLong also supports some values that are not valid cypher, like 0001.
+        var res = parseLongWithoutThrowing(expression);
+        if (res != NO_VALUE) {
+            return res;
+        }
+
         try {
-            // This route is significantly faster than parsing cypher, so try this first.
-            // Note, Long#parseLong also supports some values that are not valid cypher, like 0001.
-            return longValue(Long.parseLong(expression));
-        } catch (NumberFormatException ignore1) {
+            // Note, BigDecimal supports expressions with exponent, like -1.23E-12.
+            BigDecimal bigDecimal = new BigDecimal(expression);
+            if (bigDecimal.compareTo(MAX_LONG) <= 0 && bigDecimal.compareTo(MIN_LONG) >= 0) {
+                return longValue(bigDecimal.longValue());
+            } else {
+                // This can happen for the functions toInteger(input), toIntegerOrNull(input) and
+                // toIntegerList(input),
+                // but will only surface for toInteger() as the others convert errors to null values
+                throw CypherTypeException.integerOutOfBounds("input", Long.MIN_VALUE, Long.MAX_VALUE, expression);
+            }
+        } catch (NumberFormatException ignore2) {
+            // Fallback to parsing the expression in Cypher.
+            // Note, adds support to more literal number expressions, like 0xf (hex), 0o11 (octal), 1_000.
             try {
-                // Note, BigDecimal supports expressions with exponent, like -1.23E-12.
-                BigDecimal bigDecimal = new BigDecimal(expression);
-                if (bigDecimal.compareTo(MAX_LONG) <= 0 && bigDecimal.compareTo(MIN_LONG) >= 0) {
-                    return longValue(bigDecimal.longValue());
-                } else {
-                    // This can happen for the functions toInteger(input), toIntegerOrNull(input) and
-                    // toIntegerList(input),
-                    // but will only surface for toInteger() as the others convert errors to null values
-                    throw CypherTypeException.integerOutOfBounds("input", Long.MIN_VALUE, Long.MAX_VALUE, expression);
-                }
-            } catch (NumberFormatException ignore2) {
-                // Fallback to parsing the expression in Cypher.
-                // Note, adds support to more literal number expressions, like 0xf (hex), 0o11 (octal), 1_000.
-                try {
-                    return longValue(parser(expression).numberLiteral().value().longValue());
-                } catch (NumberFormatException | SyntaxException ignore3) {
-                    return NO_VALUE;
-                }
+                return longValue(parser(expression).numberLiteral().value().longValue());
+            } catch (NumberFormatException | SyntaxException ignore3) {
+                return NO_VALUE;
             }
         }
+    }
+
+    // copied from Long.parseLong but does not throw exception
+    private static Value parseLongWithoutThrowing(String s) {
+        if (s == null) {
+            return NO_VALUE;
+        }
+
+        boolean negative = false;
+        int len = s.length();
+        if (len == 0) {
+            return NO_VALUE;
+        }
+
+        long limit = -Long.MAX_VALUE;
+        int radix = 10;
+
+        int i = 0;
+        char firstChar = s.charAt(0);
+        if (firstChar < '0') { // Possible leading "+" or "-"
+            if (firstChar == '-') {
+                negative = true;
+                limit = Long.MIN_VALUE;
+            } else if (firstChar != '+') {
+                return NO_VALUE;
+            }
+
+            if (len == 1) { // Cannot have lone "+" or "-"
+                return NO_VALUE;
+            }
+            i++;
+        }
+        long multmin = limit / radix;
+        long result = 0;
+        while (i < len) {
+            // Accumulating negatively avoids surprises near MAX_VALUE
+            int digit = Character.digit(s.charAt(i++), radix);
+            if (digit < 0 || result < multmin) {
+                return NO_VALUE;
+            }
+            result *= radix;
+            if (result < limit + digit) {
+                return NO_VALUE;
+            }
+            result -= digit;
+        }
+        return longValue(negative ? result : -result);
     }
 
     private static Seq<Expression> asList(String stringList) {
