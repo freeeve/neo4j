@@ -86,7 +86,6 @@ case class ShowSettingsCommand(
       .sortBy(_.name())
       .map(asMap(config)(_))
 
-    val updatedRows = updateRowsWithPotentiallyRenamedColumns(rows)
-    ClosingIterator.apply(updatedRows.iterator)
+    ClosingIterator.apply(rows.iterator)
   }
 }

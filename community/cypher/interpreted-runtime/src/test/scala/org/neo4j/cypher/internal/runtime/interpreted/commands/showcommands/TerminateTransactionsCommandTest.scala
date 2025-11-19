@@ -505,11 +505,21 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
 
     // When
     val terminateTx = TerminateTransactionsCommand(Left(List(tx1)), columns, yieldColumns)
-    val result = terminateTx.originalNameRows(queryState, initialCypherRow).toList
+    val resultOriginal = terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 1
-    result should be(List(Map(
+    resultOriginal should have size 1
+    resultOriginal should be(List(Map(
+      TerminateTransactionsClause.transactionIdColumn -> Values.stringValue(tx1),
+      TerminateTransactionsClause.usernameColumn -> Values.stringValue(username)
+    )))
+
+    // When
+    val resultFinal = terminateTx.rows(queryState, initialCypherRow).toList
+
+    // Then
+    resultFinal should have size 1
+    resultFinal should be(List(Map(
       "txId" -> Values.stringValue(tx1),
       TerminateTransactionsClause.usernameColumn -> Values.stringValue(username)
     )))

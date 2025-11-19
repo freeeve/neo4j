@@ -860,11 +860,25 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     // When
     val showProcedures =
       ShowProceduresCommand(None, allColumns, yieldColumns, isCommunity = false, CYPHER_5)
-    val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
+    val resultOriginal = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 1
-    result.head should be(Map(
+    resultOriginal should have size 1
+    resultOriginal.head should be(Map(
+      ShowProceduresClause.nameColumn -> Values.stringValue("proc1"),
+      ShowProceduresClause.adminColumn -> Values.FALSE,
+      ShowProceduresClause.isDeprecatedColumn -> Values.FALSE,
+      ShowProceduresClause.descriptionColumn -> Values.stringValue(
+        "Non-admin, non-system, void read procedure without input parameters"
+      )
+    ))
+
+    // When
+    val resultFinal = showProcedures.rows(queryState, initialCypherRow).toList
+
+    // Then
+    resultFinal should have size 1
+    resultFinal.head should be(Map(
       "procedure" -> Values.stringValue("proc1"),
       ShowProceduresClause.adminColumn -> Values.FALSE,
       "deprecated" -> Values.FALSE,

@@ -1196,7 +1196,9 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     )
   }
 
-  test("show functions should rename columns renamed in YIELD") {
+  test("show functions should not rename columns renamed in YIELD in originalNameRows") {
+    // Needed to split this in two tests or I got "stream has already been operated upon or closed"
+
     // Given: YIELD name AS function, aggregating AS aggr, isBuiltIn, description
     val yieldColumns: List[CommandYieldColumn] = List(
       CommandYieldColumn(ShowFunctionsClause.nameColumn, "function"),
@@ -1221,6 +1223,76 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     val showFunctions =
       ShowFunctionsCommand(AllFunctions, None, allColumns, yieldColumns, isCommunity = false, CYPHER_5)
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 6
+    result should be(List(
+      Map(
+        ShowFunctionsClause.nameColumn -> Values.stringValue("func1"),
+        ShowFunctionsClause.aggregatingColumn -> Values.FALSE,
+        ShowFunctionsClause.isBuiltInColumn -> Values.TRUE,
+        ShowFunctionsClause.descriptionColumn -> Values.stringValue("Built-in non-aggregating function")
+      ),
+      Map(
+        ShowFunctionsClause.nameColumn -> Values.stringValue("func2"),
+        ShowFunctionsClause.aggregatingColumn -> Values.TRUE,
+        ShowFunctionsClause.isBuiltInColumn -> Values.TRUE,
+        ShowFunctionsClause.descriptionColumn -> Values.stringValue("Built-in aggregating function")
+      ),
+      Map(
+        ShowFunctionsClause.nameColumn -> Values.stringValue("language.aggregating.func"),
+        ShowFunctionsClause.aggregatingColumn -> Values.TRUE,
+        ShowFunctionsClause.isBuiltInColumn -> Values.TRUE,
+        ShowFunctionsClause.descriptionColumn -> Values.stringValue("Aggregating language function")
+      ),
+      Map(
+        ShowFunctionsClause.nameColumn -> Values.stringValue("language.func"),
+        ShowFunctionsClause.aggregatingColumn -> Values.FALSE,
+        ShowFunctionsClause.isBuiltInColumn -> Values.TRUE,
+        ShowFunctionsClause.descriptionColumn -> Values.stringValue("Language function")
+      ),
+      Map(
+        ShowFunctionsClause.nameColumn -> Values.stringValue("zzz.func3"),
+        ShowFunctionsClause.aggregatingColumn -> Values.FALSE,
+        ShowFunctionsClause.isBuiltInColumn -> Values.FALSE,
+        ShowFunctionsClause.descriptionColumn -> Values.stringValue("User-defined non-aggregating function")
+      ),
+      Map(
+        ShowFunctionsClause.nameColumn -> Values.stringValue("zzz.zz.func4"),
+        ShowFunctionsClause.aggregatingColumn -> Values.TRUE,
+        ShowFunctionsClause.isBuiltInColumn -> Values.FALSE,
+        ShowFunctionsClause.descriptionColumn -> Values.stringValue("User-defined aggregating function")
+      )
+    ))
+  }
+
+  test("show functions should rename columns renamed in YIELD in rows") {
+    // Needed to split this in two tests or I got "stream has already been operated upon or closed"
+
+    // Given: YIELD name AS function, aggregating AS aggr, isBuiltIn, description
+    val yieldColumns: List[CommandYieldColumn] = List(
+      CommandYieldColumn(ShowFunctionsClause.nameColumn, "function"),
+      CommandYieldColumn(
+        ShowFunctionsClause.aggregatingColumn,
+        "aggr"
+      ),
+      CommandYieldColumn(
+        ShowFunctionsClause.isBuiltInColumn,
+        ShowFunctionsClause.isBuiltInColumn
+      ),
+      CommandYieldColumn(
+        ShowFunctionsClause.descriptionColumn,
+        ShowFunctionsClause.descriptionColumn
+      )
+    )
+
+    // Set-up which functions to return:
+    returnDefaultFunctions()
+
+    // When
+    val showFunctions =
+      ShowFunctionsCommand(AllFunctions, None, allColumns, yieldColumns, isCommunity = false, CYPHER_5)
+    val result = showFunctions.rows(queryState, initialCypherRow).toList
 
     // Then
     result should have size 6

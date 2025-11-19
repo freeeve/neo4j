@@ -114,8 +114,7 @@ case class ShowProceduresCommand(
       }
     }.filter(m => m.nonEmpty)
 
-    val updatedRows = updateRowsWithPotentiallyRenamedColumns(rows)
-    ClosingIterator.apply(updatedRows.iterator)
+    ClosingIterator.apply(rows.iterator)
   }
 
   private def getResultMap(

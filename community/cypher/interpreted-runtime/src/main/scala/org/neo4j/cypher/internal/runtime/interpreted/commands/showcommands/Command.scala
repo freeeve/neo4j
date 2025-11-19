@@ -42,7 +42,7 @@ abstract class Command(
   private val defaultColumns: List[CommandDefaultColumn],
   private val yieldColumns: List[CommandYieldColumn]
 ) {
-  private val columns: List[CommandDefaultColumn] = getColumns(defaultColumns, yieldColumns)
+  private val columns: List[CommandYieldColumn] = getColumns(defaultColumns, yieldColumns)
 
   // The requested columns for the command,
   // only these will be returned to the user and need to be generated
@@ -60,7 +60,8 @@ abstract class Command(
   final def rows(state: QueryState, baseRow: CypherRow): ClosingIterator[Map[String, AnyValue]] = {
     originalNameRows(state, baseRow).map { map =>
       columns.map {
-        case CommandDefaultColumn(name, _) => name -> map(name)
+        // We want the original column names for the map as the original rows uses them
+        case CommandYieldColumn(originalName, aliasedName) => aliasedName -> map(originalName)
       }.toMap
     }
   }
@@ -71,29 +72,14 @@ abstract class Command(
   protected def formatTime(startTime: Long, zoneId: ZoneId): OffsetDateTime =
     OffsetDateTime.ofInstant(Instant.ofEpochMilli(startTime), zoneId)
 
-  // Update to rename columns which have been renamed in YIELD
-  protected def updateRowsWithPotentiallyRenamedColumns(
-    rows: List[Map[String, AnyValue]]
-  ): List[Map[String, AnyValue]] =
-    rows.map(row =>
-      row.map { case (key, value) =>
-        val newKey =
-          yieldColumns.find(c => c.originalName.equals(key)).map(_.aliasedName).getOrElse(key)
-        (newKey, value)
-      }
-    )
-
   // Make sure to get the yielded columns (and their potential renames) if YIELD was specified
   // otherwise get the default columns
   private def getColumns(
     defaultColumns: List[CommandDefaultColumn],
     yieldColumns: List[CommandYieldColumn]
-  ): List[CommandDefaultColumn] = {
-    if (yieldColumns.nonEmpty) yieldColumns.map(c => {
-      val column = defaultColumns.find(s => s.name.equals(c.originalName)).get
-      CommandDefaultColumn(c.aliasedName, column.cypherType)
-    })
-    else defaultColumns
+  ): List[CommandYieldColumn] = {
+    if (yieldColumns.nonEmpty) yieldColumns
+    else defaultColumns.map(c => CommandYieldColumn(c.name, c.name))
   }
 }
 

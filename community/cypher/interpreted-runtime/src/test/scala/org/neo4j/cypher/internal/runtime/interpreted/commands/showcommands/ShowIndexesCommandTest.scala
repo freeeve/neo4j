@@ -2136,11 +2136,24 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
 
     // When
     val showIndexes = ShowIndexesCommand(AllIndexes, allColumns, yieldColumns, CypherVersion.Cypher25)
-    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+    val resultOriginal = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 1
-    result.head should be(Map(
+    resultOriginal should have size 1
+    resultOriginal.head should be(Map(
+      ShowIndexesClause.nameColumn -> Values.stringValue("index00"),
+      ShowIndexesClause.labelsOrTypesColumn -> VirtualValues.list(Values.stringValue(label)),
+      ShowIndexesClause.createStatementColumn ->
+        Values.stringValue(s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`)"),
+      ShowIndexesClause.typeColumn -> Values.stringValue("RANGE")
+    ))
+
+    // When
+    val resultFinal = showIndexes.rows(queryState, initialCypherRow).toList
+
+    // Then
+    resultFinal should have size 1
+    resultFinal.head should be(Map(
       "index" -> Values.stringValue("index00"),
       ShowIndexesClause.labelsOrTypesColumn -> VirtualValues.list(Values.stringValue(label)),
       "create" -> Values.stringValue(s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`)"),

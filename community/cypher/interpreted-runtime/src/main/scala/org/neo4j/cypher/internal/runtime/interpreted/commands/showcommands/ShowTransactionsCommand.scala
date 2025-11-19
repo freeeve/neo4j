@@ -308,8 +308,7 @@ case class ShowTransactionsCommand(
         }.toMap[String, AnyValue]
     }
 
-    val updatedRows = updateRowsWithPotentiallyRenamedColumns(rows)
-    ClosingIterator.apply(updatedRows.iterator)
+    ClosingIterator.apply(rows.iterator)
   }
 
   private def getQueryColumns(

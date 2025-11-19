@@ -339,11 +339,27 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
 
     // When
     val showSettings = ShowSettingsCommand(Left(List.empty), allColumns, yieldColumns)
-    val result = showSettings.originalNameRows(queryState, initialCypherRow).toList
+    val resultOriginal = showSettings.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size allNonInternalSettings.size
-    result.zipWithIndex.foreach { case (res, index) =>
+    resultOriginal should have size allNonInternalSettings.size
+    resultOriginal.zipWithIndex.foreach { case (res, index) =>
+      val expectedSetting = allNonInternalSettings(index)
+      res should be(Map(
+        ShowSettingsClause.nameColumn -> Values.stringValue(expectedSetting("name").asInstanceOf[String]),
+        ShowSettingsClause.startupValueColumn ->
+          Values.stringOrNoValue(expectedSetting("startupValue").asInstanceOf[String]),
+        ShowSettingsClause.valueColumn -> Values.stringOrNoValue(expectedSetting("value").asInstanceOf[String]),
+        ShowSettingsClause.descriptionColumn -> Values.stringValue(expectedSetting("description").asInstanceOf[String])
+      ))
+    }
+
+    // When
+    val resultFinal = showSettings.rows(queryState, initialCypherRow).toList
+
+    // Then
+    resultFinal should have size allNonInternalSettings.size
+    resultFinal.zipWithIndex.foreach { case (res, index) =>
       val expectedSetting = allNonInternalSettings(index)
       res should be(Map(
         "setting" -> Values.stringValue(expectedSetting("name").asInstanceOf[String]),

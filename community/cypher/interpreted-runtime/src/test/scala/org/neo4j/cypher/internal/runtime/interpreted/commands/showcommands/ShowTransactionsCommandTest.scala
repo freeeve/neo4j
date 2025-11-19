@@ -962,11 +962,25 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
 
     // When
     val showTx = ShowTransactionsCommand(Left(List.empty), allColumns, yieldColumns, CypherVersion.Cypher25)
-    val result = showTx.originalNameRows(queryState, initialCypherRow).toList
+    val resultOriginal = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 1
-    result should be(List(Map(
+    resultOriginal should have size 1
+    resultOriginal should be(List(Map(
+      ShowTransactionsClause.transactionIdColumn -> Values.stringValue(tx1),
+      ShowTransactionsClause.usernameColumn -> Values.stringValue(username),
+      ShowTransactionsClause.currentQueryColumn -> Values.NO_VALUE,
+      ShowTransactionsClause.statusColumn -> Values.stringValue(
+        "Terminated with reason: Status.Code[Neo.ClientError.Transaction.TransactionTimedOut]"
+      )
+    )))
+
+    // When
+    val resultFinal = showTx.rows(queryState, initialCypherRow).toList
+
+    // Then
+    resultFinal should have size 1
+    resultFinal should be(List(Map(
       "txId" -> Values.stringValue(tx1),
       "user" -> Values.stringValue(username),
       ShowTransactionsClause.currentQueryColumn -> Values.NO_VALUE,

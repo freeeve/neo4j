@@ -118,8 +118,7 @@ case class TerminateTransactionsCommand(
       getResultMap(txId, null, "Transaction not found.")
     )
 
-    val updatedColumnNameRows = updateRowsWithPotentiallyRenamedColumns(updatedWithExtraRows.toList)
-    ClosingIterator.apply(updatedColumnNameRows.iterator)
+    ClosingIterator.apply(updatedWithExtraRows.iterator)
   }
 
   private def getResultMap(txId: TransactionId, username: String, message: String): Map[String, AnyValue] =

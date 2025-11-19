@@ -223,8 +223,7 @@ case class ShowIndexesCommand(
             )
         }.toMap[String, AnyValue]
     }
-    val updatedRows = updateRowsWithPotentiallyRenamedColumns(rows.toList)
-    ClosingIterator.apply(updatedRows.iterator)
+    ClosingIterator.apply(rows.iterator)
   }
 
   private def getIndexStatistics(

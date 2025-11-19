@@ -1261,11 +1261,25 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When
     val showConstraints = ShowConstraintsCommand(AllConstraints, allColumns, yieldColumns, CypherVersion.Cypher25)
-    val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
+    val resultOriginal = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 1
-    result.head should be(Map(
+    resultOriginal should have size 1
+    resultOriginal.head should be(Map(
+      ShowConstraintsClause.nameColumn -> Values.stringValue("constraint0"),
+      ShowConstraintsClause.labelsOrTypesColumn -> VirtualValues.list(Values.stringValue(label)),
+      ShowConstraintsClause.createStatementColumn -> Values.stringValue(
+        s"CREATE CONSTRAINT `constraint0` FOR (n:`$label`) REQUIRE (n.`$prop`) IS UNIQUE"
+      ),
+      ShowConstraintsClause.typeColumn -> Values.stringValue("NODE_PROPERTY_UNIQUENESS")
+    ))
+
+    // When
+    val resultFinal = showConstraints.rows(queryState, initialCypherRow).toList
+
+    // Then
+    resultFinal should have size 1
+    resultFinal.head should be(Map(
       "constraint" -> Values.stringValue("constraint0"),
       ShowConstraintsClause.labelsOrTypesColumn -> VirtualValues.list(Values.stringValue(label)),
       "create" -> Values.stringValue(
