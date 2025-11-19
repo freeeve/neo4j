@@ -24,10 +24,12 @@ import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
 import org.neo4j.cypher.internal.logical.plans.InclusiveBound
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRange
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
+import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeBetween
 import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
 import org.neo4j.cypher.internal.logical.plans.RangeLessThan
@@ -63,6 +65,7 @@ import org.neo4j.values.storable.Values.longValue
 import org.neo4j.values.storable.Values.shortValue
 import org.neo4j.values.storable.Values.stringValue
 import org.neo4j.values.storable.VectorValue
+import org.neo4j.values.virtual.VirtualValues
 
 import scala.math.Ordering.comparatorToOrdering
 import scala.util.Random
@@ -631,7 +634,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "13",
-          filter = Some(SingleQueryExpression(param("seekValue")))
+          filter = Some(equal(param("seekValue")))
         ).build()
 
       val runtimeResult =
@@ -1118,7 +1121,102 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support single-stage filtering single range seek between values") {
+  test("should support single-stage filtering single range seek with different non-storable types") {
+    val random = new Random()
+
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      nodeGraph(sizeHint, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, idToken, longValue(i))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            float32Vector((1 to sizeHint).map(_ => random.between(0f, 10f)): _*)
+          )
+      })
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id")
+      .projection("n.id AS id")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = "1000000",
+        filter = Some(between(gte(param("seekValue1")), lte(param("seekValue2"))))
+      )
+      .build()
+
+    val runtimeResult =
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "vector" -> float32Vector(Seq.fill(sizeHint)(5.0f): _*),
+            "seekValue1" -> longValue(0),
+            "seekValue2" -> VirtualValues.EMPTY_MAP
+          )
+      )
+    runtimeResult should beColumns("id").withNoRows()
+  }
+
+  test("should support single-stage filtering single open range seek with non-storable type") {
+    val random = new Random()
+
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      nodeGraph(sizeHint, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, idToken, longValue(i))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            float32Vector((1 to sizeHint).map(_ => random.between(0f, 10f)): _*)
+          )
+      })
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id")
+      .projection("n.id AS id")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = "1000000",
+        filter = Some(rangeExpression(gte(param("seekValue"))))
+      )
+      .build()
+
+    val runtimeResult =
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "vector" -> float32Vector(Seq.fill(sizeHint)(5.0f): _*),
+            "seekValue" -> VirtualValues.EMPTY_MAP
+          )
+      )
+    runtimeResult should beColumns("id").withNoRows()
+  }
+
+  test("should support single-stage filtering single range seek between null values") {
     val random = new Random()
 
     givenGraph {
@@ -1293,6 +1391,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
    */
   private val seed: Long = System.currentTimeMillis()
   private val random = RandomValues.create(new java.util.Random(seed))
+  private def randomVector = random.nextFloat32Vector(1536, 1536)
 
   (1 to 100).foreach(i => {
     val dimension = random.intBetween(128, 1028)
@@ -1315,7 +1414,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         case 2 => (rangeExpression(lt(param("min"))), s"n.prop < $min")
         case 3 => (rangeExpression(lte(param("min"))), s"n.prop <= $min")
         case 4 => (between(gte(param("min")), lte(param("max"))), s"$min <= n.prop <= $max")
-        case 5 => (SingleQueryExpression(param("min")), s"n.prop = $min")
+        case 5 => (equal(param("min")), s"n.prop = $min")
         case _ => throw new IllegalStateException
       }
     }
@@ -1395,7 +1494,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           write.nodeSetProperty(
             n.getId,
             vectorToken,
-            random.nextFloat32Vector(128, 128)
+            randomVector
           )
       })
     }
@@ -1411,7 +1510,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(SingleQueryExpression(param("p")))
+        filter = Some(equal(param("p")))
       )
       .build()
 
@@ -1421,8 +1520,56 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         runtime,
         parameters =
           Map(
-            "vector" -> random.nextFloat32Vector(128, 128),
+            "vector" -> randomVector,
             "p" -> 1.1
+          )
+      )
+
+    // then
+    runtimeResult should beColumns("id").withNoRows()
+  }
+
+  test("exact filter for non-storable value") {
+    // given
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      nodeGraph(1, "Foo").foreach({
+        n =>
+          write.nodeSetProperty(n.getId, idToken, longValue(1))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id")
+      .projection("n.id AS id")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(equal(param("p")))
+      )
+      .build()
+
+    val runtimeResult =
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "vector" -> randomVector,
+            "p" -> VirtualValues.EMPTY_MAP
           )
       )
 
@@ -1491,6 +1638,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       InequalitySeekRangeWrapper(e)(pos)
     )
   }
+  private def composite(es: QueryExpression[Expression]*) = CompositeQueryExpression(es)
+  private def equal(e: Expression) = SingleQueryExpression(e)
   private def gt(e: Expression) = RangeGreaterThan(NonEmptyList(ExclusiveBound(e)))
   private def gte(e: Expression) = RangeGreaterThan(NonEmptyList(InclusiveBound(e)))
   private def lt(e: Expression) = RangeLessThan(NonEmptyList(ExclusiveBound(e)))

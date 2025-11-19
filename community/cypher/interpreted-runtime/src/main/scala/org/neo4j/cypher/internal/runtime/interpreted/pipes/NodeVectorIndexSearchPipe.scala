@@ -178,7 +178,9 @@ object NodeVectorIndexSearchPipe {
         checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
         makeValueNeoSafe.safeOrEmpty(expression(row, state)) match {
           case Some(value) => Array(nearestPredicate, PropertyIndexQuery.exact(properties(1), value))
-          case None        => Array(nearestPredicate)
+          case None        =>
+            // empty means no possible results
+            Array.empty
         }
 
       case Some(RangeQueryExpression(rangeWrapper)) =>
