@@ -1566,6 +1566,32 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("x").withRows(singleColumn(expected))
   }
 
+  test("should handle empty range") {
+    givenGraph {
+      nodeIndex(IndexType.RANGE, "Label", "id")
+      nodePropertyGraph(
+        sizeHint,
+        {
+          case i => Map("id" -> i)
+
+        },
+        "Label"
+      )
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .filter("true")
+      .nodeIndexOperator("x:Label(1111111 <= id <= 1412)")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withNoRows()
+  }
+
   testWithIndex(_.supports(EXACT), s"should support filter in in the same pipeline") { index =>
     val propertyType = randomAmong(index.querySupport(EXACT))
     val nodes = givenGraph(randomIndexedNodePropertyGraph(index.indexType, propertyType))
