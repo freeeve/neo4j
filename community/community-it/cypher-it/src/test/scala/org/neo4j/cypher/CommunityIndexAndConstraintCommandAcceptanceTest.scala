@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher
 
-import org.junit.jupiter.api.Assumptions
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.QueryStatistics
@@ -266,7 +265,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     graph.indexExists(constraintName) should be(false)
   }
 
-  test("Show index") {
+  test("Show index", Tags.NoSpdOverride) {
     // GIVEN
     graph.createRelationshipIndexWithName(indexName, relType, prop)
     graph.getDependencyResolver.resolveDependency(classOf[IndexingService]).reportUsageStatistics()
@@ -358,7 +357,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     graph.getConstraintTypeByName(constraintName) should be(ConstraintType.RELATIONSHIP_UNIQUENESS)
   }
 
-  test("Create node key constraint") {
+  test("Create node key constraint", Tags.NoSpdOverride) {
     // WHEN
     val exception = the[CypherExecutionException] thrownBy {
       execute(s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS NODE KEY")
@@ -379,7 +378,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     graph.constraintExists(constraintName) should be(false)
   }
 
-  test("Create relationship key constraint") {
+  test("Create relationship key constraint", Tags.NoSpdOverride) {
     // WHEN
     val exception = the[CypherExecutionException] thrownBy {
       execute(s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS REL KEY")
@@ -400,7 +399,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     graph.constraintExists(constraintName) should be(false)
   }
 
-  test("Create node property existence constraint") {
+  test("Create node property existence constraint", Tags.NoSpdOverride) {
     // WHEN
     val exception = the[CypherExecutionException] thrownBy {
       execute(s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS NOT NULL")
@@ -421,7 +420,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     graph.constraintExists(constraintName) should be(false)
   }
 
-  test("Create relationship property existence constraint") {
+  test("Create relationship property existence constraint", Tags.NoSpdOverride) {
     // WHEN
     val exception = the[CypherExecutionException] thrownBy {
       execute(s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS NOT NULL")
@@ -442,11 +441,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     graph.constraintExists(constraintName) should be(false)
   }
 
-  test("Create node property type constraint") {
-    Assumptions.assumeTrue(
-      expectedShardCount == 0,
-      "Skipping test because node property type constraints are supported in SPD"
-    )
+  test("Create node property type constraint", Tags.NoSpdOverride) {
     // WHEN
     val exception = the[CypherExecutionException] thrownBy {
       execute(s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS :: INT")
@@ -467,11 +462,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     graph.constraintExists(constraintName) should be(false)
   }
 
-  test("Create relationship property type constraint") {
-    Assumptions.assumeTrue(
-      expectedShardCount == 0,
-      "Skipping test because relationship property type constraints are supported in SPD"
-    )
+  test("Create relationship property type constraint", Tags.NoSpdOverride) {
     // WHEN
     val exception = the[CypherExecutionException] thrownBy {
       execute(s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS :: INT")
@@ -531,7 +522,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     withoutIdColumn(result.toList) should be(List(expected))
   }
 
-  test("Constraint commands with Cypher versions") {
+  test("Constraint commands with Cypher versions", Tags.NoSpdOverride) {
     // GIVEN
     val allowedCreateCommands = Seq(
       (
@@ -644,7 +635,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
 
   // Graph type commands
 
-  test("Alter current graph type with empty graph type") {
+  test("Alter current graph type with empty graph type", Tags.NoSpdOverride) {
     Seq("SET", "ADD", "DROP", "ALTER").foreach(operation =>
       withClue(operation) {
         // WHEN
@@ -665,7 +656,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     )
   }
 
-  test("Create property uniqueness constraints through graph type") {
+  test("Create property uniqueness constraints through graph type", Tags.NoSpdOverride) {
     Seq(
       s"(e:$label)",
       s"()-[e:$relType]->()"
@@ -694,7 +685,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
   }
 
-  test("Create key constraints through graph type") {
+  test("Create key constraints through graph type", Tags.NoSpdOverride) {
     Seq(
       s"(e:$label)",
       s"()-[e:$relType]->()"
@@ -723,7 +714,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
   }
 
-  test("Create property existence constraints through graph type") {
+  test("Create property existence constraints through graph type", Tags.NoSpdOverride) {
     Seq(
       s"(:$label => {$prop :: ANY NOT NULL})",
       s"()-[:$relType => {$prop :: ANY NOT NULL}]->()",
@@ -753,7 +744,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
   }
 
-  test("Create property type constraints through graph type") {
+  test("Create property type constraints through graph type", Tags.NoSpdOverride) {
     Seq(
       s"(:$label => {$prop :: STRING})",
       s"()-[:$relType => {$prop :: STRING}]->()",
@@ -783,7 +774,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
   }
 
-  test("Create label existence constraints through graph type") {
+  test("Create label existence constraints through graph type", Tags.NoSpdOverride) {
     // WHEN
     val exception = the[CantCompileQueryException] thrownBy {
       execute(
@@ -804,7 +795,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     ))
   }
 
-  test("Create label endpoint constraints through graph type") {
+  test("Create label endpoint constraints through graph type", Tags.NoSpdOverride) {
     Seq(
       s"(:$label)-[:$relType =>]->()",
       s"()-[:$relType =>]->(:$label)"
@@ -832,7 +823,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
   }
 
-  test("Show current graph type") {
+  test("Show current graph type", Tags.NoSpdOverride) {
     // WHEN
     val exception = the[RuntimeUnsupportedException] thrownBy {
       execute("CYPHER 25 SHOW CURRENT GRAPH TYPE")
