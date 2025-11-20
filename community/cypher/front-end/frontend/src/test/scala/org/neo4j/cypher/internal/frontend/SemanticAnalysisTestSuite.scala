@@ -328,6 +328,9 @@ trait SemanticAnalysisTestSuiteWithDefaultQuery extends SemanticAnalysisTestSuit
   def runWith(disabledCypherVersions: Set[CypherVersion], features: SemanticFeature*): AnalysisAssertions =
     runWith(defaultQuery, disabledCypherVersions: Set[CypherVersion], features: _*)
 
+  def runWith(disabledCypherVersions: Set[CypherVersion], pipeline: Pipeline): AnalysisAssertions =
+    run(defaultQuery, pipeline, disabledVersions = disabledCypherVersions)
+
   def runWith(
     query: String,
     disabledCypherVersions: Set[CypherVersion],

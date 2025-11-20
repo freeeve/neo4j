@@ -21,6 +21,11 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorType
+import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuite.Pipeline
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
@@ -29,6 +34,17 @@ import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAnalysisTestSuite {
+
+  private val pipelineWithAstRewriting: Pipeline =
+    PreparatoryRewriting andThen
+      SemanticAnalysis(warn = Some(true), VectorType, VectorSearch) andThen
+      AstRewriting() andThen
+      SemanticAnalysis(warn = Some(false), VectorType, VectorSearch) andThen
+      SemanticTypeCheck
+
+  private def runSearchWithRewriter(): AnalysisAssertions = {
+    runWith(Set(CypherVersion.Cypher5), pipelineWithAstRewriting)
+  }
 
   private def runSearch(): AnalysisAssertions =
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType, VectorSearch)
@@ -495,7 +511,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearchWithRewriter().hasNoErrors
     }
 
     test(
@@ -508,7 +524,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearchWithRewriter().hasNoErrors
     }
 
     test(
@@ -521,7 +537,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearchWithRewriter().hasNoErrors
     }
 
     test(
@@ -534,7 +550,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN r
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearchWithRewriter().hasNoErrors
     }
 
     test(
@@ -547,7 +563,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN r
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearchWithRewriter().hasNoErrors
     }
 
     test(
@@ -560,7 +576,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearchWithRewriter().hasNoErrors
     }
 
     test(
@@ -573,7 +589,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearchWithRewriter().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I70(21 + optionalLength, 1, 22 + optionalLength),
           "In order to have a search clause, a match statement can only have one bound variable.",
@@ -592,7 +608,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearchWithRewriter().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I70(7 + optionalLength, 1, 8 + optionalLength),
           "In order to have a search clause, a match statement can only have one bound variable.",
@@ -611,7 +627,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearchWithRewriter().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I70(7 + optionalLength, 1, 8 + optionalLength),
           "In order to have a search clause, a match statement can only have one bound variable.",
@@ -630,7 +646,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearchWithRewriter().hasNoErrors
     }
 
     test(
@@ -643,7 +659,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearchWithRewriter().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I70(27 + optionalLength, 1, 28 + optionalLength),
           "In order to have a search clause, a match statement can only have one bound variable.",
@@ -682,7 +698,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |RETURN movie.title AS title
            |""".stripMargin
       ) {
-        runSearch().hasErrors(
+        runSearchWithRewriter().hasErrors(
           SemanticError(
             GqlHelper.getGql42001_42I71(offset + optionalLength, 1, offset + optionalLength + 1),
             "In order to have a search clause, a match statement can only have predicates on the bound variable.",
@@ -719,7 +735,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |RETURN r
            |""".stripMargin
       ) {
-        runSearch().hasErrors(
+        runSearchWithRewriter().hasErrors(
           SemanticError(
             GqlHelper.getGql42001_42I71(offset + optionalLength, 1, offset + optionalLength + 1),
             "In order to have a search clause, a match statement can only have predicates on the bound variable.",
@@ -752,7 +768,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |RETURN movie.title AS title
            |""".stripMargin
       ) {
-        runSearch().hasErrors(
+        runSearchWithRewriter().hasErrors(
           SemanticError(
             GqlHelper.getGql42001_42I72(offset + optionalLength, 1, offset + optionalLength + 1),
             "In order to have a search clause, a match statement can only have a single node or relationship pattern and no selectors.",
