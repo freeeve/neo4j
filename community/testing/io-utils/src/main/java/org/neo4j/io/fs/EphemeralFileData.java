@@ -94,7 +94,13 @@ class EphemeralFileData {
     }
 
     synchronized EphemeralFileData copy() {
-        return new EphemeralFileData(file, fileAsBuffer.copy(), clock);
+        EphemeralDynamicByteBuffer copy;
+        try {
+            copy = fileAsBuffer.copy();
+        } catch (IllegalStateException e) {
+            throw new IllegalStateException("Error copying ephemeral buffer for " + file, e);
+        }
+        return new EphemeralFileData(file, copy, clock);
     }
 
     synchronized void free() {
