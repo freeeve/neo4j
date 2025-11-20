@@ -49,7 +49,8 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
       q,
       None,
       None,
-      compareVersions = false
+      compareVersions = false,
+      Map.empty
     )
 
     val vectorSearchExpression = VectorSearchPredicate(
@@ -78,7 +79,8 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
       q,
       None,
       None,
-      compareVersions = false
+      compareVersions = false,
+      Map.empty
     ))
   }
 
