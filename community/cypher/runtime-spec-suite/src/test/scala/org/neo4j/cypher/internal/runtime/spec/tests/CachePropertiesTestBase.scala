@@ -511,7 +511,7 @@ abstract class CachePropertiesTestBase[CONTEXT <: RuntimeContext](
 
     // when
     val executablePlan: ExecutionPlan = buildPlan(logicalQuery.copy(doProfile = true), runtime)
-    val result1 = profile(executablePlan, NoInput, readOnly = true)
+    val result1 = profile(executablePlan, NoInput)
 
     // then
     result1 should beColumns("x1", "x2", "x3").withSingleRow("1", null, null)
@@ -523,7 +523,7 @@ abstract class CachePropertiesTestBase[CONTEXT <: RuntimeContext](
     givenGraph {
       node.setProperty("x2", "2")
     }
-    val result2 = profile(executablePlan, NoInput, readOnly = true)
+    val result2 = profile(executablePlan, NoInput)
 
     // then
     result2 should beColumns("x1", "x2", "x3").withSingleRow("1", "2", null)
@@ -558,7 +558,7 @@ abstract class CachePropertiesTestBase[CONTEXT <: RuntimeContext](
 
     // when
     val executionPlan = buildPlan(logicalQuery.copy(doProfile = true), runtime)
-    val resultNoTokenUpdates = profile(executionPlan, NoInput, readOnly = true)
+    val resultNoTokenUpdates = profile(executionPlan, NoInput)
 
     // then
     resultNoTokenUpdates should beColumns(resultColumnNames: _*).withSingleRow(resultColumns.map(i =>
@@ -586,7 +586,7 @@ abstract class CachePropertiesTestBase[CONTEXT <: RuntimeContext](
     givenGraph {
       (numStoreProperties until numExistingProperties).map(i => node.setProperty("p" + i, i))
     }
-    val resultTokenWithUpdates = profile(executionPlan, NoInput, readOnly = true)
+    val resultTokenWithUpdates = profile(executionPlan, NoInput)
 
     // then
     resultTokenWithUpdates should beColumns(resultColumnNames: _*).withSingleRow(resultColumns.map(i =>

@@ -30,408 +30,318 @@ import org.neo4j.cypher.internal.runtime.NoInput
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.spec.NonRecordingRuntimeResult
 import org.neo4j.cypher.internal.runtime.spec.RecordingRuntimeResult
-import org.neo4j.cypher.internal.runtime.spec.RuntimeExecutionSupport
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSupport
+import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.NoRewrites
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.TestPlanCombinationRewriterHint
 import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.values.AnyValue
 
-trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] extends RuntimeExecutionSupport[CONTEXT] {
+trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] {
 
   protected def runtimeTestSupport: RuntimeTestSupport[CONTEXT]
+  protected def runtime: CypherRuntime[CONTEXT]
 
-  protected def defaultParameters: Map[String, Any] = Map.empty
-  protected def defaultTestPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty
-
+  // defaults: override these to set the default value for all tests in a suite
   protected def defaultQueryRuntimeConfig: QueryRuntimeConfig =
     runtimeTestSupport.runtimeContextManager.defaultQueryRuntimeConfig
-  protected def defaultReadOnly: Boolean = true
   protected def defaultImplicitTx: Boolean = false
-  protected def defaultInputStream: InputDataStream = NoInput
+
+  private def defaultRunner: RuntimeTestSupport[CONTEXT]#PlanRunner[RuntimeResult] =
+    runtimeTestSupport.PlanRunner.empty
+      .withConfig(defaultQueryRuntimeConfig)
+      .withImplicitTx(defaultImplicitTx)
 
   // Convenience overloaded methods
-  def execute(executablePlan: ExecutionPlan): RecordingRuntimeResult = {
-    executePlan(executablePlan, defaultReadOnly, defaultImplicitTx)
-  }
+  protected def execute(executablePlan: ExecutionPlan): RecordingRuntimeResult =
+    defaultRunner
+      .withPlan(executablePlan)
+      .recording
+      .run()
 
-  def execute(executablePlan: ExecutionPlan, readOnly: Boolean): RecordingRuntimeResult = {
-    executePlan(executablePlan, readOnly, defaultImplicitTx)
-  }
-
-  def execute(
+  protected def execute(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT]
-  ): RecordingRuntimeResult = {
-    execute(logicalQuery, runtime, defaultInputStream)
-  }
+  ): RecordingRuntimeResult =
+    execute(logicalQuery, runtime, NoInput)
 
-  def execute(
+  protected def execute(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     parameters: Map[String, Any]
-  ): RecordingRuntimeResult = {
+  ): RecordingRuntimeResult =
     executeQuery(
       logicalQuery,
       runtime,
-      defaultInputStream,
+      NoInput,
       parameters,
-      defaultTestPlanCombinationRewriterHints,
+      Set.empty,
       defaultQueryRuntimeConfig
     )
-  }
 
-  def execute(
+  protected def execute(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     input: InputValues
-  ): RecordingRuntimeResult = {
+  ): RecordingRuntimeResult =
     execute(logicalQuery, runtime, input.stream())
-  }
 
-  def execute(
+  protected def execute(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     subscriber: QuerySubscriber
-  ): RuntimeResult = {
+  ): RuntimeResult =
     executeWithSubscriber(logicalQuery, runtime, subscriber)
-  }
 
-  def execute(
+  protected def execute(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     inputStream: InputDataStream
-  ): RecordingRuntimeResult = {
+  ): RecordingRuntimeResult =
     executeQuery(
       logicalQuery,
       runtime,
       inputStream,
-      defaultParameters,
-      defaultTestPlanCombinationRewriterHints,
+      Map.empty,
+      Set.empty,
       defaultQueryRuntimeConfig
     )
-  }
 
-  def execute(
+  protected def execute(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     inputStream: InputDataStream,
     subscriber: QuerySubscriber
-  ): RuntimeResult = {
+  ): RuntimeResult =
     executeWithSubscriber(logicalQuery, runtime, subscriber, inputStream)
-  }
 
-  def profile(
+  protected def profile(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT]
-  ): RecordingRuntimeResult = {
+  ): RecordingRuntimeResult =
     profile(logicalQuery, runtime, NoInput)
-  }
 
-  def profile(
+  protected def profile(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     input: InputValues
-  ): RecordingRuntimeResult = {
+  ): RecordingRuntimeResult =
     profile(logicalQuery, runtime, input.stream())
-  }
 
-  def profile(
+  protected def profile(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     inputStream: InputDataStream
-  ): RecordingRuntimeResult = {
+  ): RecordingRuntimeResult =
     profileQuery(
       logicalQuery,
       runtime,
       inputStream,
-      defaultParameters,
-      defaultTestPlanCombinationRewriterHints,
+      Set.empty,
       defaultQueryRuntimeConfig
     )
-  }
 
-  def profile(
+  protected def profile(
     executionPlan: ExecutionPlan,
-    inputStream: InputDataStream,
-    readOnly: Boolean
-  ): RecordingRuntimeResult = {
-    profilePlan(executionPlan, inputStream, readOnly)
-  }
+    inputStream: InputDataStream = NoInput
+  ): RecordingRuntimeResult =
+    defaultRunner
+      .withPlan(executionPlan)
+      .recording
+      .profiling
+      .withInput(inputStream)
+      .run()
 
   // RuntimeExecutionSupport methods
 
-  override def buildPlan(
+  protected def buildPlan(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
+    runtime: CypherRuntime[CONTEXT] = runtime,
+    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty,
     queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): ExecutionPlan = {
+  ): ExecutionPlan =
     runtimeTestSupport.buildPlan(logicalQuery, runtime, testPlanCombinationRewriterHints, queryConfig)
-  }
 
-  override def buildPlanAndContext(
+  protected def buildPlanAndContext(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
+    runtime: CypherRuntime[CONTEXT] = runtime,
+    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty,
     queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): (ExecutionPlan, CONTEXT) = {
+  ): (ExecutionPlan, CONTEXT) =
     runtimeTestSupport.buildPlanAndContext(logicalQuery, runtime, testPlanCombinationRewriterHints, queryConfig)
-  }
 
-  override def executePlan(
-    executablePlan: ExecutionPlan,
-    readOnly: Boolean,
-    implicitTx: Boolean,
-    parameters: Map[String, Any] = defaultParameters,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): RecordingRuntimeResult = {
-    runtimeTestSupport.executePlan(executablePlan, readOnly, implicitTx, parameters, queryConfig)
-  }
+  protected def execute(logicalQuery: LogicalQuery, implicitTx: Boolean): RecordingRuntimeResult =
+    defaultRunner
+      .withPlan(logicalQuery)
+      .recording
+      .withImplicitTx(implicitTx)
+      .run()
 
-  def executeWithInputValues(
+  protected def executeQuery(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    input: InputValues,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
+    runtime: CypherRuntime[CONTEXT] = runtime,
+    inputStream: InputDataStream = NoInput,
+    parameters: Map[String, Any] = Map.empty,
+    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty,
     queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): RecordingRuntimeResult = {
-    executeQuery(logicalQuery, runtime, input.stream(), parameters, testPlanCombinationRewriterHints, queryConfig)
-  }
+  ): RecordingRuntimeResult =
+    defaultRunner
+      .withPlan(logicalQuery, runtime, testPlanCombinationRewriterHints)
+      .recording
+      .withInput(inputStream)
+      .withParams(parameters)
+      .withConfig(queryConfig)
+      .run()
 
-  override def executeQuery(
+  protected def executeWithSubscriber(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    inputStream: InputDataStream = defaultInputStream,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): RecordingRuntimeResult = {
-    runtimeTestSupport.executeQuery(
-      logicalQuery,
-      runtime,
-      inputStream,
-      parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig
-    )
-  }
-
-  override def executeWithSubscriber(
-    logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
+    runtime: CypherRuntime[CONTEXT] = runtime,
     subscriber: QuerySubscriber,
-    inputStream: InputDataStream = defaultInputStream,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): RuntimeResult = {
-    runtimeTestSupport.executeWithSubscriber(
-      logicalQuery,
-      runtime,
-      subscriber,
-      inputStream,
-      parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig
-    )
-  }
+    inputStream: InputDataStream = NoInput,
+    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty
+  ): RuntimeResult =
+    defaultRunner
+      .withPlan(logicalQuery, runtime, testPlanCombinationRewriterHints)
+      .withSubscriber(subscriber)
+      .withInput(inputStream)
+      .run()
 
-  override def executeAs(
+  protected def executeAs(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
+    runtime: CypherRuntime[CONTEXT] = runtime,
     username: String,
-    password: String,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
+    password: String
   ): RecordingRuntimeResult = {
-    runtimeTestSupport.executeAs(logicalQuery, runtime, username, password, queryConfig)
+    defaultRunner
+      .withPlan(logicalQuery, runtime, Set.empty)
+      .recording
+      .executeAs(username, password)
+      .run()
   }
 
-  override def executeWithoutValuePopulation(
+  protected def executeWithoutValuePopulation(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    inputStream: InputDataStream,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): RecordingRuntimeResult = {
-    runtimeTestSupport.executeWithoutValuePopulation(
-      logicalQuery,
-      runtime,
-      inputStream,
-      parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig
-    )
-  }
+    runtime: CypherRuntime[CONTEXT] = runtime
+  ): RecordingRuntimeResult =
+    defaultRunner
+      .withPlan(logicalQuery, runtime, Set.empty)
+      .recording
+      .noValues
+      .run()
 
-  override def executeAndConsumeTransactionally(
+  protected def executeAndConsumeTransactionally(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig,
-    profileAssertion: Option[QueryProfile => Unit] = None,
-    prePopulateResults: Boolean = true
+    runtime: CypherRuntime[CONTEXT] = runtime,
+    parameters: Map[String, Any] = Map.empty,
+    profileAssertion: Option[QueryProfile => Unit] = None
   ): IndexedSeq[Array[AnyValue]] =
     runtimeTestSupport.executeAndConsumeTransactionally(
       logicalQuery,
       runtime,
       parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig,
-      profileAssertion,
-      prePopulateResults
-    )
+      profileAssertion = profileAssertion
+    ).run()
 
-  override def executeAndConsumeTransactionallyNonRecording(
+  protected def profileQuery(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig,
-    profileAssertion: Option[QueryProfile => Unit] = None,
-    prePopulateResults: Boolean = true
-  ): Long =
-    runtimeTestSupport.executeAndConsumeTransactionallyNonRecording(
-      logicalQuery,
-      runtime,
-      parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig,
-      profileAssertion,
-      prePopulateResults
-    )
-
-  def profileWithInputValues(
-    logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    input: InputValues,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
+    runtime: CypherRuntime[CONTEXT] = runtime,
+    inputDataStream: InputDataStream = NoInput,
+    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty,
     queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): RecordingRuntimeResult = {
-    profileQuery(logicalQuery, runtime, input.stream(), parameters, testPlanCombinationRewriterHints, queryConfig)
-  }
+  ): RecordingRuntimeResult =
+    defaultRunner
+      .withPlan(logicalQuery, runtime, testPlanCombinationRewriterHints)
+      .recording
+      .profiling
+      .withInput(inputDataStream)
+      .withConfig(queryConfig)
+      .run()
 
-  override def profileQuery(
+  protected def profileNonRecording(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    inputDataStream: InputDataStream = defaultInputStream,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): RecordingRuntimeResult = {
-    runtimeTestSupport.profileQuery(
-      logicalQuery.copy(doProfile = true),
-      runtime,
-      inputDataStream,
-      parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig
-    )
-  }
+    runtime: CypherRuntime[CONTEXT] = runtime,
+    inputDataStream: InputDataStream = NoInput
+  ): NonRecordingRuntimeResult =
+    defaultRunner
+      .withPlan(logicalQuery.copy(doProfile = true), runtime, Set.empty)
+      .nonRecording
+      .profiling
+      .withInput(inputDataStream)
+      .run()
 
-  override def profilePlan(
-    executablePlan: ExecutionPlan,
-    inputDataStream: InputDataStream,
-    readOnly: Boolean,
-    parameters: Map[String, Any] = defaultParameters,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): RecordingRuntimeResult = {
-    runtimeTestSupport.profilePlan(executablePlan, inputDataStream, readOnly, parameters, queryConfig)
-  }
-
-  override def profileNonRecording(
+  protected def profileWithSubscriber(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    inputDataStream: InputDataStream = defaultInputStream,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): NonRecordingRuntimeResult = {
-    runtimeTestSupport.profileNonRecording(
-      logicalQuery.copy(doProfile = true),
-      runtime,
-      inputDataStream,
-      parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig
-    )
-  }
-
-  override def profileWithSubscriber(
-    logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
+    runtime: CypherRuntime[CONTEXT] = runtime,
     subscriber: QuerySubscriber,
-    inputDataStream: InputDataStream = defaultInputStream,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): RuntimeResult = {
-    runtimeTestSupport.profileWithSubscriber(
-      logicalQuery.copy(doProfile = true),
-      runtime,
-      subscriber,
-      inputDataStream,
-      parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig
-    )
-  }
+    inputDataStream: InputDataStream = NoInput
+  ): RuntimeResult =
+    defaultRunner
+      .withPlan(logicalQuery.copy(doProfile = true), runtime, Set.empty)
+      .withSubscriber(subscriber)
+      .profiling
+      .withInput(inputDataStream)
+      .run()
 
-  override def executeAndContext(
+  protected def executeAndContextNonRecording(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    input: InputValues,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): (RecordingRuntimeResult, CONTEXT) = {
-    runtimeTestSupport.executeAndContext(
-      logicalQuery,
-      runtime,
-      input,
-      parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig
-    )
-  }
+    runtime: CypherRuntime[CONTEXT] = runtime,
+    input: InputValues = InputValues.EMPTY,
+    parameters: Map[String, Any] = Map.empty
+  ): (NonRecordingRuntimeResult, CONTEXT) =
+    defaultRunner
+      .withPlan(logicalQuery, runtime, Set.empty)
+      .withInput(input.stream())
+      .withParams(parameters)
+      .nonRecording
+      .withContext
+      .run()
 
-  override def executeAndContextNonRecording(
+  protected def executeAndExplain(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    input: InputValues,
-    parameters: Map[String, Any] = defaultParameters,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = defaultTestPlanCombinationRewriterHints,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
-  ): (NonRecordingRuntimeResult, CONTEXT) = {
-    runtimeTestSupport.executeAndContextNonRecording(
-      logicalQuery,
-      runtime,
-      input,
-      parameters,
-      testPlanCombinationRewriterHints,
-      queryConfig
-    )
-  }
-
-  override def executeAndExplain(
-    logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    input: InputValues = NO_INPUT,
-    queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
+    runtime: CypherRuntime[CONTEXT] = runtime,
+    input: InputValues = InputValues.EMPTY
   ): (RecordingRuntimeResult, InternalPlanDescription) = {
-    runtimeTestSupport.executeAndExplain(logicalQuery, runtime, input, queryConfig)
+    val executionPlan =
+      buildPlan(
+        logicalQuery,
+        runtime,
+        testPlanCombinationRewriterHints = Set(NoRewrites),
+        defaultQueryRuntimeConfig
+      )
+
+    defaultRunner
+      .withPlan(executionPlan)
+      .recording
+      .withInput(input.stream())
+      .mapResult(result => (result, runtimeTestSupport.explainDescription(logicalQuery, executionPlan)))
+      .run()
   }
 
-  override def executeAndProfile(
+  protected def executeAndProfile(
     logicalQuery: LogicalQuery,
-    runtime: CypherRuntime[CONTEXT],
-    input: InputValues,
-    queryConfig: QueryRuntimeConfig
-  ): (RecordingRuntimeResult, InternalPlanDescription) =
-    runtimeTestSupport.executeAndProfile(logicalQuery, runtime, input, queryConfig)
+    runtime: CypherRuntime[CONTEXT] = runtime
+  ): (RecordingRuntimeResult, InternalPlanDescription) = {
+    val executionPlan =
+      buildPlan(
+        logicalQuery.copy(doProfile = true),
+        runtime,
+        testPlanCombinationRewriterHints = Set(NoRewrites),
+        defaultQueryRuntimeConfig
+      )
+
+    defaultRunner
+      .withPlan(executionPlan)
+      .recording
+      .profiling
+      .mapResult { result =>
+        result.consume()
+
+        val executionPlanDescription = runtimeTestSupport
+          .profileDescription(logicalQuery, executionPlan, result.runtimeResult.queryProfile())
+
+        (result, executionPlanDescription)
+      }
+      .run()
+  }
 }

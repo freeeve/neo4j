@@ -44,7 +44,8 @@ class ClosingRuntimeTestResult(
   txContext: TransactionalContext,
   resourceManager: ResourceManager,
   subscriber: QuerySubscriber,
-  assertAllReleased: () => Unit
+  assertAllReleased: () => Unit,
+  closeTx: Boolean = false
 ) extends RuntimeResult {
 
   private var error: Throwable = _
@@ -99,6 +100,10 @@ class ClosingRuntimeTestResult(
         case _ =>
           inner.cancel()
           closeResources()
+      }
+      if (closeTx) {
+        txContext.close()
+        tx.close()
       }
       assertAllReleased()
     }

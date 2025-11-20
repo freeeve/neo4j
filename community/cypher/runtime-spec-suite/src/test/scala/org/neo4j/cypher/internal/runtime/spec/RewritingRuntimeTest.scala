@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
+import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSupport.WorkloadMode
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.TestPlanCombinationRewriterHint
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.graphdb.GraphDatabaseService
@@ -47,7 +48,7 @@ trait RewritingRuntimeTest[CONTEXT <: RuntimeContext] {
     graphDb: GraphDatabaseService,
     edition: Edition[CONTEXT],
     runtime: CypherRuntime[CONTEXT],
-    workloadMode: Boolean,
+    workloadMode: WorkloadMode,
     logProvider: InternalLogProvider
   ): RuntimeTestSupport[CONTEXT] = {
     new RewritingRuntimeTestSupport(graphDb, edition, runtime, workloadMode, logProvider, debugOptions)
@@ -57,7 +58,7 @@ trait RewritingRuntimeTest[CONTEXT <: RuntimeContext] {
     graphDb: GraphDatabaseService,
     edition: Edition[CONTEXT],
     runtime: CypherRuntime[CONTEXT],
-    workloadMode: Boolean,
+    workloadMode: WorkloadMode,
     logProvider: InternalLogProvider,
     debugOptions: CypherDebugOptions = CypherDebugOptions.default
   ) extends RuntimeTestSupport[CONTEXT](graphDb, edition, runtime, workloadMode, logProvider, debugOptions) {

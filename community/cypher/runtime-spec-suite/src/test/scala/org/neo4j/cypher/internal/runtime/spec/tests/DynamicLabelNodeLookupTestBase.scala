@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.crea
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.All
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
 import org.neo4j.cypher.internal.plandescription.Arguments.UsedIndexes
-import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -765,7 +764,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "['A', 'B']", All, Map("age" -> "21", "name" -> "'bob'"))
       .build()
 
-    val (res, prof) = executeAndProfile(logicalQuery, runtime, new InputValues(), defaultQueryRuntimeConfig)
+    val (res, prof) = executeAndProfile(logicalQuery, runtime)
 
     res should beColumns("x").withRows(singleColumn(expected))
       .usingAnyIndexes(2, compoundIndex, ageIndex, nameIndex)
@@ -803,7 +802,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1"))
       .build()
 
-    val (res, prof) = executeAndProfile(logicalQuery, runtime, new InputValues(), defaultQueryRuntimeConfig)
+    val (res, prof) = executeAndProfile(logicalQuery, runtime)
 
     res should beColumns("x").withRows(singleColumn(expected))
       .notUsingIndexes(2, indexName)

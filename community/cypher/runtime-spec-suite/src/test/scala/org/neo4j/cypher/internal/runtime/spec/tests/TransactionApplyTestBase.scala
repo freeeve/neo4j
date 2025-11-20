@@ -45,6 +45,7 @@ import org.neo4j.cypher.internal.runtime.spec.RandomValuesTestSupport
 import org.neo4j.cypher.internal.runtime.spec.RecordingRuntimeResult
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSupport
+import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSupport.WorkloadMode
 import org.neo4j.cypher.internal.runtime.spec.SideEffectingInputStream
 import org.neo4j.cypher.internal.runtime.spec.rewriters.RussianRoulette
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.NoRewrites
@@ -103,7 +104,7 @@ abstract class TransactionApplyTestBase[CONTEXT <: RuntimeContext](
     graphDb: GraphDatabaseService,
     edition: Edition[CONTEXT],
     runtime: CypherRuntime[CONTEXT],
-    workloadMode: Boolean,
+    workloadMode: WorkloadMode,
     logProvider: InternalLogProvider
   ): RuntimeTestSupport[CONTEXT] = {
     new RuntimeTestSupport[CONTEXT](
@@ -1535,7 +1536,7 @@ abstract class TransactionApplyTestBase[CONTEXT <: RuntimeContext](
 
     val expected = rowIn.flatMap(i => nodes.map(n => Array[Any](i, n, n, n, n, n)))
     withClue(s"batchSize=$batchSize, rowIn=${rowIn.mkString("[", ",", "]")}\n") {
-      execute(buildPlan(logicalQuery, runtime), readOnly = false) should beColumns("i", "n1", "n2", "n3", "n4", "n5")
+      execute(buildPlan(logicalQuery, runtime)) should beColumns("i", "n1", "n2", "n3", "n4", "n5")
         .withRows(inOrder(expected))
     }
   }

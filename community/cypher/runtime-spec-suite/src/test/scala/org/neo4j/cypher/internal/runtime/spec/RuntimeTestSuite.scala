@@ -39,10 +39,12 @@ import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.logical.plans.Prober
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.options.CypherDebugOptions
+import org.neo4j.cypher.internal.runtime.InputDataStreamTestSupport
 import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.TestSubscriber
 import org.neo4j.cypher.internal.runtime.debug.DebugSupport
 import org.neo4j.cypher.internal.runtime.spec.Edition.SpdConfig
+import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSupport.WorkloadMode
 import org.neo4j.cypher.internal.runtime.spec.execution.RuntimeTestSupportExecution
 import org.neo4j.cypher.internal.runtime.spec.matcher.RuntimeResultMatchers
 import org.neo4j.cypher.internal.runtime.spec.resolver.RuntimeTestResolver
@@ -119,7 +121,7 @@ object RuntimeTestSuite {
 abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
   baseEdition: Edition[CONTEXT],
   val runtime: CypherRuntime[CONTEXT],
-  workloadMode: Boolean = false,
+  workloadMode: WorkloadMode = WorkloadMode.Off,
   testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint]
 ) extends CypherFunSuite
     with AstConstructionTestSupport
@@ -127,7 +129,8 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
     with GraphCreation[CONTEXT]
     with BeforeAndAfterEach
     with RuntimeResultMatchers[CONTEXT]
-    with RuntimeTestResolver[CONTEXT] {
+    with RuntimeTestResolver[CONTEXT]
+    with InputDataStreamTestSupport {
 
   protected var managementService: DatabaseManagementService = _
   protected var dbmsFileSystem: EphemeralFileSystemAbstraction = _
@@ -281,7 +284,7 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
     graphDb: GraphDatabaseService,
     edition: Edition[CONTEXT],
     runtime: CypherRuntime[CONTEXT],
-    workloadMode: Boolean,
+    workloadMode: WorkloadMode,
     logProvider: InternalLogProvider
   ): RuntimeTestSupport[CONTEXT] = {
     new RuntimeTestSupport[CONTEXT](graphDb, edition, runtime, workloadMode, logProvider, debugOptions)
@@ -482,7 +485,7 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
 abstract class RuntimeTestSuite[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
-  workloadMode: Boolean = false,
+  workloadMode: WorkloadMode = WorkloadMode.Off,
   testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty[TestPlanCombinationRewriterHint]
 ) extends BaseRuntimeTestSuite[CONTEXT](edition, runtime, workloadMode, testPlanCombinationRewriterHints) {
 
@@ -518,7 +521,7 @@ abstract class RuntimeTestSuite[CONTEXT <: RuntimeContext](
 abstract class StaticGraphRuntimeTestSuite[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
-  workloadMode: Boolean = false,
+  workloadMode: WorkloadMode = WorkloadMode.Off,
   testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty[TestPlanCombinationRewriterHint]
 ) extends BaseRuntimeTestSuite[CONTEXT](edition, runtime, workloadMode, testPlanCombinationRewriterHints)
     with BeforeAndAfterAll {
@@ -616,8 +619,12 @@ case class RecordingRuntimeResult(
   resultConsumptionController: RuntimeTestResultConsumptionController = ConsumeAllThenCloseResultConsumer
 ) extends RuntimeTestResult {
 
-  def awaitAll(): IndexedSeq[Array[AnyValue]] = {
+  def consume(): Unit = {
     resultConsumptionController.consume(runtimeResult)
+  }
+
+  def awaitAll(): IndexedSeq[Array[AnyValue]] = {
+    consume()
     recordingQuerySubscriber.getOrThrow().asScala.toIndexedSeq
   }
 

@@ -45,7 +45,7 @@ abstract class SimulatedPlansTestBase[CONTEXT <: RuntimeContext](
       .simulatedNodeScan("x", n)
       .build()
 
-    val runtimeResult = executeWithoutValuePopulation(logicalQuery, runtime, NoInput, Map.empty)
+    val runtimeResult = executeWithoutValuePopulation(logicalQuery, runtime)
 
     // then
     val expected = (0 until n).map {
@@ -67,7 +67,7 @@ abstract class SimulatedPlansTestBase[CONTEXT <: RuntimeContext](
       .simulatedNodeScan("x", n)
       .build()
 
-    val runtimeResult = executeWithoutValuePopulation(logicalQuery, runtime, NoInput, Map.empty)
+    val runtimeResult = executeWithoutValuePopulation(logicalQuery, runtime)
 
     // then
     val expected = (0 until n).map {
@@ -89,7 +89,7 @@ abstract class SimulatedPlansTestBase[CONTEXT <: RuntimeContext](
       .simulatedNodeScan("x", n)
       .build()
 
-    val runtimeResult = executeWithoutValuePopulation(logicalQuery, runtime, NoInput, Map.empty)
+    val runtimeResult = executeWithoutValuePopulation(logicalQuery, runtime)
 
     // then
     val expected = for {

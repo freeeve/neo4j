@@ -43,7 +43,7 @@ object InputDataStreamTestSupport {
  */
 trait InputDataStreamTestSupport {
 
-  val NO_INPUT = new InputValues
+  protected val NO_INPUT = InputValues.EMPTY
 
   def randomValues(count: Int): Seq[Value] = {
     val random = RandomValues.create(InputDataStreamTestSupport.RANDOM_VALUE_CONFIG)
@@ -90,7 +90,7 @@ trait IteratorProgress {
   def nextCalls: Long
 }
 
-class InputValues() {
+class InputValues {
   val batches = new ArrayBuffer[IndexedSeq[Array[Any]]]
 
   def and(rows: Array[Any]*): InputValues = {
@@ -102,6 +102,10 @@ class InputValues() {
     batches.flatten.toIndexedSeq
 
   def stream(): BufferInputStream = new BufferInputStream(batches.map(_.map(row => row.map(ValueUtils.asAnyValue))))
+}
+
+object InputValues {
+  val EMPTY = new InputValues
 }
 
 class BufferInputStream(data: ArrayBuffer[IndexedSeq[Array[AnyValue]]]) extends InputDataStream {
