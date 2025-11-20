@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
+import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 
@@ -57,6 +58,8 @@ class NotImplementedPlanContext extends PlanContext {
   override def nodeTokenIndex: Option[TokenIndexDescriptor] = ???
 
   override def relationshipTokenIndex: Option[TokenIndexDescriptor] = ???
+
+  override def vectorIndexByName(indexName: String): Option[VectorIndexDescriptor] = ???
 
   override def hasNodePropertyExistenceConstraint(labelName: String, propertyKey: String): Boolean = ???
 

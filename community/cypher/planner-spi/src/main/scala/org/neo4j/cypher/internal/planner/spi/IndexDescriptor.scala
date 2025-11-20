@@ -207,3 +207,8 @@ case class TokenIndexDescriptor(
   entityType: org.neo4j.common.EntityType,
   orderCapability: IndexOrderCapability
 )
+
+case class VectorIndexDescriptor(
+  entityType: EntityType,
+  property: PropertyKeyId
+)

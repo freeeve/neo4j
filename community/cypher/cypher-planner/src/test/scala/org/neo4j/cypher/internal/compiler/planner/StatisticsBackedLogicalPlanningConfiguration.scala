@@ -88,6 +88,7 @@ import org.neo4j.cypher.internal.planner.spi.MinimumGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.MutableGraphStatisticsSnapshot
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
+import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -245,12 +246,19 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
     }
   }
 
+  case class VectorIndexDefinition(
+    name: String,
+    entityType: EntityType,
+    propertyKey: String
+  )
+
   case class Indexes(
     nodeLookupIndex: Option[TokenIndexDescriptor] =
       Some(TokenIndexDescriptor(common.EntityType.NODE, IndexOrderCapability.BOTH)),
     relationshipLookupIndex: Option[TokenIndexDescriptor] =
       Some(TokenIndexDescriptor(common.EntityType.RELATIONSHIP, IndexOrderCapability.BOTH)),
-    propertyIndexes: Seq[IndexDefinition] = Seq.empty
+    propertyIndexes: Seq[IndexDefinition] = Seq.empty,
+    vectorIndexes: Seq[VectorIndexDefinition] = Seq.empty
   ) {
 
     def addPropertyIndex(indexDefinition: IndexDefinition): Indexes = {
@@ -272,6 +280,9 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
       this.copy(relationshipLookupIndex = Some(TokenIndexDescriptor(common.EntityType.RELATIONSHIP, orderCapability)))
 
     def removeRelationshipLookupIndex(): Indexes = this.copy(relationshipLookupIndex = None)
+
+    def addVectorIndex(name: String, entityType: EntityType, propertyKey: String): Indexes =
+      copy(vectorIndexes = vectorIndexes :+ VectorIndexDefinition(name, entityType, propertyKey))
   }
 
   case class ExistenceConstraintDefinition(entityType: IndexDefinition.EntityType, propertyKey: String)
@@ -501,6 +512,22 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
     }
   }
+
+  def addNodeVectorIndex(
+    indexName: String,
+    labelName: String,
+    propertyKey: String
+  ): StatisticsBackedLogicalPlanningConfigurationBuilder =
+    copy(indexes = indexes.addVectorIndex(indexName, IndexDefinition.EntityType.Node(labelName), propertyKey))
+
+  def addRelationshipVectorIndex(
+    indexName: String,
+    relationshipTypeName: String,
+    propertyKey: String
+  ): StatisticsBackedLogicalPlanningConfigurationBuilder =
+    copy(indexes =
+      indexes.addVectorIndex(indexName, IndexDefinition.EntityType.Relationship(relationshipTypeName), propertyKey)
+    )
 
   def addNodeLookupIndex(orderCapability: IndexOrderCapability = IndexOrderCapability.BOTH)
     : StatisticsBackedLogicalPlanningConfigurationBuilder = {
@@ -1645,6 +1672,8 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
       override def getLabelName(id: Int): String = resolver.getLabelName(id)
 
+      override def getPropertyKeyName(id: Int): String = resolver.getPropertyKeyName(id)
+
       private def newIndexDescriptor(indexDef: IndexDefinition): Option[IndexDescriptor] = {
         val canGetValue = if (indexDef.withValues) CanGetValue else DoNotGetValue
 
@@ -1667,6 +1696,21 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
             maybeKernelIndexCapability = Some(indexDef.indexCapability),
             isUnique = indexDef.isUnique
           )
+        }
+      }
+
+      override def vectorIndexByName(indexName: String): Option[VectorIndexDescriptor] = {
+        indexes.vectorIndexes.collectFirst {
+          case indexDefinition if indexDefinition.name == indexName =>
+            val entityType = indexDefinition.entityType match {
+              case EntityType.Node(label) => IndexDescriptor.EntityType.Node(LabelId(resolver.getLabelId(label)))
+              case EntityType.Relationship(relType) =>
+                IndexDescriptor.EntityType.Relationship(RelTypeId(resolver.getRelTypeId(relType)))
+            }
+            VectorIndexDescriptor(
+              entityType = entityType,
+              property = PropertyKeyId(resolver.getPropertyKeyId(indexDefinition.propertyKey))
+            )
         }
       }
     }

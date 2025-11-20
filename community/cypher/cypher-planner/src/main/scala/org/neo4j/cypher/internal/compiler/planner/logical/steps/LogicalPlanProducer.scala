@@ -75,6 +75,7 @@ import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapProjection
+import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
@@ -89,6 +90,7 @@ import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
+import org.neo4j.cypher.internal.expressions.VectorSearchPredicate
 import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.expressions.functions.UnresolvedFunction
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
@@ -174,6 +176,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesSca
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DistinctColumns
 import org.neo4j.cypher.internal.logical.plans.Distinctness
+import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
@@ -221,6 +224,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeLogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.Optional
 import org.neo4j.cypher.internal.logical.plans.OrderedAggregation
 import org.neo4j.cypher.internal.logical.plans.OrderedDistinct
@@ -1996,6 +2000,62 @@ case class LogicalPlanProducer(
 
     solver.rewriteLeafPlan(annotatedPlan)
 
+  }
+
+  def planNodeVectorIndexSearch(
+    context: LogicalPlanningContext,
+    variable: LogicalVariable,
+    label: LabelToken,
+    property: PropertyKeyToken,
+    indexName: String,
+    embedding: Expression,
+    limit: Expression,
+    argumentIds: Set[LogicalVariable]
+  ): LogicalPlan = {
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(variable)
+          .addPredicates(VectorSearchPredicate(variable, indexName, embedding, limit)(InputPosition.NONE))
+          .addArgumentIds(argumentIds),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
+    )
+
+    val solver = SubqueryExpressionSolver.solverForLeafPlan(argumentIds, context)
+
+    val rewrittenEmbedding = solver.solve(embedding)
+    val rewrittenLimit = solver.solve(limit)
+    val newArguments = solver.newArguments
+    val allArgumentIds = argumentIds.union(newArguments)
+
+    val nodeVectorIndexSearch = NodeVectorIndexSearch(
+      idName = variable,
+      labels = List(label),
+      properties = List(IndexedProperty(
+        propertyKeyToken = property,
+        getValueFromIndex = DoNotGetValue, // TODO: add support for getting value from index. See PLAN-3051
+        entityType = NODE_TYPE
+      )),
+      score = None,
+      indexName = indexName,
+      vector = rewrittenEmbedding,
+      limit = rewrittenLimit,
+      maybeFilter = None,
+      argumentIds = allArgumentIds
+    )(idGen)
+
+    val annotatedPlan =
+      annotate(
+        nodeVectorIndexSearch,
+        solved,
+        ProvidedOrder.empty,
+        context.plannerState.previouslyCachedProperties,
+        context
+      )
+
+    solver.rewriteLeafPlan(annotatedPlan)
   }
 
   private def cachedPropertiesForIndexedProperties(

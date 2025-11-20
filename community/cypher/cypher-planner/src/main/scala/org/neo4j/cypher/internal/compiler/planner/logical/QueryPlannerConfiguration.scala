@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.OptionalSolver
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OrLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectPatternPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectSubQueryPredicates
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.VectorSearchLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.allNodesLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.allRelationshipsScanLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.applyOptional
@@ -103,7 +104,10 @@ object QueryPlannerConfiguration {
     unionRelationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
 
     // MATCH ()-[r:$any(['R', 'S'])]->()
-    DynamicRelationshipTypeLookupLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners)
+    DynamicRelationshipTypeLookupLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+
+    // MATCH … SEARCH
+    VectorSearchLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners)
   )
 
   private def allLeafPlanners(restrictions: LeafPlanRestrictions): IndexedSeq[LeafPlanner] = {

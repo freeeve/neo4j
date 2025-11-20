@@ -34,7 +34,6 @@ import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
-import org.neo4j.cypher.internal.planner.spi.EventuallyConsistent
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability
@@ -42,6 +41,7 @@ import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.MutableGraphStatisticsSnapshot
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
+import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundReadTokenContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionalContextWrapper
 import org.neo4j.cypher.internal.spi.procsHelpers.asCypherProcedureSignature
@@ -59,6 +59,7 @@ import org.neo4j.internal.kernel.api.procs
 import org.neo4j.internal.schema
 import org.neo4j.internal.schema.ConstraintDescriptor
 import org.neo4j.internal.schema.EndpointType
+import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.SchemaDescriptors
 import org.neo4j.internal.schema.constraints.ConstrainableType
@@ -196,6 +197,32 @@ class TransactionBoundPlanContext(
       .flatMap(getOnlineIndex)
   }
 
+  // TODO: can we get the index by name directly?
+  //  See PLAN-3055
+  override def vectorIndexByName(indexName: String): Option[VectorIndexDescriptor] =
+    tc.schemaRead.indexesGetAllNonLocking.asScala.flatMap { indexDescriptor =>
+      Option.when(
+        indexDescriptor.getIndexType == IndexType.VECTOR &&
+          indexDescriptor.getName == indexName &&
+          indexCanBeUsed(indexDescriptor)
+      ) {
+        val schema = indexDescriptor.schema()
+        val tokenIds = schema.getEntityTokenIds
+        // TODO: support for many tokens
+        assert(tokenIds.size == 1, s"unexpected token IDs for vector index: $indexDescriptor")
+        val tokenId = schema.getEntityTokenIds()(0)
+        val entityType = schema.entityType() match {
+          case EntityType.NODE         => IndexDescriptor.EntityType.Node(LabelId(tokenId))
+          case EntityType.RELATIONSHIP => IndexDescriptor.EntityType.Relationship(RelTypeId(tokenId))
+        }
+        val propertyIds = schema.getPropertyIds
+        // TODO: support for many properties?
+        assert(propertyIds.size == 1, s"unexpected property IDs for vector index: $indexDescriptor")
+        val property = PropertyKeyId(propertyIds(0))
+        VectorIndexDescriptor(entityType, property)
+      }
+    }.nextOption()
+
   override def propertyIndexesGetAll(): Iterator[IndexDescriptor] =
     tc.schemaRead.indexesGetAllNonLocking.asScala.flatMap(getOnlineIndex)
 
@@ -299,62 +326,69 @@ class TransactionBoundPlanContext(
     pointIndexGetForRelTypeAndProperties(relTypeName, propertyKey).isDefined
   }
 
-  private def getOnlineIndex(reference: schema.IndexDescriptor): Option[IndexDescriptor] = {
+  private def getOnlineIndex(reference: schema.IndexDescriptor): Option[IndexDescriptor] =
+    if (indexCanBeUsed(reference) && reference.schema.getPropertyIds.nonEmpty) {
+      val entityType = {
+        val tokenId = reference.schema().getEntityTokenIds()(0)
+        reference.schema().entityType() match {
+          case EntityType.NODE         => IndexDescriptor.EntityType.Node(LabelId(tokenId))
+          case EntityType.RELATIONSHIP => IndexDescriptor.EntityType.Relationship(RelTypeId(tokenId))
+        }
+      }
+
+      val properties = reference.schema.getPropertyIds.map(PropertyKeyId)
+      val isUnique = reference.isUnique
+      val behaviours = reference.getCapability.behaviours().map(kernelToCypher).toSet
+      val orderCapability =
+        if (reference.getCapability.supportsOrdering()) {
+          IndexOrderCapability.BOTH
+        } else {
+          IndexOrderCapability.NONE
+        }
+      val valueCapability =
+        if (reference.getCapability.supportsReturningValues()) {
+          CanGetValue
+        } else {
+          DoNotGetValue
+        }
+
+      kernelToCypher(reference.getIndexType).map { indexType =>
+        IndexDescriptor(
+          indexType,
+          entityType,
+          properties,
+          behaviours,
+          orderCapability,
+          valueCapability,
+          Some(reference.getCapability),
+          isUnique
+        )
+      }
+    } else {
+      None
+    }
+
+  private def indexCanBeUsed(reference: schema.IndexDescriptor): Boolean =
     try {
       tc.schemaRead.indexGetStateNonLocking(reference) match {
-        case InternalIndexState.ONLINE if reference.schema.getPropertyIds.nonEmpty =>
-          val entityType = {
-            val tokenId = reference.schema().getEntityTokenIds()(0)
-            reference.schema().entityType() match {
-              case EntityType.NODE         => IndexDescriptor.EntityType.Node(LabelId(tokenId))
-              case EntityType.RELATIONSHIP => IndexDescriptor.EntityType.Relationship(RelTypeId(tokenId))
-            }
-          }
-
-          val properties = reference.schema.getPropertyIds.map(PropertyKeyId)
-          val isUnique = reference.isUnique
-          val behaviours = reference.getCapability.behaviours().map(kernelToCypher).toSet
-          val orderCapability =
-            if (reference.getCapability.supportsOrdering()) {
-              IndexOrderCapability.BOTH
-            } else {
-              IndexOrderCapability.NONE
-            }
-          val valueCapability =
-            if (reference.getCapability.supportsReturningValues()) {
-              CanGetValue
-            } else {
-              DoNotGetValue
-            }
-          if (behaviours.contains(EventuallyConsistent)) {
+        case InternalIndexState.ONLINE =>
+          val shouldBeIgnored =
             // Ignore eventually consistent indexes. Those are for explicit querying via procedures.
-            None
-          } else if (isUnique && (tc.schemaRead.indexGetOwningUniquenessConstraintIdNonLocking(reference) eq null)) {
-            // Unique indexes must have a matching constraint. If not, something went wrong during constraint creation.
-            // Shouldn't really happen.
-            None
-          } else {
-            kernelToCypher(reference.getIndexType) map { indexType =>
-              IndexDescriptor(
-                indexType,
-                entityType,
-                properties,
-                behaviours,
-                orderCapability,
-                valueCapability,
-                Some(reference.getCapability),
-                isUnique
-              )
-            }
-          }
-        case _ => None
+            reference.getCapability.behaviours().contains(schema.IndexBehaviour.EVENTUALLY_CONSISTENT) ||
+              // Unique indexes must have a matching constraint. If not, something went wrong during constraint creation.
+              // Shouldn't really happen.
+              reference.isUnique && (tc.schemaRead.indexGetOwningUniquenessConstraintIdNonLocking(reference) eq null)
+
+          !shouldBeIgnored
+
+        case _ =>
+          false
       }
     } catch {
       case _: IndexNotFoundKernelException =>
         // The index may be dropped after acquiring the reference.
-        None
+        false
     }
-  }
 
   private def indexExistsAndIsOnline(index: schema.IndexDescriptor): Boolean = {
     try {

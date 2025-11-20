@@ -2293,9 +2293,12 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       case _             => throw new IllegalStateException("Must be a string or an expression")
     }
 
+    val nodeVariable = varFor(node)
+    newNode(nodeVariable)
+
     val planBuilder = (idGen: IdGen) => {
       NodeVectorIndexSearch(
-        varFor(node),
+        nodeVariable,
         labels,
         propIDs,
         if (score.isEmpty) None else Some(varFor(score)),

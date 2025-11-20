@@ -1,0 +1,228 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.cypher.internal.compiler.planner.logical
+
+import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
+import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+
+class VectorSearchPlanningIntegrationTest extends CypherFunSuite
+    with LogicalPlanningIntegrationTestSupport
+    with AstConstructionTestSupport {
+
+  override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
+    super.plannerBuilder()
+      .addSemanticFeature(VectorSearch)
+      .setAllNodesCardinality(120)
+      .setLabelCardinality("Movie", 120)
+      .setRelationshipCardinality("()-[]->()", 100)
+      .setRelationshipCardinality("(:Movie)-[]->()", 20)
+      .addNodeVectorIndex("moviePlots", "Movie", "plot")
+      .addNodeIndex("Movie", List("title"), 1.0, 1.0 / 120.0, isUnique = true)
+
+  test("plan node vector index search") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie) WHERE movie.plot IS NOT NULL
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`movie.plot`")
+        .projection("cacheN[movie.plot] AS `movie.plot`")
+        .filter("cacheNFromStore[movie.plot] IS NOT NULL", "movie:Movie") // TODO: unnecessary filters. See PLAN-3052
+        .nodeVectorIndexSearch( // TODO: should cache movie.plot. See PLAN-3051
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          score = "",
+          argumentIds = Set()
+        )
+        .build()
+  }
+
+  // TODO: this incorrectly gets rejected by semantic analysis, probably because of NameAllPatternElements
+  //  See SURF-283
+  ignore("plan node vector index search as part of a longer path pattern") {
+    val planner = plannerBuilder().enablePrintCostComparisons().build()
+
+    val query =
+      """MATCH (movie:Movie)-->()
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("movie")
+        .expandAll("(movie)-[`  UNNAMED0`]->(`  UNNAMED1`)")
+        .filter("movie:Movie")
+        .nodeVectorIndexSearch("movie", Seq("Movie"), Seq("plot"), "moviePlots", "$embedding", "10", "", Set())
+        .build()
+  }
+
+  test("plan node vector index search taking the embedding as an argument") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """WITH [1,2,3,4,5] AS embedding
+        |MATCH (movie:Movie)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("movie")
+        .filter("movie:Movie")
+        .apply()
+        .|.nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "embedding",
+          limit = "10",
+          score = "",
+          argumentIds = Set("embedding")
+        )
+        .projection("[1, 2, 3, 4, 5] AS embedding")
+        .argument()
+        .build()
+  }
+
+  test("plan node vector index search where the embedding contains a collect sub-query") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR COLLECT { MATCH (m:Movie) RETURN m.releaseYear ORDER BY m.releaseYear }
+        |    LIMIT 10
+        |  )
+        |RETURN movie""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("movie")
+        .filter("movie:Movie")
+        .apply()
+        .|.nodeVectorIndexSearch("movie", Seq("Movie"), Seq("plot"), "moviePlots", "anon_0", "10", "", Set("anon_0"))
+        .rollUpApply("anon_0", "m.releaseYear")
+        .|.sort("`m.releaseYear` ASC")
+        .|.projection("m.releaseYear AS `m.releaseYear`")
+        .|.nodeByLabelScan("m", "Movie")
+        .argument()
+        .build()
+  }
+
+  test("plan node vector index search, taking limit as an argument") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT $limit
+        |  )
+        |RETURN movie""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("movie")
+        .filter("movie:Movie")
+        .nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "$limit"
+        )
+        .build()
+  }
+
+  // TODO: see Example SQ2 in CIP-224
+  //  See PLAN-2843
+  ignore("plan node vector index search, where the embedding refers to the binding variable") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR movie.titleEmbedding
+        |    LIMIT 10
+        |  )
+        |  WHERE movie.title IN $titles
+        |RETURN movie""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("movie")
+        .apply()
+        .|.filter("anon_0 = movie")
+        .|.nodeVectorIndexSearch(
+          node = "anon_0",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "movie.titleEmbedding",
+          limit = "10",
+          score = "",
+          argumentIds = Set("movie")
+        )
+        .filter("movie.title IN $titles")
+        .nodeByLabelScan("movie", "Movie")
+        .build()
+  }
+}

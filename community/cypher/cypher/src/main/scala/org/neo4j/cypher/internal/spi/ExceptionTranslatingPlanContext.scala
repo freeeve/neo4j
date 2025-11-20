@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
+import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
 import org.neo4j.cypher.internal.planning.ExceptionTranslationSupport
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
@@ -136,6 +137,9 @@ class ExceptionTranslatingPlanContext(inner: PlanContext) extends PlanContext wi
 
   override def relationshipTokenIndex: Option[TokenIndexDescriptor] =
     translateException(tokenNameLookup, inner.relationshipTokenIndex)
+
+  override def vectorIndexByName(indexName: String): Option[VectorIndexDescriptor] =
+    translateException(tokenNameLookup, inner.vectorIndexByName(indexName))
 
   override def hasNodePropertyExistenceConstraint(labelName: String, propertyKey: String): Boolean =
     translateException(tokenNameLookup, inner.hasNodePropertyExistenceConstraint(labelName, propertyKey))
