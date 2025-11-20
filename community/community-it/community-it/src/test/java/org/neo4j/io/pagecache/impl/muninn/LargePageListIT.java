@@ -41,7 +41,7 @@ class LargePageListIT {
         int pages = Math.toIntExact(pageCacheSize / pageSize);
 
         try (MemoryAllocator mman = MemoryAllocator.createAllocator(GibiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
-            PageList pageList = new PageList(pages, pageSize, mman, Long.BYTES);
+            PageList pageList = new PageList(pages, pageSize, mman);
 
             // Verify we end up with the correct number of pages.
             assertThat(pageList.getPageCount()).isEqualTo(pages);

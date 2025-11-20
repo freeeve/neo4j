@@ -19,6 +19,7 @@
  */
 package org.neo4j.io.pagecache.impl.muninn;
 
+import static java.lang.String.format;
 import static java.lang.invoke.MethodHandles.lookup;
 import static java.util.Arrays.fill;
 import static java.util.Objects.requireNonNull;
@@ -40,7 +41,6 @@ import static org.neo4j.io.pagecache.impl.muninn.PageList.tryFlushLock;
 import static org.neo4j.io.pagecache.impl.muninn.PageList.tryOptimisticReadLock;
 import static org.neo4j.io.pagecache.impl.muninn.PageList.unlockExclusive;
 import static org.neo4j.io.pagecache.impl.muninn.PageList.unlockFlush;
-import static org.neo4j.io.pagecache.impl.muninn.PageList.validatePageRefAndSetFilePageId;
 import static org.neo4j.io.pagecache.impl.muninn.PageList.validateReadLock;
 import static org.neo4j.util.FeatureToggles.flag;
 import static org.neo4j.util.FeatureToggles.getInteger;
@@ -1011,6 +1011,10 @@ final class MuninnPagedFile implements PagedFile, Flushable {
         return pageCache.grabFreeAndExclusivelyLockedPage(faultEvent);
     }
 
+    void initBuffer(long pageRef) {
+        pageCache.initBuffer(pageRef);
+    }
+
     /**
      * Remove the mapping of the given filePageId from the translation table, and return the evicted page object.
      *
@@ -1265,7 +1269,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
             long[] bufferAddresses = new long[numberOfPages];
             int[] bufferLengths = new int[numberOfPages];
             for (int i = 0; i < numberOfPages; i++) {
-                bufferAddresses[i] = this.pageList.initBuffer(pageRefs[i]);
+                bufferAddresses[i] = pageCache.initBuffer(pageRefs[i]);
                 bufferLengths[i] = filePageSize;
             }
 
@@ -1304,5 +1308,42 @@ final class MuninnPagedFile implements PagedFile, Flushable {
                 }
             }
         }
+    }
+
+    static void validatePageRefAndSetFilePageId(long pageRef, PageSwapper swapper, int swapperId, long filePageId) {
+        assert swapper != null;
+        assert filePageId != PageCursor.UNBOUND_PAGE_ID;
+        long currentFilePageId = getFilePageId(pageRef);
+        int currentSwapper = PageList.getSwapperId(pageRef);
+        if (currentFilePageId != PageCursor.UNBOUND_PAGE_ID) {
+            throw cannotFaultException(pageRef, swapper, swapperId, filePageId, currentSwapper, currentFilePageId);
+        }
+        // Note: It is important that we assign the filePageId right after it's grabbed and before we swap
+        // the page in. If the swapping fails, the page will be considered
+        // loaded for the purpose of eviction, and will eventually return to
+        // the freelist. However, because we don't assign the swapper until the
+        // swapping-in has succeeded, the page will not be considered bound to
+        // the file page, so any subsequent thread that finds the page in their
+        // translation table will re-do the page fault.
+        PageList.setFilePageId(pageRef, filePageId); // Page now considered isLoaded()
+
+        if (!PageList.isExclusivelyLocked(pageRef) || currentSwapper != 0) {
+            throw cannotFaultException(pageRef, swapper, swapperId, filePageId, currentSwapper, currentFilePageId);
+        }
+    }
+
+    private static IllegalStateException cannotFaultException(
+            long pageRef,
+            PageSwapper swapper,
+            int swapperId,
+            long filePageId,
+            int currentSwapper,
+            long currentFilePageId) {
+        String msg = format(
+                "Cannot fault page {filePageId = %s, swapper = %s (swapper id = %s)} into "
+                        + "cache page %s. Already bound to {filePageId = "
+                        + "%s, swapper id = %s}.",
+                filePageId, swapper, swapperId, pageRef, currentFilePageId, currentSwapper);
+        return new IllegalStateException(msg);
     }
 }

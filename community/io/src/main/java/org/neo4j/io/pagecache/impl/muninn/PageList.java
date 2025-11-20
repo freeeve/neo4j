@@ -20,34 +20,37 @@
 package org.neo4j.io.pagecache.impl.muninn;
 
 import static java.lang.String.format;
-import static org.neo4j.util.FeatureToggles.flag;
 
-import java.io.IOException;
 import java.lang.invoke.VarHandle;
 import org.neo4j.internal.unsafe.UnsafeUtil;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.PageCursor;
-import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.PageReferenceTranslator;
-import org.neo4j.io.pagecache.tracing.PinPageFaultEvent;
 
 /**
- * The PageList maintains the off-heap meta-data for the individual memory pages.
- * <p>
- * The meta-data for each page is the following:
+ * The PageList maintains meta-data for the individual memory pages and provides static methods for working with it.
+ * Metadata for all pages is stored in a contiguous block of off-heap memory and could be considered as a single array.
  *
- * <table>
- * <tr><th>Bytes</th><th>Use</th></tr>
- * <tr><td>8</td><td>Sequence lock word.</td></tr>
- * <tr><td>8</td><td>Pointer to the memory page.</td></tr>
- * <tr><td>8</td><td>Last modified transaction id.</td></tr>
- * <tr><td>8</td><td>Page binding. The first 40 bits (5 bytes) are the file page id.
- * The following (low order) 21 bits (2 bytes and 5 bits) are the swapper id.
- * The last (lowest order) 3 bits are the page usage counter.</td></tr>
- * </table>
+ * There are few page-* terms used in page cache implementation, and metadata connects them:
+ * - pageId - is an identifier for a specific page in the page cache, it is also index in the metadata array; they go from 0 to `pageCount` - 1.
+ * - pageRef - is a direct pointer to the metadata for the specific page, obtained by calling `deref` method on this class.
+ * - filePageId - number of the page in the specific file; it is written into the metadata if page cache page is bound to a file page.
+ *
+ * The metadata for each page is the following:
+ *
+ * Bytes | Usage
+ * 8     | Sequence lock word descibed by {@link OffHeapPageLock}.
+ * 8     | Pointer to the memory page - actual 8K of memory that holds the page data.
+ * 8     | Last modified transaction id, or previous chain version if multiversioned page
+ * 8     | Page binding.
+ *
+ * Page binding is a 64-bit word that has the following format:
+ *
+ *    ┏━ File page id (40 bits)                         ┏━ Swapper id (21 bits) ┏━ Page usage counter (3 bits)
+ * ┏━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ┏━━┻━━━━━━━━━━━━━━━━━━━━━┓┏┻┓
+ * PPPP PPPP PPPP PPPP PPPP PPPP PPPP PPPP PPPP PPPP SSSS SSSS SSSS SSSS SSSS SRRR
  */
 class PageList implements PageReferenceTranslator {
-    private static final boolean forceSlowMemoryClear = flag(PageList.class, "forceSlowMemoryClear", false);
 
     static final int META_DATA_BYTES_PER_PAGE = 32;
     static final long MAX_PAGES = Integer.MAX_VALUE;
@@ -81,24 +84,20 @@ class PageList implements PageReferenceTranslator {
 
     private final int pageCount;
     private final int cachePageSize;
-    private final MemoryAllocator memoryAllocator;
     private final long baseAddress;
-    private final long bufferAlignment;
 
-    PageList(int pageCount, int cachePageSize, MemoryAllocator memoryAllocator, long bufferAlignment) {
+    PageList(int pageCount, int cachePageSize, MemoryAllocator memoryAllocator) {
         this.pageCount = pageCount;
         this.cachePageSize = cachePageSize;
-        this.memoryAllocator = memoryAllocator;
         long bytes = ((long) pageCount) * META_DATA_BYTES_PER_PAGE;
         this.baseAddress = memoryAllocator.allocateAligned(bytes, Long.BYTES);
-        this.bufferAlignment = bufferAlignment;
         clearMemory(baseAddress, pageCount);
     }
 
     private static void clearMemory(long baseAddress, long pageCount) {
         long memcpyChunkSize = UnsafeUtil.pageSize();
         long metaDataEntriesPerChunk = memcpyChunkSize / META_DATA_BYTES_PER_PAGE;
-        if (pageCount < metaDataEntriesPerChunk || forceSlowMemoryClear) {
+        if (pageCount < metaDataEntriesPerChunk) {
             clearMemorySimple(baseAddress, pageCount);
         } else {
             clearMemoryFast(baseAddress, pageCount, memcpyChunkSize, metaDataEntriesPerChunk);
@@ -245,13 +244,8 @@ class PageList implements PageReferenceTranslator {
         return UnsafeUtil.getLong(offAddress(pageRef));
     }
 
-    long initBuffer(long pageRef) {
-        var address = getAddress(pageRef);
-        if (address == 0L) {
-            address = memoryAllocator.allocateAligned(getCachePageSize(), bufferAlignment);
-            UnsafeUtil.putLong(offAddress(pageRef), address);
-        }
-        return address;
+    static void setAddress(long pageRef, long address) {
+        UnsafeUtil.putLong(offAddress(pageRef), address);
     }
 
     /**
@@ -358,50 +352,6 @@ class PageList implements PageReferenceTranslator {
         long expectedBinding = (filePageId << SHIFT_PARTIAL_FILE_PAGE_ID) + swapperId;
         long actualBinding = UnsafeUtil.getLong(address) >>> SHIFT_SWAPPER_ID;
         return expectedBinding == actualBinding;
-    }
-
-    static void validatePageRefAndSetFilePageId(long pageRef, PageSwapper swapper, int swapperId, long filePageId) {
-        assert swapper != null;
-        assert filePageId != PageCursor.UNBOUND_PAGE_ID;
-        long currentFilePageId = getFilePageId(pageRef);
-        int currentSwapper = getSwapperId(pageRef);
-        if (currentFilePageId != PageCursor.UNBOUND_PAGE_ID) {
-            throw cannotFaultException(pageRef, swapper, swapperId, filePageId, currentSwapper, currentFilePageId);
-        }
-        // Note: It is important that we assign the filePageId right after it's grabbed and before we swap
-        // the page in. If the swapping fails, the page will be considered
-        // loaded for the purpose of eviction, and will eventually return to
-        // the freelist. However, because we don't assign the swapper until the
-        // swapping-in has succeeded, the page will not be considered bound to
-        // the file page, so any subsequent thread that finds the page in their
-        // translation table will re-do the page fault.
-        setFilePageId(pageRef, filePageId); // Page now considered isLoaded()
-
-        if (!isExclusivelyLocked(pageRef) || currentSwapper != 0) {
-            throw cannotFaultException(pageRef, swapper, swapperId, filePageId, currentSwapper, currentFilePageId);
-        }
-    }
-
-    static void fault(long pageRef, PageSwapper swapper, int swapperId, long filePageId, PinPageFaultEvent event)
-            throws IOException {
-        long bytesRead = swapper.read(filePageId, getAddress(pageRef));
-        event.addBytesRead(bytesRead);
-        setSwapperId(pageRef, swapperId); // Page now considered isBoundTo( swapper, filePageId )
-    }
-
-    static IllegalStateException cannotFaultException(
-            long pageRef,
-            PageSwapper swapper,
-            int swapperId,
-            long filePageId,
-            int currentSwapper,
-            long currentFilePageId) {
-        String msg = format(
-                "Cannot fault page {filePageId = %s, swapper = %s (swapper id = %s)} into "
-                        + "cache page %s. Already bound to {filePageId = "
-                        + "%s, swapper id = %s}.",
-                filePageId, swapper, swapperId, pageRef, currentFilePageId, currentSwapper);
-        return new IllegalStateException(msg);
     }
 
     static void clearBinding(long pageRef) {

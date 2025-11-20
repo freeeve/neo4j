@@ -41,7 +41,7 @@ class AsyncCheckpointFailureHandlerTest {
         int pages = 10;
 
         try (MemoryAllocator mman = MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
-            PageList pageList = new PageList(pages, pageSize, mman, Long.BYTES);
+            PageList pageList = new PageList(pages, pageSize, mman);
 
             long pageRef = pageList.deref(0);
             PageList.unlockExclusive(pageRef);
@@ -75,7 +75,7 @@ class AsyncCheckpointFailureHandlerTest {
         int pages = 10;
 
         try (MemoryAllocator mman = MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
-            PageList pageList = new PageList(pages, pageSize, mman, Long.BYTES);
+            PageList pageList = new PageList(pages, pageSize, mman);
 
             long pageRef1 = pageList.deref(0);
             long pageRef2 = pageList.deref(1);
@@ -141,7 +141,7 @@ class AsyncCheckpointFailureHandlerTest {
         try (DatabaseFlushEvent databaseFlush = defaultPageCacheTracer.beginDatabaseFlush()) {
             try (MemoryAllocator mman =
                     MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
-                PageList pageList = new PageList(pages, pageSize, mman, Long.BYTES);
+                PageList pageList = new PageList(pages, pageSize, mman);
 
                 long pageRef1 = pageList.deref(0);
                 long pageRef2 = pageList.deref(1);

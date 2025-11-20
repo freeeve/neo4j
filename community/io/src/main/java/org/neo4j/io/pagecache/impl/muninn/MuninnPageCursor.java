@@ -28,8 +28,8 @@ import static org.neo4j.io.pagecache.PagedFile.PF_NO_LOAD;
 import static org.neo4j.io.pagecache.PagedFile.PF_SHARED_WRITE_LOCK;
 import static org.neo4j.io.pagecache.PagedFile.PF_TRANSIENT;
 import static org.neo4j.io.pagecache.impl.muninn.MuninnPagedFile.UNMAPPED_TTE;
+import static org.neo4j.io.pagecache.impl.muninn.PageList.getAddress;
 import static org.neo4j.io.pagecache.impl.muninn.PageList.setSwapperId;
-import static org.neo4j.io.pagecache.impl.muninn.PageList.validatePageRefAndSetFilePageId;
 import static org.neo4j.util.FeatureToggles.flag;
 
 import java.io.IOException;
@@ -431,17 +431,17 @@ public abstract class MuninnPageCursor extends PageCursor {
                 throw throwable;
             }
             try {
-                validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
+                MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
                 // Check if we're racing with unmapping. We have the page lock
                 // here, so the unmapping would have already happened. We do this
                 // check before page.fault(), because that would otherwise reopen
                 // the file channel.
                 assertCursorOpenFileMappedAndGetIdOfLastPage();
-                pageList.initBuffer(pageRef);
+                pagedFile.initBuffer(pageRef);
                 if (noLoad) {
                     setSwapperId(pageRef, swapperId); // Page now considered isBoundTo( swapper, filePageId )
                 } else {
-                    PageList.fault(pageRef, swapper, pagedFile.swapperId, filePageId, faultEvent);
+                    fault(pageRef, swapper, pagedFile.swapperId, filePageId, faultEvent);
                 }
             } catch (Throwable throwable) {
                 try {
@@ -465,6 +465,13 @@ public abstract class MuninnPageCursor extends PageCursor {
         } finally {
             latch.release();
         }
+    }
+
+    static void fault(long pageRef, PageSwapper swapper, int swapperId, long filePageId, PinPageFaultEvent event)
+            throws IOException {
+        long bytesRead = swapper.read(filePageId, getAddress(pageRef));
+        event.addBytesRead(bytesRead);
+        setSwapperId(pageRef, swapperId); // Page now considered isBoundTo( swapper, filePageId )
     }
 
     private static void abortPageFault(Throwable throwable, int[] chunk, int chunkIndex, PinPageFaultEvent faultEvent) {

@@ -88,7 +88,7 @@ public class EvictionLogicTest {
         pageSize = UnsafeUtil.pageSize();
 
         swappers = new SwapperSet();
-        pageList = new PageList(pageIds.length, pageSize, mman, ALIGNMENT);
+        pageList = new PageList(pageIds.length, pageSize, mman);
         pageRef = pageList.deref(pageId);
         prevPageRef = pageList.deref(prevPageId);
         nextPageRef = pageList.deref(nextPageId);
@@ -585,9 +585,9 @@ public class EvictionLogicTest {
 
     private void doFault(int swapperId, long filePageId) throws IOException {
         assertTrue(PageList.tryExclusiveLock(pageRef));
-        PageList.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
-        pageList.initBuffer(pageRef);
-        PageList.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
+        MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
+        MuninnPageCursor.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
     }
 
     private static class RecorderEvictionEventOpportunity implements EvictionEventOpportunity {

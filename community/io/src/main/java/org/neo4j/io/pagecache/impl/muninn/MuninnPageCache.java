@@ -193,6 +193,7 @@ public class MuninnPageCache implements PageCache {
     // exceptions on bounds checking failures; we can instead return the victim page pointer, and permit the page
     // accesses to take place without fear of segfaulting newly allocated cursors.
     private final long victimPage;
+    private final int bufferAlignment;
 
     // The freelist is a thread-safe linked-list of FreePage objects, or an AtomicInteger, or null.
     // Initially, the field is an AtomicInteger that counts from zero to the max page count, at which point all of the
@@ -417,8 +418,8 @@ public class MuninnPageCache implements PageCache {
         this.bufferFactory = configuration.bufferFactory;
         this.victimPage = VictimPageReference.getVictimPage(cachePageSize, configuration.memoryTracker);
         this.swapperSet = new SwapperSet();
-        this.pages =
-                new PageList(maxPages, cachePageSize, configuration.memoryAllocator, getBufferAlignment(cachePageSize));
+        this.bufferAlignment = getBufferAlignment(cachePageSize);
+        this.pages = new PageList(maxPages, cachePageSize, configuration.memoryAllocator);
         this.scheduler = jobScheduler;
         this.clock = configuration.clock;
         this.memoryTracker = configuration.memoryTracker;
@@ -1219,5 +1220,18 @@ public class MuninnPageCache implements PageCache {
     @VisibleForTesting
     int getKeepFree() {
         return keepFree;
+    }
+
+    long initBuffer(long pageRef) {
+        return initBuffer(pageRef, memoryAllocator, cachePageSize, bufferAlignment);
+    }
+
+    static long initBuffer(long pageRef, MemoryAllocator memoryAllocator, int cachePageSize, long bufferAlignment) {
+        var address = PageList.getAddress(pageRef);
+        if (address == 0L) {
+            address = memoryAllocator.allocateAligned(cachePageSize, bufferAlignment);
+            PageList.setAddress(pageRef, address);
+        }
+        return address;
     }
 }

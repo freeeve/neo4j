@@ -98,7 +98,7 @@ public class AbstractPageListTest {
         nextPageId = (pageId + 1) % pageIds.length;
         pageSize = UnsafeUtil.pageSize();
 
-        pageList = new PageList(pageIds.length, pageSize, mman, ALIGNMENT);
+        pageList = new PageList(pageIds.length, pageSize, mman);
         pageRef = pageList.deref(pageId);
         prevPageRef = pageList.deref(prevPageId);
         nextPageRef = pageList.deref(nextPageId);
@@ -112,12 +112,10 @@ public class AbstractPageListTest {
         int pageCount;
 
         pageCount = 3;
-        assertThat(new PageList(pageCount, pageSize, mman, ALIGNMENT).getPageCount())
-                .isEqualTo(pageCount);
+        assertThat(new PageList(pageCount, pageSize, mman).getPageCount()).isEqualTo(pageCount);
 
         pageCount = 42;
-        assertThat(new PageList(pageCount, pageSize, mman, ALIGNMENT).getPageCount())
-                .isEqualTo(pageCount);
+        assertThat(new PageList(pageCount, pageSize, mman).getPageCount()).isEqualTo(pageCount);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1310,7 +1308,7 @@ public class AbstractPageListTest {
     public void mustExposeCachePageSize(int pageId) {
         init(pageId);
 
-        PageList list = new PageList(0, 42, mman, ALIGNMENT);
+        PageList list = new PageList(0, 42, mman);
         assertThat(list.getCachePageSize()).isEqualTo(42);
     }
 
@@ -1328,7 +1326,7 @@ public class AbstractPageListTest {
         init(pageId);
 
         long initialUsedMemory = mman.usedMemory();
-        pageList.initBuffer(pageRef);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         long resultingUsedMemory = mman.usedMemory();
         int allocatedMemory = (int) (resultingUsedMemory - initialUsedMemory);
         assertThat(allocatedMemory).isGreaterThanOrEqualTo(pageSize);
@@ -1340,7 +1338,7 @@ public class AbstractPageListTest {
     public void addressMustNotBeZeroAfterInitialisation(int pageId) {
         init(pageId);
 
-        pageList.initBuffer(pageRef);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         assertThat(PageList.getAddress(pageRef)).isNotEqualTo(0L);
     }
 
@@ -1351,7 +1349,7 @@ public class AbstractPageListTest {
 
         assertThat(PageList.getAddress(pageRef)).isEqualTo(0L);
 
-        pageList.initBuffer(pageRef);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         assertThat(PageList.getAddress(pageRef)).isNotEqualTo(0L);
     }
 
@@ -1440,10 +1438,10 @@ public class AbstractPageListTest {
         init(pageId);
 
         PageList.unlockExclusive(pageRef);
-        pageList.initBuffer(pageRef);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         assertThrows(
                 IllegalStateException.class,
-                () -> PageList.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, (short) 0, 0));
+                () -> MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, (short) 0, 0));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1464,8 +1462,8 @@ public class AbstractPageListTest {
                 throw new IOException("Did not expect this file page id = " + fpId);
             }
         };
-        pageList.initBuffer(pageRef);
-        PageList.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
+        MuninnPageCursor.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
 
         long address = PageList.getAddress(pageRef);
         assertThat(address).isNotEqualTo(0L);
@@ -1487,9 +1485,9 @@ public class AbstractPageListTest {
         // exclusive lock implied by constructor
         int swapperId = 1;
         long filePageId = 42;
-        pageList.initBuffer(pageRef);
-        PageList.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
-        PageList.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
+        MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
+        MuninnPageCursor.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
         assertThat(PageList.getFilePageId(pageRef)).isEqualTo(filePageId);
         assertThat(PageList.getSwapperId(pageRef)).isEqualTo(swapperId);
         assertTrue(PageList.isLoaded(pageRef));
@@ -1504,9 +1502,9 @@ public class AbstractPageListTest {
         // exclusive lock implied by constructor
         int swapperId = 12;
         long filePageId = Integer.MAX_VALUE + 1L;
-        pageList.initBuffer(pageRef);
-        PageList.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
-        PageList.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
+        MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
+        MuninnPageCursor.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
         assertThat(PageList.getFilePageId(pageRef)).isEqualTo(filePageId);
         assertThat(PageList.getSwapperId(pageRef)).isEqualTo(swapperId);
         assertTrue(PageList.isLoaded(pageRef));
@@ -1527,10 +1525,10 @@ public class AbstractPageListTest {
         };
         int swapperId = 1;
         long filePageId = 42;
-        pageList.initBuffer(pageRef);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         try {
-            PageList.validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
-            PageList.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
+            MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
+            MuninnPageCursor.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
             fail();
         } catch (IOException e) {
             assertThat(e.getMessage()).isEqualTo("boo");
@@ -1549,13 +1547,13 @@ public class AbstractPageListTest {
         // exclusive lock implied by constructor
         short swapperId = 1;
         long filePageId = 42;
-        pageList.initBuffer(pageRef);
-        PageList.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
-        PageList.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
+        MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
+        MuninnPageCursor.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
 
         assertThrows(
                 IllegalStateException.class,
-                () -> PageList.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId));
+                () -> MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1572,12 +1570,12 @@ public class AbstractPageListTest {
         // We still can't fault into a loaded page, though.
         assertThrows(
                 IllegalStateException.class,
-                () -> PageList.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId));
+                () -> MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId));
     }
 
     private void doFailedFault(short swapperId, long filePageId) {
         assertTrue(PageList.tryExclusiveLock(pageRef));
-        pageList.initBuffer(pageRef);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         DummyPageSwapper swapper = new DummyPageSwapper("", pageSize) {
             @Override
             public long read(long filePageId, long bufferAddress) throws IOException {
@@ -1585,8 +1583,8 @@ public class AbstractPageListTest {
             }
         };
         try {
-            PageList.validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
-            PageList.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
+            MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
+            MuninnPageCursor.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
             fail("fault should have thrown");
         } catch (IOException e) {
             assertThat(e.getMessage()).isEqualTo("boom");
@@ -1601,7 +1599,7 @@ public class AbstractPageListTest {
         // exclusive lock implied by constructor
         short swapperId = 1;
         long filePageId = 42;
-        pageList.initBuffer(pageRef);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         DummyPageSwapper swapper = new DummyPageSwapper("", pageSize) {
             @Override
             public long read(long filePageId, long bufferAddress) {
@@ -1609,7 +1607,7 @@ public class AbstractPageListTest {
             }
         };
         StubPinPageFaultEvent event = new StubPinPageFaultEvent();
-        PageList.fault(pageRef, swapper, swapperId, filePageId, event);
+        MuninnPageCursor.fault(pageRef, swapper, swapperId, filePageId, event);
         assertThat(event.bytesRead).isEqualTo(333L);
     }
 
@@ -1741,8 +1739,8 @@ public class AbstractPageListTest {
 
     private void doFault(int swapperId, long filePageId) throws IOException {
         assertTrue(PageList.tryExclusiveLock(pageRef));
-        PageList.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
-        pageList.initBuffer(pageRef);
-        PageList.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
+        MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
+        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
+        MuninnPageCursor.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
     }
 }
