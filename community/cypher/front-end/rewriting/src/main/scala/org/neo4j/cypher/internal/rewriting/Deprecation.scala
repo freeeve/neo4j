@@ -307,7 +307,7 @@ object Deprecations {
           }
 
           val importing = if (innerQuery.isCorrelated) {
-            if (includesExisting(innerQuery)) "*" else innerQuery.importColumns.map(_.name).mkString(", ")
+            if (includesExisting(innerQuery)) "*" else innerQuery.importColumns.map(_.name).distinct.mkString(", ")
           } else ""
 
           Some(Deprecation(
