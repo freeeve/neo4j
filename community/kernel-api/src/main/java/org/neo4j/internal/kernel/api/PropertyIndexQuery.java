@@ -57,10 +57,20 @@ public abstract class PropertyIndexQuery implements IndexQuery {
      * Searches the index for all entries that has the given property.
      *
      * @param propertyKeyId the property ID to match.
-     * @return an {@link PropertyIndexQuery} instance to be used for querying an index.
+     * @return a {@link PropertyIndexQuery} instance to be used for querying an index.
      */
     public static ExistsPredicate exists(int propertyKeyId) {
         return new ExistsPredicate(propertyKeyId);
+    }
+
+    /**
+     * Matches all entries given the provided property id, regardless if the property exists or not.
+     *
+     * @param propertyKeyId the property ID to match.
+     * @return a {@link PropertyIndexQuery} instance to be used for querying an index.
+     */
+    public static AllPredicate all(int propertyKeyId) {
+        return new AllPredicate(propertyKeyId);
     }
 
     /**
@@ -68,7 +78,7 @@ public abstract class PropertyIndexQuery implements IndexQuery {
      *
      * @param propertyKeyId the property ID to match.
      * @param value the property value to search for.
-     * @return an {@link PropertyIndexQuery} instance to be used for querying an index.
+     * @return a {@link PropertyIndexQuery} instance to be used for querying an index.
      */
     public static ExactPredicate exact(int propertyKeyId, Object value) {
         var exactValue = value instanceof Value ? (Value) value : Values.of(value);
@@ -86,7 +96,7 @@ public abstract class PropertyIndexQuery implements IndexQuery {
      * @param fromInclusive the lower bound is inclusive if true.
      * @param to upper bound of the range or null if unbounded
      * @param toInclusive the upper bound is inclusive if true.
-     * @return an {@link PropertyIndexQuery} instance to be used for querying an index.
+     * @return a {@link PropertyIndexQuery} instance to be used for querying an index.
      */
     public static RangePredicate<?> range(
             int propertyKeyId, Number from, boolean fromInclusive, Number to, boolean toInclusive) {
@@ -301,6 +311,33 @@ public abstract class PropertyIndexQuery implements IndexQuery {
         @Override
         public IndexQueryType type() {
             return IndexQueryType.EXISTS;
+        }
+
+        @Override
+        public boolean acceptsValue(Value value) {
+            return value != null && value != NO_VALUE;
+        }
+
+        @Override
+        public boolean acceptsValueAt(PropertyCursor property) {
+            return true;
+        }
+
+        @Override
+        public ValueGroup valueGroup() {
+            return ValueGroup.UNKNOWN;
+        }
+    }
+
+    public static class AllPredicate extends PropertyIndexQuery {
+
+        private AllPredicate(int propertyKeyId) {
+            super(propertyKeyId);
+        }
+
+        @Override
+        public IndexQueryType type() {
+            return IndexQueryType.ALL;
         }
 
         @Override

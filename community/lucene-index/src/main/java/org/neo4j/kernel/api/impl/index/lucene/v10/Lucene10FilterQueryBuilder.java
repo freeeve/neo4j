@@ -33,6 +33,7 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.RangePredicate;
+import org.neo4j.internal.schema.IndexQuery;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.FloatingPointValue;
@@ -297,7 +298,7 @@ final class Lucene10FilterQueryBuilder {
         var lucene10FilterQueryBuilder = new Lucene10FilterQueryBuilder(documentStructure);
         for (int i = filterQueryFrom; i < filterQueries.length; i++) {
             var filterQuery = filterQueries[i];
-            if (filterQuery != null) {
+            if (filterQuery.type() != IndexQuery.IndexQueryType.ALL) {
                 if (booleanQueryBuilder == null) {
                     booleanQueryBuilder = new BooleanQuery.Builder();
                 }

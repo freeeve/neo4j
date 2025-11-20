@@ -132,23 +132,25 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
             throws IndexNotApplicableKernelException {
 
         for (int i = 1; i < predicates.length; i++) {
-
             var predicate = predicates[i];
-            if (predicate != null) {
 
-                var type = predicate.type();
-                switch (type) {
-                    case EXACT, RANGE -> {
-                        // Each filter predicate is independent of others;
-                        // so we can support arbitrary combinations range and exact predicates
-                    }
-                    case null, default ->
-                        throw invalidVectorQueryFilter(
-                                msg -> IndexNotApplicableKernelException.indexNotApplicable(
-                                        log, descriptor.getName(), msg),
-                                predicate,
-                                predicates);
+            if (predicate == null) {
+                throw nullVectorQueryFilter(
+                        msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
+                        predicates);
+            }
+
+            var type = predicate.type();
+            switch (type) {
+                case EXACT, RANGE, ALL -> {
+                    // Each filter predicate is independent of others;
+                    // so we can support arbitrary combinations range and exact predicates
                 }
+                default ->
+                    throw invalidVectorQueryFilter(
+                            msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
+                            predicate,
+                            predicates);
             }
         }
     }

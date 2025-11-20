@@ -140,6 +140,19 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
                         .formatted(indexType, invalidPredicate.type(), invalidPredicate, Arrays.toString(predicates)));
     }
 
+    protected <E extends Exception> E nullVectorQueryFilter(
+            Function<String, E> constructor, PropertyIndexQuery... predicates) {
+        final var indexType = descriptor.getIndexType();
+        return constructor.apply(
+                ("Tried to query a %s index with a query predicate which is not an accepted filter type (must be "
+                                + "an exact query"
+                                + " or a range query). "
+                                + "Invalid filter type was: null."
+                                + "Invalid predicate was: null."
+                                + "Index query was: %s ")
+                        .formatted(indexType, Arrays.toString(predicates)));
+    }
+
     protected abstract IndexProgressor indexProgressor(
             LuceneQueryFactory query,
             IndexQueryConstraints constraints,

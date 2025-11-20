@@ -46,6 +46,7 @@ import org.apache.lucene.search.ConstantScoreQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.kernel.api.StatementConstants;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
@@ -74,7 +75,7 @@ public class Lucene10FilterQueryBuilderTest {
     }
 
     private float scoreForQuery(int position, PropertyIndexQuery... queries) {
-        Arrays.fill(this.queries, null);
+        Arrays.fill(this.queries, PropertyIndexQuery.all(StatementConstants.NO_SUCH_PROPERTY_KEY));
         if (queries != null) {
             int queryPosition = position;
             for (PropertyIndexQuery query : queries) {
@@ -101,10 +102,10 @@ public class Lucene10FilterQueryBuilderTest {
     }
 
     @Test
-    public void testNullMatchesString() {
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of("bravo"));
-        assertThat(scoreForQuery(keyIndex, new PropertyIndexQuery[] {null})).isEqualTo(1.0f);
+    public void testAllMatchesString() {
+        int keyIndex1 = 4;
+        addField(keyIndex1, Values.of("bravo"));
+        assertThat(scoreForQuery(keyIndex1, PropertyIndexQuery.all(1))).isEqualTo(1.0f);
     }
 
     @Test
@@ -187,6 +188,12 @@ public class Lucene10FilterQueryBuilderTest {
                         PropertyIndexQuery.exact(1, 25.4),
                         PropertyIndexQuery.exact(1, false)))
                 .isEqualTo(0.0f);
+        assertThat(scoreForQuery(
+                        4,
+                        PropertyIndexQuery.exact(1, "alpha"),
+                        PropertyIndexQuery.all(1),
+                        PropertyIndexQuery.exact(1, true)))
+                .isEqualTo(1.0f);
     }
 
     @Test
@@ -208,24 +215,24 @@ public class Lucene10FilterQueryBuilderTest {
     }
 
     @Test
-    public void testNullMatchesInteger() {
-        int keyIndex = KEY_INDEX;
+    public void testAllMatchesInteger() {
+        int keyIndex = 4;
         addField(keyIndex, Values.of(4));
-        assertThat(scoreForQuery(keyIndex, new PropertyIndexQuery[] {null})).isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.all(1))).isEqualTo(1.0f);
     }
 
     @Test
-    public void testNullMatchesFloat() {
-        int keyIndex = KEY_INDEX;
+    public void testAllMatchesFloat() {
+        int keyIndex = 4;
         addField(keyIndex, Values.of(7.5f));
-        assertThat(scoreForQuery(keyIndex, new PropertyIndexQuery[] {null})).isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.all(1))).isEqualTo(1.0f);
     }
 
     @Test
-    public void testNullMatchesBoolean() {
-        int keyIndex = KEY_INDEX;
+    public void testAllMatchesBoolean() {
+        int keyIndex = 4;
         addField(keyIndex, Values.of(true));
-        assertThat(scoreForQuery(keyIndex, new PropertyIndexQuery[] {null})).isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.all(1))).isEqualTo(1.0f);
     }
 
     @Test

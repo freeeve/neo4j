@@ -33,6 +33,7 @@ public interface IndexQuery {
     enum IndexQueryType {
         TOKEN_LOOKUP,
         ALL_ENTRIES,
+        ALL,
         EXISTS,
         EXACT,
         RANGE,
