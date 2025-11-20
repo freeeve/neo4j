@@ -206,6 +206,8 @@ object LogicalPlanStringTest {
       classOf[plans.EnsureNodeExists] -> "extraFilter",
       classOf[plans.EnsureNodeExists] -> "labelDescription",
       classOf[plans.EnsureDatabaseNodeExists] -> "extraFilter",
+      classOf[plans.EnsureRoleHasNoDeniedPrivileges] -> "subquery",
+      classOf[plans.EnsureRoleNotGrantedToAnyAuthRules] -> "subquery",
       classOf[plans.AllowedNonAdministrationCommands] -> "statement",
       classOf[plans.AdministrationCommandLogicalPlan] -> "revokeType",
       classOf[expressions.Expression] -> "dependencies",

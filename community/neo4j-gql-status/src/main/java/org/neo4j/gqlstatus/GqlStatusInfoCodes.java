@@ -2198,6 +2198,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "wrong index type",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22ND1(
+            new GqlStatus("22ND1"),
+            "Invalid input: { %s } is not allowed for roles that are granted to an AUTH RULE.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.query},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "operation not allowed for roles that are granted to an AUTH RULE",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_22ND2(
+            new GqlStatus("22ND2"),
+            "Invalid input: { %s } is not allowed for roles with DENY privileges.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.query},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "operation not allowed for roles with DENY privileges",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             "",

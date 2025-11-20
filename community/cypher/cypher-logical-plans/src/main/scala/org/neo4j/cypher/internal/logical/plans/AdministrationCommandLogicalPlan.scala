@@ -546,6 +546,18 @@ case class EnsureDatabaseNodeExists(
   action: String
 )(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 
+case class EnsureRoleHasNoDeniedPrivileges(
+  source: Option[SecurityAdministrationLogicalPlan],
+  roleName: Either[String, Parameter],
+  subquery: String
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(source)
+
+case class EnsureRoleNotGrantedToAnyAuthRules(
+  source: Option[PrivilegePlan],
+  roleName: Either[String, Parameter],
+  subquery: String
+)(implicit idGen: IdGen) extends PrivilegePlan(source)
+
 // Database administration commands
 case class ShowDatabase(
   scope: DatabaseScope,

@@ -1293,7 +1293,7 @@ public class GqlHelper {
                 .build();
     }
 
-    private static ErrorGqlStatusObjectImplementation.Builder invalidSyntax() {
+    public static ErrorGqlStatusObjectImplementation.Builder invalidSyntax() {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001);
     }
 
@@ -1307,7 +1307,7 @@ public class GqlHelper {
                 .withParam(GqlParams.StringParam.param, paramName);
     }
 
-    private static ErrorGqlStatusObjectImplementation.Builder maybeInvalidParameter(
+    public static ErrorGqlStatusObjectImplementation.Builder maybeInvalidParameter(
             String paramName, ErrorGqlStatusObjectImplementation.Builder cause) {
         if (paramName != null) {
             return invalidParameter(paramName).withCause(cause.build());

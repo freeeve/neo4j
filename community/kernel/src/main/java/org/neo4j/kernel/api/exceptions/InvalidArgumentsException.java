@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.exceptions;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
 import static org.neo4j.gqlstatus.GqlHelper.getGql42N51;
+import static org.neo4j.gqlstatus.GqlHelper.maybeInvalidParameter;
 import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.databasesAlreadyExists;
 
 import java.util.List;
@@ -624,6 +625,24 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 String.format(
                         "Could not create %s property %s constraint: property %s constraints have no valid options values.",
                         entity, constraintType, constraintType));
+    }
+
+    public static InvalidArgumentsException invalidArgumentRoleHasAuthRule(String subquery, String parameter) {
+        var rootCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22ND1)
+                .withParam(GqlParams.StringParam.query, subquery);
+        var gql = GqlHelper.invalidSyntax()
+                .withCause(GqlHelper.maybeInvalidParameter(parameter, rootCause).build())
+                .build();
+        return new InvalidArgumentsException(gql, GqlHelper.getCompleteMessage(gql));
+    }
+
+    public static InvalidArgumentsException invalidArgumentRoleHasDeniedPrivileges(String subquery, String parameter) {
+        var rootCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22ND2)
+                .withParam(GqlParams.StringParam.query, subquery);
+        var gql = GqlHelper.invalidSyntax()
+                .withCause(maybeInvalidParameter(parameter, rootCause).build())
+                .build();
+        return new InvalidArgumentsException(gql, GqlHelper.getCompleteMessage(gql));
     }
 
     public static InvalidArgumentsException connectionPoolSizeZeroNotAllowed(String operation, String pool_max_size) {

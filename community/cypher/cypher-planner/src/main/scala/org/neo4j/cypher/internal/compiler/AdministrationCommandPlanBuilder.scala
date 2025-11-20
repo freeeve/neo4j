@@ -176,6 +176,8 @@ import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.Alias
 import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.CompositeDatabase
 import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.DatabaseOrLocalAlias
 import org.neo4j.cypher.internal.logical.plans.DenyLoadAction
+import org.neo4j.cypher.internal.logical.plans.EnsureRoleHasNoDeniedPrivileges
+import org.neo4j.cypher.internal.logical.plans.EnsureRoleNotGrantedToAnyAuthRules
 import org.neo4j.cypher.internal.logical.plans.GrantLoadAction
 import org.neo4j.cypher.internal.logical.plans.PrivilegePlan
 import org.neo4j.cypher.internal.planner.spi.AdministrationPlannerName
@@ -635,8 +637,9 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               roleNames = List(roleName),
               ruleNames = List(ruleName)
             )(c.position)
+            val roleCheck = EnsureRoleHasNoDeniedPrivileges(Some(source), roleName, prettifier.asString(subCommand))
             plans.GrantRoleToAuthRule(
-              source,
+              roleCheck,
               roleName,
               ruleName,
               prettifier.asString(subCommand)
@@ -711,8 +714,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             )(c.position)
             val roleCheck =
               if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
+            val authRuleCheck =
+              EnsureRoleNotGrantedToAnyAuthRules(Some(roleCheck), roleName, prettifier.asString(subCommand))
             plans.DenyDbmsAction(
-              roleCheck,
+              authRuleCheck,
               action,
               simpleQualifier,
               roleName,
@@ -802,19 +807,22 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             Seq(AssignPrivilegeAction)
           ).asInstanceOf[plans.PrivilegePlan]
         ) {
-          case (source, (role, qualifier, dbScope, runtimeScope)) =>
+          case (source, (roleName, qualifier, dbScope, runtimeScope)) =>
             val subCommand = c.copy(
               privilege = privilege.copy(scope = dbScope)(privilege.position),
               qualifier = List(qualifier),
-              roleNames = List(role)
+              roleNames = List(roleName)
             )(c.position)
-            val roleCheck = if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, role)
+            val roleCheck =
+              if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
+            val authRuleCheck =
+              EnsureRoleNotGrantedToAnyAuthRules(Some(roleCheck), roleName, prettifier.asString(subCommand))
             plans.DenyDatabaseAction(
-              roleCheck,
+              authRuleCheck,
               action,
               runtimeScope,
               qualifier,
-              role,
+              roleName,
               immutable,
               prettifier.asString(subCommand)
             )
@@ -895,8 +903,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             )(c.position)
             val roleCheck =
               if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
+            val authRuleCheck =
+              EnsureRoleNotGrantedToAnyAuthRules(Some(roleCheck), roleName, prettifier.asString(subCommand))
             plans.GrantGraphAction(
-              roleCheck,
+              authRuleCheck,
               action,
               resource,
               runtimeScope,
@@ -936,8 +946,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             )(c.position)
             val roleCheck =
               if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
+            val authRuleCheck =
+              EnsureRoleNotGrantedToAnyAuthRules(Some(roleCheck), roleName, prettifier.asString(subCommand))
             plans.DenyGraphAction(
-              roleCheck,
+              authRuleCheck,
               action,
               resource,
               runtimeScope,
@@ -1061,7 +1073,17 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             roleNames = List(roleName)
           )(d.position)
           val roleCheck = if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
-          DenyLoadAction(roleCheck, action, resource, qualifier, roleName, immutable, prettifier.asString(subCommand))
+          val authRuleCheck =
+            EnsureRoleNotGrantedToAnyAuthRules(Some(roleCheck), roleName, prettifier.asString(subCommand))
+          DenyLoadAction(
+            authRuleCheck,
+            action,
+            resource,
+            qualifier,
+            roleName,
+            immutable,
+            prettifier.asString(subCommand)
+          )
         }
         Some(plans.LogSystemCommand(plan, prettifier.asString(d)))
 
