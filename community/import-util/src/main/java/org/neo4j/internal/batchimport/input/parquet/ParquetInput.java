@@ -674,10 +674,10 @@ public class ParquetInput implements Input {
                         }
                         var metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(relationshipPath));
                         for (BlockMetaData block : metadata.getBlocks()) {
-                            numberOfNodes += block.getRowCount();
+                            numberOfRelationships += block.getRowCount();
                             var currentColumnCount = block.getColumns().size();
                             if (currentColumnCount > numberOfNodeProperties) {
-                                numberOfNodeProperties = currentColumnCount;
+                                numberOfRelationshipProperties = currentColumnCount;
                             }
                             for (ColumnChunkMetaData column : block.getColumns()) {
                                 totalRelationshipPropertiesSize += column.getTotalUncompressedSize();

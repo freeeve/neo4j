@@ -39,7 +39,6 @@ import org.apache.parquet.ParquetReadOptions;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.ColumnReader;
 import org.apache.parquet.column.impl.ColumnReadStoreImpl;
-import org.apache.parquet.column.page.PageReadStore;
 import org.apache.parquet.example.DummyRecordConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.io.api.GroupConverter;
@@ -67,7 +66,7 @@ class ParquetDataReader implements Closeable {
     private final Supplier<ZoneId> defaultTimezoneSupplier;
     private final String arrayDelimiter;
     private final String vectorDelimiter;
-    private final ParquetFileReader reader;
+    private final ParquetFileReader metadataReader;
     private final AtomicInteger blockCounter;
     private final MessageType schema;
     private final GroupConverter recordConverter;
@@ -90,10 +89,10 @@ class ParquetDataReader implements Closeable {
         var path = parquetDataFile.file();
 
         try {
-            this.reader = ParquetFileReader.open(
+            this.metadataReader = ParquetFileReader.open(
                     ParquetInput.ParquetImportInputFile.of(path),
                     ParquetReadOptions.builder().build());
-            var metadata = this.reader.getFileMetaData();
+            var metadata = this.metadataReader.getFileMetaData();
             this.schema = metadata.getSchema();
             this.recordConverter = new DummyRecordConverter(this.schema).getRootConverter();
             this.createdBy = metadata.getCreatedBy();
@@ -113,11 +112,11 @@ class ParquetDataReader implements Closeable {
 
     public Iterator<List<Object>> next() throws IOException {
         var nextRowGroupIndex = blockCounter.getAndIncrement();
-        if (nextRowGroupIndex >= reader.getRowGroups().size()) {
+        if (nextRowGroupIndex >= metadataReader.getRowGroups().size()) {
             return null;
         }
 
-        return new ParquetRowGroupReader(reader.readRowGroup(nextRowGroupIndex));
+        return new ParquetRowGroupReader(nextRowGroupIndex);
     }
 
     public ParquetData getParquetDataFile() {
@@ -145,11 +144,16 @@ class ParquetDataReader implements Closeable {
     }
 
     private class ParquetRowGroupReader implements Iterator<List<Object>> {
+        private final ParquetFileReader reader;
         private final List<ColumnReader> columnReaders;
         private final long rowCount;
         private long rowIndex;
 
-        ParquetRowGroupReader(PageReadStore store) {
+        ParquetRowGroupReader(int rowGroupIndex) throws IOException {
+            this.reader = ParquetFileReader.open(
+                    ParquetInput.ParquetImportInputFile.of(parquetDataFile.file()),
+                    ParquetReadOptions.builder().build());
+            var store = this.reader.readRowGroup(rowGroupIndex);
             this.rowCount = store.getRowCount();
 
             var columnReadStore = new ColumnReadStoreImpl(
@@ -164,7 +168,15 @@ class ParquetDataReader implements Closeable {
 
         @Override
         public boolean hasNext() {
-            return rowIndex < rowCount;
+            var result = rowIndex < rowCount;
+            if (!result) {
+                try {
+                    this.reader.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return result;
         }
 
         // Wrapper class for representing maps / structs and their
@@ -462,6 +474,6 @@ class ParquetDataReader implements Closeable {
 
     @Override
     public void close() throws IOException {
-        this.reader.close();
+        this.metadataReader.close();
     }
 }
