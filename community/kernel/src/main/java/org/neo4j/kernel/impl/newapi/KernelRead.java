@@ -863,7 +863,7 @@ public class KernelRead implements Read {
 
     @Override
     public long estimateCountsForNode(int labelId) {
-        return storageReader.estimateCountsForNode(labelId, queryContext.cursorContext());
+        return storageReader.countsForNode(labelId, queryContext.cursorContext());
     }
 
     @Override
@@ -885,8 +885,7 @@ public class KernelRead implements Read {
 
     @Override
     public long estimateCountsForRelationships(int startLabelId, int typeId, int endLabelId) {
-        return storageReader.estimateCountsForRelationship(
-                startLabelId, typeId, endLabelId, queryContext.cursorContext());
+        return storageReader.countsForRelationship(startLabelId, typeId, endLabelId, queryContext.cursorContext());
     }
 
     @Override
