@@ -74,8 +74,17 @@ public class LogPruneStrategyFactory {
             return NO_PRUNING;
         }
 
-        Threshold thresholdToUse = getThresholdByType(fileSystem, logProvider, clock, value, configValue);
+        Threshold thresholdToUse = createThreshold(fileSystem, logProvider, clock, configValue, value);
         return new ThresholdBasedPruneStrategy(logFiles.getLogFile(), thresholdToUse, transactionLogFileInformation);
+    }
+
+    protected Threshold createThreshold(
+            FileSystemAbstraction fileSystem,
+            InternalLogProvider logProvider,
+            Clock clock,
+            String configValue,
+            ThresholdConfigValue value) {
+        return getThresholdByType(fileSystem, logProvider, clock, value, configValue);
     }
 
     @VisibleForTesting

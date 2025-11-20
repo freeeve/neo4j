@@ -28,7 +28,7 @@ public class ThresholdBasedPruneStrategy implements LogPruneStrategy {
     private final Threshold threshold;
     private final TransactionLogFileInformation logFileInformation;
 
-    ThresholdBasedPruneStrategy(
+    public ThresholdBasedPruneStrategy(
             LogFile logFile, Threshold threshold, TransactionLogFileInformation logFileInformation) {
         this.logFile = logFile;
         this.logFileInformation = logFileInformation;

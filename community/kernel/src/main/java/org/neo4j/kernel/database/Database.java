@@ -231,6 +231,7 @@ public class Database extends AbstractDatabase {
     private final PagePrefetcher pagePrefetcher;
     private final StoreIdGenerator storeIdGenerator;
     private final DatabaseCreationOptions databaseCreationOptions;
+    private final LogPruneStrategyFactory logPruneStrategyFactory;
 
     private TransactionIdSequence transactionIdSequence;
     private IndexProviderMap indexProviderMap;
@@ -326,6 +327,7 @@ public class Database extends AbstractDatabase {
         this.storeIdGenerator = context.storeIdGenerator();
         this.vectorStoreCreator = context.getVectorStoreCreator();
         this.databaseCreationOptions = context.getDatabaseCreationOptions();
+        this.logPruneStrategyFactory = context.logPruneStrategyFactory();
     }
 
     /**
@@ -942,7 +944,7 @@ public class Database extends AbstractDatabase {
                 fs,
                 logFiles,
                 logProvider,
-                new LogPruneStrategyFactory(),
+                logPruneStrategyFactory,
                 clock,
                 databaseConfig,
                 pruneLock,

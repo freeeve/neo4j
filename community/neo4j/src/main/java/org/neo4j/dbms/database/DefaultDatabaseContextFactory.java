@@ -48,6 +48,7 @@ import org.neo4j.kernel.impl.factory.AccessCapabilityFactory;
 import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.pagecache.CommunityVersionStorageFactory;
 import org.neo4j.kernel.impl.pagecache.IOControllerService;
+import org.neo4j.kernel.impl.transaction.log.pruning.LogPruneStrategyFactory;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
 import org.neo4j.logging.internal.DatabaseLogIdentifier;
 import org.neo4j.logging.internal.DatabaseLogProvider;
@@ -133,7 +134,8 @@ public class DefaultDatabaseContextFactory
                     databaseMonitorsFactory(databaseLogIdentifier),
                     StoreIdGenerator.UNIQUE_ID,
                     globalModule.getExceptionHandlerService(),
-                    EMPTY_CREATION_OPTIONS);
+                    EMPTY_CREATION_OPTIONS,
+                    new LogPruneStrategyFactory());
             kernelDatabase = new Database(creationContext);
             context = new StandaloneDatabaseContext(kernelDatabase);
         }

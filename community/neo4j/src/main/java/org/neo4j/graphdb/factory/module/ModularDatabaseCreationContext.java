@@ -69,6 +69,7 @@ import org.neo4j.kernel.impl.pagecache.VersionStorageFactory;
 import org.neo4j.kernel.impl.query.QueryEngineProvider;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.StoreCopyCheckPointMutex;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
+import org.neo4j.kernel.impl.transaction.log.pruning.LogPruneStrategyFactory;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
 import org.neo4j.kernel.impl.util.watcher.DefaultFileDeletionListenerFactory;
 import org.neo4j.kernel.internal.event.GlobalTransactionEventListeners;
@@ -139,6 +140,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final PagePrefetcher pagePrefetcher;
     private final ExceptionHandlerService exceptionHandlerService;
     private final DatabaseCreationOptions databaseCreationOptions;
+    private final LogPruneStrategyFactory logPruneStrategyFactory;
 
     public ModularDatabaseCreationContext(
             HostedOnMode mode,
@@ -173,7 +175,8 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             DatabaseMonitorsFactory databaseMonitorsFactory,
             StoreIdGenerator storeIdGenerator,
             ExceptionHandlerService exceptionHandlerService,
-            DatabaseCreationOptions databaseCreationOptions) {
+            DatabaseCreationOptions databaseCreationOptions,
+            LogPruneStrategyFactory logPruneStrategyFactory) {
         this.serverIdentity = serverIdentity;
         this.namedDatabaseId = namedDatabaseId;
         this.databaseConfig = databaseConfig;
@@ -191,6 +194,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.storeIdGenerator = storeIdGenerator;
         this.exceptionHandlerService = exceptionHandlerService;
         this.databaseCreationOptions = databaseCreationOptions;
+        this.logPruneStrategyFactory = logPruneStrategyFactory;
         this.databaseLogService = new DatabaseLogService(databaseLogIdentifier, globalModule.getLogService());
         this.scheduler = globalModule.getJobScheduler();
         this.globalDependencies = globalDependencies;
@@ -474,6 +478,11 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     @Override
     public DatabaseCreationOptions getDatabaseCreationOptions() {
         return databaseCreationOptions;
+    }
+
+    @Override
+    public LogPruneStrategyFactory logPruneStrategyFactory() {
+        return logPruneStrategyFactory;
     }
 
     private DatabaseAvailabilityGuard databaseAvailabilityGuardFactory(
