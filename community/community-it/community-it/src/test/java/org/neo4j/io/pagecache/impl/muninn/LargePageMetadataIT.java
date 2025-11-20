@@ -31,9 +31,9 @@ import org.neo4j.io.ByteUnit;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.memory.EmptyMemoryTracker;
 
-class LargePageListIT {
+class LargePageMetadataIT {
     @Test
-    void veryLargePageListsMustBeFullyAccessible() {
+    void veryLargePageMetadataMustBeFullyAccessible() {
         // We need roughly 2 GiBs of memory for the meta-data here, which is why this is an IT and not a Test.
         // We add one extra page worth of data to the size here, to avoid ending up on a "convenient" boundary.
         int pageSize = (int) ByteUnit.kibiBytes(8);
@@ -41,25 +41,29 @@ class LargePageListIT {
         int pages = Math.toIntExact(pageCacheSize / pageSize);
 
         try (MemoryAllocator mman = MemoryAllocator.createAllocator(GibiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
-            PageList pageList = new PageList(pages, pageSize, mman);
+            PageMetadata pageMetadata = new PageMetadata(pages, pageSize, mman);
 
             // Verify we end up with the correct number of pages.
-            assertThat(pageList.getPageCount()).isEqualTo(pages);
+            assertThat(pageMetadata.getPageCount()).isEqualTo(pages);
 
             // Spot-check the accessibility in the bulk of the pages.
-            IntStream.range(0, pages / 32).parallel().forEach(id -> verifyPageMetaDataIsAccessible(pageList, id * 32));
+            IntStream.range(0, pages / 32)
+                    .parallel()
+                    .forEach(id -> verifyPageMetaDataIsAccessible(pageMetadata, id * 32));
 
             // Thoroughly check the accessibility around the tail end of the page list.
-            IntStream.range(pages - 2000, pages).parallel().forEach(id -> verifyPageMetaDataIsAccessible(pageList, id));
+            IntStream.range(pages - 2000, pages)
+                    .parallel()
+                    .forEach(id -> verifyPageMetaDataIsAccessible(pageMetadata, id));
         }
     }
 
-    private static void verifyPageMetaDataIsAccessible(PageList pageList, int id) {
-        long ref = pageList.deref(id);
-        PageList.incrementUsage(ref);
-        PageList.incrementUsage(ref);
-        assertFalse(PageList.decrementUsage(ref));
-        assertTrue(PageList.decrementUsage(ref));
-        assertEquals(id, pageList.toId(ref));
+    private static void verifyPageMetaDataIsAccessible(PageMetadata pageMetadata, int id) {
+        long ref = pageMetadata.deref(id);
+        PageMetadata.incrementUsage(ref);
+        PageMetadata.incrementUsage(ref);
+        assertFalse(PageMetadata.decrementUsage(ref));
+        assertTrue(PageMetadata.decrementUsage(ref));
+        assertEquals(id, pageMetadata.toId(ref));
     }
 }

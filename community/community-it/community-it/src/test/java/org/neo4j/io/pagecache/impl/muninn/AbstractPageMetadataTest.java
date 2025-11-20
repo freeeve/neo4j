@@ -55,7 +55,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.scheduler.DaemonThreadFactory;
 import org.neo4j.util.concurrent.Futures;
 
-public class AbstractPageListTest {
+public class AbstractPageMetadataTest {
     private static final int ALIGNMENT = 8;
     protected static final Duration TIMEOUT = Duration.ofMinutes(1);
 
@@ -90,7 +90,7 @@ public class AbstractPageListTest {
     private long prevPageRef;
     private long nextPageRef;
     private int pageSize;
-    private PageList pageList;
+    private PageMetadata pageMetadata;
     protected boolean multiVersioned;
 
     protected void init(int pageId) {
@@ -98,10 +98,10 @@ public class AbstractPageListTest {
         nextPageId = (pageId + 1) % pageIds.length;
         pageSize = UnsafeUtil.pageSize();
 
-        pageList = new PageList(pageIds.length, pageSize, mman);
-        pageRef = pageList.deref(pageId);
-        prevPageRef = pageList.deref(prevPageId);
-        nextPageRef = pageList.deref(nextPageId);
+        pageMetadata = new PageMetadata(pageIds.length, pageSize, mman);
+        pageRef = pageMetadata.deref(pageId);
+        prevPageRef = pageMetadata.deref(prevPageId);
+        nextPageRef = pageMetadata.deref(nextPageId);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -112,10 +112,10 @@ public class AbstractPageListTest {
         int pageCount;
 
         pageCount = 3;
-        assertThat(new PageList(pageCount, pageSize, mman).getPageCount()).isEqualTo(pageCount);
+        assertThat(new PageMetadata(pageCount, pageSize, mman).getPageCount()).isEqualTo(pageCount);
 
         pageCount = 42;
-        assertThat(new PageList(pageCount, pageSize, mman).getPageCount()).isEqualTo(pageCount);
+        assertThat(new PageMetadata(pageCount, pageSize, mman).getPageCount()).isEqualTo(pageCount);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -123,7 +123,7 @@ public class AbstractPageListTest {
     public void mustBeAbleToReversePageRedToPageId(int pageId) {
         init(pageId);
 
-        assertThat(pageList.toId(pageRef)).isEqualTo(pageId);
+        assertThat(pageMetadata.toId(pageRef)).isEqualTo(pageId);
     }
 
     // xxx ---[ Sequence lock tests ]---
@@ -133,8 +133,8 @@ public class AbstractPageListTest {
     public void pagesAreInitiallyExclusivelyLocked(int pageId) {
         init(pageId);
 
-        assertTrue(PageList.isExclusivelyLocked(pageRef));
-        PageList.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.isExclusivelyLocked(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -142,9 +142,9 @@ public class AbstractPageListTest {
     public void uncontendedOptimisticLockMustValidate(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long stamp = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, stamp));
+        PageMetadata.unlockExclusive(pageRef);
+        long stamp = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, stamp));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -152,7 +152,7 @@ public class AbstractPageListTest {
     public void mustNotValidateRandomStamp(int pageId) {
         init(pageId);
 
-        assertFalse(PageList.validateReadLock(pageRef, 4242));
+        assertFalse(PageMetadata.validateReadLock(pageRef, 4242));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -160,11 +160,11 @@ public class AbstractPageListTest {
     public void writeLockMustInvalidateOptimisticReadLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        PageList.unlockWrite(pageRef);
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.unlockWrite(pageRef);
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -172,9 +172,9 @@ public class AbstractPageListTest {
     public void takingWriteLockMustInvalidateOptimisticReadLock(int pageId) {
         init(pageId);
 
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -182,9 +182,9 @@ public class AbstractPageListTest {
     public void optimisticReadLockMustNotValidateUnderWriteLock(int pageId) {
         init(pageId);
 
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -192,11 +192,11 @@ public class AbstractPageListTest {
     public void writeLockReleaseMustInvalidateOptimisticReadLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        PageList.unlockWrite(pageRef);
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        PageMetadata.unlockWrite(pageRef);
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -204,8 +204,8 @@ public class AbstractPageListTest {
     public void uncontendedWriteLockMustBeAvailable(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -213,11 +213,11 @@ public class AbstractPageListTest {
     public void uncontendedOptimisticReadLockMustValidateAfterWriteLockRelease(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        PageList.unlockWrite(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.unlockWrite(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -225,7 +225,7 @@ public class AbstractPageListTest {
     public void unmatchedUnlockWriteLockMustThrow(int pageId) {
         init(pageId);
 
-        assertThrows(IllegalMonitorStateException.class, () -> PageList.unlockWrite(pageRef));
+        assertThrows(IllegalMonitorStateException.class, () -> PageMetadata.unlockWrite(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -233,11 +233,11 @@ public class AbstractPageListTest {
     public void exclusiveLockMustInvalidateOptimisticLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        PageList.tryExclusiveLock(pageRef);
-        PageList.unlockExclusive(pageRef);
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        PageMetadata.tryExclusiveLock(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -245,10 +245,10 @@ public class AbstractPageListTest {
     public void takingExclusiveLockMustInvalidateOptimisticLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        PageList.tryExclusiveLock(pageRef);
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        PageMetadata.tryExclusiveLock(pageRef);
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -257,8 +257,8 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusive lock implied by constructor
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -267,9 +267,9 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusive lock implied by constructor
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        PageList.unlockExclusive(pageRef);
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -277,11 +277,11 @@ public class AbstractPageListTest {
     public void uncontendedOptimisticReadLockMustValidateAfterExclusiveLockRelease(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryExclusiveLock(pageRef);
-        PageList.unlockExclusive(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryExclusiveLock(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -289,8 +289,8 @@ public class AbstractPageListTest {
     public void canTakeUncontendedExclusiveLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -298,9 +298,9 @@ public class AbstractPageListTest {
     public void writeLocksMustFailExclusiveLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        assertFalse(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -308,10 +308,10 @@ public class AbstractPageListTest {
     public void exclusiveLockMustBeAvailableAfterWriteLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        PageList.unlockWrite(pageRef);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.unlockWrite(pageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -320,10 +320,10 @@ public class AbstractPageListTest {
         init(pageId);
 
         // existing exclusive lock implied by constructor
-        assertFalse(PageList.tryExclusiveLock(pageRef));
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
-        assertFalse(PageList.tryExclusiveLock(pageRef));
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -331,10 +331,10 @@ public class AbstractPageListTest {
     public void exclusiveLockMustBeAvailableAfterExclusiveLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -344,7 +344,7 @@ public class AbstractPageListTest {
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
             // exclusive lock implied by constructor
-            assertFalse(PageList.tryWriteLock(pageRef, multiVersioned));
+            assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
         });
     }
 
@@ -354,8 +354,8 @@ public class AbstractPageListTest {
         init(pageId);
 
         assertThrows(IllegalMonitorStateException.class, () -> {
-            PageList.unlockExclusive(pageRef);
-            PageList.unlockExclusive(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
         });
     }
 
@@ -365,9 +365,9 @@ public class AbstractPageListTest {
         init(pageId);
 
         assertThrows(IllegalMonitorStateException.class, () -> {
-            PageList.unlockExclusive(pageRef);
-            PageList.tryExclusiveLock(pageRef);
-            PageList.unlockWrite(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
+            PageMetadata.tryExclusiveLock(pageRef);
+            PageMetadata.unlockWrite(pageRef);
         });
     }
 
@@ -377,11 +377,11 @@ public class AbstractPageListTest {
         init(pageId);
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
-            PageList.unlockExclusive(pageRef);
-            PageList.tryExclusiveLock(pageRef);
-            PageList.unlockExclusive(pageRef);
-            assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-            PageList.unlockWrite(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
+            PageMetadata.tryExclusiveLock(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
+            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            PageMetadata.unlockWrite(pageRef);
         });
     }
 
@@ -391,8 +391,8 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusive lock implied by constructor
-        long r = PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        long r = PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -401,9 +401,9 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusive lock implied by constructor
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -412,8 +412,8 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusive lock implied by constructor
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertFalse(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -426,11 +426,11 @@ public class AbstractPageListTest {
             int threads = Runtime.getRuntime().availableProcessors() - 1;
             CountDownLatch start = new CountDownLatch(threads);
             AtomicBoolean stop = new AtomicBoolean();
-            PageList.tryExclusiveLock(pageRef);
+            PageMetadata.tryExclusiveLock(pageRef);
             Runnable runnable = () -> {
                 while (!stop.get()) {
-                    if (PageList.tryExclusiveLock(pageRef)) {
-                        PageList.unlockExclusive(pageRef);
+                    if (PageMetadata.tryExclusiveLock(pageRef)) {
+                        PageMetadata.unlockExclusive(pageRef);
                         throw new RuntimeException("I should not have gotten that lock");
                     }
                     start.countDown();
@@ -443,7 +443,7 @@ public class AbstractPageListTest {
             }
 
             start.await();
-            PageList.unlockExclusiveAndTakeWriteLock(pageRef);
+            PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
             stop.set(true);
             Futures.getAll(futures);
         });
@@ -455,9 +455,9 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusive lock implied by constructor
-        long r = PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        assertFalse(PageList.validateReadLock(pageRef, r));
+        long r = PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -465,8 +465,8 @@ public class AbstractPageListTest {
     public void uncontendedFlushLockMustBeAvailable(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryFlushLock(pageRef) != 0);
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -474,11 +474,11 @@ public class AbstractPageListTest {
     public void flushLockMustNotInvalidateOptimisticReadLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -486,9 +486,9 @@ public class AbstractPageListTest {
     public void flushLockMustNotFailWriteLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryFlushLock(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryFlushLock(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -496,9 +496,9 @@ public class AbstractPageListTest {
     public void flushLockMustFailExclusiveLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryFlushLock(pageRef);
-        assertFalse(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryFlushLock(pageRef);
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -506,9 +506,9 @@ public class AbstractPageListTest {
     public void cannotTakeFlushLockIfAlreadyTaken(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryFlushLock(pageRef) != 0);
-        assertFalse(PageList.tryFlushLock(pageRef) != 0);
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
+        assertFalse(PageMetadata.tryFlushLock(pageRef) != 0);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -516,9 +516,9 @@ public class AbstractPageListTest {
     public void writeLockMustNotFailFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        assertTrue(PageList.tryFlushLock(pageRef) != 0);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -527,7 +527,7 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusively locked from constructor
-        assertFalse(PageList.tryFlushLock(pageRef) != 0);
+        assertFalse(PageMetadata.tryFlushLock(pageRef) != 0);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -536,8 +536,8 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusively locked from constructor
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertTrue(PageList.tryFlushLock(pageRef) != 0);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -545,10 +545,10 @@ public class AbstractPageListTest {
     public void flushUnlockMustNotInvalidateOptimisticReadLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.tryFlushLock(pageRef) != 0);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -556,10 +556,10 @@ public class AbstractPageListTest {
     public void optimisticReadLockMustValidateUnderFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryFlushLock(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryFlushLock(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -567,11 +567,11 @@ public class AbstractPageListTest {
     public void flushLockReleaseMustNotInvalidateOptimisticReadLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long s = PageList.tryFlushLock(pageRef);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        long s = PageMetadata.tryFlushLock(pageRef);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -581,7 +581,7 @@ public class AbstractPageListTest {
 
         assertThrows(
                 IllegalMonitorStateException.class,
-                () -> PageList.unlockFlush(pageRef, PageList.tryOptimisticReadLock(pageRef), true));
+                () -> PageMetadata.unlockFlush(pageRef, PageMetadata.tryOptimisticReadLock(pageRef), true));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -589,11 +589,11 @@ public class AbstractPageListTest {
     public void uncontendedOptimisticReadLockMustBeAvailableAfterFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(pageRef);
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -601,10 +601,10 @@ public class AbstractPageListTest {
     public void uncontendedWriteLockMustBeAvailableAfterFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockExclusive(pageRef);
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -612,10 +612,10 @@ public class AbstractPageListTest {
     public void uncontendedExclusiveLockMustBeAvailableAfterFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -623,10 +623,10 @@ public class AbstractPageListTest {
     public void uncontendedFlushLockMustBeAvailableAfterWriteLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        PageList.unlockWrite(pageRef);
-        assertTrue(PageList.tryFlushLock(pageRef) != 0);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.unlockWrite(pageRef);
+        assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -634,10 +634,10 @@ public class AbstractPageListTest {
     public void uncontendedFlushLockMustBeAvailableAfterExclusiveLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryExclusiveLock(pageRef);
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryFlushLock(pageRef) != 0);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryExclusiveLock(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -645,10 +645,10 @@ public class AbstractPageListTest {
     public void uncontendedFlushLockMustBeAvailableAfterFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.tryFlushLock(pageRef) != 0);
+        PageMetadata.unlockExclusive(pageRef);
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -657,9 +657,9 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusively locked from constructor
-        long r = PageList.unlockExclusive(pageRef);
-        PageList.tryFlushLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        long r = PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryFlushLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -667,16 +667,16 @@ public class AbstractPageListTest {
     public void optimisticReadLockMustNotGetInterferenceFromAdjacentWriteLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.tryWriteLock(prevPageRef, multiVersioned));
-        assertTrue(PageList.tryWriteLock(nextPageRef, multiVersioned));
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
-        PageList.unlockWrite(prevPageRef);
-        PageList.unlockWrite(nextPageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryWriteLock(prevPageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(nextPageRef, multiVersioned));
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
+        PageMetadata.unlockWrite(prevPageRef);
+        PageMetadata.unlockWrite(nextPageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -684,16 +684,16 @@ public class AbstractPageListTest {
     public void optimisticReadLockMustNotGetInterferenceFromAdjacentExclusiveLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.tryExclusiveLock(prevPageRef));
-        assertTrue(PageList.tryExclusiveLock(nextPageRef));
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(prevPageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(nextPageRef));
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -701,19 +701,19 @@ public class AbstractPageListTest {
     public void optimisticReadLockMustNotGetInterferenceFromAdjacentExclusiveAndWriteLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.tryExclusiveLock(prevPageRef));
-        assertTrue(PageList.tryExclusiveLock(nextPageRef));
-        long r = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
-        PageList.unlockExclusiveAndTakeWriteLock(prevPageRef);
-        PageList.unlockExclusiveAndTakeWriteLock(nextPageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
-        PageList.unlockWrite(prevPageRef);
-        PageList.unlockWrite(nextPageRef);
-        assertTrue(PageList.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(prevPageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(nextPageRef));
+        long r = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(prevPageRef);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(nextPageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
+        PageMetadata.unlockWrite(prevPageRef);
+        PageMetadata.unlockWrite(nextPageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, r));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -721,15 +721,15 @@ public class AbstractPageListTest {
     public void writeLockMustNotGetInterferenceFromAdjacentExclusiveLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.tryExclusiveLock(prevPageRef));
-        assertTrue(PageList.tryExclusiveLock(nextPageRef));
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        PageList.unlockWrite(pageRef);
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(nextPageRef);
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(prevPageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(nextPageRef));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockWrite(pageRef);
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -737,16 +737,16 @@ public class AbstractPageListTest {
     public void flushLockMustNotGetInterferenceFromAdjacentExclusiveLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(nextPageRef);
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
         long s;
-        assertTrue(PageList.tryExclusiveLock(prevPageRef));
-        assertTrue(PageList.tryExclusiveLock(nextPageRef));
-        assertTrue((s = PageList.tryFlushLock(pageRef)) != 0);
-        PageList.unlockFlush(pageRef, s, true);
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(prevPageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(nextPageRef));
+        assertTrue((s = PageMetadata.tryFlushLock(pageRef)) != 0);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -754,18 +754,18 @@ public class AbstractPageListTest {
     public void flushLockMustNotGetInterferenceFromAdjacentFlushLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(nextPageRef);
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
         long ps;
         long ns;
         long s;
-        assertTrue((ps = PageList.tryFlushLock(prevPageRef)) != 0);
-        assertTrue((ns = PageList.tryFlushLock(nextPageRef)) != 0);
-        assertTrue((s = PageList.tryFlushLock(pageRef)) != 0);
-        PageList.unlockFlush(pageRef, s, true);
-        PageList.unlockFlush(prevPageRef, ps, true);
-        PageList.unlockFlush(nextPageRef, ns, true);
+        assertTrue((ps = PageMetadata.tryFlushLock(prevPageRef)) != 0);
+        assertTrue((ns = PageMetadata.tryFlushLock(nextPageRef)) != 0);
+        assertTrue((s = PageMetadata.tryFlushLock(pageRef)) != 0);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        PageMetadata.unlockFlush(prevPageRef, ps, true);
+        PageMetadata.unlockFlush(nextPageRef, ns, true);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -773,18 +773,18 @@ public class AbstractPageListTest {
     public void exclusiveLockMustNotGetInterferenceFromAdjacentExclusiveLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.tryExclusiveLock(prevPageRef));
-        assertTrue(PageList.tryExclusiveLock(nextPageRef));
-        assertTrue(PageList.tryExclusiveLock(pageRef));
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.tryExclusiveLock(prevPageRef));
-        assertTrue(PageList.tryExclusiveLock(nextPageRef));
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(prevPageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(nextPageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(prevPageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(nextPageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -792,15 +792,15 @@ public class AbstractPageListTest {
     public void exclusiveLockMustNotGetInterferenceFromAdjacentWriteLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.tryWriteLock(prevPageRef, multiVersioned));
-        assertTrue(PageList.tryWriteLock(nextPageRef, multiVersioned));
-        assertTrue(PageList.tryExclusiveLock(pageRef));
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockWrite(prevPageRef);
-        PageList.unlockWrite(nextPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryWriteLock(prevPageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(nextPageRef, multiVersioned));
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockWrite(prevPageRef);
+        PageMetadata.unlockWrite(nextPageRef);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -809,22 +809,22 @@ public class AbstractPageListTest {
         init(pageId);
 
         // exclusive locks on prevPageRef, nextPageRef and pageRef are implied from constructor
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusiveAndTakeWriteLock(prevPageRef);
-        PageList.unlockExclusiveAndTakeWriteLock(nextPageRef);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockWrite(prevPageRef);
-        PageList.unlockWrite(nextPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(prevPageRef);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(nextPageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockWrite(prevPageRef);
+        PageMetadata.unlockWrite(nextPageRef);
 
-        assertTrue(PageList.tryExclusiveLock(pageRef));
-        assertTrue(PageList.tryExclusiveLock(prevPageRef));
-        assertTrue(PageList.tryExclusiveLock(nextPageRef));
-        PageList.unlockExclusiveAndTakeWriteLock(prevPageRef);
-        PageList.unlockExclusiveAndTakeWriteLock(nextPageRef);
-        PageList.unlockWrite(prevPageRef);
-        PageList.unlockWrite(nextPageRef);
-        PageList.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(prevPageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(nextPageRef));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(prevPageRef);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(nextPageRef);
+        PageMetadata.unlockWrite(prevPageRef);
+        PageMetadata.unlockWrite(nextPageRef);
+        PageMetadata.unlockExclusive(pageRef);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -832,17 +832,17 @@ public class AbstractPageListTest {
     public void exclusiveLockMustNotGetInterferenceFromAdjacentFlushLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(nextPageRef);
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
         long ps;
         long ns;
-        assertTrue((ps = PageList.tryFlushLock(prevPageRef)) != 0);
-        assertTrue((ns = PageList.tryFlushLock(nextPageRef)) != 0);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockFlush(prevPageRef, ps, true);
-        PageList.unlockFlush(nextPageRef, ns, true);
+        assertTrue((ps = PageMetadata.tryFlushLock(prevPageRef)) != 0);
+        assertTrue((ns = PageMetadata.tryFlushLock(nextPageRef)) != 0);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockFlush(prevPageRef, ps, true);
+        PageMetadata.unlockFlush(nextPageRef, ns, true);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -850,11 +850,11 @@ public class AbstractPageListTest {
     public void takingWriteLockMustRaiseModifiedFlag(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertFalse(PageList.isModified(pageRef));
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        assertTrue(PageList.isModified(pageRef));
-        PageList.unlockWrite(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        assertFalse(PageMetadata.isModified(pageRef));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockWrite(pageRef);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -862,13 +862,13 @@ public class AbstractPageListTest {
     public void turningExclusiveLockIntoWriteLockMustRaiseModifiedFlag(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertFalse(PageList.isModified(pageRef));
-        assertTrue(PageList.tryExclusiveLock(pageRef));
-        assertFalse(PageList.isModified(pageRef));
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertTrue(PageList.isModified(pageRef));
-        PageList.unlockWrite(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        assertFalse(PageMetadata.isModified(pageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
+        assertFalse(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockWrite(pageRef);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -876,13 +876,13 @@ public class AbstractPageListTest {
     public void releasingFlushLockMustLowerModifiedFlagIfSuccessful(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        PageList.unlockWrite(pageRef);
-        assertTrue(PageList.isModified(pageRef));
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertFalse(PageList.isModified(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockWrite(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertFalse(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -890,17 +890,17 @@ public class AbstractPageListTest {
     public void loweredModifiedFlagMustRemainLoweredAfterReleasingFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        PageList.unlockWrite(pageRef);
-        assertTrue(PageList.isModified(pageRef));
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertFalse(PageList.isModified(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockWrite(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertFalse(PageMetadata.isModified(pageRef));
 
-        s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertFalse(PageList.isModified(pageRef));
+        s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertFalse(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -908,13 +908,13 @@ public class AbstractPageListTest {
     public void releasingFlushLockMustNotLowerModifiedFlagIfUnsuccessful(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        PageList.unlockWrite(pageRef);
-        assertTrue(PageList.isModified(pageRef));
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, false);
-        assertTrue(PageList.isModified(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockWrite(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, false);
+        assertTrue(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -922,12 +922,12 @@ public class AbstractPageListTest {
     public void releasingFlushLockMustNotLowerModifiedFlagIfWriteLockWasWithinFlushFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long s = PageList.tryFlushLock(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        PageList.unlockWrite(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.isModified(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        long s = PageMetadata.tryFlushLock(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockWrite(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -935,12 +935,12 @@ public class AbstractPageListTest {
     public void releasingFlushLockMustNotLowerModifiedFlagIfWriteLockOverlappedTakingFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockWrite(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.isModified(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockWrite(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -948,13 +948,13 @@ public class AbstractPageListTest {
     public void releasingFlushLockMustNotLowerModifiedFlagIfWriteLockOverlappedReleasingFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        long s = PageList.tryFlushLock(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.isModified(pageRef));
-        PageList.unlockWrite(pageRef);
-        assertTrue(PageList.isModified(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        long s = PageMetadata.tryFlushLock(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockWrite(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -962,13 +962,13 @@ public class AbstractPageListTest {
     public void releasingFlushLockMustNotLowerModifiedFlagIfWriteLockOverlappedFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.isModified(pageRef));
-        PageList.unlockWrite(pageRef);
-        assertTrue(PageList.isModified(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockWrite(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -976,23 +976,23 @@ public class AbstractPageListTest {
     public void releasingFlushLockMustNotInterfereWithAdjacentModifiedFlags(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.tryWriteLock(prevPageRef, multiVersioned));
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        assertTrue(PageList.tryWriteLock(nextPageRef, multiVersioned));
-        PageList.unlockWrite(prevPageRef);
-        PageList.unlockWrite(pageRef);
-        PageList.unlockWrite(nextPageRef);
-        assertTrue(PageList.isModified(prevPageRef));
-        assertTrue(PageList.isModified(pageRef));
-        assertTrue(PageList.isModified(nextPageRef));
-        long s = PageList.tryFlushLock(pageRef);
-        PageList.unlockFlush(pageRef, s, true);
-        assertTrue(PageList.isModified(prevPageRef));
-        assertFalse(PageList.isModified(pageRef));
-        assertTrue(PageList.isModified(nextPageRef));
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryWriteLock(prevPageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(nextPageRef, multiVersioned));
+        PageMetadata.unlockWrite(prevPageRef);
+        PageMetadata.unlockWrite(pageRef);
+        PageMetadata.unlockWrite(nextPageRef);
+        assertTrue(PageMetadata.isModified(prevPageRef));
+        assertTrue(PageMetadata.isModified(pageRef));
+        assertTrue(PageMetadata.isModified(nextPageRef));
+        long s = PageMetadata.tryFlushLock(pageRef);
+        PageMetadata.unlockFlush(pageRef, s, true);
+        assertTrue(PageMetadata.isModified(prevPageRef));
+        assertFalse(PageMetadata.isModified(pageRef));
+        assertTrue(PageMetadata.isModified(nextPageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1000,14 +1000,14 @@ public class AbstractPageListTest {
     public void writeLockMustNotInterfereWithAdjacentModifiedFlags(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(prevPageRef);
-        PageList.unlockExclusive(pageRef);
-        PageList.unlockExclusive(nextPageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        PageList.unlockWrite(pageRef);
-        assertFalse(PageList.isModified(prevPageRef));
-        assertTrue(PageList.isModified(pageRef));
-        assertFalse(PageList.isModified(nextPageRef));
+        PageMetadata.unlockExclusive(prevPageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(nextPageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockWrite(pageRef);
+        assertFalse(PageMetadata.isModified(prevPageRef));
+        assertTrue(PageMetadata.isModified(pageRef));
+        assertFalse(PageMetadata.isModified(nextPageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1016,8 +1016,8 @@ public class AbstractPageListTest {
         init(pageId);
 
         assertThrows(IllegalStateException.class, () -> {
-            PageList.unlockExclusive(pageRef);
-            PageList.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
+            PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
         });
     }
 
@@ -1027,9 +1027,9 @@ public class AbstractPageListTest {
         init(pageId);
 
         assertThrows(IllegalStateException.class, () -> {
-            PageList.unlockExclusive(pageRef);
-            PageList.tryOptimisticReadLock(pageRef);
-            PageList.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
+            PageMetadata.tryOptimisticReadLock(pageRef);
+            PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
         });
     }
 
@@ -1039,9 +1039,9 @@ public class AbstractPageListTest {
         init(pageId);
 
         assertThrows(IllegalStateException.class, () -> {
-            PageList.unlockExclusive(pageRef);
-            assertThat(PageList.tryFlushLock(pageRef)).isNotEqualTo(0L);
-            PageList.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
+            assertThat(PageMetadata.tryFlushLock(pageRef)).isNotEqualTo(0L);
+            PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
         });
     }
 
@@ -1051,9 +1051,9 @@ public class AbstractPageListTest {
         init(pageId);
 
         assertThrows(IllegalStateException.class, () -> {
-            PageList.unlockExclusive(pageRef);
-            assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-            PageList.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
+            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
         });
     }
 
@@ -1062,16 +1062,16 @@ public class AbstractPageListTest {
     public void allowExclusiveLockedPageToExplicitlyLowerModifiedFlag(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertFalse(PageList.isModified(pageRef));
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        PageList.unlockWrite(pageRef);
-        assertTrue(PageList.isModified(pageRef));
-        assertTrue(PageList.tryExclusiveLock(pageRef));
-        assertTrue(PageList.isModified(pageRef));
-        PageList.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
-        assertFalse(PageList.isModified(pageRef));
-        PageList.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        assertFalse(PageMetadata.isModified(pageRef));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockWrite(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
+        assertTrue(PageMetadata.isModified(pageRef));
+        PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+        assertFalse(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1079,12 +1079,12 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockMustTakeFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        long flushStamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        long flushStamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
         assertThat(flushStamp).isNotEqualTo(0L);
-        assertThat(PageList.tryFlushLock(pageRef)).isEqualTo(0L);
-        PageList.unlockFlush(pageRef, flushStamp, true);
+        assertThat(PageMetadata.tryFlushLock(pageRef)).isEqualTo(0L);
+        PageMetadata.unlockFlush(pageRef, flushStamp, true);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1093,8 +1093,8 @@ public class AbstractPageListTest {
         init(pageId);
 
         assertThrows(IllegalMonitorStateException.class, () -> {
-            PageList.unlockExclusive(pageRef);
-            PageList.unlockWriteAndTryTakeFlushLock(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
+            PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
         });
     }
 
@@ -1107,7 +1107,7 @@ public class AbstractPageListTest {
                 IllegalMonitorStateException.class,
                 () ->
                         // exclusive lock implied by constructor
-                        PageList.unlockWriteAndTryTakeFlushLock(pageRef));
+                        PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1115,12 +1115,12 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockMustFailIfFlushLockIsAlreadyTaken(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long stamp = PageList.tryFlushLock(pageRef);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long stamp = PageMetadata.tryFlushLock(pageRef);
         assertThat(stamp).isNotEqualTo(0L);
-        long secondStamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
+        long secondStamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
         assertThat(secondStamp).isEqualTo(0L);
-        PageList.unlockFlush(pageRef, stamp, true);
+        PageMetadata.unlockFlush(pageRef, stamp, true);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1128,12 +1128,12 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockMustReleaseWriteLockEvenIfFlushLockFails(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long flushStamp = PageList.tryFlushLock(pageRef);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long flushStamp = PageMetadata.tryFlushLock(pageRef);
         assertThat(flushStamp).isNotEqualTo(0L);
-        assertThat(PageList.unlockWriteAndTryTakeFlushLock(pageRef)).isEqualTo(0L);
-        long readStamp = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, readStamp));
+        assertThat(PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef)).isEqualTo(0L);
+        long readStamp = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, readStamp));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1141,10 +1141,10 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockMustReleaseWriteLockWhenFlushLockSucceeds(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertThat(PageList.unlockWriteAndTryTakeFlushLock(pageRef)).isNotEqualTo(0L);
-        long readStamp = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, readStamp));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        assertThat(PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef)).isNotEqualTo(0L);
+        long readStamp = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, readStamp));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1152,11 +1152,11 @@ public class AbstractPageListTest {
     public void unlockWriteAndTrueTakeFlushLockMustRaiseModifiedFlag(int pageId) {
         init(pageId);
 
-        assertFalse(PageList.isModified(pageRef));
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertTrue(PageList.isModified(pageRef));
-        assertThat(PageList.unlockWriteAndTryTakeFlushLock(pageRef)).isNotEqualTo(0L);
-        assertTrue(PageList.isModified(pageRef));
+        assertFalse(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
+        assertThat(PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef)).isNotEqualTo(0L);
+        assertTrue(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1164,11 +1164,11 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockAndThenUnlockFlushMustLowerModifiedFlagIfSuccessful(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long stamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
-        assertTrue(PageList.isModified(pageRef));
-        PageList.unlockFlush(pageRef, stamp, true);
-        assertFalse(PageList.isModified(pageRef));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockFlush(pageRef, stamp, true);
+        assertFalse(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1176,11 +1176,11 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockAndThenUnlockFlushMustNotLowerModifiedFlagIfFailed(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long stamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
-        assertTrue(PageList.isModified(pageRef));
-        PageList.unlockFlush(pageRef, stamp, false);
-        assertTrue(PageList.isModified(pageRef));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        assertTrue(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockFlush(pageRef, stamp, false);
+        assertTrue(PageMetadata.isModified(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1189,14 +1189,14 @@ public class AbstractPageListTest {
             int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long stamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef); // one flush lock
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef); // one flush lock
         assertThat(stamp).isNotEqualTo(0L);
-        assertTrue(PageList.isModified(pageRef));
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned)); // one flush and one write lock
-        PageList.unlockFlush(pageRef, stamp, true); // flush is successful, but have one overlapping writer
-        PageList.unlockWrite(pageRef); // no more locks, but a writer started within flush section ...
-        assertTrue(PageList.isModified(pageRef)); // ... and overlapped unlockFlush, so it's still modified
+        assertTrue(PageMetadata.isModified(pageRef));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned)); // one flush and one write lock
+        PageMetadata.unlockFlush(pageRef, stamp, true); // flush is successful, but have one overlapping writer
+        PageMetadata.unlockWrite(pageRef); // no more locks, but a writer started within flush section ...
+        assertTrue(PageMetadata.isModified(pageRef)); // ... and overlapped unlockFlush, so it's still modified
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1205,14 +1205,14 @@ public class AbstractPageListTest {
             int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long stamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef); // one flush lock
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef); // one flush lock
         assertThat(stamp).isNotEqualTo(0L);
-        assertTrue(PageList.isModified(pageRef));
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned)); // one flush and one write lock
-        PageList.unlockWrite(pageRef); // back to one flush lock
-        PageList.unlockFlush(pageRef, stamp, true); // flush is successful, but had one overlapping writer
-        assertTrue(PageList.isModified(pageRef)); // so it's still modified
+        assertTrue(PageMetadata.isModified(pageRef));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned)); // one flush and one write lock
+        PageMetadata.unlockWrite(pageRef); // back to one flush lock
+        PageMetadata.unlockFlush(pageRef, stamp, true); // flush is successful, but had one overlapping writer
+        assertTrue(PageMetadata.isModified(pageRef)); // so it's still modified
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1220,12 +1220,12 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockThatSucceedsMustPreventOverlappingExclusiveLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertFalse(PageList.tryExclusiveLock(pageRef));
-        long stamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
-        assertFalse(PageList.tryExclusiveLock(pageRef));
-        PageList.unlockFlush(pageRef, stamp, true);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
+        long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
+        PageMetadata.unlockFlush(pageRef, stamp, true);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1233,12 +1233,12 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockThatFailsMustPreventOverlappingExclusiveLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertFalse(PageList.tryExclusiveLock(pageRef));
-        long stamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
-        assertFalse(PageList.tryExclusiveLock(pageRef));
-        PageList.unlockFlush(pageRef, stamp, false);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
+        long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
+        PageMetadata.unlockFlush(pageRef, stamp, false);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1246,11 +1246,11 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockThatSucceedsMustPreventOverlappingFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long stamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
-        assertThat(PageList.tryFlushLock(pageRef)).isEqualTo(0L);
-        PageList.unlockFlush(pageRef, stamp, true);
-        assertThat(PageList.tryFlushLock(pageRef)).isNotEqualTo(0L);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        assertThat(PageMetadata.tryFlushLock(pageRef)).isEqualTo(0L);
+        PageMetadata.unlockFlush(pageRef, stamp, true);
+        assertThat(PageMetadata.tryFlushLock(pageRef)).isNotEqualTo(0L);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1258,11 +1258,11 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockThatFailsMustPreventOverlappingFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long stamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
-        assertThat(PageList.tryFlushLock(pageRef)).isEqualTo(0L);
-        PageList.unlockFlush(pageRef, stamp, false);
-        assertThat(PageList.tryFlushLock(pageRef)).isNotEqualTo(0L);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        assertThat(PageMetadata.tryFlushLock(pageRef)).isEqualTo(0L);
+        PageMetadata.unlockFlush(pageRef, stamp, false);
+        assertThat(PageMetadata.tryFlushLock(pageRef)).isNotEqualTo(0L);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1270,22 +1270,22 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockMustNotInvalidateReadersOverlappingWithFlushLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long flushStamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
-        long readStamp = PageList.tryOptimisticReadLock(pageRef);
-        assertTrue(PageList.validateReadLock(pageRef, readStamp));
-        PageList.unlockFlush(pageRef, flushStamp, true);
-        assertTrue(PageList.validateReadLock(pageRef, readStamp));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long flushStamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        long readStamp = PageMetadata.tryOptimisticReadLock(pageRef);
+        assertTrue(PageMetadata.validateReadLock(pageRef, readStamp));
+        PageMetadata.unlockFlush(pageRef, flushStamp, true);
+        assertTrue(PageMetadata.validateReadLock(pageRef, readStamp));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
     @MethodSource("argumentsProvider")
     void clearBindingResetPageHorizon(int pageId) {
         init(pageId);
-        PageList.setPageHorizon(pageRef, 42);
+        PageMetadata.setPageHorizon(pageRef, 42);
 
-        PageList.clearBinding(pageRef);
-        assertEquals(0, PageList.getPageHorizon(pageRef));
+        PageMetadata.clearBinding(pageRef);
+        assertEquals(0, PageMetadata.getPageHorizon(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1293,12 +1293,12 @@ public class AbstractPageListTest {
     public void unlockWriteAndTryTakeFlushLockMustInvalidateReadersOverlappingWithWriteLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        long readStamp = PageList.tryOptimisticReadLock(pageRef);
-        long flushStamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
-        assertFalse(PageList.validateReadLock(pageRef, readStamp));
-        PageList.unlockFlush(pageRef, flushStamp, true);
-        assertFalse(PageList.validateReadLock(pageRef, readStamp));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        long readStamp = PageMetadata.tryOptimisticReadLock(pageRef);
+        long flushStamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        assertFalse(PageMetadata.validateReadLock(pageRef, readStamp));
+        PageMetadata.unlockFlush(pageRef, flushStamp, true);
+        assertFalse(PageMetadata.validateReadLock(pageRef, readStamp));
     }
 
     // xxx ---[ Page state tests ]---
@@ -1308,8 +1308,8 @@ public class AbstractPageListTest {
     public void mustExposeCachePageSize(int pageId) {
         init(pageId);
 
-        PageList list = new PageList(0, 42, mman);
-        assertThat(list.getCachePageSize()).isEqualTo(42);
+        PageMetadata metadata = new PageMetadata(0, 42, mman);
+        assertThat(metadata.getCachePageSize()).isEqualTo(42);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1317,7 +1317,7 @@ public class AbstractPageListTest {
     public void addressesMustBeZeroBeforeInitialisation(int pageId) {
         init(pageId);
 
-        assertThat(PageList.getAddress(pageRef)).isEqualTo(0L);
+        assertThat(PageMetadata.getAddress(pageRef)).isEqualTo(0L);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1339,18 +1339,7 @@ public class AbstractPageListTest {
         init(pageId);
 
         MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
-        assertThat(PageList.getAddress(pageRef)).isNotEqualTo(0L);
-    }
-
-    @ParameterizedTest(name = "pageRef = {0}")
-    @MethodSource("argumentsProvider")
-    public void pageListMustBeCopyableViaConstructor(int pageId) {
-        init(pageId);
-
-        assertThat(PageList.getAddress(pageRef)).isEqualTo(0L);
-
-        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
-        assertThat(PageList.getAddress(pageRef)).isNotEqualTo(0L);
+        assertThat(PageMetadata.getAddress(pageRef)).isNotEqualTo(0L);
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1358,7 +1347,7 @@ public class AbstractPageListTest {
     public void usageCounterMustBeZeroByDefault(int pageId) {
         init(pageId);
 
-        assertTrue(PageList.decrementUsage(pageRef));
+        assertTrue(PageMetadata.decrementUsage(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1366,14 +1355,14 @@ public class AbstractPageListTest {
     public void usageCounterMustGoUpToFour(int pageId) {
         init(pageId);
 
-        PageList.incrementUsage(pageRef);
-        PageList.incrementUsage(pageRef);
-        PageList.incrementUsage(pageRef);
-        PageList.incrementUsage(pageRef);
-        assertFalse(PageList.decrementUsage(pageRef));
-        assertFalse(PageList.decrementUsage(pageRef));
-        assertFalse(PageList.decrementUsage(pageRef));
-        assertTrue(PageList.decrementUsage(pageRef));
+        PageMetadata.incrementUsage(pageRef);
+        PageMetadata.incrementUsage(pageRef);
+        PageMetadata.incrementUsage(pageRef);
+        PageMetadata.incrementUsage(pageRef);
+        assertFalse(PageMetadata.decrementUsage(pageRef));
+        assertFalse(PageMetadata.decrementUsage(pageRef));
+        assertFalse(PageMetadata.decrementUsage(pageRef));
+        assertTrue(PageMetadata.decrementUsage(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1381,16 +1370,16 @@ public class AbstractPageListTest {
     public void usageCounterMustTruncateAtFour(int pageId) {
         init(pageId);
 
-        PageList.incrementUsage(pageRef);
-        PageList.incrementUsage(pageRef);
-        PageList.incrementUsage(pageRef);
-        PageList.incrementUsage(pageRef);
-        PageList.incrementUsage(pageRef);
-        assertFalse(PageList.decrementUsage(pageRef));
-        assertFalse(PageList.decrementUsage(pageRef));
-        assertFalse(PageList.decrementUsage(pageRef));
-        assertTrue(PageList.decrementUsage(pageRef));
-        assertTrue(PageList.decrementUsage(pageRef));
+        PageMetadata.incrementUsage(pageRef);
+        PageMetadata.incrementUsage(pageRef);
+        PageMetadata.incrementUsage(pageRef);
+        PageMetadata.incrementUsage(pageRef);
+        PageMetadata.incrementUsage(pageRef);
+        assertFalse(PageMetadata.decrementUsage(pageRef));
+        assertFalse(PageMetadata.decrementUsage(pageRef));
+        assertFalse(PageMetadata.decrementUsage(pageRef));
+        assertTrue(PageMetadata.decrementUsage(pageRef));
+        assertTrue(PageMetadata.decrementUsage(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1398,11 +1387,11 @@ public class AbstractPageListTest {
     public void incrementingUsageCounterMustNotInterfereWithAdjacentUsageCounters(int pageId) {
         init(pageId);
 
-        PageList.incrementUsage(pageRef);
-        PageList.incrementUsage(pageRef);
-        assertTrue(PageList.decrementUsage(prevPageRef));
-        assertTrue(PageList.decrementUsage(nextPageRef));
-        assertFalse(PageList.decrementUsage(pageRef));
+        PageMetadata.incrementUsage(pageRef);
+        PageMetadata.incrementUsage(pageRef);
+        assertTrue(PageMetadata.decrementUsage(prevPageRef));
+        assertTrue(PageMetadata.decrementUsage(nextPageRef));
+        assertFalse(PageMetadata.decrementUsage(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1411,15 +1400,15 @@ public class AbstractPageListTest {
         init(pageId);
 
         for (int id : pageIds) {
-            long ref = pageList.deref(id);
-            PageList.incrementUsage(ref);
-            PageList.incrementUsage(ref);
+            long ref = pageMetadata.deref(id);
+            PageMetadata.incrementUsage(ref);
+            PageMetadata.incrementUsage(ref);
         }
 
-        assertFalse(PageList.decrementUsage(pageRef));
-        assertTrue(PageList.decrementUsage(pageRef));
-        assertFalse(PageList.decrementUsage(prevPageRef));
-        assertFalse(PageList.decrementUsage(nextPageRef));
+        assertFalse(PageMetadata.decrementUsage(pageRef));
+        assertTrue(PageMetadata.decrementUsage(pageRef));
+        assertFalse(PageMetadata.decrementUsage(prevPageRef));
+        assertFalse(PageMetadata.decrementUsage(nextPageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1427,7 +1416,7 @@ public class AbstractPageListTest {
     public void filePageIdIsUnboundByDefault(int pageId) {
         init(pageId);
 
-        assertThat(PageList.getFilePageId(pageRef)).isEqualTo(PageCursor.UNBOUND_PAGE_ID);
+        assertThat(PageMetadata.getFilePageId(pageRef)).isEqualTo(PageCursor.UNBOUND_PAGE_ID);
     }
 
     // xxx ---[ Page fault tests ]---
@@ -1437,7 +1426,7 @@ public class AbstractPageListTest {
     public void faultMustThrowWithoutExclusiveLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
         MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         assertThrows(
                 IllegalStateException.class,
@@ -1465,7 +1454,7 @@ public class AbstractPageListTest {
         MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         MuninnPageCursor.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
 
-        long address = PageList.getAddress(pageRef);
+        long address = PageMetadata.getAddress(pageRef);
         assertThat(address).isNotEqualTo(0L);
         for (int i = 0; i < pageSize; i++) {
             byte actualByteContents = UnsafeUtil.getByte(address + i);
@@ -1488,10 +1477,10 @@ public class AbstractPageListTest {
         MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
         MuninnPageCursor.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
-        assertThat(PageList.getFilePageId(pageRef)).isEqualTo(filePageId);
-        assertThat(PageList.getSwapperId(pageRef)).isEqualTo(swapperId);
-        assertTrue(PageList.isLoaded(pageRef));
-        assertTrue(PageList.isBoundTo(pageRef, swapperId, filePageId));
+        assertThat(PageMetadata.getFilePageId(pageRef)).isEqualTo(filePageId);
+        assertThat(PageMetadata.getSwapperId(pageRef)).isEqualTo(swapperId);
+        assertTrue(PageMetadata.isLoaded(pageRef));
+        assertTrue(PageMetadata.isBoundTo(pageRef, swapperId, filePageId));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1505,10 +1494,10 @@ public class AbstractPageListTest {
         MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
         MuninnPageCursor.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
-        assertThat(PageList.getFilePageId(pageRef)).isEqualTo(filePageId);
-        assertThat(PageList.getSwapperId(pageRef)).isEqualTo(swapperId);
-        assertTrue(PageList.isLoaded(pageRef));
-        assertTrue(PageList.isBoundTo(pageRef, swapperId, filePageId));
+        assertThat(PageMetadata.getFilePageId(pageRef)).isEqualTo(filePageId);
+        assertThat(PageMetadata.getSwapperId(pageRef)).isEqualTo(swapperId);
+        assertTrue(PageMetadata.isLoaded(pageRef));
+        assertTrue(PageMetadata.isBoundTo(pageRef, swapperId, filePageId));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1533,10 +1522,10 @@ public class AbstractPageListTest {
         } catch (IOException e) {
             assertThat(e.getMessage()).isEqualTo("boo");
         }
-        assertThat(PageList.getFilePageId(pageRef)).isEqualTo(filePageId);
-        assertThat(PageList.getSwapperId(pageRef)).isEqualTo(0); // 0 means not bound
-        assertTrue(PageList.isLoaded(pageRef));
-        assertFalse(PageList.isBoundTo(pageRef, swapperId, filePageId));
+        assertThat(PageMetadata.getFilePageId(pageRef)).isEqualTo(filePageId);
+        assertThat(PageMetadata.getSwapperId(pageRef)).isEqualTo(0); // 0 means not bound
+        assertTrue(PageMetadata.isLoaded(pageRef));
+        assertFalse(PageMetadata.isBoundTo(pageRef, swapperId, filePageId));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1561,7 +1550,7 @@ public class AbstractPageListTest {
     public void faultMustThrowIfPageIsLoadedButNotBound(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
         short swapperId = 1;
         long filePageId = 42;
         doFailedFault(swapperId, filePageId);
@@ -1574,7 +1563,7 @@ public class AbstractPageListTest {
     }
 
     private void doFailedFault(short swapperId, long filePageId) {
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
         MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         DummyPageSwapper swapper = new DummyPageSwapper("", pageSize) {
             @Override
@@ -1616,7 +1605,7 @@ public class AbstractPageListTest {
     public void unboundPageMustNotBeLoaded(int pageId) {
         init(pageId);
 
-        assertFalse(PageList.isLoaded(pageRef));
+        assertFalse(PageMetadata.isLoaded(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1624,7 +1613,7 @@ public class AbstractPageListTest {
     public void unboundPageMustNotBeBoundToAnything(int pageId) {
         init(pageId);
 
-        assertFalse(PageList.isBoundTo(pageRef, (short) 0, 0));
+        assertFalse(PageMetadata.isBoundTo(pageRef, (short) 0, 0));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1632,14 +1621,14 @@ public class AbstractPageListTest {
     public void boundPagesAreNotBoundToOtherPagesWithSameSwapper(int pageId) throws Exception {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
         long filePageId = 42;
         short swapperId = 2;
         doFault(swapperId, filePageId);
 
-        assertTrue(PageList.isBoundTo(pageRef, swapperId, filePageId));
-        assertFalse(PageList.isBoundTo(pageRef, swapperId, filePageId + 1));
-        assertFalse(PageList.isBoundTo(pageRef, swapperId, filePageId - 1));
+        assertTrue(PageMetadata.isBoundTo(pageRef, swapperId, filePageId));
+        assertFalse(PageMetadata.isBoundTo(pageRef, swapperId, filePageId + 1));
+        assertFalse(PageMetadata.isBoundTo(pageRef, swapperId, filePageId - 1));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1647,13 +1636,13 @@ public class AbstractPageListTest {
     public void boundPagesAreNotBoundToOtherPagesWithSameFilePageId(int pageId) throws Exception {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
         short swapperId = 2;
         doFault(swapperId, 42);
 
-        assertTrue(PageList.isBoundTo(pageRef, swapperId, 42));
-        assertFalse(PageList.isBoundTo(pageRef, (short) (swapperId + 1), 42));
-        assertFalse(PageList.isBoundTo(pageRef, (short) (swapperId - 1), 42));
+        assertTrue(PageMetadata.isBoundTo(pageRef, swapperId, 42));
+        assertFalse(PageMetadata.isBoundTo(pageRef, (short) (swapperId + 1), 42));
+        assertFalse(PageMetadata.isBoundTo(pageRef, (short) (swapperId - 1), 42));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1661,15 +1650,15 @@ public class AbstractPageListTest {
     public void faultMustNotInterfereWithAdjacentPages(int pageId) throws Exception {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
         doFault((short) 1, 42);
 
-        assertFalse(PageList.isLoaded(prevPageRef));
-        assertFalse(PageList.isLoaded(nextPageRef));
-        assertFalse(PageList.isBoundTo(prevPageRef, (short) 1, 42));
-        assertFalse(PageList.isBoundTo(prevPageRef, (short) 0, 0));
-        assertFalse(PageList.isBoundTo(nextPageRef, (short) 1, 42));
-        assertFalse(PageList.isBoundTo(nextPageRef, (short) 0, 0));
+        assertFalse(PageMetadata.isLoaded(prevPageRef));
+        assertFalse(PageMetadata.isLoaded(nextPageRef));
+        assertFalse(PageMetadata.isBoundTo(prevPageRef, (short) 1, 42));
+        assertFalse(PageMetadata.isBoundTo(prevPageRef, (short) 0, 0));
+        assertFalse(PageMetadata.isBoundTo(nextPageRef, (short) 1, 42));
+        assertFalse(PageMetadata.isBoundTo(nextPageRef, (short) 0, 0));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1677,26 +1666,26 @@ public class AbstractPageListTest {
     public void reportWriteLockStatus(int pageId) {
         init(pageId);
 
-        assertFalse(PageList.isWriteLocked(pageRef));
-        PageList.unlockExclusive(pageRef);
+        assertFalse(PageMetadata.isWriteLocked(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
 
-        assertFalse(PageList.isWriteLocked(pageRef));
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
+        assertFalse(PageMetadata.isWriteLocked(pageRef));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
 
         if (!multiVersioned) {
             for (int i = 0; i < 11; i++) {
-                assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-                assertTrue(PageList.isWriteLocked(pageRef));
+                assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+                assertTrue(PageMetadata.isWriteLocked(pageRef));
             }
 
             for (int i = 0; i < 11; i++) {
-                PageList.unlockWrite(pageRef);
-                assertTrue(PageList.isWriteLocked(pageRef));
+                PageMetadata.unlockWrite(pageRef);
+                assertTrue(PageMetadata.isWriteLocked(pageRef));
             }
         }
 
-        PageList.unlockWrite(pageRef);
-        assertFalse(PageList.isWriteLocked(pageRef));
+        PageMetadata.unlockWrite(pageRef);
+        assertFalse(PageMetadata.isWriteLocked(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1704,15 +1693,15 @@ public class AbstractPageListTest {
     public void failedFaultMustNotInterfereWithAdjacentPages(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
         doFailedFault((short) 1, 42);
 
-        assertFalse(PageList.isLoaded(prevPageRef));
-        assertFalse(PageList.isLoaded(nextPageRef));
-        assertFalse(PageList.isBoundTo(prevPageRef, (short) 1, 42));
-        assertFalse(PageList.isBoundTo(prevPageRef, (short) 0, 0));
-        assertFalse(PageList.isBoundTo(nextPageRef, (short) 1, 42));
-        assertFalse(PageList.isBoundTo(nextPageRef, (short) 0, 0));
+        assertFalse(PageMetadata.isLoaded(prevPageRef));
+        assertFalse(PageMetadata.isLoaded(nextPageRef));
+        assertFalse(PageMetadata.isBoundTo(prevPageRef, (short) 1, 42));
+        assertFalse(PageMetadata.isBoundTo(prevPageRef, (short) 0, 0));
+        assertFalse(PageMetadata.isBoundTo(nextPageRef, (short) 1, 42));
+        assertFalse(PageMetadata.isBoundTo(nextPageRef, (short) 0, 0));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1720,9 +1709,9 @@ public class AbstractPageListTest {
     public void exclusiveLockMustStillBeHeldAfterFault(int pageId) throws Exception {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
         doFault((short) 1, 42);
-        PageList.unlockExclusive(pageRef); // will throw if lock is not held
+        PageMetadata.unlockExclusive(pageRef); // will throw if lock is not held
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -1731,14 +1720,14 @@ public class AbstractPageListTest {
         init(pageId);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            PageList.unlockExclusive(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
             short swapperId = 2;
             doFault(swapperId, Long.MAX_VALUE);
         });
     }
 
     private void doFault(int swapperId, long filePageId) throws IOException {
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
         MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
         MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
         MuninnPageCursor.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);

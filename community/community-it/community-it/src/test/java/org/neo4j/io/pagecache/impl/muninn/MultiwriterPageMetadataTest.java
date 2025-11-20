@@ -33,7 +33,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.util.concurrent.Futures;
 
-class MultiwriterPageListTest extends AbstractPageListTest {
+class MultiwriterPageMetadataTest extends AbstractPageMetadataTest {
 
     @ParameterizedTest(name = "pageRef = {0}")
     @MethodSource("argumentsProvider")
@@ -41,9 +41,9 @@ class MultiwriterPageListTest extends AbstractPageListTest {
         init(pageId);
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
-            PageList.unlockExclusive(pageRef);
-            assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-            assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
+            PageMetadata.unlockExclusive(pageRef);
+            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
         });
     }
 
@@ -53,11 +53,11 @@ class MultiwriterPageListTest extends AbstractPageListTest {
         init(pageId);
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
-            PageList.unlockExclusive(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
             int threads = 10;
             CountDownLatch end = new CountDownLatch(threads);
             Runnable runnable = () -> {
-                assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
+                assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
                 end.countDown();
             };
             List<Future<?>> futures = new ArrayList<>();
@@ -76,10 +76,10 @@ class MultiwriterPageListTest extends AbstractPageListTest {
         assertThrows(
                 IllegalMonitorStateException.class,
                 () -> assertTimeoutPreemptively(TIMEOUT, () -> {
-                    PageList.unlockExclusive(pageRef);
+                    PageMetadata.unlockExclusive(pageRef);
                     //noinspection InfiniteLoopStatement
                     for (; ; ) {
-                        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
+                        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
                     }
                 }));
     }
@@ -89,11 +89,11 @@ class MultiwriterPageListTest extends AbstractPageListTest {
     void concurrentWriteLocksMustFailExclusiveLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        PageList.tryWriteLock(pageRef, multiVersioned);
-        PageList.unlockWrite(pageRef);
-        assertFalse(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.unlockWrite(pageRef);
+        assertFalse(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -103,8 +103,8 @@ class MultiwriterPageListTest extends AbstractPageListTest {
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
             // exclusive lock implied by constructor
-            PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-            assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
+            PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
         });
     }
 
@@ -113,13 +113,13 @@ class MultiwriterPageListTest extends AbstractPageListTest {
     void unlockWriteAndTryTakeFlushLockWithOverlappingWriterAndThenUnlockFlushMustNotLowerModifiedFlag(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned)); // two write locks, now
-        long stamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef); // one flush, one write lock
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned)); // two write locks, now
+        long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef); // one flush, one write lock
         assertThat(stamp).isNotEqualTo(0L);
-        PageList.unlockWrite(pageRef); // one flush, zero write locks
-        assertTrue(PageList.isModified(pageRef));
-        PageList.unlockFlush(pageRef, stamp, true); // flush is successful, but had one overlapping writer
-        assertTrue(PageList.isModified(pageRef)); // so it's still modified
+        PageMetadata.unlockWrite(pageRef); // one flush, zero write locks
+        assertTrue(PageMetadata.isModified(pageRef));
+        PageMetadata.unlockFlush(pageRef, stamp, true); // flush is successful, but had one overlapping writer
+        assertTrue(PageMetadata.isModified(pageRef)); // so it's still modified
     }
 }

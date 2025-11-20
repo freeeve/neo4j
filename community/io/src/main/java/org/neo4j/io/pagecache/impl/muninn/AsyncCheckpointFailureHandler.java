@@ -19,7 +19,7 @@
  */
 package org.neo4j.io.pagecache.impl.muninn;
 
-import static org.neo4j.io.pagecache.impl.muninn.PageList.unlockFlush;
+import static org.neo4j.io.pagecache.impl.muninn.PageMetadata.unlockFlush;
 
 import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.async.AsyncFailureHandler;

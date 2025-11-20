@@ -41,14 +41,14 @@ public class EvictionLogic {
             SwapperSet swapperSet,
             PageReferenceTranslator referenceTranslator)
             throws IOException {
-        if (PageList.tryExclusiveLock(pageRef)) {
-            if (PageList.isLoaded(pageRef)) {
+        if (PageMetadata.tryExclusiveLock(pageRef)) {
+            if (PageMetadata.isLoaded(pageRef)) {
                 try (var evictionEvent = evictionOpportunity.beginEviction(referenceTranslator.toId(pageRef))) {
                     evict(pageRef, evictionEvent, swapperSet, referenceTranslator);
                     return true;
                 }
             }
-            PageList.unlockExclusive(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
         }
         return false;
     }
@@ -59,9 +59,9 @@ public class EvictionLogic {
             SwapperSet swapperSet,
             PageReferenceTranslator referenceTranslator)
             throws IOException {
-        long filePageId = PageList.getFilePageId(pageRef);
+        long filePageId = PageMetadata.getFilePageId(pageRef);
         evictionEvent.setFilePageId(filePageId);
-        int swapperId = PageList.getSwapperId(pageRef);
+        int swapperId = PageMetadata.getSwapperId(pageRef);
         if (swapperId != 0) {
             // If the swapper id is non-zero, then the page was not only loaded, but also bound, and possibly modified.
             SwapperSet.SwapperMapping swapperMapping = swapperSet.getAllocation(swapperId);
@@ -71,17 +71,17 @@ public class EvictionLogic {
                 PageSwapper swapper = swapperMapping.swapper;
                 evictionEvent.setSwapper(swapper);
 
-                if (PageList.isModified(pageRef)) {
+                if (PageMetadata.isModified(pageRef)) {
                     if (swapper.isPageFlushable(pageRef)) {
                         flushModifiedPage(pageRef, evictionEvent, filePageId, swapper, referenceTranslator);
                     } else {
-                        PageList.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+                        PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
                     }
                 }
                 swapper.evicted(pageRef, filePageId);
             }
         }
-        PageList.clearBinding(pageRef);
+        PageMetadata.clearBinding(pageRef);
     }
 
     private static void flushModifiedPage(
@@ -93,13 +93,13 @@ public class EvictionLogic {
             throws IOException {
         try (var flushEvent = evictionEvent.beginFlush(pageRef, swapper, pageReferenceTranslator)) {
             try {
-                long address = PageList.getAddress(pageRef);
+                long address = PageMetadata.getAddress(pageRef);
                 long bytesWritten = swapper.write(filePageId, address);
-                PageList.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+                PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
                 flushEvent.addBytesWritten(bytesWritten);
                 flushEvent.addEvictionFlushedPages(1);
             } catch (IOException e) {
-                PageList.unlockExclusive(pageRef);
+                PageMetadata.unlockExclusive(pageRef);
                 flushEvent.setException(e);
                 evictionEvent.setException(e);
                 throw e;
@@ -114,13 +114,13 @@ public class EvictionLogic {
             SwapperSet swapperSet,
             PageReferenceTranslator referenceTranslator)
             throws IOException {
-        if (PageList.tryExclusiveLock(pageRef)) {
-            if (PageList.isLoaded(pageRef)) {
+        if (PageMetadata.tryExclusiveLock(pageRef)) {
+            if (PageMetadata.isLoaded(pageRef)) {
                 try (var evictionEvent = evictionOpportunity.beginAsyncEviction(referenceTranslator.toId(pageRef))) {
                     return evictAsync(blockAccessor, pageRef, evictionEvent, swapperSet, referenceTranslator);
                 }
             }
-            PageList.unlockExclusive(pageRef);
+            PageMetadata.unlockExclusive(pageRef);
         }
         return NOT_EVICTED;
     }
@@ -132,9 +132,9 @@ public class EvictionLogic {
             SwapperSet swapperSet,
             PageReferenceTranslator referenceTranslator)
             throws IOException {
-        long filePageId = PageList.getFilePageId(pageRef);
+        long filePageId = PageMetadata.getFilePageId(pageRef);
         asyncEvictionEvent.setFilePageId(filePageId);
-        int swapperId = PageList.getSwapperId(pageRef);
+        int swapperId = PageMetadata.getSwapperId(pageRef);
         if (swapperId != 0) {
             // If the swapper id is non-zero, then the page was not only loaded, but also bound, and possibly modified.
             SwapperSet.SwapperMapping swapperMapping = swapperSet.getAllocation(swapperId);
@@ -144,21 +144,21 @@ public class EvictionLogic {
                 PageSwapper swapper = swapperMapping.swapper;
                 asyncEvictionEvent.setSwapper(swapper);
 
-                if (PageList.isModified(pageRef)) {
+                if (PageMetadata.isModified(pageRef)) {
                     if (swapper.isPageFlushable(pageRef)) {
                         // flush the modified page
                         flushModifiedPageAsync(
                                 blockAccessor, pageRef, asyncEvictionEvent, filePageId, swapper, referenceTranslator);
                         return SUBMITTED;
                     } else {
-                        PageList.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+                        PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
                     }
                 }
                 swapper.evicted(pageRef, filePageId);
             }
         }
         asyncEvictionEvent.evicted();
-        PageList.clearBinding(pageRef);
+        PageMetadata.clearBinding(pageRef);
         return EVICTED;
     }
 
@@ -172,11 +172,11 @@ public class EvictionLogic {
             throws IOException {
         try (var asyncSubmit = evictionEvent.beginAsyncSubmit(pageRef, swapper, pageReferenceTranslator)) {
             try {
-                long address = PageList.getAddress(pageRef);
+                long address = PageMetadata.getAddress(pageRef);
                 swapper.asyncWrite(blockAccessor, pageRef, filePageId, address);
                 asyncSubmit.addSubmittedPages(1);
             } catch (Exception e) {
-                PageList.unlockExclusive(pageRef);
+                PageMetadata.unlockExclusive(pageRef);
                 asyncSubmit.setException(e);
                 evictionEvent.setException(e);
                 throw e;
@@ -186,10 +186,10 @@ public class EvictionLogic {
 
     public static void onPageEvictionCompletion(
             long pageRef, long writtenBytes, AsyncEvictionCompletion evictionCompletion, SwapperSet swapperSet) {
-        int swapperId = PageList.getSwapperId(pageRef);
-        long filePageId = PageList.getFilePageId(pageRef);
+        int swapperId = PageMetadata.getSwapperId(pageRef);
+        long filePageId = PageMetadata.getFilePageId(pageRef);
 
-        PageList.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+        PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
         PageFileSwapperTracer swapperTracer = PageFileSwapperTracer.NULL;
         if (swapperId != 0) {
             SwapperSet.SwapperMapping swapperMapping = swapperSet.getAllocation(swapperId);
@@ -202,10 +202,10 @@ public class EvictionLogic {
         evictionCompletion.addBytesWritten((int) writtenBytes, swapperTracer);
         evictionCompletion.addPagesCompleted(1, swapperTracer);
 
-        PageList.clearBinding(pageRef);
+        PageMetadata.clearBinding(pageRef);
     }
 
     public static void onPageEvictionFailure(long pageRef) {
-        PageList.unlockExclusive(pageRef);
+        PageMetadata.unlockExclusive(pageRef);
     }
 }

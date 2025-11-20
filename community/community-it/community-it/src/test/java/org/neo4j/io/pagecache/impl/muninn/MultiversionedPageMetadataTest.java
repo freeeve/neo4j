@@ -38,7 +38,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.util.concurrent.Futures;
 
-class MultiversionedPageListTest extends AbstractPageListTest {
+class MultiversionedPageMetadataTest extends AbstractPageMetadataTest {
 
     @BeforeEach
     void setUp() {
@@ -50,9 +50,9 @@ class MultiversionedPageListTest extends AbstractPageListTest {
     void onlySingleWriteLockIsSupportedForMultiVersionedPage(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        assertFalse(PageList.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -61,13 +61,13 @@ class MultiversionedPageListTest extends AbstractPageListTest {
         init(pageId);
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
-            PageList.unlockExclusive(pageRef);
-            assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
+            PageMetadata.unlockExclusive(pageRef);
+            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
 
             int threads = 10;
             CountDownLatch end = new CountDownLatch(threads);
             Runnable runnable = () -> {
-                assertFalse(PageList.tryWriteLock(pageRef, multiVersioned));
+                assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
                 end.countDown();
             };
             List<Future<?>> futures = new ArrayList<>();
@@ -84,11 +84,11 @@ class MultiversionedPageListTest extends AbstractPageListTest {
     void concurrentWriteFailedLocksDoNotFailExclusiveLocks(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusive(pageRef);
-        assertTrue(PageList.tryWriteLock(pageRef, multiVersioned));
-        assertFalse(PageList.tryWriteLock(pageRef, multiVersioned));
-        PageList.unlockWrite(pageRef);
-        assertTrue(PageList.tryExclusiveLock(pageRef));
+        PageMetadata.unlockExclusive(pageRef);
+        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockWrite(pageRef);
+        assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -98,8 +98,8 @@ class MultiversionedPageListTest extends AbstractPageListTest {
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
             // exclusive lock implied by constructor
-            PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-            assertFalse(PageList.tryWriteLock(pageRef, multiVersioned));
+            PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+            assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
         });
     }
 
@@ -108,8 +108,8 @@ class MultiversionedPageListTest extends AbstractPageListTest {
     void impossibleToTakeAnotherWriteLockWhenTransitionedFromExclusiveToWriteLock(int pageId) {
         init(pageId);
 
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertFalse(PageList.tryWriteLock(pageRef, multiVersioned));
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
+        assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -117,14 +117,14 @@ class MultiversionedPageListTest extends AbstractPageListTest {
     void concurrentWriteShouldBeBlocked(int pageId) throws InterruptedException, ExecutionException {
         init(pageId);
 
-        PageList.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, multiVersioned);
 
         int threads = 10;
         AtomicLong locksSneaked = new AtomicLong();
         AtomicBoolean execute = new AtomicBoolean(true);
 
         Runnable runnable = () -> {
-            while (execute.get() && !PageList.tryWriteLock(pageRef, multiVersioned)) {
+            while (execute.get() && !PageMetadata.tryWriteLock(pageRef, multiVersioned)) {
                 // loop
             }
             locksSneaked.getAndIncrement();

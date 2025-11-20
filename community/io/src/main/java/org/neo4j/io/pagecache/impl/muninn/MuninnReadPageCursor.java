@@ -32,12 +32,12 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
 
     MuninnReadPageCursor(
             MuninnPagedFile pagedFile,
-            PageList pageList,
+            PageMetadata pageMetadata,
             int pf_flags,
             long victimPage,
             CursorContext cursorContext,
             long pageId) {
-        super(pagedFile, pageList, pf_flags, victimPage, cursorContext, pageId);
+        super(pagedFile, pageMetadata, pf_flags, victimPage, cursorContext, pageId);
     }
 
     @Override
@@ -73,7 +73,7 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
 
     @Override
     protected boolean tryLockPage(long pageRef) {
-        lockStamp = PageList.tryOptimisticReadLock(pageRef);
+        lockStamp = PageMetadata.tryOptimisticReadLock(pageRef);
         return true;
     }
 
@@ -108,7 +108,7 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
 
     @Override
     protected void convertPageFaultLock(long pageRef) {
-        lockStamp = PageList.unlockExclusive(pageRef);
+        lockStamp = PageMetadata.unlockExclusive(pageRef);
     }
 
     @Override
@@ -128,7 +128,7 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
         MuninnReadPageCursor cursor = this;
         do {
             long pageRef = cursor.pinnedPageRef;
-            if (pageRef != 0 && !PageList.validateReadLock(pageRef, cursor.lockStamp)) {
+            if (pageRef != 0 && !PageMetadata.validateReadLock(pageRef, cursor.lockStamp)) {
                 assertCursorOpenFileMappedAndGetIdOfLastPage();
                 startRetryLinkedChain();
                 return true;
@@ -143,7 +143,7 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
         MuninnReadPageCursor cursor = this;
         do {
             long pageRef = cursor.pinnedPageRef;
-            if (pageRef != 0 && !PageList.validateReadLock(pageRef, cursor.lockStamp)) {
+            if (pageRef != 0 && !PageMetadata.validateReadLock(pageRef, cursor.lockStamp)) {
                 return true;
             }
             cursor = (MuninnReadPageCursor) cursor.linkedCursor;
@@ -167,12 +167,12 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
         setOffset(0);
         checkAndClearBoundsFlag();
         clearCursorException();
-        lockStamp = PageList.tryOptimisticReadLock(pageRef);
+        lockStamp = PageMetadata.tryOptimisticReadLock(pageRef);
         // The page might have been evicted while we held the optimistic
         // read lock, so we need to check with page.pin that this is still
         // the page we're actually interested in:
         var filePageId = loadPlainCurrentPageId();
-        if (!PageList.isBoundTo(pageRef, swapperId, filePageId) || multiVersioned) {
+        if (!PageMetadata.isBoundTo(pageRef, swapperId, filePageId) || multiVersioned) {
             // This is no longer the page we're interested in, so we have
             // to redo the pinning.
             // This might in turn lead to a new optimistic lock on a

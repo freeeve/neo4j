@@ -26,9 +26,10 @@ import org.neo4j.internal.unsafe.UnsafeUtil;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.tracing.PageReferenceTranslator;
+import org.neo4j.util.VisibleForTesting;
 
 /**
- * The PageList maintains meta-data for the individual memory pages and provides static methods for working with it.
+ * The PageMetadata maintains metadata for the individual memory pages and provides static methods for working with it.
  * Metadata for all pages is stored in a contiguous block of off-heap memory and could be considered as a single array.
  *
  * There are few page-* terms used in page cache implementation, and metadata connects them:
@@ -50,7 +51,7 @@ import org.neo4j.io.pagecache.tracing.PageReferenceTranslator;
  * ┏━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ┏━━┻━━━━━━━━━━━━━━━━━━━━━┓┏┻┓
  * PPPP PPPP PPPP PPPP PPPP PPPP PPPP PPPP PPPP PPPP SSSS SSSS SSSS SSSS SSSS SRRR
  */
-class PageList implements PageReferenceTranslator {
+class PageMetadata implements PageReferenceTranslator {
 
     static final int META_DATA_BYTES_PER_PAGE = 32;
     static final long MAX_PAGES = Integer.MAX_VALUE;
@@ -86,12 +87,48 @@ class PageList implements PageReferenceTranslator {
     private final int cachePageSize;
     private final long baseAddress;
 
-    PageList(int pageCount, int cachePageSize, MemoryAllocator memoryAllocator) {
+    PageMetadata(int pageCount, int cachePageSize, MemoryAllocator memoryAllocator) {
         this.pageCount = pageCount;
         this.cachePageSize = cachePageSize;
         long bytes = ((long) pageCount) * META_DATA_BYTES_PER_PAGE;
         this.baseAddress = memoryAllocator.allocateAligned(bytes, Long.BYTES);
         clearMemory(baseAddress, pageCount);
+    }
+
+    /**
+     * @return The capacity of the page list.
+     */
+    int getPageCount() {
+        return pageCount;
+    }
+
+    /**
+     * Turn a {@code pageId} into a {@code pageRef} that can be used for accessing and manipulating the given page
+     * using the other methods in this class.
+     *
+     * @param pageId The {@code pageId} to turn into a {@code pageRef}.
+     * @return A {@code pageRef} which is an opaque, internal and direct pointer to the meta-data of the given memory
+     * page.
+     */
+    long deref(int pageId) {
+        assert pageId >= 0 && pageId < pageCount : "PageId out of range: " + pageId + ". PageCount: " + pageCount;
+        //noinspection UnnecessaryLocalVariable
+        long id = pageId; // convert to long to avoid int multiplication
+        return baseAddress + (id * META_DATA_BYTES_PER_PAGE);
+    }
+
+    /**
+     * Turn a {@code pageRef} into a page cache {@code pageId}
+     */
+    @Override
+    public int toId(long pageRef) {
+        // >> 5 is equivalent to dividing by 32, META_DATA_BYTES_PER_PAGE.
+        return (int) ((pageRef - baseAddress) >> 5);
+    }
+
+    @VisibleForTesting
+    int getCachePageSize() {
+        return cachePageSize;
     }
 
     private static void clearMemory(long baseAddress, long pageCount) {
@@ -132,120 +169,88 @@ class PageList implements PageReferenceTranslator {
         clearMemorySimple(address, tailCount);
     }
 
-    /**
-     * @return The capacity of the page list.
-     */
-    int getPageCount() {
-        return pageCount;
-    }
-
-    /**
-     * Turn a {@code pageId} into a {@code pageRef} that can be used for accessing and manipulating the given page
-     * using the other methods in this class.
-     *
-     * @param pageId The {@code pageId} to turn into a {@code pageRef}.
-     * @return A {@code pageRef} which is an opaque, internal and direct pointer to the meta-data of the given memory
-     * page.
-     */
-    long deref(int pageId) {
-        assert pageId >= 0 && pageId < pageCount : "PageId out of range: " + pageId + ". PageCount: " + pageCount;
-        //noinspection UnnecessaryLocalVariable
-        long id = pageId; // convert to long to avoid int multiplication
-        return baseAddress + (id * META_DATA_BYTES_PER_PAGE);
-    }
-
-    @Override
-    public int toId(long pageRef) {
-        // >> 5 is equivalent to dividing by 32, META_DATA_BYTES_PER_PAGE.
-        return (int) ((pageRef - baseAddress) >> 5);
-    }
-
-    private static long offLastModifiedTransactionId(long pageRef) {
+    private static long offsetLastModifiedTransactionId(long pageRef) {
         return pageRef + OFFSET_LAST_TX_ID;
     }
 
-    private static long offPageHorizon(long pageRef) {
+    private static long offsetPageHorizon(long pageRef) {
         return pageRef + OFFSET_PREVIOUS_CHAIN_TX_ID;
     }
 
-    private static long offLock(long pageRef) {
+    private static long offsetLock(long pageRef) {
         return pageRef + OFFSET_LOCK_WORD;
     }
 
-    private static long offAddress(long pageRef) {
+    private static long offsetAddress(long pageRef) {
         return pageRef + OFFSET_ADDRESS;
     }
 
-    private static long offPageBinding(long pageRef) {
+    private static long offsetPageBinding(long pageRef) {
         return pageRef + OFFSET_PAGE_BINDING;
     }
 
     static long tryOptimisticReadLock(long pageRef) {
-        return OffHeapPageLock.tryOptimisticReadLock(offLock(pageRef));
+        return OffHeapPageLock.tryOptimisticReadLock(offsetLock(pageRef));
     }
 
     static boolean validateReadLock(long pageRef, long stamp) {
-        return OffHeapPageLock.validateReadLock(offLock(pageRef), stamp);
+        return OffHeapPageLock.validateReadLock(offsetLock(pageRef), stamp);
     }
 
     static boolean isModified(long pageRef) {
-        return OffHeapPageLock.isModified(offLock(pageRef));
+        return OffHeapPageLock.isModified(offsetLock(pageRef));
     }
 
     static boolean isExclusivelyLocked(long pageRef) {
-        return OffHeapPageLock.isExclusivelyLocked(offLock(pageRef));
+        return OffHeapPageLock.isExclusivelyLocked(offsetLock(pageRef));
     }
 
     static boolean isWriteLocked(long pageRef) {
-        return OffHeapPageLock.isWriteLocked(offLock(pageRef));
+        return OffHeapPageLock.isWriteLocked(offsetLock(pageRef));
     }
 
     static boolean tryWriteLock(long pageRef, boolean multiVersioned) {
-        return OffHeapPageLock.tryWriteLock(offLock(pageRef), multiVersioned);
+        return OffHeapPageLock.tryWriteLock(offsetLock(pageRef), multiVersioned);
     }
 
     static void unlockWrite(long pageRef) {
-        OffHeapPageLock.unlockWrite(offLock(pageRef));
+        OffHeapPageLock.unlockWrite(offsetLock(pageRef));
     }
 
     static long unlockWriteAndTryTakeFlushLock(long pageRef) {
-        return OffHeapPageLock.unlockWriteAndTryTakeFlushLock(offLock(pageRef));
+        return OffHeapPageLock.unlockWriteAndTryTakeFlushLock(offsetLock(pageRef));
     }
 
     static boolean tryExclusiveLock(long pageRef) {
-        return OffHeapPageLock.tryExclusiveLock(offLock(pageRef));
+        return OffHeapPageLock.tryExclusiveLock(offsetLock(pageRef));
     }
 
     static long unlockExclusive(long pageRef) {
-        return OffHeapPageLock.unlockExclusive(offLock(pageRef));
+        return OffHeapPageLock.unlockExclusive(offsetLock(pageRef));
     }
 
     static void unlockExclusiveAndTakeWriteLock(long pageRef) {
-        OffHeapPageLock.unlockExclusiveAndTakeWriteLock(offLock(pageRef));
+        OffHeapPageLock.unlockExclusiveAndTakeWriteLock(offsetLock(pageRef));
     }
 
     static long tryFlushLock(long pageRef) {
-        return OffHeapPageLock.tryFlushLock(offLock(pageRef));
+        return OffHeapPageLock.tryFlushLock(offsetLock(pageRef));
     }
 
     static void unlockFlush(long pageRef, long stamp, boolean success) {
-        OffHeapPageLock.unlockFlush(offLock(pageRef), stamp, success);
+        OffHeapPageLock.unlockFlush(offsetLock(pageRef), stamp, success);
     }
 
     static void explicitlyMarkPageUnmodifiedUnderExclusiveLock(long pageRef) {
-        OffHeapPageLock.explicitlyMarkPageUnmodifiedUnderExclusiveLock(offLock(pageRef));
-    }
-
-    int getCachePageSize() {
-        return cachePageSize;
+        OffHeapPageLock.explicitlyMarkPageUnmodifiedUnderExclusiveLock(offsetLock(pageRef));
     }
 
     static long getAddress(long pageRef) {
-        return UnsafeUtil.getLong(offAddress(pageRef));
+        return UnsafeUtil.getLong(offsetAddress(pageRef));
     }
 
     static void setAddress(long pageRef, long address) {
-        UnsafeUtil.putLong(offAddress(pageRef), address);
+        UnsafeUtil.putLong(offsetAddress(pageRef), address);
     }
 
     /**
@@ -253,7 +258,7 @@ class PageList implements PageReferenceTranslator {
      **/
     static void incrementUsage(long pageRef) {
         // This is intentionally left benignly racy for performance.
-        long address = offPageBinding(pageRef);
+        long address = offsetPageBinding(pageRef);
         long value = UnsafeUtil.getLongVolatile(address);
         long usage = value & MASK_USAGE_COUNT;
         if (usage < MAX_USAGE_COUNT) // avoid cache sloshing by not doing a write if counter is already maxed out
@@ -273,7 +278,7 @@ class PageList implements PageReferenceTranslator {
      **/
     static boolean decrementUsage(long pageRef) {
         // This is intentionally left benignly racy for performance.
-        long address = offPageBinding(pageRef);
+        long address = offsetPageBinding(pageRef);
         long value = UnsafeUtil.getLongVolatile(address);
         long usage = value & MASK_USAGE_COUNT;
         if (usage > 0) {
@@ -285,11 +290,11 @@ class PageList implements PageReferenceTranslator {
     }
 
     static long getUsage(long pageRef) {
-        return UnsafeUtil.getLongVolatile(offPageBinding(pageRef)) & MASK_USAGE_COUNT;
+        return UnsafeUtil.getLongVolatile(offsetPageBinding(pageRef)) & MASK_USAGE_COUNT;
     }
 
     static long getFilePageId(long pageRef) {
-        long filePageId = UnsafeUtil.getLong(offPageBinding(pageRef)) >>> SHIFT_FILE_PAGE_ID;
+        long filePageId = UnsafeUtil.getLong(offsetPageBinding(pageRef)) >>> SHIFT_FILE_PAGE_ID;
         return filePageId == MAX_FILE_PAGE_ID ? PageCursor.UNBOUND_PAGE_ID : filePageId;
     }
 
@@ -298,47 +303,47 @@ class PageList implements PageReferenceTranslator {
             throw new IllegalArgumentException(
                     format("File page id: %s is bigger then max supported value %s.", filePageId, MAX_FILE_PAGE_ID));
         }
-        long address = offPageBinding(pageRef);
+        long address = offsetPageBinding(pageRef);
         long v = UnsafeUtil.getLong(address);
         filePageId = (filePageId << SHIFT_FILE_PAGE_ID) + (v & MASK_NOT_FILE_PAGE_ID);
         UnsafeUtil.putLong(address, filePageId);
     }
 
     static long getLastModifiedTxId(long pageRef) {
-        return UnsafeUtil.getLongVolatile(offLastModifiedTransactionId(pageRef));
+        return UnsafeUtil.getLongVolatile(offsetLastModifiedTransactionId(pageRef));
     }
 
     /**
      * @return return last modifier transaction id and resets it to {@link #UNBOUND_LAST_MODIFIED_TX_ID}
      */
     static long getAndResetLastModifiedTransactionId(long pageRef) {
-        return UnsafeUtil.getAndSetLong(null, offLastModifiedTransactionId(pageRef), UNBOUND_LAST_MODIFIED_TX_ID);
+        return UnsafeUtil.getAndSetLong(null, offsetLastModifiedTransactionId(pageRef), UNBOUND_LAST_MODIFIED_TX_ID);
     }
 
     static void setLastModifiedTxId(long pageRef, long modifierTxId) {
-        UnsafeUtil.compareAndSetMaxLong(null, offLastModifiedTransactionId(pageRef), modifierTxId);
+        UnsafeUtil.compareAndSetMaxLong(null, offsetLastModifiedTransactionId(pageRef), modifierTxId);
     }
 
     static long getAndResetPageHorizon(long pageRef) {
-        return UnsafeUtil.getAndSetLong(null, offPageHorizon(pageRef), UNKNOWN_CHAIN_MODIFIER);
+        return UnsafeUtil.getAndSetLong(null, offsetPageHorizon(pageRef), UNKNOWN_CHAIN_MODIFIER);
     }
 
     static long getPageHorizon(long pageRef) {
-        return UnsafeUtil.getLongVolatile(offPageHorizon(pageRef));
+        return UnsafeUtil.getLongVolatile(offsetPageHorizon(pageRef));
     }
 
     static void setPageHorizon(long pageRef, long horizon) {
-        UnsafeUtil.putLong(offPageHorizon(pageRef), horizon);
+        UnsafeUtil.putLong(offsetPageHorizon(pageRef), horizon);
     }
 
     static int getSwapperId(long pageRef) {
-        long v = UnsafeUtil.getLong(offPageBinding(pageRef)) >>> SHIFT_SWAPPER_ID;
+        long v = UnsafeUtil.getLong(offsetPageBinding(pageRef)) >>> SHIFT_SWAPPER_ID;
         return (int) (v & MASK_SHIFTED_SWAPPER_ID); // 21 bits.
     }
 
     static void setSwapperId(long pageRef, int swapperId) {
         swapperId = swapperId << SHIFT_SWAPPER_ID;
-        long address = offPageBinding(pageRef);
+        long address = offsetPageBinding(pageRef);
         long v = UnsafeUtil.getLong(address) & MASK_NOT_SWAPPER_ID;
         UnsafeUtil.putLong(address, v + swapperId);
     }
@@ -348,21 +353,21 @@ class PageList implements PageReferenceTranslator {
     }
 
     static boolean isBoundTo(long pageRef, int swapperId, long filePageId) {
-        long address = offPageBinding(pageRef);
+        long address = offsetPageBinding(pageRef);
         long expectedBinding = (filePageId << SHIFT_PARTIAL_FILE_PAGE_ID) + swapperId;
         long actualBinding = UnsafeUtil.getLong(address) >>> SHIFT_SWAPPER_ID;
         return expectedBinding == actualBinding;
     }
 
     static void clearBinding(long pageRef) {
-        PageList.getAndResetPageHorizon(pageRef);
-        UnsafeUtil.putLong(offPageBinding(pageRef), UNBOUND_PAGE_BINDING);
+        PageMetadata.getAndResetPageHorizon(pageRef);
+        UnsafeUtil.putLong(offsetPageBinding(pageRef), UNBOUND_PAGE_BINDING);
     }
 
     static String pageMetadata(long pageRef) {
-        return "Lock word: " + Long.toHexString(UnsafeUtil.getLong(offLock(pageRef))) + "\nAddress: "
-                + Long.toHexString(UnsafeUtil.getLong(offAddress(pageRef))) + "\nPrevious/Last TxId: "
-                + Long.toHexString(UnsafeUtil.getLong(offPageHorizon(pageRef))) + "\nBinding: "
-                + Long.toHexString(UnsafeUtil.getLong(offPageBinding(pageRef)));
+        return "Lock word: " + Long.toHexString(UnsafeUtil.getLong(offsetLock(pageRef))) + "\nAddress: "
+                + Long.toHexString(UnsafeUtil.getLong(offsetAddress(pageRef))) + "\nPrevious/Last TxId: "
+                + Long.toHexString(UnsafeUtil.getLong(offsetPageHorizon(pageRef))) + "\nBinding: "
+                + Long.toHexString(UnsafeUtil.getLong(offsetPageBinding(pageRef)));
     }
 }

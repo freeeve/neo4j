@@ -49,7 +49,7 @@ import static org.neo4j.io.pagecache.PagedFile.PF_TRANSIENT;
 import static org.neo4j.io.pagecache.buffer.IOBufferFactory.DISABLED_BUFFER_FACTORY;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
-import static org.neo4j.io.pagecache.impl.muninn.PageList.getPageHorizon;
+import static org.neo4j.io.pagecache.impl.muninn.PageMetadata.getPageHorizon;
 import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
 import static org.neo4j.io.pagecache.tracing.recording.RecordingPageCacheTracer.Evict;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -238,7 +238,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
     }
 
     @Test
-    void reusePagesOverPageListOnFileTruncation() throws IOException {
+    void reusePagesOverPageMetadataOnFileTruncation() throws IOException {
         int pageCachePages = 20;
         int pagesToKeep = 5;
         try (var pageCache = createPageCache(fs, pageCachePages, new DefaultPageCacheTracer())) {
@@ -832,7 +832,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, cursorContext)) {
                 assertTrue(cursor.next());
                 MuninnPageCursor pageCursor = (MuninnPageCursor) cursor;
-                assertEquals(7, PageList.getLastModifiedTxId(pageCursor.pinnedPageRef));
+                assertEquals(7, PageMetadata.getLastModifiedTxId(pageCursor.pinnedPageRef));
                 assertEquals(1, cursor.getLong());
             }
         }
@@ -857,7 +857,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, cursorContext)) {
                 assertTrue(cursor.next());
                 MuninnPageCursor pageCursor = (MuninnPageCursor) cursor;
-                assertEquals(0, PageList.getLastModifiedTxId(pageCursor.pinnedPageRef));
+                assertEquals(0, PageMetadata.getLastModifiedTxId(pageCursor.pinnedPageRef));
                 assertEquals(1, cursor.getLong());
             }
         }
@@ -1560,7 +1560,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, cursorContext)) {
                 assertTrue(cursor.next());
                 MuninnPageCursor pageCursor = (MuninnPageCursor) cursor;
-                assertEquals(7, PageList.getLastModifiedTxId(pageCursor.pinnedPageRef));
+                assertEquals(7, PageMetadata.getLastModifiedTxId(pageCursor.pinnedPageRef));
                 assertEquals(1, cursor.getLong());
             }
         }
@@ -1592,7 +1592,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, cursorContext)) {
                 assertTrue(cursor.next());
                 MuninnPageCursor pageCursor = (MuninnPageCursor) cursor;
-                assertEquals(0, PageList.getLastModifiedTxId(pageCursor.pinnedPageRef));
+                assertEquals(0, PageMetadata.getLastModifiedTxId(pageCursor.pinnedPageRef));
                 assertEquals(1, cursor.getLong());
             }
         }
@@ -1628,7 +1628,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, cursorContext)) {
                 assertTrue(cursor.next());
                 MuninnPageCursor pageCursor = (MuninnPageCursor) cursor;
-                assertEquals(12, PageList.getLastModifiedTxId(pageCursor.pinnedPageRef));
+                assertEquals(12, PageMetadata.getLastModifiedTxId(pageCursor.pinnedPageRef));
                 assertEquals(3, cursor.getLong());
             }
         }
@@ -1664,7 +1664,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, cursorContext)) {
                 assertTrue(cursor.next());
                 MuninnPageCursor pageCursor = (MuninnPageCursor) cursor;
-                assertEquals(0, PageList.getLastModifiedTxId(pageCursor.pinnedPageRef));
+                assertEquals(0, PageMetadata.getLastModifiedTxId(pageCursor.pinnedPageRef));
                 assertEquals(3, cursor.getLong());
             }
         }
@@ -1687,7 +1687,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                 assertFalse(versionContext.isDirty());
 
                 MuninnPageCursor pageCursor = (MuninnPageCursor) cursor;
-                PageList.setLastModifiedTxId(pageCursor.pinnedPageRef, 17);
+                PageMetadata.setLastModifiedTxId(pageCursor.pinnedPageRef, 17);
 
                 assertTrue(cursor.next(0));
                 assertTrue(versionContext.isDirty());
@@ -1712,7 +1712,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                 assertFalse(versionContext.isDirty());
 
                 MuninnPageCursor pageCursor = (MuninnPageCursor) cursor;
-                PageList.setLastModifiedTxId(pageCursor.pinnedPageRef, 17);
+                PageMetadata.setLastModifiedTxId(pageCursor.pinnedPageRef, 17);
 
                 assertTrue(cursor.next(0));
                 assertFalse(versionContext.isDirty());
@@ -2155,27 +2155,27 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
     void transientCursorShouldNotUpdateUsageCounter() throws IOException {
         try (MuninnPageCache pageCache = createPageCache(fs, 40, PageCacheTracer.NULL);
                 PagedFile pagedFile = map(pageCache, file("a"), 8 + reservedBytes)) {
-            PageList pages = pageCache.pageList();
+            PageMetadata pages = pageCache.pageMetadata();
             long zeroPageRef = pages.deref(0);
 
             // Pretend to read some data
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
                 assertTrue(cursor.next());
-                assertThat(PageList.getUsage(zeroPageRef)).isEqualTo(1);
+                assertThat(PageMetadata.getUsage(zeroPageRef)).isEqualTo(1);
             }
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, NULL_CONTEXT)) {
                 assertTrue(cursor.next());
-                assertThat(PageList.getUsage(zeroPageRef)).isEqualTo(2);
+                assertThat(PageMetadata.getUsage(zeroPageRef)).isEqualTo(2);
             }
 
             // Using transient cursors should not update usage
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_WRITE_LOCK | PF_TRANSIENT, NULL_CONTEXT)) {
                 assertTrue(cursor.next());
-                assertThat(PageList.getUsage(zeroPageRef)).isEqualTo(2);
+                assertThat(PageMetadata.getUsage(zeroPageRef)).isEqualTo(2);
             }
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK | PF_TRANSIENT, NULL_CONTEXT)) {
                 assertTrue(cursor.next());
-                assertThat(PageList.getUsage(zeroPageRef)).isEqualTo(2);
+                assertThat(PageMetadata.getUsage(zeroPageRef)).isEqualTo(2);
             }
         }
     }
@@ -2183,13 +2183,13 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
     @Test
     void pageHorizonIsZeroAfterFlushOrEviction() throws IOException {
         int maxPages = 40;
-        final AtomicReference<PageList> pagesReferenceHolder = new AtomicReference<>();
+        final AtomicReference<PageMetadata> pagesReferenceHolder = new AtomicReference<>();
         var pageCacheTracer = new PageHorizonSettingPageCacheTracer(pagesReferenceHolder);
         var contextFactory = new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER);
         try (MuninnPageCache pageCache = createPageCache(fs, maxPages, pageCacheTracer);
                 PagedFile pagedFile = map(pageCache, file("a"), 8 + reservedBytes, immutable.of(MULTI_VERSIONED))) {
 
-            pagesReferenceHolder.set(pageCache.pageList());
+            pagesReferenceHolder.set(pageCache.pageMetadata());
 
             try (PageCursor cursor = pagedFile.io(
                     0, PF_SHARED_WRITE_LOCK, contextFactory.create("pageHorizonIsZeroAfterFlushOrEviction"))) {
@@ -2217,13 +2217,13 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
     @Test
     void pageHorizonIsZeroAfterFileTruncate() throws IOException {
         int maxPages = 40;
-        final AtomicReference<PageList> pagesReferenceHolder = new AtomicReference<>();
+        final AtomicReference<PageMetadata> pagesReferenceHolder = new AtomicReference<>();
         var pageCacheTracer = new PageHorizonSettingPageCacheTracer(pagesReferenceHolder);
         var contextFactory = new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER);
         try (MuninnPageCache pageCache = createPageCache(fs, maxPages, pageCacheTracer);
                 PagedFile pagedFile = map(pageCache, file("a"), 8 + reservedBytes)) {
 
-            pagesReferenceHolder.set(pageCache.pageList());
+            pagesReferenceHolder.set(pageCache.pageMetadata());
 
             try (PageCursor cursor = pagedFile.io(
                     0, PF_SHARED_WRITE_LOCK, contextFactory.create("pageHorizonIsZeroAfterFileTruncate"))) {
@@ -2509,10 +2509,10 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
     }
 
     private static void evictAllPages(MuninnPageCache pageCache) throws IOException {
-        PageList pages = pageCache.pageList();
+        PageMetadata pages = pageCache.pageMetadata();
         for (int pageId = 0; pageId < pages.getPageCount(); pageId++) {
             long pageReference = pages.deref(pageId);
-            while (PageList.isLoaded(pageReference)) {
+            while (PageMetadata.isLoaded(pageReference)) {
                 EvictionLogic.tryEvict(pageReference, EvictionRunEvent.NULL, pageCache.swapperSet(), pages);
             }
         }
@@ -2884,9 +2884,9 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
     }
 
     private static class PageHorizonSettingPageCacheTracer extends DefaultPageCacheTracer {
-        private final AtomicReference<PageList> pagesHolder;
+        private final AtomicReference<PageMetadata> pagesHolder;
 
-        public PageHorizonSettingPageCacheTracer(AtomicReference<PageList> pagesHolder) {
+        public PageHorizonSettingPageCacheTracer(AtomicReference<PageMetadata> pagesHolder) {
             this.pagesHolder = pagesHolder;
         }
 
@@ -2903,10 +2903,10 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         private class HorizonPinEvent implements PinEvent {
             @Override
             public void setCachePageId(long cachePageId) {
-                PageList pageList = pagesHolder.get();
-                long pageRef = pageList.deref((int) cachePageId);
-                if (PageList.isWriteLocked(pageRef)) {
-                    PageList.setPageHorizon(pageRef, 42);
+                PageMetadata pageMetadata = pagesHolder.get();
+                long pageRef = pageMetadata.deref((int) cachePageId);
+                if (PageMetadata.isWriteLocked(pageRef)) {
+                    PageMetadata.setPageHorizon(pageRef, 42);
                 }
             }
 

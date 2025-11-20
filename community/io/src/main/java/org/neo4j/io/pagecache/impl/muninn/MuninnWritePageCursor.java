@@ -41,12 +41,12 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
 
     MuninnWritePageCursor(
             MuninnPagedFile pagedFile,
-            PageList pageList,
+            PageMetadata pageMetadata,
             int pf_flags,
             long victimPage,
             CursorContext cursorContext,
             long pageId) {
-        super(pagedFile, pageList, pf_flags, victimPage, cursorContext, pageId);
+        super(pagedFile, pageMetadata, pf_flags, victimPage, cursorContext, pageId);
     }
 
     @Override
@@ -81,17 +81,17 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
                                 + " doesn't match current thread id " + currentThread);
                     }
                 }
-                flushStamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
+                flushStamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
             }
         } else {
-            flushStamp = PageList.unlockWriteAndTryTakeFlushLock(pageRef);
+            flushStamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
         }
         if (flushStamp != 0) {
             boolean success = false;
             try {
                 success = pagedFile.flushLockedPage(pageRef, loadPlainCurrentPageId());
             } finally {
-                PageList.unlockFlush(pageRef, flushStamp, success);
+                PageMetadata.unlockFlush(pageRef, flushStamp, success);
             }
         }
     }
@@ -138,13 +138,13 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
                                     + threadId + " already holds write lock on page " + pageRef);
                 }
             }
-            var writeLock = PageList.tryWriteLock(pageRef, true);
+            var writeLock = PageMetadata.tryWriteLock(pageRef, true);
             if (LOCKED_PAGES != null && writeLock) {
                 LOCKED_PAGES.put(pageRef, Thread.currentThread().threadId());
             }
             return writeLock;
         }
-        return PageList.tryWriteLock(pageRef, false);
+        return PageMetadata.tryWriteLock(pageRef, false);
     }
 
     private boolean isPinnedByLinkedFriends(long pageRef) {
@@ -179,10 +179,10 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
                                 + " doesn't match current thread id " + currentThread);
                     }
                 }
-                PageList.unlockWrite(pageRef);
+                PageMetadata.unlockWrite(pageRef);
             }
         } else {
-            PageList.unlockWrite(pageRef);
+            PageMetadata.unlockWrite(pageRef);
         }
     }
 
@@ -212,7 +212,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
                 putLongAt(pagePointer, versionContext.committingTransactionId(), littleEndian);
             }
         } else if (contextVersionUpdates) {
-            PageList.setLastModifiedTxId(pageRef, versionContext.committingTransactionId());
+            PageMetadata.setLastModifiedTxId(pageRef, versionContext.committingTransactionId());
         }
     }
 
@@ -227,7 +227,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
 
     @Override
     protected void convertPageFaultLock(long pageRef) {
-        PageList.unlockExclusiveAndTakeWriteLock(pageRef);
+        PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
         if (LOCKED_PAGES != null && multiVersioned) {
             LOCKED_PAGES.put(pageRef, Thread.currentThread().threadId());
         }
@@ -236,7 +236,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
     @Override
     public void setPageHorizon(long horizon) {
         if (multiVersioned && pinnedPageRef != 0) {
-            PageList.setPageHorizon(pinnedPageRef, horizon);
+            PageMetadata.setPageHorizon(pinnedPageRef, horizon);
         }
     }
 

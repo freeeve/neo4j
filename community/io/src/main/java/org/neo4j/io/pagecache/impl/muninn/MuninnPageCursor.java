@@ -28,8 +28,8 @@ import static org.neo4j.io.pagecache.PagedFile.PF_NO_LOAD;
 import static org.neo4j.io.pagecache.PagedFile.PF_SHARED_WRITE_LOCK;
 import static org.neo4j.io.pagecache.PagedFile.PF_TRANSIENT;
 import static org.neo4j.io.pagecache.impl.muninn.MuninnPagedFile.UNMAPPED_TTE;
-import static org.neo4j.io.pagecache.impl.muninn.PageList.getAddress;
-import static org.neo4j.io.pagecache.impl.muninn.PageList.setSwapperId;
+import static org.neo4j.io.pagecache.impl.muninn.PageMetadata.getAddress;
+import static org.neo4j.io.pagecache.impl.muninn.PageMetadata.setSwapperId;
 import static org.neo4j.util.FeatureToggles.flag;
 
 import java.io.IOException;
@@ -73,7 +73,7 @@ public abstract class MuninnPageCursor extends PageCursor {
     protected final CursorContext cursorContext;
 
     final MuninnPagedFile pagedFile;
-    private final PageList pageList;
+    private final PageMetadata pageMetadata;
     final PageSwapper swapper;
     final VersionStorage versionStorage;
     VersionState versionState;
@@ -122,13 +122,13 @@ public abstract class MuninnPageCursor extends PageCursor {
 
     MuninnPageCursor(
             MuninnPagedFile pagedFile,
-            PageList pageList,
+            PageMetadata pageMetadata,
             int pf_flags,
             long victimPage,
             CursorContext cursorContext,
             long pageId) {
         this.pagedFile = pagedFile;
-        this.pageList = pageList;
+        this.pageMetadata = pageMetadata;
         this.swapper = pagedFile.swapper;
         this.swapperId = pagedFile.swapperId;
         this.filePageSize = pagedFile.filePageSize;
@@ -158,7 +158,7 @@ public abstract class MuninnPageCursor extends PageCursor {
     MuninnPageCursor(MuninnPageCursor cursor) {
         this(
                 cursor.pagedFile,
-                cursor.pageList,
+                cursor.pageMetadata,
                 cursor.pf_flags,
                 cursor.victimPage,
                 cursor.cursorContext,
@@ -195,10 +195,10 @@ public abstract class MuninnPageCursor extends PageCursor {
         this.offset = pageReservedBytes;
         this.pageSize = filePageSize;
         this.payloadSize = filePayloadSize;
-        this.pointer = PageList.getAddress(pageRef);
-        pinEvent.setCachePageId(pageList.toId(pageRef));
+        this.pointer = PageMetadata.getAddress(pageRef);
+        pinEvent.setCachePageId(pageMetadata.toId(pageRef));
         if (updateUsage) {
-            PageList.incrementUsage(pageRef);
+            PageMetadata.incrementUsage(pageRef);
         }
     }
 
@@ -236,7 +236,7 @@ public abstract class MuninnPageCursor extends PageCursor {
     private boolean isPotentiallyReadingDirtyData(long lastClosedTransactionId) {
         long pageRef = pinnedPageRef;
         return pageRef != 0
-                && (PageList.getLastModifiedTxId(pageRef) > lastClosedTransactionId
+                && (PageMetadata.getLastModifiedTxId(pageRef) > lastClosedTransactionId
                         || pagedFile.getHighestEvictedTransactionId() > lastClosedTransactionId);
     }
 
@@ -352,9 +352,9 @@ public abstract class MuninnPageCursor extends PageCursor {
                 // kind of lock on the page, and check that it is indeed bound to what we expect. If not, then it has
                 // been evicted, and possibly even page faulted into something else. In this case, we discard the
                 // item and try again, as the eviction thread would have set the chunk array slot to null.
-                long pageRef = pageList.deref(mappedPageId);
+                long pageRef = pageMetadata.deref(mappedPageId);
                 boolean locked = tryLockPage(pageRef);
-                if (locked && PageList.isBoundTo(pageRef, swapperId, filePageId)) {
+                if (locked && PageMetadata.isBoundTo(pageRef, swapperId, filePageId)) {
                     pinCursorToPage(pinEvent, pageRef, filePageId, swapper);
                     pinEvent.hit();
                     return;
@@ -446,7 +446,7 @@ public abstract class MuninnPageCursor extends PageCursor {
             } catch (Throwable throwable) {
                 try {
                     // Make sure to unlock the page, so the eviction thread can pick up our trash.
-                    PageList.unlockExclusive(pageRef);
+                    PageMetadata.unlockExclusive(pageRef);
                 } finally {
                     abortPageFault(throwable, chunk, chunkIndex, faultEvent);
                 }
@@ -454,7 +454,7 @@ public abstract class MuninnPageCursor extends PageCursor {
             }
             // Put the page in the translation table before we undo the exclusive lock, as we could otherwise race with
             // eviction, and the onEvict callback expects to find a MuninnPage object in the table.
-            pageId = pageList.toId(pageRef);
+            pageId = pageMetadata.toId(pageRef);
             faultEvent.setCachePageId(pageId);
             MuninnPagedFile.TRANSLATION_TABLE_ARRAY.setVolatile(chunk, chunkIndex, pageId);
             // Once we page has been published to the translation table, we can convert our exclusive lock to whatever
@@ -1088,7 +1088,7 @@ public abstract class MuninnPageCursor extends PageCursor {
     public long lastTxModifierId() {
         long pageRef = pinnedPageRef;
         Preconditions.checkState(pageRef != 0, "Cursor is closed.");
-        return PageList.getLastModifiedTxId(pageRef);
+        return PageMetadata.getLastModifiedTxId(pageRef);
     }
 
     abstract long lockStamp();

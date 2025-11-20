@@ -39,7 +39,7 @@ public class AsyncCheckpointCompletionHandler implements AsyncCompletionHandler 
             long[] ioPages = asyncVectorIO.pages();
             long[] ioFlushStamps = asyncVectorIO.flushStamps();
             for (int i = 0; i < ioPages.length; i++) {
-                PageList.unlockFlush(ioPages[i], ioFlushStamps[i], true);
+                PageMetadata.unlockFlush(ioPages[i], ioFlushStamps[i], true);
             }
             completionEvent.addBytesWritten(ioPages.length * PageCache.PAGE_SIZE);
             completionEvent.addPagesCompleted(ioPages.length);
