@@ -108,7 +108,7 @@ public abstract class DatabaseMigrationITBase {
         return StoreMigrationTestUtils.runStoreMigrationCommandFromSameJvm(neo4jLayout, args);
     }
 
-    protected void doShouldMigrateDatabase(ZippedStore zippedStore, String toRecordFormat, boolean includeExperimental)
+    protected void doShouldMigrateDatabase(ZippedStore zippedStore, String toRecordFormat)
             throws IOException, ConsistencyCheckIncompleteException {
         // given
         Path homeDir = layout.homeDirectory();
@@ -123,11 +123,9 @@ public abstract class DatabaseMigrationITBase {
         migrateOrRemoveSystemDatabase(zippedStore, layout);
 
         // then
-        TestDatabaseManagementServiceBuilder builder = newDbmsBuilder(homeDir);
-        if (includeExperimental) {
-            builder.setConfig(GraphDatabaseSettings.db_format, toRecordFormat);
-        }
-        try (DatabaseManagementService dbms = builder.build()) {
+        try (DatabaseManagementService dbms = newDbmsBuilder(homeDir)
+                .setConfig(GraphDatabaseSettings.db_format, toRecordFormat)
+                .build()) {
             GraphDatabaseService db = dbms.database(DEFAULT_DATABASE_NAME);
             verifyContents(db, zippedStore.statistics(), toRecordFormat);
             verifyStoreFormat(db, expectedFormat(db, toRecordFormat));
@@ -136,8 +134,7 @@ public abstract class DatabaseMigrationITBase {
             verifyRemovedIndexProviders(db);
             verifyFulltextIndexes(db, zippedStore.statistics().kernelVersion());
         }
-        // for now we skip index check for experimental formats (multiversion only atm)
-        consistencyCheck(homeDir, DEFAULT_DATABASE_NAME, includeExperimental);
+        consistencyCheck(homeDir, DEFAULT_DATABASE_NAME);
     }
 
     protected StoreVersionIdentifier expectedFormat(GraphDatabaseService db, String toRecordFormat) {

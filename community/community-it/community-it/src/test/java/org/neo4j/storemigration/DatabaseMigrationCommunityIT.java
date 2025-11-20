@@ -109,7 +109,7 @@ public class DatabaseMigrationCommunityIT extends DatabaseMigrationITBase {
     @SkipOnSpd(reason = "We don't support pre 5.0 migrations for system (subset of input requires it)")
     void shouldMigrateDatabase(ZippedStore zippedStore, String toRecordFormat)
             throws IOException, ConsistencyCheckIncompleteException {
-        doShouldMigrateDatabase(zippedStore, toRecordFormat, false);
+        doShouldMigrateDatabase(zippedStore, toRecordFormat);
     }
 
     @ParameterizedTest
