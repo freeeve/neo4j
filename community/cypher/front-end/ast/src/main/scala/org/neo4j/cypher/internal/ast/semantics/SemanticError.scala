@@ -18,22 +18,18 @@ package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.StaticElementTypeName
 import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
-import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_22G03
-import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_22N01
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -966,35 +962,6 @@ object SemanticError {
     SemanticError(gql, gql.getMessage, position)
   }
 
-  def authRuleUserAttributeFunctionMustHaveStringArgument(
-    function: FunctionInvocation,
-    value: String,
-    invalidType: String,
-    position: InputPosition
-  ): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.offset, position.line, position.column)
-      .withCause(
-        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I51)
-          .withParam(GqlParams.StringParam.procFun, function.name)
-          .withParam(
-            GqlParams.StringParam.sig,
-            function.function.signatures.headOption.map(_.getSignatureAsString).getOrElse("")
-          )
-          .withCause(
-            ErrorGqlStatusObjectImplementation.from(STATUS_22G03).withCause(
-              ErrorGqlStatusObjectImplementation.from(STATUS_22N01)
-                .withParam(GqlParams.StringParam.value, value)
-                .withParam(GqlParams.ListParam.valueTypeList, java.util.List.of(CTString.toCypherTypeString))
-                .withParam(GqlParams.StringParam.valueType, invalidType)
-                .build()
-            ).build()
-          ).build()
-      ).build()
-
-    SemanticError(gql, s"Failed to create the specified auth rule.", position)
-  }
-
   def authRuleConditionCannotSubqueryExpression(
     position: InputPosition
   ): SemanticError = {
@@ -1012,7 +979,7 @@ object SemanticError {
     SemanticError(gql, gql.getMessage, position)
   }
 
-  def authRuleConditionContainsNonAllowListedFunction(
+  def authRuleConditionHaveInvalidFunctionInCondition(
     functionName: String,
     position: InputPosition
   ): SemanticError = {

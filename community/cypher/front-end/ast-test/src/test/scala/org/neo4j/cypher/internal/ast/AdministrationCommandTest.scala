@@ -3625,7 +3625,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
         initialState,
-        SemanticError.authRuleConditionContainsNonAllowListedFunction(
+        SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
           "unknown.function",
           p
         )
@@ -3651,7 +3651,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
         initialState,
-        SemanticError.authRuleConditionContainsNonAllowListedFunction(
+        SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
           "graph.byName",
           p
         )
@@ -3739,5 +3739,61 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         "Type mismatch: expected String but was Integer",
         InputPosition(0, 0, 0).withInputLength(0)
       ).errors
+  }
+
+  Seq("date", "datetime", "localtime", "localdatetime", "time").foreach { functionName =>
+    test(
+      s"CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('start_date') > $functionName('2024-11-18')"
+    ) {
+      val functionInvocation = FunctionInvocation(
+        name = FunctionName("abac.oidc.user_attribute")(p),
+        argument = literalString("start_date")
+      )(p)
+      val dateFunctionInvocation = FunctionInvocation(
+        name = FunctionName(functionName)(p),
+        argument = literalString("2024-11-18") // Any string here is valid even if it will fail at runtime
+      )(p)
+      val authRule = CreateAuthRule(
+        literalString("authRule"),
+        IfExistsThrowError,
+        List(
+          AuthRuleCondition(GreaterThan(functionInvocation, dateFunctionInvocation)(p))(p)
+        )
+      )(p)
+
+      // Should succeed except for failure on feature flag
+      authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+        .error(initialState, authRuleFeatureToggleError("CREATE")).errors
+    }
+
+    test(s"CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('start_date') > $functionName()") {
+      val functionInvocation = FunctionInvocation(
+        name = FunctionName("abac.oidc.user_attribute")(p),
+        argument = literalString("start_date")
+      )(p)
+      val dateFunctionInvocation = FunctionInvocation(
+        FunctionName(functionName)(p),
+        distinct = false,
+        IndexedSeq.empty
+      )(p)
+
+      val authRule = CreateAuthRule(
+        literalString("authRule"),
+        IfExistsThrowError,
+        List(
+          AuthRuleCondition(GreaterThan(functionInvocation, dateFunctionInvocation)(p))(p)
+        )
+      )(p)
+
+      authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+        .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
+        .error(
+          initialState,
+          SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
+            functionName,
+            p
+          )
+        ).errors
+    }
   }
 }

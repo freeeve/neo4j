@@ -962,6 +962,7 @@ final case class CreateAuthRule(
       }
       .foldSemanticCheck(f => {
         checkAllowlist(f) chain
+          checkTemporalFunctionsArguments(f) chain
           checkAbacOidcUserAttributeFunction(f)
       })
   }
@@ -1032,16 +1033,21 @@ final case class CreateAuthRule(
       "duration.inMonths",
       "duration.inSeconds",
       // Temporal instant functions
+      "date",
       "date.transaction",
       "date.truncate",
+      "datetime",
       "datetime.transaction",
       "datetime.fromEpoch",
       "datetime.fromEpochMillis",
       "datetime.truncate",
+      "localdatetime",
       "localdatetime.transaction",
       "localdatetime.truncate",
+      "localtime",
       "localtime.transaction",
       "localtime.truncate",
+      "time",
       "time.transaction",
       "time.truncate"
     ).map(_.toLowerCase)
@@ -1049,10 +1055,32 @@ final case class CreateAuthRule(
     if (allowListedFunctions.contains(functionInvocation.name.toLowerCase))
       SemanticCheck.success
     else
-      SemanticCheck.error(SemanticError.authRuleConditionContainsNonAllowListedFunction(
+      SemanticCheck.error(SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
         functionInvocation.name,
         position
       ))
+  }
+
+  private def checkTemporalFunctionsArguments(functionInvocation: FunctionInvocation): SemanticCheck = {
+    val temporalFunctionsThatRequireArgs = Seq(
+      "date",
+      "datetime",
+      "localdatetime",
+      "localtime",
+      "time"
+    )
+
+    if (
+      temporalFunctionsThatRequireArgs.contains(functionInvocation.name.toLowerCase) &&
+      functionInvocation.args.isEmpty
+    ) {
+      SemanticCheck.error(SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
+        functionInvocation.name,
+        position
+      ))
+    } else {
+      SemanticCheck.success
+    }
   }
 
   private def checkAbacOidcUserAttributeFunction(functionInvocation: FunctionInvocation): SemanticCheck = {
