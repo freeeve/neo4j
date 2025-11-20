@@ -220,7 +220,8 @@ public class IndexIdMapper implements IdMapper {
             synchronized (duplicateNodeIds) {
                 duplicateNodeIds.add(otherEntityId);
             }
-            collector.collectDuplicateNode(values[0].asObjectCopy(), otherEntityId, groups.get(entry.getKey()));
+            collector.collectDuplicateNode(
+                    values[0].asObjectCopy(), otherEntityId, groups.get(entry.getKey()), null, 0L);
             return IndexEntryConflictHandler.IndexEntryConflictAction.DELETE;
         };
     }

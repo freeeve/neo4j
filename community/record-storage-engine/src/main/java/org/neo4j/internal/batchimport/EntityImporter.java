@@ -82,6 +82,8 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
     private final DynamicRecordAllocator dynamicArrayRecordAllocator;
     protected final CursorContext cursorContext;
     protected final FastList<StorageProperty> properties = FastList.newList();
+    protected String sourceDescription;
+    protected long lineNumber;
 
     EntityImporter(
             BatchingNeoStores stores,
@@ -147,6 +149,18 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
         assert !hasPropertyId;
         hasPropertyId = true;
         propertyId = nextProp;
+        return true;
+    }
+
+    @Override
+    public boolean sourceDescription(String source) {
+        sourceDescription = source;
+        return true;
+    }
+
+    @Override
+    public boolean lineNumber(long line) {
+        lineNumber = line;
         return true;
     }
 

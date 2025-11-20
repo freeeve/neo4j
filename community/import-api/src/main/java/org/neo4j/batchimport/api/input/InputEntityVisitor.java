@@ -123,6 +123,14 @@ public interface InputEntityVisitor extends Closeable {
         return true;
     }
 
+    default boolean sourceDescription(String sourceDescription) {
+        return true;
+    }
+
+    default boolean lineNumber(long lineNumber) {
+        return true;
+    }
+
     default boolean type(int type) {
         return true;
     }
@@ -227,6 +235,16 @@ public interface InputEntityVisitor extends Closeable {
 
         @Override
         public boolean endId(Object id, Group group) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean sourceDescription(String sourceDescription) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean lineNumber(long lineNumber) {
             throw new UnsupportedOperationException();
         }
 
@@ -354,6 +372,16 @@ public interface InputEntityVisitor extends Closeable {
         @Override
         public boolean endId(Object id, Group group) {
             return actual.endId(id, group);
+        }
+
+        @Override
+        public boolean sourceDescription(String sourceDescription) {
+            return actual.sourceDescription(sourceDescription);
+        }
+
+        @Override
+        public boolean lineNumber(long lineNumber) {
+            return actual.lineNumber(lineNumber);
         }
 
         @Override

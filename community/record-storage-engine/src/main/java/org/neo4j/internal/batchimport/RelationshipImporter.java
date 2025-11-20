@@ -183,7 +183,9 @@ public class RelationshipImporter extends EntityImporter {
                     IntSets.immutable.empty(),
                     IntSets.immutable.of(relationshipRecord.getType()),
                     IntSets.immutable.empty(),
-                    ApplicationMode.CREATE);
+                    ApplicationMode.CREATE,
+                    sourceDescription,
+                    lineNumber);
             if (schemaMonitor.handle(
                     entity,
                     SchemaMonitor.NO_EXISTING_PROPERTY_KEYS_LOOKUP,
@@ -194,7 +196,9 @@ public class RelationshipImporter extends EntityImporter {
                             startIdGroup,
                             type,
                             endId,
-                            endIdGroup),
+                            endIdGroup,
+                            sourceDescription,
+                            lineNumber),
                     EMPTY_UNIQUENESS_UPDATES_LISTENER)) {
                 if (doubleRecordUnits) {
                     // simply reserve one id for this relationship to grow during linking stage
@@ -230,7 +234,9 @@ public class RelationshipImporter extends EntityImporter {
                     idToReport(type, relationshipRecord.getType()),
                     idToReport(endId, relationshipRecord.getSecondNode()),
                     endIdGroup,
-                    relationshipRecord.getFirstNode() == IdMapper.ID_NOT_FOUND ? startId : endId);
+                    relationshipRecord.getFirstNode() == IdMapper.ID_NOT_FOUND ? startId : endId,
+                    sourceDescription,
+                    lineNumber);
             entityPropertyCount = 0;
         }
         reset();

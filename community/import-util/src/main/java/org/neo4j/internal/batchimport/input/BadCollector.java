@@ -122,8 +122,16 @@ public final class BadCollector implements Collector {
 
     @Override
     public void collectBadRelationship(
-            Object startId, Group startIdGroup, Object type, Object endId, Group endIdGroup, Object specificValue) {
-        collect(new RelationshipsProblemReporter(startId, startIdGroup, type, endId, endIdGroup, specificValue));
+            Object startId,
+            Group startIdGroup,
+            Object type,
+            Object endId,
+            Group endIdGroup,
+            Object specificValue,
+            String source,
+            long lineNumber) {
+        collect(new RelationshipsProblemReporter(
+                startId, startIdGroup, type, endId, endIdGroup, specificValue, source, lineNumber));
     }
 
     @Override
@@ -132,8 +140,8 @@ public final class BadCollector implements Collector {
     }
 
     @Override
-    public void collectDuplicateNode(Object id, long actualId, Group group) {
-        collect(new NodesProblemReporter(id, group));
+    public void collectDuplicateNode(Object id, long actualId, Group group, String source, long lineNumber) {
+        collect(new NodesProblemReporter(id, group, source, lineNumber));
     }
 
     @Override
@@ -142,8 +150,11 @@ public final class BadCollector implements Collector {
             long actualId,
             Map<String, Object> properties,
             String constraintDescription,
-            EntityType entityType) {
-        collect(new EntityViolatingConstraintReporter(id, actualId, properties, constraintDescription, entityType));
+            EntityType entityType,
+            String sourceDescription,
+            long lineNumber) {
+        collect(new EntityViolatingConstraintReporter(
+                id, actualId, properties, constraintDescription, entityType, sourceDescription, lineNumber));
     }
 
     @Override
@@ -154,9 +165,19 @@ public final class BadCollector implements Collector {
             Group startIdGroup,
             String type,
             Object endId,
-            Group endIdGroup) {
+            Group endIdGroup,
+            String sourceDescription,
+            long lineNumber) {
         collect(new RelationshipViolatingConstraintReporter(
-                properties, constraintDescription, startId, startIdGroup, type, endId, endIdGroup));
+                properties,
+                constraintDescription,
+                startId,
+                startIdGroup,
+                type,
+                endId,
+                endIdGroup,
+                sourceDescription,
+                lineNumber));
     }
 
     @Override
@@ -239,9 +260,18 @@ public final class BadCollector implements Collector {
         private final Object type;
         private final Object endId;
         private final Group endIdGroup;
+        private final String source;
+        private final long lineNumber;
 
         private RelationshipsProblemReporter(
-                Object startId, Group startIdGroup, Object type, Object endId, Group endIdGroup, Object specificValue) {
+                Object startId,
+                Group startIdGroup,
+                Object type,
+                Object endId,
+                Group endIdGroup,
+                Object specificValue,
+                String source,
+                long lineNumber) {
             super(BAD_RELATIONSHIPS);
             this.startId = startId;
             this.startIdGroup = startIdGroup;
@@ -249,6 +279,8 @@ public final class BadCollector implements Collector {
             this.endId = endId;
             this.endIdGroup = endIdGroup;
             this.specificValue = specificValue;
+            this.source = source;
+            this.lineNumber = lineNumber;
         }
 
         @Override
@@ -270,11 +302,12 @@ public final class BadCollector implements Collector {
             if (message == null) {
                 if (missingData) {
                     message = format(
-                            "%s (%s)-[%s]->%s (%s) is missing data", startId, startIdGroup, type, endId, endIdGroup);
+                            "Invalid relationship in import data%n%s: line %d%n%s (%s)-[%s]->%s (%s) is missing data",
+                            source, lineNumber, startId, startIdGroup, type, endId, endIdGroup);
                 } else {
                     message = format(
-                            "%s (%s)-[%s]->%s (%s) referring to missing node %s",
-                            startId, startIdGroup, type, endId, endIdGroup, specificValue);
+                            "Invalid relationship in import data%n%s: line %d%n%s (%s)-[%s]->%s (%s) referring to missing node %s",
+                            source, lineNumber, startId, startIdGroup, type, endId, endIdGroup, specificValue);
                 }
             }
             return message;
@@ -300,21 +333,25 @@ public final class BadCollector implements Collector {
     private static class NodesProblemReporter extends ProblemReporter {
         private final Object id;
         private final Group group;
+        private final String source;
+        private final long lineNumber;
 
-        private NodesProblemReporter(Object id, Group group) {
+        private NodesProblemReporter(Object id, Group group, String source, long lineNumber) {
             super(DUPLICATE_NODES);
             this.id = id;
             this.group = group;
+            this.source = source;
+            this.lineNumber = lineNumber;
         }
 
         @Override
         public String message() {
-            return DuplicateInputIdException.message(id, group);
+            return DuplicateInputIdException.message(id, group, source, lineNumber);
         }
 
         @Override
         public InputException exception() {
-            return new DuplicateInputIdException(id, group);
+            return new DuplicateInputIdException(id, group, source, lineNumber);
         }
     }
 
@@ -356,30 +393,38 @@ public final class BadCollector implements Collector {
         private final Map<String, Object> properties;
         private final String constraintDescription;
         private final EntityType entityType;
+        private final String sourceDescription;
+        private final long lineNumber;
 
         private EntityViolatingConstraintReporter(
                 Object id,
                 long actualId,
                 Map<String, Object> properties,
                 String constraintDescription,
-                EntityType entityType) {
+                EntityType entityType,
+                String sourceDescription,
+                long lineNumber) {
             super(entityType == EntityType.NODE ? VIOLATING_NODES : BAD_RELATIONSHIPS);
             this.id = id;
             this.actualId = actualId;
             this.properties = properties;
             this.constraintDescription = constraintDescription;
             this.entityType = entityType;
+            this.sourceDescription = sourceDescription;
+            this.lineNumber = lineNumber;
         }
 
         @Override
         String message() {
             return format(
-                    "%s %s (internal id %d) would have violated constraint:%s with properties:%s",
+                    "%s %s (internal id %d) would have violated constraint:%s with properties:%s, index:%d in '%s'",
                     entityType == EntityType.NODE ? "Node" : "Relationship",
                     id,
                     actualId,
                     constraintDescription,
-                    properties);
+                    properties,
+                    lineNumber,
+                    sourceDescription);
         }
 
         @Override
@@ -396,6 +441,8 @@ public final class BadCollector implements Collector {
         private final String type;
         private final Object endId;
         private final Group endIdGroup;
+        private final String sourceDescription;
+        private final long lineNumber;
 
         private RelationshipViolatingConstraintReporter(
                 Map<String, Object> properties,
@@ -404,7 +451,9 @@ public final class BadCollector implements Collector {
                 Group startIdGroup,
                 String type,
                 Object endId,
-                Group endIdGroup) {
+                Group endIdGroup,
+                String sourceDescription,
+                long lineNumber) {
             super(BAD_RELATIONSHIPS);
             this.properties = properties;
             this.constraintDescription = constraintDescription;
@@ -413,19 +462,23 @@ public final class BadCollector implements Collector {
             this.type = type;
             this.endId = endId;
             this.endIdGroup = endIdGroup;
+            this.sourceDescription = sourceDescription;
+            this.lineNumber = lineNumber;
         }
 
         @Override
         String message() {
             return format(
-                    "%s%s-[%s]->%s%s would have violated constraint:%s with properties:%s",
+                    "%s%s-[%s]->%s%s would have violated constraint:%s with properties:%s, index:%d in '%s'",
                     startId,
                     startIdGroup != null ? " (" + startIdGroup + ")" : "",
                     type,
                     endId,
                     endIdGroup != null ? " (" + endIdGroup + ")" : "",
                     constraintDescription,
-                    properties);
+                    properties,
+                    lineNumber,
+                    sourceDescription);
         }
 
         @Override

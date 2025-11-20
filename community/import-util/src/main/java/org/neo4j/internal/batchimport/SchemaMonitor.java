@@ -142,6 +142,8 @@ public interface SchemaMonitor extends AutoCloseable {
         public final IntSet entityTokens;
         public final IntSet removedEntityTokens;
         public final ApplicationMode mode;
+        public final String sourceDescription;
+        public final long lineNumber;
 
         private IntObjectMap<Value> propertiesMap;
         private int[] sortedEntityTokens;
@@ -159,7 +161,9 @@ public interface SchemaMonitor extends AutoCloseable {
                 IntSet existingEntityTokens,
                 IntSet entityTokens,
                 IntSet removedEntityTokens,
-                ApplicationMode mode) {
+                ApplicationMode mode,
+                String sourceDescription,
+                long lineNumber) {
             this.inputId = inputId;
             this.entityId = entityId;
             this.properties = properties;
@@ -171,6 +175,8 @@ public interface SchemaMonitor extends AutoCloseable {
             this.entityTokens = entityTokens;
             this.removedEntityTokens = removedEntityTokens;
             this.mode = mode;
+            this.sourceDescription = sourceDescription;
+            this.lineNumber = lineNumber;
         }
 
         public IntObjectMap<Value> propertiesMap() {
@@ -221,7 +227,9 @@ public interface SchemaMonitor extends AutoCloseable {
                     existingEntityTokens,
                     entityTokens,
                     removedEntityTokens,
-                    mode);
+                    mode,
+                    sourceDescription,
+                    lineNumber);
         }
     }
 
@@ -245,7 +253,9 @@ public interface SchemaMonitor extends AutoCloseable {
                 long startNodeId,
                 long endNodeId,
                 Object startId,
-                Object endId) {
+                Object endId,
+                String sourceDescription,
+                long lineNumber) {
             super(
                     null,
                     entityId,
@@ -257,7 +267,9 @@ public interface SchemaMonitor extends AutoCloseable {
                     existingEntityTokens,
                     entityTokens,
                     removedEntityTokens,
-                    mode);
+                    mode,
+                    sourceDescription,
+                    lineNumber);
             this.startNodeId = startNodeId;
             this.endNodeId = endNodeId;
             this.startId = startId;
@@ -283,7 +295,9 @@ public interface SchemaMonitor extends AutoCloseable {
                     startNodeId,
                     endNodeId,
                     startId,
-                    endId);
+                    endId,
+                    sourceDescription,
+                    lineNumber);
         }
 
         public Relationship newWithEntityIds(long relationshipId, long startNodeId, long endNodeId) {
@@ -301,7 +315,9 @@ public interface SchemaMonitor extends AutoCloseable {
                     startNodeId,
                     endNodeId,
                     startId,
-                    endId);
+                    endId,
+                    sourceDescription,
+                    lineNumber);
         }
     }
 

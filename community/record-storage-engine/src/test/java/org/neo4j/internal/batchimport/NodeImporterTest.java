@@ -251,7 +251,9 @@ class NodeImporterTest {
                     entity.existingEntityTokens,
                     IntSets.immutable.ofAll(entity.entityTokens),
                     entity.removedEntityTokens,
-                    entity.mode);
+                    entity.mode,
+                    entity.sourceDescription,
+                    entity.lineNumber);
             return true;
         }
 

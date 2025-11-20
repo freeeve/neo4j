@@ -53,15 +53,8 @@ public class InputEntity implements InputEntityVisitor {
     public static final String[] NO_LABELS = EMPTY_STRING_ARRAY;
     public static final int NULL_ID = -1;
 
-    private final InputEntityVisitor delegate;
-
-    public InputEntity(InputEntityVisitor delegate) {
-        this.delegate = delegate;
-        reset();
-    }
-
     public InputEntity() {
-        this(NULL);
+        reset();
     }
 
     public boolean hasPropertyId;
@@ -96,6 +89,9 @@ public class InputEntity implements InputEntityVisitor {
     public Object objectEndId;
     public Group endIdGroup;
 
+    public String sourceDescription;
+    public long lineNumber;
+
     public boolean hasIntType;
     public int intType;
     public String stringType;
@@ -109,7 +105,7 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         hasPropertyId = true;
         propertyId = nextProp;
-        return delegate.propertyId(nextProp);
+        return true;
     }
 
     @Override
@@ -117,7 +113,7 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         encodedProperties = properties;
         propertiesOffloaded = offloaded;
-        return delegate.properties(properties, offloaded);
+        return true;
     }
 
     @Override
@@ -125,7 +121,7 @@ public class InputEntity implements InputEntityVisitor {
         assert value != Values.NO_VALUE;
         checkClear();
         properties.add(new Property(key, NO_TOKEN, value, identifier));
-        return delegate.property(key, value, identifier);
+        return true;
     }
 
     @Override
@@ -134,21 +130,21 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         hasIntPropertyKeyIds = true;
         properties.add(new Property(null, propertyKeyId, value, identifier));
-        return delegate.property(propertyKeyId, value, identifier);
+        return true;
     }
 
     @Override
     public boolean removedProperties(String[] keys) {
         checkClear();
         Collections.addAll(removedProperties, keys);
-        return delegate.removedProperties(keys);
+        return true;
     }
 
     @Override
     public boolean removedProperties(int[] keys) {
         checkClear();
         intRemovedProperties.addAll(keys);
-        return delegate.removedProperties(keys);
+        return true;
     }
 
     @Override
@@ -156,7 +152,7 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         hasLongId = true;
         longId = id;
-        return delegate.id(id);
+        return true;
     }
 
     @Override
@@ -164,7 +160,7 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         objectId = id;
         idGroup = group;
-        return delegate.id(id, group);
+        return true;
     }
 
     @Override
@@ -173,35 +169,35 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         objectId = id;
         idGroup = group;
-        return delegate.id(id, group, idSequence);
+        return true;
     }
 
     @Override
     public boolean labels(String[] labels) {
         checkClear();
         Collections.addAll(this.labels, labels);
-        return delegate.labels(labels);
+        return true;
     }
 
     @Override
     public boolean labels(int[] labels) {
         checkClear();
         intLabels.addAll(labels);
-        return delegate.labels(labels);
+        return true;
     }
 
     @Override
     public boolean removedLabels(String[] labels) {
         checkClear();
         Collections.addAll(this.removedLabels, labels);
-        return delegate.removedLabels(labels);
+        return true;
     }
 
     @Override
     public boolean removedLabels(int[] labels) {
         checkClear();
         intRemovedLabels.addAll(labels);
-        return delegate.removedLabels(labels);
+        return true;
     }
 
     @Override
@@ -209,7 +205,7 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         hasLabelField = true;
         this.labelField = labelField;
-        return delegate.labelField(labelField);
+        return true;
     }
 
     @Override
@@ -217,7 +213,7 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         hasLongStartId = true;
         longStartId = id;
-        return delegate.startId(id);
+        return true;
     }
 
     @Override
@@ -225,7 +221,7 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         objectStartId = id;
         startIdGroup = group;
-        return delegate.startId(id, group);
+        return true;
     }
 
     @Override
@@ -233,7 +229,7 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         hasLongEndId = true;
         longEndId = id;
-        return delegate.endId(id);
+        return true;
     }
 
     @Override
@@ -241,7 +237,19 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         objectEndId = id;
         endIdGroup = group;
-        return delegate.endId(id, group);
+        return true;
+    }
+
+    @Override
+    public boolean sourceDescription(String source) {
+        sourceDescription = source;
+        return true;
+    }
+
+    @Override
+    public boolean lineNumber(long line) {
+        lineNumber = line;
+        return true;
     }
 
     @Override
@@ -249,21 +257,21 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         hasIntType = true;
         intType = type;
-        return delegate.type(type);
+        return true;
     }
 
     @Override
     public boolean type(String type) {
         checkClear();
         stringType = type;
-        return delegate.type(type);
+        return true;
     }
 
     @Override
     public boolean applicationMode(ApplicationMode mode) {
         checkClear();
         applicationMode = mode;
-        return delegate.applicationMode(mode);
+        return true;
     }
 
     public ApplicationMode applicationMode() {
@@ -274,7 +282,6 @@ public class InputEntity implements InputEntityVisitor {
     public void endOfEntity() throws IOException {
         // Mark that the next call to any data method should clear the state
         end = true;
-        delegate.endOfEntity();
     }
 
     public boolean isComplete() {
@@ -352,6 +359,14 @@ public class InputEntity implements InputEntityVisitor {
         return hasLongStartId ? longStartId : objectStartId;
     }
 
+    public String sourceDescription() {
+        return sourceDescription;
+    }
+
+    public long lineNumber() {
+        return lineNumber;
+    }
+
     public Object type() {
         return stringType != null ? stringType : intType;
     }
@@ -396,11 +411,8 @@ public class InputEntity implements InputEntityVisitor {
         applicationMode = null;
         intLabels.clear();
         intRemovedLabels.clear();
-    }
-
-    @Override
-    public void close() throws IOException {
-        delegate.close();
+        sourceDescription = null;
+        lineNumber = 0;
     }
 
     public void replayOnto(InputEntityVisitor visitor) throws IOException {

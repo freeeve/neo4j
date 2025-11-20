@@ -132,6 +132,16 @@ public abstract class BatchedInputEntityVisitor implements InputEntityVisitor {
     }
 
     @Override
+    public boolean sourceDescription(String sourceDescription) {
+        return current.sourceDescription(sourceDescription);
+    }
+
+    @Override
+    public boolean lineNumber(long lineNumber) {
+        return current.lineNumber(lineNumber);
+    }
+
+    @Override
     public boolean type(int type) {
         return current.type(type);
     }

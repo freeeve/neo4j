@@ -216,7 +216,9 @@ public class NodeImporter extends EntityImporter {
                     IntSets.immutable.empty(),
                     entityTokens,
                     IntSets.immutable.empty(),
-                    ApplicationMode.CREATE);
+                    ApplicationMode.CREATE,
+                    sourceDescription,
+                    lineNumber);
             if (schemaMonitor.handle(
                     entity,
                     SchemaMonitor.NO_EXISTING_PROPERTY_KEYS_LOOKUP,
@@ -225,7 +227,9 @@ public class NodeImporter extends EntityImporter {
                             e.entityId,
                             namedProperties(e.propertiesMap()),
                             constraintDescription,
-                            EntityType.NODE),
+                            EntityType.NODE,
+                            sourceDescription,
+                            lineNumber),
                     EMPTY_UNIQUENESS_UPDATES_LISTENER)) {
                 if (inputId != null) {
                     idMapperSetter.put(inputId, nodeRecord.getId(), group);
@@ -238,7 +242,8 @@ public class NodeImporter extends EntityImporter {
                 freeUnusedId(nodeStore, nodeRecord.getId(), cursorContext);
             }
         } catch (KeyCollisionException e) {
-            badCollector.collectDuplicateNode(inputId, NULL_REFERENCE.longValue(), group);
+            badCollector.collectDuplicateNode(
+                    inputId, NULL_REFERENCE.longValue(), group, sourceDescription, lineNumber);
             freeUnusedId(nodeStore, nodeRecord.getId(), cursorContext);
         }
         reset();

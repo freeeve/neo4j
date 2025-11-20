@@ -58,7 +58,7 @@ class BadCollectorTest {
         var groupB = groups.getOrCreate("b");
         try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, COLLECT_ALL)) {
             // when
-            badCollector.collectBadRelationship("1", groupA, "T", "2", groupB, "1");
+            badCollector.collectBadRelationship("1", groupA, "T", "2", groupB, "1", "source", 8L);
 
             // then
             assertEquals(1, badCollector.badEntries());
@@ -73,7 +73,7 @@ class BadCollectorTest {
         try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, COLLECT_ALL)) {
             // when
             collectBadRelationship(badCollector, group);
-            assertThrows(InputException.class, () -> badCollector.collectDuplicateNode(1, 1, group));
+            assertThrows(InputException.class, () -> badCollector.collectDuplicateNode(1, 1, group, "source", 8L));
         }
     }
 
@@ -84,7 +84,7 @@ class BadCollectorTest {
 
         try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, COLLECT_ALL)) {
             // when
-            badCollector.collectDuplicateNode(1, 1, group);
+            badCollector.collectDuplicateNode(1, 1, group, "source", 8L);
             assertThrows(InputException.class, () -> collectBadRelationship(badCollector, group));
         }
     }
@@ -96,7 +96,7 @@ class BadCollectorTest {
 
         try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, BadCollector.DUPLICATE_NODES)) {
             // when
-            badCollector.collectDuplicateNode(1, 1, group);
+            badCollector.collectDuplicateNode(1, 1, group, "source", 8L);
             assertThrows(InputException.class, () -> collectBadRelationship(badCollector, group));
             assertEquals(1 /* only duplicate node collected */, badCollector.badEntries());
         }
@@ -110,7 +110,7 @@ class BadCollectorTest {
         try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, BadCollector.BAD_RELATIONSHIPS)) {
             // when
             collectBadRelationship(badCollector, group);
-            assertThrows(InputException.class, () -> badCollector.collectDuplicateNode(1, 1, group));
+            assertThrows(InputException.class, () -> badCollector.collectDuplicateNode(1, 1, group, "source", 8L));
             assertEquals(1 /* only duplicate rel collected */, badCollector.badEntries());
         }
     }
@@ -122,7 +122,7 @@ class BadCollectorTest {
             // WHEN
             int count = 10_000;
             for (int i = 0; i < count; i++) {
-                collector.collectDuplicateNode(i, i, group);
+                collector.collectDuplicateNode(i, i, group, "source", 8L);
             }
 
             // THEN
@@ -137,7 +137,7 @@ class BadCollectorTest {
                 new BadCollector(outputStream, 100, COLLECT_ALL, 10, true, BadCollector.NO_MONITOR)) {
             collectBadRelationship(badCollector, group);
             for (int i = 0; i < 2; i++) {
-                badCollector.collectDuplicateNode(i, i, group);
+                badCollector.collectDuplicateNode(i, i, group, "source", 8L);
             }
             collectBadRelationship(badCollector, group);
             badCollector.collectExtraColumns("a,b,c", 1, "a");
@@ -155,12 +155,12 @@ class BadCollectorTest {
                         nullOutputStream(), UNLIMITED_TOLERANCE, COLLECT_ALL, backPressureThreshold, false, monitor)) {
             try (monitor) {
                 for (int i = 0; i < backPressureThreshold; i++) {
-                    badCollector.collectDuplicateNode(i, i, group);
+                    badCollector.collectDuplicateNode(i, i, group, "source", 8L);
                 }
 
                 // when
-                Future<Object> enqueue =
-                        t2.executeDontWait(command(() -> badCollector.collectDuplicateNode(999, 999, group)));
+                Future<Object> enqueue = t2.executeDontWait(
+                        command(() -> badCollector.collectDuplicateNode(999, 999, group, "source", 8L)));
                 t2.waitUntilWaiting(waitDetails -> waitDetails.isAt(BadCollector.class, "collect"));
                 monitor.unblock();
 
@@ -171,7 +171,7 @@ class BadCollectorTest {
     }
 
     private static void collectBadRelationship(Collector collector, Group group) {
-        collector.collectBadRelationship("A", group, "TYPE", "B", group, "A");
+        collector.collectBadRelationship("A", group, "TYPE", "B", group, "A", "source", 8L);
     }
 
     private OutputStream badOutputFile() throws IOException {

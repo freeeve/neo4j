@@ -30,16 +30,25 @@ import org.neo4j.common.EntityType;
  */
 public interface Collector extends AutoCloseable {
     void collectBadRelationship(
-            Object startId, Group startIdGroup, Object type, Object endId, Group endIdGroup, Object specificValue);
+            Object startId,
+            Group startIdGroup,
+            Object type,
+            Object endId,
+            Group endIdGroup,
+            Object specificValue,
+            String source,
+            long lineNumber);
 
-    void collectDuplicateNode(Object id, long actualId, Group group);
+    void collectDuplicateNode(Object id, long actualId, Group group, String source, long lineNumber);
 
     void collectEntityViolatingConstraint(
             Object id,
             long actualId,
             Map<String, Object> properties,
             String constraintDescription,
-            EntityType entityType);
+            EntityType entityType,
+            String source,
+            long lineNumber);
 
     void collectRelationshipViolatingConstraint(
             Map<String, Object> properties,
@@ -48,7 +57,9 @@ public interface Collector extends AutoCloseable {
             Group startIdGroup,
             String type,
             Object endId,
-            Group endIdGroup);
+            Group endIdGroup,
+            String source,
+            long lineNumber);
 
     void collectExtraColumns(String source, long row, String value);
 
@@ -92,10 +103,12 @@ public interface Collector extends AutoCloseable {
                 Object type,
                 Object endId,
                 Group endIdGroup,
-                Object specificValue) {}
+                Object specificValue,
+                String source,
+                long lineNumber) {}
 
         @Override
-        public void collectDuplicateNode(Object id, long actualId, Group group) {}
+        public void collectDuplicateNode(Object id, long actualId, Group group, String source, long lineNumber) {}
 
         @Override
         public void collectEntityViolatingConstraint(
@@ -103,7 +116,9 @@ public interface Collector extends AutoCloseable {
                 long actualId,
                 Map<String, Object> properties,
                 String constraintDescription,
-                EntityType entityType) {}
+                EntityType entityType,
+                String source,
+                long lineNumber) {}
 
         @Override
         public void collectRelationshipViolatingConstraint(
@@ -113,7 +128,9 @@ public interface Collector extends AutoCloseable {
                 Group startIdGroup,
                 String type,
                 Object endId,
-                Group endIdGroup) {}
+                Group endIdGroup,
+                String source,
+                long lineNumber) {}
 
         @Override
         public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {}
@@ -146,15 +163,23 @@ public interface Collector extends AutoCloseable {
 
         @Override
         public void collectBadRelationship(
-                Object startId, Group startIdGroup, Object type, Object endId, Group endIdGroup, Object specificValue) {
+                Object startId,
+                Group startIdGroup,
+                Object type,
+                Object endId,
+                Group endIdGroup,
+                Object specificValue,
+                String source,
+                long lineNumber) {
             throw new IllegalStateException(format(
-                    "Bad relationship (%s:%s)-[%s]->(%s:%s) %s",
-                    startId, startIdGroup, type, endId, endIdGroup, specificValue));
+                    "Bad relationship (%s:%s)-[%s]->(%s:%s) %s, index:%d in '%s'",
+                    startId, startIdGroup, type, endId, endIdGroup, specificValue, lineNumber, source));
         }
 
         @Override
-        public void collectDuplicateNode(Object id, long actualId, Group group) {
-            throw new IllegalStateException(format("Bad duplicate node %s:%s id:%d", id, group, actualId));
+        public void collectDuplicateNode(Object id, long actualId, Group group, String source, long lineNumber) {
+            throw new IllegalStateException(format(
+                    "Bad duplicate node %s:%s id:%d, index:%d in '%s'", id, group, actualId, lineNumber, source));
         }
 
         @Override
@@ -163,10 +188,17 @@ public interface Collector extends AutoCloseable {
                 long actualId,
                 Map<String, Object> properties,
                 String constraintDescription,
-                EntityType entityType) {
+                EntityType entityType,
+                String source,
+                long lineNumber) {
             throw new IllegalStateException(format(
-                    "Bad %s with properties %s violating constraint %s id:%s",
-                    entityType == EntityType.NODE ? "node" : "relationship", properties, constraintDescription, id));
+                    "Bad %s with properties %s violating constraint %s id:%s, index:%d in '%s'",
+                    entityType == EntityType.NODE ? "node" : "relationship",
+                    properties,
+                    constraintDescription,
+                    id,
+                    lineNumber,
+                    source));
         }
 
         @Override
@@ -177,10 +209,20 @@ public interface Collector extends AutoCloseable {
                 Group startIdGroup,
                 String type,
                 Object endId,
-                Group endIdGroup) {
+                Group endIdGroup,
+                String source,
+                long lineNumber) {
             throw new IllegalStateException(format(
-                    "Bad relationship (%s:%s)-[%s]->(%s:%s) with properties %s violating constraint %s",
-                    startId, startIdGroup, type, endId, endIdGroup, properties, constraintDescription));
+                    "Bad relationship (%s:%s)-[%s]->(%s:%s) with properties %s violating constraint %s, index:%d in '%s'",
+                    startId,
+                    startIdGroup,
+                    type,
+                    endId,
+                    endIdGroup,
+                    properties,
+                    constraintDescription,
+                    lineNumber,
+                    source));
         }
 
         @Override
@@ -212,10 +254,12 @@ public interface Collector extends AutoCloseable {
                 Object type,
                 Object endId,
                 Group endIdGroup,
-                Object specificValue) {}
+                Object specificValue,
+                String source,
+                long lineNumber) {}
 
         @Override
-        public void collectDuplicateNode(Object id, long actualId, Group group) {}
+        public void collectDuplicateNode(Object id, long actualId, Group group, String source, long lineNumber) {}
 
         @Override
         public void collectEntityViolatingConstraint(
@@ -223,7 +267,9 @@ public interface Collector extends AutoCloseable {
                 long actualId,
                 Map<String, Object> properties,
                 String constraintDescription,
-                EntityType entityType) {}
+                EntityType entityType,
+                String source,
+                long lineNumber) {}
 
         @Override
         public void collectRelationshipViolatingConstraint(
@@ -233,7 +279,9 @@ public interface Collector extends AutoCloseable {
                 Group startIdGroup,
                 String type,
                 Object endId,
-                Group endIdGroup) {}
+                Group endIdGroup,
+                String source,
+                long lineNumber) {}
 
         @Override
         public void collectExtraColumns(String source, long row, String value) {}

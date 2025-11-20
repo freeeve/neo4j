@@ -242,8 +242,8 @@ class IndexIdMapperIT {
         // then
         assertId(9, group1);
         assertId(123, group2);
-        verify(collector).collectDuplicateNode(ID_FUNCTION.valueOf(duplicateNode1), duplicateNode1, group1);
-        verify(collector).collectDuplicateNode(ID_FUNCTION.valueOf(duplicateNode2), duplicateNode2, group2);
+        verify(collector).collectDuplicateNode(ID_FUNCTION.valueOf(duplicateNode1), duplicateNode1, group1, null, 0L);
+        verify(collector).collectDuplicateNode(ID_FUNCTION.valueOf(duplicateNode2), duplicateNode2, group2, null, 0L);
         assertThat(asLongSet(idMapper.leftOverDuplicateNodesIds()))
                 .isEqualTo(LongSets.immutable.of(duplicateNode1, duplicateNode2));
     }
@@ -264,7 +264,7 @@ class IndexIdMapperIT {
         prepare(collector);
 
         // then
-        verify(collector).collectDuplicateNode("110", 102, group);
+        verify(collector).collectDuplicateNode("110", 102, group, null, 0L);
     }
 
     @Test

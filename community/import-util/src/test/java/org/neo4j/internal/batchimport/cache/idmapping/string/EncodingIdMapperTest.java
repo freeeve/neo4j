@@ -297,7 +297,7 @@ public class EncodingIdMapperTest {
             mapper.prepare(values, collector, NONE, LongSets.immutable.empty());
 
             // THEN
-            verify(collector).collectDuplicateNode("10", 2, globalGroup);
+            verify(collector).collectDuplicateNode("10", 2, globalGroup, null, 0L);
             verifyNoMoreInteractions(collector);
         }
     }
@@ -600,7 +600,7 @@ public class EncodingIdMapperTest {
             mapper.prepare(values(ids.toArray()), collector, NONE, LongSets.immutable.empty());
 
             // THEN
-            verify(collector, times(high)).collectDuplicateNode(any(Object.class), anyLong(), any());
+            verify(collector, times(high)).collectDuplicateNode(any(Object.class), anyLong(), any(), any(), anyLong());
             assertEquals(high, count(mapper.leftOverDuplicateNodesIds()));
         }
     }
@@ -632,7 +632,7 @@ public class EncodingIdMapperTest {
                         return null;
                     })
                     .when(collector)
-                    .collectDuplicateNode(any(Object.class), anyLong(), any());
+                    .collectDuplicateNode(any(Object.class), anyLong(), any(), any(), anyLong());
             mapper.prepare(values(ids.toArray()), collector, NONE, LongSets.immutable.empty());
 
             // THEN

@@ -92,6 +92,12 @@ public class CsvInputParser implements Closeable {
                     return false;
                 }
 
+                // Populate source and line only after reading first field to maximise chances that line is accurate.
+                if (i == 0) {
+                    visitor.sourceDescription(seeker.sourceDescription());
+                    visitor.lineNumber(seeker.lineNumber());
+                }
+
                 if (entry.type() == Type.IGNORE) {
                     continue;
                 }
@@ -171,6 +177,8 @@ public class CsvInputParser implements Closeable {
             }
             visitor.endOfEntity();
             return true;
+        } catch (final InputException e) {
+            throw e;
         } catch (final RuntimeException e) {
             String stringValue = null;
             try {

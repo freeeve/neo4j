@@ -501,7 +501,9 @@ public class ImportIndexBuilder implements Closeable {
                     realId,
                     asPropertyMap(descriptor, values, tokenNameLookup),
                     descriptor.userDescription(tokenNameLookup),
-                    descriptor.schema().entityType());
+                    descriptor.schema().entityType(),
+                    null,
+                    0L);
             return IndexEntryConflictAction.DELETE;
         }
     }
