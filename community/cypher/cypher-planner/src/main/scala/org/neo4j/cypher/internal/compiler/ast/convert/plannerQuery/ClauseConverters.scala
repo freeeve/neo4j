@@ -150,7 +150,7 @@ import org.neo4j.exceptions.SyntaxException
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-object ClauseConverters extends LabelExpressionConversion {
+case class ClauseConverters(statementConverters: StatementConverters) extends LabelExpressionConversion {
 
   /**
    * Adds a clause to a PlannerQueryBuilder
@@ -661,7 +661,7 @@ object ClauseConverters extends LabelExpressionConversion {
     }
 
     val callSubquery =
-      StatementConverters.convertToNestedPlannerQuery(
+      statementConverters.convertToNestedPlannerQuery(
         subquery,
         acc.semanticTable,
         anonymousVariableNameGenerator,
@@ -1026,9 +1026,9 @@ object ClauseConverters extends LabelExpressionConversion {
     val availableBeforeForeach = builder.currentlyAvailableVariables
     val availableToInnerClauses = availableBeforeForeach + clause.variable
 
-    val innerBuilder = StatementConverters.addClausesToPlannerQueryBuilder(
+    val innerBuilder = statementConverters.addClausesToPlannerQueryBuilder(
       clause.updates,
-      new PlannerQueryBuilder(builder.emptySinglePlannerQuery, builder.semanticTable, builder.importedVariables)
+      builder.copy(q = builder.emptySinglePlannerQuery)
         // First, set all available symbols as arguments. Will be fixed a little further down.
         .amendQueryGraph(_.withArgumentIds(availableToInnerClauses))
         .withHorizon(PassthroughAllHorizon()),

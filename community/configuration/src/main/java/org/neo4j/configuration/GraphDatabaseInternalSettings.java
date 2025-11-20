@@ -1261,6 +1261,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Feature flag to allow/disallow planning of merge join.")
+    public static final Setting<Boolean> planning_merge_join_enabled = newBuilder(
+                    "internal.cypher.planning_merge_join_enabled", BOOL, false)
+            .build();
+
+    @Internal
     @Description(
             "By default, the sharded property database is disabled. This setting is a feature toggle behind which sharded property database is developed.")
     public static final Setting<Boolean> spd_enabled = newBuilder(

@@ -1328,6 +1328,16 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "valueMergeJoin",
+    new TestPlanBuilder()
+      .produceResults("x", "y")
+      .valueMergeJoin("x.bar = y.foo")
+      .|.argument()
+      .argument()
+      .build()
+  )
+
+  testPlan(
     "emptyResult",
     new TestPlanBuilder()
       .produceResults("x", "y")

@@ -297,6 +297,24 @@ class RemoteBatchPropertiesPlanningIntegrationTest
       )
       .build()
   }
+
+  test("should prefer merge join over hash join for node property equality") {
+    val planner = spdPlanner
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 50)
+      .setLabelCardinality("B", 75)
+      .addNodeIndex("A", Seq("prop"), 1.0, 0.8)
+      .addNodeIndex("B", Seq("prop"), 1.0, 0.8)
+      .withSetting(GraphDatabaseInternalSettings.planning_merge_join_enabled, Boolean.box(true))
+      .build()
+
+    val plan = planner.plan("MATCH (a:A), (b:B) WHERE a.prop = b.prop RETURN a, b").stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .valueMergeJoin("cacheN[a.prop] = cacheN[b.prop]")
+      .|.nodeIndexOperator("b:B(prop)", indexOrder = IndexOrderAscending, getValue = Map("prop" -> GetValue))
+      .nodeIndexOperator("a:A(prop)", indexOrder = IndexOrderAscending, getValue = Map("prop" -> GetValue))
+      .build()
+  }
 }
 
 class ParallelRuntimeRemoteBatchPropertiesPlanningIntegrationTest

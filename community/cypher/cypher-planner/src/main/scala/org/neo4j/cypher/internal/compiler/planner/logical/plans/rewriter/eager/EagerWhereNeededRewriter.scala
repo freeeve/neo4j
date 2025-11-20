@@ -45,6 +45,7 @@ import org.neo4j.cypher.internal.logical.plans.TransactionApply
 import org.neo4j.cypher.internal.logical.plans.TransactionForeach
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -195,7 +196,7 @@ object EagerWhereNeededRewriter {
             }
             // Update yieldBeforeInitRhs
             plan match {
-              case _: ApplyPlan | _: CartesianProduct | _: AssertSameNode | _: AssertSameRelationship | _: RepeatOptions | _: Union =>
+              case _: ApplyPlan | _: CartesianProduct | _: AssertSameNode | _: AssertSameRelationship | _: RepeatOptions | _: Union | _: ValueMergeJoin =>
                 yieldBeforeInitRhs |= rhsBits
               case _: LeftOuterHashJoin | _: NodeHashJoin | _: RightOuterHashJoin | _: ValueHashJoin | _: OrderedUnion =>
             }

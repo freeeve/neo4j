@@ -287,6 +287,7 @@ import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.DesugarMapProjection
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.HasLabelsAndHasTypeNormalizer
@@ -3054,6 +3055,15 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     expression match {
       case e: Equals =>
         appendAtCurrentIndent(BinaryOperator((left, right) => ValueHashJoin(left, right, e)(_)))
+      case _ => throw new IllegalArgumentException(s"can't join on $expression")
+    }
+  }
+
+  def valueMergeJoin(predicate: String): IMPL = {
+    val expression = parseExpression(predicate)
+    expression match {
+      case e: Equals =>
+        appendAtCurrentIndent(BinaryOperator((left, right) => ValueMergeJoin(left, right, e)(_)))
       case _ => throw new IllegalArgumentException(s"can't join on $expression")
     }
   }

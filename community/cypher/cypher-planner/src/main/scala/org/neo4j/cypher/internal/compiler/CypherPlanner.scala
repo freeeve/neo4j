@@ -408,4 +408,11 @@ class CypherPlannerConfiguration(
     )
     () => config.allowDuplicatingSubqueryExpressionsInCnfNormalizer
   }
+
+  val planningMergeJoinEnabled: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.planning_merge_join_enabled.dynamic()
+    )
+    () => config.planningMergeJoinEnabled
+  }
 }

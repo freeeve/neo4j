@@ -53,7 +53,8 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
 
   private val joinConnectors = Seq(
     NestedIndexJoinComponentConnector(singleComponentPlanner),
-    ValueHashJoinComponentConnector
+    ValueHashJoinComponentConnector,
+    ValueMergeJoinComponentConnector
   )
   private val omConnector = OptionalMatchConnector
 

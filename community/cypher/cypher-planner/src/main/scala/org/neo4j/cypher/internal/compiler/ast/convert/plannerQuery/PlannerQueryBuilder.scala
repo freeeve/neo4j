@@ -21,9 +21,15 @@ package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
+import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.PlannerQueryBuilder.Config
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.PlannerQueryBuilder.finalizeQuery
+import org.neo4j.cypher.internal.compiler.helpers.AggregationHelper
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.cartesianProductsOrValueJoins
 import org.neo4j.cypher.internal.expressions.AssertIsNode
+import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
 import org.neo4j.cypher.internal.ir.PlannerQuery
@@ -33,14 +39,17 @@ import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
+import org.neo4j.cypher.internal.ir.ordering.InterestingOrderCandidate
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
 
 case class PlannerQueryBuilder(
   q: SinglePlannerQuery,
   semanticTable: SemanticTable,
-  importedVariables: Set[LogicalVariable]
+  importedVariables: Set[LogicalVariable],
+  config: Config
 ) {
 
   def amendQueryGraph(f: QueryGraph => QueryGraph): PlannerQueryBuilder =
@@ -126,26 +135,35 @@ case class PlannerQueryBuilder(
   def readOnly: Boolean = q.queryGraph.readOnly
 
   def build(): SinglePlannerQuery = {
-    finalizeQuery(q)
+    finalizeQuery(q, config)
   }
 }
 
 object PlannerQueryBuilder {
 
-  def apply(semanticTable: SemanticTable): PlannerQueryBuilder =
-    PlannerQueryBuilder(SinglePlannerQuery.empty, semanticTable, Set.empty)
+  case class Config(markMergeJoinInterestingOrder: Boolean)
 
-  def apply(semanticTable: SemanticTable, argumentIds: Set[LogicalVariable]): PlannerQueryBuilder =
+  object Config {
+    val default = fromPlannerConfig(CypherPlannerConfiguration.defaults())
+
+    def fromPlannerConfig(plannerConfig: CypherPlannerConfiguration): Config = {
+      Config(markMergeJoinInterestingOrder = plannerConfig.planningMergeJoinEnabled())
+    }
+  }
+
+  def apply(semanticTable: SemanticTable, argumentIds: Set[LogicalVariable], config: Config): PlannerQueryBuilder =
     PlannerQueryBuilder(
       RegularSinglePlannerQuery(queryGraph = QueryGraph(argumentIds = argumentIds)),
       semanticTable,
-      Set.empty
+      Set.empty,
+      config
     )
 
   def apply(
     semanticTable: SemanticTable,
     argumentIds: Set[LogicalVariable],
-    importedVars: Set[LogicalVariable]
+    importedVars: Set[LogicalVariable],
+    config: Config
   ): PlannerQueryBuilder =
     PlannerQueryBuilder(
       RegularSinglePlannerQuery(
@@ -153,10 +171,11 @@ object PlannerQueryBuilder {
         horizon = RegularQueryProjection(importedExposedSymbols = importedVars)
       ),
       semanticTable,
-      importedVars
+      importedVars,
+      config
     )
 
-  def finalizeQuery(q: SinglePlannerQuery): SinglePlannerQuery = {
+  def finalizeQuery(q: SinglePlannerQuery, config: Config): SinglePlannerQuery = {
 
     def fixArgumentIds(plannerQuery: SinglePlannerQuery): SinglePlannerQuery = plannerQuery.foldMap {
       case (head, tail) =>
@@ -195,7 +214,47 @@ object PlannerQueryBuilder {
     Function.chain[SinglePlannerQuery](List(
       fixArgumentIds,
       fixArgumentIdsOnOptionalMatch,
-      fixStandaloneArgumentPatternNodes
+      fixStandaloneArgumentPatternNodes,
+      if (config.markMergeJoinInterestingOrder) addMergeJoinInterestingOrder else identity
     )).apply(q)
+  }
+
+  private def addMergeJoinInterestingOrder(plannerQuery: SinglePlannerQuery): SinglePlannerQuery = {
+    lazy val existingInterestingPrefixes: ListSet[InterestingOrderCandidate] =
+      plannerQuery.interestingOrder.asInteresting
+        .interestingOrderCandidates
+        .collect {
+          case candidate @ InterestingOrderCandidate(col +: _) if col.expression.isInstanceOf[Property] =>
+            //
+            val maybeProp = AggregationHelper.extractPropertyForValue(col.expression, col.projections)
+            maybeProp.fold(candidate) { prop =>
+              if (col.isAscending)
+                InterestingOrderCandidate.asc(prop)
+              else
+                InterestingOrderCandidate.desc(prop)
+            }
+        }
+        .toListSet
+
+    val additionalCandidates: Set[InterestingOrderCandidate] =
+      cartesianProductsOrValueJoins.joinPredicateCandidates(
+        plannerQuery.queryGraph.selections.flatPredicates
+      ).flatMap {
+        case cartesianProductsOrValueJoins.JoinPredicate(_, Equals(l: Property, r: Property)) =>
+          val descCandidates = ListSet(InterestingOrderCandidate.desc(l), InterestingOrderCandidate.desc(r))
+          val ascCandidates = ListSet(InterestingOrderCandidate.asc(l), InterestingOrderCandidate.asc(r))
+
+          // add both candidates, or complete the pair if one side of Equals is already marked as interesting
+          if (existingInterestingPrefixes.intersect(descCandidates).nonEmpty) {
+            descCandidates -- existingInterestingPrefixes
+          } else {
+            ascCandidates -- existingInterestingPrefixes
+          }
+        case _ => Set.empty
+      }
+
+    plannerQuery
+      .withInterestingOrder(plannerQuery.interestingOrder.interesting(additionalCandidates))
+      .updateTail(addMergeJoinInterestingOrder)
   }
 }

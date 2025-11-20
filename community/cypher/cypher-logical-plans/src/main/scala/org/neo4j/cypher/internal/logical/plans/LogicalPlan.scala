@@ -6202,6 +6202,16 @@ case class ValueHashJoin(override val left: LogicalPlan, override val right: Log
   override val distinctness: Distinctness = Distinctness.distinctColumnsOfBinaryPlan(left, right)
 }
 
+case class ValueMergeJoin(override val left: LogicalPlan, override val right: LogicalPlan, join: Equals)(implicit
+  idGen: IdGen) extends LogicalBinaryPlan(idGen) {
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
+  override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)
+
+  override val localAvailableSymbols: Set[LogicalVariable] = left.availableSymbols ++ right.availableSymbols
+
+  override val distinctness: Distinctness = Distinctness.distinctColumnsOfBinaryPlan(left, right)
+}
+
 /**
  * Marker trait of light-weight simulations of a basic plans that can be used to test or benchmark runtime frameworks
  * in isolation from the database.

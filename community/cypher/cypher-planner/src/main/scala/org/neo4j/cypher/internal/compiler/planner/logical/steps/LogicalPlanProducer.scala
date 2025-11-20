@@ -299,6 +299,7 @@ import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.UpdatingPlan
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.logical.plans.ordering.ParallelExecutionProvidedOrderFactory
@@ -1909,6 +1910,37 @@ case class LogicalPlanProducer(
       cachedPropertiesPerPlan.get(rewrittenLhs.id).intersectProperties(cachedPropertiesPerPlan.get(rewrittenRhs.id)),
       context
     )
+  }
+
+  def planMergeJoin(
+    left: LogicalPlan,
+    right: LogicalPlan,
+    join: Equals,
+    originalPredicate: Expression,
+    context: LogicalPlanningContext
+  ): LogicalPlan = {
+    val plannerQuery = solveds.get(left.id).asSinglePlannerQuery ++ solveds.get(right.id).asSinglePlannerQuery
+    val solved = plannerQuery.amendQueryGraph(_.addPredicates(originalPredicate))
+
+    val (rewrittenLhsExpr, rewrittenLhs) = SubqueryExpressionSolver.ForSingle.solve(left, join.lhs, context)
+    val (rewrittenRhsExpr, rewrittenRhs) = SubqueryExpressionSolver.ForSingle.solve(right, join.rhs, context)
+    val rewrittenJoin = join.copy(lhs = rewrittenLhsExpr, rhs = rewrittenRhsExpr)(join.position)
+
+    val mergeJoinPlan = ValueMergeJoin(rewrittenLhs, rewrittenRhs, rewrittenJoin)
+
+    val providedOrder =
+      providedOrders.get(left.id)
+        .fromBoth(context.providedOrderFactory, Some(mergeJoinPlan))
+
+    annotate(
+      mergeJoinPlan,
+      solved,
+      providedOrder,
+      cachedPropertiesPerPlan.get(rewrittenLhs.id).intersectProperties(cachedPropertiesPerPlan.get(rewrittenRhs.id)),
+      context
+    )
+    markOrderAsLeveragedBackwardsUntilOrigin(mergeJoinPlan, context.providedOrderFactory)
+    mergeJoinPlan
   }
 
   def planNodeUniqueIndexSeek(

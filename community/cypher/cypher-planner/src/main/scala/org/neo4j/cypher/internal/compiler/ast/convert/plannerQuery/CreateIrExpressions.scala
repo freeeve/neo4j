@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.topDown
 
 case class CreateIrExpressions(
+  statementConverters: StatementConverters,
   anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
   semanticTable: SemanticTable,
   cancellationChecker: CancellationChecker
@@ -60,7 +61,7 @@ case class CreateIrExpressions(
      */
       case existsExpression @ ExistsExpression(q) =>
         val existsVariable = varFor(anonymousVariableNameGenerator.nextName)
-        val plannerQuery = StatementConverters.convertToPlannerQuery(
+        val plannerQuery = statementConverters.convertToPlannerQuery(
           q,
           semanticTable,
           anonymousVariableNameGenerator,
@@ -80,7 +81,7 @@ case class CreateIrExpressions(
       case countExpression @ CountExpression(q) =>
         val countVariable = varFor(anonymousVariableNameGenerator.nextName)
         val arguments = countExpression.dependencies
-        val plannerQuery = StatementConverters.convertToPlannerQuery(
+        val plannerQuery = statementConverters.convertToPlannerQuery(
           q,
           semanticTable,
           anonymousVariableNameGenerator,
@@ -158,7 +159,7 @@ case class CreateIrExpressions(
       case collectExpression @ CollectExpression(q) =>
         val collectVariable = varFor(anonymousVariableNameGenerator.nextName)
         val arguments = collectExpression.dependencies
-        val plannerQuery = StatementConverters.convertToPlannerQuery(
+        val plannerQuery = statementConverters.convertToPlannerQuery(
           q,
           semanticTable,
           anonymousVariableNameGenerator,

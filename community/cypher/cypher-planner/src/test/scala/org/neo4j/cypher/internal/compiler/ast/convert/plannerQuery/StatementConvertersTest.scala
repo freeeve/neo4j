@@ -2323,7 +2323,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     }
     val cancellationChecker = new TestCountdownCancellationChecker(2 * (queryASTSize + clauses.size))
     noException shouldBe thrownBy {
-      StatementConverters.convertToPlannerQuery(
+      StatementConverters.withDefaultConfig.convertToPlannerQuery(
         query,
         SemanticTable(),
         new AnonymousVariableNameGenerator,
@@ -2343,7 +2343,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     }
     val cancellationChecker = new TestCountdownCancellationChecker(queryASTSize + clauses.size)
     val ex = the[RuntimeException] thrownBy {
-      StatementConverters.convertToPlannerQuery(
+      StatementConverters.withDefaultConfig.convertToPlannerQuery(
         query,
         SemanticTable(),
         new AnonymousVariableNameGenerator,
@@ -2364,7 +2364,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     }
     val cancellationChecker = new TestCountdownCancellationChecker(queryASTSize + clauses.size)
     val ex = the[RuntimeException] thrownBy {
-      StatementConverters.convertToPlannerQuery(
+      StatementConverters.withDefaultConfig.convertToPlannerQuery(
         query,
         SemanticTable(),
         new AnonymousVariableNameGenerator,
@@ -2385,7 +2385,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     }
     val cancellationChecker = new TestCountdownCancellationChecker(queryASTSize + clauses.size)
     val ex = the[RuntimeException] thrownBy {
-      StatementConverters.convertToPlannerQuery(
+      StatementConverters.withDefaultConfig.convertToPlannerQuery(
         query,
         SemanticTable(),
         new AnonymousVariableNameGenerator,
@@ -2407,7 +2407,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     }
     val cancellationChecker = new TestCountdownCancellationChecker(queryASTSize + clauses.size)
     val ex = the[RuntimeException] thrownBy {
-      StatementConverters.convertToPlannerQuery(
+      StatementConverters.withDefaultConfig.convertToPlannerQuery(
         unionQuery,
         SemanticTable(),
         new AnonymousVariableNameGenerator,
@@ -2620,7 +2620,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           |RETURN 1 AS one""".stripMargin,
         None,
         None,
-        compareVersions = true
+        compareVersions = true,
+        Map.empty
       )
 
       val rel =
@@ -2660,7 +2661,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
         |RETURN 1 AS one""".stripMargin,
       None,
       None,
-      compareVersions = true
+      compareVersions = true,
+      Map.empty
     )
 
     val rel =

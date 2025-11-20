@@ -77,7 +77,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
             |RETURN product""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
       val expected =
         SinglePlannerQuery
@@ -107,7 +108,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
             |RETURN DISTINCT product.code AS code ORDER BY code SKIP 5 LIMIT 10""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
 
       val expected =
@@ -148,7 +150,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
             |RETURN product""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
 
       val expectedFirst =
@@ -226,7 +229,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
             |RETURN product, customer""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
 
       query shouldEqual productQueryWithCustomerSubQuery(resolveStrictly)
@@ -247,7 +251,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
             |RETURN product, customer""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
 
       query shouldEqual productQueryWithCustomerSubQuery(resolveStrictly)
@@ -286,7 +291,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
             |RETURN product, customer""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
 
       val expected =
@@ -488,7 +494,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
             |""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
 
       val expected =
@@ -570,7 +577,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
             |RETURN product""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
 
       val expected =
@@ -735,7 +743,8 @@ class StandardStatementConvertersTest extends CypherFunSuite with LogicalPlannin
             |RETURN product""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
 
       query shouldEqual StandardFixtures.topLevelQuery
@@ -756,7 +765,8 @@ class StandardStatementConvertersTest extends CypherFunSuite with LogicalPlannin
             |RETURN product, customer""".stripMargin,
           None,
           None,
-          compareVersions = false
+          compareVersions = false,
+          Map.empty
         )
 
       query shouldEqual StandardFixtures.queryContainingSubQuery

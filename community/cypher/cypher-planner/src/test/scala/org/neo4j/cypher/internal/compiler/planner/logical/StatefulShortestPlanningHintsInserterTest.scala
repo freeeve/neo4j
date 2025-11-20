@@ -52,7 +52,7 @@ class StatefulShortestPlanningHintsInserterTest extends CypherFunSuite with Logi
       statefulShortestPlanningMode = statefulShortestPlanningMode
     )
 
-    val q = buildSinglePlannerQuery(version, query, None, None)
+    val q = buildSinglePlannerQuery(version, query, None, None, Map.empty)
     q.endoRewrite(StatefulShortestPlanningHintsInserter.instance(mock[LogicalPlanState], context))
   }
 

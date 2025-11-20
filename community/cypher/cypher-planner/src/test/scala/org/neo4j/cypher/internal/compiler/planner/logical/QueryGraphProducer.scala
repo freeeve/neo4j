@@ -141,7 +141,7 @@ trait QueryGraphProducer {
 
     val semanticTable = output.semanticTable()
     val plannerQuery =
-      StatementConverters.convertToPlannerQuery(
+      StatementConverters.withDefaultConfig.convertToPlannerQuery(
         output.statement().asInstanceOf[Query],
         semanticTable,
         anonymousVariableNameGenerator,

@@ -148,7 +148,8 @@ case object QueryPlanner
       dynamicLabelScansEnabled = context.config.dynamicLabelScansEnabled(),
       dynamicLabelIndexUseEnabled = context.config.dynamicLabelIndexUseEnabled(),
       existsWithImplicitLimitEnabled = context.config.existsWithImplicitLimitEnabled(),
-      selectorCandidatesMaximum = context.config.selectorCandidatesMaximum()
+      selectorCandidatesMaximum = context.config.selectorCandidatesMaximum(),
+      planningMergeJoinEnabled = context.config.planningMergeJoinEnabled()
     )
 
     LogicalPlanningContext(staticComponents, settings)

@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.logical.plans.TransactionApply
 import org.neo4j.cypher.internal.logical.plans.TransactionForeach
 import org.neo4j.cypher.internal.logical.plans.TriadicSelection
 import org.neo4j.cypher.internal.logical.plans.Union
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Ref
@@ -237,6 +238,10 @@ object CandidateListFinder {
             emptyCandidateListsForRHSvsTopConflicts = assertHasReadOnlyRHS(plan)
           )
         case _: CartesianProduct => BinaryPlanEagerizationStrategy(
+            eagerizeLHSvsRHSConflicts = LhsVsRhsEagerization.Yes,
+            emptyCandidateListsForRHSvsTopConflicts = assertHasReadOnlyRHS(plan)
+          )
+        case _: ValueMergeJoin => BinaryPlanEagerizationStrategy(
             eagerizeLHSvsRHSConflicts = LhsVsRhsEagerization.Yes,
             emptyCandidateListsForRHSvsTopConflicts = assertHasReadOnlyRHS(plan)
           )

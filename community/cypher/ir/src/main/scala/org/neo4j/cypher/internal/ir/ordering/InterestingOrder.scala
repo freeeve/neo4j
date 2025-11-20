@@ -76,6 +76,10 @@ case class InterestingOrder(
     InterestingOrder(requiredOrderCandidate, interestingOrderCandidates :+ candidate)
 
   // TODO maybe merge some candidates
+  def interesting(candidates: Iterable[InterestingOrderCandidate]): InterestingOrder =
+    InterestingOrder(requiredOrderCandidate, interestingOrderCandidates ++ candidates)
+
+  // TODO maybe merge some candidates
   def asInteresting: InterestingOrder =
     if (requiredOrderCandidate.isEmpty) this
     else

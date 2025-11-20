@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.CountStar
@@ -39,6 +40,7 @@ import org.neo4j.cypher.internal.ir.ordering.InterestingOrderCandidate
 import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
 import org.neo4j.cypher.internal.util.symbols.CTDate
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.graphdb.config.Setting
 
 class InterestingOrderStatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport {
 
@@ -744,4 +746,60 @@ class InterestingOrderStatementConvertersTest extends CypherFunSuite with Logica
       case None       => List(plannerQuery.interestingOrder)
       case Some(tail) => plannerQuery.interestingOrder :: interestingOrders(tail)
     }
+}
+
+class MergeJoinInterestingOrderStatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport {
+
+  override protected def databaseConfig: Map[Setting[_], AnyRef] = super.databaseConfig ++ Map(
+    GraphDatabaseInternalSettings.planning_merge_join_enabled -> Boolean.box(true)
+  )
+
+  test("should not add interesting order for node equality") {
+    val q = buildSinglePlannerQuery("MATCH (a), (b) WHERE a = b RETURN a, b")
+    q.interestingOrder shouldBe InterestingOrder.empty
+  }
+
+  test("should add interesting order for property equality in the same planner query") {
+    val q = buildSinglePlannerQuery("MATCH (a), (b) WHERE a.x = b.y RETURN a, b")
+    q.interestingOrder shouldBe
+      InterestingOrder.empty
+        .interesting(InterestingOrderCandidate.asc(prop(v"a", "x")))
+        .interesting(InterestingOrderCandidate.asc(prop(v"b", "y")))
+  }
+
+  test("should add interesting order for one side of property equality, ASC") {
+    val q =
+      buildSinglePlannerQuery("MATCH (a), (b) WHERE a.prop = b.prop WITH a AS x, b AS y RETURN x, y ORDER BY x.prop")
+
+    q.interestingOrder shouldBe
+      InterestingOrder
+        .interested(InterestingOrderCandidate.asc(prop(v"x", "prop"), Map(v"x" -> v"a")))
+        .interesting(InterestingOrderCandidate.asc(prop(v"b", "prop")))
+  }
+
+  test("should add interesting order for one side of property equality, DESC") {
+    val q = buildSinglePlannerQuery(
+      "MATCH (a), (b) WHERE a.prop = b.prop WITH a AS x, b AS y RETURN x, y ORDER BY y.prop DESC"
+    )
+
+    q.interestingOrder shouldBe
+      InterestingOrder
+        .interested(InterestingOrderCandidate.desc(prop(v"y", "prop"), Map(v"y" -> v"b")))
+        .interesting(InterestingOrderCandidate.desc(prop(v"a", "prop")))
+  }
+
+  test("should only add interesting order for one side of property equality for the first ORDER BY columns") {
+    val q =
+      buildSinglePlannerQuery(
+        "MATCH (a), (b) WHERE a.prop = b.prop WITH a AS x, b AS y RETURN x, y ORDER BY x.prop DESC, y.prop ASC"
+      )
+
+    q.interestingOrder shouldBe
+      InterestingOrder
+        .interested(InterestingOrderCandidate
+          .desc(prop(v"x", "prop"), Map(v"x" -> v"a"))
+          .asc(prop(v"y", "prop"), Map(v"y" -> v"b")))
+        .interesting(InterestingOrderCandidate
+          .desc(prop(v"b", "prop")))
+  }
 }

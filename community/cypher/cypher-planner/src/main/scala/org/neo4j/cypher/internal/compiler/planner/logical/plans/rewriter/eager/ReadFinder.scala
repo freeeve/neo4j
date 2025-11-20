@@ -207,6 +207,7 @@ import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
@@ -1029,6 +1030,7 @@ object ReadFinder {
         Union(_, _) |
         UnwindCollection(_, _, _) |
         ValueHashJoin(_, _, _) |
+        ValueMergeJoin(_, _, _) |
         Sort(_, _) |
         PartialSort(_, _, _, _) |
         Top(_, _, _) |

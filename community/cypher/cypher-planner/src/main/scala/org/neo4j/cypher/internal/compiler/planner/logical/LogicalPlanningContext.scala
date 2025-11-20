@@ -144,6 +144,8 @@ object LogicalPlanningContext {
    *                                       Relevant for caching.
    * @param selectorCandidatesMaximum a setting what maximum number of candidates for which we consider all possibilities
    *                                  Relevant for caching.
+   * @param planningMergeJoinEnabled Controls planing of merge join.
+   *                                 Relevant for caching.
    */
   case class Settings(
     executionModel: ExecutionModel,
@@ -173,7 +175,8 @@ object LogicalPlanningContext {
       GraphDatabaseInternalSettings.cypher_enable_dynamic_label_index_use.defaultValue(),
     existsWithImplicitLimitEnabled: Boolean =
       GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled.defaultValue(),
-    selectorCandidatesMaximum: Int = GraphDatabaseInternalSettings.planning_selector_candidates_maximum.defaultValue()
+    selectorCandidatesMaximum: Int = GraphDatabaseInternalSettings.planning_selector_candidates_maximum.defaultValue(),
+    planningMergeJoinEnabled: Boolean = GraphDatabaseInternalSettings.planning_merge_join_enabled.defaultValue()
   ) {
 
     private def cacheKey(): Seq[Any] = this match {
@@ -199,7 +202,8 @@ object LogicalPlanningContext {
           dynamicLabelScansEnabled: Boolean,
           dynamicLabelIndexUseEnabled: Boolean,
           existsWithImplicitLimitEnabled: Boolean,
-          selectorCandidatesMaximum: Int
+          selectorCandidatesMaximum: Int,
+          planningMergeJoinEnabled: Boolean
         ) =>
         val builder = Seq.newBuilder[Any]
 
@@ -255,6 +259,9 @@ object LogicalPlanningContext {
 
         if (GraphDatabaseInternalSettings.planning_selector_candidates_maximum.dynamic())
           builder.addOne(selectorCandidatesMaximum)
+
+        if (GraphDatabaseInternalSettings.planning_merge_join_enabled.dynamic())
+          builder.addOne(planningMergeJoinEnabled)
 
         builder.result()
     }

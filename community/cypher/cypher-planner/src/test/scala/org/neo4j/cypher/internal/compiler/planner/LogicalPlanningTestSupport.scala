@@ -148,6 +148,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   val monitors = mock[Monitors]
   val mockRel = newPatternRelationship("a", "b", "r")
 
+  protected def databaseConfig: Map[Setting[_], AnyRef] = Map.empty
+
   def parse(query: String, exceptionFactory: CypherExceptionFactory): Statement = {
     val defaultStatement = parse(CypherVersion.Legacy.legacyVersion(), query, exceptionFactory)
 
@@ -527,17 +529,19 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   def buildSinglePlannerQuery(
     query: String,
     procedureLookup: Option[QualifiedName => ProcedureSignature] = None,
-    functionLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None
+    functionLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None,
+    additionalSettings: Map[Setting[_], AnyRef] = Map.empty
   ): SinglePlannerQuery =
-    buildSinglePlannerQuery(randomVersion(), query, procedureLookup, functionLookup)
+    buildSinglePlannerQuery(randomVersion(), query, procedureLookup, functionLookup, additionalSettings)
 
   def buildSinglePlannerQuery(
     version: CypherVersion,
     query: String,
     procedureLookup: Option[QualifiedName => ProcedureSignature],
-    functionLookup: Option[QualifiedName => Option[UserFunctionSignature]]
+    functionLookup: Option[QualifiedName => Option[UserFunctionSignature]],
+    additionalSettings: Map[Setting[_], AnyRef]
   ): SinglePlannerQuery = {
-    buildPlannerQuery(version, query, procedureLookup, functionLookup, true) match {
+    buildPlannerQuery(version, query, procedureLookup, functionLookup, true, additionalSettings) match {
       case pq: SinglePlannerQuery => pq
       case _                      => throw new IllegalArgumentException("This method cannot be used for UNION queries")
     }
@@ -568,15 +572,17 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   def buildPlannerQuery(
     query: String,
     procLookup: Option[QualifiedName => ProcedureSignature] = None,
-    fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None
-  ): PlannerQuery = buildPlannerQuery(randomVersion(), query, procLookup, fcnLookup, true)
+    fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None,
+    additionalSettings: Map[Setting[_], AnyRef] = Map.empty
+  ): PlannerQuery = buildPlannerQuery(randomVersion(), query, procLookup, fcnLookup, true, additionalSettings)
 
   def buildPlannerQuery(
     version: CypherVersion,
     query: String,
     procLookup: Option[QualifiedName => ProcedureSignature],
     fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]],
-    compareVersions: Boolean
+    compareVersions: Boolean,
+    additionalSettings: Map[Setting[_], AnyRef]
   ): PlannerQuery = {
     val signature = ProcedureSignature(
       QualifiedName(Seq.empty, "foo"),
@@ -605,7 +611,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       version = version,
       cypherExceptionFactory = exceptionFactory,
       planContext = planContext,
-      logicalPlanIdGen = idGen
+      logicalPlanIdGen = idGen,
+      config = CypherPlannerConfiguration.withSettings(databaseConfig ++ additionalSettings)
     )
     val output = pipeLine.transform(state, context)
 

@@ -780,6 +780,7 @@ object LogicalPlanToPlanBuilderString {
         )
 
       case ValueHashJoin(_, _, join)       => join.quoted
+      case ValueMergeJoin(_, _, join)      => join.quoted
       case NodeHashJoin(nodes, _, _)       => spread(nodes)
       case RightOuterHashJoin(nodes, _, _) => spread(nodes)
       case LeftOuterHashJoin(nodes, _, _)  => spread(nodes)

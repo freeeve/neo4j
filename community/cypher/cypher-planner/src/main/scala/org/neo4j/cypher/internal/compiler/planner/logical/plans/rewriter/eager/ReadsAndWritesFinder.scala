@@ -69,6 +69,7 @@ import org.neo4j.cypher.internal.logical.plans.SubqueryForeach
 import org.neo4j.cypher.internal.logical.plans.TransactionForeach
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
@@ -226,7 +227,7 @@ object ReadsAndWritesFinder {
         case _: Union | _: OrderedUnion =>
           // Union expresses OR
           Ors.of2(lhs.expression, rhs.expression)
-        case _: NodeHashJoin | _: ValueHashJoin | _: AssertSameNode | _: AssertSameRelationship =>
+        case _: NodeHashJoin | _: ValueHashJoin | _: ValueMergeJoin | _: AssertSameNode | _: AssertSameRelationship =>
           // Joins express AND
           // Let's use withAddedExpression to avoid nesting Ands
           lhs.withAddedExpression(rhs.expression).expression

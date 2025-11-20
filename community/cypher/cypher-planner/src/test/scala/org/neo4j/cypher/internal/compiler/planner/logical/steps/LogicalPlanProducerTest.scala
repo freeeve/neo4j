@@ -1583,7 +1583,8 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
             context
           )
         ),
-        ("ProduceResult", lpp.planProduceResult(plan(), Seq(v"x"), Some(interesting_vx), context))
+        ("ProduceResult", lpp.planProduceResult(plan(), Seq(v"x"), Some(interesting_vx), context)),
+        ("ValueMergeJoin", lpp.planMergeJoin(plan(), plan2(), equals(v"x", v"y"), equals(v"x", v"y"), context))
       )
 
       // then
@@ -2700,6 +2701,21 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ctx.context
       )
     )
+  }
+
+  test("should only cache common properties for a given variable for planValueMergeJoin") {
+    shouldIntersectCachedProperties { ctx =>
+      val attrs = ctx.context.staticComponents.planningAttributes
+      attrs.providedOrders.set(ctx.lhs.id, DefaultProvidedOrderFactory.asc(v"x"))
+      attrs.providedOrders.set(ctx.rhsWithoutUpdate.id, DefaultProvidedOrderFactory.asc(v"y"))
+      ctx.producer.planMergeJoin(
+        ctx.lhs,
+        ctx.rhsWithoutUpdate,
+        equals(prop("x", "foo"), prop("y", "foo")),
+        equals(prop("x", "foo"), prop("y", "foo")),
+        ctx.context
+      )
+    }
   }
 
   private def mockCachedProperties =

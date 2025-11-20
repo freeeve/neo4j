@@ -24,8 +24,8 @@ import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.PlannerQueryBuilder
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.StatementConverters
-import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.LOGICAL_PLANNING
 import org.neo4j.cypher.internal.frontend.phases.Namespacer
@@ -50,22 +50,23 @@ import org.neo4j.exceptions.NotSystemDatabaseException
  * From the normalized ast, create the corresponding PlannerQuery.
  */
 case class CreatePlannerQuery(semanticFeatures: Set[SemanticFeature])
-    extends Phase[BaseContext, BaseState, LogicalPlanState] {
+    extends Phase[PlannerContext, BaseState, LogicalPlanState] {
 
   override def phase = LOGICAL_PLANNING
 
-  override def process(from: BaseState, context: BaseContext): LogicalPlanState = from.statement() match {
+  override def process(from: BaseState, context: PlannerContext): LogicalPlanState = from.statement() match {
     case query: Query =>
+      val statementConverters = StatementConverters(PlannerQueryBuilder.Config.fromPlannerConfig(context.config))
       val plannerQuery: PlannerQuery =
         if (semanticFeatures.contains(SemanticFeature.UseAsMultipleGraphsSelector))
-          StatementConverters.convertCompositePlannerQuery(
+          statementConverters.convertCompositePlannerQuery(
             query = query,
             semanticTable = from.semanticTable(),
             anonymousVariableNameGenerator = from.anonymousVariableNameGenerator,
             cancellationChecker = context.cancellationChecker
           )
         else
-          StatementConverters.convertToPlannerQuery(
+          statementConverters.convertToPlannerQuery(
             query = query,
             semanticTable = from.semanticTable(),
             anonymousVariableNameGenerator = from.anonymousVariableNameGenerator,
@@ -107,6 +108,6 @@ case object CreatePlannerQuery extends StepSequencer.Step with PlanPipelineTrans
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty
 
   override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig)
-    : Transformer[BaseContext, BaseState, LogicalPlanState] =
+    : Transformer[PlannerContext, BaseState, LogicalPlanState] =
     CreatePlannerQuery(planPipelineConfig.semanticFeatures.toSet)
 }

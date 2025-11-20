@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.CreateIrExpressions
+import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.StatementConverters
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.getDegreeRewriterTest.relPattern
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
@@ -57,7 +58,12 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 trait GetDegreeRewriterTestBase extends CypherFunSuite with AstConstructionTestSupport {
 
   def createIrExpressions: CreateIrExpressions =
-    CreateIrExpressions(new AnonymousVariableNameGenerator(), new SemanticTable(), CancellationChecker.NeverCancelled)
+    CreateIrExpressions(
+      StatementConverters.withDefaultConfig,
+      new AnonymousVariableNameGenerator(),
+      new SemanticTable(),
+      CancellationChecker.NeverCancelled
+    )
 
   protected def makeInputExpression(
     from: Option[String] = None,

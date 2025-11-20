@@ -145,7 +145,12 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
       NormalizePredicates(PredicateNormalizer.normalizeInlinedWhereClauses),
       NormalizePredicates(PredicateNormalizer.normalizeLabelAndPropertyPredicates(anonymousVariableNameGenerator)),
       flattenBooleanOperators.instance(CancellationChecker.NeverCancelled),
-      CreateIrExpressions(anonymousVariableNameGenerator, semanticTable, CancellationChecker.NeverCancelled)
+      CreateIrExpressions(
+        StatementConverters.withDefaultConfig,
+        anonymousVariableNameGenerator,
+        semanticTable,
+        CancellationChecker.NeverCancelled
+      )
     )
     e.endoRewrite(rewriter)
   }

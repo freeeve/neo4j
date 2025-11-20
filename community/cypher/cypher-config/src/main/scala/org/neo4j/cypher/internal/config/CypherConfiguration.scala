@@ -253,6 +253,9 @@ class CypherConfiguration private (val config: Config) {
   val allowDuplicatingSubqueryExpressionsInCnfNormalizer: Boolean =
     config.get(GraphDatabaseInternalSettings.allow_duplicating_subquery_expressions_in_cnf_normalizer).booleanValue()
 
+  val planningMergeJoinEnabled: Boolean =
+    config.get(GraphDatabaseInternalSettings.planning_merge_join_enabled).booleanValue()
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)

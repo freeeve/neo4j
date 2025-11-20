@@ -313,6 +313,7 @@ import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.plandescription.Arguments.Details
@@ -3415,6 +3416,17 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id = id,
           name = "ValueHashJoin",
+          children = children,
+          arguments = Seq(Details(asPrettyString(predicate))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case ValueMergeJoin(_, _, predicate) =>
+        PlanDescriptionImpl(
+          id = id,
+          name = "ValueMergeJoin",
           children = children,
           arguments = Seq(Details(asPrettyString(predicate))),
           variables,

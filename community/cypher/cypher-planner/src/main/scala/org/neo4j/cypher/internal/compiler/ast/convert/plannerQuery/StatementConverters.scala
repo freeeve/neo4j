@@ -33,7 +33,6 @@ import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.ClauseConverters.addToLogicalPlanInput
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.composite.CompositeQueryConverter
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.composite.CompositeQueryFragmenter
 import org.neo4j.cypher.internal.expressions.And
@@ -57,7 +56,7 @@ import org.neo4j.exceptions.InternalException
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
-object StatementConverters {
+case class StatementConverters(builderConfig: PlannerQueryBuilder.Config) {
 
   /**
    * Convert an AST SingleQuery into an IR SinglePlannerQuery
@@ -74,7 +73,7 @@ object StatementConverters {
       wth.returnItems.items.map(_.asInstanceOf[AliasedReturnItem].variable).toSet
     ).getOrElse(Set.empty)
 
-    val builder = PlannerQueryBuilder(semanticTable, allImportedVars, importedVariables)
+    val builder = PlannerQueryBuilder(semanticTable, allImportedVars, importedVariables, builderConfig)
     addClausesToPlannerQueryBuilder(
       q.clauses,
       builder,
@@ -94,6 +93,8 @@ object StatementConverters {
     cancellationChecker: CancellationChecker,
     position: QueryProjection.Position
   ): PlannerQueryBuilder = {
+    val clauseConverters = ClauseConverters(this)
+
     @tailrec
     def addClausesToPlannerQueryBuilderRec(clauses: Seq[Clause], builder: PlannerQueryBuilder): PlannerQueryBuilder =
       if (clauses.isEmpty)
@@ -104,7 +105,7 @@ object StatementConverters {
         val nextClauses = clauses.tail
         val nextClause = nextClauses.headOption
         val newBuilder =
-          addToLogicalPlanInput(
+          clauseConverters.addToLogicalPlanInput(
             builder,
             clause,
             nextClause,
@@ -140,7 +141,7 @@ object StatementConverters {
     cancellationChecker: CancellationChecker
   ): Query = {
     val rewrittenQuery =
-      query.endoRewrite(CreateIrExpressions(anonymousVariableNameGenerator, semanticTable, cancellationChecker))
+      query.endoRewrite(CreateIrExpressions(this, anonymousVariableNameGenerator, semanticTable, cancellationChecker))
     val nodes = findBlacklistedNodes(query)
     require(nodes.isEmpty, "Found a blacklisted AST node: " + nodes.head.toString)
     rewrittenQuery
@@ -240,7 +241,12 @@ object StatementConverters {
     val rewrittenQuery = rewriteAndCheckQuery(query, semanticTable, anonymousVariableNameGenerator, cancellationChecker)
     val compositeQuery =
       CompositeQueryFragmenter.fragment(cancellationChecker, anonymousVariableNameGenerator, rewrittenQuery)
-    CompositeQueryConverter.convert(cancellationChecker, anonymousVariableNameGenerator, semanticTable, compositeQuery)
+    CompositeQueryConverter(this).convert(
+      cancellationChecker,
+      anonymousVariableNameGenerator,
+      semanticTable,
+      compositeQuery
+    )
   }
 
   /**
@@ -283,4 +289,8 @@ object StatementConverters {
 
   private def containsIrExpression(element: PatternElement): Boolean =
     element.folder.treeFindByClass[IRExpression].isDefined
+}
+
+object StatementConverters {
+  def withDefaultConfig: StatementConverters = StatementConverters(PlannerQueryBuilder.Config.default)
 }
