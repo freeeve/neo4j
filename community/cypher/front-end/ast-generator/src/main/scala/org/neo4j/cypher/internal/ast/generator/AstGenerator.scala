@@ -3111,12 +3111,8 @@ class AstGenerator(
   def _databaseNameNoNamespace: Gen[DatabaseName] = for {
     name <- listOfN(1, _identifier)
     param <- _stringParameter
-    finalName <- whenAstDifferUseCypherVersion match {
-      case CypherVersion.Cypher5 =>
-        oneOf(NamespacedName.apply(name)(pos), ParameterName(param)(pos))
-      case _ =>
-        oneOf(NamespacedName(name, None)(pos), ParameterName(param)(pos))
-    }
+    finalName <- if (usesCypher5) oneOf(NamespacedName.apply(name)(pos), ParameterName(param)(pos))
+    else oneOf(NamespacedName(name, None)(pos), ParameterName(param)(pos))
   } yield finalName
 
   def _optionsMapAsEitherOrNone: Gen[Options] = for {
@@ -3171,24 +3167,21 @@ class AstGenerator(
 
   def _oidcCredentialForwarding: Gen[OidcCredentialForwarding] = OidcCredentialForwarding()(pos)
 
-  def _remoteAliasCredentials: Gen[RemoteAliasCredentials] = whenAstDifferUseCypherVersion match {
-    case CypherVersion.Cypher5 =>
-      _remoteAliasStoredCredentials
-    case _ =>
-      oneOf(_remoteAliasStoredCredentials, _oidcCredentialForwarding)
-  }
+  def _remoteAliasCredentials: Gen[RemoteAliasCredentials] =
+    if (usesCypher5) _remoteAliasStoredCredentials
+    else oneOf(_remoteAliasStoredCredentials, _oidcCredentialForwarding)
 
   def _ifExistsDo: Gen[IfExistsDo] =
     oneOf(IfExistsReplace, IfExistsDoNothing, IfExistsThrowError, IfExistsInvalidSyntax)
 
   def _namespacedName: Gen[NamespacedName] = for {
-    name <- if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) {
+    name <- if (usesCypher5) {
       listOfN(1, _identifier)
     } else {
       listOfN(2, _identifier)
     }
     namespace <- _identifier
-    maybeNamespace <- if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) {
+    maybeNamespace <- if (usesCypher5) {
       option(namespace)
     } else {
       const(None)
@@ -3416,13 +3409,8 @@ class AstGenerator(
   } yield GrantRolesToAuthRules(roleNames, ruleNames)(pos)
 
   def _grantRole: Gen[AdministrationCommand] = {
-    whenAstDifferUseCypherVersion match {
-      case CypherVersion.Cypher5 => _grantRolesToUsers
-      case _ => oneOf(
-          _grantRolesToUsers,
-          _grantRolesToAuthRules
-        )
-    }
+    if (usesCypher5) _grantRolesToUsers
+    else oneOf(_grantRolesToUsers, _grantRolesToAuthRules)
   }
 
   def _revokeRolesFromUsers: Gen[RevokeRolesFromUsers] = for {
@@ -3436,13 +3424,8 @@ class AstGenerator(
   } yield RevokeRolesFromAuthRules(roleNames, ruleNames)(pos)
 
   def _revokeRole: Gen[AdministrationCommand] = {
-    whenAstDifferUseCypherVersion match {
-      case CypherVersion.Cypher5 => _revokeRolesFromUsers
-      case _ => oneOf(
-          _revokeRolesFromUsers,
-          _revokeRolesFromAuthRules
-        )
-    }
+    if (usesCypher5) _revokeRolesFromUsers
+    else oneOf(_revokeRolesFromUsers, _revokeRolesFromAuthRules)
   }
 
   def _roleCommand: Gen[AdministrationCommand] = oneOf(
@@ -3878,10 +3861,10 @@ class AstGenerator(
       DefaultDatabaseScope()(pos),
       HomeDatabaseScope()(pos)
     )
-    cypher5ColumnsOnly <- boolean
     yields <- _eitherYieldOrWhere
-    spdEnabled <- false
-  } yield ShowDatabase(scope, yields, cypher5ColumnsOnly, spdEnabled)(pos)
+    // The test isn't run with the feature flag enabled so having false here is fine
+    spdEnabled <- const(false)
+  } yield ShowDatabase(scope, yields, usesCypher5, spdEnabled)(pos)
 
   def _createDatabase: Gen[CreateDatabase] = for {
     dbName <- _databaseNameNoNamespace
