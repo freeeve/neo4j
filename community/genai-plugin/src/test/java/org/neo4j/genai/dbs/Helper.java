@@ -21,7 +21,6 @@ package org.neo4j.genai.dbs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.Assert.assertFalse;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -166,7 +165,7 @@ final class Helper {
         }
         assertThat(row).hasEntrySatisfying("vector", v -> assertThat(v).isNotNull());
 
-        assertFalse(r.hasNext());
+        assertThat(r.hasNext()).isFalse();
     }
 
     private Helper() {}
