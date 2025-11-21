@@ -588,7 +588,7 @@ public class EvictionLogicTest {
     private void doFault(int swapperId, long filePageId) throws IOException {
         assertTrue(PageMetadata.tryExclusiveLock(pageRef));
         MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
-        MuninnPageCache.initBuffer(pageRef, mman, pageSize, ALIGNMENT);
+        MuninnPageCache.ensurePageAllocated(pageRef, mman, pageSize, ALIGNMENT);
         MuninnPageCursor.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
     }
 

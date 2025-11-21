@@ -116,7 +116,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
 
     // This is the table where we translate file-page-ids to cache-page-ids. Only one thread can perform a resize at
     // a time, and we ensure this mutual exclusion using the monitor lock on this MuninnPagedFile object.
-    static final VarHandle TRANSLATION_TABLE_ARRAY = arrayElementVarHandle(int[].class);
+    private static final VarHandle TRANSLATION_TABLE_ARRAY = arrayElementVarHandle(int[].class);
     volatile int[][] translationTable;
 
     final PageSwapper swapper;
@@ -1011,8 +1011,8 @@ final class MuninnPagedFile implements PagedFile, Flushable {
         return pageCache.grabFreeAndExclusivelyLockedPage(faultEvent);
     }
 
-    void initBuffer(long pageRef) {
-        pageCache.initBuffer(pageRef);
+    void ensurePageAllocated(long pageRef) {
+        pageCache.ensurePageAllocated(pageRef);
     }
 
     /**
@@ -1177,11 +1177,11 @@ final class MuninnPagedFile implements PagedFile, Flushable {
         return index;
     }
 
-    private static int translationTableGetVolatile(int[] chunk, int chunkIndex) {
+    static int translationTableGetVolatile(int[] chunk, int chunkIndex) {
         return (int) TRANSLATION_TABLE_ARRAY.getVolatile(chunk, chunkIndex);
     }
 
-    private static void translationTableSetVolatile(int[] chunk, int chunkIndex, int value) {
+    static void translationTableSetVolatile(int[] chunk, int chunkIndex, int value) {
         TRANSLATION_TABLE_ARRAY.setVolatile(chunk, chunkIndex, value);
     }
 
@@ -1269,7 +1269,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
             long[] bufferAddresses = new long[numberOfPages];
             int[] bufferLengths = new int[numberOfPages];
             for (int i = 0; i < numberOfPages; i++) {
-                bufferAddresses[i] = pageCache.initBuffer(pageRefs[i]);
+                bufferAddresses[i] = pageCache.ensurePageAllocated(pageRefs[i]);
                 bufferLengths[i] = filePageSize;
             }
 
@@ -1345,5 +1345,13 @@ final class MuninnPagedFile implements PagedFile, Flushable {
                         + "%s, swapper id = %s}.",
                 filePageId, swapper, swapperId, pageRef, currentFilePageId, currentSwapper);
         return new IllegalStateException(msg);
+    }
+
+    int[] getTranslationTableChunk(int chunkId) throws IOException {
+        int[][] tt = translationTable;
+        if (chunkId < tt.length) {
+            return tt[chunkId];
+        }
+        return expandCapacity(chunkId)[chunkId];
     }
 }

@@ -1222,16 +1222,18 @@ public class MuninnPageCache implements PageCache {
         return keepFree;
     }
 
-    long initBuffer(long pageRef) {
-        return initBuffer(pageRef, memoryAllocator, cachePageSize, bufferAlignment);
+    long ensurePageAllocated(long pageRef) {
+        return ensurePageAllocated(pageRef, memoryAllocator, cachePageSize, bufferAlignment);
     }
 
-    static long initBuffer(long pageRef, MemoryAllocator memoryAllocator, int cachePageSize, long bufferAlignment) {
-        var address = PageMetadata.getAddress(pageRef);
-        if (address == 0L) {
-            address = memoryAllocator.allocateAligned(cachePageSize, bufferAlignment);
-            PageMetadata.setAddress(pageRef, address);
+    static long ensurePageAllocated(
+            long pageRef, MemoryAllocator memoryAllocator, int cachePageSize, long bufferAlignment) {
+        long address = PageMetadata.getAddress(pageRef);
+        if (address != 0L) {
+            return address;
         }
-        return address;
+        long allocated = memoryAllocator.allocateAligned(cachePageSize, bufferAlignment);
+        PageMetadata.setAddress(pageRef, allocated);
+        return allocated;
     }
 }
