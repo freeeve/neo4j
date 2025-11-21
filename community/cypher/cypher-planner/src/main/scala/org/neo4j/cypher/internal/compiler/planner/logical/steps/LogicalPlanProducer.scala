@@ -1467,11 +1467,19 @@ case class LogicalPlanProducer(
       .addQuantifiedPathPattern(pattern)
       .addPredicates(predicates: _*))
 
+    val (rewrittenSourcePlan, rewrittenAllReduceAccumulators) =
+      allReduceAccumulators.toVector.sortBy(_.position).foldLeft((source, Set.empty[AllReduceAccumulator])) {
+        case ((plan, accumulators), allReduceAcc) =>
+          val (rewrittenInit, rewrittenPlan) =
+            SubqueryExpressionSolver.ForSingle.solve(plan, allReduceAcc.initial, context)
+          (rewrittenPlan, accumulators + allReduceAcc.copy(initial = rewrittenInit)(allReduceAcc.position))
+      }
+
     val providedOrderRule = ProvidedOrder.Left
     val repeatPlan = pathMode match {
       case TraversalPathMode.Trail =>
         RepeatTrail(
-          left = source,
+          left = rewrittenSourcePlan,
           right = innerPlan,
           repetition = pattern.repetition,
           start = startBinding.outer,
@@ -1485,11 +1493,11 @@ case class LogicalPlanProducer(
           previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections = reverseGroupVariableProjections,
           expansionMode = expansionMode,
-          accumulatorMappings = allReduceAccumulators
+          accumulatorMappings = rewrittenAllReduceAccumulators
         )
       case TraversalPathMode.Walk =>
         RepeatWalk(
-          left = source,
+          left = rewrittenSourcePlan,
           right = innerPlan,
           repetition = pattern.repetition,
           start = startBinding.outer,
@@ -1501,7 +1509,7 @@ case class LogicalPlanProducer(
           reverseGroupVariableProjections = reverseGroupVariableProjections,
           innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet,
           expansionMode = expansionMode,
-          accumulatorMappings = allReduceAccumulators
+          accumulatorMappings = rewrittenAllReduceAccumulators
         )
       case _ => throw new IllegalStateException(s"Unknown path mode: $pathMode")
     }

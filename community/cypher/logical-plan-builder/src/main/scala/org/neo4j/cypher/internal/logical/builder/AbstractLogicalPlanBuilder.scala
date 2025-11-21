@@ -3317,7 +3317,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         trailParameters.reverseGroupVariableProjections,
         trailParameters.expansionMode,
         trailParameters.accumulators.map { case (initial, previous, current) =>
-          AllReduceAccumulator(parser.parseExpression(initial), varFor(previous), varFor(current))(pos)
+          AllReduceAccumulator(toExpression(initial), varFor(previous), varFor(current))(pos)
         }
       )(_)
     ))
@@ -3670,8 +3670,14 @@ object AbstractLogicalPlanBuilder {
     previouslyBoundRelationshipGroups: Set[String],
     reverseGroupVariableProjections: Boolean,
     expansionMode: ExpansionMode,
-    accumulators: Set[(String, String, String)]
+    accumulators: Set[(ToExpression, String, String)]
   )
+
+  object TrailParameters {
+
+    def accumulator(initial: String, previous: String, next: String): (ToExpression, String, String) =
+      (initial, previous, next)
+  }
 
   case class WalkParameters(
     min: Int,

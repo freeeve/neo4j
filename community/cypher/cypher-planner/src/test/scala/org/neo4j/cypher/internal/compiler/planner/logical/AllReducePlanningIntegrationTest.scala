@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
@@ -34,6 +33,7 @@ import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.logical.plans.LogicalPlanAstConstructionTestSupport
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.util.UpperBound.Limited
@@ -41,7 +41,7 @@ import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
-    with AstConstructionTestSupport with CypherVersionTestSupport {
+    with LogicalPlanAstConstructionTestSupport with CypherVersionTestSupport {
 
   protected val baseConfig: StatisticsBackedLogicalPlanningConfigurationBuilder = plannerBuilder()
     .setAllNodesCardinality(100)
@@ -1393,6 +1393,247 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       )))
       .expandAll("(a)-[rel*1..]->()")
       .nodeByLabelScan("a", "N", IndexOrderNone)
+      .build()
+  }
+
+  test("should plan subquery expression in init") {
+    val query =
+      """
+        |MATCH (a:N)-[r]->+(b)
+        |WHERE
+        |  allReduce(
+        |    acc = COUNT { (:N) },
+        |    r IN r | acc + r.prop,
+        |    acc < 123
+        |  )
+        |RETURN a, b
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    val trailParams = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "anon_0",
+      innerEnd = "anon_1",
+      groupNodes = Set(),
+      groupRelationships = Set(),
+      innerRelationships = Set("r"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("anon_2", "acc", "acc"))
+    )
+    plan shouldEqual planner.subPlanBuilder()
+      .repeatTrail(trailParams)
+      .|.filter("acc < 123", isRepeatTrailUnique("r"))
+      .|.projection("acc + r.prop AS acc")
+      .|.expandAll("(anon_0)-[r]->(anon_1)")
+      .|.argument("anon_0", "acc")
+      .apply()
+      .|.nodeCountFromCountStore("anon_2", Seq(Some("N")))
+      .nodeByLabelScan("a", "N")
+      .build()
+  }
+
+  test("should plan subquery expression in step") {
+    val query =
+      """
+        |MATCH (a:N)-[rr]->+(b)
+        |WHERE
+        |  allReduce(
+        |    acc = 0,
+        |    r IN rr | acc + COUNT { (n:N) WHERE n.prop = r.prop },
+        |    acc < 123
+        |  )
+        |RETURN a, b
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    val trailParameters = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "anon_0",
+      innerEnd = "anon_1",
+      groupNodes = Set(),
+      groupRelationships = Set(),
+      innerRelationships = Set("rr"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("0", "acc", "acc"))
+    )
+    plan shouldEqual planner.subPlanBuilder()
+      .repeatTrail(trailParameters)
+      .|.filter("acc < 123", isRepeatTrailUnique("rr"))
+      .|.projection("acc + anon_2 AS acc")
+      .|.apply()
+      .|.|.aggregation(Seq(), Seq("count(*) AS anon_2"))
+      .|.|.filter("n.prop = cacheR[rr.prop]")
+      .|.|.nodeByLabelScan("n", "N", "rr")
+      .|.cacheProperties("cacheRFromStore[rr.prop]")
+      .|.expandAll("(anon_0)-[rr]->(anon_1)")
+      .|.argument("anon_0", "acc")
+      .nodeByLabelScan("a", "N")
+      .build()
+  }
+
+  test("should plan subquery expression in predicate") {
+    val query =
+      """
+        |MATCH (a:N)-[r]->+(b)
+        |WHERE
+        |  allReduce(
+        |    acc = 0,
+        |    r IN r | acc + r.prop,
+        |    acc < COUNT { (:N) }
+        |  )
+        |RETURN a, b
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    val trailParameters = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "anon_0",
+      innerEnd = "anon_1",
+      groupNodes = Set(),
+      groupRelationships = Set(),
+      innerRelationships = Set("r"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("0", "acc", "acc"))
+    )
+    plan shouldEqual planner.subPlanBuilder()
+      .repeatTrail(trailParameters)
+      .|.filter("acc < anon_2", isRepeatTrailUnique("r"))
+      .|.projection("acc + r.prop AS acc")
+      .|.apply()
+      .|.|.nodeCountFromCountStore("anon_2", Seq(Some("N")))
+      .|.expandAll("(anon_0)-[r]->(anon_1)")
+      .|.argument("anon_0", "acc")
+      .nodeByLabelScan("a", "N")
+      .build()
+  }
+
+  test("should plan multiple subquery expressions in multiple inits") {
+    val query =
+      """
+        |MATCH (a:N)-[r]->+(b)
+        |WHERE
+        |  allReduce(
+        |    acc = COUNT { (:N) } + COUNT { (:NN) },
+        |    r IN r | acc + r.prop,
+        |    acc < 123
+        |  ) AND
+        |  allReduce(
+        |    acc = EXISTS { (:N) },
+        |    r IN r | acc AND r.prop,
+        |    acc = true
+        |  )
+        |RETURN a, b
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    val trailParameters = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "anon_1",
+      innerEnd = "anon_2",
+      groupNodes = Set(),
+      groupRelationships = Set(),
+      innerRelationships = Set("r"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("anon_3 + anon_4", "acc", "acc"), ("anon_5", "acc", "acc"))
+    )
+    plan shouldEqual planner.subPlanBuilder()
+      .repeatTrail(trailParameters)
+      .|.filter("acc = true", "acc < 123", isRepeatTrailUnique("r"))
+      .|.projection("acc AND cacheRFromStore[r.prop] AS acc")
+      .|.expandAll("(anon_1)-[r]->(anon_2)")
+      .|.argument("anon_1", "acc")
+      .letSemiApply("anon_5")
+      .|.nodeByLabelScan("anon_0", "N")
+      .apply()
+      .|.nodeCountFromCountStore("anon_4", Seq(Some("NN")))
+      .apply()
+      .|.nodeCountFromCountStore("anon_3", Seq(Some("N")))
+      .nodeByLabelScan("a", "N")
+      .build()
+  }
+
+  test("should plan nested plan expression in init") {
+    val query =
+      """
+        |MATCH (a:N)-[r]->+(b)
+        |WHERE
+        |  allReduce(
+        |    acc = head(COLLECT { MATCH (n:N) RETURN n.prop }),
+        |    r IN r | acc + r.prop,
+        |    acc < 123
+        |  )
+        |RETURN a, b
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+
+    val nestedPlan = planner.subPlanBuilder()
+      .limit(1)
+      .projection("n.prop AS `n.prop`")
+      .nodeByLabelScan("n", "N")
+      .build()
+
+    val nestedExpr = nestedCollectExpr(
+      plan = nestedPlan,
+      projection = "n.prop",
+      solvedExpressionAsString =
+        """COLLECT {
+          |  MATCH (n)
+          |    WHERE n:N
+          |  RETURN n.prop AS `n.prop`
+          |}""".stripMargin
+    )
+
+    val accInit = function("head", nestedExpr)
+
+    val trailParams = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "anon_0",
+      innerEnd = "anon_1",
+      groupNodes = Set(),
+      groupRelationships = Set(),
+      innerRelationships = Set("r"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set((accInit, "acc", "acc"))
+    )
+
+    plan shouldEqual planner.subPlanBuilder()
+      .repeatTrail(trailParams)
+      .|.filter("acc < 123", isRepeatTrailUnique("r"))
+      .|.projection("acc + r.prop AS acc")
+      .|.expandAll("(anon_0)-[r]->(anon_1)")
+      .|.argument("anon_0", "acc")
+      .nodeByLabelScan("a", "N")
       .build()
   }
 }

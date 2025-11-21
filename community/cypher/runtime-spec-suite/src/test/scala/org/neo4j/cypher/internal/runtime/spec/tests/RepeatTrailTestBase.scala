@@ -2946,7 +2946,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
       expansionMode = ExpandAll,
-      accumulators = accumulators
+      accumulators = accumulators.map { case (i, p, n) => TrailParameters.accumulator(i, p, n) }
     )
   }
 
