@@ -338,9 +338,9 @@ public class Database extends AbstractDatabase {
     protected void specificInit() throws IOException {
         this.storageEngineFactory = storageEngineFactorySupplier.create();
         var storageLockManager = storageEngineFactory.createLockManager(databaseConfig, this.clock);
-        this.databaseLockManager = isNotMultiVersioned(databaseConfig, namedDatabaseId)
-                ? storageLockManager
-                : new MultiVersionLockManager(storageLockManager);
+        this.databaseLockManager = isMultiVersioned(databaseConfig, namedDatabaseId)
+                ? new MultiVersionLockManager(storageLockManager)
+                : storageLockManager;
         this.databaseLayout = storageEngineFactory.formatSpecificDatabaseLayout(databaseLayout);
         new DatabaseDirectoriesCreator(fs, databaseLayout).createDirectories();
         ioController = ioControllerService.createIOController(databaseConfig, clock);
@@ -723,13 +723,18 @@ public class Database extends AbstractDatabase {
                 UpgradeLocker.DEFAULT,
                 internalLogProvider,
                 databaseConfig,
-                kernelModule.kernelAPI());
+                kernelModule.kernelAPI(),
+                kernelModule.kernelTransactions(),
+                isMultiVersioned(databaseConfig, namedDatabaseId));
 
-        handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx, currentLogFormat) -> tx.upgrade()
-                .upgradeKernel(new Upgrade.KernelUpgrade(
-                        fromKernelVersion,
-                        toKernelVersion,
-                        pickLogFormatOnUpgrade(fromKernelVersion, toKernelVersion, databaseConfig, currentLogFormat))));
+        handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx, currentLogFormat) -> {
+            tx.upgrade()
+                    .upgradeKernel(new Upgrade.KernelUpgrade(
+                            fromKernelVersion,
+                            toKernelVersion,
+                            pickLogFormatOnUpgrade(
+                                    fromKernelVersion, toKernelVersion, databaseConfig, currentLogFormat)));
+        });
     }
 
     private void validateStoreAndTxLogs(
@@ -1325,30 +1330,30 @@ public class Database extends AbstractDatabase {
     }
 
     private static LockService createLockService(DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId) {
-        return isNotMultiVersioned(databaseConfig, namedDatabaseId)
-                ? new ReentrantLockService()
-                : LockService.NO_LOCK_SERVICE;
+        return isMultiVersioned(databaseConfig, namedDatabaseId)
+                ? LockService.NO_LOCK_SERVICE
+                : new ReentrantLockService();
     }
 
     private static TransactionIdSnapshotFactory getTransactionIdSnapshotFactory(
             DatabaseConfig databaseConfig, LogMetadataProvider metadataProvider, NamedDatabaseId namedDatabaseId) {
-        return isNotMultiVersioned(databaseConfig, namedDatabaseId)
-                ? (() -> new TransactionIdSnapshot(metadataProvider.getLastClosedTransactionId()))
-                : metadataProvider::getClosedTransactionSnapshot;
+        return isMultiVersioned(databaseConfig, namedDatabaseId)
+                ? metadataProvider::getClosedTransactionSnapshot
+                : (() -> new TransactionIdSnapshot(metadataProvider.getLastClosedTransactionId()));
     }
 
     private static OldestTransactionIdFactory getOldestTransactionIdFactory(
             DatabaseConfig databaseConfig,
             Supplier<DatabaseKernelModule> kernelModule,
             NamedDatabaseId namedDatabaseId) {
-        return isNotMultiVersioned(databaseConfig, namedDatabaseId)
-                ? OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY
-                : (() -> kernelModule.get().transactionMonitor().oldestVisibleClosedTransactionId());
+        return isMultiVersioned(databaseConfig, namedDatabaseId)
+                ? (() -> kernelModule.get().transactionMonitor().oldestVisibleClosedTransactionId())
+                : OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
     }
 
-    private static boolean isNotMultiVersioned(DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId) {
-        return namedDatabaseId.isSystemDatabase()
-                || !databaseConfig.get(db_format).contains("multiversion");
+    private static boolean isMultiVersioned(DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId) {
+        return !namedDatabaseId.isSystemDatabase()
+                && databaseConfig.get(db_format).contains("multiversion");
     }
 
     private class KernelTransactionVisibilityProvider implements TransactionVisibilityProvider {

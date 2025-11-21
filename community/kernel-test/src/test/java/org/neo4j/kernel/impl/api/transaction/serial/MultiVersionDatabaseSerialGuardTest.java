@@ -34,7 +34,7 @@ public class MultiVersionDatabaseSerialGuardTest {
     void acquireLockForSerialTransaction() {
         var serialGuard = new MultiVersionDatabaseSerialGuard(ConcurrentHashMap.newKeySet());
 
-        var nonSerialTransaction = createNonSerialTransaction();
+        var nonSerialTransaction = createNonSerialTransaction(2L);
 
         var serialTransaction = createSerialTransaction();
 
@@ -59,10 +59,11 @@ public class MultiVersionDatabaseSerialGuardTest {
         assertEquals(DatabaseSerialGuard.EMPTY_STAMP, serialGuard.serialExecution());
     }
 
-    private static KernelTransactionImplementation createNonSerialTransaction() {
+    private static KernelTransactionImplementation createNonSerialTransaction(long sequenceNumber) {
         var nonSerialTransaction = mock(KernelTransactionImplementation.class);
         when(nonSerialTransaction.transactionType()).thenReturn(KernelTransaction.Type.EXPLICIT);
-        when(nonSerialTransaction.getTransactionSequenceNumber()).thenReturn(2L);
+        when(nonSerialTransaction.getTransactionSequenceNumber()).thenReturn(sequenceNumber);
+        when(nonSerialTransaction.cursorContext()).thenReturn(CursorContext.NULL_CONTEXT);
         return nonSerialTransaction;
     }
 

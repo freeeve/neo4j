@@ -21,8 +21,11 @@ package org.neo4j.kernel.database;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.max_concurrent_transactions;
 import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
+import static org.neo4j.kernel.impl.api.TransactionIdSequence.TRANSACTION_SEQUENCE_INITIAL_VALUE;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.DbmsRuntimeVersionProvider;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -32,7 +35,9 @@ import org.neo4j.kernel.DeadlockDetectedException;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.api.KernelTransactionHandle;
 import org.neo4j.kernel.impl.api.KernelImpl;
+import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.api.MaximumTransactionLimitExceededException;
 import org.neo4j.kernel.impl.locking.LockAcquisitionTimeoutException;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
@@ -42,7 +47,6 @@ import org.neo4j.kernel.internal.event.InternalTransactionEventListener;
 import org.neo4j.lock.Lock;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
-import org.neo4j.storageengine.api.LongReference;
 
 class DatabaseUpgradeTransactionHandler {
     private final DbmsRuntimeVersionProvider dbmsRuntimeVersionProvider;
@@ -71,6 +75,8 @@ class DatabaseUpgradeTransactionHandler {
     private final InternalLog log;
     private final Config config;
     private final KernelImpl kernelApi;
+    private final KernelTransactions kernelTransactions;
+    private final boolean multiversioned;
 
     DatabaseUpgradeTransactionHandler(
             DbmsRuntimeVersionProvider dbmsRuntimeVersionProvider,
@@ -80,7 +86,9 @@ class DatabaseUpgradeTransactionHandler {
             UpgradeLocker locker,
             InternalLogProvider logProvider,
             Config config,
-            KernelImpl kernelApi) {
+            KernelImpl kernelApi,
+            KernelTransactions kernelTransactions,
+            boolean multiversioned) {
         this.dbmsRuntimeVersionProvider = dbmsRuntimeVersionProvider;
         this.kernelVersionProvider = kernelVersionProvider;
         this.logFormatVersionProvider = logFormatVersionProvider;
@@ -89,6 +97,8 @@ class DatabaseUpgradeTransactionHandler {
         this.log = logProvider.getLog(this.getClass());
         this.config = config;
         this.kernelApi = kernelApi;
+        this.kernelTransactions = kernelTransactions;
+        this.multiversioned = multiversioned;
     }
 
     interface InternalUpgradeTransactionHandler {
@@ -113,9 +123,10 @@ class DatabaseUpgradeTransactionHandler {
         }
     }
 
-    private class DatabaseUpgradeListener extends InternalTransactionEventListener.Adapter<Lock> {
+    class DatabaseUpgradeListener extends InternalTransactionEventListener.Adapter<Lock> {
         private final InternalUpgradeTransactionHandler internalUpgradeTransactionHandler;
-        private volatile long upgradeTxSeqNbr = LongReference.NULL;
+        private volatile long upgradeTransactionSequenceNumber = TRANSACTION_SEQUENCE_INITIAL_VALUE;
+        private final MultiVersionUpgradeGate multiVersionUpgradeGate = new MultiVersionUpgradeGate(kernelTransactions);
 
         DatabaseUpgradeListener(InternalUpgradeTransactionHandler internalUpgradeTransactionHandler) {
             this.internalUpgradeTransactionHandler = internalUpgradeTransactionHandler;
@@ -127,34 +138,26 @@ class DatabaseUpgradeTransactionHandler {
             KernelVersion checkKernelVersion = kernelVersionProvider.kernelVersion();
             if (dbmsRuntimeVersionProvider.getVersion().kernelVersion().isGreaterThan(checkKernelVersion)) {
                 try {
-                    if (tx.getTransactionSequenceNumber() == upgradeTxSeqNbr) {
+                    // multi version dbs should allow earlier transactions to complete before upgrade
+                    if (multiversioned && tx.getTransactionSequenceNumber() < upgradeTransactionSequenceNumber) {
+                        return null;
+                    }
+                    if (tx.getTransactionSequenceNumber() == upgradeTransactionSequenceNumber) {
                         // Don't block the transaction we created to do the upgrade
                         return null;
                     }
-                    try (Lock lock = locker.acquireWriteLock(tx)) {
-                        KernelVersion kernelVersionToUpgradeTo =
-                                dbmsRuntimeVersionProvider.getVersion().kernelVersion();
-                        KernelVersion currentKernelVersion = kernelVersionProvider.kernelVersion();
-                        if (kernelVersionToUpgradeTo.isGreaterThan(currentKernelVersion)) {
-                            log.info(
-                                    "Upgrade transaction from %s to %s started",
-                                    currentKernelVersion, kernelVersionToUpgradeTo);
-                            try (KernelTransaction upgradeTx =
-                                    kernelApi.beginTransaction(KernelTransaction.Type.IMPLICIT, AUTH_DISABLED)) {
-                                // Save a reference to this tx and let it through beforeCommit
-                                upgradeTxSeqNbr = upgradeTx.getTransactionSequenceNumber();
-                                internalUpgradeTransactionHandler.upgrade(
-                                        currentKernelVersion,
-                                        kernelVersionToUpgradeTo,
-                                        upgradeTx,
-                                        logFormatVersionProvider.getCurrentLogFormat());
-                                upgradeTx.commit();
-                            } finally {
-                                upgradeTxSeqNbr = LongReference.NULL;
-                            }
-                            log.info(
-                                    "Upgrade transaction from %s to %s completed",
-                                    currentKernelVersion, kernelVersionToUpgradeTo);
+                    if (multiversioned) {
+                        if (!multiVersionUpgradeGate.upgradeGate(tx)) {
+                            return null;
+                        }
+                        try {
+                            tryUpgradeKernelVersion();
+                        } finally {
+                            multiVersionUpgradeGate.release();
+                        }
+                    } else {
+                        try (Lock lock = locker.acquireWriteLock(tx)) {
+                            tryUpgradeKernelVersion();
                         }
                     }
                 } catch (LockAcquisitionTimeoutException | DeadlockDetectedException ignore) {
@@ -186,6 +189,29 @@ class DatabaseUpgradeTransactionHandler {
             return locker.acquireReadLock(tx); // This read lock will be released in afterCommit or afterRollback
         }
 
+        private void tryUpgradeKernelVersion() throws TransactionFailureException {
+            KernelVersion kernelVersionToUpgradeTo =
+                    dbmsRuntimeVersionProvider.getVersion().kernelVersion();
+            KernelVersion currentKernelVersion = kernelVersionProvider.kernelVersion();
+            if (kernelVersionToUpgradeTo.isGreaterThan(currentKernelVersion)) {
+                log.info("Upgrade transaction from %s to %s started", currentKernelVersion, kernelVersionToUpgradeTo);
+                try (KernelTransaction upgradeTx =
+                        kernelApi.beginTransaction(KernelTransaction.Type.IMPLICIT, AUTH_DISABLED)) {
+                    // Save a reference to this tx and let it through beforeCommit
+                    upgradeTransactionSequenceNumber = upgradeTx.getTransactionSequenceNumber();
+                    internalUpgradeTransactionHandler.upgrade(
+                            currentKernelVersion,
+                            kernelVersionToUpgradeTo,
+                            upgradeTx,
+                            logFormatVersionProvider.getCurrentLogFormat());
+                    upgradeTx.commit();
+                } finally {
+                    upgradeTransactionSequenceNumber = TRANSACTION_SEQUENCE_INITIAL_VALUE;
+                }
+                log.info("Upgrade transaction from %s to %s completed", currentKernelVersion, kernelVersionToUpgradeTo);
+            }
+        }
+
         @Override
         public void afterCommit(TransactionData data, Lock readLock, GraphDatabaseService databaseService) {
             checkUnlockAndUnregister(readLock);
@@ -212,6 +238,49 @@ class DatabaseUpgradeTransactionHandler {
                     unregistered.set(false);
                     throw e;
                 }
+            }
+        }
+
+        static class MultiVersionUpgradeGate {
+            private static final int INITIAL_VALUE = 0;
+            private final AtomicLong upgradeLock = new AtomicLong();
+            private final KernelTransactions kernelTransactions;
+
+            MultiVersionUpgradeGate(KernelTransactions kernelTransactions) {
+                this.kernelTransactions = kernelTransactions;
+            }
+
+            void release() {
+                upgradeLock.setRelease(INITIAL_VALUE);
+            }
+
+            boolean upgradeGate(KernelTransaction tx) {
+                long transactionSequenceNumber = tx.getTransactionSequenceNumber();
+                do {
+                    long currentValue = upgradeLock.getAcquire();
+                    if (currentValue != INITIAL_VALUE) {
+                        if (currentValue > transactionSequenceNumber) {
+                            return false;
+                        }
+                        // we are in a transaction that should wait
+                        LockSupport.parkNanos(100);
+                    }
+                } while (!upgradeLock.weakCompareAndSetRelease(INITIAL_VALUE, transactionSequenceNumber));
+
+                while (!oldTransactionCompleted(transactionSequenceNumber)) {
+                    LockSupport.parkNanos(100);
+                }
+                return true;
+            }
+
+            private boolean oldTransactionCompleted(long currentValue) {
+                for (KernelTransactionHandle transaction : kernelTransactions.executingTransactions()) {
+                    long sequenceNumber = transaction.getTransactionSequenceNumber();
+                    if (sequenceNumber != 0 && sequenceNumber < currentValue) {
+                        return false;
+                    }
+                }
+                return true;
             }
         }
     }

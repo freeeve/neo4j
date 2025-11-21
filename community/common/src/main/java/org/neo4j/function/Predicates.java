@@ -47,10 +47,14 @@ public final class Predicates {
     private static final int DEFAULT_POLL_INTERVAL = 20;
     private static final int DEFAULT_TIMEOUT_MS = 20_000;
 
+    @SuppressWarnings("rawtypes")
+    private static final Predicate TRUE_PREDICATE = x -> true;
+
     private Predicates() {}
 
+    @SuppressWarnings("unchecked")
     public static <T> Predicate<T> alwaysTrue() {
-        return x -> true;
+        return (Predicate<T>) TRUE_PREDICATE;
     }
 
     public static <T> Predicate<T> alwaysFalse() {

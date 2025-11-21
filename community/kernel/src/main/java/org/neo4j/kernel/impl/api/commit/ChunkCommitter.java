@@ -252,11 +252,10 @@ public final class ChunkCommitter implements TransactionCommitter {
         transactionPayload.init(chunk);
     }
 
-    // kernel version can be updated by upgrade listener and for now we only fail to commit such
-    // transactions.
     private void validateCurrentKernelVersion() {
         if (kernelVersion != kernelVersionProvider.kernelVersion()) {
-            throw new UnsupportedOperationException("We do not support upgrade during chunked transaction.");
+            throw new UnsupportedOperationException(
+                    "Kernel version changed while running chunked transaction. Please check kernel version upgrade path.");
         }
     }
 

@@ -22,7 +22,8 @@ package org.neo4j.kernel.impl.api;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TransactionIdSequence {
-    private final AtomicLong value = new AtomicLong(0L);
+    public static final long TRANSACTION_SEQUENCE_INITIAL_VALUE = 0L;
+    private final AtomicLong value = new AtomicLong(TRANSACTION_SEQUENCE_INITIAL_VALUE);
 
     public TransactionIdSequence() {}
 

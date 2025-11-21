@@ -23,6 +23,7 @@ import static java.lang.Integer.max;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,6 +35,7 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.junit.jupiter.api.AfterEach;
@@ -49,6 +51,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.KernelImpl;
+import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
@@ -67,6 +70,7 @@ class DatabaseUpgradeTransactionHandlerTest {
     private final ConcurrentLinkedQueue<RegisteredTransaction> registeredTransactions = new ConcurrentLinkedQueue<>();
     private final AssertableLogProvider logProvider = new AssertableLogProvider();
     private final RWUpgradeLocker lock = new RWUpgradeLocker();
+    private final AtomicLong txSequenceNumber = new AtomicLong(5);
 
     @AfterEach
     void checkTransactionStreamConsistency() {
@@ -238,9 +242,9 @@ class DatabaseUpgradeTransactionHandlerTest {
 
         KernelImpl kernelMock = mock(KernelImpl.class);
         KernelTransaction txMock = mock(KernelTransaction.class);
-        when(txMock.getTransactionSequenceNumber()).thenReturn(500L);
-        when(kernelMock.beginTransaction(KernelTransaction.Type.IMPLICIT, AUTH_DISABLED))
-                .thenReturn(txMock);
+        KernelTransactions kernelTransactions = mock(KernelTransactions.class);
+        when(txMock.getTransactionSequenceNumber()).thenReturn(txSequenceNumber.incrementAndGet());
+        when(kernelMock.beginTransaction(any(), eq(AUTH_DISABLED))).thenReturn(txMock);
         DatabaseUpgradeTransactionHandler handler = new DatabaseUpgradeTransactionHandler(
                 dbmsRuntimeVersionProvider,
                 kernelVersionProvider,
@@ -249,7 +253,9 @@ class DatabaseUpgradeTransactionHandlerTest {
                 lock,
                 logProvider,
                 Config.defaults(),
-                kernelMock);
+                kernelMock,
+                kernelTransactions,
+                false);
         handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx, currentLogFormat) -> {
             // The tx being sent in here is just a mock, so we create the tx here
             // and treat it as a regular tx to see that we get pass beforeCommit for the upgrade tx.
@@ -274,11 +280,11 @@ class DatabaseUpgradeTransactionHandlerTest {
     }
 
     private void doATransaction() {
-        doATransaction(false, false, 100);
+        doATransaction(false, false, txSequenceNumber.incrementAndGet());
     }
 
     private void doATransactionWithSomeSleeping() {
-        doATransaction(true, false, 100);
+        doATransaction(true, false, txSequenceNumber.incrementAndGet());
     }
 
     private void doATransaction(boolean doSomeSleeping, boolean isUpgrade, long txNbr) {
