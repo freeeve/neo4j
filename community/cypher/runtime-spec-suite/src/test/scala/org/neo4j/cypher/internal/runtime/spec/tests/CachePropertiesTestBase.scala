@@ -33,6 +33,8 @@ import org.neo4j.cypher.internal.runtime.ast.PropertiesUsingCachedProperties
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
+import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.NoRewrites
+import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.TestPlanCombinationRewriterHint
 import org.neo4j.graphdb.Label
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -157,7 +159,8 @@ abstract class CachePropertiesTestBase[CONTEXT <: RuntimeContext](
       .nodeByLabelScan("a", "A")
       .build()
 
-    val runtimeResult = profile(logicalQuery, runtime)
+    val hints: Set[TestPlanCombinationRewriterHint] = if (isParallel) Set(NoRewrites) else Set.empty
+    val runtimeResult = profile(logicalQuery, runtime, hints)
     consume(runtimeResult)
 
     // then
@@ -185,7 +188,8 @@ abstract class CachePropertiesTestBase[CONTEXT <: RuntimeContext](
       .relationshipTypeScan("(a)-[r:R]->(b)")
       .build()
 
-    val runtimeResult = profile(logicalQuery, runtime)
+    val hints: Set[TestPlanCombinationRewriterHint] = if (isParallel) Set(NoRewrites) else Set.empty
+    val runtimeResult = profile(logicalQuery, runtime, hints)
     consume(runtimeResult)
 
     // then

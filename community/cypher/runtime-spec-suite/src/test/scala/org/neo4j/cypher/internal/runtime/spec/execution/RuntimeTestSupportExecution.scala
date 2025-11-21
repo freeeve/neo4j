@@ -53,6 +53,8 @@ trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] {
       .withConfig(defaultQueryRuntimeConfig)
       .withImplicitTx(defaultImplicitTx)
 
+  private def profileRunner = defaultRunner.profiling.recording
+
   // Convenience overloaded methods
   protected def execute(executablePlan: ExecutionPlan): RecordingRuntimeResult =
     defaultRunner
@@ -120,36 +122,45 @@ trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] {
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT]
   ): RecordingRuntimeResult =
-    profile(logicalQuery, runtime, NoInput)
+    profileRunner
+      .withPlan(logicalQuery, runtime)
+      .run()
+
+  protected def profile(
+    logicalQuery: LogicalQuery,
+    runtime: CypherRuntime[CONTEXT],
+    hints: Set[TestPlanCombinationRewriterHint]
+  ): RecordingRuntimeResult =
+    profileRunner
+      .withPlan(logicalQuery, runtime, hints)
+      .run()
 
   protected def profile(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     input: InputValues
   ): RecordingRuntimeResult =
-    profile(logicalQuery, runtime, input.stream())
+    profileRunner
+      .withPlan(logicalQuery, runtime)
+      .withInput(input.stream())
+      .run()
 
   protected def profile(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     inputStream: InputDataStream
   ): RecordingRuntimeResult =
-    profileQuery(
-      logicalQuery,
-      runtime,
-      inputStream,
-      Set.empty,
-      defaultQueryRuntimeConfig
-    )
+    profileRunner
+      .withPlan(logicalQuery, runtime)
+      .withInput(inputStream)
+      .run()
 
   protected def profile(
     executionPlan: ExecutionPlan,
     inputStream: InputDataStream = NoInput
   ): RecordingRuntimeResult =
-    defaultRunner
+    profileRunner
       .withPlan(executionPlan)
-      .recording
-      .profiling
       .withInput(inputStream)
       .run()
 

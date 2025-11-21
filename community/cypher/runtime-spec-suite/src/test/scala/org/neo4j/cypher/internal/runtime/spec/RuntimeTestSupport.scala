@@ -429,8 +429,14 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     ): PlanRunner[RESULT] =
       copy(plan = Plan.Unbuilt(query, runtime, testPlanCombinationRewriterHints))
 
-    def withPlan(query: LogicalQuery): PlanRunner[RESULT] =
+    def withPlan(
+      query: LogicalQuery,
+      runtime: CypherRuntime[CONTEXT]
+    ): PlanRunner[RESULT] =
       withPlan(query, runtime, Set.empty)
+
+    def withPlan(query: LogicalQuery): PlanRunner[RESULT] =
+      withPlan(query, runtime)
 
     def recording(implicit ev: RESULT =:= RuntimeResult): PlanRunner[RecordingRuntimeResult] = {
       val sub = new RecordingQuerySubscriber(createQuerySubscriberProbe(runtimeTestParameters))
