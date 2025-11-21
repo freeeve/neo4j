@@ -51,6 +51,7 @@ import org.neo4j.server.NeoBootstrapper;
 abstract class BootloaderOsAbstraction {
     static final long UNKNOWN_PID = Long.MAX_VALUE;
     private static final int TEST_VERSION = Integer.getInteger("test.temp.vm.version", 21);
+    private static final String MEMORY_ACCESS_OPTION = "--sun-misc-unsafe-memory-access";
 
     protected final Bootloader bootloader;
 
@@ -229,6 +230,15 @@ abstract class BootloaderOsAbstraction {
                     config.get(GraphDatabaseSettings.logs_directory).resolve("gc.log"),
                     config.get(BootloaderSettings.gc_logging_rotation_keep_number),
                     bytesToSuitableJvmString(config.get(BootloaderSettings.gc_logging_rotation_size))));
+        }
+        if (bootloader.environment.version().feature() >= 25) {
+            if (opts.stream()
+                    .filter(option -> option.startsWith(MEMORY_ACCESS_OPTION))
+                    .findAny()
+                    .isEmpty()) {
+                // if there is no explicitly configured unsafe memory option we allow it by default
+                opts.with(MEMORY_ACCESS_OPTION + "=allow");
+            }
         }
         opts.with("-Dfile.encoding=UTF-8");
         selectHeapSettings(opts);

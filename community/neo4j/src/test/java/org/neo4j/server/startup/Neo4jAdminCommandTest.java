@@ -19,6 +19,7 @@
  */
 package org.neo4j.server.startup;
 
+import static java.util.Collections.emptyMap;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
@@ -335,6 +336,23 @@ class Neo4jAdminCommandTest {
             addConf(BootloaderSettings.initial_heap_size, "222m");
             assertThat(execute("dbms", "test-command")).isEqualTo(EXIT_CODE_OK);
             assertThat(out.toString()).doesNotContain("-Xms");
+        }
+
+        @Test
+        void includeUnsafeOptionOnJDK25ByDefault() {
+            Runtime.Version version = Runtime.Version.parse("25.0.1+2");
+            assertThat(execute(List.of("dbms", "test-command"), emptyMap(), version))
+                    .isEqualTo(EXIT_CODE_OK);
+            assertThat(out.toString()).contains("--sun-misc-unsafe-memory-access=allow");
+        }
+
+        @Test
+        void doNotOverrideUnsafeOptionOnJDK25WhenProvided() {
+            Runtime.Version version = Runtime.Version.parse("25.0.1+2");
+            addConf(BootloaderSettings.additional_jvm, "--sun-misc-unsafe-memory-access=debug");
+            assertThat(execute(List.of("dbms", "test-command"), emptyMap(), version))
+                    .isEqualTo(EXIT_CODE_OK);
+            assertThat(out.toString()).contains("--sun-misc-unsafe-memory-access=debug");
         }
 
         @Test
