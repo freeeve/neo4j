@@ -99,16 +99,8 @@ public final class Values {
      */
     public static final ValueComparator COMPARATOR = new ValueComparator(ValueGroup::compareTo);
 
-    public static boolean isNumberValue(Object value) {
-        return value instanceof NumberValue;
-    }
-
     public static boolean isBooleanValue(Object value) {
         return value instanceof BooleanValue;
-    }
-
-    public static boolean isTextValue(Object value) {
-        return value instanceof TextValue;
     }
 
     public static boolean isArrayValue(Value value) {
@@ -121,22 +113,6 @@ public final class Values {
 
     public static boolean isGeometryArray(Value value) {
         return value instanceof PointArray;
-    }
-
-    public static boolean isTemporalValue(Value value) {
-        return value instanceof TemporalValue || value instanceof DurationValue;
-    }
-
-    public static boolean isTemporalArray(Value value) {
-        return value instanceof TemporalArray || value instanceof DurationArray;
-    }
-
-    public static double coerceToDouble(Value value) {
-        return switch (value) {
-            case IntegralValue integralValue -> integralValue.longValue();
-            case FloatingPointValue floatingPointValue -> floatingPointValue.doubleValue();
-            default -> throw new UnsupportedOperationException(format("Cannot coerce %s to double", value));
-        };
     }
 
     // DIRECT FACTORY METHODS

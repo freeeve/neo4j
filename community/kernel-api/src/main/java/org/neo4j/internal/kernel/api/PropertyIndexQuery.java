@@ -693,7 +693,7 @@ public abstract class PropertyIndexQuery implements IndexQuery {
 
         @Override
         public boolean acceptsValue(Value value) {
-            return Values.isTextValue(value) && ((TextValue) value).startsWith(prefix);
+            return value instanceof TextValue textValue && textValue.startsWith(prefix);
         }
 
         public TextValue prefix() {
@@ -737,7 +737,7 @@ public abstract class PropertyIndexQuery implements IndexQuery {
 
         @Override
         public boolean acceptsValue(Value value) {
-            return Values.isTextValue(value) && ((TextValue) value).contains(contains);
+            return value instanceof TextValue textValue && textValue.contains(contains);
         }
 
         public TextValue contains() {
@@ -781,7 +781,7 @@ public abstract class PropertyIndexQuery implements IndexQuery {
 
         @Override
         public boolean acceptsValue(Value value) {
-            return Values.isTextValue(value) && ((TextValue) value).endsWith(suffix);
+            return value instanceof TextValue textValue && textValue.endsWith(suffix);
         }
 
         public TextValue suffix() {

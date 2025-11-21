@@ -67,8 +67,9 @@ public class LuceneIndexValueValidator implements IndexValueValidator {
 
     private void validate(long entityId, Value value) {
         Preconditions.checkArgument(value != null && value != Values.NO_VALUE, "Null value");
-        if (Values.isTextValue(value) && ((TextValue) value).length() >= checkThreshold) {
-            int length = ((TextValue) value).stringValue().getBytes().length;
+
+        if (value instanceof TextValue textValue && textValue.length() >= checkThreshold) {
+            int length = textValue.stringValue().getBytes().length;
             validateActualLength(entityId, length);
         }
         if (Values.isArrayValue(value)) {
