@@ -97,6 +97,7 @@ import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.YieldOrWhere
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.OidcCredentialForwarding
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShardedPropertyDatabase
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -564,7 +565,9 @@ trait DdlShowBuilder extends Cypher25ParserListener {
   ): Unit = {
     ctx.ast = ShowAliases(
       astOpt[DatabaseName](ctx.aliasName()),
-      astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield())
+      astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()),
+      cypher5ColumnsOnly = false,
+      semanticFeatures.contains(OidcCredentialForwarding)
     )(pos(ctx))
   }
 

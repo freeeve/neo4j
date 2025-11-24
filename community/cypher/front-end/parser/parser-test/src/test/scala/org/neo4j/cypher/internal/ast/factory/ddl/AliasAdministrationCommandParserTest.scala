@@ -148,13 +148,13 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("CREATE ALIAS `a`.b.c.d IF NOT EXISTS FOR DATABASE db") {
     parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(Statements(Seq(
+      case Cypher5 => _.toAstPositioned(
           CreateLocalDatabaseAlias(
             NamespacedName(List("b", "c", "d"), Some("a"))(_),
             NamespacedName(List("db"), None)(_),
             IfExistsDoNothing
           )(defaultPos)
-        )))
+        )
       case _ => _.withSyntaxError(
           """Incorrectly formatted graph reference '`a`.b.c.d'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))
             |"CREATE ALIAS `a`.b.c.d IF NOT EXISTS FOR DATABASE db"
@@ -165,13 +165,13 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("CREATE ALIAS a.b.c.`d` IF NOT EXISTS FOR DATABASE db") {
     parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(Statements(Seq(
+      case Cypher5 => _.toAstPositioned(
           CreateLocalDatabaseAlias(
             namespacedName("a", "b", "c", "d"),
             namespacedName("db"),
             IfExistsDoNothing
           )(defaultPos)
-        )))
+        )
       case _ => _.withSyntaxError(
           """Incorrectly formatted graph reference 'a.b.c.`d`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))
             |"CREATE ALIAS a.b.c.`d` IF NOT EXISTS FOR DATABASE db"
@@ -588,7 +588,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
               "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: 'USER'."
             )
           )
-      case _ => _.toAstPositioned(Statements(Seq(
+      case _ => _.toAstPositioned(
           CreateRemoteDatabaseAlias(
             namespacedName("name"),
             namespacedName("target"),
@@ -596,7 +596,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
             Left("neo4j://serverA:7687"),
             OidcCredentialForwarding()(pos)
           )(defaultPos)
-        )))
+        )
     }
   }
 
@@ -691,7 +691,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     """CREATE ALIAS namespace.`name.illegal` FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'"""
   ) {
     parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(Statements(Seq(
+      case Cypher5 => _.toAstPositioned(
           CreateRemoteDatabaseAlias(
             namespacedName("namespace", "name.illegal"),
             namespacedName("target"),
@@ -702,7 +702,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
               sensitiveLiteral("password")
             )(pos)
           )(defaultPos)
-        )))
+        )
       case _ => _.withSyntaxError(
           """Incorrectly formatted graph reference 'namespace.`name.illegal`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))
             |"CREATE ALIAS namespace.`name.illegal` FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'"
@@ -886,7 +886,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
               "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: 'USER'."
             )
           )
-      case _ => _.toAstPositioned(Statements(Seq(CreateRemoteDatabaseAlias(
+      case _ => _.toAstPositioned(CreateRemoteDatabaseAlias(
           namespacedName("alias"),
           namespacedName("target"),
           IfExistsThrowError,
@@ -895,7 +895,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
           None,
           properties =
             Some(Right(parameter("props", CTMap)))
-        )(defaultPos))))
+        )(defaultPos))
     }
   }
 
@@ -960,7 +960,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
               "error: syntax error or access rule violation - invalid input. Invalid input 'OIDC', expected: 'USER'."
             )
           )
-      case _ => _.toAstPositioned(Statements(Seq(CreateRemoteDatabaseAlias(
+      case _ => _.toAstPositioned(CreateRemoteDatabaseAlias(
           namespacedName("name"),
           namespacedName("target"),
           IfExistsThrowError,
@@ -969,7 +969,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
           Some(Left(Map(
             "ssl_enforced" -> trueLiteral
           )))
-        )(defaultPos))))
+        )(defaultPos))
     }
   }
 
@@ -1189,7 +1189,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
                 "error: data exception - input contains invalid characters. Input 'namespace.name.illegal' contains invalid characters for remote alias name. Special characters may require that the input is quoted using backticks."
               )
           )
-      case _ => _.toAstPositioned(Statements(Seq(
+      case _ => _.toAstPositioned(
           CreateRemoteDatabaseAlias(
             NamespacedName(List("namespace.name.illegal"), None)(_),
             NamespacedName(List("target"), None)(_),
@@ -1200,7 +1200,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
               sensitiveLiteral("password")
             )(pos)
           )(defaultPos)
-        )))
+        )
     }
 
   }
@@ -1415,9 +1415,9 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("DROP ALIAS composite.`dotted.name` FOR DATABASE") {
     parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(Statements(Seq(
+      case Cypher5 => _.toAstPositioned(
           DropDatabaseAlias(namespacedName("composite", "dotted.name"), ifExists = false)(defaultPos)
-        )))
+        )
       case _ => _.withSyntaxError(
           """Incorrectly formatted graph reference 'composite.`dotted.name`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
             |"DROP ALIAS composite.`dotted.name` FOR DATABASE"
@@ -1428,9 +1428,9 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("DROP ALIAS `dotted.composite`.name FOR DATABASE") {
     parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(Statements(Seq(
+      case Cypher5 => _.toAstPositioned(
           DropDatabaseAlias(namespacedName("dotted.composite", "name"), ifExists = false)(defaultPos)
-        )))
+        )
       case _ => _.withSyntaxError(
           """Incorrectly formatted graph reference '`dotted.composite`.name'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
             |"DROP ALIAS `dotted.composite`.name FOR DATABASE"
@@ -1611,20 +1611,20 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test("ALTER ALIAS name.hej SET DATABASE TARGET db") {
     parsesIn[Statements] {
       case Cypher5 => _.toAstPositioned(
-          Statements(Seq(AlterLocalDatabaseAlias(
+          AlterLocalDatabaseAlias(
             NamespacedName(List("hej"), Some("name"))(_),
             Some(NamespacedName(List("db"), None)(_)),
             ifExists = false,
             None
-          )(pos)))
+          )(pos)
         )
       case _ => _.toAstPositioned(
-          Statements(Seq(AlterLocalDatabaseAlias(
+          AlterLocalDatabaseAlias(
             NamespacedName(List("name.hej"), None)(_),
             Some(NamespacedName(List("db"), None)(_)),
             ifExists = false,
             None
-          )(pos)))
+          )(pos)
         )
     }
   }
@@ -1632,20 +1632,20 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test("ALTER ALIAS name.hej.a SET DATABASE TARGET db") {
     parsesIn[Statements] {
       case Cypher5 => _.toAstPositioned(
-          Statements(Seq(AlterLocalDatabaseAlias(
+          AlterLocalDatabaseAlias(
             NamespacedName(List("hej", "a"), Some("name"))(_),
             Some(NamespacedName(List("db"), None)(_)),
             ifExists = false,
             None
-          )(pos)))
+          )(pos)
         )
       case _ => _.toAstPositioned(
-          Statements(Seq(AlterLocalDatabaseAlias(
+          AlterLocalDatabaseAlias(
             NamespacedName(List("name.hej.a"), None)(_),
             Some(NamespacedName(List("db"), None)(_)),
             ifExists = false,
             None
-          )(pos)))
+          )(pos)
         )
     }
   }
@@ -1948,20 +1948,20 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test("ALTER ALIAS name.hej SET DATABASE TARGET db AT 'heja'") {
     parsesIn[Statements] {
       case Cypher5 => _.toAstPositioned(
-          Statements(Seq(AlterRemoteDatabaseAlias(
+          AlterRemoteDatabaseAlias(
             NamespacedName(List("hej"), Some("name"))(_),
             Some(NamespacedName(List("db"), None)(_)),
             ifExists = false,
             Some(Left("heja"))
-          )(pos)))
+          )(pos)
         )
       case _ => _.toAstPositioned(
-          Statements(Seq(AlterRemoteDatabaseAlias(
+          AlterRemoteDatabaseAlias(
             NamespacedName(List("name.hej"), None)(_),
             Some(NamespacedName(List("db"), None)(_)),
             ifExists = false,
             Some(Left("heja"))
-          )(pos)))
+          )(pos)
         )
     }
   }
@@ -2069,7 +2069,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
                 "error: data exception - input contains invalid characters. Input 'namespace.name.illegal' contains invalid characters for remote alias name. Special characters may require that the input is quoted using backticks."
               )
           )
-      case _ => _.toAstPositioned(Statements(Seq(
+      case _ => _.toAstPositioned(
           AlterRemoteDatabaseAlias(
             NamespacedName(List("namespace.name.illegal"), None)(_),
             Some(NamespacedName(List("target"), None)(_)),
@@ -2079,7 +2079,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
             Some(sensitiveLiteral("password")),
             Some(Left(Map("ssl_enforced" -> trueLiteral)))
           )(defaultPos)
-        )))
+        )
     }
   }
 
@@ -2137,14 +2137,14 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
                 "error: data exception - input contains invalid characters. Input 'name.hej.a' contains invalid characters for remote alias name. Special characters may require that the input is quoted using backticks."
               )
           )
-      case _ => _.toAstPositioned(Statements(Seq(
+      case _ => _.toAstPositioned(
           AlterRemoteDatabaseAlias(
             NamespacedName(List("name.hej.a"), None)(_),
             Some(NamespacedName(List("db"), None)(_)),
             ifExists = false,
             Some(Left("heja"))
           )(defaultPos)
-        )))
+        )
     }
   }
 
@@ -2371,36 +2371,51 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   // SHOW ALIAS
 
   test("SHOW ALIASES FOR DATABASE") {
-    assertAst(ShowAliases(None)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(None, fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIAS FOR DATABASES") {
-    assertAst(ShowAliases(None)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(None, fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIAS db FOR DATABASE") {
-    assertAst(ShowAliases(Some(namespacedName("db")), None)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(Some(namespacedName("db")), None, fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIASES db FOR DATABASE YIELD *") {
-    assertAst(
-      ShowAliases(Some(namespacedName("db")), Some(Left((yieldClause(returnAllItems), None))))(defaultPos)
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(
+        Some(namespacedName("db")),
+        Some(Left((yieldClause(returnAllItems), None))),
+        fromCypher5,
+        false
+      )(defaultPos)
     )
   }
 
   test("SHOW ALIAS ns.db FOR DATABASES") {
-    assertAstVersionBased(fromCypher5 => ShowAliases(Some(namespacedName(fromCypher5, "ns", "db")), None)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(Some(namespacedName(fromCypher5, "ns", "db")), None, fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIAS `ns.db` FOR DATABASE") {
-    assertAst(ShowAliases(Some(namespacedName("ns.db")), None)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(Some(namespacedName("ns.db")), None, fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIAS ns.`db.db` FOR DATABASE") {
     parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(Statements(Seq(
-          ShowAliases(Some(namespacedName("ns", "db.db")), None)(defaultPos)
-        )))
+      case Cypher5 => _.toAstPositioned(
+          ShowAliases(Some(namespacedName("ns", "db.db")), None, true, false)(defaultPos)
+        )
       case _ => _.withSyntaxError(
           """Incorrectly formatted graph reference 'ns.`db.db`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
             |"SHOW ALIAS ns.`db.db` FOR DATABASE"
@@ -2411,12 +2426,14 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("SHOW ALIAS ns.`db.db` FOR DATABASE YIELD * RETURN *") {
     parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(Statements(Seq(
+      case Cypher5 => _.toAstPositioned(
           ShowAliases(
             Some(namespacedName("ns", "db.db")),
-            Some(Left((yieldClause(returnAllItems), Some(returnAll))))
+            Some(Left((yieldClause(returnAllItems), Some(returnAll)))),
+            true,
+            false
           )(defaultPos)
-        )))
+        )
       case _ => _.withSyntaxError(
           """Incorrectly formatted graph reference 'ns.`db.db`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
             |"SHOW ALIAS ns.`db.db` FOR DATABASE YIELD * RETURN *"
@@ -2427,9 +2444,9 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("SHOW ALIAS `ns.db`.`db` FOR DATABASE") {
     parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(Statements(Seq(
-          ShowAliases(Some(namespacedName("ns.db", "db")), None)(defaultPos)
-        )))
+      case Cypher5 => _.toAstPositioned(
+          ShowAliases(Some(namespacedName("ns.db", "db")), None, true, false)(defaultPos)
+        )
       case _ => _.withSyntaxError(
           """Incorrectly formatted graph reference '`ns.db`.`db`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
             |"SHOW ALIAS `ns.db`.`db` FOR DATABASE"
@@ -2440,9 +2457,9 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("SHOW ALIAS `ns.db`.db FOR DATABASE") {
     parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(Statements(Seq(
-          ShowAliases(Some(namespacedName("ns.db", "db")), None)(defaultPos)
-        )))
+      case Cypher5 => _.toAstPositioned(
+          ShowAliases(Some(namespacedName("ns.db", "db")), None, true, false)(defaultPos)
+        )
       case _ => _.withSyntaxError(
           """Incorrectly formatted graph reference '`ns.db`.db'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
             |"SHOW ALIAS `ns.db`.db FOR DATABASE"
@@ -2452,20 +2469,26 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("SHOW ALIASES FOR DATABASE WHERE name = 'alias1'") {
-    assertAst(ShowAliases(Some(Right(where(equals(varFor("name"), literalString("alias1"))))))(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(Some(Right(where(equals(varFor("name"), literalString("alias1"))))), fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIASES FOR DATABASE YIELD location") {
     val columns = yieldClause(returnItems(variableReturnItem("location")), None)
     val yieldOrWhere = Some(Left((columns, None)))
-    assertAst(ShowAliases(yieldOrWhere)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(yieldOrWhere, fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIASES FOR DATABASE YIELD location ORDER BY database") {
     val orderByClause = orderBy(sortItem(varFor("database")))
     val columns = yieldClause(returnItems(variableReturnItem("location")), Some(orderByClause))
     val yieldOrWhere = Some(Left((columns, None)))
-    assertAst(ShowAliases(yieldOrWhere)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(yieldOrWhere, fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIASES FOR DATABASE YIELD location ORDER BY database SKIP 1 LIMIT 2 WHERE name = 'alias1' RETURN *") {
@@ -2479,7 +2502,9 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       Some(whereClause)
     )
     val yieldOrWhere = Some(Left((columns, Some(returnAll))))
-    assertAst(ShowAliases(yieldOrWhere)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(yieldOrWhere, fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIASES FOR DATABASE YIELD location ORDER BY database OFFSET 1 LIMIT 2 WHERE name = 'alias1' RETURN *") {
@@ -2493,11 +2518,15 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       Some(whereClause)
     )
     val yieldOrWhere = Some(Left((columns, Some(returnAll))))
-    assertAst(ShowAliases(yieldOrWhere)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(yieldOrWhere, fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIASES FOR DATABASE YIELD *") {
-    assertAst(ShowAliases(Some(Left((yieldClause(returnAllItems), None))))(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ShowAliases(Some(Left((yieldClause(returnAllItems), None))), fromCypher5, false)(defaultPos)
+    )
   }
 
   test("SHOW ALIASES FOR DATABASE RETURN *") {

@@ -1831,7 +1831,7 @@ object ShowDatabase {
 
     val showColumns =
       columns.filter { case (_, _, showInCypher5, requiresSpdEnabled) =>
-        (!cypher5ColumnsOnly || (showInCypher5 && cypher5ColumnsOnly)) && (spdEnabled || !requiresSpdEnabled)
+        (!cypher5ColumnsOnly || showInCypher5) && (spdEnabled || !requiresSpdEnabled)
       }.map { case (showColumn, brief, _, _) => (showColumn, brief) }
     ShowDatabase(scope, yieldOrWhere, DefaultOrAllShowColumns(showColumns, yieldOrWhere))(position)
   }
@@ -2132,24 +2132,42 @@ final case class ShowAliases(
 
 object ShowAliases {
 
-  def apply(yieldOrWhere: YieldOrWhere)(position: InputPosition): ShowAliases = apply(None, yieldOrWhere)(position)
+  val OIDC_CREDENTIAL_FORWARDING = "OIDC CREDENTIAL FORWARDING"
+  val STORED_NATIVE_CREDENTIALS = "STORED NATIVE CREDENTIALS"
+
+  def apply(
+    yieldOrWhere: YieldOrWhere,
+    cypher5ColumnsOnly: Boolean,
+    oidcCredentialForwardingEnabled: Boolean
+  )(position: InputPosition): ShowAliases =
+    apply(None, yieldOrWhere, cypher5ColumnsOnly, oidcCredentialForwardingEnabled)(position)
 
   def apply(
     aliasName: Option[DatabaseName],
-    yieldOrWhere: YieldOrWhere
+    yieldOrWhere: YieldOrWhere,
+    cypher5ColumnsOnly: Boolean,
+    oidcCredentialForwardingEnabled: Boolean
   )(position: InputPosition): ShowAliases = {
-    val showColumns = List(
-      // (column, brief)
-      (ShowColumn("name")(position), true),
-      (ShowColumn("composite")(position), true),
-      (ShowColumn("database")(position), true),
-      (ShowColumn("location")(position), true),
-      (ShowColumn("url")(position), true),
-      (ShowColumn("user")(position), true),
-      (ShowColumn("driver", CTMap)(position), false),
-      (ShowColumn("defaultLanguage")(position), false),
-      (ShowColumn("properties", CTMap)(position), false)
+    val columns = List(
+      // (column, brief, includedInCypher5)
+      (ShowColumn("name")(position), true, true),
+      (ShowColumn("composite")(position), true, true),
+      (ShowColumn("database")(position), true, true),
+      (ShowColumn("location")(position), true, true),
+      (ShowColumn("url")(position), true, true),
+      (ShowColumn("credentials")(position), true, false),
+      (ShowColumn("user")(position), true, true),
+      (ShowColumn("driver", CTMap)(position), false, true),
+      (ShowColumn("defaultLanguage")(position), false, true),
+      (ShowColumn("properties", CTMap)(position), false, true)
     )
+
+    val showColumns =
+      columns.filter { case (column, _, includedInCypher5) =>
+        (!cypher5ColumnsOnly || includedInCypher5) &&
+        // the credential column is only available if oidcCredentialForwardingEnabled is true
+        (oidcCredentialForwardingEnabled || !(column.name == "credentials"))
+      }.map { case (showColumn, brief, _) => (showColumn, brief) }
 
     ShowAliases(aliasName, yieldOrWhere, DefaultOrAllShowColumns(showColumns, yieldOrWhere))(position)
   }

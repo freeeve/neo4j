@@ -187,7 +187,7 @@ public final class CommunityTopologyGraphDbmsModelUtil {
             var forwardOidcCredentials = getOptionalPropertyOnNode(
                     TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL_DESCRIPTION,
                     ref,
-                    TopologyGraphDbmsModel.OIDC_CREDENTIAL_FORWARDING,
+                    TopologyGraphDbmsModel.OIDC_CREDENTIAL_FORWARDING_PROPERTY,
                     Boolean.class);
 
             var uri = URI.create(uriString);

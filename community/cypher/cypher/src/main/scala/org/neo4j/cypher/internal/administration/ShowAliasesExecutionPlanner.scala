@@ -38,6 +38,8 @@ import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.ParameterName
 import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.ShowAliases.OIDC_CREDENTIAL_FORWARDING
+import org.neo4j.cypher.internal.ast.ShowAliases.STORED_NATIVE_CREDENTIALS
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.procs.ParameterTransformer
@@ -51,6 +53,7 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DRIVER_SETTINGS
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.OIDC_CREDENTIAL_FORWARDING_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTIES
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_USERNAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.URL_PROPERTY
@@ -109,6 +112,11 @@ case class ShowAliasesExecutionPlanner(
          |alias.database as database,
          |alias.location as location,
          |aliasNode.$URL_PROPERTY as url,
+         |CASE
+         |  WHEN aliasNode.$OIDC_CREDENTIAL_FORWARDING_PROPERTY THEN '$OIDC_CREDENTIAL_FORWARDING'
+         |  WHEN aliasNode.$REMOTE_USERNAME_PROPERTY IS NOT NULL THEN '$STORED_NATIVE_CREDENTIALS'
+         |  ELSE null
+         |END as credentials,
          |aliasNode.$REMOTE_USERNAME_PROPERTY as user
          |$verboseColumns
          |$returnStatement

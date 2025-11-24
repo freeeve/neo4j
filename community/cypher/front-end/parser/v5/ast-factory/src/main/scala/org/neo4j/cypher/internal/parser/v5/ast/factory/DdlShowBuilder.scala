@@ -592,7 +592,9 @@ trait DdlShowBuilder extends Cypher5ParserListener {
   ): Unit = {
     ctx.ast = ShowAliases(
       astOpt[DatabaseName](ctx.aliasName()),
-      astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield())
+      astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()),
+      cypher5ColumnsOnly = true,
+      oidcCredentialForwardingEnabled = false
     )(pos(ctx))
   }
 

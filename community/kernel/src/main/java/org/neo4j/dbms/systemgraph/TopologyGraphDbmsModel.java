@@ -241,7 +241,7 @@ public interface TopologyGraphDbmsModel {
     String URL_PROPERTY = "url";
     String REMOTE_USERNAME_PROPERTY = "username";
     String REMOTE_PASSWORD_PROPERTY = "password";
-    String OIDC_CREDENTIAL_FORWARDING = "oidc_credential_forwarding";
+    String OIDC_CREDENTIAL_FORWARDING_PROPERTY = "oidc_credential_forwarding";
     String IV_PROPERTY = "iv"; // Initialization Vector for AES encryption
     Label DRIVER_SETTINGS_LABEL = Label.label("DriverSettings");
     String DRIVER_SETTINGS = DRIVER_SETTINGS_LABEL.name();

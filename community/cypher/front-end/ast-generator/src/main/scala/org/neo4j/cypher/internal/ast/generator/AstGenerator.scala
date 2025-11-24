@@ -4025,7 +4025,9 @@ class AstGenerator(
   def _showAliases: Gen[ShowAliases] = for {
     dbName <- option(_databaseName)
     yields <- _eitherYieldOrWhere
-  } yield ShowAliases(dbName, yields)(pos)
+    // The test isn't run with the feature flag enabled, so having false here is fine
+    oidcCredentialForwardingEnabled <- const(false)
+  } yield ShowAliases(dbName, yields, usesCypher5, oidcCredentialForwardingEnabled)(pos)
 
   def _aliasCommands: Gen[AdministrationCommand] = oneOf(
     _createLocalDatabaseAlias,
