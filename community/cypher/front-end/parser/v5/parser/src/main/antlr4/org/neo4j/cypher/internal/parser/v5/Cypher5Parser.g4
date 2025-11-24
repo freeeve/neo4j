@@ -556,7 +556,7 @@ expression1
    ;
 
 literal
-   : numberLiteral # NummericLiteral
+   : numberLiteral # NumericLiteral
    | stringLiteral # StringsLiteral
    | map           # OtherLiteral
    | TRUE          # BooleanLiteral

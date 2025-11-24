@@ -322,7 +322,7 @@ class LiteralInterpreterBuilder implements ParseTreeListener {
     }
 
     private void exitLiteral(Cypher5Parser.LiteralContext ctx) {
-        if (ctx instanceof Cypher5Parser.NummericLiteralContext nctx) {
+        if (ctx instanceof Cypher5Parser.NumericLiteralContext nctx) {
             ctx.ast = nctx.numberLiteral().ast;
         } else if (ctx instanceof Cypher5Parser.StringsLiteralContext sctx) {
             ctx.ast = sctx.stringLiteral().ast;

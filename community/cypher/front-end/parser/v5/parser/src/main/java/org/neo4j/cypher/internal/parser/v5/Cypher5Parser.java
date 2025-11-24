@@ -9660,11 +9660,11 @@ public class Cypher5Parser extends Parser {
 		}
 	}
 	@SuppressWarnings("CheckReturnValue")
-	public static class NummericLiteralContext extends LiteralContext {
+	public static class NumericLiteralContext extends LiteralContext {
 		public NumberLiteralContext numberLiteral() {
 			return getRuleContext(NumberLiteralContext.class,0);
 		}
-		public NummericLiteralContext(LiteralContext ctx) { copyFrom(ctx); }
+		public NumericLiteralContext(LiteralContext ctx) { copyFrom(ctx); }
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class BooleanLiteralContext extends LiteralContext {
@@ -9707,7 +9707,7 @@ public class Cypher5Parser extends Parser {
 			case UNSIGNED_HEX_INTEGER:
 			case UNSIGNED_OCTAL_INTEGER:
 			case MINUS:
-				_localctx = new NummericLiteralContext(_localctx);
+				_localctx = new NumericLiteralContext(_localctx);
 				enterOuterAlt(_localctx, 1);
 				{
 				setState(1673);
