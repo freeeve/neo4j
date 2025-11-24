@@ -21,24 +21,27 @@ package org.neo4j.kernel.api.query;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.neo4j.util.Preconditions;
 
 public class RelationshipTypeIndexUsage extends IndexUsage {
-    private final String relType;
+    private final String[] relTypes;
     private final String[] propertyKeys;
     private final int[] propertyKeyIds;
-    private final int relTypeId;
+    private final int[] relTypeIds;
 
     public RelationshipTypeIndexUsage(
-            String identifier, int relTypeId, String relType, int[] propertyKeyIds, String[] propertyKeys) {
+            String identifier, int[] relTypeIds, String[] relTypes, int[] propertyKeyIds, String[] propertyKeys) {
         super(identifier);
-        this.relType = relType;
-        this.relTypeId = relTypeId;
+        Preconditions.checkArgument(relTypes.length == relTypeIds.length, "relationship-type names and ids must match");
+
+        this.relTypes = relTypes;
+        this.relTypeIds = relTypeIds;
         this.propertyKeys = propertyKeys;
         this.propertyKeyIds = propertyKeyIds;
     }
 
-    public int getRelationshipTypeId() {
-        return relTypeId;
+    public int[] getRelationshipTypeIds() {
+        return relTypeIds;
     }
 
     public int[] getPropertyKeyIds() {
@@ -51,8 +54,12 @@ public class RelationshipTypeIndexUsage extends IndexUsage {
         map.put("indexType", "SCHEMA INDEX");
         map.put("entityType", "RELATIONSHIP");
         map.put("identifier", identifier);
-        map.put("relationshipType", relType);
-        map.put("relationshipTypeId", String.valueOf(relTypeId));
+        for (int i = 0; i < relTypes.length; i++) {
+            String relTypeKey = relTypes.length > 1 ? "relationshipType_" + i : "relationshipType";
+            String relTypeIdKey = relTypes.length > 1 ? "relationshipTypeId_" + i : "relationshipTypeId";
+            map.put(relTypeKey, relTypes[i]);
+            map.put(relTypeIdKey, String.valueOf(relTypeIds[i]));
+        }
         for (int i = 0; i < propertyKeys.length; i++) {
             String key = (propertyKeys.length > 1) ? "propertyKey_" + i : "propertyKey";
             map.put(key, propertyKeys[i]);

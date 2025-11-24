@@ -105,7 +105,10 @@ trait ExecutableQuery extends CacheabilityInfo {
    * Precomputed to reduce execution latency for very fast queries.
    */
   val relationshipsOfUsedIndexes: Map[Long, Array[Int]] = compilerInfo.relationshipTypeIndexes().asScala
-    .collect { case item: RelationshipTypeIndexUsage => (item.getRelationshipTypeId.toLong -> item.getPropertyKeyIds) }
+    .collect { case item: RelationshipTypeIndexUsage =>
+      item.getRelationshipTypeIds.map(lid => lid.toLong -> item.getPropertyKeyIds)
+    }
+    .flatten
     .toMap
 
   /**

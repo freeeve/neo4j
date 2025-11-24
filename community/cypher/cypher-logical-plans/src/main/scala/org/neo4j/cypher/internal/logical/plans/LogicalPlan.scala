@@ -119,8 +119,7 @@ final case class SchemaLabelIndexUsage(
 
 final case class SchemaRelationshipIndexUsage(
   identifier: LogicalVariable,
-  relTypeId: Int,
-  relType: String,
+  relTypes: Seq[RelationshipTypeToken],
   propertyTokens: Seq[PropertyKeyToken]
 ) extends IndexUsage
 
@@ -347,8 +346,7 @@ sealed abstract class LogicalPlan(idGen: IdGen)
           acc :+
             SchemaRelationshipIndexUsage(
               relIndexScan.idName.get,
-              relIndexScan.typeToken.nameId.id,
-              relIndexScan.typeToken.name,
+              relIndexScan.typeTokens,
               relIndexScan.properties.map(_.propertyKeyToken)
             )
       case nodeIndexPlan: NodeIndexLeafPlan =>
@@ -546,7 +544,7 @@ sealed abstract class NodeIndexSingleLabelLeafPlan(idGen: IdGen) extends NodeInd
 
 sealed abstract class RelationshipIndexLeafPlan(idGen: IdGen) extends RelationshipLogicalLeafPlan(idGen)
     with IndexedPropertyProvidingPlan {
-  def typeToken: RelationshipTypeToken
+  def typeTokens: Seq[RelationshipTypeToken]
 
   override def cachedProperties: Seq[CachedProperty] = idName match {
     case Some(rel) => properties.flatMap(_.maybeCachedProperty(rel))
@@ -571,6 +569,15 @@ sealed abstract class RelationshipIndexLeafPlan(idGen: IdGen) extends Relationsh
 
   def indexOrder: IndexOrder
 }
+
+sealed trait SingleTypeMixin {
+  self: RelationshipIndexLeafPlan =>
+  def typeToken: RelationshipTypeToken
+  override def typeTokens: Seq[RelationshipTypeToken] = Seq(typeToken)
+}
+
+sealed abstract class RelationshipSingleTypeIndexLeafPlan(idGen: IdGen) extends RelationshipIndexLeafPlan(idGen)
+    with SingleTypeMixin
 
 sealed abstract class MultiNodeIndexLeafPlan(idGen: IdGen) extends LogicalLeafPlan(idGen)
     with MultiEntityLogicalLeafPlan
@@ -627,6 +634,17 @@ sealed abstract class RelationshipIndexSeekLeafPlan(idGen: IdGen) extends Relati
   ): RelationshipIndexSeekLeafPlan
 
   override def withMappedProperties(f: IndexedProperty => IndexedProperty): RelationshipIndexSeekLeafPlan
+}
+
+sealed abstract class RelationshipSingleTypeIndexSeekLeafPlan(idGen: IdGen) extends RelationshipIndexSeekLeafPlan(idGen)
+    with SingleTypeMixin {
+  override def withMappedProperties(f: IndexedProperty => IndexedProperty): RelationshipSingleTypeIndexSeekLeafPlan
+
+  override def updateVariables(
+    idName: Option[LogicalVariable] = idName,
+    leftNode: Option[LogicalVariable] = leftNode,
+    rightNode: Option[LogicalVariable] = rightNode
+  ): RelationshipSingleTypeIndexSeekLeafPlan
 }
 
 /**
@@ -1039,7 +1057,7 @@ case class AssertingMultiRelationshipIndexSeek(
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   directed: Boolean,
-  relIndexSeeks: Seq[RelationshipIndexSeekLeafPlan]
+  relIndexSeeks: Seq[RelationshipSingleTypeIndexSeekLeafPlan]
 )(
   implicit idGen: IdGen
 ) extends MultiRelationshipIndexLeafPlan(idGen) with StableLeafPlan with PhysicalPlanningPlan {
@@ -1060,20 +1078,22 @@ case class AssertingMultiRelationshipIndexSeek(
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): MultiRelationshipIndexLeafPlan =
     copy(relIndexSeeks =
-      relIndexSeeks.map(_.withoutArgumentIds(argsToExclude).asInstanceOf[RelationshipIndexSeekLeafPlan])
+      relIndexSeeks.map(_.withoutArgumentIds(argsToExclude).asInstanceOf[RelationshipSingleTypeIndexSeekLeafPlan])
     )(
       SameId(this.id)
     )
 
   override def removeArgumentIds(): MultiRelationshipIndexLeafPlan =
     copy(relIndexSeeks =
-      relIndexSeeks.map(_.removeArgumentIds().asInstanceOf[RelationshipIndexSeekLeafPlan])
+      relIndexSeeks.map(_.removeArgumentIds().asInstanceOf[RelationshipSingleTypeIndexSeekLeafPlan])
     )(
       SameId(this.id)
     )
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
-    copy(relIndexSeeks = relIndexSeeks.map(_.addArgumentIds(argsToAdd).asInstanceOf[RelationshipIndexSeekLeafPlan]))(
+    copy(relIndexSeeks =
+      relIndexSeeks.map(_.addArgumentIds(argsToAdd).asInstanceOf[RelationshipSingleTypeIndexSeekLeafPlan])
+    )(
       SameId(this.id)
     )
 
@@ -1673,7 +1693,7 @@ case class DirectedRelationshipIndexContainsScan(
   indexOrder: IndexOrder,
   override val indexType: IndexType
 )(implicit idGen: IdGen)
-    extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
+    extends RelationshipSingleTypeIndexLeafPlan(idGen) with StableLeafPlan {
 
   override def properties: Seq[IndexedProperty] = Seq(property)
 
@@ -1752,7 +1772,7 @@ case class DirectedRelationshipIndexEndsWithScan(
   indexOrder: IndexOrder,
   override val indexType: IndexType
 )(implicit idGen: IdGen)
-    extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
+    extends RelationshipSingleTypeIndexLeafPlan(idGen) with StableLeafPlan {
 
   override def properties: Seq[IndexedProperty] = Seq(property)
 
@@ -1829,7 +1849,7 @@ case class DirectedRelationshipIndexScan(
   override val indexType: IndexType,
   supportPartitionedScan: Boolean
 )(implicit idGen: IdGen)
-    extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
+    extends RelationshipSingleTypeIndexLeafPlan(idGen) with StableLeafPlan {
 
   override def usedVariables: Set[LogicalVariable] = Set.empty
 
@@ -1897,7 +1917,7 @@ case class PartitionedDirectedRelationshipIndexScan(
   argumentIds: Set[LogicalVariable],
   override val indexType: IndexType
 )(implicit idGen: IdGen)
-    extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
+    extends RelationshipSingleTypeIndexLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
 
   override def usedVariables: Set[LogicalVariable] = Set.empty
 
@@ -1950,7 +1970,7 @@ case class DirectedRelationshipIndexSeek(
   indexOrder: IndexOrder,
   override val indexType: IndexType,
   supportPartitionedScan: Boolean
-)(implicit idGen: IdGen) extends RelationshipIndexSeekLeafPlan(idGen) with StableLeafPlan {
+)(implicit idGen: IdGen) extends RelationshipSingleTypeIndexSeekLeafPlan(idGen) with StableLeafPlan {
 
   override def usedVariables: Set[LogicalVariable] = valueExpr.expressions.flatMap(_.dependencies).toSet
 
@@ -1978,7 +1998,7 @@ case class DirectedRelationshipIndexSeek(
     idName: Option[LogicalVariable],
     leftNode: Option[LogicalVariable],
     rightNode: Option[LogicalVariable]
-  ): RelationshipIndexSeekLeafPlan =
+  ): DirectedRelationshipIndexSeek =
     copy(idName = idName, startNode = leftNode, endNode = rightNode)(SameId(this.id))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
@@ -1994,7 +2014,8 @@ case class PartitionedDirectedRelationshipIndexSeek(
   valueExpr: QueryExpression[Expression],
   argumentIds: Set[LogicalVariable],
   override val indexType: IndexType
-)(implicit idGen: IdGen) extends RelationshipIndexSeekLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
+)(implicit idGen: IdGen) extends RelationshipSingleTypeIndexSeekLeafPlan(idGen) with StableLeafPlan
+    with PartitionedScanPlan {
 
   override def indexOrder: IndexOrder = IndexOrderNone
 
@@ -2024,7 +2045,7 @@ case class PartitionedDirectedRelationshipIndexSeek(
     idName: Option[LogicalVariable],
     leftNode: Option[LogicalVariable],
     rightNode: Option[LogicalVariable]
-  ): RelationshipIndexSeekLeafPlan =
+  ): PartitionedDirectedRelationshipIndexSeek =
     copy(idName = idName, startNode = leftNode, endNode = rightNode)(SameId(this.id))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
@@ -2209,7 +2230,7 @@ case class DirectedRelationshipUniqueIndexSeek(
   argumentIds: Set[LogicalVariable],
   indexOrder: IndexOrder,
   override val indexType: IndexType
-)(implicit idGen: IdGen) extends RelationshipIndexSeekLeafPlan(idGen) with StableLeafPlan {
+)(implicit idGen: IdGen) extends RelationshipSingleTypeIndexSeekLeafPlan(idGen) with StableLeafPlan {
 
   override def usedVariables: Set[LogicalVariable] = valueExpr.expressions.flatMap(_.dependencies).toSet
 
@@ -2237,7 +2258,7 @@ case class DirectedRelationshipUniqueIndexSeek(
     idName: Option[LogicalVariable],
     leftNode: Option[LogicalVariable],
     rightNode: Option[LogicalVariable]
-  ): RelationshipIndexSeekLeafPlan =
+  ): DirectedRelationshipUniqueIndexSeek =
     copy(idName = idName, startNode = leftNode, endNode = rightNode)(SameId(this.id))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
@@ -5371,7 +5392,7 @@ case class UndirectedRelationshipIndexContainsScan(
   indexOrder: IndexOrder,
   override val indexType: IndexType
 )(implicit idGen: IdGen)
-    extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
+    extends RelationshipSingleTypeIndexLeafPlan(idGen) with StableLeafPlan {
 
   override def properties: Seq[IndexedProperty] = Seq(property)
 
@@ -5447,7 +5468,7 @@ case class UndirectedRelationshipIndexEndsWithScan(
   indexOrder: IndexOrder,
   override val indexType: IndexType
 )(implicit idGen: IdGen)
-    extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
+    extends RelationshipSingleTypeIndexLeafPlan(idGen) with StableLeafPlan {
 
   override def properties: Seq[IndexedProperty] = Seq(property)
 
@@ -5522,7 +5543,7 @@ case class UndirectedRelationshipIndexScan(
   override val indexType: IndexType,
   supportPartitionedScan: Boolean
 )(implicit idGen: IdGen)
-    extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
+    extends RelationshipSingleTypeIndexLeafPlan(idGen) with StableLeafPlan {
 
   override def usedVariables: Set[LogicalVariable] = Set.empty
 
@@ -5586,7 +5607,7 @@ case class PartitionedUndirectedRelationshipIndexScan(
   argumentIds: Set[LogicalVariable],
   override val indexType: IndexType
 )(implicit idGen: IdGen)
-    extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
+    extends RelationshipSingleTypeIndexLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
 
   override def usedVariables: Set[LogicalVariable] = Set.empty
 
@@ -5636,7 +5657,7 @@ case class UndirectedRelationshipIndexSeek(
   indexOrder: IndexOrder,
   override val indexType: IndexType,
   supportPartitionedScan: Boolean
-)(implicit idGen: IdGen) extends RelationshipIndexSeekLeafPlan(idGen) with StableLeafPlan {
+)(implicit idGen: IdGen) extends RelationshipSingleTypeIndexSeekLeafPlan(idGen) with StableLeafPlan {
 
   override def usedVariables: Set[LogicalVariable] = valueExpr.expressions.flatMap(_.dependencies).toSet
 
@@ -5660,7 +5681,7 @@ case class UndirectedRelationshipIndexSeek(
     idName: Option[LogicalVariable],
     leftNode: Option[LogicalVariable],
     rightNode: Option[LogicalVariable]
-  ): RelationshipIndexSeekLeafPlan =
+  ): UndirectedRelationshipIndexSeek =
     copy(idName = idName, leftNode = leftNode, rightNode = rightNode)(SameId(this.id))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
@@ -5676,7 +5697,8 @@ case class PartitionedUndirectedRelationshipIndexSeek(
   valueExpr: QueryExpression[Expression],
   argumentIds: Set[LogicalVariable],
   override val indexType: IndexType
-)(implicit idGen: IdGen) extends RelationshipIndexSeekLeafPlan(idGen) with StableLeafPlan with PartitionedScanPlan {
+)(implicit idGen: IdGen) extends RelationshipSingleTypeIndexSeekLeafPlan(idGen) with StableLeafPlan
+    with PartitionedScanPlan {
 
   override def indexOrder: IndexOrder = IndexOrderNone
 
@@ -5702,7 +5724,7 @@ case class PartitionedUndirectedRelationshipIndexSeek(
     idName: Option[LogicalVariable],
     leftNode: Option[LogicalVariable],
     rightNode: Option[LogicalVariable]
-  ): RelationshipIndexSeekLeafPlan =
+  ): PartitionedUndirectedRelationshipIndexSeek =
     copy(idName = idName, leftNode = leftNode, rightNode = rightNode)(SameId(this.id))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
@@ -5878,7 +5900,7 @@ case class UndirectedRelationshipUniqueIndexSeek(
   argumentIds: Set[LogicalVariable],
   indexOrder: IndexOrder,
   override val indexType: IndexType
-)(implicit idGen: IdGen) extends RelationshipIndexSeekLeafPlan(idGen) with StableLeafPlan {
+)(implicit idGen: IdGen) extends RelationshipSingleTypeIndexSeekLeafPlan(idGen) with StableLeafPlan {
 
   override def usedVariables: Set[LogicalVariable] = valueExpr.expressions.flatMap(_.dependencies).toSet
 
@@ -5902,7 +5924,7 @@ case class UndirectedRelationshipUniqueIndexSeek(
     idName: Option[LogicalVariable],
     leftNode: Option[LogicalVariable],
     rightNode: Option[LogicalVariable]
-  ): RelationshipIndexSeekLeafPlan =
+  ): UndirectedRelationshipUniqueIndexSeek =
     copy(idName = idName, leftNode = leftNode, rightNode = rightNode)(SameId(this.id))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =

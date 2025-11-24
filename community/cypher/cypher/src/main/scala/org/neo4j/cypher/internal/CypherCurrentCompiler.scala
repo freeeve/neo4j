@@ -314,11 +314,11 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
           propertyKeys.map(_.name).toArray
         ))
 
-      case SchemaRelationshipIndexUsage(identifier, relTypeId, relType, propertyKeys) =>
+      case SchemaRelationshipIndexUsage(identifier, relTypes, propertyKeys) =>
         relationshipTypeIndexUsage.addOne(new RelationshipTypeIndexUsage(
           identifier.name,
-          relTypeId,
-          relType,
+          relTypes.map(_.nameId.id).toArray,
+          relTypes.map(_.name).toArray,
           propertyKeys.map(_.nameId.id).toArray,
           propertyKeys.map(_.name).toArray
         ))
