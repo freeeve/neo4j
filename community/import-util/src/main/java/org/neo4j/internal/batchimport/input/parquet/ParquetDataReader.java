@@ -28,6 +28,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -72,6 +73,7 @@ class ParquetDataReader implements Closeable {
     private final GroupConverter recordConverter;
     private final String createdBy;
     private final List<ColumnDescriptor> parquetColumns;
+    private final List<ParquetRowGroupReader> readers;
 
     ParquetDataReader(
             ParquetData parquetDataFile,
@@ -86,6 +88,7 @@ class ParquetDataReader implements Closeable {
         this.defaultTimezoneSupplier = defaultTimezoneSupplier;
         this.arrayDelimiter = arrayDelimiter;
         this.vectorDelimiter = vectorDelimiter;
+        this.readers = Collections.synchronizedList(new ArrayList<>());
         var path = parquetDataFile.file();
 
         try {
@@ -115,8 +118,9 @@ class ParquetDataReader implements Closeable {
         if (nextRowGroupIndex >= metadataReader.getRowGroups().size()) {
             return null;
         }
-
-        return new ParquetRowGroupReader(nextRowGroupIndex);
+        ParquetRowGroupReader parquetRowGroupReader = new ParquetRowGroupReader(nextRowGroupIndex);
+        this.readers.add(parquetRowGroupReader);
+        return parquetRowGroupReader;
     }
 
     public ParquetData getParquetDataFile() {
@@ -170,13 +174,17 @@ class ParquetDataReader implements Closeable {
         public boolean hasNext() {
             var result = rowIndex < rowCount;
             if (!result) {
-                try {
-                    this.reader.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                closeUnderlyingReader();
             }
             return result;
+        }
+
+        void closeUnderlyingReader() {
+            try {
+                this.reader.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         // Wrapper class for representing maps / structs and their
@@ -474,6 +482,9 @@ class ParquetDataReader implements Closeable {
 
     @Override
     public void close() throws IOException {
+        for (ParquetRowGroupReader reader : this.readers) {
+            reader.closeUnderlyingReader();
+        }
         this.metadataReader.close();
     }
 }
