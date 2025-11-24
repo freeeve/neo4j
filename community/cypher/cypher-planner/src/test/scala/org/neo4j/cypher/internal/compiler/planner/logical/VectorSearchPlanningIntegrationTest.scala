@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.colu
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.exceptions.VectorIndexSearchException
 
 class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
@@ -281,5 +282,28 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           getValueFromIndex = Map("plot" -> DoNotGetValue)
         )
         .build()
+  }
+
+  test("plan node vector index search using non-existing vector index should give GQL error 22N69") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie) WHERE movie.plot IS NOT NULL
+        |  SEARCH movie IN (
+        |    VECTOR INDEX notReallyMoviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot""".stripMargin
+
+    val caughtException = intercept[VectorIndexSearchException] {
+      planner.plan(CypherVersion.Cypher25, query)
+    }
+    caughtException.gqlStatus() should be("22N69")
+    caughtException.statusDescription() should be(
+      "error: data exception - index does not exist. The index 'notReallyMoviePlots' does not exist."
+    )
+    caughtException.legacyMessage() should be("22N69: The index 'notReallyMoviePlots' does not exist.")
+
   }
 }

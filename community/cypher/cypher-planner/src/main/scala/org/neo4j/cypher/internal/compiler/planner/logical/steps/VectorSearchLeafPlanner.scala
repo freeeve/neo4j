@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor.EntityType
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
+import org.neo4j.exceptions.VectorIndexSearchException
 
 /**
  * Plans ANN vector search leaf plans for nodes or relationships in SEARCH sub-clauses.
@@ -67,11 +68,9 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
 
       val variableType = context.semanticTable.typeFor(vectorSearchPredicate.bindingVariable)
 
-      // TODO: Raise error 22N69 when identifying a non-existent vector index
-      //  See PLAN-2898
       val vectorIndexDescriptor =
         context.staticComponents.planContext.vectorIndexByName(vectorSearchPredicate.indexName)
-          .getOrElse(sys.error(s"no index found with name ${vectorSearchPredicate.indexName}"))
+          .getOrElse(throw VectorIndexSearchException.indexNotFound(vectorSearchPredicate.indexName))
 
       vectorIndexDescriptor.entityType match {
         case EntityType.Node(labelId) =>
