@@ -22,63 +22,17 @@ package org.neo4j.kernel.impl.transaction.log.entry.v57;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.CHUNK_START;
 
 import java.io.IOException;
-import java.util.zip.CRC32C;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
+import org.neo4j.kernel.impl.transaction.log.entry.BadLogEntryException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
-/**
- * <table>
- *     <tr>
- *         <th>Bytes</th>
- *         <th>Type</th
- *         <th>Description</th>
- *     </tr>
- *     <tr>
- *         <td>1</td>
- *         <td>byte</td>
- *         <td>version, {@link KernelVersion#version()}</td>
- *     </tr>
- *     <tr>
- *         <td>1</td>
- *         <td>byte</td>
- *         <td>type, {@link LogEntryTypeCodes#CHUNK_START}</td>
- *     </tr>
- *     <tr>
- *         <td>8</td>
- *         <td>long</td>
- *         <td>time written</td>
- *     </tr>
- *     <tr>
- *         <td>8</td>
- *         <td>long</td>
- *         <td>chunk id</td>
- *     </tr>
- *     <tr>
- *         <td>8</td>
- *         <td>long</td>
- *         <td>previous chunk log file version</td>
- *     </tr>
- *     <tr>
- *         <td>8</td>
- *         <td>long</td>
- *         <td>previous chunk log file offset</td>
- *     </tr>
- *     <tr>
- *         <td>4</td>
- *         <td>int</td>
- *         <td>checksum, {@link CRC32C}</td>
- *     </tr>
- *     <tr>
- *          <td rowspan="3"><strong>Total: 38 bytes</strong></td>
- *     </tr>
- * </table>
- */
 public class ChunkStartLogEntrySerializerV5_7 extends LogEntrySerializer<LogEntryChunkStart> {
     public ChunkStartLogEntrySerializerV5_7() {
         super(LogEntryTypeCodes.CHUNK_START);
@@ -95,7 +49,14 @@ public class ChunkStartLogEntrySerializerV5_7 extends LogEntrySerializer<LogEntr
         long timeWritten = channel.getLong();
         long chunkId = channel.getLong();
         long previousBatchAppendIndex = channel.getLong();
-        return new LogEntryChunkStart(version, timeWritten, chunkId, previousBatchAppendIndex);
+        int additionalHeaderLength = channel.getInt();
+        if (additionalHeaderLength > LogEntryStart.MAX_ADDITIONAL_HEADER_SIZE) {
+            throw new BadLogEntryException("Additional header length limit(" + LogEntryStart.MAX_ADDITIONAL_HEADER_SIZE
+                    + ") exceeded. Parsed length is " + additionalHeaderLength);
+        }
+        byte[] additionalHeader = new byte[additionalHeaderLength];
+        channel.get(additionalHeader, additionalHeaderLength);
+        return new LogEntryChunkStart(version, timeWritten, chunkId, previousBatchAppendIndex, additionalHeader);
     }
 
     @Override
@@ -103,9 +64,12 @@ public class ChunkStartLogEntrySerializerV5_7 extends LogEntrySerializer<LogEntr
         channel.beginChecksumForWriting();
         writeLogEntryHeader(logEntry.kernelVersion(), CHUNK_START, channel);
         long previousBatchAppendIndex = logEntry.getPreviousBatchAppendIndex();
+        byte[] additionalHeaderData = logEntry.getAdditionalHeader();
         channel.putLong(logEntry.getTimeWritten())
                 .putLong(logEntry.getChunkId())
-                .putLong(previousBatchAppendIndex);
+                .putLong(previousBatchAppendIndex)
+                .putInt(additionalHeaderData.length)
+                .put(additionalHeaderData, additionalHeaderData.length);
         return NO_RETURN_VALUE;
     }
 }

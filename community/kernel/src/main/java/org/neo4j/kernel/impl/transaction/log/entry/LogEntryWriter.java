@@ -86,7 +86,8 @@ public class LogEntryWriter<T extends WritableChannel> {
             long timeWritten,
             long chunkId,
             long appendIndex,
-            long previousBatchAppendIndex)
+            long previousBatchAppendIndex,
+            byte[] additionalHeader)
             throws IOException {
         updateSerializationSet(kernelVersion);
 
@@ -94,7 +95,13 @@ public class LogEntryWriter<T extends WritableChannel> {
                 .select(CHUNK_START)
                 .write(
                         channel,
-                        newChunkStartEntry(kernelVersion, timeWritten, chunkId, appendIndex, previousBatchAppendIndex));
+                        newChunkStartEntry(
+                                kernelVersion,
+                                timeWritten,
+                                chunkId,
+                                appendIndex,
+                                previousBatchAppendIndex,
+                                additionalHeader));
     }
 
     public int writeChunkEndEntry(KernelVersion kernelVersion, long transactionId, long chunkId) throws IOException {

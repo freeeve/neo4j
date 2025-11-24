@@ -19,12 +19,12 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry;
 
-import static org.apache.commons.lang3.ArrayUtils.EMPTY_BYTE_ARRAY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.io.fs.ChannelNativeAccessor.EMPTY_ACCESSOR;
+import static org.neo4j.kernel.impl.transaction.log.LogIndexEncoding.encodeLogIndex;
 import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCommitEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
@@ -92,9 +92,9 @@ class LogEntrySerializerDispatcherTest {
                 var writeChannel =
                         new PhysicalFlushableLogPositionAwareChannel(versionedStoreChannel, logHeader, INSTANCE)) {
             var entryWriter = new LogEntryWriter<>(writeChannel, BINARY_VERSIONS);
-            entryWriter.writeStartEntry(version, 1, 2, 3, 4, EMPTY_BYTE_ARRAY);
+            entryWriter.writeStartEntry(version, 1, 2, 3, 4, encodeLogIndex(42));
             entryWriter.writeChunkEndEntry(version, 17, 13);
-            entryWriter.writeChunkStartEntry(version, 11, 13, 4, 15);
+            entryWriter.writeChunkStartEntry(version, 11, 13, 4, 15, encodeLogIndex(43));
             entryWriter.writeCommitEntry(version, 7, 8);
         }
 
@@ -115,6 +115,8 @@ class LogEntrySerializerDispatcherTest {
             assertThat(startEntry).isInstanceOf(LogEntryStart.class);
             assertThat(commitEnd).isInstanceOf(LogEntryCommit.class);
 
+            assertThat(((LogEntryStart) startEntry).getAdditionalHeader()).isEqualTo(encodeLogIndex(42));
+
             assertThat(chunkEnd).isInstanceOf(LogEntryChunkEnd.class);
             var chunkEndEntry = (LogEntryChunkEnd) chunkEnd;
             assertEquals(17, chunkEndEntry.getTransactionId());
@@ -124,6 +126,7 @@ class LogEntrySerializerDispatcherTest {
             var chunkStartEntry = (LogEntryChunkStart) chunkStart;
             assertEquals(11, chunkStartEntry.getTimeWritten());
             assertEquals(13, chunkStartEntry.getChunkId());
+            assertThat(chunkStartEntry.getAdditionalHeader()).isEqualTo(encodeLogIndex(43));
         }
     }
 
@@ -161,7 +164,7 @@ class LogEntrySerializerDispatcherTest {
 
     @ParameterizedTest
     @KernelVersionSource(atLeast = "4.2") // Oldest version we can write
-    void parseCorruptedStartEntry(KernelVersion version) throws IOException {
+    void parseCorruptedStartEntry(KernelVersion version) {
         final LogEntryStart start = newStartEntry(version, 1, 2, 3, 4, new byte[] {4});
         try (final InMemoryClosableChannel channel = new InMemoryClosableChannel()) {
             channel.putLong(start.getTimeWritten());

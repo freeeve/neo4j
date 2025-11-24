@@ -71,7 +71,9 @@ public final class LogEntryFactory {
             long timeWritten,
             long chunkId,
             long appendIndex,
-            long previousBatchAppendIndex) {
-        return new LogEntryChunkStartV5_20(kernelVersion, timeWritten, chunkId, appendIndex, previousBatchAppendIndex);
+            long previousBatchAppendIndex,
+            byte[] additionalHeader) {
+        return new LogEntryChunkStartV5_20(
+                kernelVersion, timeWritten, chunkId, appendIndex, previousBatchAppendIndex, additionalHeader);
     }
 }

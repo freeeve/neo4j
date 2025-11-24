@@ -26,7 +26,9 @@ import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
+import org.neo4j.kernel.impl.transaction.log.entry.BadLogEntryException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -48,17 +50,28 @@ public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEnt
         long chunkId = channel.getLong();
         long previousBatchAppendIndex = channel.getLong();
         long appendIndex = channel.getAppendIndex();
-        return new LogEntryChunkStartV5_20(version, timeWritten, chunkId, appendIndex, previousBatchAppendIndex);
+        int additionalHeaderLength = channel.getInt();
+        if (additionalHeaderLength > LogEntryStart.MAX_ADDITIONAL_HEADER_SIZE) {
+            throw new BadLogEntryException("Additional header length limit(" + LogEntryStart.MAX_ADDITIONAL_HEADER_SIZE
+                    + ") exceeded. Parsed length is " + additionalHeaderLength);
+        }
+        byte[] additionalHeader = new byte[additionalHeaderLength];
+        channel.get(additionalHeader, additionalHeaderLength);
+        return new LogEntryChunkStartV5_20(
+                version, timeWritten, chunkId, appendIndex, previousBatchAppendIndex, additionalHeader);
     }
 
     @Override
     public int write(WritableChannel channel, LogEntryChunkStartV5_20 logEntry) throws IOException {
         channel.beginChecksumForWriting();
         writeLogEntryHeader(logEntry.kernelVersion(), CHUNK_START, channel);
+        byte[] additionalHeaderData = logEntry.getAdditionalHeader();
         channel.putLong(logEntry.getTimeWritten())
                 .putLong(logEntry.getChunkId())
                 .putLong(logEntry.getPreviousBatchAppendIndex())
-                .putAppendIndex(logEntry.getAppendIndex());
+                .putAppendIndex(logEntry.getAppendIndex())
+                .putInt(additionalHeaderData.length)
+                .put(additionalHeaderData, additionalHeaderData.length);
         return NO_RETURN_VALUE;
     }
 }

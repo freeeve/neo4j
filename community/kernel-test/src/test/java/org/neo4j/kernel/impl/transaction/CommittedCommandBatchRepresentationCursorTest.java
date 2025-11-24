@@ -61,7 +61,7 @@ class CommittedCommandBatchRepresentationCursorTest {
             newCommitEntry(LATEST_KERNEL_VERSION, 42, 0, BASE_TX_CHECKSUM + 1);
     private static final LogEntryCommand COMMAND_ENTRY = new LogEntryCommand(new TestCommand());
     private static final LogEntryChunkStart CHUNK_START =
-            new LogEntryChunkStart(LATEST_KERNEL_VERSION, 12, 2, UNKNOWN_APPEND_INDEX);
+            new LogEntryChunkStart(LATEST_KERNEL_VERSION, 12, 2, UNKNOWN_APPEND_INDEX, encodeLogIndex(42));
     private static final LogEntryChunkEnd CHUNK_END =
             new LogEntryChunkEnd(LATEST_KERNEL_VERSION, 12, 2, BASE_TX_CHECKSUM);
     private CommittedCommandBatchCursor cursor;

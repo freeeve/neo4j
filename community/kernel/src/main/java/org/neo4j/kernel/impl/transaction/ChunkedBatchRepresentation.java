@@ -78,7 +78,8 @@ public record ChunkedBatchRepresentation(
                 chunkStart.getTimeWritten(),
                 chunkStart.getChunkId(),
                 chunkStart.getAppendIndex(),
-                chunkStart.getPreviousBatchAppendIndex());
+                chunkStart.getPreviousBatchAppendIndex(),
+                chunkStart.getAdditionalHeader());
         writer.serialize(commandBatch);
         return writer.writeChunkEndEntry(kernelVersion, chunkEnd.getTransactionId(), chunkEnd.getChunkId());
     }
@@ -122,7 +123,8 @@ public record ChunkedBatchRepresentation(
                     entryStart.getTimeWritten(),
                     BASE_CHUNK_ID,
                     entryStart.getAppendIndex(),
-                    UNKNOWN_APPEND_INDEX);
+                    UNKNOWN_APPEND_INDEX,
+                    entryStart.getAdditionalHeader());
         } else {
             throw new IllegalArgumentException("Was expecting start record. Actual entry: " + start);
         }

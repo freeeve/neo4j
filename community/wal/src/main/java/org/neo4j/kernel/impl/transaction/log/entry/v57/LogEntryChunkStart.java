@@ -30,13 +30,19 @@ public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
     protected final long timeWritten;
     protected final long chunkId;
     protected final long previousBatchAppendIndex;
+    protected final byte[] additionalHeader;
 
     public LogEntryChunkStart(
-            KernelVersion kernelVersion, long timeWritten, long chunkId, long previousBatchAppendIndex) {
+            KernelVersion kernelVersion,
+            long timeWritten,
+            long chunkId,
+            long previousBatchAppendIndex,
+            byte[] additionalHeader) {
         super(kernelVersion, CHUNK_START);
         this.timeWritten = timeWritten;
         this.chunkId = chunkId;
         this.previousBatchAppendIndex = previousBatchAppendIndex;
+        this.additionalHeader = additionalHeader;
     }
 
     public long getTimeWritten() {
@@ -53,6 +59,10 @@ public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
 
     public long getPreviousBatchAppendIndex() {
         return previousBatchAppendIndex;
+    }
+
+    public byte[] getAdditionalHeader() {
+        return additionalHeader;
     }
 
     @Override

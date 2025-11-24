@@ -122,7 +122,12 @@ public class TransactionLogWriter {
                     encodeLogIndex(batch.consensusIndex()));
         } else {
             writer.writeChunkStartEntry(
-                    kernelVersion, batch.getTimeCommitted(), chunkId, appendIndex, previousBatchAppendIndex);
+                    kernelVersion,
+                    batch.getTimeCommitted(),
+                    chunkId,
+                    appendIndex,
+                    previousBatchAppendIndex,
+                    encodeLogIndex(batch.consensusIndex()));
         }
 
         // Write all the commands to the log channel
