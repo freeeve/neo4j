@@ -33,9 +33,9 @@ import org.neo4j.cypher.cucumber.glue.obfuscator.ObfuscatorSteps.LoggedQuery
 import org.neo4j.cypher.cucumber.glue.regular.Executors
 import org.neo4j.cypher.cucumber.glue.regular.Expectations
 import org.neo4j.cypher.cucumber.glue.regular.InjectedTestConf
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps
 import org.neo4j.cypher.cucumber.glue.regular.SingletonInjector
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
 import org.neo4j.cypher.internal.CypherVersion
@@ -64,7 +64,7 @@ final class ObfuscatorSteps @Inject() (
   expectations: Expectations
 ) extends CypherCucumberSteps {
 
-  private[this] val inner = new RegularCypherCucumberSteps(conf, executors, expectations)
+  private[this] val inner = new RegularCypherSteps(conf, executors, expectations)
   private[this] var taggedQueries = Map.empty[String, String]
   private[this] var lastTag: String = ""
   private[this] var scenarioTag: String = _

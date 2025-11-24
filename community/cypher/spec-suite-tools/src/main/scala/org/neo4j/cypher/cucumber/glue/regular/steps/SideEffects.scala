@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.cucumber.glue.regular
+package org.neo4j.cypher.cucumber.glue.regular.steps
 
 import io.cucumber.datatable.DataTable
 import org.eclipse.collections.api.set.MutableSet

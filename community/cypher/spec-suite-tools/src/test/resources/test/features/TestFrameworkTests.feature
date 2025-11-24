@@ -364,36 +364,6 @@ Feature: TestFrameworkTests
       | res |
       | 1   |
 
-  Scenario: [020] Syntax error has incorrect code
-    Given an empty graph
-    When executing query:
-      """
-      invalid query
-      """
-    Then execution should fail with GQL code 123TECHNO
-
-  Scenario: [021] Syntax error has incorrect code and correct message
-    Given an empty graph
-    When executing query:
-      """
-      invalid query
-      """
-    Then execution should fail with GQL code 123TECHNO and message containing:
-      """
-      Invalid input
-      """
-
-  Scenario: [022] Syntax error has correct code and incorrect message
-    Given an empty graph
-    When executing query:
-      """
-      invalid query
-      """
-    Then execution should fail with GQL code 42I06 and message containing:
-      """
-      Incorrect message
-      """
-
   Scenario: [023] Open tx: Incorrect result value ordered
     Given an empty graph
     Given an open transaction
@@ -686,3 +656,103 @@ Feature: TestFrameworkTests
         | 0.99999  |
         | 0.999995 |
         | 1.00001  |
+
+  Scenario: [044] Syntax error is correct
+    Given an empty graph
+    When executing query:
+      """
+      RETURN x
+      """
+    Then an error should be raised:
+      | code  | classification | description |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
+
+  Scenario: [045] Syntax error has incorrect code 1
+    Given an empty graph
+    When executing query:
+      """
+      RETURN x
+      """
+    Then an error should be raised:
+      | code  | classification | description |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
+      | WRONG | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
+
+  Scenario: [046] Syntax error has incorrect code 2
+    Given an empty graph
+    When executing query:
+      """
+      RETURN x
+      """
+    Then an error should be raised:
+      | code  | classification | description |
+      | WRONG | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
+
+  Scenario: [047] Syntax error has incorrect classification 1
+    Given an empty graph
+    When executing query:
+      """
+      RETURN x
+      """
+    Then an error should be raised:
+      | code  | classification | description |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
+      | 42N62 | WRONG   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
+
+  Scenario: [048] Syntax error has incorrect classification 2
+    Given an empty graph
+    When executing query:
+      """
+      RETURN x
+      """
+    Then an error should be raised:
+      | code  | classification | description |
+      | 42001 | WRONG   | error: syntax error or access rule violation - invalid syntax                                  |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
+
+  Scenario: [049] Syntax error has incorrect message 1
+    Given an empty graph
+    When executing query:
+      """
+      RETURN x
+      """
+    Then an error should be raised:
+      | code  | classification | description |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation                                  |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
+
+  Scenario: [050] Syntax error has incorrect message 3
+    Given an empty graph
+    When executing query:
+      """
+      RETURN x
+      """
+    Then an error should be raised:
+      | code  | classification | description |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation |
+
+  Scenario: [051] Syntax error has incorrect message 4
+    Given an empty graph
+    When executing query:
+      """
+      RETURN x
+      """
+    Then an error should be raised:
+      | code  | classification | description |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule WRONG ${regex:.*} |
+
+  Scenario: [052] Syntax error has incorrect error count
+    Given an empty graph
+    When executing query:
+      """
+      RETURN x
+      """
+    Then an error should be raised:
+      | code  | classification | description |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |

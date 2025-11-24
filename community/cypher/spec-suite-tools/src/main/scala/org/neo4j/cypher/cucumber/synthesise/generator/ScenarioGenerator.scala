@@ -24,10 +24,10 @@ import io.cucumber.datatable.DataTable
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.cucumber.glue.regular.DynamicExpectations
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultDoublePrecision.Within
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InAnyOrder
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Within
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
@@ -256,10 +256,8 @@ trait ScenarioRenderer {
     case error: ExpectError => error match {
         case AssertError(ExpectedError(error, description, phase)) =>
           s"a $error should be raised at $phase: $description"
-        case AssertGqlError(ExpectedGqlError(code, Some(desc))) =>
-          tripleQuote(s"execution should fail with GQL code $code and message containing:", desc)
-        case AssertGqlError(ExpectedGqlError(code, None)) =>
-          s"Then execution should fail with GQL code $code"
+        case AssertGqlError(ExpectedGqlError(table, _)) =>
+          render(s"Then an error should be raised:", table)
         case AssertGqlWarning(ExpectedGqlWarning(code, None)) =>
           s"execution should raise a warning with GQL code $code"
         case AssertGqlWarning(ExpectedGqlWarning(code, Some(desc))) =>

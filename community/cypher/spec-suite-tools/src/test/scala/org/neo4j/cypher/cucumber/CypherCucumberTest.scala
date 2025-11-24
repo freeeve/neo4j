@@ -80,10 +80,10 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
 
     // Test counts should be correct
     withClue(summaryOutputStream.toString) {
-      summary.getTestsSucceededCount shouldBe 27
+      summary.getTestsSucceededCount shouldBe 28
       summary.getContainersFailedCount shouldBe 0
-      summary.getTestsFoundCount shouldBe 148
-      summary.getTestsFailedCount shouldBe 121
+      summary.getTestsFoundCount shouldBe 154
+      summary.getTestsFailedCount shouldBe 126
       summary.getTestsAbortedCount shouldBe 0
       summary.getTestsSkippedCount shouldBe 0
     }
@@ -118,7 +118,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         "TestFrameworkTests - [042] Floating point precision can be specified - Examples - Example #1.1",
         "TestFrameworkTests - [042] Floating point precision can be specified - Examples - Example #1.2",
         "TestFrameworkTests - [042] Floating point precision can be specified - Examples - Example #1.3",
-        "TestFrameworkTests - [042] Floating point precision can be specified - Examples - Example #1.4"
+        "TestFrameworkTests - [042] Floating point precision can be specified - Examples - Example #1.4",
+        "TestFrameworkTests - [044] Syntax error is correct"
       )
 
     // Failing tests should fail in the correct way
@@ -221,9 +222,6 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.8"),
         wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.9"),
         wrongConfTag("[019] Incorrect conf tag"),
-        wrongGqlCode("[020] Syntax error has incorrect code"),
-        wrongGqlCode("[021] Syntax error has incorrect code and correct message"),
-        wrongFailureMessage("[022] Syntax error has correct code and incorrect message"),
         wrongResultOrdered("[023] Open tx: Incorrect result value ordered"),
         wrongResultAnyOrder("[024] Open tx: Incorrect result value any order"),
         wrongResultOrderedAnyListOrder(
@@ -273,7 +271,15 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         wrongWarningMessage("[039] Warning has correct code and incorrect message"),
         wrongResultOrdered("[043] Floating point precision is exact by default - Examples - Example #1.1"),
         wrongResultOrdered("[043] Floating point precision is exact by default - Examples - Example #1.2"),
-        wrongResultOrdered("[043] Floating point precision is exact by default - Examples - Example #1.3")
+        wrongResultOrdered("[043] Floating point precision is exact by default - Examples - Example #1.3"),
+        wrongFailureMessage("[045] Syntax error has incorrect code 1"),
+        wrongFailureMessage("[046] Syntax error has incorrect code 2"),
+        wrongFailureMessage("[047] Syntax error has incorrect classification 1"),
+        wrongFailureMessage("[048] Syntax error has incorrect classification 2"),
+        wrongFailureMessage("[049] Syntax error has incorrect message 1"),
+        wrongFailureMessage("[050] Syntax error has incorrect message 3"),
+        wrongFailureMessage("[051] Syntax error has incorrect message 4"),
+        wrongFailureMessage("[052] Syntax error has incorrect error count")
       )
   }
 
@@ -496,9 +502,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
   def wrongFailureMessage(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
     assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
     assertThat(failure.throwable).hasMessageContainingAll(
-      "Incorrect message",
-      "42I06: Invalid input",
-      "Cause: org.neo4j.graphdb.QueryExecutionException: Invalid input"
+      "Actual errors:",
+      "Did not match expected errors:"
     )
   }
 

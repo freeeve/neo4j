@@ -23,18 +23,19 @@ import io.cucumber.datatable.DataTable
 import io.cucumber.scala.EN
 import io.cucumber.scala.ScalaDsl
 import org.apache.commons.io.IOUtils
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultDoublePrecision
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultDoublePrecision.Exact
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultDoublePrecision.Within
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InAnyOrder
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InOrder
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Exact
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Within
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 
 import java.nio.charset.StandardCharsets
 
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
@@ -148,6 +149,7 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
     sideEffectsShouldBe(expected)
   }
 
+  // To be removed!
   Then("^an? (\\w+) should be raised at (compile time|runtime|any time): (.+)$") {
     (error: String, phase: String, description: String) =>
       errorShouldBeRaised(ExpectedError(
@@ -157,15 +159,13 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
       ))
   }
 
-  // Note, searches through all causes for the correct code
-  Then("execution should fail with GQL code {word}") { code: String =>
-    errorShouldBeRaised(ExpectedGqlError(code, None))
-  }
-
-  // Note, searches though all causes for the correct code and description
-  Then("execution should fail with GQL code {word} and message containing:") {
-    (code: String, description: String) =>
-      errorShouldBeRaised(ExpectedGqlError(code, Some(description)))
+  // Needs table including headers:
+  // - code, the expected GQL code, comma separated to allow a set of codes.
+  // - classification, the expected error classification.
+  // - description, error status description, supports in-lining regex: ${regex:.*}.
+  //
+  Then("an error should be raised:") { table: DataTable =>
+    errorShouldBeRaised(ExpectedGqlError(table))
   }
 
   Then("execution should raise a warning with GQL code {word}") { code: String =>
@@ -190,14 +190,30 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit
   def sideEffectsShouldBe(expected: DataTable): Unit
   def errorShouldBeRaised(expectedError: ExpectedError): Unit
-  def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit
+  def errorShouldBeRaised(hierarchy: ExpectedGqlError): Unit
   def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit
 }
 
 object CypherCucumberSteps {
   case class ExpectedError(error: String, description: Option[String], phase: Option[String])
-  case class ExpectedGqlError(code: String, descriptionContains: Option[String])
   case class ExpectedGqlWarning(code: String, descriptionContains: Option[String])
+  case class ErrorDescription(code: Seq[String], classification: String, descriptionTemplate: String)
+  case class ExpectedGqlError(table: DataTable, errors: Seq[ErrorDescription])
+
+  object ExpectedGqlError {
+    private val Headers = java.util.List.of("code", "classification", "description")
+
+    def apply(table: DataTable): ExpectedGqlError = table.row(0) match {
+      case Headers => ExpectedGqlError(
+          table = table,
+          errors = table.cells().asScala.view
+            .drop(1) // Headers
+            .map(row => ErrorDescription(row.get(0).split(','), row.get(1), row.get(2)))
+            .toSeq
+        )
+      case headers => throw new IllegalArgumentException(s"Unrecognized headers: " + headers)
+    }
+  }
 }
 
 trait InOpenTxCypherCucumberSteps extends ScalaDsl with EN {

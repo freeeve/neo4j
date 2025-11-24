@@ -17,37 +17,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.cucumber.glue.regular
+package org.neo4j.cypher.cucumber.glue.regular.steps
 
 import com.google.inject.Inject
-import cypher.features.Neo4jExceptionToExecutionFailed
 import cypher.features.Phase
 import io.cucumber.datatable.DataTable
 import io.cucumber.scala.Scenario
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Assumptions.assumeFalse
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryExecution
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryFailure
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryResults
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultDoublePrecision.Exact
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultDoublePrecision.Within
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InAnyOrder
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InOrder
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeConf
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeFailure
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeGqlStatusObject
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.doDescribeFailure
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.findAllGqlCodes
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.findMatchingGqlFailure
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.originalError
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.renderAsTable
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.toResultRows
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.unexpectedFailure
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.unexpectedSuccess
+import org.neo4j.cypher.cucumber.glue.regular.DbAccessor
+import org.neo4j.cypher.cucumber.glue.regular.Executors
+import org.neo4j.cypher.cucumber.glue.regular.Expectations
+import org.neo4j.cypher.cucumber.glue.regular.TestConf
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryExecution
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryFailure
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryResults
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Exact
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Within
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.describeConf
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.describeGqlStatusObject
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.originalError
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.renderAsTable
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.toResultRows
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.unexpectedFailure
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
 import org.neo4j.cypher.cucumber.user.function.SeededRandFunction
@@ -61,7 +57,6 @@ import org.neo4j.cypher.testing.api.ConsumedResult
 import org.neo4j.cypher.testing.api.CypherExecutorException
 import org.neo4j.cypher.testing.api.CypherExecutorTransaction
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
-import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.graphdb.GqlStatusObject
 import org.neo4j.internal.helpers.Exceptions
 import org.neo4j.internal.kernel.api.procs.QualifiedName
@@ -75,7 +70,6 @@ import java.util
 import java.util.Objects
 import java.util.function.Supplier
 
-import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
@@ -86,11 +80,11 @@ import scala.util.Using
 /**
  * The default implementation of the Cypher Cucumber steps (.feature files).
  */
-final class RegularCypherCucumberSteps @Inject() (
-  conf: TestConf,
+final class RegularCypherSteps @Inject() (
+  val conf: TestConf,
   executors: Executors,
   expectations: Expectations
-) extends CypherCucumberSteps {
+) extends CypherCucumberSteps with RegularErrorSteps {
 
   // Mutable state
   private[this] var dbmsAccessor: DbAccessor = _
@@ -100,6 +94,9 @@ final class RegularCypherCucumberSteps @Inject() (
   private[this] var lastResult: QueryExecution = _
   private[this] var registeredProcedures = Seq.empty[QualifiedName]
   private[this] var openTx: CypherExecutorTransaction = _ // Only used for certain steps
+  private[this] var scenario: Scenario = _
+
+  override def lastExecutionResult: QueryExecution = lastResult
 
   Before { scenario: Scenario => before(scenario) }
 
@@ -108,6 +105,7 @@ final class RegularCypherCucumberSteps @Inject() (
     assumeFalse(expectations.ignore(scenario), "Scenario ignored because of @ignore tag")
     dbmsAccessor = executors.acquire(scenario)
     db = dbmsAccessor.dbms
+    this.scenario = scenario
   }
 
   After { after() }
@@ -232,36 +230,6 @@ final class RegularCypherCucumberSteps @Inject() (
            >""".stripMargin('>') // | margins messes with the tables
       )
     }
-  }
-
-  override def errorShouldBeRaised(expected: ExpectedError): Unit = lastResult match {
-    case success: QueryResults => unexpectedSuccess(success, conf)
-    case failure: QueryFailure =>
-      val actual = Neo4jExceptionToExecutionFailed.convert(failure.phase, failure.cause)
-      val desc = describeFailure(failure)
-      assertThat[Any](actual.errorType).as(desc).isEqualTo(expected.error)
-      expected.phase.foreach(expectedPhase => assertThat[Any](actual.phase).as(desc).isEqualTo(expectedPhase))
-      expected.description.foreach(expectedDesc => assertThat[Any](actual.detail).as(desc).isEqualTo(expectedDesc))
-  }
-
-  override def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = lastResult match {
-    case success: QueryResults => unexpectedSuccess(success, conf)
-    case failure: QueryFailure => findMatchingGqlFailure(expectedError.code, originalError(failure.cause)) match {
-        case Some(actualGql) =>
-          val desc = describeFailure(failure)
-          assertThat[Any](actualGql.code).as(desc).isEqualTo(expectedError.code)
-          expectedError.descriptionContains.foreach { e =>
-            assertThat[Any](actualGql.message).as(desc).asString.contains(e)
-          }
-        case None =>
-          val found = findAllGqlCodes(originalError(failure.cause))
-          fail(
-            s"""
-               |Expected GQL status ${expectedError.code} but found $found in:
-               |${doDescribeFailure(failure)}
-               |""".stripMargin
-          )
-      }
   }
 
   override def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit = lastResult match {
@@ -404,7 +372,7 @@ final class RegularCypherCucumberSteps @Inject() (
   }
 }
 
-object RegularCypherCucumberSteps {
+object RegularCypherSteps {
 
   sealed trait QueryExecution {
     def query: String
@@ -412,7 +380,7 @@ object RegularCypherCucumberSteps {
   case class QueryResults(query: String, results: ConsumedResult) extends QueryExecution
   case class QueryFailure(query: String, phase: String, cause: Throwable) extends QueryExecution
 
-  case class GqlFailure(code: String, description: String, message: String)
+  case class GqlFailure(code: String, classification: String, description: String, message: String)
 
   def toResultRows(table: DataTable): java.util.List[java.util.List[AnyRef]] = {
     if (table.isEmpty) {
@@ -464,7 +432,7 @@ object RegularCypherCucumberSteps {
        >Query was expected to fail, but executed successfully.
        >
        >Results:
-       >${RegularCypherCucumberSteps.renderAsTable(results.results)}
+       >${RegularCypherSteps.renderAsTable(results.results)}
        >Query:
        >${results.query}
        >
@@ -478,29 +446,10 @@ object RegularCypherCucumberSteps {
     case _                          => throwable
   }
 
-  @tailrec
-  def findMatchingGqlFailure(code: String, throwable: AnyRef): Option[GqlFailure] = throwable match {
-    case e: org.neo4j.driver.exceptions.Neo4jException if e.gqlStatus() == code =>
-      Some(GqlFailure(e.gqlStatus(), e.statusDescription(), e.getMessage))
-    case e: org.neo4j.driver.exceptions.Neo4jException => findMatchingGqlFailure(code, e.gqlCause().orElse(null))
-    case e: ErrorGqlStatusObject if e.gqlStatus() == code =>
-      Some(GqlFailure(e.gqlStatus(), e.statusDescription(), e.getMessage))
-    case e: ErrorGqlStatusObject => findMatchingGqlFailure(code, e.cause().orElse(null))
-    case _                       => None
-  }
-
-  @tailrec
-  def findAllGqlCodes(throwable: AnyRef, result: Seq[String] = Seq.empty): Seq[String] = throwable match {
-    case e: org.neo4j.driver.exceptions.Neo4jException =>
-      findAllGqlCodes(e.gqlCause().orElse(null), result.appended(e.gqlStatus()))
-    case e: ErrorGqlStatusObject => findAllGqlCodes(e.cause().orElse(null), result.appended(e.gqlStatus()))
-    case _                       => result
-  }
-
-  private def describeFailure(failure: QueryFailure): Supplier[String] = () =>
+  private[steps] def describeFailure(failure: QueryFailure): Supplier[String] = () =>
     "Query failure (you need to scroll past the stacktrace for actual assertion error).\n" + doDescribeFailure(failure)
 
-  private def doDescribeFailure(failure: QueryFailure): String = {
+  private[steps] def doDescribeFailure(failure: QueryFailure): String = {
     s"""
        |Phase: ${failure.phase}
        |Query:

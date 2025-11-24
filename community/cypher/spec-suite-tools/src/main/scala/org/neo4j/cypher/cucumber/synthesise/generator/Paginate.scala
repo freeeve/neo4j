@@ -20,7 +20,7 @@
 package org.neo4j.cypher.cucumber.synthesise.generator
 
 import io.cucumber.datatable.DataTable
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.ResultOrderOption.InOrder
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.synthesise.CucumberSalad
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertResults
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.Execute
