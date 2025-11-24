@@ -1905,7 +1905,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         "[1, 2, 3]",
         "10",
         score = "score",
-        argumentIds = Set("x")
+        argumentIds = Set("x"),
+        getValueFromIndex = Map("prop" -> GetValue)
       )
       .nodeVectorIndexSearch(
         "x",
@@ -1913,7 +1914,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         Seq("prop"),
         "'lhsIndex'",
         "[1, 2, 3]",
-        "10"
+        "10",
+        getValueFromIndex = Map("prop" -> GetValue)
       )
       .build()
   )

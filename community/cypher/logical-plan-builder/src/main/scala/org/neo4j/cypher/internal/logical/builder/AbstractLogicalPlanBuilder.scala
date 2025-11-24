@@ -2275,6 +2275,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     limit: Any,
     score: String = "",
     argumentIds: Set[String] = Set.empty,
+    getValueFromIndex: String => GetValueFromIndexBehavior = _ => DoNotGetValue,
     filter: Option[QueryExpression[Expression]] = None
   ): IMPL = {
     val labels = labelNames.map(labelName => LabelToken(labelName, LabelId(resolver.getLabelId(labelName))))
@@ -2282,7 +2283,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       .map(p =>
         IndexedProperty(
           PropertyKeyToken(PropertyKeyName(p)(NONE), PropertyKeyId(resolver.getPropertyKeyId(p))),
-          DoNotGetValue,
+          getValueFromIndex(p),
           NODE_TYPE
         )
       )

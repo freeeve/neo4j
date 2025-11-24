@@ -24,6 +24,9 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
+import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
+import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class VectorSearchPlanningIntegrationTest extends CypherFunSuite
@@ -58,8 +61,8 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`movie.plot`")
         .projection("cacheN[movie.plot] AS `movie.plot`")
-        .filter("cacheNFromStore[movie.plot] IS NOT NULL", "movie:Movie") // TODO: unnecessary filters. See PLAN-3052
-        .nodeVectorIndexSearch( // TODO: should cache movie.plot. See PLAN-3051
+        .filter("cacheN[movie.plot] IS NOT NULL", "movie:Movie") // TODO: unnecessary filters. See PLAN-3052
+        .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
           properties = Seq("plot"),
@@ -67,7 +70,8 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           vector = "$embedding",
           limit = "10",
           score = "",
-          argumentIds = Set()
+          argumentIds = Set(),
+          getValueFromIndex = Map("plot" -> GetValue)
         )
         .build()
   }
@@ -90,10 +94,18 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults("movie")
+        .produceResults(column("movie", "cacheN[movie.plot]"))
         .expandAll("(movie)-[`  UNNAMED0`]->(`  UNNAMED1`)")
         .filter("movie:Movie")
-        .nodeVectorIndexSearch("movie", Seq("Movie"), Seq("plot"), "moviePlots", "$embedding", "10", "", Set())
+        .nodeVectorIndexSearch(
+          "movie",
+          Seq("Movie"),
+          Seq("plot"),
+          "moviePlots",
+          "$embedding",
+          "10",
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
         .build()
   }
 
@@ -114,7 +126,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults("movie")
+        .produceResults(column("movie", "cacheN[movie.plot]"))
         .filter("movie:Movie")
         .apply()
         .|.nodeVectorIndexSearch(
@@ -124,8 +136,8 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           indexName = "moviePlots",
           vector = "embedding",
           limit = "10",
-          score = "",
-          argumentIds = Set("embedding")
+          argumentIds = Set("embedding"),
+          getValueFromIndex = Map("plot" -> GetValue)
         )
         .projection("[1, 2, 3, 4, 5] AS embedding")
         .argument()
@@ -148,10 +160,19 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults("movie")
+        .produceResults(column("movie", "cacheN[movie.plot]"))
         .filter("movie:Movie")
         .apply()
-        .|.nodeVectorIndexSearch("movie", Seq("Movie"), Seq("plot"), "moviePlots", "anon_0", "10", "", Set("anon_0"))
+        .|.nodeVectorIndexSearch(
+          "movie",
+          Seq("Movie"),
+          Seq("plot"),
+          "moviePlots",
+          "anon_0",
+          "10",
+          argumentIds = Set("anon_0"),
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
         .rollUpApply("anon_0", "m.releaseYear")
         .|.sort("`m.releaseYear` ASC")
         .|.projection("m.releaseYear AS `m.releaseYear`")
@@ -176,7 +197,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults("movie")
+        .produceResults(column("movie", "cacheN[movie.plot]"))
         .filter("movie:Movie")
         .nodeVectorIndexSearch(
           node = "movie",
@@ -184,7 +205,8 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           properties = Seq("plot"),
           indexName = "moviePlots",
           vector = "$embedding",
-          limit = "$limit"
+          limit = "$limit",
+          getValueFromIndex = Map("plot" -> GetValue)
         )
         .build()
   }
@@ -208,7 +230,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults("movie")
+        .produceResults(column("movie", "cacheN[movie.plot]"))
         .apply()
         .|.filter("anon_0 = movie")
         .|.nodeVectorIndexSearch(
@@ -218,11 +240,46 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           indexName = "moviePlots",
           vector = "movie.titleEmbedding",
           limit = "10",
-          score = "",
-          argumentIds = Set("movie")
+          argumentIds = Set("movie"),
+          getValueFromIndex = Map("plot" -> GetValue)
         )
         .filter("movie.title IN $titles")
         .nodeByLabelScan("movie", "Movie")
+        .build()
+  }
+
+  test("should not get the property value from the index when it is not needed afterwards") {
+    val planner = plannerBuilder().build()
+    // Vector index moviePlots is on (label: "Movie", property: "plot")
+    // The property "plot" is not needed in the rest of the query
+    val query =
+      """MATCH (movie:Movie) WHERE movie.p1 IS NOT NULL
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.p1""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`movie.p1`")
+        .projection("cacheN[movie.p1] AS `movie.p1`")
+        .filter(
+          "cacheNFromStore[movie.p1] IS NOT NULL",
+          "movie:Movie"
+        ) // TODO: unnecessary filter 'movie:Movie'. See PLAN-3052
+        .nodeVectorIndexSearch(
+          "movie",
+          Seq("Movie"),
+          Seq("plot"),
+          "moviePlots",
+          "$embedding",
+          "10",
+          getValueFromIndex = Map("plot" -> DoNotGetValue)
+        )
         .build()
   }
 }

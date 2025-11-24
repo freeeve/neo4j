@@ -152,6 +152,7 @@ import org.neo4j.cypher.internal.logical.plans.AssertSameNode
 import org.neo4j.cypher.internal.logical.plans.AssertSameRelationship
 import org.neo4j.cypher.internal.logical.plans.AtMostOneRow
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
+import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.ColumnOrder
 import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
@@ -176,7 +177,6 @@ import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesSca
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DistinctColumns
 import org.neo4j.cypher.internal.logical.plans.Distinctness
-import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
@@ -2043,7 +2043,7 @@ case class LogicalPlanProducer(
       labels = List(label),
       properties = List(IndexedProperty(
         propertyKeyToken = property,
-        getValueFromIndex = DoNotGetValue, // TODO: add support for getting value from index. See PLAN-3051
+        getValueFromIndex = CanGetValue,
         entityType = NODE_TYPE
       )),
       score = None,
