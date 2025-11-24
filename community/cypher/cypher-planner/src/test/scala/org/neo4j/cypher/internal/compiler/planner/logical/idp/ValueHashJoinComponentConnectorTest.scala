@@ -38,7 +38,7 @@ class ValueHashJoinComponentConnectorTest extends CypherFunSuite with LogicalPla
     val registry: DefaultIdRegistry[QueryGraph] = IdRegistry[QueryGraph]
 
     val joinPred = equals(prop("n", "prop"), prop("m", "prop"))
-    new givenConfig().withLogicalPlanningContext { (cfg, ctx) =>
+    new givenConfig().withLogicalPlanningContext { (_, ctx) =>
       val order = InterestingOrderConfig.empty
       val kit = ctx.plannerState.config.toKit(order, ctx)
       val nQg = QueryGraph(patternNodes = Set(v"n"))
@@ -67,7 +67,7 @@ class ValueHashJoinComponentConnectorTest extends CypherFunSuite with LogicalPla
     val registry: DefaultIdRegistry[QueryGraph] = IdRegistry[QueryGraph]
 
     val joinPred = equals(prop("n", "prop"), prop("m", "prop"))
-    new givenConfig().withLogicalPlanningContext { (cfg, ctx) =>
+    new givenConfig().withLogicalPlanningContext { (_, ctx) =>
       val order = InterestingOrderConfig.empty
       val kit = ctx.plannerState.config.toKit(order, ctx)
       val nQg = QueryGraph(patternNodes = Set(v"n"))
@@ -97,6 +97,45 @@ class ValueHashJoinComponentConnectorTest extends CypherFunSuite with LogicalPla
     }
   }
 
+  test("produces value hash joins with extra properties on both sides") {
+    val table = IDPTable.empty[LogicalPlan]
+    val registry: DefaultIdRegistry[QueryGraph] = IdRegistry[QueryGraph]
+
+    val joinPred = equals(prop("n", "prop"), prop("m", "prop"))
+    new givenConfig().withLogicalPlanningContext { (_, ctx) =>
+      val order = InterestingOrderConfig.empty
+      val kit = ctx.plannerState.config.toKit(order, ctx)
+      val nQg = QueryGraph(patternNodes = Set(v"n"))
+      val mQg = QueryGraph(patternNodes = Set(v"m"))
+      val fullQg = (nQg ++ mQg).addPredicates(joinPred)
+
+      // extra-symbol is used to make `nPlan != nPlanSort`
+      val nPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "n")
+      val nPlanExtraProps = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "n", "extra-symbol")
+      val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m")
+      val mPlanExtraProps = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m", "extra-symbol")
+
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = true, nPlanExtraProps)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = true, mPlanExtraProps)
+      val goal = register(registry, nQg, mQg)
+
+      val step = ValueHashJoinComponentConnector.solverStep(GoalBitAllocation(2, 0, Seq.empty), fullQg, order, kit, ctx)
+      val plans = step(registry, goal, table, ctx).toSeq
+      plans should contain theSameElementsAs Seq(
+        ValueHashJoin(nPlan, mPlan, joinPred),
+        ValueHashJoin(nPlan, mPlanExtraProps, joinPred),
+        ValueHashJoin(mPlan, nPlan, joinPred.switchSides),
+        ValueHashJoin(mPlan, nPlanExtraProps, joinPred.switchSides),
+        ValueHashJoin(nPlanExtraProps, mPlan, joinPred),
+        ValueHashJoin(nPlanExtraProps, mPlanExtraProps, joinPred),
+        ValueHashJoin(mPlanExtraProps, nPlan, joinPred.switchSides),
+        ValueHashJoin(mPlanExtraProps, nPlanExtraProps, joinPred.switchSides)
+      )
+    }
+  }
+
   test("produces value hash join of three components") {
     val table = IDPTable.empty[LogicalPlan]
     val registry: DefaultIdRegistry[QueryGraph] = IdRegistry[QueryGraph]
@@ -104,7 +143,7 @@ class ValueHashJoinComponentConnectorTest extends CypherFunSuite with LogicalPla
     val joinPred1 = equals(prop("n", "prop"), prop("m", "prop"))
     val joinPred2 = equals(prop("m", "prop"), prop("o", "prop"))
     val joinPred3 = equals(prop("n", "prop"), prop("o", "prop"))
-    new givenConfig().withLogicalPlanningContext { (cfg, ctx) =>
+    new givenConfig().withLogicalPlanningContext { (_, ctx) =>
       val order = InterestingOrderConfig.empty
       val kit = ctx.plannerState.config.toKit(order, ctx)
       val nQg = QueryGraph(patternNodes = Set(v"n"))
@@ -153,7 +192,7 @@ class ValueHashJoinComponentConnectorTest extends CypherFunSuite with LogicalPla
     val table = IDPTable.empty[LogicalPlan]
     val registry: DefaultIdRegistry[QueryGraph] = IdRegistry[QueryGraph]
 
-    new givenConfig().withLogicalPlanningContext { (cfg, ctx) =>
+    new givenConfig().withLogicalPlanningContext { (_, ctx) =>
       val order = InterestingOrderConfig.empty
       val kit = ctx.plannerState.config.toKit(order, ctx)
       val nQg = QueryGraph(patternNodes = Set(v"n"))

@@ -53,6 +53,8 @@ object IDPCache {
      * Returns iterator over all unique results
      */
     def iterator: Iterator[Result] = (result.toSet ++ sortedResult ++ extraPropertiesResult).iterator
+
+    def withoutSorted: Results[Result] = copy(sortedResult = None)
   }
 
   case class SatisfiedExtraRequirements(sorted: Boolean, hasExtraProperties: Boolean)

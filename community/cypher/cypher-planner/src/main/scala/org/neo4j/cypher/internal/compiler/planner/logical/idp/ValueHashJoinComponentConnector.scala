@@ -48,9 +48,8 @@ case object ValueHashJoinComponentConnector
 
             (leftGoal, rightGoal) <- goal.coveringSplits
 
-            // Only the best LHS plans, excluding the best sorted ones,
-            // since Join does not keep LHS order
-            leftPlan <- table(leftGoal).result.iterator
+            // Excluding the best sorted plans, since Join does not keep LHS order
+            leftPlan <- table(leftGoal).withoutSorted.iterator
             if leftPlan.satisfiesExpressionDependencies(predicate.lhs) && !leftPlan.satisfiesExpressionDependencies(
               predicate.rhs
             )

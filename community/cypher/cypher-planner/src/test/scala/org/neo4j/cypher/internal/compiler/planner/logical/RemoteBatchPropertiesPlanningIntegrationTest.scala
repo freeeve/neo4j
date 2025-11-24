@@ -315,6 +315,40 @@ class RemoteBatchPropertiesPlanningIntegrationTest
       .nodeIndexOperator("a:A(prop)", indexOrder = IndexOrderAscending, getValue = Map("prop" -> GetValue))
       .build()
   }
+
+  test("should use the best plan with extra properties on LHS of value hash join, best sorted plan on RHS") {
+    val planner = spdPlanner
+      .setAllNodesCardinality(10000)
+      .setLabelCardinality("A", 500)
+      .build()
+
+    val query =
+      """MATCH (x:A), (y:A)
+        |WHERE
+        |  x.prop = y.prop AND
+        |  x.hello > y.world AND
+        |  y.start > 123
+        |ORDER BY y.name
+        |RETURN y.name AS name, count(*) AS result
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .orderedAggregation(Seq("cacheN[y.name] AS name"), Seq("count(*) AS result"), Seq("cacheN[y.name]"))
+      .filter("cacheN[x.hello] > cacheN[y.world]")
+      .valueHashJoin("cacheN[x.prop] = cacheN[y.prop]")
+      .|.sort("`y.name` ASC")
+      .|.projection("cacheN[y.name] AS `y.name`")
+      .|.remoteBatchPropertiesWithFilter(
+        "cacheNFromStore[y.name]",
+        "cacheNFromStore[y.prop]",
+        "cacheNFromStore[y.world]"
+      )("y.start > 123")
+      .|.nodeByLabelScan("y", "A")
+      .remoteBatchProperties("cacheNFromStore[x.hello]", "cacheNFromStore[x.prop]")
+      .nodeByLabelScan("x", "A")
+      .build()
+  }
 }
 
 class ParallelRuntimeRemoteBatchPropertiesPlanningIntegrationTest
