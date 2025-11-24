@@ -29,10 +29,13 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.IsAggregate
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapProjection
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.InputPosition
 
 /**
@@ -94,6 +97,8 @@ final case class ReturnItems(
 
   def containsAggregate: Boolean = items.exists(_.expression.containsAggregate)
 
+  def directlyContainsAggregate: Boolean = items.exists(_.directlyContainsAggregate)
+
   def isSimple: Boolean = items.forall(_.expression.isSimple)
 
   /*
@@ -116,6 +121,15 @@ sealed trait ReturnItem extends ASTNode with SemanticCheckable {
   def stringify(expressionStringifier: ExpressionStringifier): String
 
   def withName(name: LogicalVariable)(position: InputPosition): ReturnItem
+
+  def directlyContainsAggregate: Boolean = {
+    expression.folder.treeFold(false) {
+      case IsAggregate(_)            => _ => SkipChildren(true)
+      case _: FullSubqueryExpression => _ => SkipChildren(false)
+      case _                         => x => TraverseChildren(x)
+    }
+  }
+
 }
 
 sealed trait ProjectionType
@@ -141,6 +155,7 @@ case class UnaliasedReturnItem(expression: Expression, inputText: String)(val po
     case _                  => None
   }
   val name: String = alias.map(_.name) getOrElse { inputText.trim }
+  lazy val groupingName: String = ExpressionStringifier().apply(expression)
 
   override def asCanonicalStringVal: String = expression.asCanonicalStringVal
 

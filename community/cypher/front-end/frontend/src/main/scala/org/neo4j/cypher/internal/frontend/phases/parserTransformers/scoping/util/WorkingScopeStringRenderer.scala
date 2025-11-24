@@ -154,8 +154,10 @@ object WorkingScopeStringRenderer {
   }
 
   private def renderWorkingContext(workingContext: WorkingContext): String = workingContext match {
-    case RegularContext(constants, variables) =>
+    case CommonContext(constants, variables) =>
       s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}"
+    case AggregatingExpressionContext(constants, variables, groupingKeys, _) =>
+      s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}; Keys: ${renderExpressionSet(groupingKeys)}";
     case PatternIncomingContext(topologicalConstants, predicateConstants, pathConstants, groupConstants) =>
       s"Topo: ${renderVariableSet(topologicalConstants)}; Pred: ${renderVariableSet(predicateConstants)}; Path: ${renderVariableSet(pathConstants)}; Group: ${renderVariableSet(groupConstants)}"
   }
@@ -164,11 +166,24 @@ object WorkingScopeStringRenderer {
     renderVariableSeq(variables.toSeq.sortBy(_.position.offset))
   }
 
+  private def renderExpressionSet(expressions: Set[Expression]): String = {
+    renderExpressionSeq(expressions.toSeq.sortBy(_.position.offset))
+  }
+
   private def renderVariableSeq(variables: Seq[LogicalVariable]): String = {
     if (variables.isEmpty) {
       "—"
     } else {
       variables.map(renderVariable).mkString(", ")
+    }
+  }
+
+  private def renderExpressionSeq(expressions: Seq[Expression]): String = {
+    if (expressions.isEmpty) {
+      "—"
+    } else {
+      val stringifier = ExpressionStringifier()
+      expressions.map(expr => stringifier(expr)).mkString(", ")
     }
   }
 

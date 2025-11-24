@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
 import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepVariableScope
@@ -29,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.IterablePredicateExpression
 import org.neo4j.cypher.internal.expressions.ListComprehension
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PatternComprehension
+import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.ReduceExpression
 import org.neo4j.cypher.internal.expressions.ReduceScope
 import org.neo4j.cypher.internal.expressions.Variable
@@ -77,6 +79,22 @@ object pegExpression {
         val children = WorkingScope.noChildren
         val referenced: Option[Set[LogicalVariable]] = Some(Set(variable))
         collect(incoming.expressionResultScope(variable, children, referenced))
+
+      /**
+       * Property
+       * Special case when a property is a grouping key
+       */
+      case property: Property if incoming.isInstanceOf[AggregatingExpressionContext] =>
+        val children = WorkingScope.noChildren
+        val groupingName: String = ExpressionStringifier().apply(property)
+        if (incoming.asInstanceOf[AggregatingExpressionContext].groupingKeys.contains(property)) {
+          val referenced: Option[Set[LogicalVariable]] = {
+            Some(Set(Variable(groupingName)(property.position, isIsolated = false)))
+          }
+          collect(incoming.expressionResultScope(property, children, referenced))
+        } else {
+          collect(apply(property.map, incoming).asInstanceOf[ExpressionScope])
+        }
 
       /**
        * Aggregation function

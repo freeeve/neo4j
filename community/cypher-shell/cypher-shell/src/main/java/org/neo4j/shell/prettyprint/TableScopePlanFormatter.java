@@ -39,6 +39,7 @@ public class TableScopePlanFormatter extends AbstractTablePlanFormatter {
 
     private static final String INCOMING_CONSTANTS = "Incoming consts";
     private static final String INCOMING_VARIABLES = "Incoming vars";
+    private static final String INCOMING_GROUPING_KEYS = "Incoming grouping keys";
     private static final String INCOMING_TOPOLOGY_CONSTANTS = "Incoming topology vars";
     private static final String INCOMING_PREDICATE_VARIABLES = "Incoming predicate vars";
     private static final String INCOMING_PATH_VARIABLES = "Incoming path vars";
@@ -54,6 +55,7 @@ public class TableScopePlanFormatter extends AbstractTablePlanFormatter {
             OPERATOR,
             INCOMING_CONSTANTS,
             INCOMING_VARIABLES,
+            INCOMING_GROUPING_KEYS,
             INCOMING_TOPOLOGY_CONSTANTS,
             INCOMING_PREDICATE_VARIABLES,
             INCOMING_PATH_VARIABLES,
@@ -124,6 +126,8 @@ public class TableScopePlanFormatter extends AbstractTablePlanFormatter {
                             return mapping(INCOMING_CONSTANTS, new LeftJustifiedCell(value.asString()), columns);
                         case "incoming variables":
                             return mapping(INCOMING_VARIABLES, new LeftJustifiedCell(value.asString()), columns);
+                        case "incoming grouping keys":
+                            return mapping(INCOMING_GROUPING_KEYS, new LeftJustifiedCell(value.asString()), columns);
                         case "incoming topology variables":
                             return mapping(
                                     INCOMING_TOPOLOGY_CONSTANTS, new LeftJustifiedCell(value.asString()), columns);

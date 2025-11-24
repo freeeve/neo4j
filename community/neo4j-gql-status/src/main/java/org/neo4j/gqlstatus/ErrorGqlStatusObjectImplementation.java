@@ -130,6 +130,10 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
         return gqlStatus();
     }
 
+    public Object getParamValue(GqlParams.GqlParam gqlParam) {
+        return paramMap.get(gqlParam);
+    }
+
     @Override
     public String legacyMessage() {
         return "";

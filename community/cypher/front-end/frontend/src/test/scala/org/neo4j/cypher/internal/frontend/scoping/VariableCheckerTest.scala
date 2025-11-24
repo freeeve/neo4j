@@ -343,30 +343,6 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `g` not defined.")
   }
 
-  test("""UNWIND [1, 2, 3] AS x
-         |RETURN SUM(x) AS s
-         |  ORDER BY x ASCENDING""".stripMargin) {
-    passes()
-  }
-
-  test("""MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
-         |RETURN a.name, {foo: a.name='Andres', kids: collect(child.name)}""".stripMargin) {
-    passes()
-  }
-
-  test("""UNWIND [1, 2, 3] AS x
-         |RETURN SUM(x) AS x
-         |  ORDER BY x ASCENDING""".stripMargin) {
-    passes()
-  }
-
-  test("""LET a = 10
-         |UNWIND [1, 2, 3] AS x
-         |RETURN a, SUM(x / a) + x * 5 AS s""".stripMargin) {
-    // Ambiguous aggregation
-    passes()
-  }
-
   test("""LET a = 10
          |UNWIND [1, 2, 3] AS x
          |RETURN a AS g, SUM(x / a) + g * 5 AS s""".stripMargin) {
@@ -375,9 +351,21 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
 
   test("""LET a = 10
          |UNWIND [1, 2, 3] AS x
-         |RETURN a AS x, SUM(x / a) + x * 5 AS s""".stripMargin) {
-    // Ambiguous aggregation
-    passes()
+         |RETURN a AS g, { prod: g * 5, agg: SUM(x / a) } AS s""".stripMargin) {
+    error("42N62", "Variable `g` not defined.")
+  }
+
+  test(
+    """LET a = 10, b = 2, c = 5
+      |UNWIND [1, 2, 3] AS x
+      |RETURN a, SUM(x/a) + x, SUM(x / a) + b + q + c * 5 AS s""".stripMargin
+  ) {
+    error("42N62", "Variable `q` not defined.")
+  }
+
+  test("""MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
+         |RETURN a.name AS x, {foo: x='Andres', kids: collect(child.name)}""".stripMargin) {
+    error("42N62", "Variable `x` not defined.")
   }
 
   test("""CALL (x) { RETURN 1 AS x } RETURN x""".stripMargin) {
@@ -390,6 +378,33 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
 
   test("""CREATE FULLTEXT INDEX FOR (n:Label) ON EACH [x.prop]""".stripMargin) {
     error("42N62", "Variable `x` not defined.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS x
+         |WITH a, SUM(x / a) + x * 5 AS s
+         |RETURN x + 1 AS newX""".stripMargin) {
+    error("42N62", "Variable `x` not defined.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS x
+         |RETURN a, SUM(x / a) + x * 5 AS s
+         |
+         |NEXT
+         |
+         |RETURN x + 1 AS newX""".stripMargin) {
+    error("42N62", "Variable `x` not defined.")
+  }
+
+  test("""MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
+         |RETURN b.name, {foo: a.name=child.name, kids: collect(child.name)}""".stripMargin) {
+    error("42N62", "Variable `b` not defined.")
+  }
+
+  test("""MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
+         |RETURN a.name, {foo: b.name=child.name, kids: collect(child.name)}""".stripMargin) {
+    error("42N62", "Variable `b` not defined.")
   }
 
   test(
@@ -1530,6 +1545,12 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |  NEXT
          |  RETURN x + y
          |}""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
+         |WITH a.name AS a_name, collect(child.name) AS kids
+         |RETURN a_name, {foo: a_name='Andres', kids: kids}""".stripMargin) {
     passes()
   }
 }

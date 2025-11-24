@@ -293,4 +293,23 @@ class TableScopePlanFormatterTest {
                         "+----------+---------------+",
                         ""));
     }
+
+    @Test
+    void queryWithGroupingKey() {
+        Plan plan = mock(Plan.class);
+        Map<String, Value> args =
+                Map.of("incoming variables", new StringValue("x"), "incoming grouping keys", new StringValue("y"));
+        when(plan.arguments()).thenReturn(args);
+        when(plan.operatorType()).thenReturn("Query");
+
+        assertThat(tableScopePlanFormatter.formatPlan(plan))
+                .isEqualTo(String.join(
+                        NEWLINE,
+                        "+--------+---------------+------------------------+",
+                        "| Cypher | Incoming vars | Incoming grouping keys |",
+                        "+--------+---------------+------------------------+",
+                        "| +Query | x             | y                      |",
+                        "+--------+---------------+------------------------+",
+                        ""));
+    }
 }

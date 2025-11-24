@@ -193,6 +193,10 @@ object Arguments {
     override def name = "incoming variables"
   }
 
+  case class IncomingGroupingKeys(value: String) extends Argument {
+    override def name = "incoming grouping keys"
+  }
+
   case class IncomingTopology(value: String) extends Argument {
     override def name = "incoming topology variables"
   }

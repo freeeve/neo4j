@@ -1737,6 +1737,35 @@ object ProjectionClause {
     }
   }
 
+  case class Subclauses(
+    orderBy: Option[OrderBy],
+    skip: Option[Skip],
+    limit: Option[Limit],
+    where: Option[Where]
+  )
+
+  case class Elements(
+    distinct: Boolean,
+    items: Seq[ReturnItem],
+    subclauses: Subclauses,
+    clauseType: ClauseType,
+    projectionType: ProjectionType
+  )
+
+  object Elements {
+
+    def apply(arg: ProjectionClause): Elements = {
+      arg match {
+        case With(distinct, ReturnItems(projectionType, items, _), orderBy, skip, limit, where, withType) =>
+          Elements(distinct, items, Subclauses(orderBy, skip, limit, where), withType, projectionType)
+        case Return(distinct, ReturnItems(projectionType, items, _), orderBy, skip, limit, _, returnType, _) =>
+          Elements(distinct, items, Subclauses(orderBy, skip, limit, None), returnType, projectionType)
+        case Yield(ReturnItems(projectionType, items, _), orderBy, skip, limit, where) =>
+          Elements(false, items, Subclauses(orderBy, skip, limit, where), DefaultYield, projectionType)
+      }
+    }
+  }
+
   def checkAliasedReturnItems(returnItems: ReturnItems, clauseName: String): SemanticState => Seq[SemanticError] =
     state =>
       returnItems match {
@@ -1752,6 +1781,8 @@ sealed trait ProjectionClause extends HorizonClause {
   def distinct: Boolean
 
   def returnItems: ReturnItems
+
+  lazy val isAggregating: Boolean = returnItems.directlyContainsAggregate || distinct
 
   def orderBy: Option[OrderBy]
 
@@ -1936,21 +1967,28 @@ sealed trait ProjectionClause extends HorizonClause {
 }
 
 // used for SHOW/TERMINATE commands (and procedure calls against system)
-sealed trait WithType
+sealed trait ClauseType
+
+sealed trait YieldType extends ClauseType
+case object DefaultYield extends YieldType
+
+sealed trait WithType extends ClauseType
 sealed trait MayBeImportingWithType extends WithType
 sealed trait NotImportingWithType extends WithType
-sealed trait OrderByOrPaginationWithType extends NotImportingWithType
+sealed trait StarNotReferencing
+sealed trait OrderByOrPaginationWithType extends NotImportingWithType with StarNotReferencing
 case object DefaultWith extends MayBeImportingWithType
 case object ParsedAsOrderBy extends OrderByOrPaginationWithType
 case object ParsedAsSkip extends OrderByOrPaginationWithType
 case object ParsedAsLimit extends OrderByOrPaginationWithType
-case object ParsedAsFilter extends NotImportingWithType
-case object ParsedAsLet extends NotImportingWithType
-case object ParsedAsYield extends NotImportingWithType
+case object ParsedAsFilter extends NotImportingWithType with StarNotReferencing
+case object ParsedAsLet extends NotImportingWithType with StarNotReferencing
+case object ParsedAsYield extends NotImportingWithType with YieldType
 case object AddedInRewriteShowCommands extends MayBeImportingWithType
 case object AddedInRewriteProcCall extends MayBeImportingWithType
 case object AddedInRewriteGeneral extends MayBeImportingWithType
-sealed trait ReturnType
+
+sealed trait ReturnType extends ClauseType
 case object DefaultReturn extends ReturnType
 case object ReturnPartOfShowCommand extends ReturnType
 case object ReturnAddedInRewrite extends ReturnType

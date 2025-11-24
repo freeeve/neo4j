@@ -17,8 +17,11 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor.unitVariables
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
@@ -27,7 +30,9 @@ sealed trait WorkingContext {
   def allSymbols: Set[LogicalVariable]
 }
 
-case class RegularContext(constants: Set[LogicalVariable], variables: Set[LogicalVariable]) extends WorkingContext {
+sealed trait RegularContext extends WorkingContext {
+  val constants: Set[LogicalVariable]
+  val variables: Set[LogicalVariable]
   lazy val constantsAndVariables: Set[LogicalVariable] = constants union variables
   override def allSymbols: Set[LogicalVariable] = constantsAndVariables
 
@@ -45,6 +50,12 @@ case class RegularContext(constants: Set[LogicalVariable], variables: Set[Logica
 
   @inline def amendedWith(amendment: Set[LogicalVariable]): RegularContext =
     RegularContext(constants, variables union amendment)
+
+  @inline def amendedWithGroupingKeys(
+    groupingKeys: Set[Expression],
+    inSubclause: Boolean
+  ): AggregatingExpressionContext =
+    AggregatingExpressionContext(constants, variables, groupingKeys, inSubclause)
 
   @inline def constantChildContext(): RegularContext = RegularContext(constants union variables, unitVariables)
 
@@ -187,8 +198,31 @@ case class RegularContext(constants: Set[LogicalVariable], variables: Set[Logica
 }
 
 object RegularContext {
+
+  def apply(constants: Set[LogicalVariable], variables: Set[LogicalVariable]): CommonContext =
+    CommonContext(constants, variables)
+
   def unit: RegularContext = RegularContext(unitVariables, unitVariables)
   def unitWithConstants(constants: Set[LogicalVariable]): RegularContext = RegularContext(constants, unitVariables)
+}
+
+case class CommonContext(constants: Set[LogicalVariable], variables: Set[LogicalVariable]) extends RegularContext
+
+case class AggregatingExpressionContext(
+  constants: Set[LogicalVariable],
+  variables: Set[LogicalVariable],
+  groupingKeys: Set[Expression],
+  inSubclause: Boolean
+) extends RegularContext {
+
+  override def constantChildContext(): RegularContext = {
+    val stringifier = ExpressionStringifier()
+    val groupingVars = groupingKeys.map {
+      case v: LogicalVariable => v
+      case expr: Expression   => Variable(stringifier(expr))(expr.position, isIsolated = false)
+    }
+    RegularContext(constants union variables union groupingVars, unitVariables)
+  }
 }
 
 case class PatternIncomingContext(

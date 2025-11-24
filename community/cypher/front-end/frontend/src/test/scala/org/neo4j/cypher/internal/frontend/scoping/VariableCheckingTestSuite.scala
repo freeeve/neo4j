@@ -39,13 +39,14 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.AggregatingExpressionContext
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.CommonContext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.NoResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.OmittedResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.PatternIncomingContext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.PatternScope
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.RegularContext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.StatementScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.TableResult
@@ -78,6 +79,12 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
 
   case class Incoming(constants: Set[String] = Set.empty, variables: Set[String] = Set.empty)
       extends ExpectedCharacteristic
+
+  case class AggregationIncoming(
+    constants: Set[String] = Set.empty,
+    variables: Set[String] = Set.empty,
+    keys: Set[String] = Set.empty
+  ) extends ExpectedCharacteristic
 
   case class PatternIncoming(
     topology: Set[String] = Set.empty,
@@ -119,6 +126,18 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       ExpectedWorkingScope(
         Ast(name),
         Incoming(constants = incomingConstants, variables = incomingVariables),
+        Referenced(Set(name))
+      )
+
+    def varAggExp(
+      name: String,
+      incomingConstants: Set[String] = Set.empty,
+      incomingVariables: Set[String] = Set.empty,
+      incomingKeys: Set[String] = Set.empty
+    ): ExpectedWorkingScope =
+      ExpectedWorkingScope(
+        Ast(name),
+        AggregationIncoming(constants = incomingConstants, variables = incomingVariables, keys = incomingKeys),
         Referenced(Set(name))
       )
 
@@ -393,6 +412,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     val incoming = expected.expectedCharacteristics.collectFirst {
       case i: Incoming => i
     }.getOrElse(Incoming(unit, unit))
+    val aggregationIncoming = expected.expectedCharacteristics.collectFirst {
+      case ai: AggregationIncoming => ai
+    }.getOrElse(AggregationIncoming(unit, unit, unit))
     val patternIncoming = expected.expectedCharacteristics.collectFirst {
       case pi: PatternIncoming => pi
     }.getOrElse(PatternIncoming(unit, unit, unit))
@@ -423,13 +445,29 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         whitespaceNormalization(prettify(ws.astNode)) shouldBe whitespaceNormalization(astNodeString)
       }
       ws match {
-        case StatementScope(_, RegularContext(constants, variables), _, _, _, _, _) =>
+        case StatementScope(_, CommonContext(constants, variables), _, _, _, _, _) =>
           withClue("[statement incoming]") {
             withClue("[constants]") {
               constants.map(_.name) should contain theSameElementsAs incoming.constants
             }
             withClue("[variables]") {
               variables.map(_.name) should contain theSameElementsAs incoming.variables
+            }
+            withClue("[invariance]") {
+              (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
+            }
+          }
+        case StatementScope(_, AggregatingExpressionContext(constants, variables, keys, _), _, _, _, _, _) =>
+          withClue("[statement aggregation incoming]") {
+            withClue("[constants]") {
+              constants.map(_.name) should contain theSameElementsAs aggregationIncoming.constants
+            }
+            withClue("[variables]") {
+              variables.map(_.name) should contain theSameElementsAs aggregationIncoming.variables
+            }
+            withClue("[keys]") {
+              val stringifier = ExpressionStringifier()
+              keys.map(k => stringifier(k)) should contain theSameElementsAs aggregationIncoming.keys
             }
             withClue("[invariance]") {
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
@@ -451,13 +489,29 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
               (predicate.map(_.name) intersect path.map(_.name)) shouldBe empty
             }
           }
-        case ExpressionScope(_, RegularContext(constants, variables), _, _, _) =>
+        case ExpressionScope(_, CommonContext(constants, variables), _, _, _) =>
           withClue("[expression incoming]") {
             withClue("[constants]") {
               constants.map(_.name) should contain theSameElementsAs incoming.constants
             }
             withClue("[variables]") {
               variables.map(_.name) should contain theSameElementsAs incoming.variables
+            }
+            withClue("[invariance]") {
+              (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
+            }
+          }
+        case ExpressionScope(_, AggregatingExpressionContext(constants, variables, keys, _), _, _, _) =>
+          withClue("[expression aggregation incoming]") {
+            withClue("[constants]") {
+              constants.map(_.name) should contain theSameElementsAs aggregationIncoming.constants
+            }
+            withClue("[variables]") {
+              variables.map(_.name) should contain theSameElementsAs aggregationIncoming.variables
+            }
+            withClue("[keys]") {
+              val stringifier = ExpressionStringifier()
+              keys.map(k => stringifier(k)) should contain theSameElementsAs aggregationIncoming.keys
             }
             withClue("[invariance]") {
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty

@@ -32,7 +32,9 @@ import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.AggregatingExpressionContext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.AprioriScope
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.CommonContext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Declarations
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionScope
@@ -53,6 +55,7 @@ import org.neo4j.cypher.internal.plandescription.Arguments.Comment
 import org.neo4j.cypher.internal.plandescription.Arguments.DeclaredConstants
 import org.neo4j.cypher.internal.plandescription.Arguments.DeclaredVariables
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingConstants
+import org.neo4j.cypher.internal.plandescription.Arguments.IncomingGroupingKeys
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPath
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPredicate
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingTopology
@@ -166,7 +169,7 @@ object WorkingScope2PlanDescription {
 
   private def renderIncoming(incoming: WorkingContext): Seq[Argument] = {
     incoming match {
-      case RegularContext(constants, variables) => Seq(
+      case CommonContext(constants, variables) => Seq(
           IncomingConstants(renderVariableSet(constants)),
           IncomingVariables(renderVariableSet(variables))
         )
@@ -174,6 +177,11 @@ object WorkingScope2PlanDescription {
           IncomingTopology(renderVariableSet(topology)),
           IncomingPredicate(renderVariableSet(predicate)),
           IncomingPath(renderVariableSet(path))
+        )
+      case AggregatingExpressionContext(constants, variables, groupingKeys, _) => Seq(
+          IncomingConstants(renderVariableSet(constants)),
+          IncomingVariables(renderVariableSet(variables)),
+          IncomingGroupingKeys(renderExpressionSet(groupingKeys))
         )
     }
   }
@@ -215,9 +223,9 @@ object WorkingScope2PlanDescription {
 
   private def renderOutgoingWorkingContext(outgoing: WorkingContext): Seq[Argument] =
     outgoing match {
-      case RegularContext(constants, variables) => Seq(
-          OutgoingConstants(renderVariableSet(constants)),
-          OutgoingVariables(renderVariableSet(variables))
+      case rc: RegularContext => Seq(
+          OutgoingConstants(renderVariableSet(rc.constants)),
+          OutgoingVariables(renderVariableSet(rc.variables))
         )
       case _ => Seq.empty
     }
@@ -226,8 +234,21 @@ object WorkingScope2PlanDescription {
     variables.toSeq.sortBy(_.position.offset).map(renderVariable).mkString(", ")
   }
 
+  private def renderExpressionSet(expressions: Set[Expression]): String = {
+    renderExpressionSeq(expressions.toSeq.sortBy(_.position.offset))
+  }
+
   private def renderVariableSeq(variables: Seq[LogicalVariable]): String = {
     variables.map(renderVariable).mkString(", ")
+  }
+
+  private def renderExpressionSeq(expressions: Seq[Expression]): String = {
+    if (expressions.isEmpty) {
+      "—"
+    } else {
+      val stringifier = ExpressionStringifier()
+      expressions.map(expr => stringifier(expr)).mkString(", ")
+    }
   }
 
   private def renderVariable(variable: LogicalVariable): String =
