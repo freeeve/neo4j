@@ -57,8 +57,6 @@ class CompressPlanIDsTest extends CypherFunSuite with AstConstructionTestSupport
   test("should assign consecutive IDs starting from 0") {
     val p = compress(logicalPlanStateWithAttrributes(plan)).logicalPlan
     allPlans(p).map(_.id.x).toSet should equal((0 to 6).toSet)
-
-    println(allPlans(p).map(p => s"${p.id.x}:\n$p").mkString("\n"))
   }
 
   test("should assign IDs in reverse execution order") {
