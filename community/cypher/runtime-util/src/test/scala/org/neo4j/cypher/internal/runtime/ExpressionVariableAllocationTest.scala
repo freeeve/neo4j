@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.expressions.functions.Properties
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
@@ -46,10 +47,12 @@ import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.runtime.ast.ExpressionVariable
+import org.neo4j.cypher.internal.runtime.ast.PropertiesUsingCachedProperties
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint
 import org.neo4j.cypher.internal.runtime.expressionVariableAllocation.Result
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.IdGen
@@ -113,6 +116,40 @@ class ExpressionVariableAllocationTest extends CypherFunSuite with AstConstructi
     newPlan should be(projectPlan(withExpressionVariables(
       exprParser.parse("[ x IN [1,2,3] WHERE x.foo > 0 | x.foo + 1]"),
       ExpressionVariable(0, "x")
+    )))
+  }
+
+  test("should un-cache property map") {
+
+    val injectCachedNodeProperties: Rewriter = topDown(Rewriter.lift {
+      case ci @ ContainerIndex(Variable("cache"), Property(v @ LogicalVariable("node"), pkn @ PropertyKeyName("id"))) =>
+        CachedProperty(v, v, pkn, NODE_TYPE)(ci.position)
+      case p @ Properties(v @ LogicalVariable("node")) =>
+        PropertiesUsingCachedProperties(
+          v,
+          Set(CachedProperty(v, v, PropertyKeyName("id")(InputPosition.NONE), NODE_TYPE)(p.position))
+        )
+    })
+
+    // given
+    val expr = exprParser.parse(
+      """[node IN nodes | {
+        |        id: cache[node.id],
+        |        properties: properties(node) //<<- planned as PropertiesUsingCachedProperties(node, cache[node.id])
+        |        }]""".stripMargin
+    ).endoRewrite(injectCachedNodeProperties)
+    val plan = projectPlan(expr)
+
+    // when
+    val Result(newPlan, _, _) = expressionVariableAllocation.allocate(plan)
+
+    // then
+    newPlan should be(projectPlan(withExpressionVariables(
+      exprParser.parse("""[node IN nodes | {
+                         |        id: node.id,
+                         |        properties: properties(node)
+                         |        }]""".stripMargin),
+      ExpressionVariable(0, "node")
     )))
   }
 
