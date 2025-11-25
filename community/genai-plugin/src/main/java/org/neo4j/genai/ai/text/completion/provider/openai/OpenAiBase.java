@@ -72,12 +72,18 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
     @VisibleForTesting
     private static List<String> parseResponse(InputStream inputStream) throws MalformedGenAIResponseException {
         final var response = JsonUtils.readValue(inputStream, ResponseModel.Response.class);
-        return response.output().stream()
+        final var messages = response.output().stream()
                 .filter(o -> "message".equals(o.type()))
                 .flatMap(o -> o.content().stream())
                 .filter(c -> "output_text".equals(c.type()))
                 .map(ResponseModel.Content::text)
                 .toList();
+        if (messages.isEmpty() && response.incomplete_details() != null) {
+            final var reason = response.incomplete_details().get("reason");
+            throw new MalformedGenAIResponseException(
+                    "Request to OpenAI failed due to: " + (reason == null ? "an unknown reason." : reason));
+        }
+        return messages;
     }
 
     private MutableMap<String, Object> payload(List<String> prompts) {
@@ -94,6 +100,9 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
 
     /*
      * {
+     *   "incomplete_details": {
+     *      "reason": "reason"
+     *   },
      *   "output": [
      *     {
      *       "type": "message",
@@ -115,6 +124,8 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
         record Output(@JsonProperty(required = true) String type, List<Content> content) {}
 
         @JsonIgnoreProperties(ignoreUnknown = true)
-        record Response(@JsonProperty(required = true) List<Output> output) {}
+        record Response(
+                @JsonProperty(required = true) List<Output> output,
+                @JsonProperty("incomplete_details") Map<String, String> incomplete_details) {}
     }
 }

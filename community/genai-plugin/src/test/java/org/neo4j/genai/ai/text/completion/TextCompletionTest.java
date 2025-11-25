@@ -21,6 +21,7 @@ package org.neo4j.genai.ai.text.completion;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.map;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -227,6 +228,28 @@ public class TextCompletionTest implements GenAITestExtension {
                 .filteredOn(d -> d instanceof Map map && "provider".equals(map.get("name")))
                 .singleElement(map(String.class, Object.class))
                 .containsEntry("description", "The identifier of the provider: " + expectedProviders);
+    }
+
+    @Test
+    void openAiIncompleteResponseYieldsReason() {
+        final var query = """
+                with { token: 'dummy-openai-token', model: 'gpt-5' } as conf
+                return ai.text.completion('Fail!', 'openai', conf) as result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Request to OpenAI failed due to: content_filter");
+    }
+
+    @Test
+    void vertexAiErrorResponseIsSurfaced() {
+        final var query = """
+                with { token: 'dummy-vertex-token', model: 'gemini-3', region: 'smaland', project: 'astrid', publisher: 'google' } as conf
+                return ai.text.completion('Fail Vertex!', 'vertexai', conf) as result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("INVALID_ARGUMENT");
     }
 }
 
