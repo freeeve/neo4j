@@ -82,7 +82,10 @@ public class NativeValueIndexUtility<KEY extends NativeIndexKey<KEY>> {
         assertEquals(
                 expectedHits.size(),
                 actualHits.size(),
-                format("Array length differ%nExpected:%d, Actual:%d", expectedHits.size(), actualHits.size()));
+                format(
+                        "Array length differ%nExpected size:%d, Actual size:%d%n" + "Expected hits: %s%n"
+                                + "Actual hits: %s",
+                        expectedHits.size(), actualHits.size(), expectedHits, actualHits));
 
         for (int i = 0; i < expectedHits.size(); i++) {
             KEY expected = expectedHits.get(i);
