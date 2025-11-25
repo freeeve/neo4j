@@ -252,17 +252,44 @@ public class SignedUploadGCP implements SignedUpload {
 
             connection.setDoOutput(true);
             uploadProgress.rewindTo(position);
-            try (InputStream sourceStream = Files.newInputStream(source);
-                    OutputStream targetStream = connection.getOutputStream()) {
+            OutputStream targetStream = connection.getOutputStream();
+            long bytesCopied = 0;
+            try (InputStream sourceStream = Files.newInputStream(source)) {
                 IOCommon.safeSkip(sourceStream, position);
-                IOUtils.copy(
+                bytesCopied = IOUtils.copyLarge(
                         new BufferedInputStream(sourceStream),
                         new ProgressTrackingOutputStream(targetStream, uploadProgress));
+            } catch (IOException e) {
+                commandResponseHandler.debug(verbose, "error writing to target stream: " + e.getMessage());
+                return isComplete(connection, source, verbose, bytesCopied, contentLength);
+            } finally {
+                // If the data written is less than the contentLength, this will throw an "insufficient data written"
+                // exception (because of `connection.setFixedLengthStreamingMode(contentLength)`). We need to catch
+                // and ignore it.
+                try {
+                    targetStream.close();
+                } catch (IOException e2) {
+                    commandResponseHandler.debug(
+                            verbose,
+                            "error closing target stream ('insufficient data written' is expected): "
+                                    + e2.getMessage());
+                    // Ignore
+                }
             }
+
+            return isComplete(connection, source, verbose, bytesCopied, contentLength);
+        }
+    }
+
+    private boolean isComplete(
+            HttpURLConnection connection, Path source, boolean verbose, long bytesCopied, long contentLength)
+            throws IOException {
+        try {
             int responseCode = connection.getResponseCode();
+            commandResponseHandler.debug(verbose, "upload response code: " + responseCode);
             switch (responseCode) {
                 case HTTP_OK:
-                    return true; // the file is now uploaded, all good
+                    return bytesCopied == contentLength;
                 case HTTP_FORBIDDEN:
                     if (canSkipToImport(connection.getErrorStream())) {
                         return true;
@@ -277,6 +304,11 @@ public class SignedUploadGCP implements SignedUpload {
                     commandResponseHandler.debug(true, "resume upload ends\n");
                     throw resumePossibleErrorResponse(connection, source);
             }
+        } catch (IOException e2) {
+            commandResponseHandler.debug(verbose, "error reading HTTP response code: " + e2);
+            commandResponseHandler.debug(verbose, "Fallingback to comparing number of bytes copied to content length");
+
+            return bytesCopied == contentLength;
         }
     }
 
