@@ -159,19 +159,28 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
     relationshipTypes: Seq[RelTypeName],
     relationshipDirection: SemanticDirection
   ): LabelInfo = {
-    val labelInfoWithoutImpliedLabelsByNodeLabelConstraints =
-      context.graphSchemaOptimizations.pruneImpliedLabels(labelInfo)
-    context.graphSchemaOptimizations
-      .implicationsFromRelationship(fromNode, toNode, relationshipTypes, relationshipDirection)
-      .foldLeft(labelInfoWithoutImpliedLabelsByNodeLabelConstraints) {
-        case (labelInfo, (variable, labelName)) =>
-          labelInfo.get(variable) match {
-            case Some(knownLabels) if knownLabels.contains(labelName) =>
-              labelInfo.updated(variable, knownLabels - labelName)
-            case _ =>
-              labelInfo
-          }
+    // First remove labels implied by other node-label constraints (cached inside GraphSchemaOptimizations).
+    val prunedByNodeLabelConstraints = context.graphSchemaOptimizations.pruneImpliedLabels(labelInfo)
+
+    // Then remove labels that are implied specifically by relationship-type endpoint constraints.
+    // Many relationships will have no such implications; short-circuit that common case to avoid
+    // computing and applying the more expensive transformation.
+    val implications = context.graphSchemaOptimizations.implicationsFromRelationship(
+      fromNode,
+      toNode,
+      relationshipTypes,
+      relationshipDirection
+    )
+
+    // If there are no implications from relationship types, return the pruned labels unchanged
+    if (implications.isEmpty) prunedByNodeLabelConstraints
+    else {
+      val variableToRelTypeMap = implications.groupMap(_._1)(_._2)
+      prunedByNodeLabelConstraints.map {
+        case (variable, knownLabels) =>
+          variable -> (knownLabels -- variableToRelTypeMap.getOrElse(variable, Set.empty))
       }
+    }
   }
 
   def getEmptyPathPatternCardinality(

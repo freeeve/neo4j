@@ -148,15 +148,19 @@ object GraphSchemaOptimizations {
           .map(strLabel => LabelName(strLabel)(InputPosition.NONE))
       }
 
-    override def pruneImpliedLabels(labels: Set[LabelName]): Set[LabelName] = {
-      labels.foldLeft(labels) {
-        (labelsToKeep, label) => labelsToKeep.diff(impliedLabels(label))
+    private val prunedImpliedLabelInfoCache: LabelInfo => LabelInfo =
+      CachedFunction { (labelInfo: LabelInfo) =>
+        labelInfo.map {
+          case (variable, labels) => variable -> pruneImpliedLabels(labels)
+        }
       }
+
+    override def pruneImpliedLabels(labels: Set[LabelName]): Set[LabelName] = {
+      val allImpliedLabels = labels.flatMap(impliedLabels)
+      labels.removedAll(allImpliedLabels)
     }
 
-    override def pruneImpliedLabels(labelInfo: LabelInfo): LabelInfo = {
-      labelInfo.view.mapValues(pruneImpliedLabels).toMap
-    }
+    override def pruneImpliedLabels(labelInfo: LabelInfo): LabelInfo = prunedImpliedLabelInfoCache(labelInfo)
 
     override def pruneConstrainedLabels(labels: Seq[LabelName]): Seq[LabelName] = {
       labels.filterNot { label =>
