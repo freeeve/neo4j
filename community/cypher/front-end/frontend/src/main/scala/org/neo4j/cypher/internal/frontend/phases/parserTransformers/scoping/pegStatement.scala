@@ -31,6 +31,10 @@ import org.neo4j.cypher.internal.util.ASTNode
 object pegStatement {
 
   def apply(statement: Statement, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
+    c.getRecordScopeOrElse[Statement](statement, incoming, applyUncached(_, _))
+  }
+
+  private def applyUncached(statement: Statement, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
     implicit val astNode: ASTNode = statement
     statement match {
 

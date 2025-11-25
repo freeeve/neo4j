@@ -76,10 +76,16 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
   override def process(from: BaseState, context: BaseContext): BaseState = {
     val anonVarGen = SurveyorNameGenerator()
     val statement = from.statement().endoRewrite(topDown(removeNamespacing))
+
     val workingContextOfStatement = scope(
       statement,
       RegularContext.unit,
-      PegContext(anonVarGen, context.cypherVersion, context.semanticFeatures.toSet)
+      PegContext(
+        anonVarGen,
+        context.cypherVersion,
+        context.semanticFeatures.toSet,
+        from.maybeScopeState.map(_.recordedScopes).getOrElse(ScopeState.emptyRecordedScopes)
+      )
     )
 
     val recordedScopes = workingContextOfStatement.getRecordedScopes

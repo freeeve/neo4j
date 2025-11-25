@@ -44,6 +44,11 @@ import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 object pegExpression {
 
   def apply(labelExpression: LabelExpression, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
+    c.getRecordScopeOrElse[LabelExpression](labelExpression, incoming, applyUncached(_, _))
+  }
+
+  private def applyUncached(labelExpression: LabelExpression, incoming: RegularContext)(implicit
+    c: PegContext): WorkingScope = {
     def collect(scope: WorkingScope): Seq[WorkingScope] => FoldingBehavior[Seq[WorkingScope]] =
       acc => SkipChildren(acc :+ scope)
 
@@ -58,6 +63,10 @@ object pegExpression {
   }
 
   def apply(expression: Expression, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
+    c.getRecordScopeOrElse[Expression](expression, incoming, applyUncached(_, _))
+  }
+
+  private def applyUncached(expression: Expression, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
     val children = scopeExpression(expression, incoming)
     onlyChildIfSelfOrElse(children, expression, () => incoming.expressionResultScope(expression, children))
   }

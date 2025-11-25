@@ -77,6 +77,10 @@ import org.neo4j.cypher.internal.util.ASTNode
 object pegClause {
 
   def apply(clause: Clause, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
+    c.getRecordScopeOrElse[Clause](clause, incoming, applyUncached(_, _))
+  }
+
+  private def applyUncached(clause: Clause, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
     implicit val astNode: ASTNode = clause
     clause match {
 

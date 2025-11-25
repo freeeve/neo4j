@@ -16,10 +16,12 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.ast.ASTAnnotationMap.PositionedNode
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PatternAtom
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState.RecordedScopes
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.Foldable
 import org.neo4j.cypher.internal.util.InputPosition
@@ -45,9 +47,8 @@ sealed trait WorkingScope extends Product with Foldable {
   def withReferenced(referenced: Set[LogicalVariable]): WorkingScope
   def withDeclared(declared: Declarations): WorkingScope
 
-  def getRecordedScopes: Map[ASTNode, WorkingScope] =
-    Map(astNode -> this) ++ children.flatMap(_.getRecordedScopes)
-
+  def getRecordedScopes: RecordedScopes =
+    Map(PositionedNode(astNode) -> this) ++ children.flatMap(_.getRecordedScopes)
 }
 
 object WorkingScope {

@@ -39,6 +39,9 @@ import org.neo4j.cypher.internal.util.ASTNode
 
 object pegCommand {
 
+  /*
+   * Note that scope caching for commands via PegContext.getRecordScopeOrElse is already covered by pegStatement.
+   */
   def apply(command: AdministrationCommand, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
     implicit val astNode: ASTNode = command
     command match {

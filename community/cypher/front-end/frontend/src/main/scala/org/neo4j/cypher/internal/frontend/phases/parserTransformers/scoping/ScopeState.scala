@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.ast.ASTAnnotationMap
+import org.neo4j.cypher.internal.ast.ASTAnnotationMap.ASTAnnotationMap
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState.RecordedScopes
 import org.neo4j.cypher.internal.util.ASTNode
 
@@ -26,5 +28,7 @@ case class ScopeState(
 
 object ScopeState {
 
-  type RecordedScopes = Map[ASTNode, WorkingScope]
+  type RecordedScopes = ASTAnnotationMap[ASTNode, WorkingScope]
+
+  def emptyRecordedScopes: RecordedScopes = ASTAnnotationMap.empty
 }

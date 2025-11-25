@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.scoping
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.ASTAnnotationMap.PositionedNode
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
@@ -30,28 +31,37 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Pattern
+import org.neo4j.cypher.internal.expressions.PatternAtom
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.InitialState
+import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.AggregatingExpressionContext
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.AprioriScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.CommonContext
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Declarations
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.NoResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.OmittedResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.PatternIncomingContext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.PatternScope
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.RegularContext
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState.RecordedScopes
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.StatementScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.TableResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.TableResultWithNotYetKnownColumns
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UnexpectedAstNodeScopingError
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.VariableChecker
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingContext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.util.ASTNode
@@ -59,6 +69,7 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
+import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
@@ -157,7 +168,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
 
   private val prettifier: Prettifier = Prettifier(ExpressionStringifier())
 
-  private def prettify(astNode: ASTNode): String = (astNode match {
+  def prettify(astNode: ASTNode): String = (astNode match {
     case s: Statement           => prettifier.asString(s)
     case c: Clause              => prettifier.asString(SingleQuery(Seq(c))(InputPosition.NONE))
     case s: Search              => prettifier.asString(s)
@@ -176,8 +187,6 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
 
   private def whitespaceNormalization(cypher: String): String =
     cypher.trim.replaceAll("\\s+", " ")
-
-  private val defaultDatabaseName = "mock"
 
   private def messageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
 
@@ -211,21 +220,288 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
+  private def runStatement(
+    statement: Statement,
+    version: CypherVersion,
+    skipVariableChecker: Boolean = false,
+    withPrepRewriting: Boolean = false,
+    withoutCachingCheck: Boolean = false
+  ): Either[BaseState, Seq[SemanticError]] = {
+    val context =
+      new ErrorCollectingContext(version, semanticFeatures = Seq(ScopeQueries)) {
+        override def errorMessageProvider: ErrorMessageProvider = messageProvider
+      }
+    // running the ScopeSurveyor twice in a row is a trivial test that its working scope caching is idempotent w.r.t the resulting working scope
+    val scopeSurveyorPipe =
+      if (withoutCachingCheck) ScopeSurveyor
+      else ScopeSurveyor andThen ScopeSurveyor
+
+    val transformers = {
+      if (skipVariableChecker) scopeSurveyorPipe
+      else if (withPrepRewriting) PreparatoryRewriting andThen scopeSurveyorPipe andThen VariableChecker
+      else {
+        scopeSurveyorPipe andThen VariableChecker
+      }
+    }
+    val state = transformers.transform(initialStateWithStatement(statement), context)
+
+    if (context.errors.isEmpty) {
+      Left(state)
+    } else {
+      Right(context.errors.collect { case e: SemanticError => e })
+    }
+  }
+
+  private def runStatementAndRewrittenStatement(
+    statementBefore: Statement,
+    statementAfter: Statement,
+    version: CypherVersion,
+    skipVariableChecker: Boolean = false,
+    withPrepRewriting: Boolean = false,
+    withoutCachingCheck: Boolean = false
+  ): Either[BaseState, Seq[SemanticError]] = {
+    val context =
+      new ErrorCollectingContext(version, semanticFeatures = Seq(ScopeQueries)) {
+        override def errorMessageProvider: ErrorMessageProvider = messageProvider
+      }
+    // running the ScopeSurveyor twice in a row is a trivial test that its working scope caching is idempotent w.r.t the resulting working scope
+    val scopeSurveyorPipe =
+      if (withoutCachingCheck) ScopeSurveyor
+      else ScopeSurveyor andThen ScopeSurveyor
+
+    val transformers = {
+      if (skipVariableChecker) scopeSurveyorPipe
+      else if (withPrepRewriting) PreparatoryRewriting andThen scopeSurveyorPipe andThen VariableChecker
+      else {
+        scopeSurveyorPipe andThen VariableChecker
+      }
+    }
+    val stateFinalBefore = transformers.transform(initialStateWithStatement(statementBefore), context)
+    val stateInitialAfter = stateFinalBefore.withStatement(statementAfter)
+    val stateFinalAfter = transformers.transform(stateInitialAfter, context)
+
+    if (context.errors.isEmpty) {
+      Left(stateFinalAfter)
+    } else {
+      Right(context.errors.collect { case e: SemanticError => e })
+    }
+  }
+
+  type WorkingScopeModification = WorkingScope => WorkingScope
+
+  def replaceASTNodeInWorkingScope(newASTNode: ASTNode): WorkingScopeModification = {
+    case s: StatementScope                => s.copy(astNode = newASTNode)
+    case s: PatternScope                  => s.copy(astNode = newASTNode)
+    case s: AprioriScope                  => s // ast node not modifiable
+    case s: ExpressionScope               => s.copy(astNode = newASTNode)
+    case s: UnexpectedAstNodeScopingError => s.copy(astNode = newASTNode)
+  }
+
+  type PositionedASTNode = PositionedNode[ASTNode]
+  type CacheModificationKey = (PositionedASTNode, WorkingContext)
+
+  def shouldPickUpCacheModifications(
+    statement: Statement,
+    cacheModification: Map[CacheModificationKey, WorkingScopeModification],
+    version: CypherVersion = CypherVersion.Cypher25
+  ): Unit = testPickUpOfCacheModifications(statement, cacheModification, version, shouldPickUp = true)
+
+  def shouldNotPickUpCacheModifications(
+    statement: Statement,
+    cacheModification: Map[CacheModificationKey, WorkingScopeModification],
+    version: CypherVersion = CypherVersion.Cypher25
+  ): Unit = testPickUpOfCacheModifications(statement, cacheModification, version, shouldPickUp = false)
+
+  private def testPickUpOfCacheModifications(
+    statement: Statement,
+    cacheModification: Map[CacheModificationKey, WorkingScopeModification],
+    version: CypherVersion,
+    shouldPickUp: Boolean
+  ): Unit = {
+    val context =
+      new ErrorCollectingContext(version, semanticFeatures = Seq(ScopeQueries)) {
+        override def errorMessageProvider: ErrorMessageProvider = messageProvider
+      }
+
+    class ScopeTreeTransformation extends Transformer[BaseContext, BaseState, BaseState] {
+      var newWorkingScopeOpt: Option[WorkingScope] = None
+      var newRecordedScopesOpt: Option[RecordedScopes] = None // for debugging purposes
+
+      override def transform(from: BaseState, context: BaseContext): BaseState = {
+        val newScopeState = from.maybeScopeState match {
+          case None =>
+            throw new RuntimeException(s"${prettify(statement)} did not have a ScopeState before modifying the cache")
+          case Some(scopeState) =>
+            // modify the working scope and recorded scopes to what it will look like if it picks up the modified cache
+            def modifyWorkingScopeTopDown(
+              workingScope: WorkingScope,
+              recordedScopes: RecordedScopes
+            ): (WorkingScope, RecordedScopes, Boolean, Set[CacheModificationKey]) = {
+              cacheModification.collectFirst {
+                case modKey -> modifyWorkingScope
+                  if modKey == (PositionedNode(workingScope.astNode), workingScope.incoming) =>
+                  val newWorkingScope = modifyWorkingScope(workingScope)
+                  val newRecordedScopes = recordedScopes + (modKey._1 -> newWorkingScope)
+                  val modified = true
+                  val expectedWorkingScope = if (shouldPickUp) newWorkingScope else workingScope
+                  (expectedWorkingScope, newRecordedScopes, modified, Set(modKey))
+              } match {
+                // no modification found
+                case None =>
+                  // recurse to children
+                  val (newChildWorkingScopes, newRecordedScopes, modified, usedModifications) =
+                    workingScope.children.foldLeft((
+                      Seq.empty[WorkingScope],
+                      recordedScopes,
+                      false,
+                      Set.empty[CacheModificationKey]
+                    )) {
+                      case ((newChildWorkingScopes, recordedScopes, modified, usedModifications), child) =>
+                        val (newChildWorkingScope, newRecordedScopes, newModified, moreUsedModifications) =
+                          modifyWorkingScopeTopDown(child, recordedScopes)
+                        val unitedUsedModifications = usedModifications union moreUsedModifications
+                        (
+                          newChildWorkingScopes :+ newChildWorkingScope,
+                          newRecordedScopes,
+                          modified || newModified,
+                          unitedUsedModifications
+                        )
+                    }
+                  // if any of the children is modified, we need to remove the parent from the cache
+                  val cleanedNewRecordedScopes = if (modified) {
+                    newRecordedScopes.removed(workingScope.astNode)
+                  } else newRecordedScopes
+                  val expectedWorkingScope =
+                    if (shouldPickUp) workingScope.withChildren(newChildWorkingScopes) else workingScope
+                  (expectedWorkingScope, cleanedNewRecordedScopes, modified, usedModifications)
+                // modification found
+                case Some(result) => result
+              }
+            }
+            val (newWorkingScope, modifiedRecordedScopes, _, usedModifications) =
+              modifyWorkingScopeTopDown(scopeState.workingScope, scopeState.recordedScopes)
+            // add unused modification to recorded scopes
+            val unusedModifications = cacheModification.filterNot(e => usedModifications contains e._1)
+            val newRecordedScopes: RecordedScopes = unusedModifications.foldLeft(modifiedRecordedScopes) {
+              case (recordedScopes, (positionedAstNode, incoming) -> modifyWorkingScope) =>
+                val modifiedScope = modifyWorkingScope(positionedAstNode.node match {
+                  case e: Expression =>
+                    ExpressionScope(e, incoming.asInstanceOf[RegularContext], Set.empty, Declarations.noDeclarations)
+                  case e: LabelExpression =>
+                    ExpressionScope(e, incoming.asInstanceOf[RegularContext], Set.empty, Declarations.noDeclarations)
+                  case p: Pattern => PatternScope(
+                      p,
+                      incoming.asInstanceOf[PatternIncomingContext],
+                      Set.empty,
+                      Declarations.noDeclarations,
+                      TableResult(Seq.empty)
+                    )
+                  case p: PatternPart => PatternScope(
+                      p,
+                      incoming.asInstanceOf[PatternIncomingContext],
+                      Set.empty,
+                      Declarations.noDeclarations,
+                      TableResult(Seq.empty)
+                    )
+                  case p: PatternElement => PatternScope(
+                      p,
+                      incoming.asInstanceOf[PatternIncomingContext],
+                      Set.empty,
+                      Declarations.noDeclarations,
+                      TableResult(Seq.empty)
+                    )
+                  case p: PatternAtom => PatternScope(
+                      p,
+                      incoming.asInstanceOf[PatternIncomingContext],
+                      Set.empty,
+                      Declarations.noDeclarations,
+                      TableResult(Seq.empty)
+                    )
+                  case x => StatementScope(
+                      x,
+                      incoming.asInstanceOf[RegularContext],
+                      Set.empty,
+                      Declarations.noDeclarations,
+                      RegularContext.unit,
+                      TableResult(Seq.empty)
+                    )
+                })
+                recordedScopes + (positionedAstNode -> modifiedScope)
+            }
+            newWorkingScopeOpt = Some(newWorkingScope)
+            newRecordedScopesOpt = Some(newRecordedScopes)
+            // modify the recorded scope in the state but keep the unmodified working scope in the state
+            scopeState.copy(recordedScopes = newRecordedScopes)
+        }
+        // set modified state
+        from.withScopeState(newScopeState)
+      }
+
+      override def postConditions: Set[StepSequencer.Condition] = Set.empty
+
+      override def name: String = "scope tree rewrite"
+    }
+    val scopeTreeTransformation = new ScopeTreeTransformation()
+
+    val transformers =
+      ScopeSurveyor andThen scopeTreeTransformation andThen ScopeSurveyor
+
+    val stateAfter = transformers.transform(initialStateWithStatement(statement), context)
+    val actualWorkingScope = stateAfter.maybeScopeState match {
+      case None => throw new RuntimeException(s"${prettify(statement)} did not have a ScopeState at end of pipeline")
+      case Some(scopeState) => scopeState.workingScope
+    }
+    val expectedWorkingScope = scopeTreeTransformation.newWorkingScopeOpt match {
+      case None => throw new RuntimeException(s"${prettify(statement)} did not have a expectedWorkingScope")
+      case Some(expectedWorkingScope) => expectedWorkingScope
+    }
+    val modifiedRecordedScopes = scopeTreeTransformation.newRecordedScopesOpt match {
+      case None => throw new RuntimeException(s"${prettify(statement)} did not have a newRecordedScopes")
+      case Some(modifiedRecordedScopes) => modifiedRecordedScopes
+    }
+    withClue(
+      s"""given cache
+         |
+         |${pprint.apply(modifiedRecordedScopes)}
+         |
+         |actual
+         |
+         |${pprint.apply(actualWorkingScope)}
+         |
+         |was not equal to expected
+         |
+         |${pprint.apply(expectedWorkingScope)}
+         |""".stripMargin
+    ) {
+      actualWorkingScope shouldBe expectedWorkingScope
+    }
+  }
+
   private def runQuery(
     query: String,
     version: CypherVersion,
     skipVariableChecker: Boolean = false,
-    withPrepRewriting: Boolean = false
+    withPrepRewriting: Boolean = false,
+    withoutCachingCheck: Boolean = false
   ): Either[BaseState, Seq[SemanticError]] = {
     val context =
-      new ErrorCollectingContext(version, isComposite = false, defaultDatabaseName, query, Seq(ScopeQueries)) {
+      new ErrorCollectingContext(version, semanticFeatures = Seq(ScopeQueries)) {
         override def errorMessageProvider: ErrorMessageProvider = messageProvider
       }
-    val transformers =
-      if (skipVariableChecker) Parse andThen ScopeSurveyor
-      else if (withPrepRewriting) Parse andThen PreparatoryRewriting andThen ScopeSurveyor andThen VariableChecker
-      else Parse andThen ScopeSurveyor andThen VariableChecker
+    // running the ScopeSurveyor twice in a row is a trivial test that its working scope caching is idempotent w.r.t the resulting working scope
+    val scopeSurveyorPipe =
+      if (withoutCachingCheck) ScopeSurveyor
+      else ScopeSurveyor andThen ScopeSurveyor
+
+    val transformers = {
+      if (skipVariableChecker) Parse andThen scopeSurveyorPipe
+      else if (withPrepRewriting) Parse andThen PreparatoryRewriting andThen scopeSurveyorPipe andThen VariableChecker
+      else {
+        Parse andThen scopeSurveyorPipe andThen VariableChecker
+      }
+    }
     val state = transformers.transform(initialStateWithQuery(query), context)
+
     if (context.errors.isEmpty) {
       Left(state)
     } else {
@@ -353,7 +629,6 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
           }
       }
     })
-
   }
 
   def hasScope(
@@ -580,6 +855,91 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
+  /* beforeRewrite -fictional rewrite-> query
+   *  (test name)
+   *  e.g.  a + b                       a * b
+   *          v                           v
+   *        scope    -no influence->    scope
+   */
+  def doesNotInfluence(
+    beforeRewrite: Statement,
+    query: Statement,
+    versions: Array[CypherVersion] = Array(CypherVersion.Cypher25)
+  ): Unit = {
+    versions.foreach(version => {
+      val directlyEither = runStatement(query, version)
+      val rewrittenEither = runStatementAndRewrittenStatement(beforeRewrite, query, version)
+      (directlyEither, rewrittenEither) match {
+        case (Left(stateDirectly), Right(errorsRewritten)) =>
+          stateDirectly.maybeScopeState should not be empty
+          val workingScopeDirectly = stateDirectly.maybeScopeState.get.workingScope
+          fail(
+            s"""Version: $version
+               |Query:
+               |
+               |${prettify(query)}
+               |
+               |Query directly was successful, but query rewritten threw errors.
+               |---
+               |Query directly with working scope:
+               |
+               |${pprint.apply(workingScopeDirectly)}
+               |---
+               |Query rewritten with errors:
+               |
+               |${pprint.apply(errorsRewritten)}
+               |---""".stripMargin
+          )
+        case (Right(errorsDirectly), Left(stateRewritten)) =>
+          stateRewritten.maybeScopeState should not be empty
+          val workingScopeAfter = stateRewritten.maybeScopeState.get.workingScope
+          fail(
+            s"""Version: $version
+               |Query:
+               |
+               |${prettify(query)}
+               |
+               |Query directly threw errors, but query rewritten was successful.
+               |---
+               |Query directly with errors:
+               |
+               |${pprint.apply(errorsDirectly)}
+               |---
+               |Query rewritten with working scope:
+               |
+               |${pprint.apply(workingScopeAfter)}
+               |---""".stripMargin
+          )
+        case (Right(errorsDirectly), Right(errorsRewritten)) =>
+          errorsDirectly should contain theSameElementsAs errorsRewritten
+        case (Left(stateDirectly), Left(stateRewritten)) =>
+          stateDirectly.maybeScopeState should not be empty
+          val workingScopeDirectly = stateDirectly.maybeScopeState.get.workingScope
+          stateRewritten.maybeScopeState should not be empty
+          val workingScopeRewritten = stateRewritten.maybeScopeState.get.workingScope
+          if (workingScopeDirectly == workingScopeRewritten) succeed
+          else
+            fail(
+              s"""Version: $version
+                 |Query:
+                 |
+                 |${prettify(query)}
+                 |
+                 |Working scopes directly and rewritten are not the same
+                 |
+                 |Working scope directly:
+                 |
+                 |${pprint.apply(workingScopeDirectly)}
+                 |---
+                 |Working scope rewritten:
+                 |
+                 |${pprint.apply(workingScopeRewritten)}
+                 |---""".stripMargin
+            )
+      }
+    })
+  }
+
   override def afterAll(): Unit = {
     if (testLog) {
       log.close()
@@ -588,4 +948,12 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
 
   private def initialStateWithQuery(query: String): InitialState =
     InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
+
+  private def initialStateWithStatement(statement: Statement): InitialState =
+    InitialState(
+      prettify(statement),
+      NoPlannerName,
+      new AnonymousVariableNameGenerator,
+      maybeStatement = Some(statement)
+    )
 }
