@@ -105,6 +105,7 @@ import org.neo4j.cypher.internal.logical.plans.BFSPruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.BidirectionalRepeatTrail
 import org.neo4j.cypher.internal.logical.plans.CacheProperties
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
+import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ConditionalApply
 import org.neo4j.cypher.internal.logical.plans.Create
 import org.neo4j.cypher.internal.logical.plans.DeleteExpression
@@ -130,6 +131,7 @@ import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipType
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
+import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
@@ -140,6 +142,7 @@ import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
+import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
 import org.neo4j.cypher.internal.logical.plans.Input
 import org.neo4j.cypher.internal.logical.plans.IntersectionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.LeftOuterHashJoin
@@ -196,6 +199,7 @@ import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.ProjectEndpoints
 import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.PruningVarExpand
+import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
@@ -222,6 +226,7 @@ import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperty
 import org.neo4j.cypher.internal.logical.plans.SimulatedExpand
 import org.neo4j.cypher.internal.logical.plans.SimulatedNodeScan
 import org.neo4j.cypher.internal.logical.plans.SimulatedSelection
+import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
 import org.neo4j.cypher.internal.logical.plans.SingleSeekableArg
 import org.neo4j.cypher.internal.logical.plans.Skip
 import org.neo4j.cypher.internal.logical.plans.Sort
@@ -961,6 +966,43 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         "NodeVectorIndexSearch",
         Seq.empty,
         Seq(details("SEARCH n IN VECTOR INDEX vectorIndex FOR [1, 2] LIMIT 5")),
+        Set("n")
+      )
+    )
+
+    assertGood(
+      attach(
+        NodeVectorIndexSearch(
+          varFor("n"),
+          Seq(
+            LabelToken("Label1", LabelId(0)),
+            LabelToken("Label2", LabelId(1))
+          ),
+          Seq(
+            IndexedProperty(PropertyKeyToken("prop1", PropertyKeyId(0)), DoNotGetValue, NODE_TYPE),
+            IndexedProperty(PropertyKeyToken("prop2", PropertyKeyId(1)), DoNotGetValue, NODE_TYPE)
+          ),
+          None,
+          "vectorIndex",
+          listOf(literalInt(1), literalInt(2)),
+          literalInt(5),
+          Some(CompositeQueryExpression(
+            Seq(
+              SingleQueryExpression(literalInt(42)),
+              RangeQueryExpression(
+                InequalitySeekRangeWrapper(RangeGreaterThan(NonEmptyList(ExclusiveBound(literalInt(42)))))(pos)
+              )
+            )
+          )),
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "NodeVectorIndexSearch",
+        Seq.empty,
+        Seq(details("SEARCH n IN VECTOR INDEX vectorIndex FOR [1, 2] WHERE prop1 = 42 AND prop2 > 42 LIMIT 5")),
         Set("n")
       )
     )

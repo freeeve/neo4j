@@ -684,16 +684,21 @@ case class LogicalPlan2PlanDescription(
       case NodeVectorIndexSearch(
           idName,
           _,
-          _,
+          properties,
           _,
           indexName,
           vector,
           limit,
-          _,
+          maybeFilter,
           _
         ) =>
+        val predicate = maybeFilter match {
+          case Some(valueExpr) => pretty" WHERE ${indexPredicateString(properties.map(_.propertyKeyToken), valueExpr)}"
+          case None            => pretty""
+        }
         val prettyDetails =
-          pretty"SEARCH ${asPrettyString(idName)} IN VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)} LIMIT ${asPrettyString(limit)}"
+          pretty"SEARCH ${asPrettyString(idName)} IN VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)}$predicate LIMIT ${asPrettyString(limit)}"
+
         PlanDescriptionImpl(
           id,
           "NodeVectorIndexSearch",
