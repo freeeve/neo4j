@@ -19,6 +19,7 @@
  */
 package org.neo4j.exceptions;
 
+import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
@@ -38,6 +39,19 @@ public class VectorIndexSearchException extends Neo4jException {
                 .withParam(GqlParams.StringParam.idxDescrOrName, indexName)
                 .build();
         return new VectorIndexSearchException(gql, Status.Schema.IndexNotFound, gql.getMessage());
+    }
+
+    public static VectorIndexSearchException wrongBindingVariableType(
+            String variableName, List<String> expectedTypes, String actualTypeOfVariable) {
+        var gqlCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
+                .withParam(GqlParams.StringParam.value, new GqlParams.IDENT().process(variableName))
+                .withParam(GqlParams.ListParam.valueTypeList, expectedTypes)
+                .withParam(GqlParams.StringParam.valueType, actualTypeOfVariable)
+                .build();
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                .withCause(gqlCause)
+                .build();
+        return new VectorIndexSearchException(gql, Status.Statement.TypeError, gqlCause.getMessage());
     }
 
     @Override

@@ -40,8 +40,10 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       .setAllNodesCardinality(120)
       .setLabelCardinality("Movie", 120)
       .setRelationshipCardinality("()-[]->()", 100)
+      .setRelationshipCardinality("()-[:ACTS_IN]->()", 50)
       .setRelationshipCardinality("(:Movie)-[]->()", 20)
       .addNodeVectorIndex("moviePlots", "Movie", "plot")
+      .addRelationshipVectorIndex("actsInScript", "ACTS_IN", "script")
       .addNodeIndex("Movie", List("title"), 1.0, 1.0 / 120.0, isUnique = true)
 
   test("plan node vector index search") {
@@ -304,6 +306,138 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       "error: data exception - index does not exist. The index 'notReallyMoviePlots' does not exist."
     )
     caughtException.legacyMessage() should be("22N69: The index 'notReallyMoviePlots' does not exist.")
+    caughtException.cause().isEmpty should be(true)
+  }
 
+  test(
+    "plan node vector index search using a relationship variable as binding variable should give GQL error 22G03 with cause 22N01"
+  ) {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()-[r:ACTS_IN]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r""".stripMargin
+
+    val caughtException = intercept[VectorIndexSearchException] {
+      planner.plan(CypherVersion.Cypher25, query)
+    }
+    caughtException.gqlStatus() should be("22G03")
+    caughtException.statusDescription() should be("error: data exception - invalid value type")
+    caughtException.legacyMessage() should be(
+      "22N01: Expected the value `r` to be of type NODE, but was of type RELATIONSHIP."
+    )
+
+    val caughtExceptionCause = caughtException.cause()
+    caughtExceptionCause.isEmpty should be(false)
+    caughtExceptionCause.get.gqlStatus() should be("22N01")
+    caughtExceptionCause.get.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value `r` to be of type NODE, but was of type RELATIONSHIP."
+    )
+    caughtExceptionCause.get.cause().isEmpty should be(true)
+  }
+
+  test(
+    "plan relationship vector index search using a node variable as binding variable should give GQL error 22G03 with cause 22N01"
+  ) {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (r:Movie)
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r""".stripMargin
+
+    val caughtException = intercept[VectorIndexSearchException] {
+      planner.plan(CypherVersion.Cypher25, query)
+    }
+    caughtException.gqlStatus() should be("22G03")
+    caughtException.statusDescription() should be("error: data exception - invalid value type")
+    caughtException.legacyMessage() should be(
+      "22N01: Expected the value `r` to be of type RELATIONSHIP, but was of type NODE."
+    )
+
+    val caughtExceptionCause = caughtException.cause()
+    caughtExceptionCause.isEmpty should be(false)
+    caughtExceptionCause.get.gqlStatus() should be("22N01")
+    caughtExceptionCause.get.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value `r` to be of type RELATIONSHIP, but was of type NODE."
+    )
+    caughtExceptionCause.get.cause().isEmpty should be(true)
+  }
+
+  // Gives java.lang.IllegalStateException: Failed rewriting Search(Variable(p),None....
+  // That happens before we reach VectorSearchLeafPlanner
+  ignore(
+    "plan node vector index search using a path variable as binding variable should give GQL error 22G03 with cause 22N01"
+  ) {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH p=()-[r:ACTS_IN]->()
+        |  SEARCH p IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN p""".stripMargin
+
+    val caughtException = intercept[VectorIndexSearchException] {
+      planner.plan(CypherVersion.Cypher25, query)
+    }
+    caughtException.gqlStatus() should be("22G03")
+    caughtException.statusDescription() should be("error: data exception - invalid value type")
+    caughtException.legacyMessage() should be(
+      "22N01: Expected the value `p` to be of type RELATIONSHIP, but was of type PATH."
+    )
+
+    val caughtExceptionCause = caughtException.cause()
+    caughtExceptionCause.isEmpty should be(false)
+    caughtExceptionCause.get.gqlStatus() should be("22N01")
+    caughtExceptionCause.get.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value `p` to be of type RELATIONSHIP, but was of type PATH."
+    )
+    caughtExceptionCause.get.cause().isEmpty should be(true)
+  }
+
+  test(
+    "plan node vector index search using a node variable (hidden from the planner) passed as a relationship variable should give GQL error 22G03 with cause 22N01"
+  ) {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (n)-[r]->()
+        |WITH coalesce(n, r) as x
+        |MATCH ()-[x]->()
+        | SEARCH x IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN x.prop""".stripMargin
+
+    val caughtException = intercept[VectorIndexSearchException] {
+      planner.plan(CypherVersion.Cypher25, query)
+    }
+    caughtException.gqlStatus() should be("22G03")
+    caughtException.statusDescription() should be("error: data exception - invalid value type")
+    caughtException.legacyMessage() should be(
+      "22N01: Expected the value `x` to be of type NODE, but was of type RELATIONSHIP."
+    )
+
+    val caughtExceptionCause = caughtException.cause()
+    caughtExceptionCause.isEmpty should be(false)
+    caughtExceptionCause.get.gqlStatus() should be("22N01")
+    caughtExceptionCause.get.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value `x` to be of type NODE, but was of type RELATIONSHIP."
+    )
+    caughtExceptionCause.get.cause().isEmpty should be(true)
   }
 }

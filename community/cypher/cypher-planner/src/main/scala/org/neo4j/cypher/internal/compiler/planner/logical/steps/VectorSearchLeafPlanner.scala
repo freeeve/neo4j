@@ -74,12 +74,18 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
 
       vectorIndexDescriptor.entityType match {
         case EntityType.Node(labelId) =>
-          // TODO: Raise error 22N01 when referencing a vector search result variable of the wrong type
-          //  See PLAN-2900
-          assert(
-            variableType.is(CTNode),
-            s"type mismatch between vector index ${vectorSearchPredicate.indexName} and variable ${vectorSearchPredicate.bindingVariable.name}. Got $variableType, expected node"
-          )
+
+          if (!variableType.is(CTNode)) {
+            throw VectorIndexSearchException.wrongBindingVariableType(
+              vectorSearchPredicate.bindingVariable.name,
+              java.util.List.of("NODE"),
+              variableType.typeInfo match {
+                case None           => "UNKNOWN"
+                case Some(typeSpec) => typeSpec.toShortString.toUpperCase()
+              }
+            )
+          }
+
           val labelName = context.staticComponents.planContext.getLabelName(labelId)
           val propertyName = context.staticComponents.planContext.getPropertyKeyName(vectorIndexDescriptor.property.id)
           val nodeVectorIndexSearch = context.staticComponents.logicalPlanProducer.planNodeVectorIndexSearch(
@@ -94,12 +100,16 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
           )
           Set(nodeVectorIndexSearch)
         case EntityType.Relationship(relTypeId) =>
-          // TODO: Raise error 22N01 when referencing a vector search result variable of the wrong type
-          //  See PLAN-2900
-          assert(
-            variableType.is(CTRelationship),
-            s"type mismatch between vector index ${vectorSearchPredicate.indexName} and variable ${vectorSearchPredicate.bindingVariable.name}. Got $variableType, expected relationship"
-          )
+          if (!variableType.is(CTRelationship)) {
+            throw VectorIndexSearchException.wrongBindingVariableType(
+              vectorSearchPredicate.bindingVariable.name,
+              java.util.List.of("RELATIONSHIP"),
+              variableType.typeInfo match {
+                case None           => "UNKNOWN"
+                case Some(typeSpec) => typeSpec.toShortString.toUpperCase()
+              }
+            )
+          }
           ??? // TODO: Plan relationship vector search. See PLAN-2847
       }
     }
