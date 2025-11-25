@@ -228,6 +228,8 @@ object LogicalPlanStringTest {
       classOf[ast.GraphDirectReference] -> "print",
       classOf[plans.DynamicElement.SetOperator] -> "name",
       classOf[plans.NodeVectorIndexSearch] -> "indexName",
+      classOf[plans.DirectedRelationshipVectorIndexSearch] -> "indexName",
+      classOf[plans.UndirectedRelationshipVectorIndexSearch] -> "indexName",
       classOf[expressions.VectorSearchPredicate] -> "indexName"
     )
 

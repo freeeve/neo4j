@@ -2086,6 +2086,110 @@ object DirectedRelationshipIndexSeek extends IndexSeekNames {
     )(idGen)
 }
 
+case class DirectedRelationshipVectorIndexSearch(
+  idName: Option[LogicalVariable],
+  startNode: Option[LogicalVariable],
+  endNode: Option[LogicalVariable],
+  override val typeTokens: Seq[RelationshipTypeToken],
+  properties: Seq[IndexedProperty],
+  score: Option[LogicalVariable],
+  indexName: String,
+  vector: Expression,
+  limit: Expression,
+  maybeFilter: Option[QueryExpression[Expression]],
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
+
+  override def usedVariables: Set[LogicalVariable] =
+    vector.dependencies ++ limit.dependencies ++ maybeFilter.map(
+      _.expressions.flatMap(_.dependencies)
+    ).getOrElse(Set.empty)
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DirectedRelationshipVectorIndexSearch =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): DirectedRelationshipVectorIndexSearch =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def copyWithoutGettingValues: DirectedRelationshipVectorIndexSearch =
+    copy(properties = properties.map(_.copy(getValueFromIndex = DoNotGetValue)))(SameId(this.id))
+
+  override def withMappedProperties(f: IndexedProperty => IndexedProperty): DirectedRelationshipVectorIndexSearch =
+    copy(properties = properties.map(f))(SameId(this.id))
+
+  override def leftNode: Option[LogicalVariable] = startNode
+
+  override def rightNode: Option[LogicalVariable] = endNode
+
+  override def directed: Boolean = true
+
+  override def updateVariables(
+    idName: Option[LogicalVariable],
+    leftNode: Option[LogicalVariable],
+    rightNode: Option[LogicalVariable]
+  ): DirectedRelationshipVectorIndexSearch =
+    copy(idName = idName, startNode = leftNode, endNode = rightNode)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def indexType: IndexType = IndexType.VECTOR
+
+  override def indexOrder: IndexOrder = IndexOrderNone
+}
+
+case class UndirectedRelationshipVectorIndexSearch(
+  idName: Option[LogicalVariable],
+  startNode: Option[LogicalVariable],
+  endNode: Option[LogicalVariable],
+  override val typeTokens: Seq[RelationshipTypeToken],
+  properties: Seq[IndexedProperty],
+  score: Option[LogicalVariable],
+  indexName: String,
+  vector: Expression,
+  limit: Expression,
+  maybeFilter: Option[QueryExpression[Expression]],
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
+
+  override def usedVariables: Set[LogicalVariable] =
+    vector.dependencies ++ limit.dependencies ++ maybeFilter.map(
+      _.expressions.flatMap(_.dependencies)
+    ).getOrElse(Set.empty)
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): UndirectedRelationshipVectorIndexSearch =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): UndirectedRelationshipVectorIndexSearch =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def copyWithoutGettingValues: UndirectedRelationshipVectorIndexSearch =
+    copy(properties = properties.map(_.copy(getValueFromIndex = DoNotGetValue)))(SameId(this.id))
+
+  override def withMappedProperties(f: IndexedProperty => IndexedProperty): UndirectedRelationshipVectorIndexSearch =
+    copy(properties = properties.map(f))(SameId(this.id))
+
+  override def leftNode: Option[LogicalVariable] = startNode
+
+  override def rightNode: Option[LogicalVariable] = endNode
+
+  override def directed: Boolean = false
+
+  override def updateVariables(
+    idName: Option[LogicalVariable],
+    leftNode: Option[LogicalVariable],
+    rightNode: Option[LogicalVariable]
+  ): UndirectedRelationshipVectorIndexSearch =
+    copy(idName = idName, startNode = leftNode, endNode = rightNode)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def indexType: IndexType = IndexType.VECTOR
+
+  override def indexOrder: IndexOrder = IndexOrderNone
+}
+
 /**
  * Scans the relationship by type and produces one row for each relationship it finds.
  *
@@ -3672,7 +3776,7 @@ case class NodeVectorIndexSearch(
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName ++ score
 
   override def usedVariables: Set[LogicalVariable] =
-    vector.dependencies ++ limit.dependencies ++ vector.dependencies ++ maybeFilter.map(
+    vector.dependencies ++ limit.dependencies ++ maybeFilter.map(
       _.expressions.flatMap(_.dependencies)
     ).getOrElse(Set.empty)
 

@@ -95,6 +95,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
@@ -202,6 +203,7 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.UndirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
@@ -734,6 +736,48 @@ object ReadFinder {
 
       case DirectedUnionRelationshipTypesScan(relationship, leftNode, relTypes, rightNode, _, _) =>
         processUnionRelTypeScan(relationshipVariable(relationship), leftNode, relTypes, rightNode)
+
+      case UndirectedRelationshipVectorIndexSearch(
+          relationship,
+          leftNode,
+          rightNode,
+          types,
+          properties,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _
+        ) =>
+        processRelationshipIndexPlan(
+          relationshipVariable(relationship),
+          types.map(_.name),
+          properties,
+          leftNode,
+          rightNode
+        )
+
+      case DirectedRelationshipVectorIndexSearch(
+          relationship,
+          leftNode,
+          rightNode,
+          types,
+          properties,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _
+        ) =>
+        processRelationshipIndexPlan(
+          relationshipVariable(relationship),
+          types.map(_.name),
+          properties,
+          leftNode,
+          rightNode
+        )
 
       case Selection(predicate, _) =>
         processFilterExpression(PlanReads(), predicate, semanticTable)
@@ -1437,12 +1481,24 @@ object ReadFinder {
     leftNode: Option[LogicalVariable],
     rightNode: Option[LogicalVariable]
   ): PlanReads = {
-    val tN = RelTypeName(relTypeName)(InputPosition.NONE)
-    val hasType = HasTypes(relationship, Seq(tN))(InputPosition.NONE)
+    processRelationshipIndexPlan(relationship, Seq(relTypeName), properties, leftNode, rightNode)
+  }
 
+  private def processRelationshipIndexPlan(
+    relationship: LogicalVariable,
+    relTypeNames: Seq[String],
+    properties: Seq[IndexedProperty],
+    leftNode: Option[LogicalVariable],
+    rightNode: Option[LogicalVariable]
+  ): PlanReads = {
+    val tNs = relTypeNames.map(typeName => RelTypeName(typeName)(InputPosition.NONE))
+    val predicates = tNs.map { typeName =>
+      HasTypes(relationship, Seq(typeName))(InputPosition.NONE)
+    }
+    val filterExpression = Ors(predicates)(InputPosition.NONE)
     val r = PlanReads()
       .withIntroducedRelationshipVariable(relationship)
-      .withAddedRelationshipFilterExpression(relationship, hasType)
+      .withAddedRelationshipFilterExpression(relationship, filterExpression)
       .withIntroducedNodeVariable(leftNode)
       .withIntroducedNodeVariable(rightNode)
 

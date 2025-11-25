@@ -140,6 +140,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForConstraint
@@ -708,6 +709,38 @@ case class LogicalPlan2PlanDescription(
           withRawCardinalities,
           withDistinctness
         )
+
+      case DirectedRelationshipVectorIndexSearch(
+          idName,
+          start,
+          end,
+          typeTokens,
+          properties,
+          _,
+          indexName,
+          vector,
+          limit,
+          maybeFilter,
+          _
+        ) =>
+
+        val predicate = maybeFilter match {
+          case Some(valueExpr) => pretty" WHERE ${indexPredicateString(properties.map(_.propertyKeyToken), valueExpr)}"
+          case None            => pretty""
+        }
+        val prettyDetails =
+          pretty"SEARCH ${relationshipPattern(start, idName, typeTokens.map(t => RelTypeName(t.name)(InputPosition.NONE)), end, OUTGOING)} IN VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)}$predicate LIMIT ${asPrettyString(limit)}"
+
+        PlanDescriptionImpl(
+          id,
+          "DirectedRelationshipVectorIndexSearch",
+          Seq.empty,
+          Seq(Details(prettyDetails)),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
       case p @ NodeIndexSeek(idName, label, properties, valueExpr, _, _, indexType, _) =>
         val (indexMode, indexDesc) = getNodeIndexDescriptions(
           idName.name,

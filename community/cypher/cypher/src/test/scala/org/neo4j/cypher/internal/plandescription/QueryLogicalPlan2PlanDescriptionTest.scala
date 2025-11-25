@@ -54,7 +54,9 @@ import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
+import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
@@ -120,6 +122,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByIdSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
@@ -270,6 +273,7 @@ import org.neo4j.cypher.internal.util.ExactSize
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.PropertyKeyId
+import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -1004,6 +1008,75 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Seq.empty,
         Seq(details("SEARCH n IN VECTOR INDEX vectorIndex FOR [1, 2] WHERE prop1 = 42 AND prop2 > 42 LIMIT 5")),
         Set("n")
+      )
+    )
+  }
+
+  test("DirectedRelationshipVectorIndexSearch") {
+    assertGood(
+      attach(
+        DirectedRelationshipVectorIndexSearch(
+          Some(varFor("r")),
+          Some(varFor("a")),
+          Some(varFor("b")),
+          Seq(RelationshipTypeToken("R1", RelTypeId(0)), RelationshipTypeToken("R2", RelTypeId(1))),
+          Seq(
+            IndexedProperty(PropertyKeyToken("p1", PropertyKeyId(0)), DoNotGetValue, RELATIONSHIP_TYPE),
+            IndexedProperty(PropertyKeyToken("p2", PropertyKeyId(0)), DoNotGetValue, RELATIONSHIP_TYPE)
+          ),
+          None,
+          "vectorIndex",
+          listOf(literalInt(1), literalInt(2)),
+          literalInt(5),
+          None,
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DirectedRelationshipVectorIndexSearch",
+        Seq.empty,
+        Seq(details("SEARCH (a)-[r:R1|R2]->(b) IN VECTOR INDEX vectorIndex FOR [1, 2] LIMIT 5")),
+        Set("r", "a", "b")
+      )
+    )
+
+    assertGood(
+      attach(
+        DirectedRelationshipVectorIndexSearch(
+          Some(varFor("r")),
+          Some(varFor("a")),
+          Some(varFor("b")),
+          Seq(RelationshipTypeToken("R1", RelTypeId(0)), RelationshipTypeToken("R2", RelTypeId(1))),
+          Seq(
+            IndexedProperty(PropertyKeyToken("p1", PropertyKeyId(0)), DoNotGetValue, RELATIONSHIP_TYPE),
+            IndexedProperty(PropertyKeyToken("p2", PropertyKeyId(0)), DoNotGetValue, RELATIONSHIP_TYPE)
+          ),
+          None,
+          "vectorIndex",
+          listOf(literalInt(1), literalInt(2)),
+          literalInt(5),
+          Some(CompositeQueryExpression(
+            Seq(
+              SingleQueryExpression(literalInt(42)),
+              RangeQueryExpression(
+                InequalitySeekRangeWrapper(RangeGreaterThan(NonEmptyList(ExclusiveBound(literalInt(42)))))(pos)
+              )
+            )
+          )),
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DirectedRelationshipVectorIndexSearch",
+        Seq.empty,
+        Seq(
+          details("SEARCH (a)-[r:R1|R2]->(b) IN VECTOR INDEX vectorIndex FOR [1, 2] WHERE p1 = 42 AND p2 > 42 LIMIT 5")
+        ),
+        Set("r", "a", "b")
       )
     )
   }

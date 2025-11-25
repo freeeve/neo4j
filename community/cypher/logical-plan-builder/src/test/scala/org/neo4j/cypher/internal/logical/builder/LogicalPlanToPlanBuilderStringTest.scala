@@ -1921,6 +1921,32 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "relationshipVectorIndexSearch",
+    new TestPlanBuilder()
+      .produceResults("r1", "r2")
+      .apply()
+      .|.relationshipVectorIndexSearch(
+        "(x1)-[r1]->()",
+        Seq("L"),
+        Seq("prop"),
+        "'rhsIndex'",
+        "[1, 2, 3]",
+        "10",
+        score = "score",
+        argumentIds = Set("x1", "r1", "y1")
+      )
+      .relationshipVectorIndexSearch(
+        "(x1)-[r1]-(y1)",
+        Seq("R1", "R2"),
+        Seq("prop", "prop2"),
+        "'lhsIndex'",
+        "[1, 2, 3]",
+        "10"
+      )
+      .build()
+  )
+
+  testPlan(
     "pointBoundingBoxNodeIndexSeek",
     new TestPlanBuilder()
       .produceResults("x", "y")

@@ -61,6 +61,7 @@ import org.neo4j.cypher.internal.expressions.RelTypeExpression
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
+import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
@@ -137,6 +138,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByIdSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
@@ -282,6 +284,7 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByIdSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.UndirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
@@ -297,6 +300,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InputPosition.NONE
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PropertyKeyId
+import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.Rewriter
@@ -362,12 +366,14 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   protected case class LeafOperator(planToIdConstructor: IdGen => LogicalPlan) extends OperatorBuilder {
     private val id = idGen.id()
     _idOfLastPlan = id
+
     def planConstructor(): LogicalPlan = planToIdConstructor(SameId(id))
   }
 
   protected case class UnaryOperator(planToIdConstructor: LogicalPlan => IdGen => LogicalPlan) extends OperatorBuilder {
     private val id = idGen.id()
     _idOfLastPlan = id
+
     def planConstructor: LogicalPlan => LogicalPlan = planToIdConstructor(_)(SameId(id))
   }
 
@@ -375,6 +381,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       extends OperatorBuilder {
     private val id = idGen.id()
     _idOfLastPlan = id
+
     def planConstructor: (LogicalPlan, LogicalPlan) => LogicalPlan = planToIdConstructor(_, _)(SameId(id))
   }
 
@@ -2271,8 +2278,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     labelNames: Seq[String],
     properties: Seq[String],
     indexName: String,
-    vector: Any,
-    limit: Any,
+    vector: ToExpression,
+    limit: ToExpression,
     score: String = "",
     argumentIds: Set[String] = Set.empty,
     getValueFromIndex: String => GetValueFromIndexBehavior = _ => DoNotGetValue,
@@ -2288,12 +2295,6 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         )
       )
 
-    def compile(e: Any): Expression = e match {
-      case s: String     => parseExpression(s)
-      case e: Expression => e
-      case _             => throw new IllegalStateException("Must be a string or an expression")
-    }
-
     val nodeVariable = varFor(node)
     newNode(nodeVariable)
 
@@ -2304,13 +2305,92 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         propIDs,
         if (score.isEmpty) None else Some(varFor(score)),
         indexName,
-        compile(vector),
-        compile(limit),
+        toExpression(vector),
+        toExpression(limit),
         filter,
         argumentIds.map(varFor)
       )(idGen)
     }
     appendAtCurrentIndent(LeafOperator(planBuilder))
+  }
+
+  def relationshipVectorIndexSearch(
+    pattern: String,
+    typeNames: Seq[String],
+    properties: Seq[String],
+    indexName: String,
+    vector: ToExpression,
+    limit: ToExpression,
+    score: String = "",
+    argumentIds: Set[String] = Set.empty,
+    filter: Option[QueryExpression[Expression]] = None
+  ): IMPL = {
+
+    val p = patternParser.parse(pattern)
+    newRelationship(varFor(p.maybeRelName))
+    newNode(varFor(p.maybeFrom))
+    newNode(varFor(p.maybeTo))
+    if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a search from a variable pattern")
+    val types = typeNames.map(typeName => RelationshipTypeToken(typeName, RelTypeId(resolver.getRelTypeId(typeName))))
+    val propIDs = properties
+      .map(p =>
+        IndexedProperty(
+          PropertyKeyToken(PropertyKeyName(p)(NONE), PropertyKeyId(resolver.getPropertyKeyId(p))),
+          DoNotGetValue,
+          RELATIONSHIP_TYPE
+        )
+      )
+
+    p.dir match {
+      case SemanticDirection.OUTGOING =>
+        appendAtCurrentIndent(LeafOperator(
+          DirectedRelationshipVectorIndexSearch(
+            varFor(p.maybeRelName),
+            varFor(p.maybeFrom),
+            varFor(p.maybeTo),
+            types,
+            propIDs,
+            if (score.isEmpty) None else Some(varFor(score)),
+            indexName,
+            toExpression(vector),
+            toExpression(limit),
+            filter,
+            argumentIds.map(varFor)
+          )(_)
+        ))
+      case SemanticDirection.INCOMING =>
+        appendAtCurrentIndent(LeafOperator(
+          DirectedRelationshipVectorIndexSearch(
+            varFor(p.maybeRelName),
+            varFor(p.maybeTo),
+            varFor(p.maybeFrom),
+            types,
+            propIDs,
+            if (score.isEmpty) None else Some(varFor(score)),
+            indexName,
+            toExpression(vector),
+            toExpression(limit),
+            filter,
+            argumentIds.map(varFor)
+          )(_)
+        ))
+      case SemanticDirection.BOTH =>
+        appendAtCurrentIndent(LeafOperator(
+          UndirectedRelationshipVectorIndexSearch(
+            varFor(p.maybeRelName),
+            varFor(p.maybeFrom),
+            varFor(p.maybeTo),
+            types,
+            propIDs,
+            if (score.isEmpty) None else Some(varFor(score)),
+            indexName,
+            toExpression(vector),
+            toExpression(limit),
+            filter,
+            argumentIds.map(varFor)
+          )(_)
+        ))
+    }
   }
 
   def pointDistanceNodeIndexSeek(

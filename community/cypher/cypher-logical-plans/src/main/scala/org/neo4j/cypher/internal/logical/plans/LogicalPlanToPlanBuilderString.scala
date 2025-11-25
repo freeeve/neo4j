@@ -324,6 +324,8 @@ object LogicalPlanToPlanBuilderString {
       case _: UndirectedRelationshipByIdSeek                  => "relationshipByIdSeek"
       case _: DirectedRelationshipByElementIdSeek             => "relationshipByElementIdSeek"
       case _: UndirectedRelationshipByElementIdSeek           => "relationshipByElementIdSeek"
+      case _: DirectedRelationshipVectorIndexSearch           => "relationshipVectorIndexSearch"
+      case _: UndirectedRelationshipVectorIndexSearch         => "relationshipVectorIndexSearch"
       case RemoteBatchPropertiesWithPushdownOperators(_, _, NODE_TYPE, _, _, _, _, _, _, _) =>
         "remoteBatchPropertiesWithPushdownOperatorsOnNode"
       case RemoteBatchPropertiesWithPushdownOperators(
@@ -1724,6 +1726,54 @@ object LogicalPlanToPlanBuilderString {
           score.map(_.name.quoted).getOrElse("".quoted),
           argumentIds,
           mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex)
+        )
+
+      case DirectedRelationshipVectorIndexSearch(
+          idName,
+          start,
+          end,
+          labelTokens,
+          properties,
+          score,
+          indexName,
+          vector,
+          limit,
+          None,
+          argumentIds
+        ) =>
+        params(
+          renderSimplePath(idName, start, Seq.empty, end),
+          seqParam(labelTokens.map(_.name.quoted)),
+          seqParam(properties.map(_.propertyKeyToken.name.quoted)),
+          indexName.quoted,
+          vector.quoted,
+          limit.quoted,
+          score.map(_.name.quoted).getOrElse("".quoted),
+          argumentIds
+        )
+
+      case UndirectedRelationshipVectorIndexSearch(
+          idName,
+          start,
+          end,
+          labelTokens,
+          properties,
+          score,
+          indexName,
+          vector,
+          limit,
+          None,
+          argumentIds
+        ) =>
+        params(
+          renderSimplePath(idName, start, Seq.empty, end, BOTH),
+          seqParam(labelTokens.map(_.name.quoted)),
+          seqParam(properties.map(_.propertyKeyToken.name.quoted)),
+          indexName.quoted,
+          vector.quoted,
+          limit.quoted,
+          score.map(_.name.quoted).getOrElse("".quoted),
+          argumentIds
         )
 
       case RollUpApply(_, _, collectionName, variableToCollect) => params(collectionName, variableToCollect)
