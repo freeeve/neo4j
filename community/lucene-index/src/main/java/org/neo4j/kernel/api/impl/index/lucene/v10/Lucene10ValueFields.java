@@ -32,7 +32,6 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
-import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
@@ -125,22 +124,28 @@ final class Lucene10ValueFields {
         static Query newExactQuery(String field, long value) {
             Preconditions.requireNonNull(field, "Field cannot be null");
             byte[] encodedValue = longToBytes(value);
-            return new PointRangeQuery(field, encodedValue, encodedValue, 1) {
-                @Override
-                protected String toString(int dimension, byte[] value) {
-                    return Long.toString(NumericUtils.sortableBytesToLong(value, 0));
-                }
-            };
+            return new LongPointRangeQuery(field, encodedValue, encodedValue, 1);
         }
 
         static Query newRangeQuery(String field, long lowerValueInclusive, long upperValueInclusive) {
             Preconditions.requireNonNull(field, "Field cannot be null");
-            return new PointRangeQuery(field, longToBytes(lowerValueInclusive), longToBytes(upperValueInclusive), 1) {
-                @Override
-                protected String toString(int dimension, byte[] value) {
-                    return Long.toString(NumericUtils.sortableBytesToLong(value, 0));
-                }
-            };
+            if (upperValueInclusive < lowerValueInclusive) {
+                return new MatchNoDocsQuery();
+            }
+            return new LongPointRangeQuery(
+                    field, longToBytes(lowerValueInclusive), longToBytes(upperValueInclusive), 1);
+        }
+
+        private static final class LongPointRangeQuery extends org.apache.lucene.search.PointRangeQuery {
+
+            private LongPointRangeQuery(String field, byte[] lowerPoint, byte[] upperPoint, int numDims) {
+                super(field, lowerPoint, upperPoint, numDims);
+            }
+
+            @Override
+            protected String toString(int dimension, byte[] value) {
+                return Long.toString(NumericUtils.sortableBytesToLong(value, 0));
+            }
         }
     }
 
@@ -172,26 +177,28 @@ final class Lucene10ValueFields {
         static Query newExactQuery(String field, Instant value) {
             Preconditions.requireNonNull(field, "Field cannot be null");
             byte[] encodedValue = instantToBytes(value);
-            return new PointRangeQuery(field, encodedValue, encodedValue, 1) {
-                @Override
-                protected String toString(int dimension, byte[] value) {
-                    return bytesToInstant(value).toString();
-                }
-            };
+            return new InstantPointRangeQuery(field, encodedValue, encodedValue, 1);
         }
 
         static Query newRangeQuery(String field, Instant lowerValueInclusive, Instant upperValueInclusive) {
             Preconditions.requireNonNull(field, "Field cannot be null");
-            Preconditions.checkArgument(
-                    !(lowerValueInclusive.isAfter(upperValueInclusive)),
-                    "Upper bound for integral range cannot be lower than the lower bound");
-            return new PointRangeQuery(
-                    field, instantToBytes(lowerValueInclusive), instantToBytes(upperValueInclusive), 1) {
-                @Override
-                protected String toString(int dimension, byte[] value) {
-                    return bytesToInstant(value).toString();
-                }
-            };
+            if (lowerValueInclusive.isAfter(upperValueInclusive)) {
+                return new MatchNoDocsQuery();
+            }
+            return new InstantPointRangeQuery(
+                    field, instantToBytes(lowerValueInclusive), instantToBytes(upperValueInclusive), 1);
+        }
+
+        private static final class InstantPointRangeQuery extends org.apache.lucene.search.PointRangeQuery {
+
+            private InstantPointRangeQuery(String field, byte[] lowerPoint, byte[] upperPoint, int numDims) {
+                super(field, lowerPoint, upperPoint, numDims);
+            }
+
+            @Override
+            protected String toString(int dimension, byte[] value) {
+                return bytesToInstant(value).toString();
+            }
         }
     }
 
@@ -233,13 +240,7 @@ final class Lucene10ValueFields {
         static Query newExactQuery(String field, double value) {
             Preconditions.requireNonNull(field, "Field cannot be null");
             byte[] encodedValue = doubleToBytes(value);
-            return new PointRangeQuery(field, encodedValue, encodedValue, 1) {
-                @Override
-                protected String toString(int dimension, byte[] value) {
-                    return Double.toString(
-                            NumericUtils.sortableLongToDouble(NumericUtils.sortableBytesToLong(value, 0)));
-                }
-            };
+            return new DoublePointRangeQuery(field, encodedValue, encodedValue, 1);
         }
 
         static Query newRangeQuery(String field, double lowerValueInclusive, double upperValueInclusive) {
@@ -248,18 +249,27 @@ final class Lucene10ValueFields {
                     !Double.isNaN(lowerValueInclusive), "NaN is not a valid lower bound for a range");
             Preconditions.checkArgument(
                     !Double.isNaN(upperValueInclusive), "NaN is not a valid upper bound for a range");
-            return new PointRangeQuery(
-                    field, doubleToBytes(lowerValueInclusive), doubleToBytes(upperValueInclusive), 1) {
-                @Override
-                protected String toString(int dimension, byte[] value) {
-                    return Double.toString(
-                            NumericUtils.sortableLongToDouble(NumericUtils.sortableBytesToLong(value, 0)));
-                }
-            };
+            if (lowerValueInclusive > upperValueInclusive) {
+                return new MatchNoDocsQuery();
+            }
+            return new DoublePointRangeQuery(
+                    field, doubleToBytes(lowerValueInclusive), doubleToBytes(upperValueInclusive), 1);
         }
 
         private static byte[] doubleToBytes(double value) {
             return longToBytes(NumericUtils.doubleToSortableLong(value));
+        }
+
+        private static final class DoublePointRangeQuery extends org.apache.lucene.search.PointRangeQuery {
+
+            private DoublePointRangeQuery(String field, byte[] lowerPoint, byte[] upperPoint, int numDims) {
+                super(field, lowerPoint, upperPoint, numDims);
+            }
+
+            @Override
+            protected String toString(int dimension, byte[] value) {
+                return Double.toString(NumericUtils.sortableLongToDouble(NumericUtils.sortableBytesToLong(value, 0)));
+            }
         }
     }
 

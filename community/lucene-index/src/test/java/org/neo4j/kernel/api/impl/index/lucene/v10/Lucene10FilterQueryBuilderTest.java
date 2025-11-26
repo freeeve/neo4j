@@ -356,6 +356,8 @@ public class Lucene10FilterQueryBuilderTest {
                 .isEqualTo(0.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.4, false, 42.6, false)))
                 .isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.49, false, 42.51, false)))
+                .isEqualTo(1.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5, true, 42.5, true)))
                 .isEqualTo(1.0f);
         // check empty range queries
