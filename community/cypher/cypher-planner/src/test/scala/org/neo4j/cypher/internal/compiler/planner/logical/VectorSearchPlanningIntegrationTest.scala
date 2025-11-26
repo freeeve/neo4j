@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.colu
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.exceptions.SyntaxException
 import org.neo4j.exceptions.VectorIndexSearchException
 
 class VectorSearchPlanningIntegrationTest extends CypherFunSuite
@@ -350,9 +351,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     caughtExceptionCause.get.cause().isEmpty should be(true)
   }
 
-  // Gives java.lang.IllegalStateException: Failed rewriting Search(Variable(p),None....
-  // That happens before we reach VectorSearchLeafPlanner
-  ignore(
+  test(
     "plan node vector index search using a path variable as binding variable should give GQL error 22G03 with cause 22N01"
   ) {
     val planner = plannerBuilder().build()
@@ -366,20 +365,22 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         |  )
         |RETURN p""".stripMargin
 
-    val caughtException = intercept[VectorIndexSearchException] {
+    val caughtException = intercept[SyntaxException] {
       planner.plan(CypherVersion.Cypher25, query)
     }
     caughtException.gqlStatus() should be("22G03")
     caughtException.statusDescription() should be("error: data exception - invalid value type")
     caughtException.legacyMessage() should be(
-      "22N01: Expected the value `p` to be of type RELATIONSHIP, but was of type PATH."
+      """Type mismatch: expected Node or Relationship but was Path (line 2, column 10 (offset: 36))
+        |"  SEARCH p IN ("
+        |          ^""".stripMargin
     )
 
     val caughtExceptionCause = caughtException.cause()
     caughtExceptionCause.isEmpty should be(false)
-    caughtExceptionCause.get.gqlStatus() should be("22N01")
+    caughtExceptionCause.get.gqlStatus() should be("22N27")
     caughtExceptionCause.get.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value `p` to be of type RELATIONSHIP, but was of type PATH."
+      "error: data exception - invalid entity type. Invalid input 'PATH' for `p`. Expected to be NODE or RELATIONSHIP."
     )
     caughtExceptionCause.get.cause().isEmpty should be(true)
   }

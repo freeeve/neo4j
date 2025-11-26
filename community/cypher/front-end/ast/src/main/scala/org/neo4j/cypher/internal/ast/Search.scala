@@ -37,7 +37,9 @@ import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTList
+import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTNumber
+import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTVector
 
 case class Search(
@@ -107,7 +109,8 @@ case class Search(
   private def checkLimit(): SemanticCheck = limit.semanticCheckWithUpperBound(Int.MaxValue)
 
   private def checkBindingVariable(): SemanticCheck =
-    SemanticExpressionCheck.check(Expression.SemanticContext.Simple, bindingVariable)
+    SemanticExpressionCheck.check(Expression.SemanticContext.Simple, bindingVariable) chain
+      expectType(CTNode.covariant | CTRelationship.covariant, bindingVariable)
 
   private def checkScore(): SemanticCheck = {
     if (score.isDefined) {
