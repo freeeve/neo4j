@@ -686,6 +686,9 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
   override def return_(items: ast.ReturnItem*): ast.Return =
     super.return_(items: _*).copy(returnType = ast.ReturnPartOfShowCommand)(pos)
 
+  override def return_(ob: ast.OrderBy, items: ast.ReturnItem*): ast.Return =
+    super.return_(ob, items: _*).copy(returnType = ast.ReturnPartOfShowCommand)(pos)
+
   // And add a new help method to not override one of them
   // for the few show tests that have returns in subqueries that should have the default
   def return__(items: ast.ReturnItem*): ast.Return = super.return_(items: _*)

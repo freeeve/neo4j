@@ -36,6 +36,7 @@ import org.neo4j.internal.kernel.api.security.StaticAccessMode
 import org.neo4j.kernel.impl.index.schema.config.CrsConfig
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.CoordinateReferenceSystem
+import org.neo4j.values.storable.StringValue
 import org.neo4j.values.storable.Values
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -45,14 +46,28 @@ import scala.util.Try
 class ShowSettingsCommandTest extends ShowCommandTestBase {
 
   private val defaultColumns =
-    ShowSettingsClause(Left(List.empty), None, List.empty, yieldAll = false, None)(InputPosition.NONE)
+    ShowSettingsClause(
+      Left(List.empty),
+      None,
+      List.empty,
+      yieldAll = false,
+      None,
+      hasOrderByOnYield = false
+    )(InputPosition.NONE)
       .unfilteredColumns
       .columns
       .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   // The yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
   private val allColumns =
-    ShowSettingsClause(Left(List.empty), None, List.empty, yieldAll = true, None)(InputPosition.NONE)
+    ShowSettingsClause(
+      Left(List.empty),
+      None,
+      List.empty,
+      yieldAll = true,
+      None,
+      hasOrderByOnYield = false
+    )(InputPosition.NONE)
       .unfilteredColumns
       .columns
       .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
@@ -133,7 +148,7 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
 
   test("show settings should give back correct default values") {
     // When
-    val showSettings = ShowSettingsCommand(Left(List.empty), defaultColumns, List.empty)
+    val showSettings = ShowSettingsCommand(Left(List.empty), defaultColumns, List.empty, hasOrderByOnYield = false)
     val result = showSettings.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -162,7 +177,7 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
 
   test("show settings should give back correct full values") {
     // When
-    val showSettings = ShowSettingsCommand(Left(List.empty), allColumns, List.empty)
+    val showSettings = ShowSettingsCommand(Left(List.empty), allColumns, List.empty, hasOrderByOnYield = false)
     val result = showSettings.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -184,7 +199,7 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
     }
   }
 
-  test("show settings should return the settings sorted on name") {
+  test("show settings should return the settings sorted on name without an order by on yield") {
     // Make sure the input isn't sorted on name
     val mixedSettings = config.getDeclaredSettings.values().asScala
       .flatMap(setting => Try(setting.asInstanceOf[SettingImpl[_]]).toOption)
@@ -200,7 +215,7 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
     when(mockConfig.getDeclaredSettings).thenReturn(mixedSettings.asJava)
 
     // When
-    val showSettings = ShowSettingsCommand(Left(List.empty), defaultColumns, List.empty)
+    val showSettings = ShowSettingsCommand(Left(List.empty), defaultColumns, List.empty, hasOrderByOnYield = false)
     val result = showSettings.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -209,6 +224,36 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
       val expectedSetting = allNonInternalSettings(index)
       checkResult(res, name = expectedSetting("name").asInstanceOf[String])
     }
+  }
+
+  test("show settings should not sort the settings if there is an order by on yield") {
+    // Make sure the input isn't sorted on name
+    val mixedSettings = config.getDeclaredSettings.values().asScala
+      .flatMap(setting => Try(setting.asInstanceOf[SettingImpl[_]]).toOption)
+      .filterNot(_.internal())
+      .toList
+      .sortBy(_.description()) // sort on something else than name
+      .map(setting => (setting.name(), setting))
+      .toMap
+      .asInstanceOf[Map[String, Setting[AnyRef]]]
+
+    val mockConfig = mock[Config]
+    when(ctx.getConfig).thenReturn(mockConfig)
+    when(mockConfig.getDeclaredSettings).thenReturn(mixedSettings.asJava)
+
+    // When
+    val showSettings = ShowSettingsCommand(Left(List.empty), defaultColumns, List.empty, hasOrderByOnYield = true)
+    val result = showSettings.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    // order isn't guaranteed as we just get values from a map and doesn't sort them
+    result should have size allNonInternalSettings.size
+
+    val resultNames = result.map(m => m(ShowSettingsClause.nameColumn).asInstanceOf[StringValue].stringValue())
+    resultNames should not be resultNames.sorted
+
+    resultNames should contain theSameElementsAs
+      allNonInternalSettings.map(m => m("name").asInstanceOf[String])
   }
 
   test("show settings should not return internal settings") {
@@ -223,7 +268,7 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
     when(ctx.getConfig).thenReturn(mockConfig)
 
     // When
-    val showSettings = ShowSettingsCommand(Left(List.empty), defaultColumns, List.empty)
+    val showSettings = ShowSettingsCommand(Left(List.empty), defaultColumns, List.empty, hasOrderByOnYield = false)
     val result = showSettings.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -248,7 +293,7 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
     when(ctx.getConfig).thenReturn(mockConfig)
 
     // When
-    val showSettings = ShowSettingsCommand(Left(List.empty), allColumns, List.empty)
+    val showSettings = ShowSettingsCommand(Left(List.empty), allColumns, List.empty, hasOrderByOnYield = false)
     val result = showSettings.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -265,7 +310,8 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
     val wantedSettingNames = wantedSettings.map(setting => setting("name").asInstanceOf[String])
 
     // When
-    val showSettings = ShowSettingsCommand(Left(wantedSettingNames), defaultColumns, List.empty)
+    val showSettings =
+      ShowSettingsCommand(Left(wantedSettingNames), defaultColumns, List.empty, hasOrderByOnYield = false)
     val result = showSettings.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -285,7 +331,8 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
       QueryStateHelper.emptyWith(query = ctx, params = Array(Values.stringValue(wantedSetting)))
 
     // When
-    val showSettings = ShowSettingsCommand(Right(wantedSettingExpression), defaultColumns, List.empty)
+    val showSettings =
+      ShowSettingsCommand(Right(wantedSettingExpression), defaultColumns, List.empty, hasOrderByOnYield = false)
     val result = showSettings.originalNameRows(queryStateWithParams, initialCypherRow).toList
 
     // Then
@@ -306,7 +353,7 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
     when(securityContext.mode()).thenReturn(accessMode)
 
     // When
-    val showSettings = ShowSettingsCommand(Left(List.empty), defaultColumns, List.empty)
+    val showSettings = ShowSettingsCommand(Left(List.empty), defaultColumns, List.empty, hasOrderByOnYield = false)
     val result = showSettings.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -338,7 +385,7 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
     )
 
     // When
-    val showSettings = ShowSettingsCommand(Left(List.empty), allColumns, yieldColumns)
+    val showSettings = ShowSettingsCommand(Left(List.empty), allColumns, yieldColumns, hasOrderByOnYield = false)
     val resultOriginal = showSettings.originalNameRows(queryState, initialCypherRow).toList
 
     // Then

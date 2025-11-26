@@ -95,6 +95,7 @@ case class ShowConstraintsCommand(
   constraintType: ShowConstraintType,
   columns: List[CommandDefaultColumn],
   yieldColumns: List[CommandYieldColumn],
+  hasOrderByOnYield: Boolean,
   cypherVersion: CypherVersion
 ) extends Command(columns, yieldColumns) {
   private val returnCypher5Values: Boolean = cypherVersion == CypherVersion.Cypher5
@@ -151,8 +152,10 @@ case class ShowConstraintsCommand(
     val relevantConstraints = constraints.filter {
       case (constraintDescriptor, _) => predicate(constraintDescriptor)
     }
+    // Only sort if we don't have an ORDER BY on the YIELD to avoid double sorting
     val sortedRelevantConstraints: ListMap[ConstraintDescriptor, ConstraintInfo] =
-      ListMap(relevantConstraints.toSeq.sortBy(_._1.getName): _*)
+      if (!hasOrderByOnYield) ListMap(relevantConstraints.toSeq.sortBy(_._1.getName): _*)
+      else ListMap(relevantConstraints.toSeq: _*)
 
     val rows = sortedRelevantConstraints.map {
       case (constraintDescriptor: ConstraintDescriptor, constraintInfo: ConstraintInfo) =>

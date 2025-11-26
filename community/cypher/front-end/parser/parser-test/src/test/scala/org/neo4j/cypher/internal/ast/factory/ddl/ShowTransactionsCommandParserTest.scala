@@ -984,6 +984,26 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
     )
   }
 
+  test(
+    "SHOW TRANSACTIONS YIELD name RETURN name ORDER BY name"
+  ) {
+    assertAstVersionBased(
+      fromCypher5 =>
+        singleQuery(
+          ShowTransactionsClause(
+            Left(List.empty),
+            None,
+            List(commandResultItem("name")),
+            yieldAll = false,
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("name")))),
+            fromCypher5
+          )(pos),
+          return_(orderBy(sortItem(varFor("name"))), variableReturnItem("name"))
+        ),
+      comparePosition = false
+    )
+  }
+
   // Negative tests
 
   test("SHOW TRANSACTION db-transaction-123, abc") {

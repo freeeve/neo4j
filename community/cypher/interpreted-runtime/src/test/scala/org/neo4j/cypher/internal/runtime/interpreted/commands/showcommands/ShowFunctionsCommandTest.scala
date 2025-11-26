@@ -51,6 +51,7 @@ import org.neo4j.kernel.api.QueryLanguage.CYPHER_5
 import org.neo4j.kernel.impl.query.FunctionInformation
 import org.neo4j.kernel.impl.query.FunctionInformation.InputInformation
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.StringValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
 
@@ -63,14 +64,30 @@ import scala.jdk.CollectionConverters.SetHasAsScala
 class ShowFunctionsCommandTest extends ShowCommandTestBase {
 
   private val defaultColumns =
-    ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = false, None)(InputPosition.NONE)
+    ShowFunctionsClause(
+      AllFunctions,
+      None,
+      None,
+      List.empty,
+      yieldAll = false,
+      None,
+      hasOrderByOnYield = false
+    )(InputPosition.NONE)
       .unfilteredColumns
       .columns
       .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   // The yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
   private val allColumns =
-    ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = true, None)(InputPosition.NONE)
+    ShowFunctionsClause(
+      AllFunctions,
+      None,
+      None,
+      List.empty,
+      yieldAll = true,
+      None,
+      hasOrderByOnYield = false
+    )(InputPosition.NONE)
       .unfilteredColumns
       .columns
       .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
@@ -302,8 +319,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     returnDefaultFunctions()
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, defaultColumns, List.empty, isCommunity = true, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      defaultColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = true,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -365,8 +389,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     returnDefaultFunctions()
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, defaultColumns, List.empty, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      defaultColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -428,8 +459,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     returnDefaultFunctions()
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, allColumns, List.empty, isCommunity = true, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      allColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = true,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -533,8 +571,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     returnDefaultFunctions()
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, allColumns, List.empty, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      allColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -634,15 +679,22 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     )
   }
 
-  test("show functions should return the functions sorted on name") {
+  test("show functions should return the functions sorted on name without an order by on yield") {
     // Set-up which functions to return, not ordered by name:
     when(procedures.functionGetAll(CYPHER_5)).thenReturn(List(func3, func1).asJava.stream())
     when(procedures.aggregationFunctionGetAll(CYPHER_5)).thenReturn(List(func4, func2).asJava.stream())
     when(ctx.providedLanguageFunctions).thenReturn(List(func6, func5))
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, defaultColumns, List.empty, isCommunity = true, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      defaultColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = true,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -653,6 +705,36 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     checkResult(result(3), name = "language.func")
     checkResult(result(4), name = "zzz.func3")
     checkResult(result(5), name = "zzz.zz.func4")
+  }
+
+  test("show functions should not sort the functions if there is an order by on yield") {
+    // Set-up which functions to return, not ordered by name:
+    when(procedures.functionGetAll(CYPHER_5)).thenReturn(List(func3, func1).asJava.stream())
+    when(procedures.aggregationFunctionGetAll(CYPHER_5)).thenReturn(List(func4, func2).asJava.stream())
+    when(ctx.providedLanguageFunctions).thenReturn(List(func6, func5))
+
+    // When
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      defaultColumns,
+      List.empty,
+      hasOrderByOnYield = true,
+      isCommunity = true,
+      CYPHER_5
+    )
+    val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    // will collect the functions by function group (language functions, regular functions, aggregating functions),
+    // order within the groups isn't guaranteed as we just get values from a stream and doesn't sort them
+    result should have size 6
+
+    val resultNames = result.map(m => m(ShowFunctionsClause.nameColumn).asInstanceOf[StringValue].stringValue())
+    resultNames should not be resultNames.sorted
+
+    resultNames should contain theSameElementsAs
+      List("language.func", "language.aggregating.func", "zzz.func3", "func1", "zzz.zz.func4", "func2")
   }
 
   test("show functions should not return internal functions") {
@@ -693,8 +775,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     when(ctx.providedLanguageFunctions).thenReturn(List.empty)
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, defaultColumns, List.empty, isCommunity = true, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      defaultColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = true,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -783,8 +872,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     when(ctx.providedLanguageFunctions).thenReturn(List(deprecatedLanguageFunction))
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, allColumns, List.empty, isCommunity = true, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      allColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = true,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -839,8 +935,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     })
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, allColumns, List.empty, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      allColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -861,8 +964,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     })
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, allColumns, List.empty, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      allColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -880,8 +990,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
       .thenAnswer(invocation => morePrivileges(invocation.getArgument(0)))
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, allColumns, List.empty, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      allColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -956,6 +1073,7 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
         Some(CurrentUser),
         defaultColumns,
         List.empty,
+        hasOrderByOnYield = false,
         isCommunity = false,
         CYPHER_5
       )
@@ -993,6 +1111,7 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
         Some(CurrentUser),
         defaultColumns,
         List.empty,
+        hasOrderByOnYield = false,
         isCommunity = false,
         CYPHER_5
       )
@@ -1016,6 +1135,7 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
         Some(User(username)),
         defaultColumns,
         List.empty,
+        hasOrderByOnYield = false,
         isCommunity = false,
         CYPHER_5
       )
@@ -1046,6 +1166,7 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
         Some(User(otherUser)),
         defaultColumns,
         List.empty,
+        hasOrderByOnYield = false,
         isCommunity = false,
         CYPHER_5
       )
@@ -1088,6 +1209,7 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
         Some(User(missingUser)),
         defaultColumns,
         List.empty,
+        hasOrderByOnYield = false,
         isCommunity = false,
         CYPHER_5
       )
@@ -1102,8 +1224,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     returnDefaultFunctions()
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, allColumns, List.empty, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      allColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1145,8 +1274,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     returnDefaultFunctions()
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(BuiltInFunctions, None, allColumns, List.empty, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      BuiltInFunctions,
+      None,
+      allColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1178,8 +1314,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     returnDefaultFunctions()
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(UserDefinedFunctions, None, allColumns, List.empty, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      UserDefinedFunctions,
+      None,
+      allColumns,
+      List.empty,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1220,8 +1363,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     returnDefaultFunctions()
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, allColumns, yieldColumns, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      allColumns,
+      yieldColumns,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1290,8 +1440,15 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     returnDefaultFunctions()
 
     // When
-    val showFunctions =
-      ShowFunctionsCommand(AllFunctions, None, allColumns, yieldColumns, isCommunity = false, CYPHER_5)
+    val showFunctions = ShowFunctionsCommand(
+      AllFunctions,
+      None,
+      allColumns,
+      yieldColumns,
+      hasOrderByOnYield = false,
+      isCommunity = false,
+      CYPHER_5
+    )
     val result = showFunctions.rows(queryState, initialCypherRow).toList
 
     // Then

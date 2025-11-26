@@ -89,7 +89,14 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     yieldItems: List[ast.CommandResultItem],
     yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowSettingsClause(ids, where.map(_._1), yieldItems, yieldAll, yieldWith)
+    ast.ShowSettingsClause(
+      ids,
+      where.map(_._1),
+      yieldItems,
+      yieldAll,
+      yieldWith,
+      yieldWith.exists(_.orderBy.isDefined)
+    )
 
   private def showFunction(
     functionType: ast.ShowFunctionType,
@@ -99,7 +106,15 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     yieldItems: List[ast.CommandResultItem],
     yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowFunctionsClause(functionType, executable, where.map(_._1), yieldItems, yieldAll, yieldWith)
+    ast.ShowFunctionsClause(
+      functionType,
+      executable,
+      where.map(_._1),
+      yieldItems,
+      yieldAll,
+      yieldWith,
+      yieldWith.exists(_.orderBy.isDefined)
+    )
 
   private def showProcedure(
     executable: Option[ast.ExecutableBy],
@@ -108,7 +123,14 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     yieldItems: List[ast.CommandResultItem],
     yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowProceduresClause(executable, where.map(_._1), yieldItems, yieldAll, yieldWith)
+    ast.ShowProceduresClause(
+      executable,
+      where.map(_._1),
+      yieldItems,
+      yieldAll,
+      yieldWith,
+      yieldWith.exists(_.orderBy.isDefined)
+    )
 
   private def showConstraint(
     constraintType: ast.ShowConstraintType,
@@ -123,6 +145,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       yieldItems,
       yieldAll,
       yieldWith,
+      yieldWith.exists(_.orderBy.isDefined),
       returnCypher5Columns = false
     )
 
@@ -133,7 +156,14 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     yieldItems: List[ast.CommandResultItem],
     yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowIndexesClause(indexType, where.map(_._1), yieldItems, yieldAll, yieldWith)
+    ast.ShowIndexesClause(
+      indexType,
+      where.map(_._1),
+      yieldItems,
+      yieldAll,
+      yieldWith,
+      yieldWith.exists(_.orderBy.isDefined)
+    )
 
   private def showCurrentGraphType(
     where: Option[(ast.Where, InputPosition)],
@@ -738,6 +768,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         scc.yieldItems,
         scc.yieldAll,
         scc.yieldWith,
+        scc.hasOrderByOnYield,
         returnCypher5Columns = true
       )(scc.position)
     case stc: ast.ShowTransactionsClause =>

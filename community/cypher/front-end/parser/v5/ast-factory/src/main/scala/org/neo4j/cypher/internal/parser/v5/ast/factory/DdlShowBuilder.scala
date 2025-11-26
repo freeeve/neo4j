@@ -620,6 +620,7 @@ object DdlShowBuilder {
           yieldedItems,
           yieldAll,
           yieldClause.map(turnYieldToWith),
+          yieldClause.exists(_.orderBy.isDefined),
           returnCypher5Columns = true
         )(position)
       )
@@ -632,7 +633,8 @@ object DdlShowBuilder {
           where,
           yieldedItems,
           yieldAll,
-          yieldClause.map(turnYieldToWith)
+          yieldClause.map(turnYieldToWith),
+          yieldClause.exists(_.orderBy.isDefined)
         )(position)
       )
     }
@@ -649,20 +651,35 @@ object DdlShowBuilder {
           where,
           yieldedItems,
           yieldAll,
-          yieldClause.map(turnYieldToWith)
+          yieldClause.map(turnYieldToWith),
+          yieldClause.exists(_.orderBy.isDefined)
         )(position)
       )
     }
 
     def buildProcedureClauses(executableBy: Option[ExecutableBy], position: InputPosition): Seq[Clause] = {
       buildClauses(
-        ShowProceduresClause(executableBy, where, yieldedItems, yieldAll, yieldClause.map(turnYieldToWith))(position)
+        ShowProceduresClause(
+          executableBy,
+          where,
+          yieldedItems,
+          yieldAll,
+          yieldClause.map(turnYieldToWith),
+          yieldClause.exists(_.orderBy.isDefined)
+        )(position)
       )
     }
 
     def buildSettingsClauses(position: InputPosition): Seq[Clause] = {
       buildClauses(
-        ShowSettingsClause(names, where, yieldedItems, yieldAll, yieldClause.map(turnYieldToWith))(position)
+        ShowSettingsClause(
+          names,
+          where,
+          yieldedItems,
+          yieldAll,
+          yieldClause.map(turnYieldToWith),
+          yieldClause.exists(_.orderBy.isDefined)
+        )(position)
       )
     }
 

@@ -324,6 +324,24 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
     )
   }
 
+  test(
+    "SHOW CURRENT GRAPH TYPE YIELD name RETURN name ORDER BY name"
+  ) {
+    assertAst(
+      singleQuery(
+        ShowCurrentGraphTypeClause(
+          None,
+          List(commandResultItem("name")),
+          yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("name"))))
+        )(pos),
+        return_(orderBy(sortItem(varFor("name"))), variableReturnItem("name"))
+      ),
+      comparePosition = false,
+      supportedInCypher5 = false
+    )
+  }
+
   // Negative tests
 
   test("SHOW GRAPH TYPE") {

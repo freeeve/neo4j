@@ -2922,6 +2922,7 @@ case class LogicalPlanProducer(
           yieldColumns,
           s.yieldAll,
           relevantVariables,
+          s.hasOrderByOnYield,
           inner.availableSymbols
         )
       case s: ShowConstraintsClause =>
@@ -2933,6 +2934,7 @@ case class LogicalPlanProducer(
           yieldColumns,
           s.yieldAll,
           relevantVariables,
+          s.hasOrderByOnYield,
           inner.availableSymbols
         )
       case s: ShowCurrentGraphTypeClause =>
@@ -2948,6 +2950,7 @@ case class LogicalPlanProducer(
           yieldColumns,
           s.yieldAll,
           relevantVariables,
+          s.hasOrderByOnYield,
           inner.availableSymbols
         )
       case s: ShowFunctionsClause =>
@@ -2960,6 +2963,7 @@ case class LogicalPlanProducer(
           yieldColumns,
           s.yieldAll,
           relevantVariables,
+          s.hasOrderByOnYield,
           inner.availableSymbols
         )
       case s: ShowTransactionsClause =>
@@ -2980,7 +2984,15 @@ case class LogicalPlanProducer(
       case s: ShowSettingsClause =>
         val (relevantVariables, showColumns, yieldColumns) =
           removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
-        ShowSettings(s.names, showColumns, yieldColumns, s.yieldAll, relevantVariables, inner.availableSymbols)
+        ShowSettings(
+          s.names,
+          showColumns,
+          yieldColumns,
+          s.yieldAll,
+          relevantVariables,
+          s.hasOrderByOnYield,
+          inner.availableSymbols
+        )
     }
     val annotatedPlan = annotate(plan, solved, ProvidedOrder.empty, CachedProperties.empty, context)
 

@@ -764,6 +764,24 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
     ))
   }
 
+  test(
+    "TERMINATE TRANSACTIONS 'id' YIELD name RETURN name ORDER BY name"
+  ) {
+    assertAst(
+      singleQuery(
+        TerminateTransactionsClause(
+          Right(literalString("id")),
+          List(commandResultItem("name")),
+          yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("name")))),
+          None
+        )(pos),
+        return_(orderBy(sortItem(varFor("name"))), variableReturnItem("name"))
+      ),
+      comparePosition = false
+    )
+  }
+
   // Negative tests
 
   test("TERMINATE TRANSACTION") {

@@ -61,6 +61,7 @@ case class ShowProceduresCommand(
   executableBy: Option[ExecutableBy],
   columns: List[CommandDefaultColumn],
   yieldColumns: List[CommandYieldColumn],
+  hasOrderByOnYield: Boolean,
   isCommunity: Boolean,
   scope: QueryLanguage
 ) extends Command(columns, yieldColumns) {
@@ -99,7 +100,10 @@ case class ShowProceduresCommand(
         false
 
     val allProcedures = txContext.procedures.proceduresGetAll(scope).iterator.asScala
-    val sortedProcedures = allProcedures.filter(proc => !proc.internal).toList.sortBy(a => a.name.toString)
+    val filteredProcedures = allProcedures.filter(proc => !proc.internal).toList
+    // Only sort if we don't have an ORDER BY on the YIELD to avoid double sorting
+    val sortedProcedures =
+      if (!hasOrderByOnYield) filteredProcedures.sortBy(a => a.name.toString) else filteredProcedures
 
     val rows = sortedProcedures.map { proc =>
       val (executeRoles, boostedExecuteRoles, allowedExecute) =

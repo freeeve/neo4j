@@ -35,42 +35,91 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
 
   Seq("PROCEDURE", "PROCEDURES").foreach { procKeyword =>
     test(s"SHOW $procKeyword") {
-      assertAst(singleQuery(ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(defaultPos)))
+      assertAst(singleQuery(ShowProceduresClause(
+        None,
+        None,
+        List.empty,
+        yieldAll = false,
+        None,
+        hasOrderByOnYield = false
+      )(defaultPos)))
     }
 
     test(s"SHOW $procKeyword EXECUTABLE") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(CurrentUser), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(
+          Some(CurrentUser),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          hasOrderByOnYield = false
+        )(defaultPos))
       )
     }
 
     test(s"SHOW $procKeyword EXECUTABLE BY CURRENT USER") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(CurrentUser), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(
+          Some(CurrentUser),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          hasOrderByOnYield = false
+        )(defaultPos))
       )
     }
 
     test(s"SHOW $procKeyword EXECUTABLE BY user") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(User("user")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(
+          Some(User("user")),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          hasOrderByOnYield = false
+        )(defaultPos))
       )
     }
 
     test(s"SHOW $procKeyword EXECUTABLE BY CURRENT") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(User("CURRENT")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(
+          Some(User("CURRENT")),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          hasOrderByOnYield = false
+        )(defaultPos))
       )
     }
 
     test(s"SHOW $procKeyword EXECUTABLE BY SHOW") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(User("SHOW")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(
+          Some(User("SHOW")),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          hasOrderByOnYield = false
+        )(defaultPos))
       )
     }
 
     test(s"SHOW $procKeyword EXECUTABLE BY TERMINATE") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(User("TERMINATE")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(
+          Some(User("TERMINATE")),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          hasOrderByOnYield = false
+        )(defaultPos))
       )
     }
 
@@ -79,7 +128,7 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
         SingleQuery(
           List(
             use(List("db"), !cypher5),
-            ShowProceduresClause(None, None, List.empty, yieldAll = false, None)((1, 8, 7))
+            ShowProceduresClause(None, None, List.empty, yieldAll = false, None, hasOrderByOnYield = false)((1, 8, 7))
           )
         )((1, 8, 7))
       )
@@ -100,7 +149,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
       )((1, 16, 15))),
       List.empty,
       yieldAll = false,
-      None
+      None,
+      hasOrderByOnYield = false
     )(defaultPos)))
   }
 
@@ -113,7 +163,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
         yieldAll = false,
         Some(withFromYield(
           returnAllItems((1, 23, 22)).withDefaultOrderOnColumns(List("description"))
-        ))
+        )),
+        hasOrderByOnYield = false
       )(defaultPos)
     ))
   }
@@ -126,7 +177,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           None,
           List.empty,
           yieldAll = true,
-          Some(withFromYield(returnAllItems))
+          Some(withFromYield(returnAllItems)),
+          hasOrderByOnYield = false
         )(defaultPos)
       )
     )
@@ -146,7 +198,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           ))((1, 25, 24))),
           Some(skip(2, (1, 39, 38))),
           Some(limit(5, (1, 46, 45)))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(defaultPos)
     ))
   }
@@ -169,7 +222,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
                 returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
                 where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
               )
-            )
+            ),
+            hasOrderByOnYield = false
           )(pos),
           return_(variableReturnItem("name"))
         ),
@@ -200,7 +254,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
                 Some(limit(5)),
                 Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
               )
-            )
+            ),
+            hasOrderByOnYield = true
           )(pos),
           return_(variableReturnItem("name"))
         ),
@@ -231,7 +286,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
                 Some(limit(5)),
                 Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
               )
-            )
+            ),
+            hasOrderByOnYield = true
           )(pos),
           return_(variableReturnItem("name"))
         ),
@@ -250,7 +306,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
             commandResultItem("mode", Some("OUTPUT"))
           ),
           yieldAll = false,
-          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("PROCEDURE", "OUTPUT"))))
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("PROCEDURE", "OUTPUT")))),
+          hasOrderByOnYield = false
         )(pos)
       ),
       comparePosition = false
@@ -268,7 +325,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           returnAllItems.withDefaultOrderOnColumns(List("a")),
           Some(orderBy(sortItem(varFor("a")))),
           where = Some(where(equals(varFor("a"), literalInt(1))))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -284,7 +342,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           returnAllItems.withDefaultOrderOnColumns(List("b")),
           Some(orderBy(sortItem(varFor("b")))),
           where = Some(where(equals(varFor("b"), literalInt(1))))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -300,7 +359,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           returnAllItems.withDefaultOrderOnColumns(List("b")),
           Some(orderBy(sortItem(varFor("b")))),
           where = Some(where(equals(varFor("b"), literalInt(1))))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -316,7 +376,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           returnAllItems.withDefaultOrderOnColumns(List("a")),
           Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))),
           where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -332,7 +393,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           returnAllItems.withDefaultOrderOnColumns(List("a")),
           Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
           where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -348,7 +410,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           returnAllItems.withDefaultOrderOnColumns(List("b")),
           Some(orderBy(sortItem(simpleCountExpression(patternForMatch(nodePat(Some("b"))), None)))),
           where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -367,7 +430,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
             simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return__(returnItem(varFor("b"), "a"))),
             listOf()
           )))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -383,7 +447,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           returnAllItems.withDefaultOrderOnColumns(List("b")),
           Some(orderBy(sortItem(add(varFor("b"), simpleCountExpression(patternForMatch(nodePat()), None))))),
           where = Some(where(or(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -406,7 +471,8 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
               Some(isTyped(varFor("x"), IntegerType(isNullable = true)(pos)))
             )(pos)
           )))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -426,10 +492,30 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
           where = Some(where(
             greaterThan(size(varFor("option")), literalInt(0))
           ))
-        ))
+        )),
+        hasOrderByOnYield = false
       )(pos),
       return_(aliasedReturnItem("option", "name"))
     ))
+  }
+
+  test(
+    "SHOW PROCEDURES YIELD name RETURN name ORDER BY name"
+  ) {
+    assertAst(
+      singleQuery(
+        ShowProceduresClause(
+          None,
+          None,
+          List(commandResultItem("name")),
+          yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("name")))),
+          hasOrderByOnYield = false
+        )(pos),
+        return_(orderBy(sortItem(varFor("name"))), variableReturnItem("name"))
+      ),
+      comparePosition = false
+    )
   }
 
   // Negative tests

@@ -31,35 +31,70 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
   Seq("SETTING", "SETTINGS").foreach { settingKeyword =>
     test(s"SHOW $settingKeyword") {
       assertAst(
-        singleQuery(ShowSettingsClause(Left(List.empty[String]), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowSettingsClause(
+          Left(List.empty[String]),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          hasOrderByOnYield = false
+        )(defaultPos))
       )
     }
 
     test(s"SHOW $settingKeyword 'foo'") {
       assertAst(
         singleQuery(
-          ShowSettingsClause(Right(literalString("foo")), None, List.empty, yieldAll = false, None)(defaultPos)
+          ShowSettingsClause(
+            Right(literalString("foo")),
+            None,
+            List.empty,
+            yieldAll = false,
+            None,
+            hasOrderByOnYield = false
+          )(defaultPos)
         )
       )
     }
 
     test(s"SHOW $settingKeyword ''") {
       assertAst(
-        singleQuery(ShowSettingsClause(Right(literalString("")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowSettingsClause(
+          Right(literalString("")),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          hasOrderByOnYield = false
+        )(defaultPos))
       )
     }
 
     test(s"SHOW $settingKeyword $$param") {
       assertAst(
         singleQuery(
-          ShowSettingsClause(Right(parameter("param", CTAny)), None, List.empty, yieldAll = false, None)(defaultPos)
+          ShowSettingsClause(
+            Right(parameter("param", CTAny)),
+            None,
+            List.empty,
+            yieldAll = false,
+            None,
+            hasOrderByOnYield = false
+          )(defaultPos)
         )
       )
     }
 
     test(s"SHOW $settingKeyword 'foo', 'bar'") {
       assertAst(
-        singleQuery(ShowSettingsClause(Left(List("foo", "bar")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowSettingsClause(
+          Left(List("foo", "bar")),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          hasOrderByOnYield = false
+        )(defaultPos))
       )
     }
 
@@ -71,7 +106,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         None,
         List.empty,
         yieldAll = false,
-        None
+        None,
+        hasOrderByOnYield = false
       )(defaultPos)))
     }
 
@@ -81,7 +117,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         None,
         List.empty,
         yieldAll = false,
-        None
+        None,
+        hasOrderByOnYield = false
       )(defaultPos)))
     }
 
@@ -90,7 +127,14 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         SingleQuery(
           List(
             use(List("db"), !cypher5),
-            ShowSettingsClause(Left(List.empty[String]), None, List.empty, yieldAll = false, None)((1, 8, 7))
+            ShowSettingsClause(
+              Left(List.empty[String]),
+              None,
+              List.empty,
+              yieldAll = false,
+              None,
+              hasOrderByOnYield = false
+            )((1, 8, 7))
           )
         )((1, 8, 7))
       )
@@ -111,7 +155,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
       )),
       List.empty,
       yieldAll = false,
-      None
+      None,
+      hasOrderByOnYield = false
     )(defaultPos)))
   }
 
@@ -129,7 +174,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
       )),
       List.empty,
       yieldAll = false,
-      None
+      None,
+      hasOrderByOnYield = false
     )(defaultPos)))
   }
 
@@ -144,7 +190,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
       )),
       List.empty,
       yieldAll = false,
-      None
+      None,
+      hasOrderByOnYield = false
     )(defaultPos)))
   }
 
@@ -160,7 +207,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         )),
         List.empty,
         yieldAll = false,
-        None
+        None,
+        hasOrderByOnYield = false
       )(defaultPos))
     parsesIn[Statement] {
       case Cypher5 => _.toAst(expected(nameIsEscaped = true))
@@ -179,7 +227,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
       )),
       List.empty,
       yieldAll = false,
-      None
+      None,
+      hasOrderByOnYield = false
     )(defaultPos)))
   }
 
@@ -189,7 +238,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
       Some(where(varFor("isDynamic"))),
       List.empty,
       yieldAll = false,
-      None
+      None,
+      hasOrderByOnYield = false
     )(defaultPos)))
   }
 
@@ -199,7 +249,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
       Some(where(varFor("isDynamic"))),
       List.empty,
       yieldAll = false,
-      None
+      None,
+      hasOrderByOnYield = false
     )(defaultPos)))
   }
 
@@ -209,7 +260,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
       Some(where(lessThan(varFor("pp"), literalFloat(50.0)))),
       List.empty,
       yieldAll = false,
-      None
+      None,
+      hasOrderByOnYield = false
     )(defaultPos)))
   }
 
@@ -220,7 +272,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         None,
         List(commandResultItem("description")),
         yieldAll = false,
-        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("description"))))
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("description")))),
+        hasOrderByOnYield = false
       )(defaultPos)
     ))
   }
@@ -239,7 +292,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           ))((1, 23, 22))),
           Some(skip(2)),
           Some(limit(5))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(defaultPos)
     ))
   }
@@ -258,7 +312,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           ))((1, 23, 22))),
           Some(skip(2)),
           Some(limit(5))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(defaultPos)
     ))
   }
@@ -282,7 +337,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
               literalString("db.setting.sub_setting")
             )
           ))
-        ))
+        )),
+        hasOrderByOnYield = false
       )((1, 1, 0))
     ))
   }
@@ -302,7 +358,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
                 returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
                 where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
               )
-            )
+            ),
+            hasOrderByOnYield = false
           )(pos),
           return_(variableReturnItem("name"))
         ),
@@ -318,7 +375,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           None,
           List(commandResultItem("name", Some("SETTING")), commandResultItem("mode", Some("OUTPUT"))),
           yieldAll = false,
-          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("SETTING", "OUTPUT"))))
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("SETTING", "OUTPUT")))),
+          hasOrderByOnYield = false
         )(pos)
       ),
       comparePosition = false
@@ -334,7 +392,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         yieldAll = false,
         Some(withFromYield(
           returnAllItems.withDefaultOrderOnColumns(List("description"))
-        ))
+        )),
+        hasOrderByOnYield = false
       )(defaultPos)
     ))
   }
@@ -348,7 +407,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         yieldAll = false,
         Some(withFromYield(
           returnAllItems.withDefaultOrderOnColumns(List("description"))
-        ))
+        )),
+        hasOrderByOnYield = false
       )(defaultPos)
     ))
   }
@@ -362,7 +422,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         yieldAll = false,
         Some(withFromYield(
           returnAllItems.withDefaultOrderOnColumns(List("description"))
-        ))
+        )),
+        hasOrderByOnYield = false
       )(defaultPos)
     ))
   }
@@ -381,7 +442,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         Some(withFromYield(
           returnAllItems.withDefaultOrderOnColumns(List("name", "description", "isExplicitlySet")),
           where = Some(where(varFor("isExplicitlySet")))
-        ))
+        )),
+        hasOrderByOnYield = false
       )(defaultPos)
     ))
   }
@@ -393,14 +455,22 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
         None,
         List.empty,
         yieldAll = false,
-        None
+        None,
+        hasOrderByOnYield = false
       )(pos)
     ))
   }
 
   test("SHOW SETTINGS YIELD") {
     assertAst(singleQuery(
-      ShowSettingsClause(Right(varFor("YIELD")), None, List.empty, yieldAll = false, None)(pos)
+      ShowSettingsClause(
+        Right(varFor("YIELD")),
+        None,
+        List.empty,
+        yieldAll = false,
+        None,
+        hasOrderByOnYield = false
+      )(pos)
     ))
   }
 
@@ -415,7 +485,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           returnAllItems.withDefaultOrderOnColumns(List("a")),
           Some(orderBy(sortItem(varFor("a")))),
           where = Some(where(equals(varFor("a"), literalInt(1))))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -431,7 +502,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           returnAllItems.withDefaultOrderOnColumns(List("b")),
           Some(orderBy(sortItem(varFor("b")))),
           where = Some(where(equals(varFor("b"), literalInt(1))))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -447,7 +519,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           returnAllItems.withDefaultOrderOnColumns(List("b")),
           Some(orderBy(sortItem(varFor("b")))),
           where = Some(where(equals(varFor("b"), literalInt(1))))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -463,7 +536,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           returnAllItems.withDefaultOrderOnColumns(List("a")),
           Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))),
           where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -479,7 +553,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           returnAllItems.withDefaultOrderOnColumns(List("a")),
           Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
           where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -495,7 +570,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           returnAllItems.withDefaultOrderOnColumns(List("b")),
           Some(orderBy(sortItem(simpleCountExpression(patternForMatch(nodePat(Some("b"))), None)))),
           where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -514,7 +590,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
             simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return__(returnItem(varFor("b"), "a"))),
             listOf()
           )))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -530,7 +607,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           returnAllItems.withDefaultOrderOnColumns(List("b")),
           Some(orderBy(sortItem(add(varFor("b"), simpleCountExpression(patternForMatch(nodePat()), None))))),
           where = Some(where(or(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -553,7 +631,8 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
               Some(isTyped(varFor("x"), IntegerType(isNullable = true)(pos)))
             )(pos)
           )))
-        ))
+        )),
+        hasOrderByOnYield = true
       )(pos)
     ))
   }
@@ -573,10 +652,30 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
           where = Some(where(
             greaterThan(size(varFor("value")), literalInt(0))
           ))
-        ))
+        )),
+        hasOrderByOnYield = false
       )(pos),
       return_(aliasedReturnItem("value", "name"))
     ))
+  }
+
+  test(
+    "SHOW SETTINGS YIELD name RETURN name ORDER BY name"
+  ) {
+    assertAst(
+      singleQuery(
+        ShowSettingsClause(
+          Left(List.empty),
+          None,
+          List(commandResultItem("name")),
+          yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("name")))),
+          hasOrderByOnYield = false
+        )(pos),
+        return_(orderBy(sortItem(varFor("name"))), variableReturnItem("name"))
+      ),
+      comparePosition = false
+    )
   }
 
   // Negative tests

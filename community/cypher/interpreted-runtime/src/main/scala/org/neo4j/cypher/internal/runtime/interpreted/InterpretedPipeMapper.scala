@@ -1087,45 +1087,70 @@ case class InterpretedPipeMapper(
           maybeFilter.map(_.map(buildExpression))
         )(id)
 
-      case ShowIndexes(indexType, columns, yields, _, _, _) =>
-        CommandPipe(ShowIndexesCommand(indexType, columns, yields, cypherVersion))(id)
+      case s: ShowIndexes =>
+        CommandPipe(ShowIndexesCommand(
+          s.indexType,
+          s.defaultColumns,
+          s.yieldColumns,
+          s.hasOrderByOnYield,
+          cypherVersion
+        ))(id)
 
-      case ShowConstraints(constraintType, columns, yields, _, _, _) =>
-        CommandPipe(ShowConstraintsCommand(constraintType, columns, yields, cypherVersion))(id)
+      case s: ShowConstraints =>
+        CommandPipe(ShowConstraintsCommand(
+          s.constraintType,
+          s.defaultColumns,
+          s.yieldColumns,
+          s.hasOrderByOnYield,
+          cypherVersion
+        ))(id)
 
-      case ShowProcedures(executableBy, columns, yields, _, _, _) =>
-        CommandPipe(ShowProceduresCommand(executableBy, columns, yields, isCommunity, toKernelScope(cypherVersion)))(id)
-
-      case ShowFunctions(functionType, executableBy, columns, yields, _, _, _) =>
-        CommandPipe(ShowFunctionsCommand(
-          functionType,
-          executableBy,
-          columns,
-          yields,
+      case s: ShowProcedures =>
+        CommandPipe(ShowProceduresCommand(
+          s.executableBy,
+          s.defaultColumns,
+          s.yieldColumns,
+          s.hasOrderByOnYield,
           isCommunity,
           toKernelScope(cypherVersion)
         ))(id)
 
-      case ShowTransactions(ids, columns, yields, _, _, _) =>
-        val newIds = ids match {
-          case Right(e) => Right(buildExpression(e))
-          case Left(l)  => Left(l)
-        }
-        CommandPipe(ShowTransactionsCommand(newIds, columns, yields, cypherVersion))(id)
+      case s: ShowFunctions =>
+        CommandPipe(ShowFunctionsCommand(
+          s.functionType,
+          s.executableBy,
+          s.defaultColumns,
+          s.yieldColumns,
+          s.hasOrderByOnYield,
+          isCommunity,
+          toKernelScope(cypherVersion)
+        ))(id)
 
-      case TerminateTransactions(ids, columns, yields, _, _, _) =>
-        val newIds = ids match {
+      case s: ShowTransactions =>
+        val newIds = s.ids match {
           case Right(e) => Right(buildExpression(e))
           case Left(l)  => Left(l)
         }
-        CommandPipe(TerminateTransactionsCommand(newIds, columns, yields))(id)
+        CommandPipe(ShowTransactionsCommand(
+          newIds,
+          s.defaultColumns,
+          s.yieldColumns,
+          cypherVersion
+        ))(id)
 
-      case ShowSettings(names, columns, yields, _, _, _) =>
-        val newNames = names match {
+      case t: TerminateTransactions =>
+        val newIds = t.ids match {
           case Right(e) => Right(buildExpression(e))
           case Left(l)  => Left(l)
         }
-        CommandPipe(ShowSettingsCommand(newNames, columns, yields))(id)
+        CommandPipe(TerminateTransactionsCommand(newIds, t.defaultColumns, t.yieldColumns))(id)
+
+      case s: ShowSettings =>
+        val newNames = s.names match {
+          case Right(e) => Right(buildExpression(e))
+          case Left(l)  => Left(l)
+        }
+        CommandPipe(ShowSettingsCommand(newNames, s.defaultColumns, s.yieldColumns, s.hasOrderByOnYield))(id)
 
       // Throw on non-community show/terminate commands
       case c: CommandLogicalPlan =>
