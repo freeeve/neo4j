@@ -24,6 +24,8 @@ import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 
+import scala.util.Try
+
 /**
  * This is used to determine the kind of database that is being used.
  * SINGLE: A standard database
@@ -166,7 +168,7 @@ trait PlanContext extends ReadTokenContext with ScopedProcedureSignatureResolver
   /**
    * Gets a VECTOR index if it exists for a given name, without taking any schema locks.
    */
-  def vectorIndexByName(indexName: String): Option[VectorIndexDescriptor]
+  def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor]
 
   def hasNodePropertyExistenceConstraint(labelName: String, propertyKey: String): Boolean
 

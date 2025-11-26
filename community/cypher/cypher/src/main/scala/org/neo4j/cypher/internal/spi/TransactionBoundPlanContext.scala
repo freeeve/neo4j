@@ -51,8 +51,10 @@ import org.neo4j.cypher.internal.spi.procsHelpers.asOption
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
+import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.KernelException
 import org.neo4j.exceptions.Neo4jException
+import org.neo4j.exceptions.VectorIndexSearchException
 import org.neo4j.internal.kernel.api.InternalIndexState
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
 import org.neo4j.internal.kernel.api.procs
@@ -67,8 +69,11 @@ import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.logging.InternalLog
 
+import java.util.Locale
+
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.util.Try
 
 object TransactionBoundPlanContext {
 
@@ -199,13 +204,20 @@ class TransactionBoundPlanContext(
 
   // TODO: can we get the index by name directly?
   //  See PLAN-3055
-  override def vectorIndexByName(indexName: String): Option[VectorIndexDescriptor] =
+  override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] = Try {
     tc.schemaRead.indexesGetAllNonLocking.asScala.flatMap { indexDescriptor =>
       Option.when(
-        indexDescriptor.getIndexType == IndexType.VECTOR &&
-          indexDescriptor.getName == indexName &&
+        indexDescriptor.getName == indexName &&
           indexCanBeUsed(indexDescriptor)
       ) {
+        if (indexDescriptor.getIndexType != IndexType.VECTOR) {
+          throw InvalidArgumentException.wrongIndexType(
+            indexName,
+            IndexType.VECTOR.name().toLowerCase(Locale.ROOT),
+            indexDescriptor.getIndexType.name().toLowerCase(Locale.ROOT)
+          )
+        }
+
         val schema = indexDescriptor.schema()
         val tokenIds = schema.getEntityTokenIds
         // TODO: support for many tokens
@@ -222,6 +234,8 @@ class TransactionBoundPlanContext(
         VectorIndexDescriptor(entityType, property)
       }
     }.nextOption()
+      .getOrElse(throw VectorIndexSearchException.indexNotFound(indexName))
+  }
 
   override def propertyIndexesGetAll(): Iterator[IndexDescriptor] =
     tc.schemaRead.indexesGetAllNonLocking.asScala.flatMap(getOnlineIndex)

@@ -129,6 +129,7 @@ import java.io.File
 
 import scala.Console.err
 import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.util.Try
 
 trait StatisticsBackedLogicalPlanningSupport {
 
@@ -1699,7 +1700,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         }
       }
 
-      override def vectorIndexByName(indexName: String): Option[VectorIndexDescriptor] = {
+      override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] = Try {
         indexes.vectorIndexes.collectFirst {
           case indexDefinition if indexDefinition.name == indexName =>
             val entityType = indexDefinition.entityType match {
@@ -1711,7 +1712,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
               entityType = entityType,
               property = PropertyKeyId(resolver.getPropertyKeyId(indexDefinition.propertyKey))
             )
-        }
+        }.get
       }
     }
     new StatisticsBackedLogicalPlanningConfiguration(

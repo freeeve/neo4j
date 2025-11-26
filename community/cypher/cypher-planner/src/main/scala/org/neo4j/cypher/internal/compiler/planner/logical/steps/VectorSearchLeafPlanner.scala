@@ -69,8 +69,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
       val variableType = context.semanticTable.typeFor(vectorSearchPredicate.bindingVariable)
 
       val vectorIndexDescriptor =
-        context.staticComponents.planContext.vectorIndexByName(vectorSearchPredicate.indexName)
-          .getOrElse(throw VectorIndexSearchException.indexNotFound(vectorSearchPredicate.indexName))
+        context.staticComponents.planContext.vectorIndexByName(vectorSearchPredicate.indexName).get
 
       vectorIndexDescriptor.entityType match {
         case EntityType.Node(labelId) =>

@@ -34,6 +34,8 @@ import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 
+import scala.util.Try
+
 //noinspection NotImplementedCode
 class NotImplementedPlanContext extends PlanContext {
 
@@ -59,7 +61,7 @@ class NotImplementedPlanContext extends PlanContext {
 
   override def relationshipTokenIndex: Option[TokenIndexDescriptor] = ???
 
-  override def vectorIndexByName(indexName: String): Option[VectorIndexDescriptor] = ???
+  override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] = ???
 
   override def hasNodePropertyExistenceConstraint(labelName: String, propertyKey: String): Boolean = ???
 

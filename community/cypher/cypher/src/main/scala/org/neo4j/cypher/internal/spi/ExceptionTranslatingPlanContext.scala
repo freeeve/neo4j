@@ -35,6 +35,8 @@ import org.neo4j.cypher.internal.planning.ExceptionTranslationSupport
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 
+import scala.util.Try
+
 class ExceptionTranslatingPlanContext(inner: PlanContext) extends PlanContext with ExceptionTranslationSupport {
 
   override def rangeIndexesGetForLabel(labelId: Int): Iterator[IndexDescriptor] =
@@ -138,7 +140,7 @@ class ExceptionTranslatingPlanContext(inner: PlanContext) extends PlanContext wi
   override def relationshipTokenIndex: Option[TokenIndexDescriptor] =
     translateException(tokenNameLookup, inner.relationshipTokenIndex)
 
-  override def vectorIndexByName(indexName: String): Option[VectorIndexDescriptor] =
+  override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] =
     translateException(tokenNameLookup, inner.vectorIndexByName(indexName))
 
   override def hasNodePropertyExistenceConstraint(labelName: String, propertyKey: String): Boolean =

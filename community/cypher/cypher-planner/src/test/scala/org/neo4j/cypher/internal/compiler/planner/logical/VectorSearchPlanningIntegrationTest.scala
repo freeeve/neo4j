@@ -286,29 +286,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
-  test("plan node vector index search using non-existing vector index should give GQL error 22N69") {
-    val planner = plannerBuilder().build()
-
-    val query =
-      """MATCH (movie:Movie) WHERE movie.plot IS NOT NULL
-        |  SEARCH movie IN (
-        |    VECTOR INDEX notReallyMoviePlots
-        |    FOR $embedding
-        |    LIMIT 10
-        |  )
-        |RETURN movie.plot""".stripMargin
-
-    val caughtException = intercept[VectorIndexSearchException] {
-      planner.plan(CypherVersion.Cypher25, query)
-    }
-    caughtException.gqlStatus() should be("22N69")
-    caughtException.statusDescription() should be(
-      "error: data exception - index does not exist. The index 'notReallyMoviePlots' does not exist."
-    )
-    caughtException.legacyMessage() should be("22N69: The index 'notReallyMoviePlots' does not exist.")
-    caughtException.cause().isEmpty should be(true)
-  }
-
   test(
     "plan node vector index search using a relationship variable as binding variable should give GQL error 22G03 with cause 22N01"
   ) {
