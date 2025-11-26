@@ -124,6 +124,8 @@ trait AdministrationCommandRuntime extends CypherRuntime[RuntimeContext] {
 object AdministrationCommandRuntime {
   private val secureHasher = new SecureHasher
   private val internalPrefix: String = "__internal_"
+  val resolved_databaseName: String = "resolved_databaseName"
+  val resolved_databaseUuid: String = "resolved_databaseUuid"
 
   def internalKey(name: String): String = internalPrefix + name
 

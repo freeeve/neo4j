@@ -517,7 +517,8 @@ case class DoNothingIfDatabaseNotExists(
   command: String,
   name: DatabaseName,
   operation: String,
-  databaseTypeFilter: DatabaseTypeFilter = All
+  databaseTypeFilter: DatabaseTypeFilter = All,
+  updateContextParams: Boolean = false
 )(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 
 case class DoNothingIfDatabaseExists(

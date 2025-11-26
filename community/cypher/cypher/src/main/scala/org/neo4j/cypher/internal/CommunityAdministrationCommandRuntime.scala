@@ -561,10 +561,25 @@ case class CommunityAdministrationCommandRuntime(
           sourcePlan
         )
 
-    case DoNothingIfDatabaseNotExists(source, command, name, operation, databaseTypeFilter) => context =>
+    case DoNothingIfDatabaseNotExists(source, command, name, operation, databaseTypeFilter, false) => context =>
         val sourcePlan: Option[ExecutionPlan] =
           Some(fullLogicalToExecutable.applyOrElse(source, throwCantCompile).apply(context))
         DoNothingExecutionPlanner(normalExecutionEngine, securityAuthorizationHandler).planDoNothingIfDatabaseNotExists(
+          command,
+          name,
+          operation,
+          sourcePlan,
+          databaseTypeFilter,
+          context
+        )
+
+    case DoNothingIfDatabaseNotExists(source, command, name, operation, databaseTypeFilter, true) => context =>
+        val sourcePlan: Option[ExecutionPlan] =
+          Some(fullLogicalToExecutable.applyOrElse(source, throwCantCompile).apply(context))
+        DoNothingExecutionPlanner(
+          normalExecutionEngine,
+          securityAuthorizationHandler
+        ).planDoNothingIfDatabaseNotExistsUpdateContext(
           command,
           name,
           operation,

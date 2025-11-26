@@ -25,6 +25,9 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.Show.showString
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.checkNamespaceExists
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getNameFields
+import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
+import org.neo4j.cypher.internal.AdministrationCommandRuntime.resolved_databaseName
+import org.neo4j.cypher.internal.AdministrationCommandRuntime.resolved_databaseUuid
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
@@ -37,6 +40,8 @@ import org.neo4j.cypher.internal.logical.plans.RoleEntity
 import org.neo4j.cypher.internal.logical.plans.UserEntity
 import org.neo4j.cypher.internal.procs.ParameterTransformer
 import org.neo4j.cypher.internal.procs.QueryHandler
+import org.neo4j.cypher.internal.procs.ThrowException
+import org.neo4j.cypher.internal.procs.UpdateContextParams
 import org.neo4j.cypher.internal.procs.UpdatingSystemCommandExecutionPlan
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_RULE
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_RULE_NAME_PROPERTY
@@ -47,12 +52,15 @@ import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_UUID_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS
+import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
@@ -126,6 +134,55 @@ case class DoNothingExecutionPlanner(
       sourcePlan,
       databaseTypeFilter,
       context
+    )
+  }
+
+  def planDoNothingIfDatabaseNotExistsUpdateContext(
+    command: String,
+    name: DatabaseName,
+    operation: String,
+    sourcePlan: Option[ExecutionPlan],
+    databaseTypeFilter: DatabaseTypeFilter,
+    context: AdministrationCommandRuntimeContext
+  ): ExecutionPlan = {
+    val nameFields = getDatabaseNameFields("name", name)
+    UpdatingSystemCommandExecutionPlan(
+      "DoNothingIfDatabaseNotExists",
+      normalExecutionEngine,
+      securityAuthorizationHandler,
+      // going from the DATABASE_NAME node to the DATABASE node is only possible when it's not a remote alias,
+      // thus we needed to split up into this and the method above
+      // since we need to save the database uuid for the wait part of the plan
+      s"""
+          CALL {
+            MATCH (dn:$DATABASE_NAME ${nameFields.asNodeFilter(context.runtimeContext.cypherVersion)}) RETURN dn
+            UNION
+            MATCH (dn:$DATABASE_NAME {$NAME_PROPERTY: $$`${nameFields.nameKey}`})
+              WHERE dn.$NAMESPACE_PROPERTY IS NULL AND $$`${nameFields.namespaceKey}`='$DEFAULT_NAMESPACE' RETURN dn
+          } WITH dn ${filterByDatabaseType(databaseTypeFilter)}
+          MATCH (dn)-[:$TARGETS]->(d)
+          RETURN d.$DATABASE_NAME_PROPERTY, d.$DATABASE_UUID_PROPERTY
+        """.stripMargin,
+      VirtualValues.map(
+        nameFields.keys,
+        nameFields.values
+      ),
+      QueryHandler
+        .ignoreNoResult()
+        .handleResult {
+          case (0, value, _) =>
+            UpdateContextParams(VirtualValues.map(Array(internalKey(resolved_databaseName)), Array(value)))
+          case (1, value, _) =>
+            UpdateContextParams(VirtualValues.map(Array(internalKey(resolved_databaseUuid)), Array(value)))
+          case _ => ThrowException(CypherExecutionException.internalError(
+              "DoNothingPlanner",
+              "Unexpected column returned from internal query"
+            ))
+        }
+        .handleError(handleErrorFn(command, operation, DATABASE, name)),
+      sourcePlan,
+      parameterTransformer =
+        ParameterTransformer().convert(nameFields.nameConverter).validate(checkNamespaceExists(nameFields, context))
     )
   }
 

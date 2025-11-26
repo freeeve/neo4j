@@ -1341,7 +1341,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               "DROP DATABASE",
               dbName,
               "delete",
-              if (composite) CompositeDatabase else DatabaseOrLocalAlias
+              if (composite) CompositeDatabase else DatabaseOrLocalAlias,
+              updateContextParams = true
             )
           else assertAllowed
         )
