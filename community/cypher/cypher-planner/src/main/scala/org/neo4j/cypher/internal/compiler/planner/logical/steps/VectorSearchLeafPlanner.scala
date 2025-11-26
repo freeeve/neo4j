@@ -89,14 +89,14 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
           val labelName = context.staticComponents.planContext.getLabelName(labelId)
           val propertyName = context.staticComponents.planContext.getPropertyKeyName(vectorIndexDescriptor.property.id)
           val nodeVectorIndexSearch = context.staticComponents.logicalPlanProducer.planNodeVectorIndexSearch(
+            queryGraph = queryGraph,
             context = context,
             variable = vectorSearchPredicate.bindingVariable,
             label = LabelToken(name = labelName, nameId = labelId),
             property = PropertyKeyToken(name = propertyName, nameId = vectorIndexDescriptor.property),
             indexName = vectorSearchPredicate.indexName,
             embedding = vectorSearchPredicate.embedding,
-            limit = vectorSearchPredicate.limit,
-            argumentIds = queryGraph.argumentIds
+            limit = vectorSearchPredicate.limit
           )
           Set(nodeVectorIndexSearch)
         case EntityType.Relationship(relTypeId) =>

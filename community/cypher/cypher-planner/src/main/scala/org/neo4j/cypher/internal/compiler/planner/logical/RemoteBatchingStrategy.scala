@@ -56,6 +56,7 @@ import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.GetValue
+import org.neo4j.cypher.internal.logical.plans.GetValueFromIndexBehavior
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
@@ -84,6 +85,13 @@ sealed trait RemoteBatchingStrategy {
     context: LogicalPlanningContext,
     queryGraph: QueryGraph
   ): Seq[IndexCompatiblePredicateWithValueBehavior]
+
+  def getValueFromIndexBehavior(
+    indexEntityVariable: LogicalVariable,
+    propertyKey: String,
+    queryGraphPredicates: Set[Expression],
+    contextualPropertyAccess: ContextualPropertyAccess
+  ): GetValueFromIndexBehavior
 
   def planBatchPropertiesForSelections(
     queryGraph: QueryGraph,
@@ -319,7 +327,7 @@ object RemoteBatchingStrategy {
     // #EntityIndexSeekPlanProvider.predicatesForIndexSeek replaces non-seekable predicates with range-scannable ones.
     // The non-seekable predicates will then run as a filter on the main shard.
     // Therefore, for such predicates we will need to use the index to fetch properties, otherwise we will end-up with a redundant remoteBatchProperties call.
-    private def isPredicateExecutedLater(propertyPredicate: IndexCompatiblePredicate): Boolean =
+    private def isExistenceQueryExpressionExecutedLater(propertyPredicate: IndexCompatiblePredicate): Boolean =
       propertyPredicate.queryExpression match {
         case ExistenceQueryExpression() => propertyPredicate.predicate match {
             case _: ExistsExpression =>
@@ -333,23 +341,40 @@ object RemoteBatchingStrategy {
 
     private def shouldGetPropertyValue(
       propertyPredicate: IndexCompatiblePredicate,
-      propsAccessForPredsMap: PropertyAccessInPredicates,
+      queryGraphPredicates: Set[Expression],
       contextualPropertyAccess: ContextualPropertyAccess
     ): Boolean = {
-      val propertyAccess = PropertyAccess(propertyPredicate.variable, propertyPredicate.propertyKeyName.name)
+      isExistenceQueryExpressionExecutedLater(propertyPredicate) ||
+      propertyOnIndexVariableIsAccessedAfterIndex(
+        propertyPredicate.variable,
+        propertyPredicate.propertyKeyName.name,
+        queryGraphPredicates,
+        Some(propertyPredicate.predicate),
+        contextualPropertyAccess
+      )
+    }
 
-      val horizonOrMutatingPatternAcceses = contextualPropertyAccess.horizon ++
+    private def propertyOnIndexVariableIsAccessedAfterIndex(
+      indexEntityVariable: LogicalVariable,
+      propertyKey: String,
+      queryGraphPredicates: Set[Expression],
+      predicateSolvedByIndex: Option[Expression],
+      contextualPropertyAccess: ContextualPropertyAccess
+    ): Boolean = {
+      val laterPatternAccesses = contextualPropertyAccess.horizon ++
         contextualPropertyAccess.interestingOrder ++
-        contextualPropertyAccess.queryGraphMutatingPatterns
+        contextualPropertyAccess.queryGraphMutatingPatterns ++
+        contextualPropertyAccess.propertyAccessInOtherComponents
 
-      isPredicateExecutedLater(propertyPredicate) ||
-      propsAccessForPredsMap
-        .propertyAccessInPredicatesOtherThat(propertyAccess, propertyPredicate.predicate) ||
-      horizonOrMutatingPatternAcceses.exists(propAccess =>
-        propAccess.propertyName == propertyPredicate.propertyKeyName.name &&
-          contextualPropertyAccess.entityAliases.isSameEntityAs(propertyPredicate.variable, propAccess.variable)
-      ) ||
-      contextualPropertyAccess.propertyAccessInOtherComponents.contains(propertyAccess)
+      propertyAccessesToPredicatesMap(queryGraphPredicates)
+        .containsOtherPredicateThanExcludedOne(
+          PropertyAccess(indexEntityVariable, propertyKey),
+          excludedPredicate = predicateSolvedByIndex
+        ) ||
+      laterPatternAccesses.exists(propAccess =>
+        propAccess.propertyName == propertyKey &&
+          contextualPropertyAccess.entityAliases.isSameEntityAs(indexEntityVariable, propAccess.variable)
+      )
     }
 
     override def planPrefetchRemoteBatchPropertiesIfRequired(
@@ -440,12 +465,11 @@ object RemoteBatchingStrategy {
       context: LogicalPlanningContext,
       queryGraph: QueryGraph
     ): Seq[IndexCompatiblePredicateWithValueBehavior] = {
-      val propsAccessForPredsMap = propertyAccessesToPredicatesMap(queryGraph.selections.flatPredicatesSet)
       val contextualPropertyAccess = context.plannerState.contextualPropertyAccess
       val rewriter = externalPropertyAccessesRewriter(context)
 
       def determineGetValueBehaviour(predicate: IndexCompatiblePredicate) = {
-        if (shouldGetPropertyValue(predicate, propsAccessForPredsMap, contextualPropertyAccess))
+        if (shouldGetPropertyValue(predicate, queryGraph.selections.flatPredicatesSet, contextualPropertyAccess))
           IndexCompatiblePredicateWithValueBehavior(predicate, GetValue)
         else IndexCompatiblePredicateWithValueBehavior(predicate, DoNotGetValue)
       }
@@ -465,6 +489,26 @@ object RemoteBatchingStrategy {
             }
         }
       }
+    }
+
+    override def getValueFromIndexBehavior(
+      indexEntityVariable: LogicalVariable,
+      propertyKey: String,
+      queryGraphPredicates: Set[Expression],
+      contextualPropertyAccess: ContextualPropertyAccess
+    ): GetValueFromIndexBehavior = {
+      if (
+        propertyOnIndexVariableIsAccessedAfterIndex(
+          indexEntityVariable,
+          propertyKey,
+          queryGraphPredicates,
+          None,
+          contextualPropertyAccess
+        )
+      )
+        GetValue
+      else
+        DoNotGetValue
     }
 
     override def propertiesToFetchBeforeQpp(
@@ -699,8 +743,15 @@ object RemoteBatchingStrategy {
 
     private case class PropertyAccessInPredicates(backingMap: Map[PropertyAccess, Set[Expression]]) extends AnyVal {
 
-      def propertyAccessInPredicatesOtherThat(propertyAccess: PropertyAccess, inputPredicate: Expression): Boolean =
-        backingMap.get(propertyAccess).exists(_.exists(expr => expr != inputPredicate))
+      def containsOtherPredicateThanExcludedOne(
+        propertyAccess: PropertyAccess,
+        excludedPredicate: Option[Expression]
+      ): Boolean =
+        excludedPredicate match {
+          case Some(excludedExpr) => backingMap.get(propertyAccess).exists(_.exists(expr => expr != excludedExpr))
+          case None               => backingMap.contains(propertyAccess)
+        }
+
     }
 
     override def findGlobalPropertyAccessesWithContext(
@@ -820,6 +871,13 @@ object RemoteBatchingStrategy {
         IndexCompatiblePredicateWithValueBehavior(predicate, CanGetValue)
       case predicate => IndexCompatiblePredicateWithValueBehavior(predicate, indexDescriptor.valueCapability)
     }
+
+    override def getValueFromIndexBehavior(
+      indexEntityVariable: LogicalVariable,
+      propertyKey: String,
+      queryGraphPredicates: Set[Expression],
+      contextualPropertyAccess: ContextualPropertyAccess
+    ): GetValueFromIndexBehavior = CanGetValue
 
     override def planBatchPropertiesForSelections(
       queryGraph: QueryGraph,

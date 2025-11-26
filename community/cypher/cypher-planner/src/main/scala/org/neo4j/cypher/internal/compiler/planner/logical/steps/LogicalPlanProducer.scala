@@ -152,7 +152,6 @@ import org.neo4j.cypher.internal.logical.plans.AssertSameNode
 import org.neo4j.cypher.internal.logical.plans.AssertSameRelationship
 import org.neo4j.cypher.internal.logical.plans.AtMostOneRow
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
-import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.ColumnOrder
 import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
@@ -2011,15 +2010,16 @@ case class LogicalPlanProducer(
   }
 
   def planNodeVectorIndexSearch(
+    queryGraph: QueryGraph,
     context: LogicalPlanningContext,
     variable: LogicalVariable,
     label: LabelToken,
     property: PropertyKeyToken,
     indexName: String,
     embedding: Expression,
-    limit: Expression,
-    argumentIds: Set[LogicalVariable]
+    limit: Expression
   ): LogicalPlan = {
+    val argumentIds = queryGraph.argumentIds
     val solved = RegularSinglePlannerQuery(
       queryGraph =
         QueryGraph.empty
@@ -2038,14 +2038,20 @@ case class LogicalPlanProducer(
     val newArguments = solver.newArguments
     val allArgumentIds = argumentIds.union(newArguments)
 
+    val indexedProperties = List(IndexedProperty(
+      propertyKeyToken = property,
+      getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
+        variable,
+        property.name,
+        queryGraph.selections.flatPredicatesSet,
+        context.plannerState.contextualPropertyAccess
+      ),
+      entityType = NODE_TYPE
+    ))
     val nodeVectorIndexSearch = NodeVectorIndexSearch(
       idName = variable,
       labels = List(label),
-      properties = List(IndexedProperty(
-        propertyKeyToken = property,
-        getValueFromIndex = CanGetValue,
-        entityType = NODE_TYPE
-      )),
+      properties = indexedProperties,
       score = None,
       indexName = indexName,
       vector = rewrittenEmbedding,
@@ -2059,7 +2065,7 @@ case class LogicalPlanProducer(
         nodeVectorIndexSearch,
         solved,
         ProvidedOrder.empty,
-        context.plannerState.previouslyCachedProperties,
+        cachedPropertiesForIndexedProperties(context, variable, indexedProperties),
         context
       )
 

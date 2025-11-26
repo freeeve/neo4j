@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
@@ -376,6 +377,9 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
   // Graph counts based on a subset of LDBC SF 1
   final protected val planner = spdPlanner
+    .addSemanticFeature(VectorSearch)
+    .addNodeVectorIndex("messageContent", "Message", "content")
+    .addRelationshipVectorIndex("knowsDescr", "KNOWS", "description")
     .setAllNodesCardinality(3181725)
     .setLabelCardinality("Person", 9892)
     .setLabelCardinality("Message", 3055774)
