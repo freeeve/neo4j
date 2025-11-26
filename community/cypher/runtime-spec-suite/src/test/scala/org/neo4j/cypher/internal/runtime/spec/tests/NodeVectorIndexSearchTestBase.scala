@@ -46,8 +46,13 @@ import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
 import org.neo4j.kernel.KernelVersion
+import org.neo4j.values.storable.DateTimeValue
+import org.neo4j.values.storable.DateValue
+import org.neo4j.values.storable.LocalDateTimeValue
+import org.neo4j.values.storable.LocalTimeValue
 import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.RandomValues
+import org.neo4j.values.storable.TimeValue
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.ValueType
 import org.neo4j.values.storable.Values
@@ -66,6 +71,10 @@ import org.neo4j.values.storable.Values.shortValue
 import org.neo4j.values.storable.Values.stringValue
 import org.neo4j.values.storable.VectorValue
 import org.neo4j.values.virtual.VirtualValues
+
+import java.time.LocalTime
+import java.time.OffsetTime
+import java.time.ZoneOffset
 
 import scala.math.Ordering.comparatorToOrdering
 import scala.util.Random
@@ -585,7 +594,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ))
   }
 
-  // TODO: arrays and temporals not supported yet
+  // TODO: arrays and duration not supported yet
   val ranges: Seq[Int => Value] = Seq(
     longValue(_),
     intValue,
@@ -593,7 +602,12 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     i => byteValue((Byte.MinValue + i).byteValue),
     i => doubleValue(i.doubleValue()),
     i => floatValue(i.floatValue()),
-    i => stringValue("A".repeat(i))
+    i => stringValue("A".repeat(i)),
+    i => LocalTimeValue.localTime(LocalTime.ofSecondOfDay(i)),
+    i => TimeValue.time(OffsetTime.of(LocalTime.ofSecondOfDay(i), ZoneOffset.UTC)),
+    i => LocalDateTimeValue.localDateTime(i, 1, 1, 0, 0, 0, 0),
+    i => DateTimeValue.datetime(i, 1, 1, 0, 0, 0, 0, "UTC"),
+    i => DateValue.date(i, 1, 1)
   )
 
   ranges.foreach(range => {
@@ -1404,8 +1418,14 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       ValueType.INT,
       ValueType.LONG,
       ValueType.FLOAT,
-      ValueType.DOUBLE
+      ValueType.DOUBLE,
+      ValueType.LOCAL_DATE_TIME,
+      ValueType.DATE_TIME,
+      ValueType.LOCAL_TIME,
+      ValueType.TIME,
+      ValueType.DATE
     )
+
     val Seq(min, max) = Seq(randomValue, randomValue).sorted(comparatorToOrdering(Values.COMPARATOR))
     def randomSearchPredicate = {
       random.nextInt(6) match {
