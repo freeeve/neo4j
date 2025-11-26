@@ -39,7 +39,8 @@ public class CommunityVersionStorageFactory implements VersionStorageFactory {
             Dependencies dependencies,
             DatabaseTracers databaseTracers,
             DatabaseLayout databaseLayout,
-            DatabaseConfig databaseConfig) {
+            DatabaseConfig databaseConfig,
+            boolean multiVersioned) {
         return VersionStorage.EMPTY_STORAGE;
     }
 }

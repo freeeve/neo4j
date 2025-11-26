@@ -21,6 +21,7 @@ package org.neo4j.graphdb.factory.module.id;
 
 import org.neo4j.annotations.service.Service;
 import org.neo4j.graphdb.factory.module.GlobalModule;
+import org.neo4j.kernel.database.IdContextFactory;
 import org.neo4j.service.PrioritizedService;
 import org.neo4j.service.Services;
 

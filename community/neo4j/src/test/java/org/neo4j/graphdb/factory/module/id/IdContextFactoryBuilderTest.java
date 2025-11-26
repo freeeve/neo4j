@@ -53,6 +53,9 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.database.DatabaseIdContext;
+import org.neo4j.kernel.database.IdContextFactory;
+import org.neo4j.kernel.database.IdGeneratorSettings;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
@@ -94,10 +97,14 @@ class IdContextFactoryBuilderTest {
         IdGeneratorFactory idGeneratorFactory = mock(IdGeneratorFactory.class);
         Config config = defaults();
         IdContextFactory contextFactory = IdContextFactoryBuilder.of(fs, jobScheduler, PageCacheTracer.NULL)
-                .withIdGenerationFactoryProvider((dbConfig, i1, i2, directToCache) -> idGeneratorFactory)
+                .withIdGenerationFactoryProvider((dbConfig, i1, i2, directToCache, multiVersion) -> idGeneratorFactory)
                 .build();
         DatabaseIdContext idContext = contextFactory.createIdContext(
-                from("database", UUID.randomUUID()), CONTEXT_FACTORY, new DatabaseConfig(config), true, true);
+                from("database", UUID.randomUUID()),
+                CONTEXT_FACTORY,
+                new DatabaseConfig(config),
+                new IdGeneratorSettings(true, true),
+                false);
 
         IdGeneratorFactory bufferedGeneratorFactory = idContext.getIdGeneratorFactory();
         assertThat(idContext.getIdController()).isInstanceOf(BufferedIdController.class);
@@ -154,7 +161,11 @@ class IdContextFactoryBuilderTest {
                 .build();
 
         DatabaseIdContext idContext = contextFactory.createIdContext(
-                from("database", UUID.randomUUID()), CONTEXT_FACTORY, new DatabaseConfig(defaults()), true, true);
+                from("database", UUID.randomUUID()),
+                CONTEXT_FACTORY,
+                new DatabaseConfig(defaults()),
+                new IdGeneratorSettings(true, true),
+                false);
 
         assertSame(idGeneratorFactory, idContext.getIdGeneratorFactory());
     }
@@ -167,7 +178,11 @@ class IdContextFactoryBuilderTest {
         var idContextFactory =
                 IdContextFactoryBuilder.of(fs, jobScheduler, cacheTracer).build();
         var idContext = idContextFactory.createIdContext(
-                from("test", UUID.randomUUID()), contextFactory, new DatabaseConfig(config), true, true);
+                from("test", UUID.randomUUID()),
+                contextFactory,
+                new DatabaseConfig(config),
+                new IdGeneratorSettings(true, true),
+                false);
         var idGeneratorFactory = idContext.getIdGeneratorFactory();
         var idController = idContext.getIdController();
         idController.initialize(

@@ -39,5 +39,6 @@ public interface VersionStorageFactory {
             Dependencies dependencies,
             DatabaseTracers databaseTracers,
             DatabaseLayout databaseLayout,
-            DatabaseConfig databaseConfig);
+            DatabaseConfig databaseConfig,
+            boolean multiVersioned);
 }

@@ -540,6 +540,11 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
+    public boolean multiVersioned() {
+        return delegate.multiVersioned();
+    }
+
+    @Override
     public ImmutableSet<OpenOption> getStoreOpenOptions(
             FileSystemAbstraction fs, PageCache pageCache, DatabaseLayout layout, CursorContextFactory contextFactory) {
         return delegate.getStoreOpenOptions(fs, pageCache, layout, contextFactory);

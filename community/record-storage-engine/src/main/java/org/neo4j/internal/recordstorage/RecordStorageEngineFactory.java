@@ -946,6 +946,11 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
+    public boolean multiVersioned() {
+        return false;
+    }
+
+    @Override
     public ImmutableSet<OpenOption> getStoreOpenOptions(
             FileSystemAbstraction fs, PageCache pageCache, DatabaseLayout layout, CursorContextFactory contextFactory) {
         RecordDatabaseLayout recordDatabaseLayout = formatSpecificDatabaseLayout(layout);

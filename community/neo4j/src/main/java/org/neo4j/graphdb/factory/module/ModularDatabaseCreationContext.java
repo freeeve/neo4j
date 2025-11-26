@@ -32,10 +32,7 @@ import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HostedOnMode;
 import org.neo4j.function.Factory;
 import org.neo4j.function.Predicates;
-import org.neo4j.graphdb.factory.module.id.DatabaseIdContext;
 import org.neo4j.internal.id.BufferingIdGeneratorFactory;
-import org.neo4j.internal.id.IdController;
-import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.watcher.DatabaseLayoutWatcher;
@@ -43,14 +40,16 @@ import org.neo4j.io.fs.watcher.FileWatcher;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
+import org.neo4j.kernel.database.CursorContextFactorySupplier;
 import org.neo4j.kernel.database.DatabaseCreationContext;
 import org.neo4j.kernel.database.DatabaseMonitorsFactory;
 import org.neo4j.kernel.database.DatabaseStartupController;
 import org.neo4j.kernel.database.DatabaseTracers;
+import org.neo4j.kernel.database.IdContextFactory;
+import org.neo4j.kernel.database.IdGeneratorSettings;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.database.StorageEngineFactorySupplier;
 import org.neo4j.kernel.extension.ExtensionFactory;
@@ -95,7 +94,8 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final DatabaseConfig databaseConfig;
     private final QueryEngineProvider queryEngineProvider;
     private final ExternalIdReuseConditionProvider externalIdReuseConditionProvider;
-    private final IdGeneratorFactory idGeneratorFactory;
+    private final IdContextFactory idContextFactory;
+    private final IdGeneratorSettings idGeneratorSettings;
     private final DatabaseLogService databaseLogService;
     private final JobScheduler scheduler;
     private final DependencyResolver globalDependencies;
@@ -113,10 +113,9 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final LongFunction<DatabaseAvailabilityGuard> databaseAvailabilityGuardFactory;
     private final SystemNanoClock clock;
     private final StoreCopyCheckPointMutex storeCopyCheckPointMutex;
-    private final IdController idController;
     private final DbmsInfo dbmsInfo;
     private final HostedOnMode mode;
-    private final CursorContextFactory contextFactory;
+    private final CursorContextFactorySupplier cursorContextFactorySupplier;
     private final VersionStorageFactory versionStorageFactory;
     private final DeviceMapper deviceMapper;
     private final Iterable<ExtensionFactory<?>> extensionFactories;
@@ -149,7 +148,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             DatabaseLogIdentifier databaseLogIdentifier,
             GlobalModule globalModule,
             Dependencies globalDependencies,
-            CursorContextFactory contextFactory,
+            CursorContextFactorySupplier cursorContextFactorySupplier,
             DeviceMapper deviceMapper,
             VersionStorageFactory versionStorageFactory,
             DatabaseConfig databaseConfig,
@@ -162,7 +161,8 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             Predicate<String> databaseFileFilter,
             AccessCapabilityFactory accessCapabilityFactory,
             ExternalIdReuseConditionProvider externalIdReuseConditionProvider,
-            DatabaseIdContext databaseIdContext,
+            IdContextFactory idContextFactory,
+            IdGeneratorSettings idGeneratorSettings,
             TransactionalProcessFactory commitProcessFactory,
             TokenHolders tokenHolders,
             VectorStoreCreator vectorStoreCreator,
@@ -180,13 +180,13 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.serverIdentity = serverIdentity;
         this.namedDatabaseId = namedDatabaseId;
         this.databaseConfig = databaseConfig;
-        this.contextFactory = contextFactory;
+        this.cursorContextFactorySupplier = cursorContextFactorySupplier;
         this.deviceMapper = deviceMapper;
         this.versionStorageFactory = versionStorageFactory;
         this.queryEngineProvider = queryEngineProvider;
         this.externalIdReuseConditionProvider = externalIdReuseConditionProvider;
-        this.idGeneratorFactory = databaseIdContext.getIdGeneratorFactory();
-        this.idController = databaseIdContext.getIdController();
+        this.idContextFactory = idContextFactory;
+        this.idGeneratorSettings = idGeneratorSettings;
         this.transactionsMemoryPool = globalModule.getTransactionsMemoryPool();
         this.otherMemoryPool = globalModule.getOtherMemoryPool();
         this.vectorStoreCreator = vectorStoreCreator;
@@ -256,8 +256,13 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     }
 
     @Override
-    public IdGeneratorFactory getIdGeneratorFactory() {
-        return idGeneratorFactory;
+    public IdContextFactory idContextFactory() {
+        return idContextFactory;
+    }
+
+    @Override
+    public IdGeneratorSettings idGeneratorSettings() {
+        return idGeneratorSettings;
     }
 
     @Override
@@ -351,11 +356,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     }
 
     @Override
-    public IdController getIdController() {
-        return idController;
-    }
-
-    @Override
     public DbmsInfo getDbmsInfo() {
         return dbmsInfo;
     }
@@ -426,8 +426,8 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     }
 
     @Override
-    public CursorContextFactory getContextFactory() {
-        return contextFactory;
+    public CursorContextFactorySupplier getCursorContextFactorySupplier() {
+        return cursorContextFactorySupplier;
     }
 
     @Override

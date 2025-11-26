@@ -19,8 +19,6 @@
  */
 package org.neo4j.graphdb.factory.module.id;
 
-import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
-
 import java.util.function.Function;
 import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.internal.id.AbstractBufferingIdGeneratorFactory;
@@ -29,6 +27,9 @@ import org.neo4j.internal.id.BufferingIdGeneratorFactory;
 import org.neo4j.internal.id.IdController;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.kernel.database.DatabaseIdContext;
+import org.neo4j.kernel.database.IdContextFactory;
+import org.neo4j.kernel.database.IdGeneratorSettings;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.scheduler.JobScheduler;
@@ -51,7 +52,7 @@ public class DefaultIdContextFactory implements IdContextFactory {
     }
 
     protected AbstractBufferingIdGeneratorFactory wrapWithBufferingFactory(
-            IdGeneratorFactory idGeneratorFactory, DatabaseConfig databaseConfig) {
+            IdGeneratorFactory idGeneratorFactory, boolean multiVersion) {
         return new BufferingIdGeneratorFactory(idGeneratorFactory);
     }
 
@@ -60,16 +61,16 @@ public class DefaultIdContextFactory implements IdContextFactory {
             NamedDatabaseId namedDatabaseId,
             CursorContextFactory contextFactory,
             DatabaseConfig databaseConfig,
-            boolean allocationInitiallyEnabled,
-            boolean directToCache) {
+            IdGeneratorSettings idGeneratorSettings,
+            boolean multiVersion) {
         return createBufferingIdContext(
                 idFactoryProvider,
                 jobScheduler,
                 contextFactory,
                 namedDatabaseId,
                 databaseConfig,
-                allocationInitiallyEnabled,
-                directToCache);
+                idGeneratorSettings,
+                multiVersion);
     }
 
     private DatabaseIdContext createBufferingIdContext(
@@ -78,11 +79,15 @@ public class DefaultIdContextFactory implements IdContextFactory {
             CursorContextFactory contextFactory,
             NamedDatabaseId namedDatabaseId,
             DatabaseConfig databaseConfig,
-            boolean allocationInitiallyEnabled,
-            boolean directToCache) {
+            IdGeneratorSettings idGeneratorSettings,
+            boolean multiVersion) {
         var idGeneratorFactory = idGeneratorFactoryProvider.apply(
-                databaseConfig, namedDatabaseId, allocationInitiallyEnabled, directToCache);
-        var bufferingIdGeneratorFactory = wrapWithBufferingFactory(idGeneratorFactory, databaseConfig);
+                databaseConfig,
+                namedDatabaseId,
+                idGeneratorSettings.allocationInitiallyEnabled(),
+                idGeneratorSettings.directToCache(),
+                multiVersion);
+        var bufferingIdGeneratorFactory = wrapWithBufferingFactory(idGeneratorFactory, multiVersion);
         var bufferingController = createBufferedIdController(
                 bufferingIdGeneratorFactory,
                 jobScheduler,
@@ -106,9 +111,5 @@ public class DefaultIdContextFactory implements IdContextFactory {
             DatabaseConfig databaseConfig) {
         return new BufferedIdController(
                 idGeneratorFactory, scheduler, contextFactory, databaseConfig, databaseName, logService);
-    }
-
-    protected static boolean isMultiVersion(DatabaseConfig databaseConfig) {
-        return databaseConfig.get(db_format).contains("multiversion");
     }
 }

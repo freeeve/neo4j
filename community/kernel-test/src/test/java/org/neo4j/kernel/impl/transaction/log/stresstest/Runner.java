@@ -116,7 +116,8 @@ public class Runner implements Callable<Long> {
                 jobScheduler,
                 NullLogProvider.getInstance(),
                 new TransactionMetadataCache(),
-                "le db");
+                "le db",
+                false);
     }
 
     private LogFiles createLogFiles(FileSystemAbstraction fileSystemAbstraction) throws IOException {

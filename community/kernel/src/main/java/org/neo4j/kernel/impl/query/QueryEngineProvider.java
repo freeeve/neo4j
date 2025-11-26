@@ -30,7 +30,7 @@ import org.neo4j.scheduler.JobScheduler;
 
 public abstract class QueryEngineProvider {
     protected abstract QueryExecutionEngine createEngine(
-            Dependencies deps, GraphDatabaseAPI graphAPI, boolean isSystemDatabase, SPI spi);
+            Dependencies deps, GraphDatabaseAPI graphAPI, boolean isSystemDatabase, SPI spi, boolean multiVersion);
 
     protected abstract int enginePriority();
 
@@ -39,11 +39,12 @@ public abstract class QueryEngineProvider {
             GraphDatabaseAPI graphAPI,
             QueryEngineProvider provider,
             boolean isSystemDatabase,
-            SPI spi) {
+            SPI spi,
+            boolean multiVersion) {
         if (provider == null) {
             return noEngine();
         }
-        QueryExecutionEngine engine = provider.createEngine(deps, graphAPI, isSystemDatabase, spi);
+        QueryExecutionEngine engine = provider.createEngine(deps, graphAPI, isSystemDatabase, spi, multiVersion);
         return deps.satisfyDependency(engine);
     }
 

@@ -176,7 +176,8 @@ class TransactionAppenderRotationIT {
                 scheduler,
                 NullLogProvider.getInstance(),
                 new TransactionMetadataCache(),
-                "le db");
+                "le db",
+                false);
     }
 
     private CompleteTransaction prepareTransaction(KernelVersion kernelVersion) {

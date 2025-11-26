@@ -515,6 +515,11 @@ public interface StorageEngineFactory {
             throws ConsistencyCheckIncompleteException;
 
     /**
+     * @return if this storage engine factory is multiversioned, otherwise false.
+     */
+    boolean multiVersioned();
+
+    /**
      * Detects open options for existing store such as endianness or version
      */
     ImmutableSet<OpenOption> getStoreOpenOptions(

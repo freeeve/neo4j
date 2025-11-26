@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.dedicated_transaction_appender;
-import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 
 import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -40,9 +39,9 @@ public class TransactionAppenderFactory {
             JobScheduler scheduler,
             InternalLogProvider logProvider,
             TransactionMetadataCache metadataCache,
-            String databaseName) {
-        if (databaseConfig.get(dedicated_transaction_appender)
-                || databaseConfig.get(db_format).contains("multiversion")) {
+            String databaseName,
+            boolean multiVersioned) {
+        if (databaseConfig.get(dedicated_transaction_appender) || multiVersioned) {
             var queue = new TransactionLogQueue(
                     logFiles,
                     transactionIdStore,

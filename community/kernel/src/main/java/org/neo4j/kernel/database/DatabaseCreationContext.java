@@ -28,15 +28,12 @@ import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HostedOnMode;
 import org.neo4j.function.Factory;
 import org.neo4j.graphdb.config.Configuration;
-import org.neo4j.internal.id.IdController;
-import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.watcher.DatabaseLayoutWatcher;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
@@ -80,7 +77,9 @@ public interface DatabaseCreationContext {
 
     DatabaseConfig getDatabaseConfig();
 
-    IdGeneratorFactory getIdGeneratorFactory();
+    IdContextFactory idContextFactory();
+
+    IdGeneratorSettings idGeneratorSettings();
 
     DatabaseLogService getDatabaseLogService();
 
@@ -118,8 +117,6 @@ public interface DatabaseCreationContext {
 
     StoreCopyCheckPointMutex getStoreCopyCheckPointMutex();
 
-    IdController getIdController();
-
     DbmsInfo getDbmsInfo();
 
     HostedOnMode getMode();
@@ -148,7 +145,7 @@ public interface DatabaseCreationContext {
 
     ReadOnlyDatabases getDbmsReadOnlyChecker();
 
-    CursorContextFactory getContextFactory();
+    CursorContextFactorySupplier getCursorContextFactorySupplier();
 
     ExternalIdReuseConditionProvider externalIdReuseConditionProvider();
 

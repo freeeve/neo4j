@@ -27,7 +27,6 @@ import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HostedOnMode;
 import org.neo4j.graphdb.factory.module.GlobalModule;
 import org.neo4j.graphdb.factory.module.ModularDatabaseCreationContext;
-import org.neo4j.graphdb.factory.module.id.IdContextFactory;
 import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.kernel.api.Kernel;
 import org.neo4j.kernel.database.Database;
@@ -37,6 +36,8 @@ import org.neo4j.kernel.database.DatabaseMonitorsFactory;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.database.DefaultDatabaseMonitorsFactory;
 import org.neo4j.kernel.database.GlobalAvailabilityGuardController;
+import org.neo4j.kernel.database.IdContextFactory;
+import org.neo4j.kernel.database.IdGeneratorSettings;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.api.ExternalIdReuseConditionProvider;
 import org.neo4j.kernel.impl.api.LeaseService;
@@ -95,7 +96,7 @@ public class DefaultDatabaseContextFactory
 
         private Creator(NamedDatabaseId namedDatabaseId) {
             var databaseConfig = new DatabaseConfig(globalModule.getGlobalConfig());
-            var contextFactory = createContextFactory(databaseConfig, namedDatabaseId);
+            var contextFactory = createContextFactorySupplier(databaseConfig, namedDatabaseId);
             var databaseLogIdentifier = DatabaseLogIdentifier.create(namedDatabaseId);
             var creationContext = new ModularDatabaseCreationContext(
                     HostedOnMode.SINGLE,
@@ -121,7 +122,8 @@ public class DefaultDatabaseContextFactory
                     ModularDatabaseCreationContext.defaultFileWatcherFilter(),
                     AccessCapabilityFactory.configDependent(),
                     ExternalIdReuseConditionProvider.NONE,
-                    idContextFactory.createIdContext(namedDatabaseId, contextFactory, databaseConfig, true, true),
+                    idContextFactory,
+                    new IdGeneratorSettings(true, true),
                     commitProcessFactory,
                     createTokenHolderProvider(this::kernel),
                     new IsolatedTransactionVectorStoreCreator(this::kernel),

@@ -20,7 +20,6 @@
 package org.neo4j.kernel.database;
 
 import static java.lang.String.format;
-import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 import static org.neo4j.function.Predicates.alwaysTrue;
 import static org.neo4j.function.ThrowingAction.executeAll;
 import static org.neo4j.internal.helpers.collection.Iterators.asList;
@@ -212,8 +211,11 @@ public class Database extends AbstractDatabase {
 
     private final TokenHolders tokenHolders;
     private final GlobalTransactionEventListeners transactionEventListeners;
-    private final IdGeneratorFactory idGeneratorFactory;
-    private final LockService lockService;
+    private final CursorContextFactorySupplier cursorContextFactorySupplier;
+    private IdGeneratorFactory idGeneratorFactory;
+    private final IdContextFactory idContextFactory;
+    private final IdGeneratorSettings idGeneratorSettings;
+    private LockService lockService;
     private final FileSystemAbstraction fs;
     private final DatabaseTransactionStats transactionStats;
     private final DatabaseIndexStats indexStats;
@@ -236,7 +238,7 @@ public class Database extends AbstractDatabase {
     private TransactionIdSequence transactionIdSequence;
     private IndexProviderMap indexProviderMap;
     private final DatabaseReadOnlyChecker readOnlyDatabaseChecker;
-    private final IdController idController;
+    private IdController idController;
     private final DbmsInfo dbmsInfo;
     private final HostedOnMode mode;
     private StorageEngineFactory storageEngineFactory;
@@ -257,7 +259,7 @@ public class Database extends AbstractDatabase {
     private final DatabaseStartupController startupController;
     private final GlobalMemoryGroupTracker transactionsMemoryPool;
     private final GlobalMemoryGroupTracker otherMemoryPool;
-    private final CursorContextFactory cursorContextFactory;
+    private CursorContextFactory cursorContextFactory;
     private final VersionStorageFactory versionStorageFactory;
     private final CommandCommitListeners commandCommitListeners;
     private final VectorStoreCreator vectorStoreCreator;
@@ -285,7 +287,8 @@ public class Database extends AbstractDatabase {
                 context.getExceptionHandlerService());
         this.serverIdentity = context.getServerIdentity();
         this.databaseLayout = context.getDatabaseLayout();
-        this.idGeneratorFactory = context.getIdGeneratorFactory();
+        this.idContextFactory = context.idContextFactory();
+        this.idGeneratorSettings = context.idGeneratorSettings();
         this.transactionsMemoryPool = context.getTransactionsMemoryPool();
         this.otherMemoryPool = context.getOtherMemoryPool();
         this.storeCopyCheckPointMutex = context.getStoreCopyCheckPointMutex();
@@ -298,16 +301,13 @@ public class Database extends AbstractDatabase {
         this.globalProcedures = context.getGlobalProcedures();
         this.ioControllerService = context.getIoControllerService();
         this.accessCapabilityFactory = context.getAccessCapabilityFactory();
-
-        this.idController = context.getIdController();
         this.dbmsInfo = context.getDbmsInfo();
         this.mode = context.getMode();
-        this.cursorContextFactory = context.getContextFactory();
+        this.cursorContextFactorySupplier = context.getCursorContextFactorySupplier();
         this.versionStorageFactory = context.getVersionStorageFactory();
         this.extensionFactories = context.getExtensionFactories();
         this.watcherServiceFactory = context.getWatcherServiceFactory();
         this.engineProvider = context.getEngineProvider();
-        this.lockService = createLockService(databaseConfig, getNamedDatabaseId());
         this.commitProcessFactory = context.getCommitProcessFactory();
         this.globalPageCache = context.getPageCache();
         this.storageEngineFactorySupplier = context.getStorageEngineFactorySupplier();
@@ -337,10 +337,12 @@ public class Database extends AbstractDatabase {
     @Override
     protected void specificInit() throws IOException {
         this.storageEngineFactory = storageEngineFactorySupplier.create();
+        boolean multiVersioned = storageEngineFactory.multiVersioned();
+        this.cursorContextFactory = cursorContextFactorySupplier.create(multiVersioned);
         var storageLockManager = storageEngineFactory.createLockManager(databaseConfig, this.clock);
-        this.databaseLockManager = isMultiVersioned(databaseConfig, namedDatabaseId)
-                ? new MultiVersionLockManager(storageLockManager)
-                : storageLockManager;
+        this.databaseLockManager =
+                multiVersioned ? new MultiVersionLockManager(storageLockManager) : storageLockManager;
+        this.lockService = createLockService(storageEngineFactory, getNamedDatabaseId());
         this.databaseLayout = storageEngineFactory.formatSpecificDatabaseLayout(databaseLayout);
         new DatabaseDirectoriesCreator(fs, databaseLayout).createDirectories();
         ioController = ioControllerService.createIOController(databaseConfig, clock);
@@ -353,9 +355,13 @@ public class Database extends AbstractDatabase {
                 databaseDependencies,
                 tracers,
                 databaseLayout,
-                databaseConfig);
+                databaseConfig,
+                multiVersioned);
         databasePageCache = new DatabasePageCache(globalPageCache, ioController, versionStorage, databaseConfig);
-
+        DatabaseIdContext databaseIdContext = idContextFactory.createIdContext(
+                namedDatabaseId, cursorContextFactory, databaseConfig, idGeneratorSettings, multiVersioned);
+        this.idController = databaseIdContext.getIdController();
+        this.idGeneratorFactory = databaseIdContext.getIdGeneratorFactory();
         life.add(onShutdown(() -> databaseLockManager.close()));
         life.add(new LockerLifecycleAdapter(fileLockerService.createDatabaseLocker(fs, databaseLayout)));
         life.add(databaseConfig);
@@ -512,8 +518,8 @@ public class Database extends AbstractDatabase {
         databaseDependencies.satisfyDependency(storageEngine.metadataProvider());
 
         initialiseContextFactory(
-                getTransactionIdSnapshotFactory(databaseConfig, logMetadataProvider, getNamedDatabaseId()),
-                getOldestTransactionIdFactory(databaseConfig, () -> kernelModule, getNamedDatabaseId()));
+                getTransactionIdSnapshotFactory(storageEngineFactory, logMetadataProvider, getNamedDatabaseId()),
+                getOldestTransactionIdFactory(storageEngineFactory, () -> kernelModule, getNamedDatabaseId()));
         elementIdMapper = new DefaultElementIdMapperV1(namedDatabaseId);
 
         life.add(storageEngine);
@@ -620,7 +626,12 @@ public class Database extends AbstractDatabase {
         var providerSpi = QueryEngineProvider.spi(
                 internalLogProvider, databaseMonitors, scheduler, life, getKernel(), databaseConfig);
         this.executionEngine = QueryEngineProvider.initialize(
-                databaseDependencies, databaseFacade, engineProvider, isSystem(), providerSpi);
+                databaseDependencies,
+                databaseFacade,
+                engineProvider,
+                isSystem(),
+                providerSpi,
+                storageEngineFactory.multiVersioned());
 
         this.checkpointerLifecycle = new CheckpointerLifecycle(transactionLogModule.checkPointer(), databaseHealth);
 
@@ -725,7 +736,7 @@ public class Database extends AbstractDatabase {
                 databaseConfig,
                 kernelModule.kernelAPI(),
                 kernelModule.kernelTransactions(),
-                isMultiVersioned(databaseConfig, namedDatabaseId));
+                isMultiVersioned(storageEngineFactory, namedDatabaseId));
 
         handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx, currentLogFormat) -> {
             tx.upgrade()
@@ -967,7 +978,8 @@ public class Database extends AbstractDatabase {
                 scheduler,
                 logProvider,
                 transactionMetadataCache,
-                namedDatabaseId.name());
+                namedDatabaseId.name(),
+                storageEngineFactory.multiVersioned());
         life.add(transactionAppender);
 
         final LogicalTransactionStore logicalTransactionStore = new PhysicalLogicalTransactionStore(
@@ -1329,31 +1341,34 @@ public class Database extends AbstractDatabase {
         }
     }
 
-    private static LockService createLockService(DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId) {
-        return isMultiVersioned(databaseConfig, namedDatabaseId)
+    private static LockService createLockService(
+            StorageEngineFactory storageEngineFactory, NamedDatabaseId namedDatabaseId) {
+        return isMultiVersioned(storageEngineFactory, namedDatabaseId)
                 ? LockService.NO_LOCK_SERVICE
                 : new ReentrantLockService();
     }
 
     private static TransactionIdSnapshotFactory getTransactionIdSnapshotFactory(
-            DatabaseConfig databaseConfig, LogMetadataProvider metadataProvider, NamedDatabaseId namedDatabaseId) {
-        return isMultiVersioned(databaseConfig, namedDatabaseId)
+            StorageEngineFactory storageEngineFactory,
+            LogMetadataProvider metadataProvider,
+            NamedDatabaseId namedDatabaseId) {
+        return isMultiVersioned(storageEngineFactory, namedDatabaseId)
                 ? metadataProvider::getClosedTransactionSnapshot
                 : (() -> new TransactionIdSnapshot(metadataProvider.getLastClosedTransactionId()));
     }
 
     private static OldestTransactionIdFactory getOldestTransactionIdFactory(
-            DatabaseConfig databaseConfig,
+            StorageEngineFactory storageEngineFactory,
             Supplier<DatabaseKernelModule> kernelModule,
             NamedDatabaseId namedDatabaseId) {
-        return isMultiVersioned(databaseConfig, namedDatabaseId)
+        return isMultiVersioned(storageEngineFactory, namedDatabaseId)
                 ? (() -> kernelModule.get().transactionMonitor().oldestVisibleClosedTransactionId())
                 : OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
     }
 
-    private static boolean isMultiVersioned(DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId) {
-        return !namedDatabaseId.isSystemDatabase()
-                && databaseConfig.get(db_format).contains("multiversion");
+    private static boolean isMultiVersioned(
+            StorageEngineFactory storageEngineFactory, NamedDatabaseId namedDatabaseId) {
+        return !namedDatabaseId.isSystemDatabase() && storageEngineFactory.multiVersioned();
     }
 
     private class KernelTransactionVisibilityProvider implements TransactionVisibilityProvider {

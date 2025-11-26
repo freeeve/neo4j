@@ -80,7 +80,7 @@ public class CommunityCypherEngineProvider extends QueryEngineProvider {
 
     @Override
     protected QueryExecutionEngine createEngine(
-            Dependencies deps, GraphDatabaseAPI graphAPI, boolean isSystemDatabase, SPI spi) {
+            Dependencies deps, GraphDatabaseAPI graphAPI, boolean isSystemDatabase, SPI spi, boolean multiVersion) {
         GraphDatabaseCypherService queryService = deps.satisfyDependency(new GraphDatabaseCypherService(graphAPI));
         deps.satisfyDependency(Neo4jTransactionalContextFactory.create(queryService));
         CypherConfiguration cypherConfig = CypherConfiguration.fromConfig(spi.databaseConfig());
@@ -125,8 +125,8 @@ public class CommunityCypherEngineProvider extends QueryEngineProvider {
             return new SnapshotExecutionEngine(
                     queryService, spi.databaseConfig(), queryCaches, spi.logProvider(), compilerFactory);
         }
-        String dbFormat = spi.databaseConfig().get(GraphDatabaseSettings.db_format);
-        if (dbFormat != null && dbFormat.contains("multiversion")) {
+
+        if (multiVersion) {
             return new MultiVersionExecutionEngine(
                     queryService, spi.databaseConfig(), queryCaches, spi.logProvider(), compilerFactory);
         }

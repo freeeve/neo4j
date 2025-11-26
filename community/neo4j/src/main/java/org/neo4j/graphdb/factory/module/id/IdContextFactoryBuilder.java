@@ -25,11 +25,11 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.force_small_
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 
 import java.util.function.Function;
-import org.neo4j.graphdb.factory.module.id.IdContextFactory.IdGeneratorFactoryCreator;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.database.IdContextFactory.IdGeneratorFactoryCreator;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.scheduler.JobScheduler;
@@ -84,13 +84,12 @@ public final class IdContextFactoryBuilder {
 
     public static IdGeneratorFactoryCreator defaultIdGeneratorFactoryProvider(
             FileSystemAbstraction fs, PageCacheTracer pageCacheTracer) {
-        return (databaseConfig, databaseId, allocationEnabled, directToCache) -> {
+        return (databaseConfig, databaseId, allocationEnabled, directToCache, multiVersion) -> {
             // There's no point allocating large ID caches for the system database because it generally sees very low
             // activity.
             // Also take into consideration if user has explicitly overridden the behaviour to always force small
             // caches.
             boolean allowLargeIdCaches = !databaseConfig.get(force_small_id_cache) && !databaseId.isSystemDatabase();
-            boolean isMultiVersion = DefaultIdContextFactory.isMultiVersion(databaseConfig);
             return new DefaultIdGeneratorFactory(
                     fs,
                     immediate(),
@@ -98,7 +97,7 @@ public final class IdContextFactoryBuilder {
                     pageCacheTracer,
                     databaseId.name(),
                     allocationEnabled,
-                    directToCache && !isMultiVersion);
+                    directToCache && !multiVersion);
         };
     }
 }

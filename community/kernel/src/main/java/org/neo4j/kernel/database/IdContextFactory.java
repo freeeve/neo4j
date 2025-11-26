@@ -17,26 +17,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.graphdb.factory.module.id;
+package org.neo4j.kernel.database;
 
 import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.kernel.database.NamedDatabaseId;
 
 public interface IdContextFactory {
     DatabaseIdContext createIdContext(
             NamedDatabaseId namedDatabaseId,
             CursorContextFactory contextFactory,
             DatabaseConfig databaseConfig,
-            boolean allocationInitiallyEnabled,
-            boolean directToCache);
+            IdGeneratorSettings idGeneratorSettings,
+            boolean multiVersion);
 
     interface IdGeneratorFactoryCreator {
         IdGeneratorFactory apply(
                 DatabaseConfig databaseConfig,
                 NamedDatabaseId namedDatabaseId,
                 boolean allocationInitiallyEnabled,
-                boolean directToCache);
+                boolean directToCache,
+                boolean multiVersion);
     }
 }

@@ -17,25 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.graphdb.factory.module.id;
+package org.neo4j.kernel.database;
 
-import org.neo4j.internal.id.IdController;
-import org.neo4j.internal.id.IdGeneratorFactory;
-
-public class DatabaseIdContext {
-    private final IdGeneratorFactory idGeneratorFactory;
-    private final IdController idController;
-
-    public DatabaseIdContext(IdGeneratorFactory idGeneratorFactory, IdController idController) {
-        this.idGeneratorFactory = idGeneratorFactory;
-        this.idController = idController;
-    }
-
-    public IdGeneratorFactory getIdGeneratorFactory() {
-        return idGeneratorFactory;
-    }
-
-    public IdController getIdController() {
-        return idController;
-    }
-}
+public record IdGeneratorSettings(boolean allocationInitiallyEnabled, boolean directToCache) {}
