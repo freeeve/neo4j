@@ -30,6 +30,7 @@ import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
@@ -75,9 +76,13 @@ class DatabaseTransactionShutdownIT {
     AssertableLogProvider logProvider = new AssertableLogProvider();
 
     void setUp(SystemNanoClock clock) {
+        setUp(clock, 1);
+    }
+
+    void setUp(SystemNanoClock clock, int terminationWait) {
         dbms = new TestDatabaseManagementServiceBuilder(directory.homePath())
                 .setConfig(shutdown_transaction_end_timeout, Duration.ofMillis(0))
-                .setConfig(shutdown_terminated_transaction_wait_timeout, Duration.ofMillis(1))
+                .setConfig(shutdown_terminated_transaction_wait_timeout, Duration.ofMillis(terminationWait))
                 .setClock(clock)
                 .setInternalLogProvider(logProvider)
                 .build();
@@ -288,33 +293,46 @@ class DatabaseTransactionShutdownIT {
 
     @Test
     void shouldNotLeakedTransactionsOnShutdownRace() throws Throwable {
-        setUp(Clocks.nanoClock());
+        setUp(Clocks.nanoClock(), 10000);
         DependencyResolver dep = db.getDependencyResolver();
         KernelTransactions ktxs = dep.resolveDependency(KernelTransactions.class);
         Race race = new Race();
-        int threads = 10;
+        int threads = 20;
         CountDownLatch latch = new CountDownLatch(threads);
         AtomicBoolean done = new AtomicBoolean(false);
-        race.addContestants(threads, () -> {
+        race.addContestants(threads / 2, () -> {
             latch.countDown();
             while (!done.get()) {
                 try (Transaction tx = db.beginTx()) {
+                    // Some really fast transactions
                 } catch (DatabaseShutdownException
                         | TransactionFailureException
                         | TransientTransactionFailureException ignored) {
                 }
             }
         });
+        race.addContestants(threads / 2, Race.throwing(() -> {
+            latch.countDown();
+            // Random start delay to race with shutdown
+            Thread.sleep(ThreadLocalRandom.current().nextInt(1000));
+            try (Transaction tx = db.beginTx()) {
+                // And some transactions waiting to be terminated and rolled back
+                while (!done.get()) {
+                    tx.createNode();
+                    Thread.sleep(10);
+                }
+            } catch (DatabaseShutdownException
+                    | TransactionFailureException
+                    | TransientTransactionFailureException ignored) {
+            }
+        }));
         Race.Async future = null;
         try {
             future = race.goAsync();
             latch.await();
             dbms.shutdown();
             assertThat(ktxs.haveActiveTransaction()).isFalse();
-            LogAssertions.assertThat(logProvider)
-                    .forClass(Database.class)
-                    .forLevel(WARN)
-                    .doesNotContainMessage(UNCLEAN_SHUTDOWN_MSG);
+            LogAssertions.assertThat(logProvider).forLevel(WARN).doesNotContainMessage(UNCLEAN_SHUTDOWN_MSG);
         } finally {
             done.set(true);
             if (future != null) {
