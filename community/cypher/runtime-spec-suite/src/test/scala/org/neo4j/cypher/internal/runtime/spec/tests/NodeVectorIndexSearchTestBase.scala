@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
 import org.neo4j.cypher.internal.logical.plans.InclusiveBound
@@ -46,6 +47,8 @@ import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
 import org.neo4j.kernel.KernelVersion
+import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.BooleanValue
 import org.neo4j.values.storable.DateTimeValue
 import org.neo4j.values.storable.DateValue
 import org.neo4j.values.storable.LocalDateTimeValue
@@ -56,6 +59,8 @@ import org.neo4j.values.storable.TimeValue
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.ValueType
 import org.neo4j.values.storable.Values
+import org.neo4j.values.storable.Values.NO_VALUE
+import org.neo4j.values.storable.Values.booleanValue
 import org.neo4j.values.storable.Values.byteValue
 import org.neo4j.values.storable.Values.doubleValue
 import org.neo4j.values.storable.Values.float32Vector
@@ -71,6 +76,7 @@ import org.neo4j.values.storable.Values.shortValue
 import org.neo4j.values.storable.Values.stringValue
 import org.neo4j.values.storable.VectorValue
 import org.neo4j.values.virtual.VirtualValues
+import org.neo4j.values.virtual.VirtualValues.EMPTY_MAP
 
 import java.time.LocalTime
 import java.time.OffsetTime
@@ -1177,7 +1183,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           Map(
             "vector" -> float32Vector(Seq.fill(sizeHint)(5.0f): _*),
             "seekValue1" -> longValue(0),
-            "seekValue2" -> VirtualValues.EMPTY_MAP
+            "seekValue2" -> EMPTY_MAP
           )
       )
     runtimeResult should beColumns("id").withNoRows()
@@ -1224,7 +1230,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         parameters =
           Map(
             "vector" -> float32Vector(Seq.fill(sizeHint)(5.0f): _*),
-            "seekValue" -> VirtualValues.EMPTY_MAP
+            "seekValue" -> EMPTY_MAP
           )
       )
     runtimeResult should beColumns("id").withNoRows()
@@ -1589,12 +1595,531 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         parameters =
           Map(
             "vector" -> randomVector,
-            "p" -> VirtualValues.EMPTY_MAP
+            "p" -> EMPTY_MAP
           )
       )
 
     // then
     runtimeResult should beColumns("id").withNoRows()
+  }
+
+  test("should support multiple composite exact filters") {
+    // given
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      nodeGraph(sizeHint, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, id1Token, longValue(i))
+          write.nodeSetProperty(n.getId, id2Token, stringValue(i.toString))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+    val toFind = random.nextInt(sizeHint)
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id1", "id2")
+      .projection("n.id1 AS id1", "n.id2 AS id2")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(equal(param("p1")), equal(param("p2"))))
+      )
+      .build()
+
+    def run(p1: AnyValue, p2: AnyValue) =
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "vector" -> randomVector,
+            "p1" -> p1,
+            "p2" -> p2
+          )
+      )
+    // then
+    run(
+      longValue(toFind),
+      stringValue(toFind.toString)
+    ) should beColumns("id1", "id2").withSingleRow(toFind, toFind.toString)
+    run(longValue(0), stringValue("1")) should beColumns("id1", "id2").withNoRows()
+    run(NO_VALUE, stringValue(toFind.toString)) should beColumns("id1", "id2").withNoRows()
+    run(longValue(toFind), NO_VALUE) should beColumns("id1", "id2").withNoRows()
+    run(NO_VALUE, NO_VALUE) should beColumns("id1", "id2").withNoRows()
+    run(EMPTY_MAP, stringValue(toFind.toString)) should beColumns("id1", "id2").withNoRows()
+    run(longValue(toFind), EMPTY_MAP) should beColumns("id1", "id2").withNoRows()
+    run(EMPTY_MAP, EMPTY_MAP) should beColumns("id1", "id2").withNoRows()
+  }
+
+  test("should support exact composite query with one gap") {
+    // given
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      val id3Token = tx.kernelTransaction().tokenRead().propertyKey("id3")
+      nodeGraph(1000, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, id1Token, longValue(i))
+          write.nodeSetProperty(n.getId, id2Token, stringValue(i.toString))
+          write.nodeSetProperty(n.getId, id3Token, byteValue(i.toByte))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id1", "id2", "id3")
+      .projection("n.id1 AS id1", "n.id2 AS id2", "n.id3 AS id3")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2", "id3"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(equal(param("p1")), equal(param("p2")), AllQueryExpression()))
+      )
+      .build()
+
+    def run(p1: AnyValue, p2: AnyValue) =
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "vector" -> randomVector,
+            "p1" -> p1,
+            "p2" -> p2
+          )
+      )
+
+    // then
+    run(
+      longValue(128),
+      stringValue("128")
+    ) should beColumns("id1", "id2", "id3").withSingleRow(128, "128", -128)
+    run(
+      longValue(2),
+      stringValue("42")
+    ) should beColumns("id1", "id2", "id3").withNoRows()
+    run(
+      NO_VALUE,
+      stringValue("42")
+    ) should beColumns("id1", "id2", "id3").withNoRows()
+    run(
+      longValue(42),
+      NO_VALUE
+    ) should beColumns("id1", "id2", "id3").withNoRows()
+    run(
+      NO_VALUE,
+      NO_VALUE
+    ) should beColumns("id1", "id2", "id3").withNoRows()
+    run(
+      EMPTY_MAP,
+      stringValue("42")
+    ) should beColumns("id1", "id2", "id3").withNoRows()
+    run(
+      longValue(42),
+      EMPTY_MAP
+    ) should beColumns("id1", "id2", "id3").withNoRows()
+    run(
+      EMPTY_MAP,
+      EMPTY_MAP
+    ) should beColumns("id1", "id2", "id3").withNoRows()
+  }
+
+  test("should support exact composite query with two gaps") {
+    // given
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      val id3Token = tx.kernelTransaction().tokenRead().propertyKey("id3")
+      nodeGraph(1000, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, id1Token, longValue(i))
+          write.nodeSetProperty(n.getId, id2Token, stringValue(i.toString))
+          write.nodeSetProperty(n.getId, id3Token, byteValue(i.toByte))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id1", "id2", "id3")
+      .projection("n.id1 AS id1", "n.id2 AS id2", "n.id3 AS id3")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2", "id3"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), equal(param("p"))))
+      )
+      .build()
+
+    def run(p: AnyValue) =
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "vector" -> randomVector,
+            "p" -> p
+          )
+      )
+
+    // then
+    run(byteValue(42)) should beColumns("id1", "id2", "id3").withRows(
+      Seq(
+        Array(42, "42", 42),
+        Array(298, "298", 42),
+        Array(554, "554", 42),
+        Array(810, "810", 42)
+      )
+    )
+
+    run(NO_VALUE) should beColumns("id1", "id2", "id3").withNoRows()
+    run(EMPTY_MAP) should beColumns("id1", "id2", "id3").withNoRows()
+  }
+
+  test("should support exact composite query with just gaps") {
+    // given
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      val id3Token = tx.kernelTransaction().tokenRead().propertyKey("id3")
+      nodeGraph(1000, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, id1Token, longValue(i))
+          write.nodeSetProperty(n.getId, id2Token, stringValue(i.toString))
+          write.nodeSetProperty(n.getId, id3Token, byteValue(i.toByte))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id1", "id2", "id3")
+      .projection("n.id1 AS id1", "n.id2 AS id2", "n.id3 AS id3")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2", "id3"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), AllQueryExpression()))
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("id1", "id2", "id3").withRows(rowCount(1000))
+  }
+
+  test("should support multiple composite range filters") {
+    // given
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      nodeGraph(1000, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, id1Token, longValue(i))
+          write.nodeSetProperty(n.getId, id2Token, stringValue(i.toString))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id1", "id2")
+      .projection("n.id1 AS id1", "n.id2 AS id2")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(
+          between(gte(param("from1")), lte(param("to1"))),
+          between(gte(param("from2")), lte(param("to2")))
+        ))
+      )
+      .build()
+
+    def run(from1: AnyValue, to1: AnyValue, from2: AnyValue, to2: AnyValue) =
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "vector" -> randomVector,
+            "from1" -> from1,
+            "to1" -> to1,
+            "from2" -> from2,
+            "to2" -> to2
+          )
+      )
+
+    // then
+    run(
+      from1 = longValue(10),
+      to1 = longValue(20),
+      from2 = stringValue("12"),
+      to2 = stringValue("22")
+    ) should beColumns("id1", "id2").withRows(
+      (12 to 20).map(i => Array(i, i.toString))
+    )
+    run(
+      from1 = longValue(10),
+      to1 = longValue(20),
+      from2 = stringValue("22"),
+      to2 = stringValue("24")
+    ) should beColumns("id1", "id2").withNoRows()
+    run(
+      from1 = longValue(20),
+      to1 = longValue(10),
+      from2 = stringValue("10"),
+      to2 = stringValue("20")
+    ) should beColumns("id1", "id2").withNoRows()
+    Seq(NO_VALUE, EMPTY_MAP).map(impossibleValue => {
+      run(
+        from1 = impossibleValue,
+        to1 = longValue(20),
+        from2 = stringValue("10"),
+        to2 = stringValue("20")
+      ) should beColumns("id1", "id2").withNoRows()
+      run(
+        from1 = longValue(10),
+        to1 = impossibleValue,
+        from2 = stringValue("10"),
+        to2 = stringValue("20")
+      ) should beColumns("id1", "id2").withNoRows()
+      run(
+        from1 = longValue(10),
+        to1 = longValue(20),
+        from2 = impossibleValue,
+        to2 = stringValue("20")
+      ) should beColumns("id1", "id2").withNoRows()
+      run(
+        from1 = longValue(10),
+        to1 = longValue(20),
+        from2 = stringValue("10"),
+        to2 = impossibleValue
+      ) should beColumns("id1", "id2").withNoRows()
+    })
+  }
+
+  test("should support composite combined exact and range filters") {
+    // given
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      nodeGraph(1000, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, id1Token, longValue(i))
+          write.nodeSetProperty(n.getId, id2Token, stringValue(i.toString))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id1", "id2")
+      .projection("n.id1 AS id1", "n.id2 AS id2")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(
+          between(gte(param("from")), lte(param("to"))),
+          equal(param("exact"))
+        ))
+      )
+      .build()
+
+    def run(from: AnyValue, to: AnyValue, exact: AnyValue) =
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "vector" -> randomVector,
+            "from" -> from,
+            "to" -> to,
+            "exact" -> exact
+          )
+      )
+
+    // then
+    run(
+      from = longValue(10),
+      to = longValue(20),
+      exact = stringValue("12")
+    ) should beColumns("id1", "id2").withSingleRow(12, "12")
+    run(
+      from = longValue(10),
+      to = longValue(20),
+      exact = stringValue("22")
+    ) should beColumns("id1", "id2").withNoRows()
+    run(
+      from = longValue(20),
+      to = longValue(10),
+      exact = stringValue("12")
+    ) should beColumns("id1", "id2").withNoRows()
+    Seq(NO_VALUE, EMPTY_MAP).map(impossibleValue => {
+      run(
+        from = impossibleValue,
+        to = longValue(20),
+        exact = stringValue("10")
+      ) should beColumns("id1", "id2").withNoRows()
+      run(
+        from = longValue(10),
+        to = impossibleValue,
+        exact = stringValue("10")
+      ) should beColumns("id1", "id2").withNoRows()
+      run(
+        from = longValue(10),
+        to = longValue(20),
+        exact = impossibleValue
+      ) should beColumns("id1", "id2").withNoRows()
+    })
+  }
+
+  test("composite queries should find nodes with missing property") {
+    // given
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      val id3Token = tx.kernelTransaction().tokenRead().propertyKey("id3")
+      nodeGraph(sizeHint / 2, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, id1Token, longValue(i))
+          write.nodeSetProperty(n.getId, id2Token, stringValue(i.toString))
+          write.nodeSetProperty(n.getId, id3Token, byteValue(i.toByte))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+      nodeGraph(sizeHint / 2, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, id1Token, longValue(i))
+          write.nodeSetProperty(n.getId, id2Token, stringValue(i.toString))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id1", "id2", "id3")
+      .projection("n.id1 AS id1", "n.id2 AS id2", "n.id3 AS id3")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2", "id3"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(
+          between(gte(param("from1")), lte(param("to1"))),
+          between(gte(param("from2")), lte(param("to2"))),
+          AllQueryExpression()
+        ))
+      )
+      .build()
+
+    def run(from1: AnyValue, to1: AnyValue, from2: AnyValue, to2: AnyValue) =
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "vector" -> randomVector,
+            "from1" -> from1,
+            "to1" -> to1,
+            "from2" -> from2,
+            "to2" -> to2
+          )
+      )
+
+    // then
+    run(
+      from1 = longValue(5),
+      to1 = longValue(10),
+      from2 = stringValue("5"),
+      to2 = stringValue("8")
+    ) should beColumns("id1", "id2", "id3").withRows(
+      Seq(
+        Array(5, "5", 5),
+        Array(5, "5", null),
+        Array(6, "6", 6),
+        Array(6, "6", null),
+        Array(7, "7", 7),
+        Array(7, "7", null),
+        Array(8, "8", 8),
+        Array(8, "8", null)
+      )
+    )
   }
 
   private def booleanVectorGraph(size: Int): Unit = {

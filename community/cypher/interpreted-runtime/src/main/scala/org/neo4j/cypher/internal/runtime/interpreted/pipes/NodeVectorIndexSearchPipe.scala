@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
+import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
+import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
@@ -171,7 +173,8 @@ object NodeVectorIndexSearchPipe {
     row: ReadableRow,
     state: QueryState
   ): Array[PropertyIndexQuery] = {
-    val nearestPredicate = PropertyIndexQuery.nearestNeighbors(limit, vector)
+    val nearestPredicate: PropertyIndexQuery.NearestNeighborsPredicate =
+      PropertyIndexQuery.nearestNeighbors(limit, vector)
 
     filter match {
       case Some(SingleQueryExpression(expression)) =>
@@ -205,6 +208,10 @@ object NodeVectorIndexSearchPipe {
             )
         }
 
+      case Some(CompositeQueryExpression(inner)) =>
+        require(inner.length == properties.length - 1)
+        compositePredicate(nearestPredicate, inner, properties, row, state)
+
       case Some(notSupported) =>
         throw InternalException.internalError(
           this.getClass.getSimpleName,
@@ -212,5 +219,65 @@ object NodeVectorIndexSearchPipe {
         )
       case None => Array(nearestPredicate)
     }
+  }
+
+  private def compositePredicate(
+    nearestPredicate: PropertyIndexQuery.NearestNeighborsPredicate,
+    inner: Seq[QueryExpression[Expression]],
+    properties: Array[Int],
+    row: ReadableRow,
+    state: QueryState
+  ): Array[PropertyIndexQuery] = {
+
+    val predicates = new Array[PropertyIndexQuery](properties.length)
+    predicates(0) = nearestPredicate
+    var i = 1
+    while (i < properties.length) {
+      inner(i - 1) match {
+        case SingleQueryExpression(expression) =>
+          makeValueNeoSafe.safeOrEmpty(expression(row, state)) match {
+            case Some(value) =>
+              predicates(i) = PropertyIndexQuery.exact(properties(i), value)
+            case None =>
+              return Array.empty
+          }
+
+        case RangeQueryExpression(rangeWrapper) =>
+          rangeWrapper match {
+            case InequalitySeekRangeExpression(innerRange) =>
+              val inner = computeIndexRangeQuery(
+                innerRange.flatMapBounds(expr => makeValueNeoSafe.safeOrEmpty(expr(row, state))),
+                properties(i)
+              )
+              // empty means no possible results
+              if (inner.isEmpty) {
+                return Array.empty
+              } else if (inner.length == 1) {
+                predicates(i) = inner.head
+              } else {
+                throw InternalException.internalError(
+                  this.getClass.getSimpleName,
+                  s"$rangeWrapper not supported in vector searches"
+                )
+              }
+
+            case notSupported =>
+              throw InternalException.internalError(
+                this.getClass.getSimpleName,
+                s"$notSupported not supported in vector searches"
+              )
+          }
+        case AllQueryExpression() =>
+          predicates(i) = PropertyIndexQuery.all(properties(i))
+
+        case notSupported =>
+          throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            s"$notSupported not supported in vector searches"
+          )
+      }
+      i += 1
+    }
+    predicates
   }
 }

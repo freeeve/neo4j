@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
+import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
@@ -138,6 +139,7 @@ object relationshipSingleUniqueIndexSeekPlanProvider extends RelationshipIndexPl
         case RangeQueryExpression(_)         => false
         case CompositeQueryExpression(inner) => allSingleQueryExpressions(inner ++ queryExpressions.tail)
         case ExistenceQueryExpression()      => false
+        case AllQueryExpression()            => false
       })
 
   private def createPlan(

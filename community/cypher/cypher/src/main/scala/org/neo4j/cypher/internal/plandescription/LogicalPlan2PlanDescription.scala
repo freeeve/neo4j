@@ -97,6 +97,7 @@ import org.neo4j.cypher.internal.logical.plans
 import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.AllNodesScan
+import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.AlterCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.Anti
 import org.neo4j.cypher.internal.logical.plans.AntiConditionalApply
@@ -3720,6 +3721,9 @@ case class LogicalPlan2PlanDescription(
     propertyKeys: Seq[PropertyKeyToken],
     valueExpr: QueryExpression[expressions.Expression]
   ): PrettyString = valueExpr match {
+    case _: AllQueryExpression[expressions.Expression] =>
+      pretty"all(${asPrettyString(propertyKeys.head.name)})"
+
     case _: ExistenceQueryExpression[expressions.Expression] =>
       pretty"${asPrettyString(propertyKeys.head.name)} IS NOT NULL"
 

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.frontend.helpers.SeqCombiner.combine
+import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
@@ -374,6 +375,9 @@ trait EntityIndexSeeker {
 
       case ExistenceQueryExpression() =>
         Seq(PropertyIndexQuery.exists(propertyId))
+
+      case AllQueryExpression() =>
+        Seq(PropertyIndexQuery.all(propertyId))
     }
 }
 
