@@ -30,6 +30,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.transaction_sampling
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_tracing_level;
 import static org.neo4j.internal.helpers.VarHandleUtils.getVarHandle;
 import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
+import static org.neo4j.kernel.impl.api.TransactionIdSequence.TRANSACTION_SEQUENCE_INITIAL_VALUE;
 import static org.neo4j.kernel.impl.api.transaction.trace.TraceProviderFactory.getTraceProvider;
 import static org.neo4j.kernel.impl.api.transaction.trace.TransactionInitializationTrace.NONE;
 
@@ -1610,7 +1611,7 @@ public class KernelTransactionImplementation
             statusDetails = EMPTY;
             clientInfo = null;
             internalTransaction = null;
-            transactionSequenceNumber = 0;
+            transactionSequenceNumber = TRANSACTION_SEQUENCE_INITIAL_VALUE;
             try {
                 statistics.reset();
             } catch (RuntimeException | Error e) {

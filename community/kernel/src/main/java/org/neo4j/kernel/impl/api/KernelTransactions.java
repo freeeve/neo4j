@@ -390,6 +390,17 @@ public class KernelTransactions extends LifecycleAdapter
         return startTime;
     }
 
+    public long earliestTransactionSequenceNumber() {
+        long sequenceNumber = Long.MAX_VALUE;
+        for (KernelTransactionImplementation transaction : allTransactions) {
+            long transactionSequenceNumber = transaction.getTransactionSequenceNumber();
+            if (transactionSequenceNumber > TransactionIdSequence.TRANSACTION_SEQUENCE_INITIAL_VALUE) {
+                sequenceNumber = Math.min(sequenceNumber, transactionSequenceNumber);
+            }
+        }
+        return sequenceNumber;
+    }
+
     /**
      * Give an approximate set of all transactions currently executing. In contrast to {@link #activeTransactions}, this also includes transactions in the
      * closing state, e.g. committing or rolling back. This is not guaranteed to be exact, as transactions may stop and start while this set is gathered.

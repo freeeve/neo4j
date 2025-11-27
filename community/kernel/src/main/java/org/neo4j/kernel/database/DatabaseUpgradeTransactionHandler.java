@@ -35,7 +35,6 @@ import org.neo4j.kernel.DeadlockDetectedException;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.kernel.api.KernelTransactionHandle;
 import org.neo4j.kernel.impl.api.KernelImpl;
 import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.api.MaximumTransactionLimitExceededException;
@@ -274,13 +273,7 @@ class DatabaseUpgradeTransactionHandler {
             }
 
             private boolean oldTransactionCompleted(long currentValue) {
-                for (KernelTransactionHandle transaction : kernelTransactions.executingTransactions()) {
-                    long sequenceNumber = transaction.getTransactionSequenceNumber();
-                    if (sequenceNumber != 0 && sequenceNumber < currentValue) {
-                        return false;
-                    }
-                }
-                return true;
+                return kernelTransactions.earliestTransactionSequenceNumber() >= currentValue;
             }
         }
     }

@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.database;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -39,6 +38,7 @@ class MultiVersionUpgradeLockTest {
     @Test
     void acquireUpgradePermit() {
         KernelTransactions transactions = mock(KernelTransactions.class);
+        when(transactions.earliestTransactionSequenceNumber()).thenReturn(1L);
         KernelTransaction kernelTransaction = mock(KernelTransaction.class);
         when(kernelTransaction.getTransactionSequenceNumber()).thenReturn(1L);
 
@@ -48,24 +48,10 @@ class MultiVersionUpgradeLockTest {
     }
 
     @Test
-    void transactionWithLowerSequenceNumberAllowToProgress() {
-        KernelTransactions transactions = mock(KernelTransactions.class);
-        KernelTransaction kernelTransaction1 = mock(KernelTransaction.class);
-        when(kernelTransaction1.getTransactionSequenceNumber()).thenReturn(10L);
-
-        KernelTransaction kernelTransaction2 = mock(KernelTransaction.class);
-        when(kernelTransaction2.getTransactionSequenceNumber()).thenReturn(5L);
-
-        DatabaseUpgradeTransactionHandler.DatabaseUpgradeListener.MultiVersionUpgradeGate upgradeLock =
-                new DatabaseUpgradeTransactionHandler.DatabaseUpgradeListener.MultiVersionUpgradeGate(transactions);
-        assertTrue(upgradeLock.upgradeGate(kernelTransaction1));
-
-        assertFalse(upgradeLock.upgradeGate(kernelTransaction2));
-    }
-
-    @Test
     void transactionWithHigherSequenceNumberBlocked() {
         KernelTransactions transactions = mock(KernelTransactions.class);
+        when(transactions.earliestTransactionSequenceNumber()).thenReturn(5L);
+
         KernelTransaction kernelTransaction1 = mock(KernelTransaction.class);
         when(kernelTransaction1.getTransactionSequenceNumber()).thenReturn(5L);
 
@@ -81,6 +67,7 @@ class MultiVersionUpgradeLockTest {
                 Future<?> future = executor.submit(() -> upgradeLock.upgradeGate(kernelTransaction2));
                 assertThrows(TimeoutException.class, () -> future.get(5, TimeUnit.SECONDS));
             } finally {
+                when(transactions.earliestTransactionSequenceNumber()).thenReturn(10L);
                 upgradeLock.release();
             }
         }

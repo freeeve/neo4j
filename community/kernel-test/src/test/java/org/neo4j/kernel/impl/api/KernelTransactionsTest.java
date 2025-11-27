@@ -57,6 +57,7 @@ import static org.neo4j.kernel.api.security.AnonymousContext.access;
 import static org.neo4j.kernel.api.security.AnonymousContext.full;
 import static org.neo4j.kernel.database.DatabaseIdFactory.from;
 import static org.neo4j.kernel.impl.api.KernelTransactionTestBase.mockedStorageReader;
+import static org.neo4j.kernel.impl.api.TransactionIdSequence.TRANSACTION_SEQUENCE_INITIAL_VALUE;
 import static org.neo4j.kernel.impl.api.chunk.TransactionRollbackProcess.EMPTY_ROLLBACK_PROCESS;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 import static org.neo4j.storageengine.api.txstate.validation.TransactionValidatorFactory.EMPTY_VALIDATOR_FACTORY;
@@ -713,6 +714,33 @@ class KernelTransactionsTest {
             ktx.dataWrite().nodeCreate(); // Make it a write TX
             ktx.commit(KernelTransaction.Monitor.withBeforeApply(() ->
                     assertThat(ktxs.startTimeOfOldestExecutingTransaction()).isNotEqualTo(Long.MAX_VALUE)));
+        }
+    }
+
+    @Test
+    void earliestTransactionSequenceNumberOnEmptyTransactions() throws Throwable {
+        KernelTransactions kernelTransactions = newKernelTransactions();
+        assertThat(kernelTransactions.getNumberOfActiveTransactions()).isEqualTo(0);
+        assertThat(kernelTransactions.earliestTransactionSequenceNumber()).isEqualTo(Long.MAX_VALUE);
+    }
+
+    @Test
+    void earliestTransactionSequenceNumberOfRunningTransactions() throws Throwable {
+        KernelTransactions kernelTransactions = newKernelTransactions();
+        assertThat(kernelTransactions.getNumberOfActiveTransactions()).isEqualTo(0);
+        try (KernelTransaction earliestTransaction =
+                        kernelTransactions.newInstance(EXPLICIT, full(), EMBEDDED_CONNECTION, NO_TIMEOUT);
+                KernelTransaction laterTransaction =
+                        kernelTransactions.newInstance(EXPLICIT, full(), EMBEDDED_CONNECTION, NO_TIMEOUT)) {
+
+            assertThat(kernelTransactions.earliestTransactionSequenceNumber())
+                    .isEqualTo(earliestTransaction.getTransactionSequenceNumber())
+                    .isGreaterThan(TRANSACTION_SEQUENCE_INITIAL_VALUE);
+
+            earliestTransaction.close();
+            assertThat(kernelTransactions.earliestTransactionSequenceNumber())
+                    .isEqualTo(laterTransaction.getTransactionSequenceNumber())
+                    .isGreaterThan(TRANSACTION_SEQUENCE_INITIAL_VALUE);
         }
     }
 
