@@ -45,15 +45,13 @@ case object UnresolveShadowedFunctions extends StatementRewriter with StepSequen
 
   override def instance(from: BaseState, context: BaseContext): Rewriter = bottomUp(
     Rewriter.lift {
-      case fi: FunctionInvocation =>
-        val isShadowed = context.shadowedFunctions.contains(fi.name)
-        val warning = (fi.function, isShadowed) match {
-          case (UnresolvedFunction, true) => Some(DeprecatedFunctionNamespaceUsed(fi.position, fi.name))
-          case (_, true)                  => Some(ShadowingInternalFunction(fi.position, fi.name))
-          case _                          => None
+      case fi: FunctionInvocation if context.shadowedFunctions.contains(fi.name) =>
+        val warning = fi.function match {
+          case UnresolvedFunction => Some(DeprecatedFunctionNamespaceUsed(fi.position, fi.name))
+          case _                  => Some(ShadowingInternalFunction(fi.position, fi.name))
         }
         warning.foreach(context.notificationLogger.log(_))
-        fi.copy(isShadowed = isShadowed)(fi.position)
+        fi.copy(isShadowed = true)(fi.position)
       case pc: UnresolvedCall if context.shadowedFunctions.contains(pc.fullName) =>
         context.notificationLogger.log(DeprecatedProcedureNamespaceUsed(pc.position, pc.fullName))
         pc

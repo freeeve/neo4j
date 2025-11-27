@@ -77,7 +77,7 @@ case class FunctionInvocation(
 )(val position: InputPosition) extends Expression {
   val name: String = (functionName.namespace.parts :+ functionName.name).mkString(".")
 
-  val function: functions.Function =
+  def function: functions.Function =
     if (isShadowed) UnresolvedFunction
     else functions.Function.lookup.getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
 
