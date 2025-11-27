@@ -389,7 +389,6 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.executingControlQuery(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBe(io.cucumber.datatable.DataTable,scala.Function1)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.sideEffectsShouldBe(io.cucumber.datatable.DataTable)",
-      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedError)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlError)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.warningShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlWarning)",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.commitOpenTx()",
@@ -480,7 +479,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     assertThat(failure.throwable)
       .hasMessageContainingAll(
         "Query failed but was expected to succeed.",
-        "Phase: compile time",
+        "Phase: compile",
         "CYPHER runtime=legacy"
       )
   }

@@ -19,16 +19,13 @@
  */
 package org.neo4j.cypher.cucumber.glue.regular.steps
 
-import cypher.features.Neo4jExceptionToExecutionFailed
 import io.cucumber.datatable.DataTable
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.fail
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.GqlFailure
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryExecution
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryFailure
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryResults
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.describeFailure
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.doDescribeFailure
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.originalError
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.unexpectedSuccess
@@ -36,7 +33,6 @@ import org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.describeEr
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.errorHierarchy
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.errorsMatch
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 
@@ -67,19 +63,10 @@ trait RegularErrorSteps { this: CypherCucumberSteps =>
         )
       }
   }
-
-  final override def errorShouldBeRaised(expected: ExpectedError): Unit = lastExecutionResult match {
-    case success: QueryResults => unexpectedSuccess(success, conf)
-    case failure: QueryFailure =>
-      val actual = Neo4jExceptionToExecutionFailed.convert(failure.phase, failure.cause)
-      val desc = describeFailure(failure)
-      assertThat[Any](actual.errorType).as(desc).isEqualTo(expected.error)
-      expected.phase.foreach(expectedPhase => assertThat[Any](actual.phase).as(desc).isEqualTo(expectedPhase))
-      expected.description.foreach(expectedDesc => assertThat[Any](actual.detail).as(desc).isEqualTo(expectedDesc))
-  }
 }
 
 object RegularErrorSteps {
+
   private val InlineRegexPattern = "\\$\\{regex:(?<exp>[^}]+?)\\}".r
 
   @tailrec
@@ -110,7 +97,7 @@ object RegularErrorSteps {
       actual.size == expectedErrors.size &&
       actual.zip(expectedErrors).forall { case (actual, expected) =>
         val codeMatches = expected.code.contains(actual.code)
-        val classificationMatches = actual.classification == expected.classification
+        val classificationMatches = expected.classification.contains(actual.classification)
         val descriptionMatches = actual.description == expected.descriptionTemplate ||
           buildRegexFromTemplate(expected.descriptionTemplate).matches(actual.description)
         codeMatches && classificationMatches && descriptionMatches

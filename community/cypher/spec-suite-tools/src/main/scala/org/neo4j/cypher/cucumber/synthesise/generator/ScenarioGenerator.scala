@@ -28,7 +28,6 @@ import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Within
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 import org.neo4j.cypher.cucumber.synthesise.CucumberSalad
@@ -36,7 +35,6 @@ import org.neo4j.cypher.cucumber.synthesise.generator.Filter.ScenarioFilter
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.excludeTags
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.isCompatible
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.isReadQuery
-import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertError
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlError
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlWarning
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertResults
@@ -254,8 +252,6 @@ trait ScenarioRenderer {
       }
       render(s"Then the result should be$orderString$precisionString:", expected)
     case error: ExpectError => error match {
-        case AssertError(ExpectedError(error, description, phase)) =>
-          s"a $error should be raised at $phase: $description"
         case AssertGqlError(ExpectedGqlError(table, _)) =>
           render(s"Then an error should be raised:", table)
         case AssertGqlWarning(ExpectedGqlWarning(code, None)) =>

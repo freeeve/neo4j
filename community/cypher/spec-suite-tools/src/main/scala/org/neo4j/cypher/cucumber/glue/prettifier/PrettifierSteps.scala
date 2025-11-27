@@ -33,7 +33,6 @@ import org.neo4j.cypher.cucumber.glue.regular.GuiceObjectFactory.injector
 import org.neo4j.cypher.cucumber.glue.regular.NoOpBeforeAndAfterAllModule
 import org.neo4j.cypher.cucumber.glue.regular.SingletonInjector
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
@@ -137,7 +136,6 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
   override def givenCsvFile(urlParam: String, content: DataTable): Unit = {}
   override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit = {}
   override def sideEffectsShouldBe(expected: DataTable): Unit = {}
-  override def errorShouldBeRaised(expected: ExpectedError): Unit = {}
   override def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {}
   override def warningShouldBeRaised(expectedGqlWarning: ExpectedGqlWarning): Unit = {}
   override def openTransaction(): Unit = {}

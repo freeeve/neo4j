@@ -20,7 +20,6 @@
 package org.neo4j.cypher.cucumber.glue.regular.steps
 
 import com.google.inject.Inject
-import cypher.features.Phase
 import io.cucumber.datatable.DataTable
 import io.cucumber.scala.Scenario
 import org.assertj.core.api.Assertions.assertThat
@@ -192,7 +191,7 @@ final class RegularCypherSteps @Inject() (
   private def failurePhase(cypher: String): String = Using.resource(db.begin()) { tx =>
     val explainSucceeds = Try(tx.execute("EXPLAIN\n" + cypher, parameters).consume()).isSuccess
     val rollbackSucceeds = Try(tx.rollback()).isSuccess
-    if (explainSucceeds || !rollbackSucceeds) Phase.runtime else Phase.compile
+    if (explainSucceeds || !rollbackSucceeds) "runtime" else "compile"
   }
 
   override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit =

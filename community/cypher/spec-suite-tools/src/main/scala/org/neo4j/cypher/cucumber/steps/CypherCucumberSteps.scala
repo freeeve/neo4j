@@ -29,7 +29,6 @@ import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDou
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 
@@ -149,16 +148,6 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
     sideEffectsShouldBe(expected)
   }
 
-  // To be removed!
-  Then("^an? (\\w+) should be raised at (compile time|runtime|any time): (.+)$") {
-    (error: String, phase: String, description: String) =>
-      errorShouldBeRaised(ExpectedError(
-        error = error,
-        description = Option.when(description != "*")(description),
-        phase = Option.when(phase != "any time")(phase)
-      ))
-  }
-
   // Needs table including headers:
   // - code, the expected GQL code, comma separated to allow a set of codes.
   // - classification, the expected error classification.
@@ -189,15 +178,13 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   def executingControlQuery(cypher: String): Unit
   def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit
   def sideEffectsShouldBe(expected: DataTable): Unit
-  def errorShouldBeRaised(expectedError: ExpectedError): Unit
   def errorShouldBeRaised(hierarchy: ExpectedGqlError): Unit
   def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit
 }
 
 object CypherCucumberSteps {
-  case class ExpectedError(error: String, description: Option[String], phase: Option[String])
   case class ExpectedGqlWarning(code: String, descriptionContains: Option[String])
-  case class ErrorDescription(code: Seq[String], classification: String, descriptionTemplate: String)
+  case class ErrorDescription(code: Seq[String], classification: Seq[String], descriptionTemplate: String)
   case class ExpectedGqlError(table: DataTable, errors: Seq[ErrorDescription])
 
   object ExpectedGqlError {
@@ -208,7 +195,7 @@ object CypherCucumberSteps {
           table = table,
           errors = table.cells().asScala.view
             .drop(1) // Headers
-            .map(row => ErrorDescription(row.get(0).split(','), row.get(1), row.get(2)))
+            .map(row => ErrorDescription(row.get(0).split(','), row.get(1).split(','), row.get(2)))
             .toSeq
         )
       case headers => throw new IllegalArgumentException(s"Unrecognized headers: " + headers)

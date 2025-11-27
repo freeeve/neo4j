@@ -183,9 +183,6 @@ final class ObfuscatorSteps @Inject() (
   override def commitOpenTx(): Unit = inner.commitOpenTx()
 
   // Failing queries are silently ignored
-  override def errorShouldBeRaised(expectedError: CypherCucumberSteps.ExpectedError): Unit =
-    taggedQueries = taggedQueries.removed(lastTag)
-
   override def errorShouldBeRaised(expectedError: CypherCucumberSteps.ExpectedGqlError): Unit =
     taggedQueries = taggedQueries.removed(lastTag)
 
