@@ -68,7 +68,7 @@ class PrettyPrinterTest {
         String actual = verbosePrinter.format(result);
 
         // then
-        assertThat(actual).contains("Added 10 nodes, Added 1 labels");
+        assertThat(actual).contains("Created 10 nodes, added 1 label");
     }
 
     @Test

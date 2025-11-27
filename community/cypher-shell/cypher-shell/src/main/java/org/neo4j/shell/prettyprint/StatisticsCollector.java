@@ -40,45 +40,64 @@ public class StatisticsCollector {
         }
     }
 
+    private enum Operation {
+        ADDED("added", "Added"),
+        CREATED("created", "Created"),
+        DELETED("deleted", "Deleted"),
+        SET("set", "Set"),
+        REMOVED("removed", "Removed");
+
+        private final String lower;
+        private final String capitalized;
+
+        Operation(String lower, String capitalized) {
+            this.lower = lower;
+            this.capitalized = capitalized;
+        }
+    }
+
+    private enum Element {
+        NODE("node", "nodes"),
+        RELATIONSHIP("relationship", "relationships"),
+        PROPERTY("property", "properties"),
+        LABEL("label", "labels"),
+        INDEX("index", "indexes"),
+        CONSTRAINT("constraint", "constraints");
+
+        private final String singular;
+        private final String plural;
+
+        Element(String singular, String plural) {
+            this.singular = singular;
+            this.plural = plural;
+        }
+    }
+
     private static String collectStatistics(ResultSummary summary) {
         List<String> statistics = new ArrayList<>();
         SummaryCounters counters = summary.counters();
         if (counters == null) {
             return "";
         }
-        if (counters.nodesCreated() != 0) {
-            statistics.add(String.format("Added %d nodes", counters.nodesCreated()));
-        }
-        if (counters.nodesDeleted() != 0) {
-            statistics.add(String.format("Deleted %d nodes", counters.nodesDeleted()));
-        }
-        if (counters.relationshipsCreated() != 0) {
-            statistics.add(String.format("Created %d relationships", counters.relationshipsCreated()));
-        }
-        if (counters.relationshipsDeleted() != 0) {
-            statistics.add(String.format("Deleted %d relationships", counters.relationshipsDeleted()));
-        }
-        if (counters.propertiesSet() != 0) {
-            statistics.add(String.format("Set %d properties", counters.propertiesSet()));
-        }
-        if (counters.labelsAdded() != 0) {
-            statistics.add(String.format("Added %d labels", counters.labelsAdded()));
-        }
-        if (counters.labelsRemoved() != 0) {
-            statistics.add(String.format("Removed %d labels", counters.labelsRemoved()));
-        }
-        if (counters.indexesAdded() != 0) {
-            statistics.add(String.format("Added %d indexes", counters.indexesAdded()));
-        }
-        if (counters.indexesRemoved() != 0) {
-            statistics.add(String.format("Removed %d indexes", counters.indexesRemoved()));
-        }
-        if (counters.constraintsAdded() != 0) {
-            statistics.add(String.format("Added %d constraints", counters.constraintsAdded()));
-        }
-        if (counters.constraintsRemoved() != 0) {
-            statistics.add(String.format("Removed %d constraints", counters.constraintsRemoved()));
-        }
+        addStatistic(statistics, Operation.CREATED, counters.nodesCreated(), Element.NODE);
+        addStatistic(statistics, Operation.DELETED, counters.nodesDeleted(), Element.NODE);
+        addStatistic(statistics, Operation.CREATED, counters.relationshipsCreated(), Element.RELATIONSHIP);
+        addStatistic(statistics, Operation.DELETED, counters.relationshipsDeleted(), Element.RELATIONSHIP);
+        addStatistic(statistics, Operation.SET, counters.propertiesSet(), Element.PROPERTY);
+        addStatistic(statistics, Operation.ADDED, counters.labelsAdded(), Element.LABEL);
+        addStatistic(statistics, Operation.REMOVED, counters.labelsRemoved(), Element.LABEL);
+        addStatistic(statistics, Operation.ADDED, counters.indexesAdded(), Element.INDEX);
+        addStatistic(statistics, Operation.REMOVED, counters.indexesRemoved(), Element.INDEX);
+        addStatistic(statistics, Operation.ADDED, counters.constraintsAdded(), Element.CONSTRAINT);
+        addStatistic(statistics, Operation.REMOVED, counters.constraintsRemoved(), Element.CONSTRAINT);
         return String.join(", ", statistics);
+    }
+
+    private static void addStatistic(List<String> statistics, Operation operation, int number, Element element) {
+        if (number > 0) {
+            String operationCaseAdjusted = (statistics.isEmpty()) ? operation.capitalized : operation.lower;
+            String elementNumberAdjusted = (number == 1) ? element.singular : element.plural;
+            statistics.add(String.format("%s %d %s", operationCaseAdjusted, number, elementNumberAdjusted));
+        }
     }
 }

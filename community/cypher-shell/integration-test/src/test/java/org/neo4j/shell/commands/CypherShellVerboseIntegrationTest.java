@@ -81,10 +81,22 @@ class CypherShellVerboseIntegrationTest extends CypherShellIntegrationTest {
     @Test
     void cypherWithNoReturnStatements() throws CommandException {
         // when
-        shell.execute(CypherStatement.complete("CREATE (:TestPerson {name: \"Jane Smith\"})"));
+        shell.execute(CypherStatement.complete(
+                "CREATE (:TestPerson {name: \"Jane Smith\"}), (:TestPerson {name: \"Bob Smith\"})"));
 
         // then
-        assertThat(linePrinter.output()).contains("Added 1 nodes, Set 1 properties, Added 1 labels");
+        assertThat(linePrinter.output()).contains("Created 2 nodes, set 2 properties, added 2 labels");
+    }
+
+    @Test
+    void cypherWithNoReturnStatementsAndMoreStatistics() throws CommandException {
+        // when
+        shell.execute(CypherStatement.complete(
+                "CREATE (jane :TestPerson {name: \"Jane Smith\"})-[:KNOWS]->(:TestPerson {name: \"Bob Smith\"})"));
+
+        // then
+        assertThat(linePrinter.output())
+                .contains("Created 2 nodes, created 1 relationship, set 2 properties, added 2 labels");
     }
 
     @Test
@@ -97,7 +109,7 @@ class CypherShellVerboseIntegrationTest extends CypherShellIntegrationTest {
         assertThat(output)
                 .contains("| jane ")
                 .contains("| (:TestPerson {name: \"Jane Smith\"}) |")
-                .contains("Added 1 nodes, Set 1 properties, Added 1 labels");
+                .contains("Created 1 node, set 1 property, added 1 label");
     }
 
     @Test

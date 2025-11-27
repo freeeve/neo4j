@@ -56,6 +56,6 @@ class StatisticsCollectorTest {
         String actual = new StatisticsCollector(Format.VERBOSE).collect(resultSummary);
 
         // then
-        assertThat(actual).isEqualTo("Added 10 nodes, Added 1 labels");
+        assertThat(actual).isEqualTo("Created 10 nodes, added 1 label");
     }
 }
