@@ -21,6 +21,7 @@ package org.neo4j.internal.id;
 
 import java.io.Closeable;
 import java.io.IOException;
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.annotations.documented.ReporterFactory;
 import org.neo4j.collection.PrimitiveLongResourceIterator;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -85,6 +86,11 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
      * @param cursorContext for tracking cursor interaction.
      */
     void releasePageRange(PageIdRange range, CursorContext cursorContext);
+
+    /**
+     * Release back set of pages ids that were used by transaction to allow other transactions to allocate from those ranges.
+     */
+    void releasePageRangesLocks(LongSet pageIds);
 
     /**
      * @param id the highest in use + 1
@@ -370,6 +376,11 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         @Override
         public void releasePageRange(PageIdRange range, CursorContext cursorContext) {
             delegate.releasePageRange(range, cursorContext);
+        }
+
+        @Override
+        public void releasePageRangesLocks(LongSet pageIds) {
+            delegate.releasePageRangesLocks(pageIds);
         }
 
         @Override

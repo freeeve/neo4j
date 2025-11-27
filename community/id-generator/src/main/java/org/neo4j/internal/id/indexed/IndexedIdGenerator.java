@@ -49,6 +49,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.annotations.documented.ReporterFactory;
 import org.neo4j.collection.PrimitiveLongResourceCollections;
 import org.neo4j.collection.PrimitiveLongResourceIterator;
@@ -209,6 +210,12 @@ public class IndexedIdGenerator implements IdGenerator {
      * looks like FREE in the current session. Updates to tree items (except for recovery) will reset the generation that of the current session.
      */
     private static final long STARTING_GENERATION = 1;
+
+    /*
+     * Id reuse fetches from cache optimistically, if we get collision (in MVCC), we retry reuse a few times to not
+     * expand the id space too much
+     * */
+    private final int REUSE_RETRY_ATTEMPTS = 50;
 
     /**
      * {@link GBPTree} for storing and accessing the id states.
@@ -506,8 +513,12 @@ public class IndexedIdGenerator implements IdGenerator {
     }
 
     private PageIdRange getPageIdRangeFromCache(CursorContext cursorContext, int idsPerPage) {
-        long[] reusedIds = cache.drainRange(idsPerPage);
-        if (reusedIds.length > 0) {
+        int retryAttempts = 0;
+        while (true) {
+            long[] reusedIds = cache.drainRange(idsPerPage);
+            if (reusedIds.length == 0) {
+                return null;
+            }
             // we have some reuse ids available that we allocated from cache
             // now we need to make sure that range is not yet used by any other concurrent allocator
             // so we check if it's not yet locked before returning it, otherwise we mark those ids unallocated and
@@ -516,14 +527,16 @@ public class IndexedIdGenerator implements IdGenerator {
             var range = PageIdRange.wrap(reusedIds, idsPerPage);
             if (lockedPageRanges.add(range.pageId())) {
                 return range;
-            } else {
-                // we mark optimistically allocated range as unallocated and fallback to new ids
-                try (var marker = lockAndInstantiateMarker(false, false, cursorContext)) {
-                    range.unallocate(marker);
-                }
+            }
+            // we mark optimistically allocated range as unallocated and fallback to new ids
+            try (var marker = lockAndInstantiateMarker(false, false, cursorContext)) {
+                range.unallocate(marker);
+            }
+
+            if (++retryAttempts >= REUSE_RETRY_ATTEMPTS) {
+                return null;
             }
         }
-        return null;
     }
 
     @Override
@@ -549,6 +562,11 @@ public class IndexedIdGenerator implements IdGenerator {
             }
         }
         lockedPageRanges.remove(range.pageId());
+    }
+
+    @Override
+    public void releasePageRangesLocks(LongSet pageIds) {
+        pageIds.forEach(lockedPageRanges::remove);
     }
 
     @Override

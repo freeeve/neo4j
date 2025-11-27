@@ -95,6 +95,7 @@ import org.eclipse.collections.api.iterator.MutableLongIterator;
 import org.eclipse.collections.api.list.primitive.LongList;
 import org.eclipse.collections.api.list.primitive.MutableLongList;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -1485,6 +1486,11 @@ class IndexedIdGeneratorTest {
         @Override
         public void releasePageRange(PageIdRange range, CursorContext cursorContext) {
             withReadLockNoResult(() -> leader().releasePageRange(range, cursorContext));
+        }
+
+        @Override
+        public void releasePageRangesLocks(LongSet pageIds) {
+            withReadLockNoResult(() -> leader().releasePageRangesLocks(pageIds));
         }
 
         @Override

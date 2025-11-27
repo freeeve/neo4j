@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.id;
 
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.annotations.documented.ReporterFactory;
 import org.neo4j.collection.PrimitiveLongResourceCollections;
 import org.neo4j.collection.PrimitiveLongResourceIterator;
@@ -149,6 +150,11 @@ class ReadOnlyHighIdGenerator implements IdGenerator {
 
     @Override
     public void releasePageRange(PageIdRange range, CursorContext cursorContext) {
+        throw new UnsupportedOperationException("Should not be required");
+    }
+
+    @Override
+    public void releasePageRangesLocks(LongSet pageIds) {
         throw new UnsupportedOperationException("Should not be required");
     }
 

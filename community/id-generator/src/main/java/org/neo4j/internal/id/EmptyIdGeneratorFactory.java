@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.annotations.documented.ReporterFactory;
 import org.neo4j.collection.PrimitiveLongResourceCollections;
 import org.neo4j.collection.PrimitiveLongResourceIterator;
@@ -232,6 +233,9 @@ public class EmptyIdGeneratorFactory implements IdGeneratorFactory {
 
         @Override
         public void releasePageRange(PageIdRange range, CursorContext cursorContext) {}
+
+        @Override
+        public void releasePageRangesLocks(LongSet pageIds) {}
 
         @Override
         public boolean consistencyCheck(
