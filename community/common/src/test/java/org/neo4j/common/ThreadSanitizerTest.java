@@ -100,11 +100,8 @@ class ThreadSanitizerTest {
         DummyTypeA proxiedDummy =
                 ThreadSanitizer.sanitize(dummy, DummyTypeA.class, e -> exceptionCounter.incrementAndGet());
         Runnable doThing = () -> {
-            try {
-                proxiedDummy.typeADoThing();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            proxiedDummy.typeADoThingWithoutWaiting();
+            latch.countDown();
         };
 
         Thread t = new Thread(doThing);
@@ -174,6 +171,8 @@ class ThreadSanitizerTest {
 
     public interface DummyTypeA extends DummyRoot {
         void typeADoThing() throws InterruptedException;
+
+        void typeADoThingWithoutWaiting();
     }
 
     public interface DummyTypeB extends DummyRoot {
@@ -203,6 +202,9 @@ class ThreadSanitizerTest {
             latch.countDown();
             latch.await();
         }
+
+        @Override
+        public void typeADoThingWithoutWaiting() {}
 
         @Override
         public void recurse() {
