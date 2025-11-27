@@ -190,7 +190,8 @@
     <caffeine.version>3.2.3</caffeine.version>
     <required.maven.version>3.9.11</required.maven.version>
     <jackson.version>2.20.1</jackson.version>
-    <jackson-databind.version>2.20.1</jackson-databind.version>
+    <!-- no more patch releases for jackson-annotations so different versioning from jackson -->
+    <jackson.annotations.version>2.20</jackson.annotations.version>
     <amazon-sdk.version>1.12.791</amazon-sdk.version>
     <awssdk.version>2.38.6</awssdk.version>
     <awssdk-crt.version>0.39.4</awssdk-crt.version>
@@ -1921,7 +1922,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson-databind.version}</version>
+        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
@@ -2133,7 +2134,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
-        <version>2.20</version>
+        <version>${jackson.annotations.version}</version>
       </dependency>
       <dependency>
         <groupId>net.bytebuddy</groupId>
