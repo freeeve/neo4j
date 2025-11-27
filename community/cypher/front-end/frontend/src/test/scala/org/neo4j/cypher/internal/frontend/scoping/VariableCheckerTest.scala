@@ -1548,6 +1548,30 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test("""MATCH p = ()-[]->()
+         |WITH p, EXISTS {
+         |    RETURN p AS x
+         |  } AS x
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH p = ()-[]->()
+         |WITH p, COUNT {
+         |    RETURN p AS x
+         |  } AS x
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH p = ()-[]->()
+         |WITH p, COLLECT {
+         |    RETURN p AS x
+         |  } AS x
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
   test("""MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
          |WITH a.name AS a_name, collect(child.name) AS kids
          |RETURN a_name, {foo: a_name='Andres', kids: kids}""".stripMargin) {
