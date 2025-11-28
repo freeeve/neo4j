@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.csv.reader.VectorExtractor;
@@ -63,6 +64,9 @@ class ParquetDataInputChunk implements ParquetInputChunk {
     private Iterator<List<Object>> iterator;
     private Collection<String> filteredLabelsOrTypes;
     private final Map<Object, Collection<String>> labelCache = new HashMap<>();
+    private Group nodeIdGroup;
+    private Group relationshipStartIdGroup;
+    private Group relationshipEndIdGroup;
 
     @Override
     public boolean readWith(ParquetDataReader reader) {
@@ -79,6 +83,15 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             vectorDelimiter = Pattern.quote(reader.getVectorDelimiter());
             idType = reader.getIdType();
             filteredLabelsOrTypes = filterEmptyLabelsAndTrim(parquetDataFile.labelsOrType());
+            if (parquetDataFile.entityType() == EntityType.NODE) {
+                nodeIdGroup = groups.get(parquetDataFile.groupName());
+                relationshipStartIdGroup = null;
+                relationshipEndIdGroup = null;
+            } else {
+                nodeIdGroup = null;
+                relationshipStartIdGroup = groups.get(parquetDataFile.relationshipStartIdGroupName());
+                relationshipEndIdGroup = groups.get(parquetDataFile.relationshipEndIdGroupName());
+            }
             return true;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -119,9 +132,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                     }
                     idValue.append(resolveIdByType(readDatum, null));
                 } else if (idType == IdType.INTEGER || parquetColumn.columnIdType() == IdType.INTEGER) {
-                    entityToHydrate.id(
-                            resolveIdByType(readDatum, parquetColumn.columnIdType()),
-                            groups.get(parquetDataFile.groupName()));
+                    entityToHydrate.id(resolveIdByType(readDatum, parquetColumn.columnIdType()), nodeIdGroup);
                 } else {
                     entityToHydrate.id((Long) resolveIdByType(readDatum, parquetColumn.columnIdType()));
                 }
@@ -161,9 +172,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                     }
                     startIdValue.append(resolveIdByType(readDatum, null));
                 } else {
-                    entityToHydrate.startId(
-                            resolveIdByType(readDatum, null),
-                            groups.get(parquetDataFile.relationshipStartIdGroupName()));
+                    entityToHydrate.startId(resolveIdByType(readDatum, null), relationshipStartIdGroup);
                 }
                 isRelationshipEntity = true;
             }
@@ -176,8 +185,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                     }
                     endIdValue.append(resolveIdByType(readDatum, null));
                 } else {
-                    entityToHydrate.endId(
-                            resolveIdByType(readDatum, null), groups.get(parquetDataFile.relationshipEndIdGroupName()));
+                    entityToHydrate.endId(resolveIdByType(readDatum, null), relationshipEndIdGroup);
                 }
                 isRelationshipEntity = true;
             }
@@ -194,17 +202,13 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             entityToHydrate.type(type);
         }
         if (idType == IdType.STRING && !idValue.isEmpty()) {
-            entityToHydrate.id(idValue.toString(), groups.get(parquetDataFile.groupName()));
+            entityToHydrate.id(idValue.toString(), nodeIdGroup);
         }
         if (idType == IdType.STRING && !startIdValue.isEmpty()) {
-            entityToHydrate.startId(
-                    resolveIdByType(startIdValue.toString(), null),
-                    groups.get(parquetDataFile.relationshipStartIdGroupName()));
+            entityToHydrate.startId(resolveIdByType(startIdValue.toString(), null), relationshipStartIdGroup);
         }
         if (idType == IdType.STRING && !endIdValue.isEmpty()) {
-            entityToHydrate.endId(
-                    resolveIdByType(endIdValue.toString(), null),
-                    groups.get(parquetDataFile.relationshipStartIdGroupName()));
+            entityToHydrate.endId(resolveIdByType(endIdValue.toString(), null), relationshipEndIdGroup);
         }
         entityToHydrate.endOfEntity();
         return true;

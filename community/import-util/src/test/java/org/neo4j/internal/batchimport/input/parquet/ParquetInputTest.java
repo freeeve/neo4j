@@ -149,7 +149,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -179,7 +179,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -223,7 +223,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
             assertNextNode(nodes, 123L, properties("notaname", "Mattias Persson"), labels("HACKER", "USER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -264,7 +264,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
             assertNextNode(nodes, 456L, properties("name", "SomeoneElse"), labels("HACKER", "USER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -305,7 +305,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
             assertNextNode(nodes, 456L, properties("name", "SomeoneElse"), labels("HACKER", "USER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -334,7 +334,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties(), labels("HACKER", "USER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -393,6 +393,7 @@ class ParquetInputTest {
                                 assertThat(propertyNode2.asValue()).isEqualTo(Values.stringValue("SomeoneElse"));
                                 assertThat(propertyNode2.keyName()).isEqualTo("new_name");
                             });
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -425,7 +426,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("ignored-column-name", "Mattias Persson"), labels("HACKER"));
             assertNextNode(nodes, 456L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -540,7 +541,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -579,7 +580,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", expectedList, "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -593,7 +594,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", List.of("a"), "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -608,7 +609,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", List.of(), "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -623,7 +624,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -642,7 +643,7 @@ class ParquetInputTest {
                     123L,
                     properties("aMap.a", "aa", "aMap.b", "bb", "name", "Mattias Persson"),
                     labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -658,7 +659,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
                     nodes, 123L, properties("aMap.a", 1L, "aMap.b", 23L, "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -689,7 +690,7 @@ class ParquetInputTest {
                             "name",
                             "Mattias Persson"),
                     labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -704,7 +705,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -719,7 +720,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -734,7 +735,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aMap.x", "abcd", "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -770,7 +771,7 @@ class ParquetInputTest {
                     123L,
                     properties("aStruct.a", "aa", "aStruct.b", "bb", "name", "Mattias Persson"),
                     labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -800,7 +801,7 @@ class ParquetInputTest {
                             "bStruct.y",
                             12),
                     labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -833,6 +834,7 @@ class ParquetInputTest {
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
+            assertFalse(readNext(relationships));
         }
     }
 
@@ -868,6 +870,7 @@ class ParquetInputTest {
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
+            assertFalse(readNext(relationships));
         }
     }
 
@@ -902,6 +905,7 @@ class ParquetInputTest {
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties());
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties());
+            assertFalse(readNext(relationships));
         }
     }
 
@@ -992,6 +996,7 @@ class ParquetInputTest {
                             properties("notsince", 987654L),
                             properties("since", 1234567L),
                             properties("since", 987654L)));
+            assertFalse(readNext(relationships));
         }
     }
 
@@ -1044,6 +1049,7 @@ class ParquetInputTest {
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("notsince", 987654L));
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
+            assertFalse(readNext(relationships));
         }
     }
 
@@ -1349,6 +1355,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
             readNext(nodes);
+            assertFalse(readNext(nodes));
             fail("Should have failed when key assigned multiple times, but didn't.");
         } catch (InputException ignore) {
             // this is fine
@@ -2752,6 +2759,7 @@ class ParquetInputTest {
                 readNodes++;
             }
             assertThat(readNodes).isEqualTo(8);
+            assertFalse(readNext(nodes));
         }
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             var readRelationships = 0;
@@ -2759,6 +2767,7 @@ class ParquetInputTest {
                 readRelationships++;
             }
             assertThat(readRelationships).isEqualTo(4);
+            assertFalse(readNext(relationships));
         }
     }
 
@@ -2897,6 +2906,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("Header specified 3 dimensions, but vector has 2 dimensions");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -2917,6 +2927,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("vector must specify dimensions");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -2937,6 +2948,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("vector must specify coordinate type");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -2957,6 +2969,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("vector must specify");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -2992,6 +3005,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("Duplicate field 'coordinateType'");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -3043,6 +3057,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("could not convert 1;;23 to VECTOR");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -3064,6 +3079,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("could not convert 1;23; to VECTOR");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -3085,6 +3101,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("could not convert 1;abc;23 to VECTOR");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -3137,6 +3154,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("pyte is not a valid coordinate type.");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -3158,6 +3176,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("three is not a valid value for dimensions.");
+            assertFalse(readNext(nodes));
         }
     }
 
@@ -3180,6 +3199,7 @@ class ParquetInputTest {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("Invalid vector dimensions: 5000");
+            assertFalse(readNext(nodes));
         }
     }
 

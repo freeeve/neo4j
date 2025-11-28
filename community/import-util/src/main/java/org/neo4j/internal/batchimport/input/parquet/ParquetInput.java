@@ -180,8 +180,8 @@ public class ParquetInput implements Input {
                         var metadataKey = new ParquetColumnMetadataKey(path, labelsOrType);
                         var allMetadata = indexedMetadata.get(metadataKey);
                         for (ParquetColumnMetadata metadata : allMetadata) {
-                            deduplicatedColumnData.add(
-                                    new ParquetData(labelsOrType, path, metadata.columns(), defaultTimezoneSupplier));
+                            deduplicatedColumnData.add(new ParquetData(
+                                    entityType, labelsOrType, path, metadata.columns(), defaultTimezoneSupplier));
                         }
                     }
                 }

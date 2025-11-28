@@ -134,6 +134,7 @@ class ParquetInputBatchImportIT {
     /** Don't support these counts at the moment so don't compute them */
     private static final boolean COMPUTE_DOUBLE_SIDED_RELATIONSHIP_COUNTS = false;
 
+    private static final long ROW_GROUP_SIZE = 1024;
     private static final int GENERATED_NODE_COUNT = 4096;
     private static final int GENERATED_RELATIONSHIP_COUNT = 4096 * 3;
 
@@ -260,7 +261,7 @@ class ParquetInputBatchImportIT {
                 .as(LogicalTypeAnnotation.stringType())
                 .named(":TYPE");
         var writer = new BasicParquetWriterBuilder<>(new TestOutputFile(file))
-                .withRowGroupSize(1024L)
+                .withRowGroupSize(ROW_GROUP_SIZE)
                 .withType(new MessageType("Some Data", startId, endId, type))
                 .withDehydrator((record, valueWriter) -> {
                     var relationship = (Object[]) record;
@@ -292,7 +293,7 @@ class ParquetInputBatchImportIT {
                 .as(LogicalTypeAnnotation.stringType())
                 .named("name");
         var writer = new BasicParquetWriterBuilder<>(new TestOutputFile(file))
-                .withRowGroupSize(1024L)
+                .withRowGroupSize(ROW_GROUP_SIZE)
                 .withType(new MessageType("Some Data", idType, labelsType, nameType))
                 .withDehydrator((record, valueWriter) -> {
                     var node = (InputEntity) record;

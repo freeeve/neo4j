@@ -28,7 +28,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -42,6 +41,7 @@ import org.apache.parquet.column.ColumnReader;
 import org.apache.parquet.column.impl.ColumnReadStoreImpl;
 import org.apache.parquet.example.DummyRecordConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.api.GroupConverter;
 import org.apache.parquet.schema.GroupType;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
@@ -73,7 +73,7 @@ class ParquetDataReader implements Closeable {
     private final GroupConverter recordConverter;
     private final String createdBy;
     private final List<ColumnDescriptor> parquetColumns;
-    private final List<ParquetRowGroupReader> readers;
+    private final ParquetMetadata footer;
 
     ParquetDataReader(
             ParquetData parquetDataFile,
@@ -88,7 +88,6 @@ class ParquetDataReader implements Closeable {
         this.defaultTimezoneSupplier = defaultTimezoneSupplier;
         this.arrayDelimiter = arrayDelimiter;
         this.vectorDelimiter = vectorDelimiter;
-        this.readers = Collections.synchronizedList(new ArrayList<>());
         var path = parquetDataFile.file();
 
         try {
@@ -96,6 +95,7 @@ class ParquetDataReader implements Closeable {
                     ParquetInput.ParquetImportInputFile.of(path),
                     ParquetReadOptions.builder().build());
             var metadata = this.metadataReader.getFileMetaData();
+            this.footer = this.metadataReader.getFooter();
             this.schema = metadata.getSchema();
             this.recordConverter = new DummyRecordConverter(this.schema).getRootConverter();
             this.createdBy = metadata.getCreatedBy();
@@ -118,9 +118,7 @@ class ParquetDataReader implements Closeable {
         if (nextRowGroupIndex >= metadataReader.getRowGroups().size()) {
             return null;
         }
-        ParquetRowGroupReader parquetRowGroupReader = new ParquetRowGroupReader(nextRowGroupIndex);
-        this.readers.add(parquetRowGroupReader);
-        return parquetRowGroupReader;
+        return new ParquetRowGroupReader(nextRowGroupIndex);
     }
 
     public ParquetData getParquetDataFile() {
@@ -154,9 +152,12 @@ class ParquetDataReader implements Closeable {
         private long rowIndex;
 
         ParquetRowGroupReader(int rowGroupIndex) throws IOException {
+            var file = ParquetInput.ParquetImportInputFile.of(parquetDataFile.file());
             this.reader = ParquetFileReader.open(
-                    ParquetInput.ParquetImportInputFile.of(parquetDataFile.file()),
-                    ParquetReadOptions.builder().build());
+                    file,
+                    ParquetDataReader.this.footer,
+                    ParquetReadOptions.builder().build(),
+                    file.newStream());
             var store = this.reader.readRowGroup(rowGroupIndex);
             this.rowCount = store.getRowCount();
 
@@ -482,9 +483,6 @@ class ParquetDataReader implements Closeable {
 
     @Override
     public void close() throws IOException {
-        for (ParquetRowGroupReader reader : this.readers) {
-            reader.closeUnderlyingReader();
-        }
         this.metadataReader.close();
     }
 }
