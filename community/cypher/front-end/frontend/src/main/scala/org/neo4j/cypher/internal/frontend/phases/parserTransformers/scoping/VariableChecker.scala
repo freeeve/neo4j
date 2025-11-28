@@ -141,15 +141,17 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
 
   private val variableNotDefined: VariableCheck = {
     case (
-        Acc.CreatePattern(acc, topo, patternVariables, create),
+        Acc.CreatePattern(acc, topo, patternVariables, create, inScalarSubquery),
         Scope.Expr.Variable(variable, incoming)
-      ) if !(incoming.constants contains variable) =>
-      if (topo contains variable) {
-        if (!(patternVariables contains variable) && version == CypherVersion.Cypher5) acc
-        else
-          acc(SemanticError.invalidEntityReference(variable.name, create.name, variable.position))
-      } else {
-        acc(SemanticError.variableNotDefined(variable.name, variable.position))
+      ) =>
+      val isIncoming = incoming.constants contains variable
+      val declaredInSameGraphPattern = topo contains variable
+      val declaredInSamePathPattern = patternVariables contains variable
+      (isIncoming, declaredInSameGraphPattern, inScalarSubquery, declaredInSamePathPattern, version) match {
+        case (true, false, _, _, _)                         => acc
+        case (_, true, false, false, CypherVersion.Cypher5) => acc
+        case (_, false, _, _, _) => acc(SemanticError.variableNotDefined(variable.name, variable.position))
+        case _ => acc(SemanticError.invalidEntityReference(variable.name, create.name, variable.position))
       }
     case (
         Acc.MergePattern(acc, topo, merge),

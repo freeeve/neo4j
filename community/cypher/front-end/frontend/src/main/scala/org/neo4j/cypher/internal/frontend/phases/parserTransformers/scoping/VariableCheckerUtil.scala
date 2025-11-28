@@ -107,11 +107,13 @@ trait VariableCheckerUtil {
 
     object CreatePattern {
 
-      def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable], Set[LogicalVariable], CreateOrInsert)] = acc match {
-        case Acc(_, UpdatingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _) =>
-          Some((acc, topo, patternVariables, c))
-        case _ => None
-      }
+      def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable], Set[LogicalVariable], CreateOrInsert, Boolean)] =
+        acc match {
+          case Acc(returnContext, UpdatingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _) =>
+            val inScalarSubquery = returnContext.isInstanceOf[SubqueryExpression]
+            Some((acc, topo, patternVariables, c, inScalarSubquery))
+          case _ => None
+        }
     }
 
     object MergePattern {

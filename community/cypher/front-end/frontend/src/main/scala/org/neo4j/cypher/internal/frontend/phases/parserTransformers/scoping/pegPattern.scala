@@ -51,8 +51,7 @@ object pegPattern {
     val patternIncomingContext = PatternIncomingContext(
       topologicalConstants = incoming.constants,
       predicateConstants = incoming.constants union (pattern match {
-        case _: ForMatch => collectVisibleVariables(pattern) diff incoming.constants
-        // TODO in Cypher 5, expressions can still see variables bound by previous patterns
+        case _: ForMatch  => collectVisibleVariables(pattern) diff incoming.constants
         case _: ForUpdate => Set.empty
       }),
       pathConstants = pattern match {

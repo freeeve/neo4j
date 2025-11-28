@@ -137,6 +137,23 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
   }
 
+  for {
+    scalaSubquery <- Seq(
+      "EXISTS { MATCH (c) WHERE c.prop = a.prop }",
+      "COUNT { MATCH (c) WHERE c.prop = a.prop }",
+      "COLLECT { MATCH (c) WHERE c.prop = a.prop RETURN c }"
+    )
+    (patternA, patternB) = ("(a {prop: true})", s"(b {prop: $scalaSubquery})")
+    pattern <- Seq(
+      s"$patternA, $patternB",
+      s"$patternB, $patternA"
+    )
+  } {
+    test(s"""CREATE $pattern""") {
+      errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+    }
+  }
+
   // INSERT
 
   test("""INSERT (a), (b {prop: a.prop})""") {
@@ -169,6 +186,23 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
 
   test("""INSERT (a {prop: 1}), ({prop: a.prop})""".stripMargin) {
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
+  }
+
+  for {
+    scalaSubquery <- Seq(
+      "EXISTS { MATCH (c) WHERE c.prop = a.prop }",
+      "COUNT { MATCH (c) WHERE c.prop = a.prop }",
+      "COLLECT { MATCH (c) WHERE c.prop = a.prop RETURN c }"
+    )
+    (patternA, patternB) = ("(a {prop: true})", s"(b {prop: $scalaSubquery})")
+    pattern <- Seq(
+      s"$patternA, $patternB",
+      s"$patternB, $patternA"
+    )
+  } {
+    test(s"""INSERT $pattern""") {
+      errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+    }
   }
 
   // MERGE
