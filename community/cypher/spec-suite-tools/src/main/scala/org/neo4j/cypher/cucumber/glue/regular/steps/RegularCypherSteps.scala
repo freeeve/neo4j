@@ -23,6 +23,7 @@ import com.google.inject.Inject
 import io.cucumber.datatable.DataTable
 import io.cucumber.scala.Scenario
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Assumptions.assumeFalse
 import org.neo4j.cypher.cucumber.glue.regular.DbAccessor
@@ -40,6 +41,7 @@ import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.describeC
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.describeGqlStatusObject
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.originalError
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.renderAsTable
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.toApproximateResultRows
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.toResultRows
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.unexpectedFailure
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
@@ -71,6 +73,7 @@ import java.util.function.Supplier
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.language.existentials
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -208,6 +211,21 @@ final class RegularCypherSteps @Inject() (
         builder.assert()
     }
 
+  override def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder)
+    : Unit =
+    lastResult match {
+      case failure: QueryFailure =>
+        unexpectedFailure(failure, conf)
+      case actual: QueryResults =>
+        val builder: ApproximateResultAssertionBuilder =
+          in(new ApproximateResultAssertionBuilder(
+            actual,
+            expected,
+            conf.isParallelRuntime
+          )).asInstanceOf[ApproximateResultAssertionBuilder]
+        builder.assert()
+    }
+
   override def sideEffectsShouldBe(expectedTable: DataTable): Unit = {
     val actual = lastGraphState match {
       case state: KernelGraphState => state.sideEffects(KernelGraphState.recordGraphState(db.database))
@@ -320,9 +338,28 @@ final class RegularCypherSteps @Inject() (
     case Failure(error)    => s"Failed to produce plan: " + error
   }
 
-  private def assertEqualHeaders(actual: QueryResults, expected: DataTable): Unit = {
+  private def assertEqualHeaders(actual: QueryResults, expected: DataTable, approximate: Boolean): Unit = {
     val actualHeaders = actual.results.headers
-    val expectedHeaders = if (expected.isEmpty) java.util.List.of() else expected.row(0)
+    val expectedHeaders = if (approximate) {
+      if (
+        expected.isEmpty || expected.row(0).isEmpty || !expected.row(0).get(expected.width() - 1).equals("mandatory")
+      ) {
+        fail("Expected the last column in an approximate result to be named 'mandatory'")
+      } else {
+        val headers = expected.row(0)
+        val headersWithoutMandatory = new java.util.ArrayList[String](headers.size() - 1)
+        var i = 0
+        while (i < headers.size() - 1) {
+          headersWithoutMandatory.add(headers.get(i))
+          i += 1
+        }
+        headersWithoutMandatory
+      }
+    } else if (expected.isEmpty) {
+      java.util.List.of()
+    } else {
+      expected.row(0)
+    }
     if (actualHeaders != expectedHeaders) {
       assertThat(actualHeaders)
         .as(describeResults(actual, expected, "", header = "Result has correct headers"))
@@ -366,7 +403,36 @@ final class RegularCypherSteps @Inject() (
           )).containsExactlyInAnyOrderElementsOf(expectedRows)
       }
 
-      assertEqualHeaders(actual, expected)
+      assertEqualHeaders(actual, expected, approximate = false)
+    }
+  }
+
+  class ApproximateResultAssertionBuilder(actual: QueryResults, expected: DataTable, isParallelRuntime: Boolean)
+      extends ResultAssertionBuilder(isParallelRuntime) {
+
+    def assert(): Unit = {
+      assertEqualHeaders(actual, expected, approximate = true)
+
+      val actualRows = actual.results.rows
+      val (mandatoryRows, allRows) = toApproximateResultRows(expected)
+
+      assertThat(actualRows).as(describeResults(
+        actual,
+        expected,
+        this.toString()
+      )).containsAll(mandatoryRows)
+
+      val expectedRows = allRows.stream().filter(x => actualRows.contains(x)).toList
+
+      assertThat(actualRows).as(describeResults(
+        actual,
+        expected,
+        this.toString
+      )).containsExactlyElementsOf(expectedRows)
+
+      if (nbrOfResults.isDefined) {
+        assertEquals(nbrOfResults.get, actualRows.size())
+      }
     }
   }
 }
@@ -400,6 +466,37 @@ object RegularCypherSteps {
         i += 1
       }
       result
+    }
+  }
+
+  def toApproximateResultRows(table: DataTable)
+    : (java.util.List[java.util.List[AnyRef]], java.util.List[java.util.List[AnyRef]]) = {
+    if (table.isEmpty) {
+      (java.util.List.of(), java.util.List.of())
+    } else {
+      val mandatoryResult = new util.ArrayList[java.util.List[AnyRef]](table.height() - 1)
+      val allResult = new util.ArrayList[java.util.List[AnyRef]](table.height() - 1)
+      val cells = table.cells()
+      var i = 1
+      while (i < cells.size()) {
+        val row = cells.get(i)
+        var j = 0
+        val parsedRow = new java.util.ArrayList[AnyRef](row.size())
+        while (j < row.size() - 1) {
+          parsedRow.add(parse(row.get(j)))
+          j += 1
+        }
+        val mandatory: AnyRef = parse(row.get(j))
+        mandatory match {
+          case b: java.lang.Boolean if b =>
+            mandatoryResult.add(parsedRow)
+            allResult.add(parsedRow)
+          case _: java.lang.Boolean => allResult.add(parsedRow)
+          case x                    => fail(s"Expected last column to contain only booleans, but found $x.")
+        }
+        i += 1
+      }
+      (mandatoryResult, allResult)
     }
   }
 

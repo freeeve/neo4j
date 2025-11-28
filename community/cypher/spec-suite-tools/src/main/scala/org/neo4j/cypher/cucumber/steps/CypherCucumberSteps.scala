@@ -92,6 +92,10 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
     resultShouldBe(expected)(_.withRowsInOrder())
   }
 
+  Then("the approximate result should be {int} rows, in order:") { (nbrOfResults: Int, expected: DataTable) =>
+    approximateResultShouldBe(expected)(_.withRowsInOrder().withNumberOfResults(nbrOfResults))
+  }
+
   Then("the result should be, in order, to within {double}:") { (epsilon: Double, expected: DataTable) =>
     resultShouldBe(expected)(_.withRowsInOrder().withPrecision(epsilon))
   }
@@ -177,6 +181,7 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   def executingQuery(cypher: String): Unit
   def executingControlQuery(cypher: String): Unit
   def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit
+  def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit
   def sideEffectsShouldBe(expected: DataTable): Unit
   def errorShouldBeRaised(hierarchy: ExpectedGqlError): Unit
   def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit
@@ -246,6 +251,7 @@ class ResultAssertionBuilder(isParallelRuntime: Boolean) {
   protected var parallelResultsOverride: Option[ResultOrderOption] = None
   protected var parallelSublistsOverride: Option[ResultOrderOption] = None
   protected var doublePrecision: ResultDoublePrecision = Exact
+  protected var nbrOfResults: Option[Int] = None
 
   def getResultOrdering: ResultOrderOption = resultOrdering
   def getSublistOrdering: ResultOrderOption = sublistOrdering
@@ -307,6 +313,11 @@ class ResultAssertionBuilder(isParallelRuntime: Boolean) {
     if (isParallelRuntime) {
       parallelSublistsOverride = Some(InAnyOrder)
     }
+    this
+  }
+
+  def withNumberOfResults(i: Int): ResultAssertionBuilder = {
+    nbrOfResults = Some(i)
     this
   }
 

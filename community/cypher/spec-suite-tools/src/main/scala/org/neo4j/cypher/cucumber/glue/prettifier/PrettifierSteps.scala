@@ -135,6 +135,9 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
   override def registerUserFunction(name: String): Unit = {}
   override def givenCsvFile(urlParam: String, content: DataTable): Unit = {}
   override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit = {}
+
+  override def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder)
+    : Unit = {}
   override def sideEffectsShouldBe(expected: DataTable): Unit = {}
   override def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {}
   override def warningShouldBeRaised(expectedGqlWarning: ExpectedGqlWarning): Unit = {}

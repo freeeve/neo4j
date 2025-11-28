@@ -191,6 +191,9 @@ final class ObfuscatorSteps @Inject() (
 
   // We don't check regular assertions here
   override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit = {}
+
+  override def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder)
+    : Unit = {}
   override def sideEffectsShouldBe(expected: DataTable): Unit = {}
 }
 

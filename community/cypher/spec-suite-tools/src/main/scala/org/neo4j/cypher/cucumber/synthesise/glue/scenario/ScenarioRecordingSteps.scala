@@ -76,6 +76,11 @@ final class ScenarioRecordingSteps @Inject() (
   override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit = {
     add(AssertResults(expected, in(new ResultAssertionBuilder(conf.isParallelRuntime))))
   }
+
+  override def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder)
+    : Unit = {
+    add(AssertResults(expected, in(new ResultAssertionBuilder(conf.isParallelRuntime))))
+  }
   override def sideEffectsShouldBe(expected: DataTable): Unit = add(SideEffects(expected))
   override def errorShouldBeRaised(expected: ExpectedGqlError): Unit = add(AssertGqlError(expected))
 

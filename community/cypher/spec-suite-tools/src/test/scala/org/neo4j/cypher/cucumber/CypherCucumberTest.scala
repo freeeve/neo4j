@@ -80,10 +80,10 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
 
     // Test counts should be correct
     withClue(summaryOutputStream.toString) {
-      summary.getTestsSucceededCount shouldBe 28
+      summary.getTestsSucceededCount shouldBe 30
       summary.getContainersFailedCount shouldBe 0
-      summary.getTestsFoundCount shouldBe 154
-      summary.getTestsFailedCount shouldBe 126
+      summary.getTestsFoundCount shouldBe 163
+      summary.getTestsFailedCount shouldBe 133
       summary.getTestsAbortedCount shouldBe 0
       summary.getTestsSkippedCount shouldBe 0
     }
@@ -119,7 +119,9 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         "TestFrameworkTests - [042] Floating point precision can be specified - Examples - Example #1.2",
         "TestFrameworkTests - [042] Floating point precision can be specified - Examples - Example #1.3",
         "TestFrameworkTests - [042] Floating point precision can be specified - Examples - Example #1.4",
-        "TestFrameworkTests - [044] Syntax error is correct"
+        "TestFrameworkTests - [044] Syntax error is correct",
+        "TestFrameworkTests - [053] Approximate result - exact match",
+        "TestFrameworkTests - [054] Approximate result - without optional row"
       )
 
     // Failing tests should fail in the correct way
@@ -279,7 +281,14 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         wrongFailureMessage("[049] Syntax error has incorrect message 1"),
         wrongFailureMessage("[050] Syntax error has incorrect message 3"),
         wrongFailureMessage("[051] Syntax error has incorrect message 4"),
-        wrongFailureMessage("[052] Syntax error has incorrect error count")
+        wrongFailureMessage("[052] Syntax error has incorrect error count"),
+        wrongResultOrdered("[055] Approximate result - without mandatory row"),
+        wrongResultOrdered("[056] Approximate result - with extra row"),
+        wrongResultOrdered("[057] Approximate result - with wrong order"),
+        wrongNbrResults("[058] Approximate result - with wrong number of results"),
+        wrongApproximateMandatoryColumn("[059] Approximate result - without mandatory column"),
+        wrongApproximateMandatoryColumn("[060] Approximate result - with wrongly named mandatory column"),
+        wrongApproximateMandatoryType("[061] Approximate result - with wrong type in mandatory column")
       )
   }
 
@@ -388,6 +397,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.registerProcedure(java.lang.String,io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.executingControlQuery(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBe(io.cucumber.datatable.DataTable,scala.Function1)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.approximateResultShouldBe(io.cucumber.datatable.DataTable,scala.Function1)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.sideEffectsShouldBe(io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlError)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.warningShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlWarning)",
@@ -531,6 +541,23 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     assertThat(
       failure.throwable
     ).hasMessageContaining("Unrecognized setting. No declared setting with name: incorrect.conf")
+  }
+
+  def wrongNbrResults(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable).hasMessageContaining("but was")
+  }
+
+  def wrongApproximateMandatoryColumn(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(
+      failure.throwable
+    ).hasMessageContaining("Expected the last column in an approximate result to be named 'mandatory'")
+  }
+
+  def wrongApproximateMandatoryType(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable).hasMessageContaining("Expected last column to contain only booleans, but found")
   }
 }
 

@@ -756,3 +756,116 @@ Feature: TestFrameworkTests
       | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
       | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
       | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
+
+  Scenario: [053] Approximate result - exact match
+    Given  an empty graph
+    When executing query:
+      """
+      UNWIND [42, 38] as x
+      RETURN x
+      """
+    Then the approximate result should be 2 rows, in order:
+      | x  | mandatory |
+      | 42 | true      |
+      | 38 | false     |
+
+  Scenario: [054] Approximate result - without optional row
+    Given  an empty graph
+    When executing query:
+      """
+      UNWIND [42] as x
+      RETURN x
+      """
+    Then the approximate result should be 1 rows, in order:
+      | x  | mandatory |
+      | 42 | true      |
+      | 38 | false     |
+
+  Scenario: [055] Approximate result - without mandatory row
+    Given  an empty graph
+    When executing query:
+      """
+      UNWIND [42] as x
+      RETURN x
+      """
+    Then the approximate result should be 1 rows, in order:
+      | x  | mandatory |
+      | 42 | true      |
+      | 38 | true      |
+
+  Scenario: [056] Approximate result - with extra row
+    Given  an empty graph
+    When executing query:
+      """
+      UNWIND [42, 27, 38] as x
+      RETURN x
+      """
+    Then the approximate result should be 3 rows, in order:
+      | x  | mandatory |
+      | 42 | true      |
+      | 38 | false     |
+
+  Scenario: [057] Approximate result - with wrong order
+    Given  an empty graph
+    When executing query:
+      """
+      UNWIND [42, 27, 38] as x
+      RETURN x
+      """
+    Then the approximate result should be 3 rows, in order:
+      | x  | mandatory |
+      | 42 | true      |
+      | 38 | false     |
+      | 27 | true      |
+      | 21 | false     |
+
+  Scenario: [058] Approximate result - with wrong number of results
+    Given  an empty graph
+    When executing query:
+      """
+      UNWIND [42, 38, 27] as x
+      RETURN x
+      """
+    Then the approximate result should be 2 rows, in order:
+      | x  | mandatory |
+      | 42 | true      |
+      | 38 | false     |
+      | 27 | true      |
+      | 21 | false     |
+
+
+  Scenario: [059] Approximate result - without mandatory column
+    Given  an empty graph
+    When executing query:
+      """
+      UNWIND [true, false] as x
+      RETURN x
+      """
+    Then the approximate result should be 2 rows, in order:
+      | x     |
+      | true  |
+      | false |
+
+  Scenario: [060] Approximate result - with wrongly named mandatory column
+    Given  an empty graph
+    When executing query:
+      """
+      UNWIND [42, 38] as x
+      RETURN x
+      """
+    Then the approximate result should be 2 rows, in order:
+      | x  | optional |
+      | 42 | true     |
+      | 38 | false    |
+
+  Scenario: [061] Approximate result - with wrong type in mandatory column
+    Given  an empty graph
+    When executing query:
+      """
+      UNWIND [42, 38] as x
+      RETURN x
+      """
+    Then the approximate result should be 2 rows, in order:
+      | x  | mandatory |
+      | 42 | true      |
+      | 38 | 'false'   |
