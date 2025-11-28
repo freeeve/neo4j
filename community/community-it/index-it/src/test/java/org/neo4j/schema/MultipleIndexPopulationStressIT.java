@@ -27,7 +27,6 @@ import static org.neo4j.batchimport.api.Configuration.DEFAULT;
 import static org.neo4j.batchimport.api.Monitor.NO_MONITOR;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.index_population_queue_threshold;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
-import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.internal.batchimport.DefaultAdditionalIds.EMPTY;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
@@ -89,6 +88,7 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
+import org.neo4j.test.extension.RequireAlignedFormat;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.test.utils.TestDirectory;
@@ -99,9 +99,12 @@ import org.neo4j.values.storable.RandomValuesUtils;
  * Idea is to test a {@link MultipleIndexPopulator} with a bunch of indexes, some of which can fail randomly.
  * Also updates are randomly streaming in during population. In the end all the indexes should have been populated
  * with correct data.
+ *
+ * Note that this is a record engine only tests, because it relies on the data being imported with record format specific {@link ParallelBatchImporter}
  */
 @RandomSupportExtension
 @TestDirectoryExtension
+@RequireAlignedFormat
 class MultipleIndexPopulationStressIT {
     private static final String[] TOKENS = new String[] {"One", "Two", "Three", "Four"};
     private ExecutorService executor;
@@ -374,7 +377,7 @@ class MultipleIndexPopulationStressIT {
         try (RandomDataInput input = new RandomDataInput(
                         nodeCount,
                         relCount,
-                        RandomValuesUtils.selectStorageEngineDependentConfiguration(config.get(db_format)));
+                        RandomValuesUtils.selectStorageEngineDependentConfiguration(RecordStorageEngineFactory.NAME));
                 JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
             RecordDatabaseLayout layout = RecordDatabaseLayout.of(config);
             IndexImporterFactory indexImporterFactory = new IndexImporterFactoryImpl();
