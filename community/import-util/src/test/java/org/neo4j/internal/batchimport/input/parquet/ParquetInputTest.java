@@ -1351,14 +1351,16 @@ class ParquetInputTest {
                         new Object[] {0, "Johan", " { height :0.01 ,longitude:5, latitude : -4.2, latitude : 4.2 } "}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
-        // WHEN
-        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
-            // THEN
+
+        InputIterator nodes = input.nodes(EMPTY).iterator();
+        try {
             readNext(nodes);
-            assertFalse(readNext(nodes));
             fail("Should have failed when key assigned multiple times, but didn't.");
         } catch (InputException ignore) {
-            // this is fine
+            // this is fine but please de-hydrate all results
+        } finally {
+            assertFalse(readNext(nodes));
+            nodes.close();
         }
     }
 
