@@ -220,7 +220,7 @@ class TransactionBoundPlanContext(
 
         val schema = indexDescriptor.schema()
         val tokenIds = schema.getEntityTokenIds
-        // TODO: support for many tokens
+        // TODO PLAN-3078: support for many tokens
         assert(tokenIds.size == 1, s"unexpected token IDs for vector index: $indexDescriptor")
         val tokenId = schema.getEntityTokenIds()(0)
         val entityType = schema.entityType() match {
@@ -228,7 +228,7 @@ class TransactionBoundPlanContext(
           case EntityType.RELATIONSHIP => IndexDescriptor.EntityType.Relationship(RelTypeId(tokenId))
         }
         val propertyIds = schema.getPropertyIds
-        // TODO: support for many properties?
+        // TODO PLAN-3049: support for many properties?
         assert(propertyIds.size == 1, s"unexpected property IDs for vector index: $indexDescriptor")
         val property = PropertyKeyId(propertyIds(0))
         VectorIndexDescriptor(entityType, property)

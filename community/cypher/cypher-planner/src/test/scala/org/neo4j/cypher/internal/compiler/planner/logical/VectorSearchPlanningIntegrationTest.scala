@@ -42,9 +42,13 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       .setLabelCardinality("Movie", 120)
       .setRelationshipCardinality("()-[]->()", 100)
       .setRelationshipCardinality("()-[:ACTS_IN]->()", 50)
+      .setRelationshipCardinality("()-[:CONTRIBUTED]->()", 8)
+      .setRelationshipCardinality("()-[:CONTRIBUTED]->(:Movie)", 7)
       .setRelationshipCardinality("(:Movie)-[]->()", 20)
       .addNodeVectorIndex("moviePlots", "Movie", "plot")
       .addRelationshipVectorIndex("actsInScript", "ACTS_IN", "script")
+      .addRelationshipVectorIndex("actsInScript", "ACTS_IN", "script")
+      .addRelationshipVectorIndex("contributed", "CONTRIBUTED", "embedding")
       .addNodeIndex("Movie", List("title"), 1.0, 1.0 / 120.0, isUnique = true)
 
   test("plan node vector index search") {
@@ -417,5 +421,264 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       "error: data exception - invalid type. Expected the value `x` to be of type NODE, but was of type RELATIONSHIP."
     )
     caughtExceptionCause.get.cause().isEmpty should be(true)
+  }
+
+  test("plan relationship vector index search") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()-[r]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("r.plot AS `r.plot`")
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10"
+        )
+        .build()
+  }
+
+  test("plan relationship vector index search and get and cache property value from index") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()-[r]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults(column("r", "cacheR[r.script]"))
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10",
+          "",
+          Set(),
+          Map("script" -> GetValue)
+        )
+        .build()
+  }
+
+  test("plan undirected relationship vector index search and get and cache property value from index") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()-[r]-()
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults(column("r", "cacheR[r.script]"))
+        .relationshipVectorIndexSearch(
+          "()-[r]-()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10",
+          "",
+          Set(),
+          Map("script" -> GetValue)
+        )
+        .build()
+  }
+
+  test("plan incoming directed relationship vector index search") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()<-[r]-()
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("r.plot AS `r.plot`")
+        .relationshipVectorIndexSearch(
+          "()<-[r]-()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10"
+        )
+        .build()
+  }
+
+  test("plan undirected relationship vector index search") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()-[r]-()
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("r.plot AS `r.plot`")
+        .relationshipVectorIndexSearch(
+          "()-[r]-()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10"
+        )
+        .build()
+  }
+
+  test("plan relationship vector index on RHS of apply - using WITH r SKIP 0") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (:Movie {title: "Matrix"})<-[r:CONTRIBUTED]-()
+        |WITH r SKIP 0
+        |MATCH ()-[c]->()
+        |  SEARCH c IN (
+        |    VECTOR INDEX contributed
+        |    FOR r.embedding
+        |    LIMIT 5
+        |  )
+        |RETURN c.description AS contributionDesc""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("contributionDesc")
+        .projection("c.description AS contributionDesc")
+        .apply()
+        .|.relationshipVectorIndexSearch(
+          "()-[c]->()",
+          Seq("CONTRIBUTED"),
+          Seq("embedding"),
+          "contributed",
+          "r.embedding",
+          "5",
+          "",
+          Set("r")
+        )
+        .skip(0)
+        .expandAll("(anon_0)<-[r:CONTRIBUTED]-()")
+        .nodeIndexOperator("anon_0:Movie(title = 'Matrix')", unique = true)
+        .build()
+  }
+
+  // TODO see PLAN-2843
+  test("plan relationship vector index on RHS of apply") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (:Movie {title: "Matrix"})<-[r:CONTRIBUTED]-()
+        |MATCH ()-[c]->()
+        |  SEARCH c IN (
+        |    VECTOR INDEX contributed
+        |    FOR r.embedding
+        |    LIMIT 5
+        |  )
+        |RETURN c.description AS contributionDesc""".stripMargin
+
+    // Currently this gives an assertion error:
+    //    assertion failed: unexpected dependencies Set(Variable(r)) in vector search predicate VectorSearchPredicate(Variable(c),
+    intercept[AssertionError] {
+      planner.plan(CypherVersion.Cypher25, query)
+    }
+
+    // TODO: It should be something like the following, instead of the AssertionError
+//    val plan = planner.plan(CypherVersion.Cypher25, query)
+//
+//    plan shouldEqual
+//      planner.planBuilder()
+//        .produceResults("contributionDesc")
+//        .projection("c.description AS contributionDesc")
+//        .apply()
+//        .|.relationshipVectorIndexSearch(
+//          "()-[c]->()",
+//          Seq("CONTRIBUTED"),
+//          Seq("embedding"),
+//          "contributed",
+//          "r.embedding",
+//          "5",
+//          "",
+//          Set("r")
+//        )
+//        .expandAll("(anon_0)<-[r:CONTRIBUTED]-()")
+//        .nodeIndexOperator("anon_0:Movie(title = 'Matrix')", unique = true)
+//        .build()
+  }
+
+  test("plan relationship vector index search with predicates on relationship") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()-[r]->() WHERE r.prop > 50 and r.prop2 CONTAINS "running"
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("r.plot AS `r.plot`")
+        .filter("r.prop2 CONTAINS 'running'", "r.prop > 50")
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10"
+        )
+        .build()
   }
 }

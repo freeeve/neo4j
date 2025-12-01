@@ -82,6 +82,7 @@ import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
+import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -172,6 +173,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DistinctColumns
@@ -296,6 +298,7 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.UndirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
@@ -2010,16 +2013,16 @@ case class LogicalPlanProducer(
   }
 
   def planNodeVectorIndexSearch(
-    queryGraph: QueryGraph,
     context: LogicalPlanningContext,
     variable: LogicalVariable,
     label: LabelToken,
     property: PropertyKeyToken,
     indexName: String,
     embedding: Expression,
-    limit: Expression
+    limit: Expression,
+    argumentIds: Set[LogicalVariable],
+    queryGraphPredicates: Set[Expression]
   ): LogicalPlan = {
-    val argumentIds = queryGraph.argumentIds
     val solved = RegularSinglePlannerQuery(
       queryGraph =
         QueryGraph.empty
@@ -2043,7 +2046,7 @@ case class LogicalPlanProducer(
       getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
         variable,
         property.name,
-        queryGraph.selections.flatPredicatesSet,
+        queryGraphPredicates,
         context.plannerState.contextualPropertyAccess
       ),
       entityType = NODE_TYPE
@@ -2066,6 +2069,93 @@ case class LogicalPlanProducer(
         solved,
         ProvidedOrder.empty,
         cachedPropertiesForIndexedProperties(context, variable, indexedProperties),
+        context
+      )
+
+    solver.rewriteLeafPlan(annotatedPlan)
+  }
+
+  def planRelationshipVectorIndexSearch(
+    context: LogicalPlanningContext,
+    patternRelationship: PatternRelationship,
+    indexedTypes: Seq[RelationshipTypeToken],
+    indexedProperty: PropertyKeyToken,
+    indexName: String,
+    embedding: Expression,
+    limit: Expression,
+    argumentIds: Set[LogicalVariable],
+    queryGraphPredicates: Set[Expression]
+  ): LogicalPlan = {
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternRelationship(patternRelationship)
+          .addPredicates(VectorSearchPredicate(
+            patternRelationship.variable,
+            indexName,
+            embedding,
+            limit
+          )(InputPosition.NONE))
+          .addArgumentIds(argumentIds),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
+    )
+
+    val solver = SubqueryExpressionSolver.solverForLeafPlan(argumentIds, context)
+
+    val rewrittenEmbedding = solver.solve(embedding)
+    val rewrittenLimit = solver.solve(limit)
+    val newArguments = solver.newArguments
+    val allArgumentIds = argumentIds.union(newArguments)
+
+    val (startNode, endNode) = patternRelationship.inOrder
+    val indexedProperties = List(IndexedProperty(
+      propertyKeyToken = indexedProperty,
+      getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
+        patternRelationship.variable,
+        indexedProperty.name,
+        queryGraphPredicates,
+        context.plannerState.contextualPropertyAccess
+      ),
+      entityType = RELATIONSHIP_TYPE
+    ))
+
+    val relVectorIndexSearch = patternRelationship.dir match {
+      case SemanticDirection.BOTH => UndirectedRelationshipVectorIndexSearch(
+          idName = Some(patternRelationship.variable),
+          startNode = Some(startNode),
+          endNode = Some(endNode),
+          typeTokens = indexedTypes,
+          properties = indexedProperties,
+          score = None,
+          indexName = indexName,
+          vector = rewrittenEmbedding,
+          limit = rewrittenLimit,
+          maybeFilter = None,
+          argumentIds = allArgumentIds
+        )(idGen)
+      case _ => DirectedRelationshipVectorIndexSearch(
+          idName = Some(patternRelationship.variable),
+          startNode = Some(startNode),
+          endNode = Some(endNode),
+          typeTokens = indexedTypes,
+          properties = indexedProperties,
+          score = None,
+          indexName = indexName,
+          vector = rewrittenEmbedding,
+          limit = rewrittenLimit,
+          maybeFilter = None,
+          argumentIds = allArgumentIds
+        )(idGen)
+    }
+
+    val annotatedPlan =
+      annotate(
+        relVectorIndexSearch,
+        solved,
+        ProvidedOrder.empty,
+        cachedPropertiesForIndexedProperties(context, patternRelationship.variable, indexedProperties),
         context
       )
 

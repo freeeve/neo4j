@@ -1673,6 +1673,8 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
       override def getLabelName(id: Int): String = resolver.getLabelName(id)
 
+      override def getRelTypeName(id: Int): String = resolver.getRelTypeName(id)
+
       override def getPropertyKeyName(id: Int): String = resolver.getPropertyKeyName(id)
 
       private def newIndexDescriptor(indexDef: IndexDefinition): Option[IndexDescriptor] = {

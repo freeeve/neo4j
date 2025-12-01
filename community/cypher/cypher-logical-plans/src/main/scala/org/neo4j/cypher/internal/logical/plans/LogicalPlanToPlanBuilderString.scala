@@ -1749,7 +1749,8 @@ object LogicalPlanToPlanBuilderString {
           vector.quoted,
           limit.quoted,
           score.map(_.name.quoted).getOrElse("".quoted),
-          argumentIds
+          argumentIds,
+          mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex)
         )
 
       case UndirectedRelationshipVectorIndexSearch(
@@ -1773,7 +1774,8 @@ object LogicalPlanToPlanBuilderString {
           vector.quoted,
           limit.quoted,
           score.map(_.name.quoted).getOrElse("".quoted),
-          argumentIds
+          argumentIds,
+          mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex)
         )
 
       case RollUpApply(_, _, collectionName, variableToCollect) => params(collectionName, variableToCollect)

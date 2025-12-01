@@ -25,12 +25,14 @@ import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOr
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
+import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.VectorSearchPredicate
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor.EntityType
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
+import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.VectorIndexSearchException
 
 /**
@@ -71,6 +73,11 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
       val vectorIndexDescriptor =
         context.staticComponents.planContext.vectorIndexByName(vectorSearchPredicate.indexName).get
 
+      val propertyKeyToken = PropertyKeyToken(
+        name = context.staticComponents.planContext.getPropertyKeyName(vectorIndexDescriptor.property.id),
+        nameId = vectorIndexDescriptor.property
+      )
+
       vectorIndexDescriptor.entityType match {
         case EntityType.Node(labelId) =>
 
@@ -86,16 +93,16 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
           }
 
           val labelName = context.staticComponents.planContext.getLabelName(labelId)
-          val propertyName = context.staticComponents.planContext.getPropertyKeyName(vectorIndexDescriptor.property.id)
           val nodeVectorIndexSearch = context.staticComponents.logicalPlanProducer.planNodeVectorIndexSearch(
-            queryGraph = queryGraph,
             context = context,
             variable = vectorSearchPredicate.bindingVariable,
             label = LabelToken(name = labelName, nameId = labelId),
-            property = PropertyKeyToken(name = propertyName, nameId = vectorIndexDescriptor.property),
+            property = propertyKeyToken,
             indexName = vectorSearchPredicate.indexName,
             embedding = vectorSearchPredicate.embedding,
-            limit = vectorSearchPredicate.limit
+            limit = vectorSearchPredicate.limit,
+            argumentIds = queryGraph.argumentIds,
+            queryGraphPredicates = queryGraph.selections.flatPredicatesSet
           )
           Set(nodeVectorIndexSearch)
         case EntityType.Relationship(relTypeId) =>
@@ -109,7 +116,28 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
               }
             )
           }
-          ??? // TODO: Plan relationship vector search. See PLAN-2847
+          val relTypeName = context.staticComponents.planContext.getRelTypeName(relTypeId)
+
+          queryGraph.patternRelationships.find(_.variable == vectorSearchPredicate.bindingVariable) match {
+            case Some(patternRelationship) =>
+              val relationshipVectorIndexSearch =
+                context.staticComponents.logicalPlanProducer.planRelationshipVectorIndexSearch(
+                  context = context,
+                  patternRelationship = patternRelationship,
+                  indexedTypes = Seq(new RelationshipTypeToken(relTypeName, relTypeId)),
+                  indexedProperty = propertyKeyToken,
+                  indexName = vectorSearchPredicate.indexName,
+                  embedding = vectorSearchPredicate.embedding,
+                  limit = vectorSearchPredicate.limit,
+                  argumentIds = queryGraph.argumentIds,
+                  queryGraphPredicates = queryGraph.selections.flatPredicatesSet
+                )
+              Set(relationshipVectorIndexSearch)
+            case None => throw InternalException.internalError(
+                "VectorSearchLeafPlanner",
+                "Cannot find the vector search binding variable in the querygraph."
+              )
+          }
       }
     }
   }

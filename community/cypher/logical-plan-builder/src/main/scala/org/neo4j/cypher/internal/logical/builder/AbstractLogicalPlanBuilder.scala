@@ -2323,6 +2323,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     limit: ToExpression,
     score: String = "",
     argumentIds: Set[String] = Set.empty,
+    getValueFromIndex: String => GetValueFromIndexBehavior = _ => DoNotGetValue,
     filter: Option[QueryExpression[Expression]] = None
   ): IMPL = {
 
@@ -2336,7 +2337,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       .map(p =>
         IndexedProperty(
           PropertyKeyToken(PropertyKeyName(p)(NONE), PropertyKeyId(resolver.getPropertyKeyId(p))),
-          DoNotGetValue,
+          getValueFromIndex(p),
           RELATIONSHIP_TYPE
         )
       )

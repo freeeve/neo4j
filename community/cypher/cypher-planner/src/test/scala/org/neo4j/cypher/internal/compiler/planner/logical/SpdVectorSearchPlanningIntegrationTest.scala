@@ -80,8 +80,7 @@ class SpdVectorSearchPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
-  // TODO relationshipVectorIndexSearch is not yet implemented: See PLAN-2847
-  ignore(
+  test(
     "should get the property value from relationship vector index when the property is used later in the horizon"
   ) {
     val planner = planBuilder.build()
@@ -96,19 +95,50 @@ class SpdVectorSearchPlanningIntegrationTest extends CypherFunSuite
         |""".stripMargin
 
     val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
-    plan shouldEqual null
-    //      planner.subPlanBuilder()
-    //        .projection("cacheN[r.description] AS `r.description`")
-    //        .relationshipVectorIndexSearch(
-    //          "r",
-    //          Seq("KNOWS"),
-    //          Seq("description"),
-    //          "knowsDescr",
-    //          "$embedding",
-    //          "10",
-    //          getValueFromIndex = Map("description" -> GetValue)
-    //        )
-    //        .build()
+    plan shouldEqual
+      planner.subPlanBuilder()
+        .projection("cacheR[r.description] AS `r.description`")
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("KNOWS"),
+          Seq("description"),
+          "knowsDescr",
+          "$embedding",
+          "10",
+          getValueFromIndex = Map("description" -> GetValue)
+        )
+        .build()
+  }
+
+  test(
+    "should NOT get the property value from relationship vector index when the property is NOT used later in the query"
+  ) {
+    val planner = planBuilder.build()
+    val query =
+      """MATCH ()-[r]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX knowsDescr
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.prop
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual
+      planner.subPlanBuilder()
+        .projection("cacheR[r.prop] AS `r.prop`")
+        .remoteBatchProperties("cacheRFromStore[r.prop]")
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("KNOWS"),
+          Seq("description"),
+          "knowsDescr",
+          "$embedding",
+          "10",
+          getValueFromIndex = Map("description" -> DoNotGetValue)
+        )
+        .build()
   }
 
   test("should get the property value from node vector index when the property is used later in the same queryGraph") {
