@@ -346,14 +346,7 @@ final class RegularCypherSteps @Inject() (
       ) {
         fail("Expected the last column in an approximate result to be named 'mandatory'")
       } else {
-        val headers = expected.row(0)
-        val headersWithoutMandatory = new java.util.ArrayList[String](headers.size() - 1)
-        var i = 0
-        while (i < headers.size() - 1) {
-          headersWithoutMandatory.add(headers.get(i))
-          i += 1
-        }
-        headersWithoutMandatory
+        expected.columns(0, expected.width() - 1).row(0)
       }
     } else if (expected.isEmpty) {
       java.util.List.of()
