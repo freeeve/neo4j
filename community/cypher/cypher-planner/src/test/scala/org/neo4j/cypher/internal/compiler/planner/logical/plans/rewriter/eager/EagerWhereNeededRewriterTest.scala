@@ -9109,12 +9109,16 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
   }
 
   test(
-    "inserts eager between create and relationship type read (RelationshipVectorIndexSearch) if relationship types overlap"
+    "Inserts eager between create and relationship type read (RelationshipVectorIndexSearch) if relationship types overlap"
   ) {
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("result")
       .projection("1 AS result")
-      .create(createNode("l"), createNode("r"), createRelationship("o", "l", "r", "R1", OUTGOING))
+      .create(
+        createNode("l"),
+        createNode("o"),
+        createRelationship("r", "l", "R1", "o", OUTGOING, Some("{embedding: 1}"))
+      )
       .apply()
       .|.relationshipVectorIndexSearch(
         "(a2)-[r2]-(b2)",
@@ -9133,12 +9137,17 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
       new LogicalPlanBuilder()
         .produceResults("result")
         .projection("1 AS result")
-        .create(createNode("l"), createNode("r"), createRelationship("o", "l", "r", "R1", OUTGOING))
-        // TODO: I think the eager is here for the wrong reason, not because of the relationship
-        //       overlap, but rather due to create(l), create(r) overlapping with the reading of
-        //       (a2) and (b2). That doesn't make any sense since these aren't really in conflict,
-        //       but this error saves us in this case since the eager is indeed necessary.
-        .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(2), Id(4)))))
+        .create(
+          createNode("l"),
+          createNode("o"),
+          createRelationship("r", "l", "R1", "o", OUTGOING, Some("{embedding: 1}"))
+        )
+        .eager(ListSet(
+          PropertyReadSetConflict(propName("embedding")).withConflict(Conflict(Id(2), Id(4))),
+          // Unnecessary eager because of the node overlap
+          ReadCreateConflict.withConflict(Conflict(Id(2), Id(4))),
+          TypeReadSetConflict(relTypeName("R1")).withConflict(Conflict(Id(2), Id(4)))
+        ))
         .apply()
         .|.relationshipVectorIndexSearch(
           "(a2)-[r2]-(b2)",
@@ -9154,16 +9163,17 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
     )
   }
 
-  // TODO: we shouldn't really need to insert an eager here, but we don't properly track relationship types
   test(
     "should not insert eager, but still does, between create and relationship type read (RelationshipVectorIndexSearch) if relationship types don't overlap"
   ) {
     val planBuilder = new LogicalPlanBuilder()
       .produceResults("result")
       .projection("1 AS result")
-      .create(createNode("l"), createNode("r"), createRelationship("o", "l", "r", "R3", OUTGOING))
-      // TODO: when we fix rel-type tracking this eager should go away
-      .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(2), Id(4)))))
+      .create(
+        createNode("l"),
+        createNode("o"),
+        createRelationship("r", "l", "R3", "o", OUTGOING, Some("{embedding: 1}"))
+      )
       .apply()
       .|.relationshipVectorIndexSearch(
         "(a2)-[r2]->(b2)",
@@ -9177,7 +9187,30 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
       .allRelationshipsScan("(a1)-[r1]->(b1)")
     val plan = planBuilder.build()
     val result = eagerizePlan(planBuilder, plan)
-
-    result should equal(plan)
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("result")
+        .projection("1 AS result")
+        .create(
+          createNode("l"),
+          createNode("o"),
+          createRelationship("r", "l", "R3", "o", OUTGOING, Some("{embedding: 1}"))
+        )
+        // Unnecessary eager because of the node overlap
+        .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(2), Id(4)))))
+        .apply()
+        .|.relationshipVectorIndexSearch(
+          "(a2)-[r2]->(b2)",
+          Seq("R1", "R2"),
+          Seq("embedding"),
+          "myIndex",
+          "[1, 2, 3]",
+          "11",
+          "",
+          Set("m")
+        )
+        .allRelationshipsScan("(a1)-[r1]->(b1)")
+        .build()
+    )
   }
 }
