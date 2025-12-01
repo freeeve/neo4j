@@ -57,14 +57,14 @@ private class PrettyExpressionStringifier(inner: ExpressionStringifier) extends 
     }
   }
 
-  override def apply(expression: Expression, shouldBacktickEmpty: Boolean): String =
-    inner.apply(expression.endoRewrite(simplify), shouldBacktickEmpty)
+  override def apply(expression: Expression): String =
+    inner.apply(expression.endoRewrite(simplify))
 
-  override def apply(name: SymbolicName, shouldBacktickEmpty: Boolean): String =
-    inner.apply(name.endoRewrite(simplify), shouldBacktickEmpty)
+  override def apply(name: SymbolicName): String =
+    inner.apply(name.endoRewrite(simplify))
 
-  override def apply(namespace: Namespace, shouldBacktickEmpty: Boolean): String =
-    inner.apply(namespace.endoRewrite(simplify), shouldBacktickEmpty)
+  override def apply(namespace: Namespace): String =
+    inner.apply(namespace.endoRewrite(simplify))
 
   override def patterns: PatternStringifier = new PatternStringifier {
     private val innerPatterns = inner.patterns

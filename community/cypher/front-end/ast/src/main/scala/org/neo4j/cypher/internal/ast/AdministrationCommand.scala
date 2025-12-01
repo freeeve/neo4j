@@ -401,7 +401,7 @@ sealed trait UserAuth extends SemanticAnalysisTooling {
     case _ => success
   }
 
-  val useOldStyleNativeAuth: Boolean = oldStyleAuth.nonEmpty
+  val usesOldStyleNativeAuth: Boolean = oldStyleAuth.nonEmpty
 }
 
 final case class CreateUser(
@@ -1261,7 +1261,7 @@ object ShowPrivilegeCommands {
 //noinspection ScalaUnusedSymbol
 sealed abstract class PrivilegeCommand(
   privilege: PrivilegeType,
-  qualifier: List[PrivilegeQualifier],
+  val qualifier: List[PrivilegeQualifier],
   position: InputPosition
 ) extends WriteAdministrationCommand {
 
@@ -1518,7 +1518,7 @@ final case class GrantPrivilege(
   privilege: PrivilegeType,
   immutable: Boolean,
   resource: Option[ActionResourceBase],
-  qualifier: List[PrivilegeQualifier],
+  override val qualifier: List[PrivilegeQualifier],
   roleNames: Seq[Expression]
 )(val position: InputPosition) extends PrivilegeCommand(privilege, qualifier, position) {
   override def name = s"GRANT${Prettifier.maybeImmutable(immutable)} ${privilege.name}"
@@ -1532,7 +1532,7 @@ final case class DenyPrivilege(
   privilege: PrivilegeType,
   immutable: Boolean,
   resource: Option[ActionResourceBase],
-  qualifier: List[PrivilegeQualifier],
+  override val qualifier: List[PrivilegeQualifier],
   roleNames: Seq[Expression]
 )(val position: InputPosition) extends PrivilegeCommand(privilege, qualifier, position) {
 
@@ -1553,7 +1553,7 @@ final case class RevokePrivilege(
   privilege: PrivilegeType,
   immutableOnly: Boolean,
   resource: Option[ActionResourceBase],
-  qualifier: List[PrivilegeQualifier],
+  override val qualifier: List[PrivilegeQualifier],
   roleNames: Seq[Expression],
   revokeType: RevokeType
 )(val position: InputPosition) extends PrivilegeCommand(privilege, qualifier, position) {

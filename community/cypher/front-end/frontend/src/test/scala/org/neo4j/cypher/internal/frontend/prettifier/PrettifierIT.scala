@@ -16,23 +16,16 @@
  */
 package org.neo4j.cypher.internal.frontend.prettifier
 
-import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.ChangedBetween5And25
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.FailsInCypher25AndLater
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.FailsInCypher5
-import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.SameAcrossVersions
+import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.IgnoreInCypher5
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.Test
-import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.TestConverter
-import org.neo4j.cypher.internal.parser.AstParserFactory
-import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.Tuple2TestConverter
 
-import scala.math.Ordered.orderingToOrdered
-
-class PrettifierIT extends CypherFunSuite {
+class PrettifierIT extends AbstractPrettifierTest {
 
   val prettifier: Prettifier = Prettifier(ExpressionStringifier())
 
@@ -504,6 +497,11 @@ class PrettifierIT extends CypherFunSuite {
       """USE `db.products`
         |RETURN 1""".stripMargin
     ),
+    FailsInCypher25AndLater(
+      "use `db`.`products` return 1",
+      """USE `db`.`products`
+        |RETURN 1""".stripMargin
+    ),
     "use `db.products` return 1" ->
       """USE `db.products`
         |RETURN 1""".stripMargin,
@@ -912,11 +910,11 @@ class PrettifierIT extends CypherFunSuite {
         |  WHERE point.distance(c.coordinates, $p1, $p2) < 1000""".stripMargin,
     // Vectors
 
-    FailsInCypher5(
+    IgnoreInCypher5(
       "RETURN VECTOR_DISTANCE(vector([1, 2, 3, 4], 4, INT8), vector([1, 2, 3, 5], 4, INT8), dot)",
       """RETURN vector_distance(vector([1, 2, 3, 4], 4, INTEGER8 NOT NULL), vector([1, 2, 3, 5], 4, INTEGER8 NOT NULL), DOT)""".stripMargin
     ),
-    FailsInCypher5(
+    IgnoreInCypher5(
       "RETURN VECTOR_NORM(vector([1, 2, 3, 4], 4, float32), manhattan)",
       """RETURN vector_norm(vector([1, 2, 3, 4], 4, FLOAT32 NOT NULL), MANHATTAN)""".stripMargin
     )
@@ -4080,18 +4078,22 @@ class PrettifierIT extends CypherFunSuite {
 
   def emptyIdentifierTests(): Seq[Test] = Seq[Test](
     // general Cypher
-    // TODO: only parameters have been fixed to escape empty strings
-    "return $`` as ``" -> "RETURN $`` AS ",
+    "return $`` as ``" -> "RETURN $`` AS ``",
+    "return m.`` as ``" -> "RETURN m.`` AS ``",
+    "return ``.`` as ``" -> "RETURN ``.`` AS ``",
     "MATCH (``:`` {``: $``}) RETURN *" ->
-      """MATCH (: {: $``})
+      """MATCH (``:`` {``: $``})
         |RETURN *""".stripMargin,
+    "MATCH (``:$([``,toString(``:``)]) {``: $``||``}) RETURN ``:``, ``  {.* , .``}" ->
+      """MATCH (``:$all([``, toString(``:``)]) {``: $`` || ``})
+        |RETURN ``:``, ``{.*, .``}""".stripMargin,
     // Don't strip trailing spaces on the lines
     // \u0020 to not have intellij or similar remove the space and
     // '|' for the strip margin to only strip the start of each line and not both start and end
     "USE `` WITH $`` AS `` RETURN ``" ->
       s"""USE ``
-         |WITH $$`` AS\u0020
-         |RETURN """.stripMargin('|'),
+         |WITH $$`` AS ``
+         |RETURN ``""".stripMargin('|'),
 
     // index
     "CREATE INDEX `` FOR (``:``) ON (``.``)" -> "CREATE INDEX `` FOR (``:``) ON (``.``)",
@@ -4322,80 +4324,6 @@ class PrettifierIT extends CypherFunSuite {
     "DROP SERVER $``" -> "DROP SERVER $``"
   )
 
-  tests foreach {
-    case SameAcrossVersions(inputString, expected) =>
-      test(inputString) {
-        CypherVersion.values().foreach { version =>
-          val statement = parseAntlr(version, inputString)
-          val prettified = prettifier.asString(statement)
-          withClue(
-            s"""   Version: $version
-               |     Query: $inputString
-               |Prettified: $prettified
-               |  Expected: $expected
-               |       AST:
-               |${pprint.apply(statement)}
-               |""".stripMargin
-          )(prettified shouldBe expected)
-        }
-      }
-    case ChangedBetween5And25(inputString, expectedCypher5, expectedCypher25AndLater) =>
-      test(inputString) {
-        CypherVersion.values().foreach { version =>
-          if (version >= CypherVersion.Cypher25) withClue("in Cypher >= 25") {
-            val statement = parseAntlr(version, inputString)
-            val pretRes = prettifier.asString(statement)
-            pretRes should equal(expectedCypher25AndLater)
-          }
-          else withClue("in Cypher 5") {
-            val statement = parseAntlr(CypherVersion.Cypher5, inputString)
-            prettifier.asString(statement) should equal(expectedCypher5)
-          }
-        }
-      }
-    case FailsInCypher5(inputString, expected) =>
-      test(inputString) {
-        CypherVersion.values().filter(_ > CypherVersion.Cypher5).foreach { version =>
-          val statement = parseAntlr(version, inputString)
-          prettifier.asString(statement) should equal(expected)
-        }
-      }
-    case FailsInCypher25AndLater(inputString, expected) =>
-      test(inputString) {
-        CypherVersion.values().foreach { version =>
-          withClue(s"Cypher Antlr version: $version") {
-            if (version >= CypherVersion.Cypher25) {
-              // Which exception to throw is out of scope for the prettifier ITs, only checking that it throws something.
-              assertThrows[Throwable](parseAntlr(version, inputString))
-            } else {
-              val statement = parseAntlr(version, inputString)
-              prettifier.asString(statement) should equal(expected)
-            }
-          }
-        }
-      }
-  }
+  tests foreach testPrettifier
 
-  private def parseAntlr(version: CypherVersion, cypher: String): Statement =
-    AstParserFactory(version)(
-      cypher,
-      Neo4jCypherExceptionFactory(cypher, None),
-      None,
-      Seq()
-    ).singleStatement()
-
-}
-
-object PrettifierTestSupport {
-  sealed trait Test
-  case class SameAcrossVersions(inputString: String, output: String) extends Test
-
-  case class ChangedBetween5And25(inputString: String, outputCypher5: String, outputCypher25AndLater: String)
-      extends Test
-
-  case class FailsInCypher5(inputString: String, output: String) extends Test
-
-  case class FailsInCypher25AndLater(inputString: String, outputCypher5: String) extends Test
-
-  implicit class TestConverter(tuple: (String, String)) extends SameAcrossVersions(tuple._1, tuple._2)
 }

@@ -105,7 +105,7 @@ private class DefaultPatternStringifier(expr: ExpressionStringifier) extends Pat
   }
 
   override def apply(nodePattern: NodePattern): String = {
-    val variable = nodePattern.variable.map(expr(_))
+    val variable = nodePattern.variable.map(expr.apply)
 
     val labelExpression =
       nodePattern.labelExpression
@@ -119,7 +119,7 @@ private class DefaultPatternStringifier(expr: ExpressionStringifier) extends Pat
         " ",
         Seq(
           concatenate("", Seq(variable, labelExpression)),
-          nodePattern.properties.map(expr(_)),
+          nodePattern.properties.map(expr.apply),
           nodePattern.predicate.map(stringifyPredicate)
         )
       ).getOrElse("")
@@ -136,7 +136,7 @@ private class DefaultPatternStringifier(expr: ExpressionStringifier) extends Pat
   }
 
   override def apply(relationship: RelationshipPattern): String = {
-    val variable = relationship.variable.map(expr(_))
+    val variable = relationship.variable.map(expr.apply)
 
     val labelExpression =
       relationship.labelExpression
@@ -155,7 +155,7 @@ private class DefaultPatternStringifier(expr: ExpressionStringifier) extends Pat
       " ",
       Seq(
         concatenate("", Seq(variable, labelExpression, length)),
-        relationship.properties.map(expr(_)),
+        relationship.properties.map(expr.apply),
         relationship.predicate.map(stringifyPredicate)
       )
     ).fold("")(inner => s"[$inner]")

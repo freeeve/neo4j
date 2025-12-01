@@ -48,6 +48,10 @@ public enum CypherVersion {
         return order > other.order;
     }
 
+    public boolean isEqualOrAfter(CypherVersion other) {
+        return order >= other.order;
+    }
+
     public static CypherVersion fromStoredValue(String storedValue) {
         return fromStoredValueOptional(storedValue)
                 .orElseThrow(() -> new IllegalArgumentException(storedValue + " is not a valid CypherVersion"));

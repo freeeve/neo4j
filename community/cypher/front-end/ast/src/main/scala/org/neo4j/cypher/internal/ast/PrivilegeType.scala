@@ -16,9 +16,10 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 
-abstract class PrivilegeType(val name: String)
+abstract class PrivilegeType(val name: String) extends ASTNode
 
 final case class GraphPrivilege(action: GraphAction, scope: GraphScope)(val position: InputPosition)
     extends PrivilegeType(action.name)

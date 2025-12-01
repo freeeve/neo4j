@@ -171,7 +171,6 @@ import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnAddedInRewrite
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
-import org.neo4j.cypher.internal.ast.ReturnPartOfShowCommand
 import org.neo4j.cypher.internal.ast.RevokePrivilege
 import org.neo4j.cypher.internal.ast.RevokeRolesFromAuthRules
 import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
@@ -323,11 +322,11 @@ case class Prettifier(
     properties match {
       case Some(Left(props)) =>
         if (props.nonEmpty) {
-          s" $name ${props.map({ case (s, e) => s"${backtickEmpty(s)}: ${expr(e, shouldBacktickEmpty = true)}" }).mkString("{", ", ", "}")}"
+          s" $name ${props.map({ case (s, e) => s"${backtickEmpty(s)}: ${expr(e)}" }).mkString("{", ", ", "}")}"
         } else {
           s" $name {}"
         }
-      case Some(Right(parameter)) => s" $name ${expr(parameter, shouldBacktickEmpty = true)}"
+      case Some(Right(parameter)) => s" $name ${expr(parameter)}"
       case None                   => ""
     }
 
@@ -384,7 +383,7 @@ case class Prettifier(
     def propertiesToString(properties: Seq[Property]): String =
       properties.map(propertyToString).mkString("(", ", ", ")")
     def propertyToString(property: Property): String =
-      s"${expr(property.map, shouldBacktickEmpty = true)}.${backtickEmpty(property.propertyKey.name)}"
+      s"${expr(property.map)}.${expr(property.propertyKey)}"
 
     def getStartOfCommand(
       name: Option[Either[String, Parameter]],
@@ -418,9 +417,9 @@ case class Prettifier(
           case LabelName(label)     => s"(${backtickEmpty(variable)}:${backtickEmpty(label)})"
           case RelTypeName(relType) => s"()-[${backtickEmpty(variable)}:${backtickEmpty(relType)}]-()"
           case DynamicLabelExpression(expression, all) =>
-            s"(${backtickEmpty(variable)}:${anyAll(all)}$$(${expr(expression, shouldBacktickEmpty = true)}))"
+            s"(${backtickEmpty(variable)}:${anyAll(all)}$$(${expr(expression)}))"
           case DynamicRelTypeExpression(expression, all) =>
-            s"()-[${backtickEmpty(variable)}:${anyAll(all)}$$(${expr(expression, shouldBacktickEmpty = true)})]-()"
+            s"()-[${backtickEmpty(variable)}:${anyAll(all)}$$(${expr(expression)})]-()"
         }
         s"${startOfCommand}FOR $pattern ON ${propertiesToString(properties)}${stringifyOptions(options)(expr)}"
 
@@ -480,9 +479,9 @@ case class Prettifier(
           case LabelName(label)     => s"(${backtickEmpty(variable)}:${backtickEmpty(label)})"
           case RelTypeName(relType) => s"()-[${backtickEmpty(variable)}:${backtickEmpty(relType)}]-()"
           case DynamicLabelExpression(expression, all) =>
-            s"(${backtickEmpty(variable)}:${anyAll(all)}$$(${expr(expression, shouldBacktickEmpty = true)}))"
+            s"(${backtickEmpty(variable)}:${anyAll(all)}$$(${expr(expression)}))"
           case DynamicRelTypeExpression(expression, all) =>
-            s"()-[${backtickEmpty(variable)}:${anyAll(all)}$$(${expr(expression, shouldBacktickEmpty = true)})]-()"
+            s"()-[${backtickEmpty(variable)}:${anyAll(all)}$$(${expr(expression)})]-()"
         }
         s"${startOfCommand}FOR $pattern REQUIRE ${propertiesToString(properties)} ${constraintType.predicate}${stringifyOptions(options)(expr)}"
 
@@ -505,8 +504,8 @@ case class Prettifier(
       val ind: IndentingQueryPrettifier = base.indented()
       yieldOrWhere match {
         case Some(Left((y, r))) =>
-          (NL + ind.asString(y, shouldBacktickEmpty = true), r.map(ind.asString).map(NL + _).getOrElse(""))
-        case Some(Right(w)) => (NL + ind.asString(w, shouldBacktickEmpty = true), "")
+          (NL + ind.asString(y), r.map(ind.asString).map(NL + _).getOrElse(""))
+        case Some(Right(w)) => (NL + ind.asString(w), "")
         case None           => ("", "")
       }
     }
@@ -543,7 +542,7 @@ case class Prettifier(
             val setPasswordString = if (auth.password.get.isEncrypted) "SET ENCRYPTED PASSWORD" else "SET PASSWORD"
             val password = expr.escapePassword(auth.password.get.password)
             val changeRequired = s"CHANGE ${if (auth.changeRequired.getOrElse(true)) "" else "NOT "}REQUIRED"
-            if (x.useOldStyleNativeAuth)
+            if (x.usesOldStyleNativeAuth)
               (s" $setPasswordString $password $changeRequired", "")
             else {
               val ind: IndentingQueryPrettifier = base.indented()
@@ -594,7 +593,7 @@ case class Prettifier(
                 val passwordString = expr.escapePassword(password.password)
                 val passwordClauseString = s"$setPasswordString $passwordString"
 
-                if (x.useOldStyleNativeAuth) (s" $passwordClauseString${changeString.getOrElse("")}", "")
+                if (x.usesOldStyleNativeAuth) (s" $passwordClauseString${changeString.getOrElse("")}", "")
                 else {
                   val ind: IndentingQueryPrettifier = base.indented()
                   val authString =
@@ -605,7 +604,7 @@ case class Prettifier(
                 }
 
               case (None, Some(changeString)) =>
-                if (x.useOldStyleNativeAuth) (s" SET PASSWORD$changeString", "")
+                if (x.usesOldStyleNativeAuth) (s" SET PASSWORD$changeString", "")
                 else {
                   val ind: IndentingQueryPrettifier = base.indented()
                   ("", ind.getNativeAuthAsString(s"SET PASSWORD$changeString"))
@@ -1039,7 +1038,7 @@ case class Prettifier(
   private def asIndividualOptions(options: Options) = options match {
     case NoOptions => ""
     case OptionsMap(map) => map.map {
-        case (key, value) => s" SET OPTION ${backtickEmpty(key)} ${expr(value, shouldBacktickEmpty = true)}"
+        case (key, value) => s" SET OPTION ${backtickEmpty(key)} ${expr(value)}"
       }.mkString("")
     case OptionsParam(_) => throw new InternalError("Expected NoOptions or OptionsMap but was OptionsParam")
   }
@@ -1207,10 +1206,8 @@ case class Prettifier(
       s" IN$concurrency TRANSACTIONS$ofRows$onError$reportStatus"
     }
 
-    def asString(w: Where): String = asString(w, shouldBacktickEmpty = false)
-
-    def asString(w: Where, shouldBacktickEmpty: Boolean): String =
-      s"${INDENT}WHERE ${expr(w.expression, shouldBacktickEmpty = shouldBacktickEmpty)}"
+    def asString(w: Where): String =
+      s"${INDENT}WHERE ${expr(w.expression)}"
 
     def asString(s: Search): String = {
 
@@ -1280,67 +1277,54 @@ case class Prettifier(
       s"${INDENT}MERGE $p$a"
     }
 
-    def asString(o: Skip): String = asString(o, shouldBacktickEmpty = false)
+    def asString(o: Skip): String =
+      s"$INDENT${o.name} ${expr(o.expression)}"
 
-    def asString(o: Skip, shouldBacktickEmpty: Boolean): String =
-      s"$INDENT${o.name} ${expr(o.expression, shouldBacktickEmpty = shouldBacktickEmpty)}"
+    def asString(o: Limit): String =
+      s"${INDENT}LIMIT ${expr(o.expression)}"
 
-    def asString(o: Limit): String = asString(o, shouldBacktickEmpty = false)
-
-    def asString(o: Limit, shouldBacktickEmpty: Boolean): String =
-      s"${INDENT}LIMIT ${expr(o.expression, shouldBacktickEmpty = shouldBacktickEmpty)}"
-
-    def asString(o: OrderBy): String = asString(o, shouldBacktickEmpty = false)
-
-    def asString(o: OrderBy, shouldBacktickEmpty: Boolean): String = s"${INDENT}ORDER BY " + {
+    def asString(o: OrderBy): String = s"${INDENT}ORDER BY " + {
       o.sortItems.map {
-        case AscSortItem(expression)  => expr(expression, shouldBacktickEmpty = shouldBacktickEmpty) + " ASCENDING"
-        case DescSortItem(expression) => expr(expression, shouldBacktickEmpty = shouldBacktickEmpty) + " DESCENDING"
+        case AscSortItem(expression)  => expr(expression) + " ASCENDING"
+        case DescSortItem(expression) => expr(expression) + " DESCENDING"
       }.mkString(", ")
     }
 
-    def asString(r: ReturnItem): String = asString(r, shouldBacktickEmpty = false)
-
-    def asString(r: ReturnItem, shouldBacktickEmpty: Boolean): String = r match {
+    def asString(r: ReturnItem): String = r match {
       case AliasedReturnItem(e, v) =>
-        expr(e, shouldBacktickEmpty = shouldBacktickEmpty) + " AS " + expr(v, shouldBacktickEmpty = shouldBacktickEmpty)
-      case UnaliasedReturnItem(e, _) => expr(e, shouldBacktickEmpty = shouldBacktickEmpty)
+        expr(e) + " AS " + expr(v)
+      case UnaliasedReturnItem(e, _) => expr(e)
     }
 
     def asString(r: ReturnItems): String = asString(r, shouldBacktickEmpty = false)
 
     def asString(r: ReturnItems, shouldBacktickEmpty: Boolean): String = {
       val as = if (r.includeExisting) Seq("*") else Seq()
-      val is = r.items.map(asString(_, shouldBacktickEmpty))
+      val is = r.items.map(asString)
       (as ++ is).mkString(", ")
     }
 
     def asString(r: Return): String =
       if (r.returnType == ReturnAddedInRewrite) ""
       else {
-        // TODO: if we don't need to separate show commands and regular Cypher
-        //  let's undo the refactoring switching from boolean to ReturnType
-        val shouldBacktickEmpty = r.returnType == ReturnPartOfShowCommand
         val d = if (r.distinct) " DISTINCT" else ""
-        val i = asString(r.returnItems, shouldBacktickEmpty)
+        val i = asString(r.returnItems)
         val ind = indented()
-        val o = r.orderBy.map(ind.asString(_, shouldBacktickEmpty)).map(asNewLine).getOrElse("")
-        val l = r.limit.map(ind.asString(_, shouldBacktickEmpty)).map(asNewLine).getOrElse("")
-        val s = r.skip.map(ind.asString(_, shouldBacktickEmpty)).map(asNewLine).getOrElse("")
+        val o = r.orderBy.map(ind.asString).map(asNewLine).getOrElse("")
+        val l = r.limit.map(ind.asString).map(asNewLine).getOrElse("")
+        val s = r.skip.map(ind.asString).map(asNewLine).getOrElse("")
         s"${INDENT}RETURN$d $i$o$s$l"
       }
 
     def asString(@unused f: Finish): String = s"${INDENT}FINISH"
 
-    def asString(w: With): String = asString(w, shouldBacktickEmpty = false)
-
-    def asString(w: With, shouldBacktickEmpty: Boolean): String = {
+    def asString(w: With): String = {
       val ind = indented()
       val rewrittenClauses = List(
-        w.orderBy.map(ind.asString(_, shouldBacktickEmpty)),
-        w.skip.map(ind.asString(_, shouldBacktickEmpty)),
-        w.limit.map(ind.asString(_, shouldBacktickEmpty)),
-        w.where.map(ind.asString(_, shouldBacktickEmpty))
+        w.orderBy.map(ind.asString),
+        w.skip.map(ind.asString),
+        w.limit.map(ind.asString),
+        w.where.map(ind.asString)
       ).flatten
       lazy val rewrittenClausesStrWithNlSeparators = rewrittenClauses.mkString(NL)
 
@@ -1371,15 +1355,13 @@ case class Prettifier(
       }
     }
 
-    def asString(y: Yield): String = asString(y, shouldBacktickEmpty = false)
-
-    def asString(y: Yield, shouldBacktickEmpty: Boolean): String = {
-      val i = asString(y.returnItems, shouldBacktickEmpty)
+    def asString(y: Yield): String = {
+      val i = asString(y.returnItems)
       val ind = indented()
-      val o = y.orderBy.map(ind.asString(_, shouldBacktickEmpty)).map(asNewLine).getOrElse("")
-      val l = y.limit.map(ind.asString(_, shouldBacktickEmpty)).map(asNewLine).getOrElse("")
-      val s = y.skip.map(ind.asString(_, shouldBacktickEmpty)).map(asNewLine).getOrElse("")
-      val wh = y.where.map(ind.asString(_, shouldBacktickEmpty)).map(asNewLine).getOrElse("")
+      val o = y.orderBy.map(ind.asString).map(asNewLine).getOrElse("")
+      val l = y.limit.map(ind.asString).map(asNewLine).getOrElse("")
+      val s = y.skip.map(ind.asString).map(asNewLine).getOrElse("")
+      val wh = y.where.map(ind.asString).map(asNewLine).getOrElse("")
       s"${INDENT}YIELD $i$o$s$l$wh"
     }
 
@@ -1424,14 +1406,14 @@ case class Prettifier(
     def asString(s: ShowIndexesClause): String = {
       val indexType = s.indexType.prettyPrint
       val ind = indented()
-      val where = s.where.map(ind.asString(_, shouldBacktickEmpty = true)).map(asNewLine).getOrElse("")
+      val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
       val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"SHOW $indexType INDEXES$where$yielded"
     }
 
     def asString(s: ShowConstraintsClause): String = {
       val ind = indented()
-      val where = s.where.map(ind.asString(_, shouldBacktickEmpty = true)).map(asNewLine).getOrElse("")
+      val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
       val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"SHOW ${s.constraintType.prettyPrint} CONSTRAINTS$where$yielded"
     }
@@ -1446,7 +1428,7 @@ case class Prettifier(
     def asString(s: ShowProceduresClause): String = {
       val executable = getExecutablePart(s.executable)
       val ind = indented()
-      val where = s.where.map(ind.asString(_, shouldBacktickEmpty = true)).map(asNewLine).getOrElse("")
+      val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
       val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"${s.name}$executable$where$yielded"
     }
@@ -1455,7 +1437,7 @@ case class Prettifier(
       val functionType = s.functionType.prettyPrint
       val executable = getExecutablePart(s.executable)
       val ind = indented()
-      val where = s.where.map(ind.asString(_, shouldBacktickEmpty = true)).map(asNewLine).getOrElse("")
+      val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
       val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"SHOW $functionType FUNCTIONS$executable$where$yielded"
     }
@@ -1469,7 +1451,7 @@ case class Prettifier(
     def asString(s: ShowTransactionsClause): String = {
       val ids = namesAsString(s.names)
       val ind = indented()
-      val where = s.where.map(ind.asString(_, shouldBacktickEmpty = true)).map(asNewLine).getOrElse("")
+      val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
       val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"SHOW TRANSACTIONS$ids$where$yielded"
     }
@@ -1483,14 +1465,14 @@ case class Prettifier(
     def asString(s: ShowSettingsClause): String = {
       val names = namesAsString(s.names)
       val ind = indented()
-      val where = s.where.map(ind.asString(_, shouldBacktickEmpty = true)).map(asNewLine).getOrElse("")
+      val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
       val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"${s.name}$names$where$yielded"
     }
 
     private def namesAsString(ids: Either[List[String], Expression]): String = ids match {
       case Left(s)  => if (s.nonEmpty) s.map(id => expr.quote(id)).mkString(" ", ", ", "") else ""
-      case Right(e) => s" ${expr(e, shouldBacktickEmpty = true)}"
+      case Right(e) => s" ${expr(e)}"
     }
 
     private def yieldAsString(
@@ -1501,14 +1483,14 @@ case class Prettifier(
       val yieldPart = if (yieldItems.nonEmpty) {
         val items = yieldItems.map(c => {
           if (!c.aliasedVariable.name.equals(c.originalName)) {
-            backtickEmpty(c.originalName) + " AS " + expr(c.aliasedVariable, shouldBacktickEmpty = true)
-          } else expr(c.aliasedVariable, shouldBacktickEmpty = true)
+            backtickEmpty(c.originalName) + " AS " + expr(c.aliasedVariable)
+          } else expr(c.aliasedVariable)
         }).mkString(", ")
         asNewLine(s"${INDENT}YIELD $items")
       } else if (yieldAll) asNewLine(s"${INDENT}YIELD *")
       else ""
       val extraClauses =
-        yieldWith.map(asString(_, shouldBacktickEmpty = true)).filter(_.nonEmpty).map(asNewLine).getOrElse("")
+        yieldWith.map(asString).filter(_.nonEmpty).map(asNewLine).getOrElse("")
       yieldPart + extraClauses
     }
 
@@ -1653,9 +1635,9 @@ object Prettifier {
   ): PartialFunction[List[PrivilegeQualifier], String] = {
     case LoadAllQualifier() :: Nil                  => s"ALL DATA"
     case LoadUrlQualifier(Left(urlString)) :: Nil   => s"URL ${expr.quote(urlString)}"
-    case LoadUrlQualifier(Right(urlParam)) :: Nil   => s"URL ${expr(urlParam, shouldBacktickEmpty = true)}"
+    case LoadUrlQualifier(Right(urlParam)) :: Nil   => s"URL ${expr(urlParam)}"
     case LoadCidrQualifier(Left(cidrString)) :: Nil => s"CIDR ${expr.quote(cidrString)}"
-    case LoadCidrQualifier(Right(cidrParam)) :: Nil => s"CIDR ${expr(cidrParam, shouldBacktickEmpty = true)}"
+    case LoadCidrQualifier(Right(cidrParam)) :: Nil => s"CIDR ${expr(cidrParam)}"
   }
 
   private def prettifyGraphQualifier(action: GraphAction, qualifier: List[PrivilegeQualifier]): String = {
@@ -1710,7 +1692,7 @@ object Prettifier {
 
       def propertyAndWherePrettifier(e: Expression) = {
         val where =
-          s"WHERE ${ExpressionStringifier.apply(e => e.asCanonicalStringVal).apply(e, shouldBacktickEmpty = true)}"
+          s"WHERE ${ExpressionStringifier.apply(e => e.asCanonicalStringVal).apply(e)}"
         element match {
           case Node         => s"(${variableNameString.getOrElse("")}$elementTypes) $where"
           case Relationship => s"()-[${variableNameString.getOrElse("")}$elementTypes]-() $where"
@@ -1721,7 +1703,7 @@ object Prettifier {
 
         val where = (varName: String) =>
           s"WHERE $varName.${backtickEmpty(propertyKeyName.name)} = " +
-            s"${ExpressionStringifier.apply(value => value.asCanonicalStringVal).apply(value, shouldBacktickEmpty = true)}"
+            s"${ExpressionStringifier.apply(value => value.asCanonicalStringVal).apply(value)}"
 
         element match {
           case Node =>
@@ -1886,14 +1868,14 @@ object Prettifier {
 
   private[prettifier] def stringifyOptions(options: Options)(implicit expr: ExpressionStringifier) = options match {
     case NoOptions               => ""
-    case OptionsParam(parameter) => s" OPTIONS ${expr(parameter, shouldBacktickEmpty = true)}"
+    case OptionsParam(parameter) => s" OPTIONS ${expr(parameter)}"
     case OptionsMap(map)         => optionsToString(map)
   }
 
   private def optionsToString(options: Map[String, Expression])(implicit expr: ExpressionStringifier): String =
     if (options.nonEmpty) {
       val mapString = options.map { case (s, e) =>
-        s"${expr.backtick(s, shouldBacktickEmpty = true)}: ${expr(e, shouldBacktickEmpty = true)}"
+        s"${expr.backtick(s, shouldBacktickEmpty = true)}: ${expr(e)}"
       }.mkString("{", ", ", "}")
       s" OPTIONS $mapString"
     } else {
