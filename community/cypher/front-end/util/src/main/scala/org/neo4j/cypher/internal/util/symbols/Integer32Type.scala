@@ -27,7 +27,7 @@ case class Integer32Type(isNullable: Boolean)(val position: InputPosition) exten
 
   override def sortOrder: Int = CypherTypeOrder.INTEGER32.id
 
-  override def hasValueRepresentation: Boolean = true
+  override def couldBeStoredInProperty: Boolean = true
 
   override def withIsNullable(isNullable: Boolean): CypherType = this.copy(isNullable = isNullable)(position)
 

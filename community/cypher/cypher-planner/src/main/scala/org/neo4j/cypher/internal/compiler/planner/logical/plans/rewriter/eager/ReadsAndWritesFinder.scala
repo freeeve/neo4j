@@ -345,7 +345,8 @@ object ReadsAndWritesFinder {
     readRelProperties: ReadingPlansProvider[PropertyKeyName] = ReadingPlansProvider(),
     relationshipFilterExpressions: Map[LogicalVariable, FilterExpressions] = Map.empty,
     possibleRelDeleteConflictPlans: Map[LogicalVariable, PossibleDeleteConflictPlans] = Map.empty,
-    callInTxPlans: Set[Ref[LogicalPlan]] = Set.empty
+    callInTxPlans: Set[Ref[LogicalPlan]] = Set.empty,
+    variableReferenceMap: Map[LogicalVariable, Set[LogicalVariable]] = Map.empty
   ) {
 
     /**
@@ -406,6 +407,10 @@ object ReadsAndWritesFinder {
 
     def withCallInTx(plan: LogicalPlan): Reads = {
       copy(callInTxPlans = callInTxPlans + Ref(plan))
+    }
+
+    def withVariableReferenceMap(newMap: Map[LogicalVariable, Set[LogicalVariable]]): Reads = {
+      copy(variableReferenceMap = variableReferenceMap.fuse(newMap)(_ ++ _))
     }
 
     /**
@@ -599,7 +604,8 @@ object ReadsAndWritesFinder {
             case (acc, maybeVar) => acc.withUnknownRelPropertiesRead(plan, maybeVar)
           }
         },
-        acc => if (planReads.callInTx) acc.withCallInTx(plan) else acc
+        acc => if (planReads.callInTx) acc.withCallInTx(plan) else acc,
+        acc => acc.withVariableReferenceMap(planReads.referencedVariableMap)
       ))(this)
     }
 
@@ -1014,7 +1020,15 @@ object ReadsAndWritesFinder {
   ): ReadsAndWrites = {
     def processPlan(acc: ReadsAndWrites, plan: LogicalPlan): ReadsAndWrites = {
       val planReads =
-        collectReads(plan, semanticTable, anonymousVariableNameGenerator, childrenIds, cancellationChecker)
+        collectReads(
+          plan,
+          semanticTable,
+          anonymousVariableNameGenerator,
+          childrenIds,
+          cancellationChecker,
+          acc.reads.variableReferenceMap
+        )
+
       val planWrites = collectWrites(plan)
 
       childrenIds.recordChildren(plan)

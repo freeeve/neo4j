@@ -29,7 +29,7 @@ case class Integer8Type(isNullable: Boolean)(val position: InputPosition) extend
 
   override def sortOrder: Int = CypherTypeOrder.INTEGER8.id
 
-  override def hasValueRepresentation: Boolean = true
+  override def couldBeStoredInProperty: Boolean = true
 
   override def withIsNullable(isNullable: Boolean): CypherType = this.copy(isNullable = isNullable)(position)
 

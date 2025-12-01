@@ -3135,7 +3135,7 @@ public final class CypherFunctions {
             result = true;
         } else if (typeName instanceof ListType listType) {
             result = (item instanceof SequenceValue list) && checkInnerListIsTyped(list, listType);
-        } else if (typeName.hasValueRepresentation() && !(typeName instanceof ClosedDynamicUnionType)) {
+        } else if (typeName.couldBeStoredInProperty() && !(typeName instanceof ClosedDynamicUnionType)) {
             result = possibleValueRepresentations(typeName).contains(item.valueRepresentation());
             if (result && typeName instanceof VectorType vectorType && item instanceof VectorValue vectorValue) {
                 // If the inner type was matched above, we also need to make sure the dimension is checked
@@ -3360,14 +3360,14 @@ public final class CypherFunctions {
             return itemType instanceof AnyType
                     || itemType instanceof PropertyValueType
                     || itemType instanceof PropertyValueCypher5Type
-                    || (typeName.hasValueRepresentation()
+                    || (typeName.couldBeStoredInProperty()
                             && possibleValueRepresentations(typeName).contains(array.valueRepresentation()));
         } else if (values instanceof ListValue list) {
             // For a simple LIST<TYPE NOT NULL> we can quickly check the list type
             // without needing to iterate over the list
             // Lists that are mixed ints and floats will return as a list of float here, so don't allow the shortcut for
             // that
-            if (itemType.hasValueRepresentation()
+            if (itemType.couldBeStoredInProperty()
                     && !itemType.isNullable()
                     && list.itemValueRepresentation().valueGroup() != ValueGroup.NUMBER
                     && possibleValueRepresentations(itemType).contains(list.itemValueRepresentation())) {

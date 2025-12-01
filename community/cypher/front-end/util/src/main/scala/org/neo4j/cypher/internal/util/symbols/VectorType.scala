@@ -52,8 +52,8 @@ case class VectorType(
   }
   override def sortOrder: Int = CypherTypeOrder.VECTOR.id
 
-  override def hasValueRepresentation: Boolean = innerType match {
-    case Some(value) => value.hasValueRepresentation
+  override def couldBeStoredInProperty: Boolean = innerType match {
+    case Some(value) => value.couldBeStoredInProperty
     case _           => false
   }
 
