@@ -2242,6 +2242,16 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     )
   }
 
+  // set OIDC credential forwarding
+
+  test("ALTER ALIAS name SET DATABASE OIDC CREDENTIAL FORWARDING") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'OIDC': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET' or 'USER' (line 1, column 31 (offset: 30))
+        |"ALTER ALIAS name SET DATABASE OIDC CREDENTIAL FORWARDING"
+        |                               ^""".stripMargin
+    )
+  }
+
   // set driver
 
   test("ALTER ALIAS name SET DATABASE DRIVER { ssl_enforced: true }") {
