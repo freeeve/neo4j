@@ -38,6 +38,7 @@ import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTPoint;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTRelationship;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTString;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTTime;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTVector;
 import static org.neo4j.values.SequenceValue.IterationPreference.RANDOM_ACCESS;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.virtual.VirtualValues.EMPTY_LIST;
@@ -71,6 +72,7 @@ import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.ListValueBuilder;
 import org.neo4j.values.virtual.MapValue;
@@ -335,6 +337,14 @@ public final class CypherCoercions {
         return (SequenceValue) value;
     }
 
+    public static VectorValue asVectorValue(AnyValue value) {
+        assert value != NO_VALUE : "NO_VALUE checks need to happen outside this call";
+        if (!(value instanceof VectorValue)) {
+            throw cantCoerce(value, "VectorValue");
+        }
+        return (VectorValue) value;
+    }
+
     static CypherTypeException cantCoerce(AnyValue value, String type) {
         return CypherTypeException.invalidCoercion(
                 value.toString(), type, format("Can't coerce `%s` to %s", value, type));
@@ -376,7 +386,8 @@ public final class CypherCoercions {
                     Map.entry(NTDate.getClass(), (a, ignore2, cursors) -> asDateValueOrNull(a)),
                     Map.entry(NTTime.getClass(), (a, ignore2, cursors) -> asTimeValueOrNull(a)),
                     Map.entry(NTLocalTime.getClass(), (a, ignore2, cursors) -> asLocalTimeValueOrNull(a)),
-                    Map.entry(NTDuration.getClass(), (a, ignore2, cursors) -> asDurationValueOrNull(a)));
+                    Map.entry(NTDuration.getClass(), (a, ignore2, cursors) -> asDurationValueOrNull(a)),
+                    Map.entry(NTVector.getClass(), (a, ignore2, cursors) -> asVectorValue(a)));
 
     /** Value coercer. All implementations must be immutable! They are reused. */
     @FunctionalInterface
@@ -466,6 +477,8 @@ class ListCoercer implements CypherCoercions.Coercer {
             case UTF16_TEXT, UTF8_TEXT -> target == NTString;
             case BOOLEAN -> target == NTBoolean;
             case INT64, INT32, INT16, INT8, FLOAT64, FLOAT32 -> target == NTNumber;
+            case INT8_VECTOR, INT16_VECTOR, INT32_VECTOR, INT64_VECTOR, FLOAT32_VECTOR, FLOAT64_VECTOR ->
+                target == NTVector;
             default -> false;
         };
     }
