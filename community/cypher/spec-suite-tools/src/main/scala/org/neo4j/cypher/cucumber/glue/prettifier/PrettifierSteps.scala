@@ -34,7 +34,7 @@ import org.neo4j.cypher.cucumber.glue.regular.NoOpBeforeAndAfterAllModule
 import org.neo4j.cypher.cucumber.glue.regular.SingletonInjector
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
 import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.PreParser
@@ -140,7 +140,7 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
     : Unit = {}
   override def sideEffectsShouldBe(expected: DataTable): Unit = {}
   override def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {}
-  override def warningShouldBeRaised(expectedGqlWarning: ExpectedGqlWarning): Unit = {}
+  override def notificationsShouldBeRaised(expectedGqlWarning: ExpectedGqlNotification): Unit = {}
   override def openTransaction(): Unit = {}
   override def commitOpenTx(): Unit = {}
 }

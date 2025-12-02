@@ -56,5 +56,7 @@ trait ValueMapper {
 case class ConsumedResult(
   headers: java.util.List[String],
   rows: java.util.List[java.util.List[AnyRef]],
-  qqlStatusObjects: java.lang.Iterable[GqlStatusObject]
+  qqlStatusObjects: Seq[GqlNotification]
 )
+
+case class GqlNotification(code: String, statusDescription: String)

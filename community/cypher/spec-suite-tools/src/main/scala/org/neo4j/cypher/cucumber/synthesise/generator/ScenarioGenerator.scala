@@ -29,7 +29,7 @@ import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDou
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
 import org.neo4j.cypher.cucumber.synthesise.CucumberSalad
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.ScenarioFilter
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.excludeTags
@@ -254,10 +254,8 @@ trait ScenarioRenderer {
     case error: ExpectError => error match {
         case AssertGqlError(ExpectedGqlError(table, _)) =>
           render(s"Then an error should be raised:", table)
-        case AssertGqlWarning(ExpectedGqlWarning(code, None)) =>
-          s"execution should raise a warning with GQL code $code"
-        case AssertGqlWarning(ExpectedGqlWarning(code, Some(desc))) =>
-          tripleQuote(s"execution should raise a warning with GQL code $code and message containing:", desc)
+        case AssertGqlWarning(ExpectedGqlNotification(table, _)) =>
+          render(s"Then warnings should be raised:", table)
       }
     case SideEffects(expected) if expected.isEmpty =>
       "And no side effects"

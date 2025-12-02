@@ -20,6 +20,7 @@
 package org.neo4j.cypher.testing.impl.driver
 
 import org.neo4j.cypher.testing.api.ConsumedResult
+import org.neo4j.cypher.testing.api.GqlNotification
 import org.neo4j.cypher.testing.api.StatementResult
 import org.neo4j.cypher.testing.api.ValueMapper
 import org.neo4j.cypher.testing.impl.shared.GqlStatusObjImpl
@@ -54,7 +55,9 @@ case class DriverStatementResult(private val driverResult: Result) extends State
   override def consume(valueMapper: ValueMapper): ConsumedResult = {
     val headers = driverResult.keys()
     val rows = driverResult.list(valueMapper.driverRecordsMapper)
-    val qqlStatusObjects = driverResult.consume().gqlStatusObjects().asInstanceOf[java.lang.Iterable[GqlStatusObject]]
+    val qqlStatusObjects = driverResult.consume().gqlStatusObjects().asScala
+      .map(s => GqlNotification(s.gqlStatus(), s.statusDescription()))
+      .toSeq
     ConsumedResult(headers, rows, qqlStatusObjects)
   }
 

@@ -30,7 +30,7 @@ import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrd
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
 
 import java.nio.charset.StandardCharsets
 
@@ -161,13 +161,12 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
     errorShouldBeRaised(ExpectedGqlError(table))
   }
 
-  Then("execution should raise a warning with GQL code {word}") { code: String =>
-    warningShouldBeRaised(ExpectedGqlWarning(code, None))
+  Then("no notifications should be raised") {
+    notificationsShouldBeRaised(ExpectedGqlNotification.empty)
   }
 
-  Then("execution should raise a warning with GQL code {word} and message containing:") {
-    (code: String, description: String) =>
-      warningShouldBeRaised(ExpectedGqlWarning(code, Some(description)))
+  Then("notifications should be raised:") { table: DataTable =>
+    notificationsShouldBeRaised(ExpectedGqlNotification(table))
   }
 
   private def readNamedGraphCypher(name: String): String = {
@@ -184,13 +183,14 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit
   def sideEffectsShouldBe(expected: DataTable): Unit
   def errorShouldBeRaised(hierarchy: ExpectedGqlError): Unit
-  def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit
+  def notificationsShouldBeRaised(expectedWarnings: ExpectedGqlNotification): Unit
 }
 
 object CypherCucumberSteps {
-  case class ExpectedGqlWarning(code: String, descriptionContains: Option[String])
   case class ErrorDescription(code: Seq[String], classification: Seq[String], descriptionTemplate: String)
   case class ExpectedGqlError(table: DataTable, errors: Seq[ErrorDescription])
+  case class NotificationDescription(code: String, descriptionTemplate: String, optional: Boolean)
+  case class ExpectedGqlNotification(table: DataTable, warnings: Seq[NotificationDescription])
 
   object ExpectedGqlError {
     private val Headers = java.util.List.of("code", "classification", "description")
@@ -201,6 +201,29 @@ object CypherCucumberSteps {
           errors = table.cells().asScala.view
             .drop(1) // Headers
             .map(row => ErrorDescription(row.get(0).split(','), row.get(1).split(','), row.get(2)))
+            .toSeq
+        )
+      case headers => throw new IllegalArgumentException(s"Unrecognized headers: " + headers)
+    }
+  }
+
+  object ExpectedGqlNotification {
+    private val Headers = java.util.List.of("code", "description")
+
+    def empty: ExpectedGqlNotification = ExpectedGqlNotification(DataTable.create(java.util.List.of(Headers)))
+
+    def apply(table: DataTable): ExpectedGqlNotification = table.row(0) match {
+      case Headers => ExpectedGqlNotification(
+          table = table,
+          warnings = table.cells().asScala.view
+            .drop(1) // Headers
+            .map { row =>
+              val rawCode = row.get(0)
+              val isOptional = rawCode.endsWith("?")
+              val code = if (isOptional) rawCode.substring(0, rawCode.length - 1) else rawCode
+              val desc = row.get(1)
+              NotificationDescription(code, desc, isOptional)
+            }
             .toSeq
         )
       case headers => throw new IllegalArgumentException(s"Unrecognized headers: " + headers)

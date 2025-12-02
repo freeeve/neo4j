@@ -32,7 +32,7 @@ import org.neo4j.cypher.cucumber.glue.regular.NoOpBeforeAndAfterAll
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
 import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
 
 import java.net.URI
@@ -84,7 +84,7 @@ final class ScenarioRecordingSteps @Inject() (
   override def sideEffectsShouldBe(expected: DataTable): Unit = add(SideEffects(expected))
   override def errorShouldBeRaised(expected: ExpectedGqlError): Unit = add(AssertGqlError(expected))
 
-  override def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit =
+  override def notificationsShouldBeRaised(expectedWarning: ExpectedGqlNotification): Unit =
     add(AssertGqlWarning(expectedWarning))
   override def openTransaction(): Unit = add(OpenTransaction)
   override def havingExecutedInOpenTx(cypher: String): Unit = add(HavingExecutedInOpenTx(cypher))
@@ -157,6 +157,6 @@ case class AssertResults(expected: DataTable, resultBuilder: ResultAssertionBuil
 }
 sealed trait ExpectError extends RecordedStep
 case class AssertGqlError(expected: ExpectedGqlError) extends ExpectError
-case class AssertGqlWarning(expected: ExpectedGqlWarning) extends ExpectError
+case class AssertGqlWarning(expected: ExpectedGqlNotification) extends ExpectError
 case class SideEffects(expected: DataTable) extends RecordedStep
 case class Comment(comment: String) extends RecordedStep

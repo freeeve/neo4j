@@ -186,7 +186,7 @@ final class ObfuscatorSteps @Inject() (
   override def errorShouldBeRaised(expectedError: CypherCucumberSteps.ExpectedGqlError): Unit =
     taggedQueries = taggedQueries.removed(lastTag)
 
-  override def warningShouldBeRaised(expectedWarning: CypherCucumberSteps.ExpectedGqlWarning): Unit =
+  override def notificationsShouldBeRaised(expectedWarnings: CypherCucumberSteps.ExpectedGqlNotification): Unit =
     taggedQueries = taggedQueries.removed(lastTag)
 
   // We don't check regular assertions here

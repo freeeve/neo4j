@@ -28,12 +28,19 @@ import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryFail
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryResults
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.doDescribeFailure
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.originalError
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.unexpectedFailure
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.unexpectedSuccess
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.IgnoredWarnings
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.describeErrorCodes
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.describeWarnings
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.errorHierarchy
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.errorsMatch
+import org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.warningsMatch
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.NotificationDescription
+import org.neo4j.cypher.testing.api.GqlNotification
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 
 import java.util.regex.Pattern
@@ -63,11 +70,42 @@ trait RegularErrorSteps { this: CypherCucumberSteps =>
         )
       }
   }
+
+  override def notificationsShouldBeRaised(expected: ExpectedGqlNotification): Unit = lastExecutionResult match {
+    case result: QueryResults =>
+      val actual = result.results.qqlStatusObjects
+      if (!warningsMatch(actual, expected)) {
+        fail(
+          s"""Actual warnings (ignored codes: ${IgnoredWarnings.mkString(", ")}):
+             >${describeWarnings(actual.filter(w => !IgnoredWarnings.contains(w.code)))}
+             >
+             >Did not match expected warnings:
+             >${expected.table}
+             >
+             >Query:
+             >${result.query}
+             >""".stripMargin('>')
+        )
+      }
+
+    case failure: QueryFailure => unexpectedFailure(failure, conf)
+  }
 }
 
 object RegularErrorSteps {
 
   private val InlineRegexPattern = "\\$\\{regex:(?<exp>[^}]+?)\\}".r
+
+  val IgnoredWarnings = Set(
+    // Ignore result codes to make it more convenient to write scenarios.
+    "00001",
+    "00000",
+    "02000",
+    // Ignore missing node label/rel type/property key warnings, they are unstable because we re-use the db and very common.
+    "01N51",
+    "01N52",
+    "01N50"
+  )
 
   @tailrec
   def errorHierarchy(throwable: AnyRef, acc: Seq[GqlFailure] = Seq.empty): Seq[GqlFailure] = throwable match {
@@ -104,6 +142,30 @@ object RegularErrorSteps {
       }
   }
 
+  private def warningsMatch(actual: Seq[GqlNotification], allExpected: ExpectedGqlNotification): Boolean = {
+    val actualInteresting = actual.filter(warn => !IgnoredWarnings.contains(warn.code))
+    val (optionalExpected, expected) = allExpected.warnings.partition(_.optional)
+
+    // Filter out optional warnings
+    val actualWithoutOptional = optionalExpected.foldLeft(actualInteresting) {
+      case (actualLeft, optExpect) => actualLeft.filterNot(w => warningMatch(w, optExpect))
+    }
+
+    // Remaining warnings should match exactly (currently requires that expected are ordered)
+    actualWithoutOptional.size == expected.size &&
+    actualWithoutOptional
+      .sortBy(w => (w.code, w.statusDescription))
+      .zip(expected)
+      .forall { case (actual, expected) => warningMatch(actual, expected) }
+  }
+
+  private def warningMatch(actual: GqlNotification, expected: NotificationDescription): Boolean = {
+    val codeMatches = actual.code == expected.code
+    val descriptionMatches = actual.statusDescription == expected.descriptionTemplate ||
+      buildRegexFromTemplate(expected.descriptionTemplate).matches(actual.statusDescription)
+    codeMatches && descriptionMatches
+  }
+
   // Template can be a string like: "It was the year ${regex:\d\d\d\d}."
   private def buildRegexFromTemplate(template: String): Regex = {
     val regex = new StringBuilder(template.length)
@@ -126,6 +188,13 @@ object RegularErrorSteps {
     failures
       .map(e => java.util.List.of(e.code, e.classification, e.description))
       .prepended(java.util.List.of("code", "classification", "description"))
+      .asJava
+  ).toString
+
+  def describeWarnings(failures: Seq[GqlNotification]): String = DataTable.create(
+    failures
+      .map(e => java.util.List.of(e.code, e.statusDescription))
+      .prepended(java.util.List.of("code", "description"))
       .asJava
   ).toString
 }

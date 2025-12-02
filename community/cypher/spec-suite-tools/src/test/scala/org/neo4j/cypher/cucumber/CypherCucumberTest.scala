@@ -82,8 +82,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     withClue(summaryOutputStream.toString) {
       summary.getTestsSucceededCount shouldBe 30
       summary.getContainersFailedCount shouldBe 0
-      summary.getTestsFoundCount shouldBe 163
-      summary.getTestsFailedCount shouldBe 133
+      summary.getTestsFoundCount shouldBe 164
+      summary.getTestsFailedCount shouldBe 134
       summary.getTestsAbortedCount shouldBe 0
       summary.getTestsSkippedCount shouldBe 0
     }
@@ -288,7 +288,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         wrongNbrResults("[058] Approximate result - with wrong number of results"),
         wrongApproximateMandatoryColumn("[059] Approximate result - without mandatory column"),
         wrongApproximateMandatoryColumn("[060] Approximate result - with wrongly named mandatory column"),
-        wrongApproximateMandatoryType("[061] Approximate result - with wrong type in mandatory column")
+        wrongApproximateMandatoryType("[061] Approximate result - with wrong type in mandatory column"),
+        wrongWarningGqlCode("[062] Query has warnings but asserts on no warnings")
       )
   }
 
@@ -400,7 +401,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.approximateResultShouldBe(io.cucumber.datatable.DataTable,scala.Function1)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.sideEffectsShouldBe(io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlError)",
-      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.warningShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlWarning)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.notificationsShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlNotification)",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.commitOpenTx()",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.executingControlQueryInOpenTx(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.openTransaction()",
@@ -519,7 +520,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
   def wrongWarningGqlCode(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
     assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
     assertThat(failure.throwable).hasMessageContainingAll(
-      "Expected GQL status"
+      "Actual warnings",
+      "Did not match expected warnings:"
     )
   }
 

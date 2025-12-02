@@ -38,14 +38,12 @@ import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDou
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.describeConf
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.describeGqlStatusObject
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.originalError
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.renderAsTable
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.toApproximateResultRows
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.toResultRows
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.unexpectedFailure
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
-import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
 import org.neo4j.cypher.cucumber.user.function.SeededRandFunction
 import org.neo4j.cypher.cucumber.user.function.TestFailNTimesFunction
@@ -58,7 +56,6 @@ import org.neo4j.cypher.testing.api.ConsumedResult
 import org.neo4j.cypher.testing.api.CypherExecutorException
 import org.neo4j.cypher.testing.api.CypherExecutorTransaction
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
-import org.neo4j.graphdb.GqlStatusObject
 import org.neo4j.internal.helpers.Exceptions
 import org.neo4j.internal.kernel.api.procs.QualifiedName
 import org.neo4j.kernel.api.procedure.Context
@@ -71,7 +68,6 @@ import java.util
 import java.util.Objects
 import java.util.function.Supplier
 
-import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.language.existentials
 import scala.util.Failure
@@ -247,27 +243,6 @@ final class RegularCypherSteps @Inject() (
            >""".stripMargin('>') // | margins messes with the tables
       )
     }
-  }
-
-  override def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit = lastResult match {
-    case actual: QueryResults =>
-      val actualGqlStatusObjects = actual.results.qqlStatusObjects.asScala
-      actualGqlStatusObjects.find(qqlStatusObject => qqlStatusObject.gqlStatus() == expectedWarning.code) match {
-        case Some(actualGqlStatusObject) =>
-          val desc = describeGqlStatusObject(actualGqlStatusObject)
-          assertThat[Any](actualGqlStatusObject.gqlStatus).as(desc).isEqualTo(expectedWarning.code)
-          expectedWarning.descriptionContains.foreach { e =>
-            assertThat[Any](actualGqlStatusObject.statusDescription()).as(desc).asString.contains(e)
-          }
-        case None =>
-          val found = actualGqlStatusObjects.map(_.gqlStatus())
-          fail(
-            s"""
-               |Expected GQL status ${expectedWarning.code} but found $found
-               |""".stripMargin
-          )
-      }
-    case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
   override def openTransaction(): Unit = {
@@ -545,15 +520,6 @@ object RegularCypherSteps {
        |${failure.query}
        |
        |Cause: ${Exceptions.stringify(originalError(failure.cause))}
-       |""".stripMargin
-  }
-
-  private def describeGqlStatusObject(gqlStatusObject: GqlStatusObject): String = {
-    s"""
-       |Code:
-       |${gqlStatusObject.gqlStatus()}
-       |
-       |Message: ${gqlStatusObject.statusDescription()}
        |""".stripMargin
   }
 

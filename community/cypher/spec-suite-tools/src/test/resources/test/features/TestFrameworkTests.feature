@@ -571,7 +571,9 @@ Feature: TestFrameworkTests
     Then the result should be (ignoring element order for lists):
       | id   |
       | null |
-    And execution should raise a warning with GQL code 123TECHNO
+    And notifications should be raised:
+      | code      | description |
+      | 123TECHNO | ${regex:.*} |
 
   Scenario: [038] Warning has incorrect code and correct message
     Given an empty graph
@@ -582,10 +584,9 @@ Feature: TestFrameworkTests
     Then the result should be (ignoring element order for lists):
       | id   |
       | null |
-    And execution should raise a warning with GQL code 123TECHNO and message containing:
-      """
-      warn: feature deprecated with replacement. id is deprecated.
-      """
+    And notifications should be raised:
+      | code      | description                                                  |
+      | 123TECHNO | warn: feature deprecated with replacement. id is deprecated. |
 
   Scenario: [039] Warning has correct code and incorrect message
     Given an empty graph
@@ -596,10 +597,9 @@ Feature: TestFrameworkTests
     Then the result should be (ignoring element order for lists):
       | id   |
       | null |
-    And execution should raise a warning with GQL code 01N01 and message containing:
-      """
-      Incorrect message
-      """
+    And notifications should be raised:
+      | code  | description       |
+      | 01N01 | Incorrect message |
 
   Scenario: [040] Warning has correct code
     Given an empty graph
@@ -610,7 +610,9 @@ Feature: TestFrameworkTests
     Then the result should be (ignoring element order for lists):
       | id   |
       | null |
-    And execution should raise a warning with GQL code 01N01
+    And notifications should be raised:
+      | code  | description |
+      | 01N01 | ${regex:.*} |
 
   Scenario: [041] Warning has correct code and correct message
     Given an empty graph
@@ -621,41 +623,40 @@ Feature: TestFrameworkTests
     Then the result should be (ignoring element order for lists):
       | id   |
       | null |
-    And execution should raise a warning with GQL code 01N01 and message containing:
-      """
-      warn: feature deprecated with replacement.
-      """
+    And notifications should be raised:
+      | code  | description                                                                                                                             |
+      | 01N01 | warn: feature deprecated with replacement. id is deprecated. It is replaced by elementId or consider using an application-generated id. |
 
-    Scenario Outline: [042] Floating point precision can be specified
-      Given an empty graph
-      When executing query:
+  Scenario Outline: [042] Floating point precision can be specified
+    Given an empty graph
+    When executing query:
         """
         RETURN <value> AS result
         """
-      Then the result should be, in order, to within 0.0001:
-        | result   |
-        | 1.0      |
-      Examples:
-        | value    |
-        | 0.99999  |
-        | 0.999995 |
-        | 1.0      |
-        | 1.00001  |
+    Then the result should be, in order, to within 0.0001:
+      | result |
+      | 1.0    |
+    Examples:
+      | value    |
+      | 0.99999  |
+      | 0.999995 |
+      | 1.0      |
+      | 1.00001  |
 
-    Scenario Outline: [043] Floating point precision is exact by default
-      Given an empty graph
-      When executing query:
+  Scenario Outline: [043] Floating point precision is exact by default
+    Given an empty graph
+    When executing query:
         """
         RETURN <value> AS result
         """
-      Then the result should be, in order:
-        | result   |
-        | 1.0      |
-      Examples:
-        | value    |
-        | 0.99999  |
-        | 0.999995 |
-        | 1.00001  |
+    Then the result should be, in order:
+      | result |
+      | 1.0    |
+    Examples:
+      | value    |
+      | 0.99999  |
+      | 0.999995 |
+      | 1.00001  |
 
   Scenario: [044] Syntax error is correct
     Given an empty graph
@@ -664,7 +665,7 @@ Feature: TestFrameworkTests
       RETURN x
       """
     Then an error should be raised:
-      | code  | classification | description |
+      | code  | classification | description                                                                                    |
       | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
       | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
 
@@ -675,7 +676,7 @@ Feature: TestFrameworkTests
       RETURN x
       """
     Then an error should be raised:
-      | code  | classification | description |
+      | code  | classification | description                                                                                    |
       | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
       | WRONG | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
 
@@ -686,7 +687,7 @@ Feature: TestFrameworkTests
       RETURN x
       """
     Then an error should be raised:
-      | code  | classification | description |
+      | code  | classification | description                                                                                    |
       | WRONG | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
       | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
 
@@ -697,9 +698,9 @@ Feature: TestFrameworkTests
       RETURN x
       """
     Then an error should be raised:
-      | code  | classification | description |
+      | code  | classification | description                                                                                    |
       | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
-      | 42N62 | WRONG   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
+      | 42N62 | WRONG          | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
 
   Scenario: [048] Syntax error has incorrect classification 2
     Given an empty graph
@@ -708,8 +709,8 @@ Feature: TestFrameworkTests
       RETURN x
       """
     Then an error should be raised:
-      | code  | classification | description |
-      | 42001 | WRONG   | error: syntax error or access rule violation - invalid syntax                                  |
+      | code  | classification | description                                                                                    |
+      | 42001 | WRONG          | error: syntax error or access rule violation - invalid syntax                                  |
       | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
 
   Scenario: [049] Syntax error has incorrect message 1
@@ -719,8 +720,8 @@ Feature: TestFrameworkTests
       RETURN x
       """
     Then an error should be raised:
-      | code  | classification | description |
-      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation                                  |
+      | code  | classification | description                                                                                    |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation                                                   |
       | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
 
   Scenario: [050] Syntax error has incorrect message 3
@@ -730,9 +731,9 @@ Feature: TestFrameworkTests
       RETURN x
       """
     Then an error should be raised:
-      | code  | classification | description |
-      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
-      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation |
+      | code  | classification | description                                                   |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation                  |
 
   Scenario: [051] Syntax error has incorrect message 4
     Given an empty graph
@@ -741,9 +742,9 @@ Feature: TestFrameworkTests
       RETURN x
       """
     Then an error should be raised:
-      | code  | classification | description |
-      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
-      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule WRONG ${regex:.*} |
+      | code  | classification | description                                                   |
+      | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax |
+      | 42N62 | CLIENT_ERROR   | error: syntax error or access rule WRONG ${regex:.*}          |
 
   Scenario: [052] Syntax error has incorrect error count
     Given an empty graph
@@ -752,7 +753,7 @@ Feature: TestFrameworkTests
       RETURN x
       """
     Then an error should be raised:
-      | code  | classification | description |
+      | code  | classification | description                                                                                    |
       | 42001 | CLIENT_ERROR   | error: syntax error or access rule violation - invalid syntax                                  |
       | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
       | 42N62 | CLIENT_ERROR   | error: syntax error or access rule violation - variable not defined. Variable `x` not defined. |
@@ -869,3 +870,14 @@ Feature: TestFrameworkTests
       | x  | mandatory |
       | 42 | true      |
       | 38 | 'false'   |
+
+  Scenario: [062] Query has warnings but asserts on no warnings
+    Given an empty graph
+    When executing query:
+      """
+      RETURN id(null) AS id
+      """
+    Then the result should be (ignoring element order for lists):
+      | id   |
+      | null |
+    And no notifications should be raised

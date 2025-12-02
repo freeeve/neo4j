@@ -20,6 +20,7 @@
 package org.neo4j.cypher.testing.impl.embedded
 
 import org.neo4j.cypher.testing.api.ConsumedResult
+import org.neo4j.cypher.testing.api.GqlNotification
 import org.neo4j.cypher.testing.api.StatementResult
 import org.neo4j.cypher.testing.api.ValueMapper
 import org.neo4j.graphdb.GqlStatusObject
@@ -39,8 +40,10 @@ case class EmbeddedStatementResult(private val embeddedResult: Result) extends S
   override def consume(valueMapper: ValueMapper): ConsumedResult = {
     val headers = embeddedResult.columns()
     val collector = new EmbeddedStatementResult.ResultCollector(headers, valueMapper)
-    val qqlStatusObjects = embeddedResult.getGqlStatusObjects
     embeddedResult.accept(collector)
+    val qqlStatusObjects = embeddedResult.getGqlStatusObjects.asScala
+      .map(s => GqlNotification(s.gqlStatus(), s.statusDescription()))
+      .toSeq
     ConsumedResult(headers, collector.result(), qqlStatusObjects)
   }
 
