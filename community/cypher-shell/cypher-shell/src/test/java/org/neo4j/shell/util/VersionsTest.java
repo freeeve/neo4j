@@ -28,8 +28,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.neo4j.kernel.info.JvmChecker;
+import org.neo4j.shell.startup.CypherShellBoot;
 
 class VersionsTest {
+
+    @Test
+    void shouldMatchJavaVersionsWithKernel() {
+        // Test to make sure that when the Java versions change, that Cypher shell doesn't get forgotten
+        assertEquals(CypherShellBoot.SUPPORTED_JVM_VERSIONS, JvmChecker.SUPPORTED_JVM_VERSIONS);
+    }
+
     @Test
     void shouldWorkForEmptyString() throws Versions.FailedToParseException {
         assertEquals(0, Versions.version("").compareTo(Versions.version("0.0.0")));

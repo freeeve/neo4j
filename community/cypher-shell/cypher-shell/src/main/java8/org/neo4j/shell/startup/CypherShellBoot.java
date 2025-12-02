@@ -19,7 +19,13 @@
  */
 package org.neo4j.shell.startup;
 
+import org.eclipse.collections.api.factory.primitive.IntSets;
+import org.eclipse.collections.api.set.primitive.IntSet;
+
 public class CypherShellBoot {
+
+    // Keep in sync with org.neo4j.kernel.info.JvmChecker.SUPPORTED_JVM_VERSIONS
+    public static final IntSet SUPPORTED_JVM_VERSIONS = IntSets.immutable.of(21, 25);
 
     /**
      * IMPORTANT NOTE!
@@ -32,6 +38,7 @@ public class CypherShellBoot {
 
     static void printJavaVersionErrorMessage() {
         String version = System.getProperty("java.version");
-        System.out.println("Unsupported Java " + version + " detected. Please use Java(TM) 21 to run Cypher Shell.");
+        System.out.println(
+                "Unsupported Java " + version + " detected. Please use Java(TM) 21 or Java(TM) 25 to run Cypher Shell.");
     }
 }
