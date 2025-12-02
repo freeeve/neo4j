@@ -25,9 +25,11 @@ import static org.neo4j.genai.util.Parameters.parse;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -62,7 +64,8 @@ public class VertexAi implements VectorEmbedding.Provider {
     }
 
     public static class Parameters {
-        public String token;
+        public Optional<String> token; // OAuth Access Token
+        public Optional<String> apiKey; // API Key
         public String model;
         public String project;
         public String region;
@@ -84,6 +87,11 @@ public class VertexAi implements VectorEmbedding.Provider {
     @Override
     public Implementation configure(HttpService httpService, MapValue conf, GenAIConfig genAIConfig) {
         final var params = parse(Parameters.class, conf);
+        if (params.token.isEmpty() && params.apiKey.isEmpty()) {
+            throw new IllegalArgumentException("'token or apiKey' is expected to have been set");
+        } else if (params.token.isPresent() && params.apiKey.isPresent()) {
+            throw new IllegalArgumentException("Only one of either 'token' or ' apiKey' is expected to have been set");
+        }
         return new Implementation(name(), endpoint(params), httpService, params);
     }
 
@@ -107,15 +115,26 @@ public class VertexAi implements VectorEmbedding.Provider {
 
         private Stream<VectorEmbedding.InternalBatchRow> encode(List<String> resources, int[] nullIndexes) {
             final Object payload = buildPayload(resources);
+
+            URI requestEndpoint = endpoint;
+            if (params.apiKey.isPresent()) {
+                String encodedKey = URLEncoder.encode(params.apiKey.get(), StandardCharsets.UTF_8);
+                requestEndpoint = URI.create(endpoint.toString() + "?key=" + encodedKey);
+            }
+
+            URI finalRequestEndpoint = requestEndpoint;
             return httpService()
                     .request(
-                            endpoint,
-                            builder -> builder.headers(
-                                            "Authorization", "Bearer " + params.token,
-                                            "Content-Type", "application/json; charset=" + StandardCharsets.UTF_8,
-                                            "Accept", "application/json")
-                                    .POST(jsonBody(payload))
-                                    .build(),
+                            finalRequestEndpoint,
+                            builder -> {
+                                var b = builder.header(
+                                                "Content-Type", "application/json; charset=" + StandardCharsets.UTF_8)
+                                        .header("Accept", "application/json");
+                                if (params.token.isPresent()) {
+                                    b = b.header("Authorization", "Bearer " + params.token.get());
+                                }
+                                return b.POST(jsonBody(payload)).build();
+                            },
                             inputStream -> parseResponse(resources, inputStream, nullIndexes));
         }
 

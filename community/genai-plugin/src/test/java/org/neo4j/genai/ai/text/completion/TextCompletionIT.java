@@ -109,13 +109,21 @@ class TextCompletionIT {
 
         @Override
         List<String> confRequired() {
-            return List.of("{ token: $token, model: 'gemini-2.5-flash-lite', region: $region, project: $project }");
+            var isApiKeyEnv = System.getenv(Tokens.Vertex.IS_API_KEY);
+            var isApiKey = isApiKeyEnv != null && isApiKeyEnv.equalsIgnoreCase("true");
+            var tokenOrKey = isApiKey ? "apiKey" : "token";
+            return List.of("{ %s: $token, model: 'gemini-2.5-flash-lite', region: $region, project: $project}"
+                    .formatted(tokenOrKey));
         }
 
         @Override
         List<String> confWithVendorOptions() {
+            var isApiKeyEnv = System.getenv(Tokens.Vertex.IS_API_KEY);
+            var isApiKey = isApiKeyEnv != null && isApiKeyEnv.equalsIgnoreCase("true");
+            var tokenOrKey = isApiKey ? "apiKey" : "token";
             return List.of(
-                    "{ token: $token, model: 'gemini-2.5-flash-lite', region: $region, project: $project, vendorOptions: { systemInstructions: 'Always answer with a single emoji.' } }");
+                    "{ %s: $token, model: 'gemini-2.5-flash-lite', region: $region, project: $project, vendorOptions: { system_instruction: { parts: [ { text: 'Always answer with a single emoji.'}]} } }"
+                            .formatted(tokenOrKey));
         }
     }
 

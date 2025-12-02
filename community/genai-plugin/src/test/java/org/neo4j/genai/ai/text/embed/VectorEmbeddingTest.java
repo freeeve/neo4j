@@ -149,7 +149,6 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                     "requiredConfigType",
                     """
                     {
-                      token :: STRING NOT NULL,
                       model :: STRING NOT NULL,
                       project :: STRING NOT NULL,
                       region :: STRING NOT NULL
@@ -157,6 +156,8 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                     "optionalConfigType",
                     """
                     {
+                      token :: STRING,
+                      apiKey :: STRING,
                       publisher :: STRING NOT NULL,
                       vendorOptions :: MAP NOT NULL
                     }""",
@@ -430,7 +431,20 @@ public class VectorEmbeddingTest implements GenAITestExtension {
         assertThatThrownBy(() -> db.executeTransactionally(
                         query, Map.of(), r -> r.stream().toList()))
                 .isExactlyInstanceOf(QueryExecutionException.class)
-                .hasMessageMatching(".*'(token|accessKeyId|secretAccessKey)' is expected to have been set");
+                .hasMessageMatching(
+                        ".*'(token|accessKeyId|secretAccessKey|token or apiKey)' is expected to have been set");
+    }
+
+    @Test
+    void incorrectVertexAiAuth() {
+        final var query = """
+                WITH { token: 'token', apiKey: 'key', model: 'gemini-embedding-001', region: 'tasman', project: 'gem', publisher: 'google' } AS conf
+                RETURN ai.text.embed('Hello world', 'vertexai', conf) AS result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageMatching(".*Only one of either 'token' or ' apiKey' is expected to have been set");
     }
 
     @ParameterizedTest
@@ -444,7 +458,8 @@ public class VectorEmbeddingTest implements GenAITestExtension {
         assertThatThrownBy(() -> db.executeTransactionally(
                         query, Map.of(), r -> r.stream().toList()))
                 .isExactlyInstanceOf(QueryExecutionException.class)
-                .hasMessageMatching(".*'(token|accessKeyId|secretAccessKey)' is expected to have been set");
+                .hasMessageMatching(
+                        ".*'(token|accessKeyId|secretAccessKey|token or apiKey)' is expected to have been set");
     }
 
     @Test
@@ -497,6 +512,9 @@ class RequiredConfArguments implements ProviderArguments {
                         "vertexai",
                         "{ token: 'dummy-vertex-token', model: 'gemini-embedding-001', region: 'tasman', project: 'gem', publisher: 'google' }"),
                 new ProviderArgs(
+                        "vertexai",
+                        "{ apiKey: 'dummy-api-key', model: 'gemini-embedding-001', region: 'tasman', project: 'gem', publisher: 'google', vendorOptions: {} }"),
+                new ProviderArgs(
                         "bedrock-titan:model by name",
                         "{ model: 'amazon.titan-embed-text-v1', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
                 new ProviderArgs(
@@ -528,6 +546,15 @@ class AllOptionsArguments implements ProviderArguments {
                 new ProviderArgs("vertexai", """
                         {
                           token: 'dummy-vertex-token',
+                          model: 'gemini-embedding-001',
+                          region: 'tasman',
+                          project: 'gem',
+                          publisher: 'google',
+                          vendorOptions: { autoTruncate: true, task_type: 'QUESTION_ANSWERING' }
+                        }"""),
+                new ProviderArgs("vertexai", """
+                        {
+                          apiKey: 'dummy-api-key',
                           model: 'gemini-embedding-001',
                           region: 'tasman',
                           project: 'gem',

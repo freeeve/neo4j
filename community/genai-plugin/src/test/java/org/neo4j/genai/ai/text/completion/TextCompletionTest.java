@@ -48,6 +48,7 @@ import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockTitan;
 import org.neo4j.genai.ai.text.completion.provider.openai.OpenAi;
 import org.neo4j.genai.ai.text.completion.provider.vertex.VertexAi;
 import org.neo4j.genai.util.GenAITestExtension;
+import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
@@ -131,7 +132,6 @@ public class TextCompletionTest implements GenAITestExtension {
                     "requiredConfigType",
                     """
                     {
-                      token :: STRING NOT NULL,
                       model :: STRING NOT NULL,
                       project :: STRING NOT NULL,
                       region :: STRING NOT NULL
@@ -139,6 +139,8 @@ public class TextCompletionTest implements GenAITestExtension {
                     "optionalConfigType",
                     """
                     {
+                      token :: STRING,
+                      apiKey :: STRING,
                       publisher :: STRING NOT NULL,
                       vendorOptions :: MAP NOT NULL
                     }""",
@@ -253,6 +255,32 @@ public class TextCompletionTest implements GenAITestExtension {
                 .hasMessageContaining("INVALID_ARGUMENT");
     }
 
+    @ParameterizedTest
+    @ArgumentsSource(MissingSecretsArguments.class)
+    void missingSecretsEmbed(ProviderArgs args) {
+        final var query = """
+                WITH %s AS conf
+                RETURN ai.text.completion('Hello world', '%s', conf) AS result
+                """.formatted(args.conf(), args.provider());
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageMatching(
+                        ".*'(token|accessKeyId|secretAccessKey|token or apiKey)' is expected to have been set");
+    }
+
+    @Test
+    void incorrectVertexAiAuth() {
+        final var query = """
+                WITH { token: 'token', apiKey: 'dummy-api-key', model: 'gemini-3', region: 'tasman', project: 'astrid', publisher: 'google', vendorOptions: {}} AS conf
+                RETURN ai.text.completion('Hello world', 'vertexai', conf) AS result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query, Map.of(), r -> r.stream().toList()))
+                .isExactlyInstanceOf(QueryExecutionException.class)
+                .hasMessageMatching(".*Only one of either 'token' or ' apiKey' is expected to have been set");
+    }
+
     @Test
     void openAIWithConfigSetBaseURL() {
         GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost");
@@ -285,6 +313,9 @@ class RequiredConfArguments implements ProviderArguments {
                 new ProviderArgs(
                         "vertexai",
                         "{ token: 'dummy-vertex-token', model: 'gemini-3', region: 'smaland', project: 'astrid', publisher: 'google' }"),
+                new ProviderArgs(
+                        "vertexai",
+                        "{ apiKey: 'dummy-api-key', model: 'gemini-3', region: 'tasman', project: 'astrid', publisher: 'google', vendorOptions: {}}"),
                 new ProviderArgs(
                         "bedrock-nova:model by name",
                         "{ model: 'eu.amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
@@ -337,8 +368,18 @@ class AllOptionsArguments implements ProviderArguments {
                           project: 'astrid',
                           publisher: 'google',
                           vendorOptions: {
-                            systemInstruction: 'You are Kommendoran',
-                            labels: { labelA: 'x' }
+                            system_instruction: { parts: [ { text: 'You are Kommendoran'}]}
+                          }
+                        }"""),
+                new ProviderArgs("vertexai", """
+                        {
+                          apiKey: 'dummy-api-key',
+                          model: 'gemini-3',
+                          region: 'tasman',
+                          project: 'astrid',
+                          publisher: 'google',
+                          vendorOptions: {
+                            system_instruction: { parts: [ { text: 'You are Kommendoran'}]}
                           }
                         }"""),
                 new ProviderArgs("bedrock-nova:model by name", """
@@ -416,5 +457,22 @@ class AllOptionsArguments implements ProviderArguments {
                           }
                         }
                         """));
+    }
+}
+
+class MissingSecretsArguments implements ProviderArguments {
+    @Override
+    public Stream<ProviderArgs> providers() {
+        return Stream.of(
+                new ProviderArgs("openai", "{ model: 'gpt-5' }"),
+                new ProviderArgs("azure-openai", "{ resource: 'dummy', model: 'gpt-5' }"),
+                new ProviderArgs(
+                        "vertexai", "{ model: 'gemini-3', region: 'smaland', project: 'astrid', publisher: 'google' }"),
+                new ProviderArgs(
+                        "bedrock-nova:model by name",
+                        "{ model: 'eu.amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key' }"),
+                new ProviderArgs(
+                        "bedrock-nova:custom nova type model",
+                        "{ model: 'arn:aws:bedrock:xxx:001:custom-model/custom.nova', modelType: 'amazon.nova', region: 'eu-north-1', secretAccessKey: 'secret' }"));
     }
 }

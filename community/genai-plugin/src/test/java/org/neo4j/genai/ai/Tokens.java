@@ -47,6 +47,8 @@ public interface Tokens {
         String PROJECT_ENV = "VERTEX_PROJECT";
         /* Name of env variable containing Vertex region to use with the project above.  */
         String REGION_ENV = "VERTEX_REGION";
+        /* Name of env variable that informs the test if the token is an api key or access key.  */
+        String IS_API_KEY = "VERTEX_IS_API_KEY";
     }
 
     /*

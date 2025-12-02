@@ -1,14 +1,14 @@
 {
   "request": {
-    "urlPath": "/v1/projects/astrid/locations/smaland/publishers/google/models/gemini-3:generateContent",
+    "urlPath": "/v1/projects/astrid/locations/tasman/publishers/google/models/gemini-3:generateContent",
     "method": "POST",
     "headers": {
       "Content-Type": {
         "equalTo": "application/json; charset=UTF-8"
-      },
-      "Authorization": {
-        "equalTo": "Bearer dummy-vertex-token"
       }
+    },
+    "queryParameters": {
+      "key": { "equalTo": "dummy-api-key" }
     },
     "bodyPatterns": [
       {
@@ -22,12 +22,7 @@
                 }
               ]
             }
-          ],
-          "system_instruction": {
-            "parts": [
-              { "text": "You are Kommendoran" }
-            ]
-          }
+          ]
         }
       }
     ]
@@ -40,7 +35,7 @@
     "bodyFileName": "vertexai-v1-generate-content-response.json",
     "transformers": ["response-template"],
     "transformerParameters": {
-      "answer": "Jag tog korven! (vertexai)"
+      "answer": "Bla bla bla... (vertexai)"
     }
   }
 }
