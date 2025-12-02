@@ -139,7 +139,7 @@ trait EventHorizonPlanner {
     context.staticComponents.planningStepsLogger.log(
       s"""Planning HORIZON
          |  ${plannerQuery.horizon}:
-         |  on top of $incomingPlans""".stripMargin
+         |  on top of ${stringify(incomingPlans)}""".stripMargin
     )
     doPlanHorizon(
       plannerQuery,
@@ -147,6 +147,21 @@ trait EventHorizonPlanner {
       prevInterestingOrder,
       context.withModifiedPlannerState(_.withActivePlanner(PlannerType.Horizon))
     )
+  }
+
+  def stringify(value: BestResults[LogicalPlan]): String = {
+    val BestResults(bestResult, bestSortedResult, bestExtraPropertiesResult) = value
+    val indent = "    "
+
+    def stringify(plan: LogicalPlan): String =
+      s"""Plan #${plan.debugId}
+         |$indent${plan.toString.replace("\n", s"\n$indent")}""".stripMargin
+
+    s"""BestResults(
+       |  bestResult = ${stringify(bestResult)},
+       |  bestSortedResult = ${bestSortedResult.map(stringify).getOrElse("None")},
+       |  bestExtraPropertiesResult = ${bestExtraPropertiesResult.map(stringify).getOrElse("None")}
+       |)""".stripMargin
   }
 }
 

@@ -58,6 +58,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProdu
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.ContainsSearchMode
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EndsWithSearchMode
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.StringSearchMode
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.skipAndLimit.planLimitOnTopOf
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
@@ -1186,7 +1187,10 @@ case class LogicalPlanProducer(
     val lhsSolved = solveds.get(left.id).asSinglePlannerQuery
     val rhsSolved = solveds.get(right.id).asSinglePlannerQuery
     val solved =
-      lhsSolved.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(rhsSolved.queryGraph.mutatingPatterns)))
+      lhsSolved.updateTailOrSelf(
+        _.amendQueryGraph(_.addMutatingPatterns(rhsSolved.queryGraph.mutatingPatterns))
+          .resetQueryProjection()
+      )
 
     val plan = Apply(left, right)
     val providedOrder =
@@ -2668,10 +2672,16 @@ case class LogicalPlanProducer(
       context
     )
 
-  def planStarProjection(inner: LogicalPlan, reported: Option[Map[LogicalVariable, Expression]]): LogicalPlan = {
-    reported.fold(inner) { reported =>
-      val newSolved: SinglePlannerQuery = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
-        _.updateQueryProjection(_.withAddedProjections(reported))
+  def planStarProjection(
+    inner: LogicalPlan,
+    reported: UpdateSolveds
+  ): LogicalPlan = {
+    reported.fold(inner) { (reported, doMarkSolved) =>
+      val newSolved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+        if (doMarkSolved)
+          _.updateQueryProjection(_.withAddedProjections(reported))
+        else
+          _.tryUpdateQueryProjection(_.withAddedProjections(reported))
       )
       // Keep some attributes, but change solved
       val keptAttributes =
@@ -2689,12 +2699,17 @@ case class LogicalPlanProducer(
   def planRegularProjection(
     inner: LogicalPlan,
     expressions: Map[LogicalVariable, Expression],
-    reported: Option[Map[LogicalVariable, Expression]],
+    reported: UpdateSolveds,
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val innerSolved: SinglePlannerQuery = solveds.get(inner.id).asSinglePlannerQuery
-    val solved = reported.fold(innerSolved) { reported =>
-      innerSolved.updateTailOrSelf(_.updateQueryProjection(_.withAddedProjections(reported)))
+    val innerSolved = solveds.get(inner.id).asSinglePlannerQuery
+    val solved = reported.fold(innerSolved) { (reported, doMarkSolved) =>
+      innerSolved.updateTailOrSelf(
+        if (doMarkSolved)
+          _.updateQueryProjection(_.withAddedProjections(reported))
+        else
+          _.tryUpdateQueryProjection(_.withAddedProjections(reported))
+      )
     }
 
     planRegularProjectionHelper(inner, expressions, context, solved, cachedPropertiesPerPlan.get(inner.id))
@@ -3764,7 +3779,10 @@ case class LogicalPlanProducer(
         .planRemoteBatchPropertiesForMutatingPattern(inner, context, pattern)
 
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+        _.amendQueryGraph(_.addMutatingPatterns(pattern))
+          .resetQueryProjection()
+      )
     val (rewrittenPattern: CreatePattern, rewrittenInner) =
       SubqueryExpressionSolver.ForMappable().solve(innerRewrittenRBPs, patternRewrittenCachedProps, context)
     val plan = plans.Create(rewrittenInner, rewrittenPattern.commands)
@@ -3822,7 +3840,10 @@ case class LogicalPlanProducer(
     val rewrittenNodePatterns = patternRewrittenCachedProps.createNodePatterns.endoRewrite(rewriter)
     val rewrittenRelPatterns = patternRewrittenCachedProps.createRelationshipPatterns.endoRewrite(rewriter)
 
-    val solved = RegularSinglePlannerQuery().amendQueryGraph(_.addMutatingPatterns(mergePattern))
+    val solved =
+      RegularSinglePlannerQuery()
+        .amendQueryGraph(_.addMutatingPatterns(mergePattern))
+        .resetQueryProjection()
     val merge =
       Merge(
         innerRewrittenRBPs,
@@ -3873,7 +3894,10 @@ case class LogicalPlanProducer(
 
   def planDeleteNode(inner: LogicalPlan, delete: DeleteExpression, context: LogicalPlanningContext): LogicalPlan = {
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(delete)))
+      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+        _.amendQueryGraph(_.addMutatingPatterns(delete))
+          .resetQueryProjection()
+      )
     val (rewrittenDelete, rewrittenInner) = SubqueryExpressionSolver.ForMappable().solve(inner, delete, context)
     val plan =
       if (delete.detachDelete) {
@@ -3892,7 +3916,10 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(delete)))
+      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+        _.amendQueryGraph(_.addMutatingPatterns(delete))
+          .resetQueryProjection()
+      )
     val (rewrittenDelete, rewrittenInner) = SubqueryExpressionSolver.ForMappable().solve(inner, delete, context)
     val plan = DeleteRelationship(rewrittenInner, rewrittenDelete.expression)
     val providedOrder =
@@ -3903,7 +3930,10 @@ case class LogicalPlanProducer(
   def planDeletePath(inner: LogicalPlan, delete: DeleteExpression, context: LogicalPlanningContext): LogicalPlan = {
     // `delete.expression` can only be a PathExpression, ListSubqueryExpressionSolver not needed
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(delete)))
+      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+        _.amendQueryGraph(_.addMutatingPatterns(delete))
+          .resetQueryProjection()
+      )
 
     val plan =
       if (delete.detachDelete) {
@@ -3922,7 +3952,10 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(delete)))
+      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+        _.amendQueryGraph(_.addMutatingPatterns(delete))
+          .resetQueryProjection()
+      )
     val (rewrittenDelete, rewrittenInner) = SubqueryExpressionSolver.ForMappable().solve(inner, delete, context)
     val plan =
       if (delete.detachDelete) {
@@ -3943,7 +3976,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
-        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
     val rewrittenDynamicLabels =
       patternRewrittenCachedProps.dynamicLabels.toSet.endoRewrite(irExpressionRewriter(innerRewrittenRBPs, context))
     val plan = SetLabels(
@@ -3969,7 +4005,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
-        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -3999,7 +4038,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
-        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -4024,7 +4066,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
-        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -4054,7 +4099,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
-        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -4084,7 +4132,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
-        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -4109,7 +4160,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
-        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -4139,7 +4193,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
-        .updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -4165,7 +4222,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
-        .updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -4195,7 +4255,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
-        .updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -4220,7 +4283,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
-        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
 
     // SET has currently row-by-row visibility. This could change in a major release.
     // To maintain the visibility, even with subqueries, we must use NestedPlanExpressions.
@@ -4246,7 +4312,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id)
-        .asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
     val rewrittenDynamicLabels =
       patternRewrittenCachedProps.dynamicLabels.toSet.endoRewrite(irExpressionRewriter(innerRewrittenRBPs, context))
     val plan = RemoveLabels(
@@ -4268,7 +4337,10 @@ case class LogicalPlanProducer(
     expression: Expression
   ): LogicalPlan = {
     val solved =
-      solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+      solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(
+        _.amendQueryGraph(_.addMutatingPatterns(pattern))
+          .resetQueryProjection()
+      )
     val (rewrittenExpression, rewrittenLeft) = SubqueryExpressionSolver.ForSingle.solve(left, expression, context)
     val plan = ForeachApply(rewrittenLeft, innerUpdates, pattern.variable, rewrittenExpression)
     val providedOrder = providedOrderOfApply(
@@ -4294,7 +4366,10 @@ case class LogicalPlanProducer(
 
     val solved =
       solveds.get(innerRewrittenRBPs.id).asSinglePlannerQuery
-        .updateTailOrSelf(_.amendQueryGraph(_.addMutatingPatterns(pattern)))
+        .updateTailOrSelf(
+          _.amendQueryGraph(_.addMutatingPatterns(pattern))
+            .resetQueryProjection()
+        )
     val (rewrittenExpression, rewrittenLeft) = SubqueryExpressionSolver
       .ForSingle.solve(innerRewrittenRBPs, expression, context)
     val plan = Foreach(

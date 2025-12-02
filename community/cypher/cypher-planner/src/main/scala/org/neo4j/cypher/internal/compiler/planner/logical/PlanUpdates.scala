@@ -74,17 +74,26 @@ case object PlanUpdates extends UpdatesPlanner {
 
     context.staticComponents.planningStepsLogger.log(
       s"""Planning UPDATES for ${query.queryGraph.mutatingPatterns}
-         |  on top of
+         |  on top of Plan #${plan.debugId}
          |    ${plan.toString.replace("\n", "\n    ")}
          |""".stripMargin
     )
 
     val orderForPlanning = InterestingOrderConfig(query.interestingOrder)
 
-    query.queryGraph.mutatingPatterns.foldLeft(plan) {
-      case (updatePlan, nextPatternToPlan) =>
-        planUpdate(updatePlan, nextPatternToPlan, orderForPlanning, context)
-    }
+    val updatePlan =
+      query.queryGraph.mutatingPatterns.foldLeft(plan) {
+        case (updatePlan, nextPatternToPlan) =>
+          planUpdate(updatePlan, nextPatternToPlan, orderForPlanning, context)
+      }
+
+    context.staticComponents.planningStepsLogger.log(
+      s"""  Resulted in:
+         |    Plan #${updatePlan.debugId}
+         |    ${updatePlan.toString.replace("\n", "\n    ")}
+         |""".stripMargin
+    )
+    updatePlan
   }
 
   private def planUpdate(

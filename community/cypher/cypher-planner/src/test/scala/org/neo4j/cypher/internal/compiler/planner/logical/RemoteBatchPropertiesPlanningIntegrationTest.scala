@@ -82,6 +82,32 @@ class RemoteBatchPropertiesPlanningIntegrationTest
 
   override protected val orderPreserving: Boolean = true
 
+  test("ORDER BY renamed column old name in WITH and project and return that column") {
+    val planner =
+      spdPlanner
+        .setAllNodesCardinality(1000)
+        .setLabelCardinality("A", 100)
+        .build()
+
+    val query =
+      """MATCH (a:A)
+        |WITH a, a.name AS name
+        |WITH name AS b, a.age AS age
+        |ORDER BY name
+        |RETURN b, age""".stripMargin
+    val plan = planner.plan(query)
+
+    plan should equal(
+      planner.planBuilder().produceResults("b", "age")
+        .projection("name AS b", "cacheN[a.age] AS age")
+        .sort("name ASC")
+        .projection("cacheN[a.name] AS name")
+        .remoteBatchProperties("cacheNFromStore[a.name]", "cacheNFromStore[a.age]")
+        .nodeByLabelScan("a", "A", IndexOrderNone)
+        .build()
+    )
+  }
+
   test("should batch properties for ordered aggregations") {
     val query =
       """MATCH (person)

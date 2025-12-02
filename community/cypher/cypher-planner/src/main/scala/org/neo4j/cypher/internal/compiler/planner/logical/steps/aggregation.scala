@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.compiler.helpers.AggregationHelper
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.leverageOrder.OrderToLeverageWithAliases
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DontUpdateSolveds
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
@@ -92,7 +93,7 @@ object aggregation {
       val projectedPlan = context.staticComponents.logicalPlanProducer.planRegularProjection(
         plan,
         projectionMapForLimit,
-        None,
+        DontUpdateSolveds,
         context
       )
 

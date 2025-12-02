@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.PlanMatchHelp
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DoUpdateSolveds
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
@@ -114,7 +115,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val projections = Map[LogicalVariable, Expression](v"xfoo" -> prop("x", "foo"))
 
       // when
-      val result = lpp.planRegularProjection(plan, projections, Some(projections), context)
+      val result = lpp.planRegularProjection(plan, projections, DoUpdateSolveds(projections), context)
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(
@@ -136,7 +137,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val projections = Map[LogicalVariable, Expression](v"y" -> v"x")
 
       // when
-      val result = lpp.planRegularProjection(plan, projections, Some(projections), context)
+      val result = lpp.planRegularProjection(plan, projections, DoUpdateSolveds(projections), context)
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(
@@ -158,7 +159,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val projections = Map[LogicalVariable, Expression](v"y" -> v"x")
 
       // when
-      val result = lpp.planRegularProjection(plan, projections, Some(projections), context)
+      val result = lpp.planRegularProjection(plan, projections, DoUpdateSolveds(projections), context)
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(
@@ -180,7 +181,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val projections = Map[LogicalVariable, Expression](v"carrot" -> cachedNodeProp("x", "foo"))
 
       // when
-      val result = lpp.planRegularProjection(plan, projections, Some(projections), context)
+      val result = lpp.planRegularProjection(plan, projections, DoUpdateSolveds(projections), context)
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(

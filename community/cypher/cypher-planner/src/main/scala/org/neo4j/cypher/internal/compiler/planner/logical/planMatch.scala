@@ -30,11 +30,7 @@ case object planMatch extends MatchPlanner {
     context: LogicalPlanningContext,
     rhsPart: Boolean
   ): BestPlans = {
-    val interestingOrderConfig = InterestingOrderConfig.interestingOrderForPart(
-      query = query,
-      isRhs = rhsPart,
-      isHorizon = false
-    )
+    val interestingOrderConfig = InterestingOrderConfig.interestingOrderForPart(query = query, isRhs = rhsPart)
     context.staticComponents.queryGraphSolver.plan(
       query.queryGraph,
       interestingOrderConfig,

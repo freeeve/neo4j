@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingResult
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DoUpdateSolveds
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DontUpdateSolveds
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryProjection
@@ -29,10 +31,69 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
 
 object projection {
 
+  trait UpdateSolveds {
+    def fold[T](fallback: T)(doUpdate: (Map[LogicalVariable, Expression], Boolean) => T): T
+  }
+
+  object UpdateSolveds {
+
+    /**
+     * We require the projections to be marked as solved, so we fail if that is not possible
+     */
+    case class DoUpdateSolveds(projections: Map[LogicalVariable, Expression]) extends UpdateSolveds {
+
+      override def fold[T](fallback: T)(
+        doUpdate: (
+          Map[LogicalVariable, Expression],
+          Boolean
+        ) => T
+      ): T =
+        doUpdate(projections, true)
+    }
+
+    /**
+     * We would like to mark the projections as solved to avoid planning them again, so we do not fail if that is not possible.
+     */
+    case class TryUpdateSolveds(projections: Map[LogicalVariable, Expression]) extends UpdateSolveds {
+
+      override def fold[T](fallback: T)(
+        doUpdate: (
+          Map[LogicalVariable, Expression],
+          Boolean
+        ) => T
+      ): T =
+        doUpdate(projections, false)
+    }
+
+    /**
+     * We do not attempt to mark the projections as solved
+     */
+    case object DontUpdateSolveds extends UpdateSolveds {
+
+      override def fold[T](fallback: T)(
+        doUpdate: (
+          Map[LogicalVariable, Expression],
+          Boolean
+        ) => T
+      ): T =
+        fallback
+    }
+  }
+
   def apply(
     in: LogicalPlan,
     projectionsToPlan: Map[LogicalVariable, Expression],
     projectionsToMarkSolved: Option[Map[LogicalVariable, Expression]],
+    context: LogicalPlanningContext
+  ): LogicalPlan = {
+    val projectionsForSolveds = projectionsToMarkSolved.map(DoUpdateSolveds).getOrElse(DontUpdateSolveds)
+    apply(in, projectionsToPlan, projectionsForSolveds, context)
+  }
+
+  def apply(
+    in: LogicalPlan,
+    projectionsToPlan: Map[LogicalVariable, Expression],
+    projectionsToMarkSolved: UpdateSolveds,
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val stillToSolveProjection =

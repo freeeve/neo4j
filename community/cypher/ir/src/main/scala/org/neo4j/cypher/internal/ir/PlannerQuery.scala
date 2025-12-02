@@ -270,6 +270,17 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
       )
   }
 
+  def tryUpdateQueryProjection(f: QueryProjection => QueryProjection): SinglePlannerQuery = horizon match {
+    case projection: QueryProjection => withHorizon(f(projection))
+    case _                           => this
+  }
+
+  def resetQueryProjection(): SinglePlannerQuery = horizon match {
+    case projection: QueryProjection =>
+      withHorizon(RegularQueryProjection(importedExposedSymbols = projection.importedExposedSymbols))
+    case _ => this
+  }
+
   def updateTail(f: SinglePlannerQuery => SinglePlannerQuery): SinglePlannerQuery = tail match {
     case None            => this
     case Some(tailQuery) => copy(tail = Some(f(tailQuery)))

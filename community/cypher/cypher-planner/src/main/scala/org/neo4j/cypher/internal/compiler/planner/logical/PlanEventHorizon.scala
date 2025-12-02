@@ -68,11 +68,8 @@ case object PlanEventHorizon extends EventHorizonPlanner {
     // This config will only plan Sort if there is a required order in this plannerQuery
     val sortIfSelfRequiredConfig = InterestingOrderConfig(plannerQuery.interestingOrder)
     // This config will even plan Sort if there is a required order in a tail plannerQuery
-    val sortIfTailOrSelfRequiredConfig = InterestingOrderConfig.interestingOrderForPart(
-      query = plannerQuery,
-      isRhs = false,
-      isHorizon = true
-    )
+    val sortIfTailOrSelfRequiredConfig =
+      InterestingOrderConfig.interestingOrderForPart(query = plannerQuery, isRhs = false)
 
     val extraPropertiesRequirement =
       context.settings.remoteBatchPropertiesStrategy.interestingPropertiesAsIDPExtraRequirement(
@@ -94,9 +91,12 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         orderConfig
       )
       val functionLog = context.staticComponents.planningStepsLogger.flushFunctionLog()
-      context.staticComponents.planningStepsLogger.log(s"      $functionLog")
-      context.staticComponents.planningStepsLogger.log(s"      Resulted in:")
-      context.staticComponents.planningStepsLogger.log(s"        ${plan.toString.replace("\n", "\n        ")}")
+      context.staticComponents.planningStepsLogger.log(
+        s"""      $functionLog
+           |      Resulted in:
+           |        Plan #${plan.debugId}
+           |        ${plan.toString.replace("\n", "\n        ")}""".stripMargin
+      )
       plan
     }
 

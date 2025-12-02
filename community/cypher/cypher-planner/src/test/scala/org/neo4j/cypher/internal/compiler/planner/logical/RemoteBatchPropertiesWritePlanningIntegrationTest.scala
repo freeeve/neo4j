@@ -22,6 +22,9 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.ExecutionModel
+import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
+import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -35,6 +38,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.crea
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -42,16 +46,32 @@ import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
-    with LogicalPlanningIntegrationTestSupport with AstConstructionTestSupport {
+class DefaultRuntimeRemoteBatchPropertiesWritePlanningIntegrationTest
+    extends AbstractRemoteBatchPropertiesWritePlanningIntegrationTest(ExecutionModel.default) {
+  override protected val orderPreserving: Boolean = true
+}
+
+class ParallelRuntimeRemoteBatchPropertiesWritePlanningIntegrationTest
+    extends AbstractRemoteBatchPropertiesWritePlanningIntegrationTest(BatchedParallel(1, 2)) {
+  override protected val orderPreserving: Boolean = false
+}
+
+abstract class AbstractRemoteBatchPropertiesWritePlanningIntegrationTest(executionModel: ExecutionModel)
+    extends CypherFunSuite
+    with LogicalPlanningIntegrationTestSupport
+    with AstConstructionTestSupport
+    with LogicalPlanConstructionTestSupport {
+
+  protected val orderPreserving: Boolean
 
   // Graph counts based on a subset of LDBC SF 1
-  final protected val planner = plannerBuilder()
+  final protected val plannerBase = plannerBuilder()
     .setDatabaseMode(DatabaseMode.SHARDED)
     .withSetting(
       GraphDatabaseInternalSettings.cypher_remote_batch_properties_implementation,
       RemoteBatchPropertiesImplementation.PLANNER
     )
+    .setExecutionModel(executionModel)
     .setAllNodesCardinality(3181725)
     .setLabelCardinality("Person", 9892)
     .setLabelCardinality("Message", 3055774)
@@ -145,7 +165,8 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
     .setRelationshipCardinality("(:Person)-[:FRIEND]->()", 10)
     .setRelationshipCardinality("()-[:FRIEND]->(:Person)", 10)
     .setRelationshipCardinality("(:Person)-[:FRIEND]->(:Person)", 10)
-    .build()
+
+  val planner = plannerBase.build()
 
   test("should fetch properties again after properties have been set") {
     val query =
@@ -227,10 +248,16 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`n.name`", "`n.age`")
         .projection("cacheN[n.name] AS `n.name`")
+        .___CONDITION_BEGIN___(orderPreserving)
         .remoteBatchProperties("cacheNFromStore[n.name]")
+        .___CONDITION_END___()
         .sort("`n.age` ASC")
         .projection("cacheN[n.age] AS `n.age`")
+        .___CONDITION_BEGIN___(!orderPreserving)
+        .remoteBatchProperties("cacheNFromStore[n.age]", "cacheNFromStore[n.name]")
+        .___CONDITION_BEGIN___(orderPreserving)
         .remoteBatchProperties("cacheNFromStore[n.age]")
+        .___CONDITION_END___()
         .transactionApply()
         .|.create(createNodeFull("n", properties = Some("{name: row.name, age: toInteger(row.age)}")))
         .|.argument("row")
@@ -1420,5 +1447,36 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       )
       .nodeByLabelScan("p", "Person")
       .build()
+  }
+
+  test("should project between set properties and sort") {
+    // case: mutating pattern, followed by a sort that uses the mutated property
+    // we might be tempted to push the sort below the set property,
+    // but that would mean we need to project and sort the property again
+    val query =
+      """MATCH (u:Person)-[f:KNOWS]->(p:Person)
+        |  WHERE u.start = true
+        |SET u.name = 'joe'
+        |RETURN u.name, u.foo
+        |  ORDER BY u.name ASC, u.foo DESC""".stripMargin
+
+    planner.plan(query) should equal(
+      planner.planBuilder()
+        .produceResults("`u.name`", "`u.foo`")
+        .sort("`u.name` ASC", "`u.foo` DESC")
+        // this projection is crucial after the setNodeProperty, so that `u.name` is up to date again and can be sorted on and be returned
+        .projection("cacheN[u.name] AS `u.name`", "cacheN[u.foo] AS `u.foo`")
+        .remoteBatchProperties("cacheNFromStore[u.name]", "cacheNFromStore[u.foo]")
+        .eager(ListSet(
+          propReadSetConflict("name", 5, 2)
+        ))
+        .setNodeProperty("u", "name", "'joe'")
+        .filter("p:Person")
+        .expandAll("(u)-[:KNOWS]->(p)")
+        .filter("cacheN[u.start] = true")
+        .remoteBatchProperties("cacheNFromStore[u.start]")
+        .nodeByLabelScan("u", "Person", IndexOrderNone)
+        .build()
+    )
   }
 }
