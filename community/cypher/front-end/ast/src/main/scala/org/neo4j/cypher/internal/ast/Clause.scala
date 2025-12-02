@@ -2173,7 +2173,8 @@ object SubqueryCall {
       extends ASTNode with SemanticCheckable with SemanticAnalysisTooling {
 
     override def semanticCheck: SemanticCheck =
-      declareVariable(reportAs, CTMap) chain specifyType(CTMap, reportAs)
+      declareVariable(reportAs, MapExtendedType.getTypeSpec(CTMap, CTString.covariant)) chain
+        specifyType(MapExtendedType.getTypeSpec(CTMap, CTString.covariant), reportAs)
   }
 
   final case class InTransactionsErrorParameters(

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
@@ -3186,6 +3187,40 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .|.argument("s")
         .filter("s.name = 'me'")
         .nodeByLabelScan("s", "Person", IndexOrderNone)
+        .build()
+    )
+  }
+
+  test("should not be eager for properties returned from Call in transactions") {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(1000)
+        .build()
+
+    val query =
+      """LOAD CSV WITH HEADERS FROM 'https://people.sc.fsu.edu/~jburkardt/data/csv/deniro.csv' AS row
+        |CALL (row) {
+        |  CREATE (:Movie {title: row.` "Title"`, year: row.Year, score: row.` "Score"`})
+        |} IN TRANSACTIONS OF 5 ROWS
+        |  ON ERROR RETRY THEN CONTINUE
+        |  REPORT STATUS AS status
+        |RETURN row, status.transactionId AS tx, status.errorMessage AS msg""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("row", "tx", "msg")
+        .projection("status.transactionId AS tx", "status.errorMessage AS msg")
+        .transactionForeach(batchSize = 5, onErrorBehaviour = OnErrorRetryThenContinue, maybeReportAs = Some("status"))
+        .|.create(createNodeFull(
+          node = "anon_0",
+          labels = Seq("Movie"),
+          properties = Some("""{title: row.` "Title"`, year: row.Year, score: row.` "Score"`}""")
+        ))
+        .|.argument("row")
+        .loadCSV("'https://people.sc.fsu.edu/~jburkardt/data/csv/deniro.csv'", "row", HasHeaders, None)
+        .argument()
         .build()
     )
   }
