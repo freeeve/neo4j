@@ -1214,7 +1214,8 @@ public final class CypherFunctions {
             int maxDepth = asIntExact(
                     depth, () -> "Invalid input for depth value in function 'coll.flatten()'", "coll.flatten", false);
             if (maxDepth < 0) {
-                throw InvalidArgumentException.argumentOutOfRange("coll.flatten", "depth", 0, Long.MAX_VALUE, maxDepth);
+                throw InvalidArgumentException.argumentOutOfRange(
+                        "coll.flatten", "depth", 0, Integer.MAX_VALUE, maxDepth);
             }
 
             return sequence.flatten(maxDepth);

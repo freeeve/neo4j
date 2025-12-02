@@ -22,9 +22,9 @@ package org.neo4j.values;
 import static org.neo4j.values.SequenceValue.IterationPreference.RANDOM_ACCESS;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
+import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.Iterator;
-import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.ListValueBuilder;
 
@@ -63,7 +63,7 @@ public interface SequenceValue extends Iterable<AnyValue> {
 
     default AnyValue head() {
         if (isEmpty()) {
-            return Values.NO_VALUE;
+            return NO_VALUE;
         }
 
         return value(0);
@@ -261,21 +261,31 @@ public interface SequenceValue extends Iterable<AnyValue> {
         }
     }
 
-    default ListValue flatten(int depth) {
-        if (depth == 0) {
-            return this.asListValue();
-        }
-        ListValueBuilder listBuilder = ListValueBuilder.newListBuilder();
+    default ListValue flatten(final int depth) {
+        // Note, stack safe implementation.
+        // Note, possible to optimize for:
+        // - Lists that support fast random access
+        // - Lists that do not need flattening (could be checked with ListValue#itemRepresentation)
+        final var builder = ListValueBuilder.newListBuilder();
+        final var iterators = new ArrayDeque<Iterator<AnyValue>>(2);
+        iterators.push(iterator());
 
-        for (AnyValue value : this) {
-            if (value instanceof SequenceValue sequenceValue) {
-                sequenceValue.flatten(depth - 1).forEach(listBuilder::add);
-            } else {
-                listBuilder.add(value);
+        int currentDepth = depth - 1;
+        while (!iterators.isEmpty()) {
+            currentDepth += 1;
+            var iterator = iterators.pop(); // Note, `iterator` reference can change.
+            while (iterator.hasNext()) {
+                final var value = iterator.next();
+                if (currentDepth > 0 && value instanceof SequenceValue sequenceValue) {
+                    currentDepth -= 1;
+                    iterators.push(iterator);
+                    iterator = sequenceValue.iterator();
+                } else {
+                    builder.add(value);
+                }
             }
         }
-
-        return listBuilder.build();
+        return builder.build();
     }
 
     default ListValue insertAt(int index, AnyValue value) {
