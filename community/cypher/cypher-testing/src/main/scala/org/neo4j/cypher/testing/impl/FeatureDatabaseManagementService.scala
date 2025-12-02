@@ -115,13 +115,6 @@ case class FeatureDatabaseManagementService(
   private val notificationConfig: NotificationConfig = NotificationConfig.defaultConfig()
 ) {
 
-  private val droppableIndexTypes = Set(
-    IndexType.TEXT,
-    IndexType.POINT,
-    IndexType.RANGE,
-    IndexType.FULLTEXT
-  )
-
   val database: GraphDatabaseFacade =
     databaseManagementService.database(databaseName.getOrElse(DEFAULT_DATABASE_NAME)).asInstanceOf[GraphDatabaseFacade]
 
@@ -181,10 +174,15 @@ case class FeatureDatabaseManagementService(
     tx.commit()
   }
 
-  private def shouldDrop(index: IndexDefinition): Boolean = {
-    // Avoid dropping indexes that are part of the default installation
-    // Like the node label index and relationship type index.
-    droppableIndexTypes.contains(index.getIndexType)
+  // Avoid dropping indexes that are part of the default installation
+  // Like the node label index and relationship type index.
+  private def shouldDrop(index: IndexDefinition): Boolean = index.getIndexType match {
+    case IndexType.LOOKUP   => false
+    case IndexType.FULLTEXT => true
+    case IndexType.TEXT     => true
+    case IndexType.RANGE    => true
+    case IndexType.POINT    => true
+    case IndexType.VECTOR   => true
   }
 
   def unregisterProcedures(procedures: Seq[QualifiedName]): Unit = {
