@@ -40,6 +40,7 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.neo4j.function.Predicates;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.extension.DisabledForRoot;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -127,7 +128,7 @@ class DumperTest {
 
         Path archive = testDirectory.file("the-archive.dump");
         Dumper dumper = new Dumper(filesystem);
-        dumper.dump(db, archive, GZIP, false);
+        dumper.dump(db, archive, GZIP);
 
         // Source unchanged (no diffs)
         assertArrayEquals(data, Files.readAllBytes(storeFile));
@@ -144,8 +145,8 @@ class DumperTest {
         Files.write(storeFile, data);
 
         Path archive = testDirectory.file("the-archive.dump");
-        Dumper dumper = new Dumper(filesystem);
-        dumper.dump(db, archive, GZIP, true);
+        Dumper dumper = new Dumper(filesystem, NullLogProvider.getInstance(), true);
+        dumper.dump(db, archive, GZIP);
 
         // Source unchanged (no diffs)
         assertFalse(Files.exists(storeFile));

@@ -61,22 +61,28 @@ public class Dumper {
 
     private final FileSystemAbstraction fs;
     private final ArchiveProgressPrinter progressPrinter;
+    private final boolean deleteAfterCopy;
 
     public Dumper(FileSystemAbstraction fs) {
-        this(fs, ProgressPrinters.emptyPrinter());
+        this(fs, ProgressPrinters.emptyPrinter(), false);
     }
 
     public Dumper(FileSystemAbstraction fs, PrintStream output) {
-        this(fs, ProgressPrinters.printStreamPrinter(output));
+        this(fs, ProgressPrinters.printStreamPrinter(output), false);
     }
 
     public Dumper(FileSystemAbstraction fs, InternalLogProvider logProvider) {
-        this(fs, ProgressPrinters.logProviderPrinter(logProvider.getLog(Dumper.class)));
+        this(fs, ProgressPrinters.logProviderPrinter(logProvider.getLog(Dumper.class)), false);
     }
 
-    private Dumper(FileSystemAbstraction fs, OutputProgressPrinter progressPrinter) {
+    public Dumper(FileSystemAbstraction fs, InternalLogProvider logProvider, boolean deleteAfterCopy) {
+        this(fs, ProgressPrinters.logProviderPrinter(logProvider.getLog(Dumper.class)), deleteAfterCopy);
+    }
+
+    private Dumper(FileSystemAbstraction fs, OutputProgressPrinter progressPrinter, boolean deleteAfterCopy) {
         this.fs = requireNonNull(fs);
         this.progressPrinter = createProgressPrinter(progressPrinter);
+        this.deleteAfterCopy = deleteAfterCopy;
     }
 
     /**
@@ -88,18 +94,8 @@ public class Dumper {
         return dump.toString().endsWith(DUMP_EXTENSION);
     }
 
-    public void dump(Path path, Path archive, CompressionFormat format, boolean deleteAfterCopy) throws IOException {
-        dump(path, path, openForDump(archive), format, Predicates.alwaysFalse(), deleteAfterCopy);
-    }
-
-    public void dump(
-            Path dbPath,
-            Path transactionalLogsPath,
-            OutputStream out,
-            CompressionFormat format,
-            Predicate<Path> exclude)
-            throws IOException {
-        dump(dbPath, transactionalLogsPath, out, format, exclude, false);
+    public void dump(Path path, Path archive, CompressionFormat format) throws IOException {
+        dump(path, path, openForDump(archive), format, Predicates.alwaysFalse());
     }
 
     public OutputStream openForDump(Path archive) throws IOException {
@@ -126,22 +122,20 @@ public class Dumper {
      * @param out                   output stream, will be closed by this method
      * @param format                compression format
      * @param exclude               exclusion predicate
-     * @param deleteAfterCopy       delete file after copying to backup
      * @throws IOException in case of error
      */
-    private void dump(
+    public void dump(
             Path dbPath,
             Path transactionalLogsPath,
             OutputStream out,
             CompressionFormat format,
-            Predicate<Path> exclude,
-            boolean deleteAfterCopy)
+            Predicate<Path> exclude)
             throws IOException {
         operations.clear();
 
-        visitPath(dbPath, exclude, deleteAfterCopy);
+        visitPath(dbPath, exclude);
         if (!Util.isSameOrChildFile(dbPath, transactionalLogsPath)) {
-            visitPath(transactionalLogsPath, exclude, deleteAfterCopy);
+            visitPath(transactionalLogsPath, exclude);
         }
 
         dump(out, format);
@@ -163,24 +157,26 @@ public class Dumper {
                 Resource ignore = progressPrinter.startPrinting()) {
             for (ArchiveOperation operation : operations) {
                 operation.addToArchive(stream);
+                if (deleteAfterCopy && operation.isFile) {
+                    fs.delete(operation.file);
+                }
             }
         }
     }
 
     /**
-     * @param folderPath      folder to archive
-     * @param exclude         exclusion predicate
-     * @param deleteAfterCopy will delete file immediately after dumping file
+     * @param folderPath folder to archive
+     * @param exclude    exclusion predicate
      * @throws IOException in case of error
      */
-    public void visitPath(Path folderPath, Predicate<Path> exclude, boolean deleteAfterCopy) throws IOException {
+    public void visitPath(Path folderPath, Predicate<Path> exclude) throws IOException {
         Files.walkFileTree(
                 folderPath,
                 onlyMatching(
                         exclude.negate(),
                         throwExceptions(onDirectory(
                                 dir -> dumpDirectory(folderPath, dir),
-                                onFile(file -> dumpFile(folderPath, file, deleteAfterCopy), justContinue())))));
+                                onFile(file -> dumpFile(folderPath, file), justContinue())))));
     }
 
     private ArchiveOutputStream wrapArchiveOut(OutputStream out, CompressionFormat format) throws IOException {
@@ -207,16 +203,8 @@ public class Dumper {
         metadata.writeLong(progressPrinter.maxBytes());
     }
 
-    private void dumpFile(Path root, Path file, boolean deleteAfterCopy) throws IOException {
-        withEntry(
-                stream -> {
-                    writeFile(file, stream);
-                    if (deleteAfterCopy) {
-                        fs.delete(file);
-                    }
-                },
-                root,
-                file);
+    private void dumpFile(Path root, Path file) throws IOException {
+        withEntry(stream -> writeFile(file, stream), root, file);
     }
 
     private void dumpDirectory(Path root, Path dir) throws IOException {
