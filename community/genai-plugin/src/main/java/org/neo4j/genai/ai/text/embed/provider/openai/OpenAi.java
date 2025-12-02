@@ -25,6 +25,7 @@ import java.net.URI;
 import java.util.Map;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.util.VisibleForTesting;
@@ -63,16 +64,18 @@ public class OpenAi implements VectorEmbedding.Provider {
     }
 
     @Override
-    public VectorEmbedding.Provider.Implementation configure(HttpService httpService, MapValue conf) {
-        return new Implementation(name(), endpoint, httpService, parse(Parameters.class, conf));
+    public VectorEmbedding.Provider.Implementation configure(
+            HttpService httpService, MapValue conf, GenAIConfig genAIConfig) {
+        // We create the URI already with the base url (or with a testing one which we don't want to override here).
+        String baseUrl = genAIConfig == null ? null : genAIConfig.getStringProperty(GenAIConfig.GENAI_OPENAI_BASE_URL);
+        var newEndpoint =
+                baseUrl == null || baseUrl.equals(DEFAULT_BASE_URL) ? endpoint : URI.create(baseUrl + DEFAULT_API_PATH);
+
+        return new Implementation(name(), newEndpoint, httpService, parse(Parameters.class, conf));
     }
 
     record Implementation(String name, URI endpoint, HttpService httpService, Parameters params)
             implements OpenAiBase<Parameters> {
-
-        public URI endpoint() {
-            return endpoint;
-        }
 
         @Override
         public String providerName() {

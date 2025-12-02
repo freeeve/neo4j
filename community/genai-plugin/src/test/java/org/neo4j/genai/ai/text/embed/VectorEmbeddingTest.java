@@ -39,6 +39,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.ProviderArgs;
 import org.neo4j.genai.ai.ProviderArguments;
@@ -166,6 +167,28 @@ public class VectorEmbeddingTest implements GenAITestExtension {
     void listProviders() {
         assertThat(db.executeTransactionally("CALL ai.text.embed.providers()", Map.of(), consume()))
                 .containsExactlyElementsOf(EXPECTED_PROVIDERS);
+    }
+
+    @Test
+    void openAIWithConfigSetBaseURL() {
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost");
+        final var query1 = """
+                with { token: 'dummy-openai-token', model: 'text-embedding-3-small' } as conf
+                return ai.text.embed('Hello!', 'openai', conf) as result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Failed to invoke function `ai.text.embed`");
+
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, this.wireMock.baseUrl());
+        final var query2 = """
+                with { token: 'dummy-openai-token', model: 'text-embedding-3-small' } as conf
+                return ai.text.embed('Hello!', 'openai', conf) IS :: VECTOR<FLOAT32> as result
+                """;
+        assertThat(db.executeTransactionally(query2, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query2)
+                .singleElement(resultMap())
+                .containsEntry("result", true);
     }
 
     @ParameterizedTest

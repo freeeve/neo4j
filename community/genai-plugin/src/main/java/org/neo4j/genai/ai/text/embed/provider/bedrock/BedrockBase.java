@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.impl.factory.Multimaps;
+import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
@@ -80,7 +81,7 @@ public abstract class BedrockBase implements VectorEmbedding.Provider {
     protected abstract RequestHandler requestHandler();
 
     @Override
-    public final Implementation configure(HttpService httpService, MapValue configuration) {
+    public final Implementation configure(HttpService httpService, MapValue configuration, GenAIConfig genAIConfig) {
         final var params = parse(Parameters.class, configuration);
         final var encodedModel = URLEncoder.encode(params.model);
         final var uri = baseUriResolver.apply(params).resolve(DEFAULT_API_PATH_TEMPLATE.formatted(encodedModel));

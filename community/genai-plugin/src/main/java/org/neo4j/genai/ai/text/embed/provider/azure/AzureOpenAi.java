@@ -28,6 +28,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.ai.text.embed.provider.openai.OpenAiBase;
 import org.neo4j.genai.util.HttpService;
@@ -69,7 +70,7 @@ public class AzureOpenAi implements VectorEmbedding.Provider {
     }
 
     @Override
-    public Implementation configure(HttpService httpService, MapValue configuration) {
+    public Implementation configure(HttpService httpService, MapValue configuration, GenAIConfig genAIConfig) {
         final var params = parse(Parameters.class, configuration);
         final var uri = baseUriResolver.apply(params).resolve(DEFAULT_API_PATH);
         return new Impl(uri, httpService, params, name());

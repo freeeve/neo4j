@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.factory.Maps;
 import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
@@ -78,7 +79,7 @@ public class VertexAi implements TextCompletion.Provider {
     }
 
     @Override
-    public Implementation configure(HttpService httpService, MapValue conf) {
+    public Implementation configure(HttpService httpService, MapValue conf, GenAIConfig genAIConfig) {
         final var params = parse(Parameters.class, conf);
         return new Implementation(name(), endpoint(params), httpService, params);
     }

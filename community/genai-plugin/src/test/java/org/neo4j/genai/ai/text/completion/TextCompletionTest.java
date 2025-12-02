@@ -38,6 +38,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.ProviderArgs;
 import org.neo4j.genai.ai.ProviderArguments;
@@ -250,6 +251,28 @@ public class TextCompletionTest implements GenAITestExtension {
         assertThatThrownBy(() -> db.executeTransactionally(
                         query, Map.of(), r -> r.stream().toList()))
                 .hasMessageContaining("INVALID_ARGUMENT");
+    }
+
+    @Test
+    void openAIWithConfigSetBaseURL() {
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost");
+        final var query1 = """
+                with { token: 'dummy-openai-token', model: 'gpt-5' } as conf
+                return ai.text.completion('Fail OPENAI!', 'openai', conf) as result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Failed to invoke function `ai.text.completion`");
+
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, this.wireMock.baseUrl());
+        final var query2 = """
+                with { token: 'dummy-openai-token', model: 'gpt-5' } as conf
+                return ai.text.completion('Hello!', 'openai', conf) as result
+                """;
+        assertThat(db.executeTransactionally(query2, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query2)
+                .singleElement(resultMap())
+                .containsEntry("result", "Bla bla bla... (openai)");
     }
 }
 
