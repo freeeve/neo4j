@@ -168,7 +168,13 @@ case class UnexpectedAstNodeScopingError(astNode: ASTNode, incoming: RegularCont
   override def withDeclared(declared: Declarations): UnexpectedAstNodeScopingError = this
 }
 
-sealed trait Result
+sealed trait Result {
+
+  def getColumns: Seq[LogicalVariable] = this match {
+    case TableResult(columns) => columns
+    case _                    => Seq.empty
+  }
+}
 
 case class TableResult(columns: Seq[LogicalVariable]) extends Result {
 

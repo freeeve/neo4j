@@ -3747,4 +3747,74 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
       )
     )
   }
+
+  test("""CREATE (a)
+         |
+         |NEXT
+         |
+         |MATCH (n)
+         |RETURN *, n.x AS x""".stripMargin) {
+
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""CREATE (a)
+              |
+              |NEXT
+              |
+              |MATCH (n)
+              |RETURN *, n.x AS x""".stripMargin),
+        Outgoing(variables = Set("n", "x")),
+        ExpectedResult.TableResult("n", "x"),
+        ExpectedWorkingScope(
+          Ast("""CREATE (a)""".stripMargin),
+          Outgoing(variables = Set("a")),
+          ExpectedResult.OmittedResult,
+          ExpectedWorkingScope(
+            Ast("""CREATE (a)""".stripMargin),
+            Declared(variables = Seq("a")),
+            Outgoing(variables = Set("a")),
+            ExpectedResult.OmittedResult,
+            ExpectedWorkingScope(
+              Ast("(a)"),
+              Declared(variables = Seq("a")),
+              Outgoing(variables = Set("a")),
+              ExpectedResult.TableResult("a")
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("""MATCH (n)
+                |RETURN *, n.x AS x""".stripMargin),
+          Outgoing(variables = Set("n", "x")),
+          ExpectedResult.TableResult("n", "x"),
+          ExpectedWorkingScope(
+            Ast("""MATCH (n)""".stripMargin),
+            Declared(variables = Seq("n")),
+            Outgoing(variables = Set("n")),
+            ExpectedWorkingScope(
+              Ast("(n)"),
+              PatternIncoming(predicate = Set("n")),
+              Declared(variables = Seq("n")),
+              Outgoing(variables = Set("n")),
+              ExpectedResult.TableResult("n")
+            )
+          ),
+          ExpectedWorkingScope(
+            Ast("""RETURN *, n.x AS x""".stripMargin),
+            Incoming(variables = Set("n")),
+            Outgoing(variables = Set("n", "x")),
+            Referenced(Set("n")),
+            ExpectedResult.TableResult("n", "x"),
+            ExpectedWorkingScope(
+              Ast("n.x"),
+              Incoming(constants = Set("n")),
+              Referenced(Set("n")),
+              ExpectedWorkingScope.varExp("n", Set("n"))
+            )
+          )
+        )
+      )
+    )
+  }
+
 }
