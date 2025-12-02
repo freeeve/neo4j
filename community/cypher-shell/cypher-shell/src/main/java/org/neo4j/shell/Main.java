@@ -66,7 +66,8 @@ public class Main implements AutoCloseable {
         boolean isInteractive = !args.getNonInteractive() && ShellRunner.isInputInteractive();
         this.printer = new AnsiPrinter(Format.VERBOSE, args.getErrorFormat(), System.out, System.err);
         this.args = args;
-        var boltStateHandler = new BoltStateHandler(shouldBeInteractive(args, isInteractive), args.getAccessMode());
+        var boltStateHandler = new BoltStateHandler(
+                shouldBeInteractive(args, isInteractive), args.getAccessMode(), args.getTxTimeout());
         var completionsEnabledByConfig = args.getEnableAutocompletions();
         this.parameters = ParameterService.create(boltStateHandler);
         var dbInfo = new DbInfoImpl(parameters, boltStateHandler, completionsEnabledByConfig);

@@ -28,6 +28,7 @@ import static org.neo4j.shell.test.Util.testConnectionConfig;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.Optional;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.function.ThrowingFunction;
@@ -109,8 +110,8 @@ public class TestHarness {
             var errPrintStream = new PrintStream(err);
             var logger = new AnsiPrinter(Format.VERBOSE, args.getErrorFormat(), outPrintStream, errPrintStream);
             if (this.boltStateHandler == null) {
-                this.boltStateHandler =
-                        new BoltStateHandler(shouldBeInteractive(args, isOutputInteractive), args.getAccessMode());
+                this.boltStateHandler = new BoltStateHandler(
+                        shouldBeInteractive(args, isOutputInteractive), args.getAccessMode(), args.getTxTimeout());
             }
             if (this.parameters == null) {
                 this.parameters = ParameterService.create(boltStateHandler);
@@ -187,7 +188,7 @@ public class TestHarness {
     protected <T> T runInDbAndReturn(String database, ThrowingFunction<CypherShell, T, Exception> systemDbConsumer) {
         CypherShell shell = null;
         try {
-            var boltHandler = new BoltStateHandler(false, AccessMode.WRITE);
+            var boltHandler = new BoltStateHandler(false, AccessMode.WRITE, Optional.empty());
             var printer = new PrettyPrinter(new PrettyConfig(Format.PLAIN, false, 100, false));
             var parameters = ParameterService.create(boltHandler);
             var dbInfo = new DbInfoImpl(parameters, boltHandler, true);

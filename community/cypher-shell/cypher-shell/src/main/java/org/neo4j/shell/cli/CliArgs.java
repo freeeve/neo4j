@@ -64,6 +64,7 @@ public class CliArgs {
     private Duration idleTimeout = DEFAULT_IDLE_TIMEOUT;
     private Duration idleTimeoutDelay = DEFAULT_IDLE_TIMEOUT_DELAY;
     private ErrorFormat errorFormat = ErrorFormat.DEFAULT;
+    private Optional<Duration> txTimeout = Optional.empty();
 
     /**
      * Set the username to the primary value, or if null, the fallback value.
@@ -301,5 +302,13 @@ public class CliArgs {
 
     public ErrorFormat getErrorFormat() {
         return errorFormat;
+    }
+
+    public Optional<Duration> getTxTimeout() {
+        return txTimeout;
+    }
+
+    public void setTransactionTimeout(Duration timeout) {
+        this.txTimeout = Optional.ofNullable(timeout);
     }
 }

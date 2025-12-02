@@ -31,6 +31,7 @@ import static org.neo4j.shell.test.Util.testConnectionConfig;
 import static org.neo4j.shell.util.Versions.majorVersion;
 
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +59,7 @@ class CypherShellMultiDatabaseIntegrationTest {
     void setUp() throws Exception {
         linePrinter.clear();
         var printer = new PrettyPrinter(new PrettyConfig(Format.PLAIN, true, 1000, false));
-        var boltHandler = new BoltStateHandler(false, AccessMode.WRITE);
+        var boltHandler = new BoltStateHandler(false, AccessMode.WRITE, Optional.empty());
         var parameters = ParameterService.create(boltHandler);
         var dbInfo = new DbInfoImpl(parameters, boltHandler, true);
         shell = new CypherShell(linePrinter, boltHandler, dbInfo, printer, parameters);
@@ -145,7 +146,7 @@ class CypherShellMultiDatabaseIntegrationTest {
 
     @Test
     void switchingToNonExistingDatabaseShouldGiveErrorResponseFromServerInteractive() throws CommandException {
-        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE);
+        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE, Optional.empty());
         var parameters = ParameterService.create(boltHandler);
         var printer = new PrettyPrinter(new PrettyConfig(Format.PLAIN, true, 1000, false));
         var dbInfo = new DbInfoImpl(parameters, boltHandler, true);

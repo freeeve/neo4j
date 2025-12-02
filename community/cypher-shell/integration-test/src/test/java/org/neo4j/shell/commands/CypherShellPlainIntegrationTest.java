@@ -22,6 +22,7 @@ package org.neo4j.shell.commands;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +45,7 @@ class CypherShellPlainIntegrationTest extends CypherShellIntegrationTest {
     void setUp() throws Exception {
         linePrinter.clear();
         var printer = new PrettyPrinter(new PrettyConfig(Format.PLAIN, true, 1000, false));
-        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE);
+        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE, Optional.empty());
         var parameters = ParameterService.create(boltHandler);
         var dbInfo = new DbInfoImpl(parameters, boltHandler, true);
         shell = new CypherShell(linePrinter, boltHandler, dbInfo, printer, parameters);

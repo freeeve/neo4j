@@ -27,6 +27,7 @@ import static org.mockito.Mockito.mock;
 import static org.neo4j.shell.Conditions.contains;
 import static org.neo4j.shell.util.Versions.majorVersion;
 
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ class CypherShellVerboseIntegrationTest extends CypherShellIntegrationTest {
     void setUp() throws Exception {
         linePrinter.clear();
         var printer = new PrettyPrinter(new PrettyConfig(Format.VERBOSE, true, 1000, false));
-        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE);
+        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE, Optional.empty());
         var parameters = mock(ParameterService.class);
         var dbInfo = mock(DbInfo.class);
         shell = new CypherShell(linePrinter, boltHandler, dbInfo, printer, parameters);

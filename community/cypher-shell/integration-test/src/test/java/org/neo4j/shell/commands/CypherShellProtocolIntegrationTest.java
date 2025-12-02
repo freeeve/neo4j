@@ -26,6 +26,7 @@ import static org.neo4j.shell.test.Util.testConnectionConfig;
 import static org.neo4j.shell.util.Versions.majorVersion;
 import static org.neo4j.shell.util.Versions.minorVersion;
 
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.neo4j.shell.CypherShell;
 import org.neo4j.shell.StringLinePrinter;
@@ -90,7 +91,7 @@ class CypherShellProtocolIntegrationTest {
     }
 
     private CypherShell shell() {
-        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE);
+        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE, Optional.empty());
         var printer = new PrettyPrinter(new PrettyConfig(Format.PLAIN, true, 1000, false));
         var parameters = mock(ParameterService.class);
         var dbInfo = mock(DbInfo.class);

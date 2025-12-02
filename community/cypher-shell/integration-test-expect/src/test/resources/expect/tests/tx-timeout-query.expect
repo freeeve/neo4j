@@ -1,0 +1,18 @@
+#!/usr/bin/expect -f
+
+set extra_args {"--transaction-timeout" "1s"}
+source "common.expect"
+
+# Start long running query
+set timeout 60
+sendQuery "unwind range(0,90000) as x call apoc.util.sleep(1) return sum(x) as sum;"
+
+expect "transaction has been terminated"
+
+set timeout 10
+
+# Make sure we can still run queries
+sendQuery "return 1 as result;"
+
+sendQuery ":exit"
+expectCleanExit

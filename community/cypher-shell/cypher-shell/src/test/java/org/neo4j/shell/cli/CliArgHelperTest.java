@@ -541,6 +541,16 @@ class CliArgHelperTest extends LocaleDependentTestBase {
     }
 
     @Test
+    void txTimeout() {
+        assertThat(parse().getTxTimeout()).isEmpty();
+        assertThat(parse("--transaction-timeout", "1s").getTxTimeout()).contains(Duration.ofSeconds(1));
+        assertThat(parse("--transaction-timeout", "1m").getTxTimeout()).contains(Duration.ofMinutes(1));
+        assertThat(parse("--transaction-timeout", "1h").getTxTimeout()).contains(Duration.ofHours(1));
+        assertThat(parse("--transaction-timeout", "2h3m").getTxTimeout()).contains(Duration.parse("PT2H3M0S"));
+        assertThat(parse("--transaction-timeout", "2h3m4s").getTxTimeout()).contains(Duration.parse("PT2H3M4S"));
+    }
+
+    @Test
     void errorFormat() {
         assertEquals(ErrorFormat.GQL, parser.parse("--error-format", "gql").getErrorFormat());
         assertEquals(
@@ -579,7 +589,9 @@ usage: cypher-shell [-h] [-a ADDRESS] [-u USERNAME] [--impersonate IMPERSONATE] 
                     [--non-interactive] [--sample-rows SAMPLE-ROWS] [--wrap {true,false}] [-v]
                     [--driver-version] [-f FILE] [--change-password] [--log [LOG-FILE]]
                     [--history HISTORY-BEHAVIOUR] [--notifications] [--idle-timeout IDLE-TIMEOUT]
-                    [--error-format {gql,legacy,stacktrace}] [--fail-fast | --fail-at-end] [cypher]
+                    [--error-format {gql,legacy,stacktrace}]
+                    [--transaction-timeout TRANSACTION-TIMEOUT] [--fail-fast | --fail-at-end]
+                    [cypher]
 
 Cypher Shell is a command-line tool used to  run  queries and perform administrative tasks against a
 Neo4j instance. By default, the shell  is  interactive,  but  you  can  also use it for scripting by
@@ -637,6 +649,10 @@ named arguments:
                          30 minutes), or `30m` (30 minutes).
   --error-format {gql,legacy,stacktrace}
                          Controls how errors are displayed. (default: gql)
+  --transaction-timeout TRANSACTION-TIMEOUT
+                         Transaction  timeout.  You  can  specify  the  duration  using  the  format
+                         `<hours>h<minutes>m<seconds>s`, for example `1h` (1  hour), `1h30m` (1 hour
+                         30 minutes), or `30m` (30 minutes).
 
 connection arguments:
   -a ADDRESS, --address ADDRESS, --uri ADDRESS

@@ -22,6 +22,7 @@ package org.neo4j.shell.state;
 import static org.neo4j.shell.util.Versions.isPasswordChangeRequiredException;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -70,10 +71,10 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
     private static final Logger log = Logger.create();
     private static final String USER_AGENT = "neo4j-cypher-shell/v" + Build.version();
     private static final Version supportsCypherVersionPrefix = new Version(5, 26, 0);
-    private static final TransactionConfig USER_DIRECT_TX_CONF = txConfig(TransactionType.USER_DIRECT);
     private static final TransactionConfig SYSTEM_TX_CONF = txConfig(TransactionType.SYSTEM);
     private final TriFunction<URI, AuthToken, Config, Driver> driverProvider;
     private final boolean isInteractive;
+    private final TransactionConfig userDirectTxConf;
     protected Driver driver;
     Session userSession;
     Session serviceSession;
@@ -85,23 +86,26 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
     private LicenseDetails licenseDetails = LicenseDetailsImpl.YES;
     private org.neo4j.shell.cli.AccessMode accessMode;
 
-    public BoltStateHandler(boolean isInteractive, org.neo4j.shell.cli.AccessMode accessMode) {
-        this(GraphDatabase::driver, isInteractive, accessMode);
+    public BoltStateHandler(
+            boolean isInteractive, org.neo4j.shell.cli.AccessMode accessMode, Optional<Duration> txTimeout) {
+        this(GraphDatabase::driver, isInteractive, accessMode, txTimeout);
     }
 
     @VisibleForTesting
     BoltStateHandler(TriFunction<URI, AuthToken, Config, Driver> driverProvider, boolean isInteractive) {
-        this(driverProvider, isInteractive, org.neo4j.shell.cli.AccessMode.WRITE);
+        this(driverProvider, isInteractive, org.neo4j.shell.cli.AccessMode.WRITE, Optional.empty());
     }
 
     private BoltStateHandler(
             TriFunction<URI, AuthToken, Config, Driver> driverProvider,
             boolean isInteractive,
-            org.neo4j.shell.cli.AccessMode accessMode) {
+            org.neo4j.shell.cli.AccessMode accessMode,
+            Optional<Duration> txTimeout) {
         this.driverProvider = driverProvider;
         this.accessMode = accessMode;
         activeDatabaseNameAsSetByUser = ABSENT_DB_NAME;
         this.isInteractive = isInteractive;
+        this.userDirectTxConf = txConfig(TransactionType.USER_DIRECT, txTimeout);
     }
 
     @Override
@@ -148,7 +152,7 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
         if (isTransactionOpen()) {
             throw new CommandException("There is already an open transaction");
         }
-        tx = userSession.beginTransaction(USER_DIRECT_TX_CONF);
+        tx = userSession.beginTransaction(userDirectTxConf);
     }
 
     @Override
@@ -430,7 +434,7 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
 
     @Override
     public Optional<BoltResult> runUserCypher(String cypher, Map<String, Value> queryParams) throws CommandException {
-        return runCypher(cypher, queryParams, USER_DIRECT_TX_CONF);
+        return runCypher(cypher, queryParams, userDirectTxConf);
     }
 
     public Optional<BoltResult> runServiceCypher(String cypher, Map<String, Value> queryParams)
@@ -648,9 +652,14 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
     }
 
     private static TransactionConfig txConfig(TransactionType type) {
-        return TransactionConfig.builder()
-                .withMetadata(Map.of("type", type.value(), "app", "cypher-shell_v" + Build.version()))
-                .build();
+        return txConfig(type, Optional.empty());
+    }
+
+    private static TransactionConfig txConfig(TransactionType type, Optional<Duration> timeout) {
+        final var builder = TransactionConfig.builder()
+                .withMetadata(Map.of("type", type.value(), "app", "cypher-shell_v" + Build.version()));
+        timeout.ifPresent(builder::withTimeout);
+        return builder.build();
     }
 
     public LicenseDetails licenseDetails() {

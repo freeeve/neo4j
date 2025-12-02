@@ -207,6 +207,8 @@ public class CliArgHelper {
 
         cliArgs.setErrorFormat(ns.get("error-format"));
 
+        ofNullable(ns.<Duration>get("transaction-timeout")).ifPresent(cliArgs::setTransactionTimeout);
+
         return cliArgs;
     }
 
@@ -430,6 +432,12 @@ public class CliArgHelper {
                 .type(Arguments.caseInsensitiveEnumStringType(ErrorFormat.class))
                 .setDefault(ErrorFormat.DEFAULT)
                 .help("Controls how errors are displayed.");
+
+        parser.addArgument("--transaction-timeout")
+                .dest("transaction-timeout")
+                .type(new TimeoutHandler())
+                .help(
+                        "Transaction timeout. You can specify the duration using the format `<hours>h<minutes>m<seconds>s`, for example `1h` (1 hour), `1h30m` (1 hour 30 minutes), or `30m` (30 minutes).");
 
         return parser;
     }

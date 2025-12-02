@@ -26,6 +26,7 @@ import static org.neo4j.test.assertion.Assert.assertEventually;
 import static org.neo4j.test.assertion.Assert.assertNever;
 import static org.neo4j.test.assertion.Assert.awaitUntilAsserted;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -199,7 +200,7 @@ class DbInfoIntegrationTest extends TestHarness {
     void stopsAndResumesPollingCorrectly() throws Exception {
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
             var isOutputInteractive = true;
-            var boltStateHandler = new BoltStateHandler(isOutputInteractive, AccessMode.WRITE);
+            var boltStateHandler = new BoltStateHandler(isOutputInteractive, AccessMode.WRITE, Optional.empty());
             var paramService = ParameterService.create(boltStateHandler);
             var dbInfo = new TestDbInfo(paramService, boltStateHandler, true);
             var testBuilder = new TestBuilder(paramService, boltStateHandler, dbInfo, isOutputInteractive, false);

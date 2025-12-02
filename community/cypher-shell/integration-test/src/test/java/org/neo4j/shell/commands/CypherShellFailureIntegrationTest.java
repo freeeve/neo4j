@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +45,7 @@ class CypherShellFailureIntegrationTest extends CypherShellIntegrationTest {
     void setUp() {
         linePrinter.clear();
         var printer = new PrettyPrinter(new PrettyConfig(Format.VERBOSE, true, 1000, false));
-        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE);
+        var boltHandler = new BoltStateHandler(true, AccessMode.WRITE, Optional.empty());
         var parameters = mock(ParameterService.class);
         var dbInfo = mock(DbInfo.class);
         shell = new CypherShell(linePrinter, boltHandler, dbInfo, printer, parameters);

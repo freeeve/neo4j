@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 import org.assertj.core.api.Condition;
@@ -609,7 +610,7 @@ class JlineCompleterTest {
         private String serverVersion;
 
         public MockBoltStateHandler(String serverVersion) {
-            super(false, null);
+            super(false, null, Optional.empty());
             this.serverVersion = serverVersion;
         }
 
