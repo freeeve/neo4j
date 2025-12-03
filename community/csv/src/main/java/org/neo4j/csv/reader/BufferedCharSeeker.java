@@ -356,6 +356,7 @@ public class BufferedCharSeeker implements CharSeeker {
         return sourceDescription;
     }
 
+    @Override
     public long lineNumber() {
         return lineNumberOffset + lineNumber;
     }

@@ -35,6 +35,6 @@ public class IndexReaderCloseException extends UncheckedIOException {
     }
 
     public IndexReaderCloseException(String message, Throwable throwable) {
-        this(message, throwable instanceof IOException ? ((IOException) throwable) : new IOException(throwable));
+        this(message, throwable instanceof IOException ioe ? ioe : new IOException(throwable));
     }
 }

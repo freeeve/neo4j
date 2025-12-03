@@ -63,6 +63,7 @@ public class FabricTransactionInfo extends StatementLifecycleTransactionInfo {
         return accessMode;
     }
 
+    @Override
     public DatabaseReference getSessionDatabaseReference() {
         return sessionDatabaseReference;
     }

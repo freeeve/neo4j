@@ -37,7 +37,7 @@ public record Group(int id, String name, String specificIdType) {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof Group && ((Group) obj).id() == id;
+        return obj instanceof Group g && g.id() == id;
     }
 
     @Override

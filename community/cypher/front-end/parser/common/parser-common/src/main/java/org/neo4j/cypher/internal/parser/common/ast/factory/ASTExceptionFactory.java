@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.parser.common.ast.factory;
 
+import static java.lang.String.format;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -29,48 +31,36 @@ public interface ASTExceptionFactory {
     String invalidDropCommand = "Unsupported drop constraint command: Please delete the constraint by name instead";
 
     static String relationshipPatternNotAllowed(ConstraintType type) {
-        return String.format("'%s' does not allow relationship patterns", type.description());
+        return format("'%s' does not allow relationship patterns", type.description());
     }
 
     static String nodePatternNotAllowed(ConstraintType type) {
-        return String.format("'%s' does not allow node patterns", type.description());
+        return format("'%s' does not allow node patterns", type.description());
     }
 
     static String onlySinglePropertyAllowed(ConstraintType type) {
-        return String.format("Constraint type '%s' does not allow multiple properties", type.description());
+        return format("Constraint type '%s' does not allow multiple properties", type.description());
     }
 
     static String invalidDropConstraint(ConstraintType type, Boolean moreThanOneProperty) {
         String messageFormat =
                 "%s constraints cannot be dropped by schema, please drop by name instead: DROP CONSTRAINT constraint_name. The constraint name can be found using SHOW CONSTRAINTS.";
-        String message;
-        switch (type) {
-            case NODE_UNIQUE:
-                message = String.format(messageFormat, "Uniqueness");
-                break;
-            case NODE_KEY:
-                message = String.format(messageFormat, "Node key");
-                break;
-            case NODE_EXISTS:
-                if (moreThanOneProperty) {
-                    message = onlySinglePropertyAllowed(type);
-                } else {
-                    message = String.format(messageFormat, "Node property existence");
-                }
-                break;
-            case REL_EXISTS:
-                if (moreThanOneProperty) {
-                    message = onlySinglePropertyAllowed(type);
-                } else {
-                    message = String.format(messageFormat, "Relationship property existence");
-                }
-                break;
-            default:
+        return switch (type) {
+            case NODE_UNIQUE -> format(messageFormat, "Uniqueness");
+            case NODE_KEY -> format(messageFormat, "Node key");
+            case NODE_EXISTS ->
+                moreThanOneProperty
+                        ? onlySinglePropertyAllowed(type)
+                        : format(messageFormat, "Node property existence");
+            case REL_EXISTS ->
+                moreThanOneProperty
+                        ? onlySinglePropertyAllowed(type)
+                        : format(messageFormat, "Relationship property existence");
+            default ->
                 // ConstraintType.NODE_IS_NOT_NULL, ConstraintType.REL_IS_NOT_NULL,
                 // ConstraintType.REL_UNIQUE, ConstraintType.REL_KEY
-                message = invalidDropCommand;
-        }
-        return message;
+                invalidDropCommand;
+        };
     }
 
     static String invalidHintIndexType() {
@@ -78,7 +68,7 @@ public interface ASTExceptionFactory {
                 .filter(hintIndexType -> !(hintIndexType == HintIndexType.BTREE || hintIndexType == HintIndexType.ANY))
                 .map(Enum::name)
                 .collect(Collectors.collectingAndThen(Collectors.toList(), joiningLastDelimiter(", ", " or ")));
-        return String.format(
+        return format(
                 "Index type %s is no longer supported for USING index hint. Use %s instead.",
                 HintIndexType.BTREE, HINT_TYPES);
     }

@@ -45,8 +45,8 @@ public class ErrorReporter {
      */
     public void report(String message, Throwable error, Status defaultStatus) {
         Status status = defaultStatus;
-        if (error instanceof Status.HasStatus) {
-            status = ((Status.HasStatus) error).status();
+        if (error instanceof Status.HasStatus s) {
+            status = s.status();
         }
 
         if (status.code().classification() == DatabaseError) {

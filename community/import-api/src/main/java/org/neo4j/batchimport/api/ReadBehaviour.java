@@ -32,8 +32,8 @@ public interface ReadBehaviour {
 
         @Override
         public void error(Throwable e, String format, Object... parameters) {
-            if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
+            if (e instanceof RuntimeException re) {
+                throw re;
             }
             throw new RuntimeException(format(format, parameters), e);
         }

@@ -596,8 +596,8 @@ abstract class StopCompatibility extends LockCompatibilityTestSupport {
         ExecutionException executionException = null;
         for (int i = 0; i < 30; i++) {
             Exception e = assertThrows(Exception.class, lockAcquisition::result);
-            if (e instanceof ExecutionException) {
-                executionException = (ExecutionException) e;
+            if (e instanceof ExecutionException ee) {
+                executionException = ee;
                 break;
             }
         }

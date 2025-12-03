@@ -57,11 +57,15 @@ public class DataPoint {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof DataPoint)) return false;
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        DataPoint dataPoint = (DataPoint) o;
+        return Objects.equals(tags, dataPoint.tags) && Objects.equals(value, dataPoint.value);
+    }
 
-        DataPoint other = (DataPoint) o;
-        if (!Objects.equals(tags, other.tags)) return false;
-        return Objects.equals(value, other.value);
+    @Override
+    public int hashCode() {
+        return Objects.hash(tags, value);
     }
 }

@@ -247,11 +247,6 @@ public class CypherExecutionException extends Neo4jException {
 
     @Override
     public Status status() {
-        Throwable cause = getCause();
-        if (cause instanceof Status.HasStatus) {
-            return ((Status.HasStatus) cause).status();
-        } else {
-            return Status.Statement.ExecutionFailed;
-        }
+        return getCause() instanceof Status.HasStatus st ? st.status() : Status.Statement.ExecutionFailed;
     }
 }

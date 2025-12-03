@@ -106,10 +106,12 @@ public class HeapTrackingLongArrayList extends LongIterableAdapter implements Re
         return size;
     }
 
+    @Override
     public boolean isEmpty() {
         return size == 0;
     }
 
+    @Override
     public boolean notEmpty() {
         return size != 0;
     }

@@ -425,8 +425,8 @@ public class DatabaseManagementServiceFactory {
         };
         GlobalProcedures procedures = tryResolveOrCreate(
                 GlobalProcedures.class, globalModule.getExternalDependencyResolver(), procedureInitializer);
-        if (procedures instanceof Consumer) {
-            ((Consumer) procedures).accept(procedureInitializer);
+        if (procedures instanceof Consumer procedureConsumer) {
+            procedureConsumer.accept(procedureInitializer);
         }
         globalModule.getGlobalDependencies().satisfyDependency(procedures);
     }

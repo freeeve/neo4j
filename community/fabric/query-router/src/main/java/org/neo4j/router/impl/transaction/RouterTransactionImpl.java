@@ -497,14 +497,14 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
 
         // preserve the original exception if possible
         // or try to preserve  at least the original status
-        if (t instanceof Status.HasStatus) {
-            if (t instanceof RuntimeException) {
-                return (RuntimeException) t;
+        if (t instanceof Status.HasStatus s) {
+            if (t instanceof RuntimeException re) {
+                return re;
             }
             if (t instanceof ErrorGqlStatusObject gqlStatusObjectOfT) {
-                return new QueryRouterException(gqlStatusObjectOfT, ((Status.HasStatus) t).status(), message, t);
+                return new QueryRouterException(gqlStatusObjectOfT, s.status(), message, t);
             }
-            return new QueryRouterException(fallbackGqlStatusObject, ((Status.HasStatus) t).status(), message, t);
+            return new QueryRouterException(fallbackGqlStatusObject, s.status(), message, t);
         }
 
         return new QueryRouterException(fallbackGqlStatusObject, defaultStatus, message, t);

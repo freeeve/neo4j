@@ -485,6 +485,11 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         return logPruneStrategyFactory;
     }
 
+    @Override
+    public VectorStoreCreator getVectorStoreCreator() {
+        return vectorStoreCreator;
+    }
+
     private DatabaseAvailabilityGuard databaseAvailabilityGuardFactory(
             NamedDatabaseId namedDatabaseId, GlobalModule globalModule, long databaseTimeoutMillis) {
         InternalLog guardLog = databaseLogService.getInternalLog(DatabaseAvailabilityGuard.class);
@@ -503,9 +508,5 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
                 TransactionLogFilesHelper.DEFAULT_FILENAME_PREDICATE,
                 BufferingIdGeneratorFactory.PAGED_ID_BUFFER_FILE_NAME_FILTER,
                 IS_DEFAULT_TMP_SUFFIX);
-    }
-
-    public VectorStoreCreator getVectorStoreCreator() {
-        return vectorStoreCreator;
     }
 }

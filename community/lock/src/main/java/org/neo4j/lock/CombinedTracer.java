@@ -51,8 +51,8 @@ final class CombinedTracer implements LockTracer {
             return this;
         }
         LockTracer[] tracers;
-        if (tracer instanceof CombinedTracer) {
-            LockTracer[] those = ((CombinedTracer) tracer).tracers;
+        if (tracer instanceof CombinedTracer ct) {
+            LockTracer[] those = ct.tracers;
             tracers = Arrays.copyOf(this.tracers, this.tracers.length + those.length);
             System.arraycopy(those, 0, tracers, this.tracers.length, those.length);
         } else {

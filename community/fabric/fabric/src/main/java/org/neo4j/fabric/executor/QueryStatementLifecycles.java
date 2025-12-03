@@ -204,6 +204,7 @@ public class QueryStatementLifecycles {
             monitoringMode.startExecution(shouldLogIfSingleQuery);
         }
 
+        @Override
         public void endSuccess() {
             QueryExecutionMonitor monitor = getQueryExecutionMonitor();
             monitor.beforeEnd(executingQuery, true);
@@ -213,9 +214,8 @@ public class QueryStatementLifecycles {
         @Override
         public void endFailure(Throwable failure) {
             QueryExecutionMonitor monitor = getQueryExecutionMonitor();
-            Status status = (failure instanceof Status.HasStatus) ? ((Status.HasStatus) failure).status() : null;
-            ErrorGqlStatusObject errorGqlStatusObject =
-                    (failure instanceof ErrorGqlStatusObject) ? ((ErrorGqlStatusObject) failure) : null;
+            Status status = failure instanceof Status.HasStatus s ? s.status() : null;
+            ErrorGqlStatusObject errorGqlStatusObject = failure instanceof ErrorGqlStatusObject eg ? eg : null;
             monitor.beforeEnd(executingQuery, false);
             monitor.endFailure(executingQuery, failure.getMessage(), status, errorGqlStatusObject);
         }

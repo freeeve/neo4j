@@ -255,8 +255,8 @@ public class Config implements Configuration {
             if (fromConfig != null) {
                 throw new IllegalArgumentException("Can only build a config from one other config.");
             }
-            if (config instanceof DatabaseConfig) {
-                fromConfig = ((DatabaseConfig) config).asFlatternedConfig();
+            if (config instanceof DatabaseConfig dbConfig) {
+                fromConfig = dbConfig.asFlatternedConfig();
             } else {
                 fromConfig = config;
             }

@@ -571,8 +571,8 @@ public class ValueStream {
         int nano = zonedDateTime.getNano();
 
         ZoneId zone = zonedDateTime.getZone();
-        if (zone instanceof ZoneOffset) {
-            int offsetSeconds = ((ZoneOffset) zone).getTotalSeconds();
+        if (zone instanceof ZoneOffset zo) {
+            int offsetSeconds = zo.getTotalSeconds();
 
             out.put(DATE_TIME_WITH_ZONE_OFFSET);
             write(out, epochSecondLocal);

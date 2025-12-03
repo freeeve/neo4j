@@ -60,10 +60,10 @@ public class EnhancedExecutionContext extends ExecutionContext {
     }
 
     public static EnhancedExecutionContext unwrapFromExecutionContext(ExecutionContext executionContext) {
-        if (executionContext instanceof EnhancedExecutionContext) {
-            return (EnhancedExecutionContext) executionContext;
+        if (executionContext instanceof EnhancedExecutionContext eec) {
+            return eec;
         }
 
-        throw new IllegalStateException("The supplied execution context is not an enhanced execution context");
+        throw new IllegalStateException("The supplied execution context is not an enhanced execution context.");
     }
 }

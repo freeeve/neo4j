@@ -115,8 +115,8 @@ public class FabricKernelTransaction {
         var parentQuery = lifecycle.getMonitoredQuery();
         var queryExecutionConfiguration = transactionInfo.getQueryExecutionConfiguration();
 
-        if (lifecycle instanceof QueryStatementLifecycles.StatementLifecycleImpl
-                && ((QueryStatementLifecycles.StatementLifecycleImpl) lifecycle).isParentChildMonitoringMode()) {
+        if (lifecycle instanceof QueryStatementLifecycles.StatementLifecycleImpl li
+                && li.isParentChildMonitoringMode()) {
             // Cypher engine reports separately for each child query
             String queryText = "Internal query for parent query id: " + parentQuery.id();
             MapValue params = MapValue.EMPTY;
@@ -314,12 +314,12 @@ public class FabricKernelTransaction {
                 } else {
                     throw unableToTagError(value);
                 }
-            } else if (value instanceof PathValue) {
-                return toCompositeDatabaseValue((PathValue) value);
-            } else if (value instanceof ListValue) {
-                return toCompositeDatabaseValue((ListValue) value);
-            } else if (value instanceof MapValue) {
-                return toCompositeDatabaseValue((MapValue) value);
+            } else if (value instanceof PathValue pv) {
+                return toCompositeDatabaseValue(pv);
+            } else if (value instanceof ListValue lv) {
+                return toCompositeDatabaseValue(lv);
+            } else if (value instanceof MapValue mv) {
+                return toCompositeDatabaseValue(mv);
             } else {
                 return value;
             }

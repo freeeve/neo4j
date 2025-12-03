@@ -284,7 +284,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
         // We are using the knowledge that Stitcher adds this always as the last column.
         var rowIdColumn = innerFragment.outputColumns().size() - 1;
         var rowId = (IntegralValue) outputRecord.getValue(rowIdColumn);
-        var rowIdAsInt = rowId instanceof LongValue ? (int) ((LongValue) rowId).value() : rowId.intValue();
+        var rowIdAsInt = rowId instanceof LongValue lv ? (int) lv.value() : rowId.intValue();
         return inputRecords.get(rowIdAsInt).record;
     }
 

@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
 import java.util.List;
-import java.util.Objects;
 import org.junit.jupiter.api.Test;
 
 class RetainLatestUniqueValueCollectionTest {
@@ -140,12 +139,12 @@ class RetainLatestUniqueValueCollectionTest {
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(value);
+            return Integer.hashCode(value);
         }
 
         @Override
         public boolean equals(Object obj) {
-            return obj instanceof Entry that && Objects.equals(this.value, that.value);
+            return obj instanceof Entry that && this.value == that.value;
         }
     }
 }

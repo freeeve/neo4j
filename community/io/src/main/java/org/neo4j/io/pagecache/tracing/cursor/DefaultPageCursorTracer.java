@@ -608,6 +608,7 @@ public class DefaultPageCursorTracer implements PageCursorTracer {
         @Override
         public void setException(Exception e) {}
 
+        @Override
         public void addPagesMerged(int pageCount) {}
 
         @Override

@@ -24,16 +24,16 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class ExhaustiveShortestPathForbiddenException extends CypherExecutionException {
-    public static final String ERROR_MSG =
-            "Shortest path fallback has been explicitly disabled. That means that no full path enumeration is performed in\n"
-                    + "case shortest path algorithms cannot be used. This might happen in case of existential predicates on the path,\n"
-                    + "e.g., when searching for the shortest path containing a node with property 'name=Emil'. The problem is that\n"
-                    + "graph algorithms work only on universal predicates, e.g., when searching for the shortest where all nodes have\n"
-                    + "label 'Person'. In case this is an unexpected error please either disable the runtime error in the Neo4j\n"
-                    + "configuration or please improve your query by consulting the Neo4j manual.  In order to avoid planning the\n"
-                    + "shortest path fallback a WITH clause can be introduced to separate the MATCH describing the shortest paths and\n"
-                    + "the existential predicates on the path; note though that in this case all shortest paths are computed before\n"
-                    + "start filtering.";
+    public static final String ERROR_MSG = """
+                    Shortest path fallback has been explicitly disabled. That means that no full path enumeration is performed in
+                    case shortest path algorithms cannot be used. This might happen in case of existential predicates on the path,
+                    e.g., when searching for the shortest path containing a node with property 'name=Emil'. The problem is that
+                    graph algorithms work only on universal predicates, e.g., when searching for the shortest where all nodes have
+                    label 'Person'. In case this is an unexpected error please either disable the runtime error in the Neo4j
+                    configuration or please improve your query by consulting the Neo4j manual.  In order to avoid planning the
+                    shortest path fallback a WITH clause can be introduced to separate the MATCH describing the shortest paths and
+                    the existential predicates on the path; note though that in this case all shortest paths are computed before
+                    start filtering.""";
 
     private ExhaustiveShortestPathForbiddenException(ErrorGqlStatusObject gqlStatusObject) {
         super(gqlStatusObject, ERROR_MSG);

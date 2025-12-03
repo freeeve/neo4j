@@ -145,17 +145,15 @@ public enum FileOperation {
             throws IOException {
         Path file = directory.resolve(name);
         if (fs.fileExists(file)) {
-            switch (existingTargetStrategy) {
-                case FAIL:
+            return switch (existingTargetStrategy) {
+                case FAIL ->
                     throw new FileAlreadyExistsException(file.toAbsolutePath().toString());
-                case OVERWRITE:
+                case OVERWRITE -> {
                     fs.deleteFile(file);
-                    return file;
-                case SKIP:
-                    return null;
-                default:
-                    throw new IllegalStateException(existingTargetStrategy.name());
-            }
+                    yield file;
+                }
+                case SKIP -> null;
+            };
         }
         return file;
     }

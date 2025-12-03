@@ -883,28 +883,15 @@ public class RandomValues {
      */
     public Value nextTemporalValue() {
         int nextInt = generator.nextInt(6);
-        switch (nextInt) {
-            case 0:
-                return nextDateValue();
-
-            case 1:
-                return nextLocalDateTimeValue();
-
-            case 2:
-                return nextDateTimeValue();
-
-            case 3:
-                return nextLocalTimeValue();
-
-            case 4:
-                return nextTimeValue();
-
-            case 5:
-                return nextDuration();
-
-            default:
-                throw new IllegalArgumentException(nextInt + " not a valid temporal type");
-        }
+        return switch (nextInt) {
+            case 0 -> nextDateValue();
+            case 1 -> nextLocalDateTimeValue();
+            case 2 -> nextDateTimeValue();
+            case 3 -> nextLocalTimeValue();
+            case 4 -> nextTimeValue();
+            case 5 -> nextDuration();
+            default -> throw new IllegalArgumentException(nextInt + " not a valid temporal type");
+        };
     }
 
     /**
@@ -974,22 +961,13 @@ public class RandomValues {
      */
     public PointValue nextPointValue() {
         int nextInt = generator.nextInt(4);
-        switch (nextInt) {
-            case 0:
-                return nextCartesianPoint();
-
-            case 1:
-                return nextCartesian3DPoint();
-
-            case 2:
-                return nextGeographicPoint();
-
-            case 3:
-                return nextGeographic3DPoint();
-
-            default:
-                throw new IllegalStateException(nextInt + " not a valid point type");
-        }
+        return switch (nextInt) {
+            case 0 -> nextCartesianPoint();
+            case 1 -> nextCartesian3DPoint();
+            case 2 -> nextGeographicPoint();
+            case 3 -> nextGeographic3DPoint();
+            default -> throw new IllegalStateException(nextInt + " not a valid point type");
+        };
     }
 
     public CharArray nextCharArray() {
@@ -1344,22 +1322,13 @@ public class RandomValues {
      */
     public PointArray nextPointArray() {
         int nextInt = generator.nextInt(4);
-        switch (nextInt) {
-            case 0:
-                return nextCartesianPointArray();
-
-            case 1:
-                return nextCartesian3DPointArray();
-
-            case 2:
-                return nextGeographicPointArray();
-
-            case 3:
-                return nextGeographic3DPointArray();
-
-            default:
-                throw new IllegalStateException(nextInt + " not a valid point type");
-        }
+        return switch (nextInt) {
+            case 0 -> nextCartesianPointArray();
+            case 1 -> nextCartesian3DPointArray();
+            case 2 -> nextGeographicPointArray();
+            case 3 -> nextGeographic3DPointArray();
+            default -> throw new IllegalStateException(nextInt + " not a valid point type");
+        };
     }
 
     /**

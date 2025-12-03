@@ -57,8 +57,8 @@ public class BoltQueryExecutionImpl implements BoltQueryExecution {
             queryExecution.await();
         }
 
-        if (subscriber instanceof ResultSubscriber && (!isReadOnly || isExplain)) {
-            ((ResultSubscriber) subscriber).materialize(queryExecution);
+        if (subscriber instanceof ResultSubscriber rs && (!isReadOnly || isExplain)) {
+            rs.materialize(queryExecution);
         }
     }
 

@@ -235,7 +235,7 @@ public abstract class PropertySelection {
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(key);
+            return Integer.hashCode(key);
         }
     }
 
