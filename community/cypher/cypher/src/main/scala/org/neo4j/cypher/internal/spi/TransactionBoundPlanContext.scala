@@ -202,39 +202,33 @@ class TransactionBoundPlanContext(
       .flatMap(getOnlineIndex)
   }
 
-  // TODO: can we get the index by name directly?
-  //  See PLAN-3055
   override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] = Try {
-    tc.schemaRead.indexesGetAllNonLocking.asScala.flatMap { indexDescriptor =>
-      Option.when(
-        indexDescriptor.getName == indexName &&
-          indexCanBeUsed(indexDescriptor)
-      ) {
-        if (indexDescriptor.getIndexType != IndexType.VECTOR) {
-          throw InvalidArgumentException.wrongIndexType(
-            indexName,
-            IndexType.VECTOR.name().toLowerCase(Locale.ROOT),
-            indexDescriptor.getIndexType.name().toLowerCase(Locale.ROOT)
-          )
-        }
-
-        val schema = indexDescriptor.schema()
-        val tokenIds = schema.getEntityTokenIds
-        // TODO PLAN-3078: support for many tokens
-        assert(tokenIds.size == 1, s"unexpected token IDs for vector index: $indexDescriptor")
-        val tokenId = schema.getEntityTokenIds()(0)
-        val entityType = schema.entityType() match {
-          case EntityType.NODE         => IndexDescriptor.EntityType.Node(LabelId(tokenId))
-          case EntityType.RELATIONSHIP => IndexDescriptor.EntityType.Relationship(RelTypeId(tokenId))
-        }
-        val propertyIds = schema.getPropertyIds
-        // TODO PLAN-3049: support for many properties?
-        assert(propertyIds.size == 1, s"unexpected property IDs for vector index: $indexDescriptor")
-        val property = PropertyKeyId(propertyIds(0))
-        VectorIndexDescriptor(entityType, property)
-      }
-    }.nextOption()
+    val indexDescriptor = Some(tc.schemaRead.indexGetForName(indexName))
+      .filter(indexCanBeUsed)
       .getOrElse(throw VectorIndexSearchException.indexNotFound(indexName))
+
+    if (indexDescriptor.getIndexType != IndexType.VECTOR) {
+      throw InvalidArgumentException.wrongIndexType(
+        indexName,
+        IndexType.VECTOR.name().toLowerCase(Locale.ROOT),
+        indexDescriptor.getIndexType.name().toLowerCase(Locale.ROOT)
+      )
+    }
+
+    val schema = indexDescriptor.schema()
+    val tokenIds = schema.getEntityTokenIds
+    // TODO PLAN-3078: support for many tokens
+    assert(tokenIds.size == 1, s"unexpected token IDs for vector index: $indexDescriptor")
+    val tokenId = schema.getEntityTokenIds()(0)
+    val entityType = schema.entityType() match {
+      case EntityType.NODE         => IndexDescriptor.EntityType.Node(LabelId(tokenId))
+      case EntityType.RELATIONSHIP => IndexDescriptor.EntityType.Relationship(RelTypeId(tokenId))
+    }
+    val propertyIds = schema.getPropertyIds
+    // TODO PLAN-3049: support for many properties?
+    assert(propertyIds.size == 1, s"unexpected property IDs for vector index: $indexDescriptor")
+    val property = PropertyKeyId(propertyIds(0))
+    VectorIndexDescriptor(entityType, property)
   }
 
   override def propertyIndexesGetAll(): Iterator[IndexDescriptor] =
