@@ -97,7 +97,6 @@
     <test.runner.jvm.settings.dbms.factory/>
     <test.runner.jvm.settings.raft.log/>
     <test.runner.jvm.settings.query.language/>
-    <test.runner.jvm.settings.workarounds/>
     <test.runner.jvm.settings>
       ${test.runner.mockito.agent}
       -Xmx${test.vm.heap.size}
@@ -149,7 +148,6 @@
       ${test.runner.jvm.settings.dbms.factory}
       ${test.runner.jvm.settings.raft.log}
       ${test.runner.jvm.settings.query.language}
-      ${test.runner.jvm.settings.workarounds}
     </test.runner.jvm.settings>
     <default.jupiter.test.timeout>20m</default.jupiter.test.timeout>
     <default.jupiter.test.mode>same_thread</default.jupiter.test.mode>
