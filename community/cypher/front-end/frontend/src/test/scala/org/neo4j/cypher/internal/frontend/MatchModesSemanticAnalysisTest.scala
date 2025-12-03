@@ -57,8 +57,8 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   private val legacyShortestWithGpmFeaturesErrorMsg =
-    "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST'), explicit match modes " +
-      "('e.g. DIFFERENT RELATIONSHIPS') or explicit path modes ('e.g. ACYCLIC') is not allowed."
+    "Mixing shortestPath/allShortestPaths with path selectors (e.g. `ANY SHORTEST`), explicit match modes " +
+      "(e.g. `DIFFERENT RELATIONSHIPS`) or explicit path modes (e.g. `ACYCLIC`) is not allowed."
 
   test("REPEATABLE ELEMENTS (c5)") {
     // explicit match mode is not supported in Cypher 5

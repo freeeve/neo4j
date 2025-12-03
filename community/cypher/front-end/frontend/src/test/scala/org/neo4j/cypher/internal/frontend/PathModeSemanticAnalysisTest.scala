@@ -27,7 +27,8 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
 
-  private def runWithPathModes = runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), features = PathModes)
+  private def runWithPathModes(query: String = defaultQuery) =
+    runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5), features = PathModes)
 
   private def runWithoutPathModes = runWith(disabledCypherVersions = Set(CypherVersion.Cypher5))
 
@@ -52,74 +53,133 @@ class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
   private def errLegacyShortestWithPathMode(fun: String, pos: InputPosition): SemanticError =
     SemanticError(
       GqlHelper.getGql42001_42I39(fun, pos.offset, pos.line, pos.column),
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST'), " +
-        "explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') or explicit path modes ('e.g. ACYCLIC') is not allowed.",
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. `ANY SHORTEST`), " +
+        "explicit match modes (e.g. `DIFFERENT RELATIONSHIPS`) or explicit path modes (e.g. `ACYCLIC`) is not allowed.",
+      pos
+    )
+
+  // This restriction is a temporary and will be lifted by implementing PLAN-2342
+  private def errGpmShortestWithPathMode(pathMode: String, pos: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_51N26(
+        s"Using `SHORTEST` together with explicit path mode `$pathMode`",
+        s"SHORTEST with path mode `$pathMode`",
+        pos.offset,
+        pos.line,
+        pos.column
+      ),
+      s"Using `SHORTEST` together with explicit path mode `$pathMode` is not available.",
+      pos
+    )
+  }
+
+  // This restriction is a temporary and will be lifted by implementing PLAN-3015
+  private def errVarLengthWithPathMode(varLength: String, pathMode: String, pos: InputPosition): SemanticError =
+    SemanticError(
+      GqlHelper.getGql42001_51N26(
+        "Using explicit path modes on a pattern containing a variable-length relationship",
+        s"`$pathMode` on variable-length relationships",
+        pos.offset,
+        pos.line,
+        pos.column
+      ),
+      s"Using a variable-length relationship such as `$varLength` together with explicit path mode `$pathMode` is not available.",
       pos
     )
 
   test("MATCH WALK (a)-->(b) RETURN *") {
-    runWithPathModes.hasNoErrors
+    runWithPathModes().hasNoErrors
     runWithoutPathModes.hasErrorMessages(errFeatureFlagDisabled)
   }
 
   test("MATCH TRAIL (a)-->(b) RETURN *") {
-    runWithPathModes.hasNoErrors
+    runWithPathModes().hasNoErrors
     runWithoutPathModes.hasErrorMessages(errFeatureFlagDisabled)
   }
 
   test("MATCH ACYCLIC (a)-->(b) RETURN *") {
-    runWithPathModes.hasNoErrors
+    runWithPathModes().hasNoErrors
     runWithoutPathModes.hasErrorMessages(errFeatureFlagDisabled)
   }
 
   test("MATCH REPEATABLE ELEMENTS (a)-->(b) RETURN *") {
-    runWithPathModes.hasNoErrors
+    runWithPathModes().hasNoErrors
     runWithoutPathModes.hasNoErrors
   }
 
   test("MATCH REPEATABLE ELEMENTS WALK (a)-->(b) RETURN *") {
-    runWithPathModes.hasNoErrors
+    runWithPathModes().hasNoErrors
     runWithoutPathModes.hasErrorMessages(errFeatureFlagDisabled)
   }
 
   test("MATCH REPEATABLE ELEMENTS TRAIL (a)-->(b) RETURN *") {
-    runWithPathModes.hasErrors(errMatchModePathModeUnsupported("TRAIL", p(26, 1, 27)))
+    runWithPathModes().hasErrors(errMatchModePathModeUnsupported("TRAIL", p(26, 1, 27)))
   }
 
   test("MATCH REPEATABLE ELEMENTS ACYCLIC (a)-->(b) RETURN *") {
-    runWithPathModes.hasErrors(errMatchModePathModeUnsupported("ACYCLIC", p(26, 1, 27)))
+    runWithPathModes().hasErrors(errMatchModePathModeUnsupported("ACYCLIC", p(26, 1, 27)))
   }
 
   test("MATCH p = ACYCLIC (s {i: 1})-->+(s), q = ACYCLIC (s)-->+({i: 3}) RETURN p, q") {
-    runWithPathModes.hasNoErrors
+    runWithPathModes().hasNoErrors
   }
 
   test("MATCH p = ACYCLIC (s {i: 1})-->+(s), q = TRAIL (s)-->+({i: 3}) RETURN p, q") {
-    runWithPathModes
+    runWithPathModes()
       .hasErrors(errPathModeMixUnsupported(Set("ACYCLIC", "TRAIL"), p(6, 1, 7)))
   }
 
   test("MATCH p = ACYCLIC (s {i: 1})-->+(s), q = (s)-->+({i: 3}) RETURN p, q") {
-    runWithPathModes.hasErrors(errPathModeMixUnsupported(Set("ACYCLIC", "WALK"), p(6, 1, 7)))
+    runWithPathModes().hasErrors(errPathModeMixUnsupported(Set("ACYCLIC", "WALK"), p(6, 1, 7)))
   }
 
   test("MATCH REPEATABLE ELEMENTS p = WALK (s {i: 1})-->{,100}(s), q = (s)-->{,1}({i: 3}) RETURN p, q") {
-    runWithPathModes.hasNoErrors
+    runWithPathModes().hasNoErrors
   }
 
-  test("MATCH p = WALK allShortestPaths((s {i: 1})-[*1..100]->(t)) RETURN p") {
-    runWithPathModes.hasErrors(errLegacyShortestWithPathMode("allShortestPaths", p(15, 1, 16)))
-  }
+  val explicitPathModes = Seq(
+    "WALK",
+    "TRAIL",
+    "ACYCLIC"
+  )
 
-  test("MATCH p = ACYCLIC shortestPath((s {i: 1})-[*1..100]->(t)) RETURN p") {
-    runWithPathModes.hasErrors(errLegacyShortestWithPathMode("shortestPath", p(18, 1, 19)))
+  test("should fail on legacy shortestPath with explicit path modes") {
+    explicitPathModes.foreach { pathMode =>
+      val modeLength = pathMode.length
+      val query =
+        s"""MATCH p = $pathMode allShortestPaths((s {i: 1})-[*1..100]->(t))
+           |RETURN p""".stripMargin
+      withClue(query) {
+        runWithPathModes(query).hasErrors(
+          errVarLengthWithPathMode("-[*1..100]->", pathMode, p(38 + modeLength, 1, 39 + modeLength)),
+          errLegacyShortestWithPathMode("allShortestPaths", p(11 + modeLength, 1, 12 + modeLength))
+        )
+      }
+    }
   }
 
   test("MATCH p = allShortestPaths((s {i: 1})-[*1..100]->(t)) RETURN p") {
-    runWithPathModes.hasNoErrors
+    runWithPathModes().hasNoErrors
   }
 
   test("MATCH p = ACYCLIC (s {i: 1})-->+(s) MATCH q = allShortestPaths((s {i: 1})-[*1..100]->(t)) RETURN p, q") {
-    runWithPathModes.hasNoErrors
+    runWithPathModes().hasNoErrors
+  }
+
+  // Temporary restriction
+  test("doesn't allow mixing gpm shortest with explicit path modes") {
+    runWithPathModes("MATCH SHORTEST 25 ACYCLIC PATH GROUPS (n)-->(m) RETURN *").hasErrors(errGpmShortestWithPathMode(
+      "ACYCLIC",
+      p(6, 1, 7)
+    ))
+  }
+
+  // Temporary restriction
+  test("doesn't allow mixing var-length with explicit path modes") {
+    runWithPathModes("MATCH ACYCLIC (n)-[*]->(m) RETURN *").hasErrors(errVarLengthWithPathMode(
+      "-[*]->",
+      "ACYCLIC",
+      p(17, 1, 18)
+    ))
   }
 }

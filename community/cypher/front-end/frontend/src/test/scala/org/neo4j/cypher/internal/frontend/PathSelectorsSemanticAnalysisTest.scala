@@ -210,8 +210,8 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
   // Mixing selective selectors with shortestPath/allShortestPaths is not allowed
   allSelectiveSelectors.foreach { selector =>
     val errorNoLegacyShortestWithMatchOrPathMode =
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST'), " +
-        "explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') or explicit path modes ('e.g. ACYCLIC') is not allowed."
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. `ANY SHORTEST`), " +
+        "explicit match modes (e.g. `DIFFERENT RELATIONSHIPS`) or explicit path modes (e.g. `ACYCLIC`) is not allowed."
 
     test(s"MATCH $selector shortestPath((a)-->(b)) RETURN *") {
       run().hasError(

@@ -1074,7 +1074,11 @@ case class Match(
 
   private def checkPathModes: SemanticCheck =
     whenState(_.features.contains(PathModes))(
-      thenBranch = checkMatchModePathModeCompatibility chain checkNoPathModeMixing,
+      thenBranch =
+        checkMatchModePathModeCompatibility chain
+          checkNoPathModeMixing chain
+          checkNoPathModeVarLength chain
+          checkNoPathModeGpmShortest,
       elseBranch = checkPathModeFeatureNotUsed
     )
 
@@ -1100,6 +1104,35 @@ case class Match(
     when(pathModes.size > 1) {
       SemanticCheck.error(SemanticError.unsupportedPathModeMixing(pathModes, pattern.position))
     }
+  }
+
+  private def checkNoPathModeVarLength: SemanticCheck = {
+    val errors =
+      pattern.patternParts.flatMap {
+        case PrefixedPatternPart(_, pathMode, part) if !pathMode.implicitlyCreated =>
+          part.folder.treeFind[RelationshipPattern] {
+            case r: RelationshipPattern => !r.isSingleLength
+          }.map { relPattern =>
+            SemanticError.unsupportedPathModeWithVarLength(
+              patternStringifier(relPattern),
+              pathMode.prettified,
+              relPattern.position
+            )
+          }
+        case _ => None
+      }
+
+    SemanticCheck.error(errors)
+  }
+
+  private def checkNoPathModeGpmShortest: SemanticCheck = {
+    val errors =
+      pattern.patternParts.collect {
+        case PrefixedPatternPart(selector, pathMode, _) if !pathMode.implicitlyCreated && selector.isSelective =>
+          SemanticError.unsupportedPathModeWithGpmShortest(pathMode.prettified, selector.position)
+      }
+
+    SemanticCheck.error(errors)
   }
 
   private def checkPathModeFeatureNotUsed =

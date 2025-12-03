@@ -1736,8 +1736,8 @@ object SemanticError {
     val gql = GqlHelper.getGql42001_42I39(fun, position.offset, position.line, position.column)
     SemanticError(
       gql,
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST'), " +
-        "explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') or explicit path modes ('e.g. ACYCLIC') is not allowed.",
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. `ANY SHORTEST`), " +
+        "explicit match modes (e.g. `DIFFERENT RELATIONSHIPS`) or explicit path modes (e.g. `ACYCLIC`) is not allowed.",
       position
     )
   }
@@ -1782,6 +1782,40 @@ object SemanticError {
     SemanticError(
       gql,
       s"Mixing path modes ${pathModes.mkString(", ")} in the same graph pattern is not supported.",
+      position
+    )
+  }
+
+  def unsupportedPathModeWithVarLength(
+    varLengthRel: String,
+    pathMode: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql42001_51N26(
+      s"Using explicit path modes on a pattern containing a variable-length relationship",
+      s"`$pathMode` on variable-length relationships",
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(
+      gql,
+      s"Using a variable-length relationship such as `$varLengthRel` together with explicit path mode `$pathMode` is not available.",
+      position
+    )
+  }
+
+  def unsupportedPathModeWithGpmShortest(pathMode: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_51N26(
+      s"Using `SHORTEST` together with explicit path mode `$pathMode`",
+      s"SHORTEST with path mode `$pathMode`",
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(
+      gql,
+      s"Using `SHORTEST` together with explicit path mode `$pathMode` is not available.",
       position
     )
   }
