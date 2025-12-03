@@ -38,7 +38,8 @@ case object VectorSimilarityCosine extends Function {
         "Returns a `FLOAT` representing the similarity between the argument vectors based on their cosine.",
       category = Category.VECTOR,
       argumentDescriptions =
-        Map("a" -> "A list representing the first vector.", "b" -> "A list representing the second vector.")
+        Map("a" -> "A list representing the first vector.", "b" -> "A list representing the second vector."),
+      scopes = Set(CypherVersion.Cypher5)
     ),
     FunctionTypeSignature(
       function = this,
@@ -56,8 +57,7 @@ case object VectorSimilarityCosine extends Function {
           "a" -> "A vector or list value representing the first vector.",
           "b" -> "A vector or list value representing the second vector."
         ),
-      scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType") // Consider to scope the signature above to Cypher 5 when this is removed
+      scopes = Set(CypherVersion.Cypher25)
     )
   )
 }

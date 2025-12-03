@@ -33,8 +33,7 @@ case object VectorDimensionCount extends Function {
       description = "Returns the dimension of a `VECTOR`.",
       category = Category.VECTOR,
       argumentDescriptions = Map("input" -> "The vector to calculate the dimension of."),
-      scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType")
+      scopes = Set(CypherVersion.Cypher25)
     )
   )
 }

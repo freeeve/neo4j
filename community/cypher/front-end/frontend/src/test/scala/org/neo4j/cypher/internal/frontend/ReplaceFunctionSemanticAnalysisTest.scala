@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.GqlHelper
 
@@ -79,7 +78,7 @@ class ReplaceFunctionSemanticAnalysisTest extends CypherFunSuite with NameBasedS
 
   // Limit must be an integer
   test("RETURN replace(\"hello\", \"l\", \"w\", 1.0)") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasError(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql22G03_22N27(
         "FLOAT",
         "argument at index 3 of function replace()",

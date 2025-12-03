@@ -1820,15 +1820,6 @@ object SemanticError {
     )
   }
 
-  def vectorTypeNotSupported(item: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_51N26(item, "Vector types", position.offset, position.line, position.column)
-    SemanticError(
-      gql,
-      "The vector type is not supported.",
-      position
-    )
-  }
-
   def invalidImportingWithKeyword(keyword: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42I28(keyword, position.offset, position.line, position.column)
     SemanticError(

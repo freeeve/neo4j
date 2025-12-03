@@ -4369,8 +4369,7 @@
     "isDeprecated": false,
     "deprecatedBy": null,
     "cypherVersionScope": [
-      5,
-      25
+      5
     ]
   },
   {
@@ -5176,8 +5175,7 @@
     "isDeprecated": false,
     "deprecatedBy": null,
     "cypherVersionScope": [
-      5,
-      25
+      5
     ]
   },
   {
@@ -5303,8 +5301,7 @@
     "isDeprecated": false,
     "deprecatedBy": null,
     "cypherVersionScope": [
-      5,
-      25
+      5
     ]
   },
   {
@@ -5785,8 +5782,7 @@
     "isDeprecated": false,
     "deprecatedBy": null,
     "cypherVersionScope": [
-      5,
-      25
+      5
     ]
   },
   {
@@ -5860,8 +5856,7 @@
     "isDeprecated": false,
     "deprecatedBy": null,
     "cypherVersionScope": [
-      5,
-      25
+      5
     ]
   },
   {

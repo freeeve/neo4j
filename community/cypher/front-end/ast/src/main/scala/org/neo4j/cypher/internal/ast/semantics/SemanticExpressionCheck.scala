@@ -392,12 +392,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           specifyType(CTBoolean, x)
 
       case x: VectorValueConstructor =>
-        whenState(
-          !_.features.contains(SemanticFeature.VectorType)
-        ) {
-          error(SemanticError.vectorTypeNotSupported("The vector value constructor", x.position))
-        } chain
-          check(ctx, x.arguments) chain
+        check(ctx, x.arguments) chain
           CypherTypeName(x.typeName).semanticCheck chain
           expectType(
             CTInteger.covariant,

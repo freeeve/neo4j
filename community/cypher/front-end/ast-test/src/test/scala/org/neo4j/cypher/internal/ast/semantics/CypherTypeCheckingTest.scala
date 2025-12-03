@@ -60,8 +60,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
   private val pos4 = InputPosition(37, 8, 9)
   private val pos5 = InputPosition(42, 11, 14)
 
-  private val initialStateNoVectorFeatureFlag = SemanticState.clean.withFeature(SemanticFeature.GraphTypes)
-  private val initialState = SemanticState.clean.withFeatures(SemanticFeature.VectorType, SemanticFeature.GraphTypes)
+  private val initialState = SemanticState.clean.withFeatures(SemanticFeature.GraphTypes)
 
   // Dependent constraints allow non-nullable types (including non-nullable lists).
   // Otherwise, the rules are the same for all sort of property type constraints.
@@ -280,15 +279,6 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
         )
       }
 
-      test(s"vector should not be valid for property type constraint without feature flag - $constraintType") {
-        val constraintCommand = nodePropertyTypeConstraint(
-          constraintType,
-          VectorType(Some(Float32Type(isNullable = false)(pos1)), Some(4), isNullable = true)(pos2),
-          pos3
-        )
-        assertVectorFeatureFlagError(constraintCommand, pos2)
-      }
-
       // List types
 
       test(
@@ -476,21 +466,6 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           "The dimension of property type constraints for vectors needs to be between 1 and 4096.",
           pos5
         )
-      }
-
-      test(
-        s"union with vector should not be valid for property type constraint without feature flag - $constraintType"
-      ) {
-        val constraintCommand = nodePropertyTypeConstraint(
-          constraintType,
-          ClosedDynamicUnionType(Set(
-            ListType(IntegerType(isNullable = false)(pos1), isNullable = true)(pos2),
-            VectorType(Some(IntegerType(isNullable = false)(pos3)), Some(42), isNullable = true)(pos4)
-          ))(pos5),
-          pos1
-        )
-
-        assertVectorFeatureFlagError(constraintCommand, pos4)
       }
 
       test(s"union with none valid type should not be valid for property type constraint - $constraintType") {
@@ -715,28 +690,6 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
             .build(),
           s"Failed to create $constraintDescr: Invalid property type `$cypherType`. " +
             additionalErrorInfo,
-          position
-        )
-      ).errors
-  }
-
-  private def assertVectorFeatureFlagError(
-    constraintCommand: SchemaCommand,
-    position: InputPosition
-  ): Unit = {
-    constraintCommand.semanticCheck.run(
-      initialStateNoVectorFeatureFlag,
-      arbitrarySemanticContext()
-    ).errors shouldBe SemanticCheckResult
-      .error(
-        initialStateNoVectorFeatureFlag,
-        FeatureError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N26)
-            .withParam(GqlParams.StringParam.item, "Property type constraints for vectors")
-            .withParam(GqlParams.StringParam.feat, "new vector type")
-            .build(),
-          "Property type constraints for vectors is not available in this implementation of Cypher due to lack of support for new vector type.",
-          SemanticFeature.VectorType,
           position
         )
       ).errors

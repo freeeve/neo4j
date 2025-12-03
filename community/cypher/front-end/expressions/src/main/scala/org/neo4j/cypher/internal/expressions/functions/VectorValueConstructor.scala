@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 
-// Remove internal annotation when the feature flag is removed.
 // This is just a dummy function so that the signature turns up in SHOW FUNCTIONS
 // In reality, the parser will pick it up and a VectorValueConstructor Expression is created.
 case object VectorValueConstructor extends Function {
@@ -52,8 +51,7 @@ case object VectorValueConstructor extends Function {
         "dimension" -> "The dimension (number of coordinates) of the vector.",
         "coordinateType" -> "The type of each coordinate in the vector."
       ),
-      scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType")
+      scopes = Set(CypherVersion.Cypher25)
     )
   )
 }

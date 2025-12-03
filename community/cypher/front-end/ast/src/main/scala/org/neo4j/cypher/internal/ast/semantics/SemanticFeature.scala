@@ -73,10 +73,6 @@ object SemanticFeature {
     override def name: String = "Property value access rules on relationships"
   }
 
-  case object VectorType extends SemanticFeature with FeatureToString {
-    override def name: String = "new vector type"
-  }
-
   case object VectorSingleStageFilteringEnabled extends SemanticFeature with FeatureToString {
     override def name: String = "vector single stage filtering"
   }
@@ -127,7 +123,6 @@ object SemanticFeature {
     GraphTypes,
     ExperimentalCypherVersions,
     RelationshipPropertyValueAccessRules,
-    VectorType,
     VectorSingleStageFilteringEnabled,
     VectorSearch,
     LocalCallables,

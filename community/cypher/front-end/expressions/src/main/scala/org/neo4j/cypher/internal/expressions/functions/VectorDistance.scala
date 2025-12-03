@@ -22,7 +22,6 @@ import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTVector
 
-// Remove internal annotation when the feature flag is removed.
 case object VectorDistance extends Function {
   override def name = "vector_distance"
 
@@ -46,8 +45,7 @@ case object VectorDistance extends Function {
         "vector2" -> "The second vector.",
         "vectorDistanceMetric" -> "The vector distance algorithm to calculate the distance by."
       ),
-      scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType")
+      scopes = Set(CypherVersion.Cypher25)
     )
   )
 }

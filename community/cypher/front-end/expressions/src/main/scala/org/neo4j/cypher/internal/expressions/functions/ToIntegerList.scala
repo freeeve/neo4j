@@ -37,7 +37,8 @@ case object ToIntegerList extends Function {
       description =
         "Converts a `LIST<ANY>` to a `LIST<INTEGER>` values. If any values are not convertible to `INTEGER` they will be null in the `LIST<INTEGER>` returned.",
       category = Category.LIST,
-      argumentDescriptions = Map("input" -> "A list of values to be converted into a list of integers.")
+      argumentDescriptions = Map("input" -> "A list of values to be converted into a list of integers."),
+      scopes = Set(CypherVersion.Cypher5)
     ),
     FunctionTypeSignature(
       this,
@@ -48,8 +49,7 @@ case object ToIntegerList extends Function {
         "Converts a `LIST<ANY> | VECTOR` to a `LIST<INTEGER>` values. If any values are not convertible to `INTEGER` they will be null in the `LIST<INTEGER>` returned.",
       category = Category.LIST,
       argumentDescriptions = Map("input" -> "A list of values or vector to be converted into a list of integers."),
-      scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType") // Consider to scope the signature above to Cypher 5 when this is removed
+      scopes = Set(CypherVersion.Cypher25)
     )
   )
 }

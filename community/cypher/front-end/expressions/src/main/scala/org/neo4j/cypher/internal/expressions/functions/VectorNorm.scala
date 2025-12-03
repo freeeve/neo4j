@@ -22,7 +22,6 @@ import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTVector
 
-// Remove internal annotation when the feature flag is removed.
 case object VectorNorm extends Function {
   override def name = "vector_norm"
 
@@ -45,8 +44,7 @@ case object VectorNorm extends Function {
         "vector" -> "A vector for which the norm to the origin vector will be computed.",
         "vectorDistanceMetric" -> "The vector distance algorithm to calculate the distance by."
       ),
-      scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType")
+      scopes = Set(CypherVersion.Cypher25)
     )
   )
 }

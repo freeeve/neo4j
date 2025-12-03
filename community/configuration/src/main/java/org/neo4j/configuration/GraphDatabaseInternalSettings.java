@@ -377,11 +377,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.cypher.enable_non_fused_merge", BOOL, true).build();
 
     @Internal
-    @Description("Set this to enable the use of the new Vector Type.")
-    public static final Setting<Boolean> cypher_enable_vector_type =
-            newBuilder("internal.cypher.enable_vector_type", BOOL, true).build();
-
-    @Internal
     @Description("Set this to enable the use of local callables.")
     public static final Setting<Boolean> cypher_enable_local_callables =
             newBuilder("internal.cypher.enable_local_callables", BOOL, false).build();

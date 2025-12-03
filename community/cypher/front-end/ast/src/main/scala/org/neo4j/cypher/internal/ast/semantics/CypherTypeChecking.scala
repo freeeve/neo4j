@@ -98,26 +98,6 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
     ListType(PointType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE)
   ) ++ allowedPropertyTypes
 
-  private def checkVectorFeatureFlag(propertyType: CypherType): SemanticCheck = {
-    val maybeVector: Option[CypherType] = propertyType match {
-      case v: VectorType => Some(v)
-      // LIST<VECTOR> is not supported anyway, but we want different errors depending on if the feature flag is on
-      case ListType(v: VectorType, _) => Some(v)
-      case c: ClosedDynamicUnionType  => c.sortedInnerTypes.find(v => v.isInstanceOf[VectorType])
-      case _                          => None
-    }
-
-    if (maybeVector.isDefined) {
-      requireFeatureSupport(
-        "Property type constraints for vectors",
-        SemanticFeature.VectorType,
-        maybeVector.get.position
-      )
-    } else {
-      SemanticCheck.success
-    }
-  }
-
   def checkPropertyTypeForConstraint(
     originalPropertyType: CypherType,
     normalizedPropertyType: CypherType,
@@ -232,14 +212,13 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
 
     // We want run the semantic checks for the types themselves, but the error messages might not make sense in this context
     // There isn't much point telling users to make all their union types NOT NULL if that is not accepted here.
-    checkVectorFeatureFlag(normalizedPropertyType) chain
-      CypherTypeName(originalPropertyType).semanticCheck.map {
-        case r @ SemanticCheckResult(_, Nil) => r
-        case SemanticCheckResult(state, _) => SemanticCheckResult(
-            state,
-            Seq(errorFn(originalPropertyType, "", None))
-          )
-      } chain allowedTypesCheck
+    CypherTypeName(originalPropertyType).semanticCheck.map {
+      case r @ SemanticCheckResult(_, Nil) => r
+      case SemanticCheckResult(state, _) => SemanticCheckResult(
+          state,
+          Seq(errorFn(originalPropertyType, "", None))
+        )
+    } chain allowedTypesCheck
   }
 
   private def checkVectorAllowed(vectorType: VectorType): Boolean = {

@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.QueryCache.CacheKey
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
@@ -498,15 +497,8 @@ abstract class ExecutionEngine(
   }
 
   def getCypherFunctions: java.util.List[FunctionInformation] = {
-    val informations: Seq[FunctionInformation] = {
-      if (config.vectorTypeEnabled) {
-        org.neo4j.cypher.internal.expressions.functions.Function.functionInfoWithFeatureFlags(
-          Set(SemanticFeature.VectorType.productPrefix)
-        ).map(FunctionWithInformation)
-      } else {
-        org.neo4j.cypher.internal.expressions.functions.Function.functionInfo.map(FunctionWithInformation)
-      }
-    }
+    val informations: Seq[FunctionInformation] =
+      org.neo4j.cypher.internal.expressions.functions.Function.functionInfo.map(FunctionWithInformation)
 
     val predicateInformations: Seq[FunctionInformation] =
       org.neo4j.cypher.internal.expressions.IterablePredicateExpression.functionInfo.map(FunctionWithInformation)

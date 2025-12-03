@@ -56,10 +56,6 @@ import org.neo4j.cypher.internal.expressions.functions.Tail
 import org.neo4j.cypher.internal.expressions.functions.ToBoolean
 import org.neo4j.cypher.internal.expressions.functions.ToString
 import org.neo4j.cypher.internal.expressions.functions.UnresolvedFunction
-import org.neo4j.cypher.internal.expressions.functions.VectorDimensionCount
-import org.neo4j.cypher.internal.expressions.functions.VectorDistance
-import org.neo4j.cypher.internal.expressions.functions.VectorNorm
-import org.neo4j.cypher.internal.expressions.functions.VectorValueConstructor
 import org.neo4j.cypher.internal.expressions.functions.WithinBBox
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
@@ -122,29 +118,15 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
             }
           )
 
-        case f: Function => whenState(
-            !_.features.contains(SemanticFeature.VectorType) && isVectorFunction(f)
-          ) {
-            error(SemanticError.vectorTypeNotSupported("Vector functions.", invocation.position))
+        case _: Function =>
+          when(invocation.distinct) {
+            error(SemanticError.invalidDistinct(invocation.functionName.name, invocation.position))
           } chain
-            when(invocation.distinct) {
-              error(SemanticError.invalidDistinct(invocation.functionName.name, invocation.position))
-            } chain
             SemanticExpressionCheck.check(ctx, invocation.arguments) chain
             semanticCheck(ctx, invocation)
       }
     })
   }
-
-  // Remove once the feature flag for vectors is removed :)
-  private def isVectorFunction(function: Function): Boolean =
-    function match {
-      case VectorNorm             => true
-      case VectorValueConstructor => true
-      case VectorDistance         => true
-      case VectorDimensionCount   => true
-      case _                      => false
-    }
 
   private def checkNoNestedAggregateFunctions(invocation: FunctionInvocation): SemanticCheck =
     invocation.args.collectFirst {

@@ -20,7 +20,6 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorType
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuite.Pipeline
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
@@ -37,9 +36,9 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
 
   private val pipelineWithAstRewriting: Pipeline =
     PreparatoryRewriting andThen
-      SemanticAnalysis(warn = Some(true), VectorType, VectorSearch) andThen
+      SemanticAnalysis(warn = Some(true), VectorSearch) andThen
       AstRewriting() andThen
-      SemanticAnalysis(warn = Some(false), VectorType, VectorSearch) andThen
+      SemanticAnalysis(warn = Some(false), VectorSearch) andThen
       SemanticTypeCheck
 
   private def runSearchWithRewriter(): AnalysisAssertions = {
@@ -47,7 +46,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
   }
 
   private def runSearch(): AnalysisAssertions =
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType, VectorSearch)
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorSearch)
 
   for {
     (maybeOptional, optionalLength) <- Seq(("", 0), ("OPTIONAL ", 9))

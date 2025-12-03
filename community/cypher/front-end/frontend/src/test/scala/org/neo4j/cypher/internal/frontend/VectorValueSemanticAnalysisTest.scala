@@ -19,28 +19,18 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.GqlHelper
 
 class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAnalysisTestSuite {
 
-  test("RETURN VECTOR([1, 2, 3], 3, INTEGER64)") {
-    // running without semantic feature should fail
-    run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
-      GqlHelper.getGql42001_51N26("The vector value constructor", "Vector types", 7, 1, 8),
-      "The vector type is not supported.",
-      p(7, 1, 8)
-    )
-  }
-
   test("RETURN VECTOR([1, 2, 3, 4], 4, INTEGER64)") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   // Failing cases for invalid dimensions
   test("RETURN VECTOR([1, 2, 3], -1, INTEGER64)") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "dimension",
         "NUMBER",
@@ -54,7 +44,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN VECTOR([1, 2, 3], 5000, INTEGER64)") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError.specifiedNumberOutOfRange(
         "dimension",
         "NUMBER",
@@ -69,7 +59,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
 
   // Failing cases for invalid type (note the 3rd argument is checked in parser tests)
   test("RETURN VECTOR(1, 3, INTEGER64)") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasError(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql22G03_22N27(
         "INTEGER",
         "argument at index 0 of function vector()",
@@ -84,7 +74,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN VECTOR([\"1\"], 1, INTEGER64)") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql22G03_22N27(
           "LIST<STRING>",
@@ -101,7 +91,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN VECTOR([1], \"1\", INTEGER64)") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql22G03_22N27(
           "STRING",
@@ -119,7 +109,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
 
   // Vector types should not work with operators
   test("RETURN VECTOR([1, 2, 3], 3, INTEGER)[0]") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("LIST"),
@@ -135,7 +125,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN VECTOR([1, 2, 3], 3, INTEGER)[0..2]") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("LIST"),
@@ -151,7 +141,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN last(VECTOR([1, 2, 3], 3, INTEGER))") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("LIST"),
@@ -167,7 +157,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN head(VECTOR([1, 2, 3], 3, INTEGER))") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("LIST"),
@@ -183,7 +173,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN 4 + VECTOR([1, 2, 3], 3, INTEGER)") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("FLOAT", "INTEGER", "STRING", "LIST"),
@@ -199,7 +189,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN VECTOR([1, 2, 3], 3, INTEGER) + 4") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("LIST"),
@@ -215,7 +205,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN VECTOR([1, 2, 3], 3, INTEGER) || [4]") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("STRING", "LIST"),
@@ -231,7 +221,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN 5 IN VECTOR([1, 2, 3], 3, INTEGER)") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("LIST"),
@@ -247,7 +237,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN [ c IN VECTOR([1, 2, 3], 3, INTEGER) | c * -1 ]") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("LIST"),
@@ -274,7 +264,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   test("RETURN sqrt(reduce( norm = 0.0, c IN VECTOR([1, 2, 3], 3, INTEGER) | norm + (c^2) ))") {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorType).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("LIST"),

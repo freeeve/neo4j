@@ -37,7 +37,8 @@ case object Size extends Function {
       outputType = CTInteger,
       description = "Returns the number of items in a `LIST<ANY>` or the number of Unicode characters in a `STRING`.",
       category = Category.SCALAR,
-      argumentDescriptions = Map("input" -> "A value whose length is to be calculated.")
+      argumentDescriptions = Map("input" -> "A value whose length is to be calculated."),
+      scopes = Set(CypherVersion.Cypher5)
     ),
     FunctionTypeSignature(
       this,
@@ -48,8 +49,7 @@ case object Size extends Function {
         "Returns the number of items in a `LIST<ANY>`, the number of Unicode characters in a `STRING` or the dimension of a `VECTOR`.",
       category = Category.SCALAR,
       argumentDescriptions = Map("input" -> "A value whose length is to be calculated."),
-      scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType") // Consider to scope the signature above to Cypher 5 when this is removed
+      scopes = Set(CypherVersion.Cypher25)
     )
   )
 }

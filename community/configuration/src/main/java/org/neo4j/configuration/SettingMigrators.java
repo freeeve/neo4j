@@ -255,7 +255,8 @@ public final class SettingMigrators {
                 "dbms.tx_state.memory_allocation",
                 "dbms.tx_state.max_off_heap_memory",
                 "unsupported.dbms.index.population_print_debug",
-                "internal.dbms.index.population_print_debug");
+                "internal.dbms.index.population_print_debug",
+                "internal.cypher.enable_vector_type");
 
         private static final Collection<Mapping> LEGACY_UNSUPPORTED_SETTINGS_MAPPING = List.of(
                 new Mapping("dbms.capabilities.blocked", "internal.dbms.capabilities.blocked"),
