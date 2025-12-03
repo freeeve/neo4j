@@ -185,14 +185,18 @@ class InteractionAssertion {
     static void assertEqualInteraction(String actual, String expected) {
         final var cleanedActual = cleanActual(actual).collect(Collectors.joining(System.lineSeparator()));
         final var cleanedExpected = cleanExpected(expected).collect(Collectors.joining(System.lineSeparator()));
-        if (!compareWithRegex(cleanedActual, cleanedExpected)) {
-            String message =
-                    "Actual interaction was not equal to expected. Hint: expect has debug options you might want to consider"
-                            + System.lineSeparator()
-                            + debugString(cleanedActual, "Actual Interaction Cleaned")
-                            + debugString(cleanedExpected, "Expected Interaction Cleaned")
-                            + debugString(actual, "Actual Interaction")
-                            + debugString(expected, "Expected Interaction");
+        final var mismatchLine = mismatchLine(cleanedActual, cleanedExpected);
+        if (mismatchLine >= 0) {
+            String message = "Actual interaction was not equal to expected."
+                    + System.lineSeparator()
+                    + "Mismatch at line: " + mismatchLine
+                    + System.lineSeparator()
+                    + "Hint: expect has debug options you might want to consider"
+                    + System.lineSeparator()
+                    + debugString(cleanedActual, "Actual Interaction Cleaned")
+                    + debugString(cleanedExpected, "Expected Interaction Cleaned")
+                    + debugString(actual, "Actual Interaction")
+                    + debugString(expected, "Expected Interaction");
             fail(message);
         }
     }
@@ -264,17 +268,18 @@ class InteractionAssertion {
 
     // Compares strings with regex placeholders, e.g., ${regex:\d+}.
     @VisibleForTesting
-    public static boolean compareWithRegex(String actual, String expected) {
-        if (actual.equals(expected)) return true;
+    public static int mismatchLine(String actual, String expected) {
+        if (actual.equals(expected)) return -1;
 
         final var actualLines = actual.lines().toList();
         final var expectedLines = expected.lines().toList();
 
-        if (actualLines.size() != expectedLines.size()) return false;
         for (int i = 0; i < actualLines.size(); ++i) {
-            if (!compareSingleLine(actualLines.get(i), expectedLines.get(i))) return false;
+            if (i >= expectedLines.size()) return i;
+            if (!compareSingleLine(actualLines.get(i), expectedLines.get(i))) return i;
         }
-        return true;
+        if (expectedLines.size() != actualLines.size()) return actualLines.size();
+        return -1;
     }
 
     // Compares single lines with regex placeholders, e.g., ${regex:\d+}.

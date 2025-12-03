@@ -144,11 +144,10 @@ public class AnsiPrinter implements Printer {
                 && !ERROR_50N42.equals(driverException.gqlStatus())) {
             boolean first = true;
             for (final var gqlError : collectGqlExceptions(driverException)) {
-                if (!first) msg.append("  ");
+                if (!first) msg.append(lineSeparator()).append("  ");
                 msg.append(gqlError.gqlStatus())
                         .append(": ")
-                        .append(trimStatusDesc(formatStatusDescriptionWithPositionQueryAndOffset(gqlError, query)))
-                        .append(lineSeparator());
+                        .append(trimStatusDesc(formatStatusDescriptionWithPositionQueryAndOffset(gqlError, query)));
                 first = false;
             }
         } else if (errorFormat == ErrorFormat.STACKTRACE) {

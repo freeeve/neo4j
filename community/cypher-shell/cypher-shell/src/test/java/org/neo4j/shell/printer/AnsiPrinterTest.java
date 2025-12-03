@@ -144,7 +144,7 @@ class AnsiPrinterTest {
                 new Neo4jException(
                         "42XXX", "status descr", "code", "message", Map.of(), new NullPointerException("yahoo")),
                 Optional.empty());
-        assertThat(actual).isEqualToNormalizingNewlines("\u001B[91m42XXX: status descr\n\u001B[m");
+        assertThat(actual).isEqualToNormalizingNewlines("\u001B[91m42XXX: status descr\u001B[m");
     }
 
     @Test
@@ -154,8 +154,7 @@ class AnsiPrinterTest {
                         "42XXX", "status descr", "code", "message", Map.of(), new NullPointerException("yahoo")),
                 Optional.of("my query"));
         assertThat(actual).isEqualToNormalizingNewlines("""
-        \u001B[91m42XXX: status descr
-        \u001B[m""");
+        \u001B[91m42XXX: status descr\u001B[m""");
     }
 
     @Test
@@ -178,8 +177,7 @@ class AnsiPrinterTest {
                         new NullPointerException("yahoo")),
                 Optional.empty());
         assertThat(actual).isEqualToNormalizingNewlines("""
-                \u001B[91m42XXX: status descr
-                \u001B[m""");
+                \u001B[91m42XXX: status descr\u001B[m""");
     }
 
     @Test
@@ -204,8 +202,7 @@ class AnsiPrinterTest {
         assertThat(actual).isEqualToNormalizingNewlines("""
                 \u001B[91m42XXX: status descr (line 1, column 4 (offset: 3))
                 "my query"
-                    ^
-                \u001B[m""");
+                    ^\u001B[m""");
     }
 
     @Test

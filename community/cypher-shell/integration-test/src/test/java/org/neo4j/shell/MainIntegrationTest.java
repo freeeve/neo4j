@@ -1655,7 +1655,6 @@ class MainIntegrationTest extends TestHarness {
             expected = """
                     42N08: syntax error or access rule violation - no such procedure. The procedure dibs() was not found. Verify that the spelling is correct.
                       42001: syntax error or access rule violation - invalid syntax
-
                     """;
         } else {
             expected = """
@@ -1683,7 +1682,6 @@ class MainIntegrationTest extends TestHarness {
                     " RETURN m"
                              ^
                       42001: syntax error or access rule violation - invalid syntax
-
                     """;
         } else {
             expected = """
@@ -1727,7 +1725,6 @@ class MainIntegrationTest extends TestHarness {
             expected = """
                     42N08: syntax error or access rule violation - no such procedure. The procedure dibs() was not found. Verify that the spelling is correct.
                       42001: syntax error or access rule violation - invalid syntax
-
                     """;
         } else {
             expected = """
