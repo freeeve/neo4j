@@ -86,6 +86,27 @@
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>analyze</id>
+                        <goals>
+                            <goal>analyze-only</goal>
+                        </goals>
+                        <!-- inherit parent config -->
+                        <configuration>
+                            <failOnWarning>${dependency.analyze.failOnWarning}</failOnWarning>
+                            <ignoredUsedUndeclaredDependencies combine.self="override">
+                                <!-- Override parent POM to NOT ignore org.neo4j:* and com.neo4j:* -->
+                                <!-- This ensures cypher modules maintain proper dependency declarations -->
+                                <ignoredUsedUndeclaredDependency>org.apiguardian:apiguardian-api</ignoredUsedUndeclaredDependency>
+                            </ignoredUsedUndeclaredDependencies>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

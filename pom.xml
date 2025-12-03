@@ -949,6 +949,8 @@
               </ignoredUnusedDeclaredDependencies>
               <ignoredUsedUndeclaredDependencies>
                 <ignoredUsedUndeclaredDependency>org.apiguardian:apiguardian-api</ignoredUsedUndeclaredDependency>
+                <ignoredUsedUndeclaredDependency>org.neo4j:*</ignoredUsedUndeclaredDependency>
+                <ignoredUsedUndeclaredDependency>com.neo4j:*</ignoredUsedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredNonTestScopedDependencies>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-gql-status</ignoredUnusedDeclaredDependency>
