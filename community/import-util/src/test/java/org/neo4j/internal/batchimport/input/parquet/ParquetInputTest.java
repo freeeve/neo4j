@@ -2732,7 +2732,7 @@ class ParquetInputTest {
 
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
-            assertNextNode(nodes, 1L, properties("prop", new int[] {1, 23}), labels());
+            assertNextNode(nodes, 1L, properties("prop", Values.intArray(new int[] {1, 23})), labels());
             assertFalse(readNext(nodes));
         }
     }
@@ -2782,7 +2782,10 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, emptyMap(), labels());
             assertNextNode(
-                    nodes, 2L, properties("sprop", new String[] {"a", "b"}, "lprop", new long[] {10, 20}), labels());
+                    nodes,
+                    2L,
+                    properties("sprop", Values.stringArray("a", "b"), "lprop", Values.longArray(new long[] {10, 20})),
+                    labels());
             assertFalse(readNext(nodes));
         }
     }
@@ -3281,7 +3284,10 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, emptyMap(), labels());
             assertNextNode(
-                    nodes, 2L, properties("sprop", new String[] {"a", "b"}, "lprop", new long[] {10, 20}), labels());
+                    nodes,
+                    2L,
+                    properties("sprop", Values.stringArray("a", "b"), "lprop", Values.longArray(new long[] {10, 20})),
+                    labels());
             assertFalse(readNext(nodes));
         }
     }

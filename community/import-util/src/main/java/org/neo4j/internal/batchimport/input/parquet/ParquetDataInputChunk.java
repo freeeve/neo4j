@@ -40,6 +40,7 @@ import org.neo4j.exceptions.TemporalParseException;
 import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.InputException;
+import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
 import org.neo4j.values.storable.DurationValue;
@@ -223,12 +224,8 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             // for now there is only support for String-based arrays
             if (parquetColumn.isArray() && !(object instanceof List)) {
                 String[] parts = object.toString().split(arrayDelimiter);
-                Object[] values = new Object[parts.length];
                 ParquetColumn nonArrayType = parquetColumn.withoutArray();
-                for (int i = 0; i < parts.length; i++) {
-                    values[i] = convertType(parts[i], nonArrayType);
-                }
-                return values;
+                return toArrayValue(parts, nonArrayType);
             } else if (parquetColumn.columnType() == ParquetColumnType.VECTOR) {
                 return convertVectorType(object, parquetColumn);
             } else if (object instanceof List) {
@@ -287,6 +284,19 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                             .formatted(object.toString(), parquetColumn.columnType(), e.getMessage()),
                     e);
         }
+    }
+
+    private ArrayValue toArrayValue(String[] parts, ParquetColumn nonArrayType) {
+        if (parts.length == 0) {
+            return null;
+        }
+        var probeConversion = convertType(parts[0], nonArrayType).getClass();
+        // we need to have typed arrays in here
+        Object[] values = (Object[]) java.lang.reflect.Array.newInstance(probeConversion, parts.length);
+        for (int i = 0; i < parts.length; i++) {
+            values[i] = convertType(parts[i], nonArrayType);
+        }
+        return Values.arrayValue(values, true);
     }
 
     private VectorValue convertVectorType(Object object, ParquetColumn parquetColumn) {
