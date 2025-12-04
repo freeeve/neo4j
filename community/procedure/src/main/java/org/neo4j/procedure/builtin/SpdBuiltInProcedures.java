@@ -42,6 +42,11 @@ public interface SpdBuiltInProcedures {
         }
 
         @Override
+        public String virtualSpdName() {
+            throw unsupported();
+        }
+
+        @Override
         public Stream<NodePropertySchemaInfoResult> nodePropertySchema(KernelTransaction kernelTransaction) {
             throw unsupported();
         }
@@ -80,6 +85,8 @@ public interface SpdBuiltInProcedures {
     boolean isSpd();
 
     boolean isGraphShard();
+
+    String virtualSpdName();
 
     Stream<NodePropertySchemaInfoResult> nodePropertySchema(KernelTransaction kernelTransaction);
 
