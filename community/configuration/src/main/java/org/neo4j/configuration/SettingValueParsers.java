@@ -760,6 +760,31 @@ public final class SettingValueParsers {
         }
     };
 
+    public static final SettingValueParser<String> DATABASE_NAME_PATTERN = new SettingValueParser<>() {
+        @Override
+        public String parse(String name) {
+            validate(name);
+            return name;
+        }
+
+        @Override
+        public void validate(String value) {
+            DatabaseNameValidator.validateDatabaseNamePattern(value);
+        }
+
+        @Override
+        public String getDescription() {
+            return "a valid database name pattern containing only alphabetic characters, numbers, dots, question marks, asterisk and dashes "
+                    + "with a length between " + 1 + " and "
+                    + DatabaseNameValidator.MAXIMUM_DATABASE_NAME_LENGTH + " characters.";
+        }
+
+        @Override
+        public Class<String> getType() {
+            return String.class;
+        }
+    };
+
     public static final SettingValueParser<GlobbingPattern> GLOBBING_PATTERN = new SettingValueParser<>() {
         @Override
         public GlobbingPattern parse(String value) {
