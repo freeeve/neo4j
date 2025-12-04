@@ -47,6 +47,7 @@ import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -60,6 +61,7 @@ import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Types;
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.Condition;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -2505,6 +2507,60 @@ class ParquetInputTest {
     }
 
     @Test
+    void shouldCorrectlyReferenceStartAndEndIdFromGroups() throws Exception {
+        var startGroupName = "StartGroup";
+        var endGroupName = "EndGroup";
+        Path relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32)
+                                .named(":START_ID(%s)".formatted(startGroupName)),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":TYPE"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32)
+                                .named(":END_ID(%s)".formatted(endGroupName))),
+                List.of(new Object[] {123, "TYPE", 234}, new Object[] {345, "TYPE", 456}));
+        Path nodeFile1 = createParquetFile(
+                List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32)
+                        .named(":ID(%s)".formatted(startGroupName))),
+                List.<Object[]>of(new Object[] {123}, new Object[] {345}));
+        Path nodeFile2 = createParquetFile(
+                List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID(%s)".formatted(endGroupName))),
+                List.<Object[]>of(new Object[] {234}, new Object[] {456}));
+        Input input = createParquetInput(
+                Map.of(
+                        Set.of("STARTTHING"),
+                        List.<Path[]>of(new Path[] {nodeFile1}),
+                        Set.of("ENDTHING"),
+                        List.<Path[]>of(new Path[] {nodeFile2})),
+                Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                INTEGER,
+                groups,
+                MONITOR);
+        var nodesFromIterator = new ArrayList<VisitedNode>();
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertTrue(readNext(nodes));
+            nodesFromIterator.add(VisitedNode.from(visitor));
+            assertTrue(readNext(nodes));
+            nodesFromIterator.add(VisitedNode.from(visitor));
+            assertTrue(readNext(nodes));
+            nodesFromIterator.add(VisitedNode.from(visitor));
+            assertTrue(readNext(nodes));
+            nodesFromIterator.add(VisitedNode.from(visitor));
+            assertFalse(readNext(nodes));
+        }
+        assertNextVisitedNode(nodesFromIterator, 234L, groups.get(endGroupName), Set.of("ENDTHING"));
+        assertNextVisitedNode(nodesFromIterator, 456L, groups.get(endGroupName), Set.of("ENDTHING"));
+        assertNextVisitedNode(nodesFromIterator, 123L, groups.get(startGroupName), Set.of("STARTTHING"));
+        assertNextVisitedNode(nodesFromIterator, 345L, groups.get(startGroupName), Set.of("STARTTHING"));
+        try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
+            assertRelationship(relationships, startGroupName, 123L, endGroupName, 234L, "TYPE", properties());
+            assertRelationship(relationships, startGroupName, 345L, endGroupName, 456L, "TYPE", properties());
+            assertFalse(readNext(relationships));
+        }
+    }
+
+    @Test
     void shouldCorrectlyAssignCombinedIdsFromNodesToRelationships() throws Exception {
         var groupName = "aGroup";
         Path relationshipFile = createParquetFile(
@@ -4029,6 +4085,26 @@ class ParquetInputTest {
         assertEquals(endNode, visitor.endId());
         assertEquals(type, visitor.stringType);
         assertPropertiesEquals(properties, visitor.propertiesAsMap());
+    }
+
+    private record VisitedNode(Object id, String groupName, List<String> labels) {
+        private static VisitedNode from(InputEntity inputEntity) {
+            return new VisitedNode(
+                    inputEntity.id(),
+                    inputEntity.idGroup.name(),
+                    Arrays.stream(inputEntity.labels()).toList());
+        }
+    }
+
+    private void assertNextVisitedNode(List<VisitedNode> visitedNode, Object id, Group group, Set<String> labels) {
+        assertThat(visitedNode).haveAtLeastOne(new Condition<>() {
+            @Override
+            public boolean matches(VisitedNode value) {
+                return id.equals(value.id())
+                        && group.name().equals(value.groupName())
+                        && labels.containsAll(value.labels());
+            }
+        });
     }
 
     private void assertNextNode(InputIterator data, Object id, Map<String, Object> properties, Set<String> labels)
