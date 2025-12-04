@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.LessThan
 import org.neo4j.cypher.internal.expressions.Modulo
 import org.neo4j.cypher.internal.expressions.Multiply
+import org.neo4j.cypher.internal.expressions.NotEquals
 import org.neo4j.cypher.internal.expressions.NumberLiteral
 import org.neo4j.cypher.internal.expressions.Pow
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
@@ -38,6 +39,7 @@ import org.neo4j.cypher.internal.expressions.Subtract
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.expressions.UnaryAdd
 import org.neo4j.cypher.internal.expressions.UnarySubtract
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactory
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -49,7 +51,7 @@ import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 
 case object FoldConstants extends StepSequencer.Step with DefaultPostCondition with ASTRewriterFactory {
-  override def preConditions: Set[StepSequencer.Condition] = Set()
+  override def preConditions: Set[StepSequencer.Condition] = Set(ContainsNoNodesOfType[NotEquals]())
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
 

@@ -17,15 +17,27 @@
 package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FoldConstants
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeNotEquals
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.helpers.fixedPoint
+import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class FoldConstantsTest extends CypherFunSuite with RewriteTest {
   val exceptionFactory = Neo4jCypherExceptionFactory(null, None)
-  val rewriterUnderTest: Rewriter = fixedPoint(CancellationChecker.neverCancelled())(FoldConstants.instance)
+
+  val rewriterUnderTest: Rewriter = fixedPoint(CancellationChecker.neverCancelled())(
+    inSequence(
+      NormalizeNotEquals.instance,
+      FoldConstants.instance
+    )
+  )
+
+  test("FoldConstants depends on NormalizeNotEquals") {
+    NormalizeNotEquals.postConditions.subsetOf(FoldConstants.preConditions) shouldBe true
+  }
 
   test("solve literal expressions") {
     assertRewrite("RETURN 1+1 AS r", "RETURN 2 AS r")
@@ -56,6 +68,24 @@ class FoldConstantsTest extends CypherFunSuite with RewriteTest {
     assertRewrite("MATCH (n) WHERE 1.2=1 RETURN n AS r", "MATCH (n) WHERE false RETURN n AS r")
     assertRewrite("MATCH (n) WHERE 1+(5*4)/(3*4)=2 RETURN n AS r", "MATCH (n) WHERE true RETURN n AS r")
     assertIsNotRewritten("MATCH (n) WHERE 1=null RETURN n AS r")
+  }
+
+  test("solves not equals comparisons between literals") {
+    assertRewrite("MATCH (n) WHERE 1<>1 RETURN n AS r", "MATCH (n) WHERE NOT true RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1<>8 RETURN n AS r", "MATCH (n) WHERE NOT false RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1.2<>1.2 RETURN n AS r", "MATCH (n) WHERE NOT true RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1.0<>1.0 RETURN n AS r", "MATCH (n) WHERE NOT true RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1.0<>8.0 RETURN n AS r", "MATCH (n) WHERE NOT false RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1<>1.0 RETURN n AS r", "MATCH (n) WHERE NOT true RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1<>8.0 RETURN n AS r", "MATCH (n) WHERE NOT false RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1<>1.2 RETURN n AS r", "MATCH (n) WHERE NOT false RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1.0<>1 RETURN n AS r", "MATCH (n) WHERE NOT true RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1.0<>8 RETURN n AS r", "MATCH (n) WHERE NOT false RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1.2<>1 RETURN n AS r", "MATCH (n) WHERE NOT false RETURN n AS r")
+    assertRewrite("MATCH (n) WHERE 1+(5*4)/(3*4)<>2 RETURN n AS r", "MATCH (n) WHERE NOT true RETURN n AS r")
+
+    // preserves null
+    assertRewrite("MATCH (n) WHERE 1<>null RETURN n AS r", "MATCH (n) WHERE NOT (1=null) RETURN n AS r")
   }
 
   test("solve greater than comparisons between literals") {
