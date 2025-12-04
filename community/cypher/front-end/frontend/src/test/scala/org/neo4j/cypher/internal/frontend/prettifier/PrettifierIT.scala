@@ -108,6 +108,16 @@ class PrettifierIT extends AbstractPrettifierTest {
         |  )""".stripMargin
     ),
     FailsInCypher5(
+      "MATCH (n) search n IN (vECToR InDEX iDx For $vector WHeRe n.pRop > 54 LIMiT 2)",
+      """MATCH (n)
+        |  SEARCH n IN (
+        |    VECTOR INDEX iDx
+        |    FOR $vector
+        |    WHERE n.pRop > 54
+        |    LIMIT 2
+        |  )""".stripMargin
+    ),
+    FailsInCypher5(
       "MATCH ()-[r]->() SEARCH r in (vECToR InDEX `iD x` For n.`$pRop` LIMiT 2) SCORE AS `sCore `",
       """MATCH ()-[r]->()
         |  SEARCH r IN (

@@ -1618,8 +1618,9 @@ class AstGenerator(
     score <- option(_variable)
     indexName <- _nameAsEither
     expr <- _expression
+    where <- option(_where)
     limit <- _limit
-  } yield Search(variable, score, indexName, expr, limit)(pos)
+  } yield Search(variable, score, indexName, expr, where, limit)(pos)
 
   def _with: Gen[With] = for {
     distinct <- boolean

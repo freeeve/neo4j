@@ -118,7 +118,7 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         match_(
           patternAst,
-          search = Some(search(variable, Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+          search = Some(search(variable, Some("score"), Left("indexName"), prop("m", "embedding"), 5L))
         ),
         searchPos
       )
@@ -137,7 +137,232 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         match_(
           patternAst,
-          search = Some(search(variable, None, Left("moviePlots"), prop(varFor("movie"), "vector"), 3L))
+          search = Some(search(variable, None, Left("moviePlots"), prop("movie", "vector"), 3L))
+        ),
+        searchPos
+      )
+    }
+
+    // With single-stage filtering
+    test(
+      s"""MATCH $pattern
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE $variable.prop > 42
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(greaterThan(prop(variable, "prop"), literalInt(42L))))
+          ))
+        ),
+        searchPos
+      )
+    }
+
+    // With single-stage filtering with wrong variable - this should parse but will fail in semantic checking
+    test(
+      s"""MATCH $pattern
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE m.prop <= 42
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(lessThanOrEqual(prop("m", "prop"), literalInt(42L))))
+          ))
+        ),
+        searchPos
+      )
+    }
+
+    // With single-stage filtering with wrong type of predicate - this should parse but will fail in semantic checking
+    test(
+      s"""MATCH $pattern
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE true
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(trueLiteral))
+          ))
+        ),
+        searchPos
+      )
+    }
+
+    // With single-stage filtering with wrong type of RHS - this should parse but will fail in semantic checking
+    test(
+      s"""MATCH $pattern
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE $variable.prop > [1, 2, 3]
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(greaterThan(prop(variable, "prop"), listOfInt(1L, 2L, 3L))))
+          ))
+        ),
+        searchPos
+      )
+    }
+
+    // With single-stage filtering with dependent RHS - this should parse but will fail in semantic checking
+    test(
+      s"""MATCH $pattern
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE $variable.prop1 > $variable.prop2
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(greaterThan(prop(variable, "prop1"), prop(variable, "prop2"))))
+          ))
+        ),
+        searchPos
+      )
+    }
+
+    // With single-stage filtering with OR, NOT and <> - this should parse but will fail in semantic checking
+    test(
+      s"""MATCH $pattern
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE NOT $variable.prop1 < m.prop OR $variable.prop2 <> 'abc'
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(or(
+              not(lessThan(prop(variable, "prop1"), prop("m", "prop"))),
+              notEquals(prop(variable, "prop2"), literalString("abc"))
+            )))
+          ))
+        ),
+        searchPos
+      )
+    }
+
+    // With single-stage filtering with valid AND predicate
+    test(
+      s"""MATCH $pattern
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE $variable.prop1 >= $$value AND $variable.prop2 <= date('2025-11-21')
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(and(
+              greaterThanOrEqual(prop(variable, "prop1"), parameter("value", CTAny)),
+              lessThanOrEqual(prop(variable, "prop2"), function("date", literalString("2025-11-21")))
+            )))
+          ))
+        ),
+        searchPos
+      )
+    }
+
+    // With single-stage filtering with invalid AND predicate - this should parse but will fail in semantic checking
+    test(
+      s"""MATCH $pattern
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE $variable.prop > 7 AND $variable.prop < 5
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(and(
+              greaterThan(prop(variable, "prop"), literalInt(7L)),
+              lessThan(prop(variable, "prop"), literalInt(5L))
+            )))
+          ))
         ),
         searchPos
       )
@@ -156,7 +381,7 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         match_(
           patternAst,
-          search = Some(search(variable, Some(variable), Left(variable), prop(varFor(variable), variable), 5L))
+          search = Some(search(variable, Some(variable), Left(variable), prop(variable, variable), 5L))
         ),
         searchPos
       )
@@ -175,7 +400,7 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         match_(
           patternAst,
-          search = Some(search(variable, Some("score"), Left("null"), prop(varFor("m"), "embedding"), 5L))
+          search = Some(search(variable, Some("score"), Left("null"), prop("m", "embedding"), 5L))
         ),
         searchPos
       )
@@ -199,7 +424,7 @@ class SearchParserTest extends AstParsingTestBase {
               variable,
               Some("score"),
               Right(parameter("param", CTString)),
-              prop(varFor("m"), "embedding"),
+              prop("m", "embedding"),
               5L
             ))
         ),
@@ -321,7 +546,7 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         optionalMatch(
           patternAst,
-          search = Some(search(variable, Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+          search = Some(search(variable, Some("score"), Left("indexName"), prop("m", "embedding"), 5L))
         ),
         InputPosition(searchPos.offset + 9, 2, 3)
       )
@@ -340,7 +565,7 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         match_(
           patternAst,
-          search = Some(search(variable, Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 0L))
+          search = Some(search(variable, Some("score"), Left("indexName"), prop("m", "embedding"), 0L))
         ),
         searchPos
       )
@@ -359,7 +584,7 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         match_(
           patternAst,
-          search = Some(search(variable, Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), -1L))
+          search = Some(search(variable, Some("score"), Left("indexName"), prop("m", "embedding"), -1L))
         ),
         searchPos
       )
@@ -382,7 +607,8 @@ class SearchParserTest extends AstParsingTestBase {
             varFor(variable),
             Some(varFor("score")),
             Left("indexName"),
-            prop(varFor("m"), "embedding"),
+            prop("m", "embedding"),
+            None,
             Limit(nullLiteral)(pos)
           )(pos))
         ),
@@ -403,7 +629,7 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         match_(
           patternAst,
-          search = Some(search("x", Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+          search = Some(search("x", Some("score"), Left("indexName"), prop("m", "embedding"), 5L))
         ),
         searchPos
       )
@@ -422,7 +648,7 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         match_(
           patternAst,
-          search = Some(search("NULL", Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+          search = Some(search("NULL", Some("score"), Left("indexName"), prop("m", "embedding"), 5L))
         ),
         searchPos
       )
@@ -441,7 +667,7 @@ class SearchParserTest extends AstParsingTestBase {
       parsesValidSearch[Clause](
         match_(
           patternAst,
-          search = Some(search(variable, Some("null"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+          search = Some(search(variable, Some("null"), Left("indexName"), prop("m", "embedding"), 5L))
         ),
         searchPos
       )
@@ -462,7 +688,36 @@ class SearchParserTest extends AstParsingTestBase {
         match_(
           patternAst,
           where = Some(where(propGreaterThan(variable, "released", 2000))),
-          search = Some(search(variable, Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+          search = Some(search(variable, Some("score"), Left("indexName"), prop("m", "embedding"), 5L))
+        ),
+        InputPosition(searchPos.offset + 26, 3, searchPos.column)
+      )
+    }
+
+    // MATCH with WHERE followed by SEARCH and single stage filtering
+    test(
+      s"""MATCH $pattern
+         |  WHERE $variable.released > 2000
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE $variable.imdbRating = 8.5
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          where = Some(where(propGreaterThan(variable, "released", 2000))),
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(equals(prop(variable, "imdbRating"), literalFloat(8.5))))
+          ))
         ),
         InputPosition(searchPos.offset + 26, 3, searchPos.column)
       )
@@ -483,7 +738,39 @@ class SearchParserTest extends AstParsingTestBase {
         match_(
           patternAst,
           where = Some(where(propGreaterThan(variable, "released", 2000))),
-          search = Some(search(variable, Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+          search = Some(search(variable, Some("score"), Left("indexName"), prop("m", "embedding"), 5L))
+        ),
+        searchPos
+      )
+    }
+
+    // MATCH with SEARCH followed by WHERE and single-stage filtering
+    test(
+      s"""MATCH $pattern
+         |  SEARCH $variable IN (
+         |    VECTOR INDEX indexName
+         |    FOR m.embedding
+         |    WHERE $variable.imdbRating > 8 AND $variable.imdbRating < 9
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |  WHERE $variable.released > 2000
+         |""".stripMargin
+    ) {
+      parsesValidSearch[Clause](
+        match_(
+          patternAst,
+          where = Some(where(propGreaterThan(variable, "released", 2000))),
+          search = Some(search(
+            variable,
+            Some("score"),
+            Left("indexName"),
+            prop("m", "embedding"),
+            5L,
+            Some(where(and(
+              greaterThan(prop(variable, "imdbRating"), literalInt(8L)),
+              lessThan(prop(variable, "imdbRating"), literalInt(9L))
+            )))
+          ))
         ),
         searchPos
       )
@@ -506,7 +793,7 @@ class SearchParserTest extends AstParsingTestBase {
         singleQuery(
           match_(
             patternAst,
-            search = Some(search(variable, Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+            search = Some(search(variable, Some("score"), Left("indexName"), prop("m", "embedding"), 5L))
           )
         )
       )(InputPosition(16, 2, 7), None, None)
@@ -537,7 +824,7 @@ class SearchParserTest extends AstParsingTestBase {
         singleQuery(
           match_(
             patternAst,
-            search = Some(search(variable, Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+            search = Some(search(variable, Some("score"), Left("indexName"), prop("m", "embedding"), 5L))
           )
         )
       )(InputPosition(16, 2, 7), None, None)
@@ -569,7 +856,7 @@ class SearchParserTest extends AstParsingTestBase {
         singleQuery(
           match_(
             patternAst,
-            search = Some(search(variable, Some("score"), Left("indexName"), prop(varFor("m"), "embedding"), 5L))
+            search = Some(search(variable, Some("score"), Left("indexName"), prop("m", "embedding"), 5L))
           ),
           return_(variableReturnItem(variable))
         )
@@ -700,7 +987,7 @@ class SearchParserTest extends AstParsingTestBase {
     parsesValidSearch[Clause](
       match_(
         nodePat(Some("n"), Some(labelLeaf("Movie")), Some(mapOf("title" -> literalString("Matrix, The")))),
-        search = Some(search("n", Some("score"), Left("moviePlots"), prop(varFor("m"), "embedding"), 5L))
+        search = Some(search("n", Some("score"), Left("moviePlots"), prop("m", "embedding"), 5L))
       ),
       InputPosition(41, 2, 3)
     )
@@ -723,7 +1010,7 @@ class SearchParserTest extends AstParsingTestBase {
           relPat(Some("r"), Some(labelRelTypeLeaf("REL")), properties = Some(mapOf("prop" -> literalInt(42)))),
           nodePat()
         ),
-        search = Some(search("r", Some("score"), Left("moviePlots"), prop(varFor("m"), "embedding"), 5L))
+        search = Some(search("r", Some("score"), Left("moviePlots"), prop("m", "embedding"), 5L))
       ),
       InputPosition(34, 2, 3)
     )
@@ -746,7 +1033,7 @@ class SearchParserTest extends AstParsingTestBase {
           relPat(Some("r")),
           nodePat()
         ),
-        search = Some(search("r", Some("score"), Left("moviePlots"), prop(varFor("m"), "embedding"), 5L))
+        search = Some(search("r", Some("score"), Left("moviePlots"), prop("m", "embedding"), 5L))
       ),
       InputPosition(20, 2, 3)
     )
@@ -769,7 +1056,7 @@ class SearchParserTest extends AstParsingTestBase {
           relPat(),
           nodePat(None, Some(labelLeaf("Actor")))
         ),
-        search = Some(search("n", Some("score"), Left("moviePlots"), prop(varFor("m"), "embedding"), 5L))
+        search = Some(search("n", Some("score"), Left("moviePlots"), prop("m", "embedding"), 5L))
       ),
       InputPosition(23, 2, 3)
     )
@@ -800,7 +1087,7 @@ class SearchParserTest extends AstParsingTestBase {
           )
         ))(pos),
         where = None,
-        search = Some(search("n", Some("score"), Left("moviePlots"), prop(varFor("m"), "embedding"), 5L)),
+        search = Some(search("n", Some("score"), Left("moviePlots"), prop("m", "embedding"), 5L)),
         hints = Seq.empty
       )(pos),
       InputPosition(50, 2, 3)

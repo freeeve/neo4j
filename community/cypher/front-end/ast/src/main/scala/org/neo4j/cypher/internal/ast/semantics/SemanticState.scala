@@ -145,6 +145,11 @@ final case class ExpressionTypeInfo private (specified: TypeSpec, expected: Opti
       .map(specified intersectOrCoerce _)
       .getOrElse(specified)
 
+  lazy val actualNoCoercion: TypeSpec =
+    expected
+      .map(specified intersect _)
+      .getOrElse(specified)
+
   def expect(types: TypeSpec): ExpressionTypeInfo = ExpressionTypeInfo(specified, Some(types))
 
   def rewrite(f: CypherType => CypherType): ExpressionTypeInfo =
@@ -572,10 +577,11 @@ case class SemanticState(
         Right(copy(typeTable = typeTable.updated(expression, ExpressionTypeInfo(possibleTypes))))
     }
 
-  def expectType(expression: Expression, possibleTypes: TypeSpec): (SemanticState, TypeSpec) = {
+  def expectType(expression: Expression, possibleTypes: TypeSpec, coercion: Boolean): (SemanticState, TypeSpec) = {
     val expType = expressionType(expression)
     val updated = expType.expect(possibleTypes)
-    (copy(typeTable = typeTable.updated(expression, updated)), updated.actual)
+    val actualUpdated = if (coercion) updated.actual else updated.actualNoCoercion
+    (copy(typeTable = typeTable.updated(expression, updated)), actualUpdated)
   }
 
   def withFeatures(features: SemanticFeature*): SemanticState =

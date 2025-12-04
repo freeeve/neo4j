@@ -23,7 +23,9 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.util.DummyPosition
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTNumber
@@ -131,13 +133,13 @@ class SemanticStateTest extends CypherFunSuite with AstConstructionTestSupport {
     val expression = DummyExpression(CTInteger | CTString | CTMap)
     val state = SemanticState.clean.specifyType(expression, expression.possibleTypes).getOrElse(fail())
 
-    state.expectType(expression, CTNumber.covariant) match {
+    state.expectType(expression, CTNumber.covariant, coercion = true) match {
       case (s, typ) =>
         typ should equal(CTInteger: TypeSpec)
         s.expressionType(expression).actual should equal(typ)
     }
 
-    state.expectType(expression, CTNode.covariant | CTNumber.covariant) match {
+    state.expectType(expression, CTNode.covariant | CTNumber.covariant, coercion = true) match {
       case (s, typ) =>
         typ should equal(CTInteger: TypeSpec)
         s.expressionType(expression).actual should equal(typ)
@@ -267,9 +269,17 @@ class SemanticStateTest extends CypherFunSuite with AstConstructionTestSupport {
     s2.expressionType(exp1).specified should equal(CTNode: TypeSpec)
     s2.expressionType(exp2).specified should equal(CTRelationship: TypeSpec)
 
-    val s3 = s2.expectType(exp1, CTMap)._1.expectType(exp2, CTAny)._1
+    val s3 = s2.expectType(exp1, CTMap, coercion = true)._1.expectType(exp2, CTAny, coercion = true)._1
     s3.expressionType(exp1).expected should equal(Some(CTMap: TypeSpec))
     s3.expressionType(exp2).expected should equal(Some(CTAny: TypeSpec))
+  }
+
+  test("list should be coercible to boolean") {
+    val exp = listOfInt(1, 2)
+    val s1 = SemanticState.clean.specifyType(exp, CTList(CTInteger)).getOrElse(fail())
+
+    s1.expectType(exp, CTBoolean, coercion = true)._2 should equal(CTBoolean: TypeSpec)
+    s1.expectType(exp, CTBoolean, coercion = false)._2 should equal(TypeSpec(Seq()))
   }
 
   test("should gracefully update a variable") {

@@ -20,11 +20,13 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuite.Pipeline
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
+import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.rewriteEqualityToInPredicate
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
@@ -36,9 +38,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
 
   private val pipelineWithAstRewriting: Pipeline =
     PreparatoryRewriting andThen
-      SemanticAnalysis(warn = Some(true), VectorSearch) andThen
+      SemanticAnalysis(warn = Some(true), VectorSearch, VectorSingleStageFilteringEnabled) andThen
       AstRewriting() andThen
-      SemanticAnalysis(warn = Some(false), VectorSearch) andThen
+      rewriteEqualityToInPredicate andThen
+      SemanticAnalysis(warn = Some(false), VectorSearch, VectorSingleStageFilteringEnabled) andThen
       SemanticTypeCheck
 
   private def runSearchWithRewriter(): AnalysisAssertions = {
@@ -46,7 +49,11 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
   }
 
   private def runSearch(): AnalysisAssertions =
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VectorSearch)
+    runWith(
+      disabledCypherVersions = Set(CypherVersion.Cypher5),
+      VectorSearch,
+      VectorSingleStageFilteringEnabled
+    )
 
   for {
     (maybeOptional, optionalLength) <- Seq(("", 0), ("OPTIONAL ", 9))
@@ -496,6 +503,418 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |""".stripMargin
     ) {
       runSearch().hasNoErrors
+    }
+
+    // Tests for single-stage filtering - Rule 0 from CIP-240
+
+    test(
+      s"""${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE true
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I73("true", 97 + optionalLength, 5, 11),
+          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'true' does not fulfill this.",
+          p(97 + optionalLength, 5, 11).withInputLength(4)
+        )
+      )
+    }
+
+    test(
+      s"""${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE 2008 < movie.year
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I73("2008 < movie.year", 102 + optionalLength, 5, 16),
+          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. '2008 < movie.year' does not fulfill this.",
+          p(102 + optionalLength, 5, 16)
+        )
+      )
+    }
+
+    test(
+      s"""${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE movie.imdbRating > 8 OR movie.year > 2010
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I73("movie.imdbRating > 8 OR movie.year > 2010", 118 + optionalLength, 5, 32),
+          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'movie.imdbRating > 8 OR movie.year > 2010' does not fulfill this.",
+          p(118 + optionalLength, 5, 32)
+        )
+      )
+    }
+
+    test(
+      s"""${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE NOT movie.imdbRating = 8
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I73("NOT movie.imdbRating = 8", 97 + optionalLength, 5, 11),
+          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'NOT movie.imdbRating = 8' does not fulfill this.",
+          p(97 + optionalLength, 5, 11)
+        )
+      )
+    }
+
+    test(
+      s"""${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE movie.imdbRating = 8 AND true
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I73("true", 122 + optionalLength, 5, 36),
+          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'true' does not fulfill this.",
+          p(122 + optionalLength, 5, 36).withInputLength(4)
+        )
+      )
+    }
+
+    // Tests for single-stage filtering - Rule 1 from CIP-240
+
+    test(
+      s"""MATCH (m:Movie {title:'Matrix, The'})
+         |${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR m.embedding
+         |    WHERE m.year > 2000
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I74("m", "movie", 137 + optionalLength, 6, 11),
+          "The variable `m` in a single-stage filter property predicate must be the same as the search clause binding variable `movie`.",
+          p(137 + optionalLength, 6, 11)
+        )
+      )
+    }
+
+    test(
+      s"""MATCH (m:Movie {title:'Matrix, The'})
+         |${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR m.embedding
+         |    WHERE movie.year > 2000 AND m.imdbRating >= 8
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I74("m", "movie", 159 + optionalLength, 6, 33),
+          "The variable `m` in a single-stage filter property predicate must be the same as the search clause binding variable `movie`.",
+          p(159 + optionalLength, 6, 33)
+        )
+      )
+    }
+
+    // Tests for single-stage filtering - Rule 2 from CIP-240
+
+    /*
+     * As we do not have access to the index in semantic checking,
+     * it can only be checked at runtime whether the property is part of the index. =>
+     * Assuming an index moviePlots FOR (m:Movie) ON m.embedding WITH [m.year, m.imdbRating],
+     * this test will pass semantic checking but fail at runtime.
+     */
+    test(
+      s"""MATCH (m:Movie {title:'Matrix, The'})
+         |${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR m.embedding
+         |    WHERE movie.imdbVotes > 1000
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearchWithRewriter().hasNoErrors
+    }
+
+    // Tests for single-stage filtering - Rule 3 from CIP-240
+
+    test(
+      s"""MATCH (m:Movie {title:'Matrix, The'})
+         |${maybeOptional}MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR m.embedding
+         |    WHERE movie.imdbRating > 8.2 AND movie.year > 2005
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+         |""".stripMargin
+    ) {
+      runSearchWithRewriter().hasNoErrors
+    }
+
+    test(
+      s"""MATCH (m:Movie {title:'Matrix, The'})
+         |${maybeOptional}MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR m.embedding
+         |    WHERE movie.imdbRating > 8.2 AND movie.imdbRating <= 8.8
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+         |""".stripMargin
+    ) {
+      runSearchWithRewriter().hasNoErrors
+    }
+
+    test(
+      s"""MATCH (m:Movie {title:'Matrix, The'})
+         |${maybeOptional}MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR m.embedding
+         |    WHERE movie.imdbRating >= 6.5  AND movie.year = 2010 AND movie.imdbRating < 7.5
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+         |""".stripMargin
+    ) {
+      runSearchWithRewriter().hasNoErrors
+    }
+
+    /*
+     * This is a case where the AND predicates are dependent and not possible to combine into a single range
+     * While we could statically determine this in semantic analysis in this case with literals,
+     * it must be checked at runtime in the more general case, so we defer the checking until then.
+     * => This test will pass semantic checking but fail at runtime
+     */
+    test(
+      s"""MATCH (m:Movie {title:'Matrix, The'})
+         |${maybeOptional}MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR m.embedding
+         |    WHERE movie.imdbRating < 6.5 AND movie.imdbRating > 7.5
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+         |""".stripMargin
+    ) {
+      runSearchWithRewriter().hasNoErrors
+    }
+
+    // Test for single-stage filtering - Rule 4 - Rule 6 from CIP-240
+
+    val validValues = Seq(
+      "42",
+      "3.14",
+      "true",
+      "'abc'",
+      "date('2025-11-21')",
+      "datetime({year:2020, month:12, day:10, hour: 6, minute: 41, second: 23, timezone: 'America/Los Angeles'})",
+      "time('10:10:10+01:00')",
+      "localdatetime('2018-03-30T10:10:10')",
+      "time({hour: 6, minute: 41, second: 23, timezone:'+01:00'})",
+      // duration is invalid for range predicates but the function is not resolved until after the semantic check so it will pass here and fail at runtime
+      "duration('PT2H20M')",
+      "null",
+      "1000 * 2 - 1",
+      "$value", // this value could be invalid but don't know until runtime
+      "m.prop" // this value could be invalid but don't know until runtime
+    )
+
+    val invalidValues = Seq(
+      ("vector([1, 2, 3], 3, INTEGER)", "Vector"),
+      ("['abc']", "List<String>"),
+      ("[1.0, -1.0]", "List<Float>"),
+      ("point({x:3, y:0})", "Point")
+    )
+
+    val operators = Seq(
+      "<",
+      "<=",
+      ">",
+      ">=",
+      "="
+    )
+
+    for {
+      value <- validValues
+      operator <- operators
+    } yield {
+      test(
+        s"""MATCH (m:Movie {title:'Matrix, The'})
+           |${maybeOptional}MATCH (movie: Movie)
+           |  SEARCH movie IN (
+           |    VECTOR INDEX moviePlots
+           |    FOR m.embedding
+           |    WHERE movie.prop $operator $value
+           |    LIMIT 5
+           |  )
+           |RETURN movie.title AS title
+           |""".stripMargin
+      ) {
+        runSearchWithRewriter().hasNoErrors
+      }
+    }
+
+    for {
+      (value, actualType) <- invalidValues
+      operator <- operators.filterNot(x => x.equals("="))
+    } yield {
+      test(
+        s"""MATCH (m:Movie {title:'Matrix, The'})
+           |${maybeOptional}MATCH (movie: Movie)
+           |  SEARCH movie IN (
+           |    VECTOR INDEX moviePlots
+           |    FOR m.embedding
+           |    WHERE movie.prop $operator $value
+           |    LIMIT 5
+           |  )
+           |RETURN movie.title AS title
+           |""".stripMargin
+      ) {
+        runSearchWithRewriter().hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_22NB1(
+              java.util.List.of(
+                "BOOLEAN",
+                "FLOAT",
+                "INTEGER",
+                "STRING",
+                "DATE",
+                "ZONED TIME",
+                "LOCAL TIME",
+                "LOCAL DATETIME",
+                "ZONED DATETIME"
+              ),
+              actualType.toUpperCase,
+              149 + optionalLength + operator.length,
+              6,
+              23 + operator.length
+            ),
+            s"Type mismatch: expected Boolean, Float, Integer, String, Date, Time, LocalTime, LocalDateTime or DateTime but was $actualType",
+            InputPosition(149 + optionalLength + operator.length, 6, 23 + operator.length)
+          )
+        )
+      }
+    }
+
+    for {
+      (value, actualType) <- invalidValues
+    } yield {
+      test(
+        s"""MATCH (m:Movie {title:'Matrix, The'})
+           |${maybeOptional}MATCH (movie: Movie)
+           |  SEARCH movie IN (
+           |    VECTOR INDEX moviePlots
+           |    FOR m.embedding
+           |    WHERE movie.prop = $value
+           |    LIMIT 5
+           |  )
+           |RETURN movie.title AS title
+           |""".stripMargin
+      ) {
+        runSearchWithRewriter().hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_22NB1(
+              java.util.List.of(
+                "BOOLEAN",
+                "FLOAT",
+                "INTEGER",
+                "STRING",
+                "DURATION",
+                "DATE",
+                "ZONED TIME",
+                "LOCAL TIME",
+                "LOCAL DATETIME",
+                "ZONED DATETIME"
+              ),
+              actualType.toUpperCase,
+              150 + optionalLength,
+              6,
+              24
+            ),
+            s"Type mismatch: expected Boolean, Float, Integer, String, Duration, Date, Time, LocalTime, LocalDateTime or DateTime but was $actualType",
+            InputPosition(150 + optionalLength, 6, 24)
+          )
+        )
+      }
+    }
+
+    // Here the rhs is dependent on the node being searched. This will pass semantic checking but fail at runtime.
+    test(
+      s"""${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE movie.imdbRating >= movie.prop
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearchWithRewriter().hasNoErrors
+    }
+
+    // Test for single-stage filtering - Rule 7 from CIP-240
+    test(
+      s"""${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE movie.imdbRating <> 8
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I73("movie.imdbRating <> 8", 114 + optionalLength, 5, 28),
+          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'movie.imdbRating <> 8' does not fulfill this.",
+          p(114 + optionalLength, 5, 28)
+        )
+      )
     }
 
     // Tests for MATCH restrictions

@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.UsingJoinHint
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -2299,6 +2300,23 @@ object SemanticError {
     SemanticError(
       GqlHelper.getGql42001_42I72(position.offset, position.line, position.column),
       "In order to have a search clause, a match statement can only have a single node or relationship pattern and no selectors.",
+      position
+    )
+  }
+
+  def singleStageWithInvalidPredicate(expr: Expression, position: InputPosition): SemanticError = {
+    val exprString = ExpressionStringifier().apply(expr)
+    SemanticError(
+      GqlHelper.getGql42001_42I73(exprString, position.offset, position.line, position.column),
+      s"Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. '$exprString' does not fulfill this.",
+      position
+    )
+  }
+
+  def singleStageWithInvalidVariable(variable1: String, variable2: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I74(variable1, variable2, position.offset, position.line, position.column),
+      s"The variable `$variable1` in a single-stage filter property predicate must be the same as the search clause binding variable `$variable2`.",
       position
     )
   }

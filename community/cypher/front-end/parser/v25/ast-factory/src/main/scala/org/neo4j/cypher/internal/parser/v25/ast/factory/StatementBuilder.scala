@@ -363,11 +363,15 @@ trait StatementBuilder extends Cypher25ParserListener {
     val maybeScoreClause = ctx.scoreClause()
     val maybeScore = if (maybeScoreClause == null) None else Some(maybeScoreClause.variable().ast())
 
+    val maybeWhereClause = ctx.whereClause()
+    val maybeWhere = Option(maybeWhereClause).map(_.ast[Where]())
+
     ctx.ast = Search(
       ctx.variable.ast(),
       maybeScore,
       indexName,
       ctx.forClause().ast(),
+      maybeWhere,
       ctx.limit().ast()
     )(pos(ctx))
   }

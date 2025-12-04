@@ -150,6 +150,22 @@ trait SemanticAnalysisTooling {
     }
   }
 
+  def expectTypeWithoutCoercion(
+    possibleTypes: => TypeSpec,
+    expression: Expression
+  ): SemanticCheck = (s: SemanticState) => {
+    expression match {
+      case v: LogicalVariable =>
+        expectType(
+          s,
+          possibleTypes,
+          expression,
+          TypeMismatchContext.TypeMismatchContextVal(GqlParams.StringParam.ident.process(v.name))
+        )
+      case _ => expectType(s, possibleTypes, expression, TypeMismatchContext.EMPTY, coercion = false)
+    }
+  }
+
   def expectType(
     possibleTypes: => TypeSpec,
     expression: Expression,
@@ -164,9 +180,10 @@ trait SemanticAnalysisTooling {
     possibleTypes: => TypeSpec,
     expression: Expression,
     typeMismatchVal: TypeMismatchContext.TypeMismatchContextVal,
-    messageGen: (String, String) => String = DefaultTypeMismatchMessageGenerator
+    messageGen: (String, String) => String = DefaultTypeMismatchMessageGenerator,
+    coercion: Boolean = true
   ): SemanticCheckResult = {
-    s.expectType(expression, possibleTypes) match {
+    s.expectType(expression, possibleTypes, coercion) match {
       case (ss, TypeSpec.none) =>
         val specifiedExistingTypes = ss.expressionType(expression).specified
         // If no type is returned, then we don't know the type, so default to Any

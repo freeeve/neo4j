@@ -168,7 +168,9 @@ public class GqlParams {
         user(new IDENT()), // User name
         value(new VAL()), // Value
         valueType(new VALTYPE()), // Value type
-        variable(new IDENT()); // Variable name
+        variable(new IDENT()), // Variable name
+        variable1(new IDENT()), //
+        variable2(new IDENT()); //
         public final Processor processor;
 
         @Override

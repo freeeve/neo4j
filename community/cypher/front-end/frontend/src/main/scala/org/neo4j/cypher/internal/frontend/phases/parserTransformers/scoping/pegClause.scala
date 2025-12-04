@@ -571,15 +571,22 @@ object pegClause {
     val bindingVariableScope = pegExpression(bindingVariable, constantIncoming)
     val embedding = search.embedding
     val embeddingScope = pegExpression(embedding, constantIncoming)
+    val whereOpt = search.where
+    val whereScopeOpt = whereOpt.map(where =>
+      pegExpression(where.expression, incoming.constantChildContext())
+    )
     val limit = search.limit
     val limitScope = pegExpression(limit.expression, constantIncoming)
     val scoreOpt = search.score
 
     val outgoing = if (scoreOpt.isDefined) incoming.amendedWith(scoreOpt.get) else incoming
 
-    val children = Seq(bindingVariableScope, embeddingScope, limitScope)
+    val children: Seq[WorkingScope] =
+      Seq(Some(bindingVariableScope), Some(embeddingScope), whereScopeOpt, Some(limitScope)).flatten
 
-    incoming.noResultScope(outgoing, children, declared = Declarations(Seq.empty, scoreOpt.toSeq))
+    val referenced = Some(WorkingScope.referencedInChildren(children) intersect incoming.constantsAndVariables)
+
+    incoming.noResultScope(outgoing, children, referenced, declared = Declarations(Seq.empty, scoreOpt.toSeq))
 
   }
 }

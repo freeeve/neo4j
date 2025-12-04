@@ -1573,6 +1573,95 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
     )
   }
 
+  test("""WITH 42 as x
+         |MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE movie.prop > x
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, score""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""WITH 42 AS x
+              |MATCH (movie:Movie)
+              |  SEARCH movie IN (
+              |    VECTOR INDEX moviePlots
+              |    FOR [1, 2, 3]
+              |    WHERE movie.prop > x
+              |    LIMIT 5
+              |  ) SCORE AS score
+              |RETURN movie.title AS title, score""".stripMargin),
+        Outgoing(variables = Set("title", "score")),
+        ExpectedResult.TableResult("title", "score"),
+        ExpectedWorkingScope(
+          Ast("WITH 42 AS x"),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("x")),
+          ExpectedWorkingScope.constExp("42")
+        ),
+        ExpectedWorkingScope(
+          Ast("""MATCH (movie:Movie)
+                |  SEARCH movie IN (
+                |    VECTOR INDEX moviePlots
+                |    FOR [1, 2, 3]
+                |    WHERE movie.prop > x
+                |    LIMIT 5
+                |  ) SCORE AS score""".stripMargin),
+          Incoming(variables = Set("x")),
+          Referenced(Set("x")),
+          Outgoing(variables = Set("x", "movie", "score")),
+          Declared(variables = Seq("movie")),
+          ExpectedWorkingScope(
+            Ast("(movie:Movie)"),
+            PatternIncoming(Set("x"), Set("movie", "x"), Set()),
+            Declared(variables = Seq("movie")),
+            Outgoing(variables = Set("movie")),
+            ExpectedResult.TableResult("movie"),
+            ExpectedWorkingScope.constExp("Movie", Set("x", "movie"))
+          ),
+          ExpectedWorkingScope(
+            Ast("""SEARCH movie IN (
+                  |  VECTOR INDEX moviePlots
+                  |  FOR [1, 2, 3]
+                  |  WHERE movie.prop > x
+                  |  LIMIT 5
+                  |) SCORE AS score""".stripMargin),
+            Incoming(variables = Set("x", "movie")),
+            Referenced(Set("x", "movie")),
+            Declared(variables = Seq("score")),
+            Outgoing(variables = Set("x", "movie", "score")),
+            ExpectedWorkingScope.varExp("movie", Set("x", "movie")),
+            ExpectedWorkingScope.constExp("[1, 2, 3]", Set("x", "movie")),
+            ExpectedWorkingScope(
+              Ast("movie.prop > x"),
+              Incoming(constants = Set("x", "movie")),
+              Referenced(variables = Set("x", "movie")),
+              ExpectedWorkingScope.varExp("movie", Set("x", "movie")),
+              ExpectedWorkingScope.varExp("x", Set("x", "movie"))
+            ),
+            ExpectedWorkingScope.constExp("5", Set("x", "movie"))
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("""RETURN movie.title AS title, score""".stripMargin),
+          Incoming(variables = Set("x", "movie", "score")),
+          Referenced(Set("movie", "score")),
+          Outgoing(variables = Set("title", "score")),
+          ExpectedResult.TableResult("title", "score"),
+          ExpectedWorkingScope(
+            Ast("movie.title"),
+            Incoming(constants = Set("x", "movie", "score")),
+            Referenced(Set("movie")),
+            ExpectedWorkingScope.varExp("movie", Set("x", "movie", "score"))
+          ),
+          ExpectedWorkingScope.varExp("score", Set("x", "movie", "score"))
+        )
+      )
+    )
+  }
+
   test("""LET a = 10
          |RETURN reduce(acc = a, x IN [1, a, 3] | acc * x + 5) AS red""".stripMargin) {
     hasScope(

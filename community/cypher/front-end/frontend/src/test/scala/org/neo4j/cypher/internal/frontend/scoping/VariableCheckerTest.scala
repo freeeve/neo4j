@@ -1137,6 +1137,40 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `l` not defined")
   }
 
+  test("""MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE movie.prop > 5
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, score""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (m: Movie {title: 'Cinderella'})
+         |MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE movie.prop > m.prop
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, score""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE x.prop > 5
+         |    LIMIT 5
+         |  ) SCORE AS score
+         |RETURN movie.title AS title, score""".stripMargin) {
+    error("42N62", "Variable `x` not defined")
+  }
+
   test("""MATCH (n)
          |MERGE (n {p:n.p})""".stripMargin) {
     error("42N59", "Variable `n` already declared.")

@@ -1399,10 +1399,11 @@ trait AstConstructionTestSupport {
     score: Option[String],
     indexName: Either[String, Parameter],
     embedding: Expression,
-    limitNbr: Long
+    limitNbr: Long,
+    where: Option[Where] = None
   ): Search = {
     val scoreVariable = if (score.isDefined) Some(varFor(score.get)) else None
-    Search(varFor(refVariable), scoreVariable, indexName, embedding, limit(limitNbr))(pos)
+    Search(varFor(refVariable), scoreVariable, indexName, embedding, where, limit(limitNbr))(pos)
   }
 
   def with_(items: ReturnItem*): With =

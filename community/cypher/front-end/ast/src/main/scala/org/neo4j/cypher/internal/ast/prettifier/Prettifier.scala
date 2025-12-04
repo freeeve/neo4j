@@ -1215,9 +1215,11 @@ case class Prettifier(
 
       val maybeScore = if (s.score.isDefined) s" SCORE AS ${Prettifier.escapeName(s.score.get)}" else ""
 
+      val maybeWhere = s.where.map(w => s"$INDENT${asString(w)}").map(asNewLine).getOrElse("")
+
       s"""${INDENT}SEARCH ${s.bindingVariable.name} IN (
          |$INDENT${INDENT}VECTOR INDEX $indexName
-         |$INDENT${INDENT}FOR ${expr(s.embedding)}
+         |$INDENT${INDENT}FOR ${expr(s.embedding)}$maybeWhere
          |$INDENT${INDENT}LIMIT ${expr(s.limit.expression)}
          |$INDENT)$maybeScore""".stripMargin
     }
