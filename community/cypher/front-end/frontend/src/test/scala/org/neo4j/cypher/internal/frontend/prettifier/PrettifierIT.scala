@@ -3020,7 +3020,23 @@ class PrettifierIT extends AbstractPrettifierTest {
     "stop database $foo" ->
       "STOP DATABASE $foo",
     "stop database foO_Bar_42" ->
-      "STOP DATABASE foO_Bar_42"
+      "STOP DATABASE foO_Bar_42",
+    // Weird semantically incorrect query from failing property based test.
+    IgnoreInCypher5(
+      "CREATE AUTH RULE rule IF NOT EXISTS SET CONDITION (-(7.374271256847047E233)).p SET ENABLED TRUE",
+      "CREATE AUTH RULE rule IF NOT EXISTS SET CONDITION (-(7.374271256847047E233)).p SET ENABLED TRUE"
+    ),
+    """return
+      |  -1 as r0,
+      |  -1.0 as r1,
+      |  --1 as r2,
+      |  --1.0 as r3,
+      |  -(-1) as r4,
+      |  -(-1.0) as r5,
+      |  -(--1) as r6,
+      |  -(--1.0) as r7,
+      |  -(-(1)) as r8,
+      |  -(-(1.0)) as r9""".stripMargin -> "RETURN -1 AS r0, -1.0 AS r1, -(-1) AS r2, -(-1.0) AS r3, -(-1) AS r4, -(-1.0) AS r5, -(-(-1)) AS r6, -(-(-1.0)) AS r7, -(-(1)) AS r8, -(-(1.0)) AS r9"
   )
 
   def aliasCommandTests(): Seq[Test] = Seq[Test](
@@ -4334,6 +4350,6 @@ class PrettifierIT extends AbstractPrettifierTest {
     "DROP SERVER $``" -> "DROP SERVER $``"
   )
 
-  tests foreach testPrettifier
+  tests.foreach(test => testPrettifier(test)(test.testPosition))
 
 }

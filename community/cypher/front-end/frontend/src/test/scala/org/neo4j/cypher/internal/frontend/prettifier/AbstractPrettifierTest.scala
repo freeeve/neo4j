@@ -57,12 +57,13 @@ import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.scalactic.source.Position
 import org.scalatest.exceptions.TestFailedException
 
 trait AbstractPrettifierTest extends CypherFunSuite {
   def prettifier: Prettifier
 
-  def testPrettifier(prettifierTest: Test): Unit = prettifierTest match {
+  def testPrettifier(prettifierTest: Test)(implicit pos: Position): Unit = prettifierTest match {
     case SameAcrossVersions(inputString, expected) =>
       test(inputString) {
         CypherVersion.values().foreach { version =>
@@ -332,20 +333,37 @@ trait AbstractPrettifierTest extends CypherFunSuite {
 }
 
 object PrettifierTestSupport {
-  sealed trait Test
-  case class SameAcrossVersions(inputString: String, output: String) extends Test
+
+  sealed trait Test {
+    def testPosition: Position
+  }
+
+  case class SameAcrossVersions(
+    inputString: String,
+    output: String
+  )(implicit override val testPosition: Position) extends Test
 
   case class ChangedBetween5And25(
     inputString: String,
     outputCypher5: String,
     outputCypher25AndLater: String
-  ) extends Test
+  )(implicit override val testPosition: Position) extends Test
 
-  case class IgnoreInCypher5(inputString: String, output: String) extends Test
+  case class IgnoreInCypher5(
+    inputString: String,
+    output: String
+  )(implicit override val testPosition: Position) extends Test
 
-  case class FailsInCypher5(inputString: String, output: String) extends Test
+  case class FailsInCypher5(
+    inputString: String,
+    output: String
+  )(implicit override val testPosition: Position) extends Test
 
-  case class FailsInCypher25AndLater(inputString: String, output: String) extends Test
+  case class FailsInCypher25AndLater(
+    inputString: String,
+    output: String
+  )(implicit override val testPosition: Position) extends Test
 
-  implicit class Tuple2TestConverter(tuple: (String, String)) extends SameAcrossVersions(tuple._1, tuple._2)
+  implicit class Tuple2TestConverter(tuple: (String, String))(implicit testPosition: Position)
+      extends SameAcrossVersions(tuple._1, tuple._2)
 }

@@ -100,6 +100,7 @@ import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.NormalForm
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.NotEquals
+import org.neo4j.cypher.internal.expressions.NumberLiteral
 import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.Parameter
@@ -286,6 +287,7 @@ private class DefaultExpressionStringifier(
     override def includes(symbol: String): Boolean = false
   }
   @inline private def noEagerConsumption(cypher: String): (String, EagerConsumption) = (cypher, NoEagerConsumption)
+  private def eagerlyConsuming(symbols: String*)(cypher: String) = (cypher, EagerlyConsuming(symbols: _*))
 
   // withLHS is for stringifying simple CASE expressions where the LHS has been
   // inferred from the case expression
@@ -298,15 +300,16 @@ private class DefaultExpressionStringifier(
       case StringLiteral(txt) =>
         noEagerConsumption(quote(txt))
 
-      case l: Literal =>
-        noEagerConsumption(if (javaCompatible) {
-          l match {
-            case n: IntegerLiteral if n.value > Int.MaxValue => n.value.toString + "L"
-            case _                                           => l.asCanonicalStringVal
-          }
-        } else {
-          l.asCanonicalStringVal
-        })
+      case l: Literal => l match {
+          case number: NumberLiteral => eagerlyConsuming("+", "-") {
+              number match {
+                case n: IntegerLiteral if javaCompatible && (n.value < Int.MinValue || n.value > Int.MaxValue) =>
+                  n.value + "L"
+                case _ => l.asCanonicalStringVal
+              }
+            }
+          case _ => noEagerConsumption(l.asCanonicalStringVal)
+        }
 
       // Special case for SIMPLE CASE, when it is an equals, remove the LHS and =
       case e: Equals if isCaseExpression =>
@@ -716,11 +719,11 @@ private class DefaultExpressionStringifier(
         noEagerConsumption(s"COUNT ${prettifySubqueryInBraces(q)}")
 
       case UnaryAdd(r) =>
-        val (i, eagerConsumption) = inner(ast)(r)
+        val (i, eagerConsumption) = inner(ast, symbolicDelimiter = "+")(r)
         (s"+$i", eagerConsumption)
 
       case UnarySubtract(r) =>
-        val (i, eagerConsumption) = inner(ast)(r)
+        val (i, eagerConsumption) = inner(ast, symbolicDelimiter = "-")(r)
         (s"-$i", eagerConsumption)
 
       case CoerceTo(expr, _) =>
