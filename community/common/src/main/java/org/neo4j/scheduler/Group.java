@@ -40,8 +40,8 @@ public enum Group {
     /** Watch out for, and report, external manipulation of store files. */
     FILE_WATCHER("FileWatcher", ExecutorServiceFactory.unschedulable()),
     /** Monitor and report system-wide pauses, in case they lead to service interruption. */
-    VM_PAUSE_MONITOR("VmPauseMonitor"),
-    /** Rotates diagnostic text logs. */
+    VM_PAUSE_MONITOR(
+            "VmPauseMonitor", ServiceFactorySelector.selectGroupServiceFactory(ExecutorServiceFactory::cached)),
     LOG_ROTATION("LogRotation"),
     /** Checkpoint and store flush. */
     CHECKPOINT("CheckPoint"),
