@@ -22,7 +22,7 @@ package org.neo4j.kernel.api.impl.index.lucene.v10;
 import java.util.function.LongPredicate;
 import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
-import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 
 class Lucene10VectorResultCollector extends Lucene10ScoredEntityResultCollector {
     private static final LongPredicate ALWAYS_FALSE = LongPredicates.alwaysFalse();
@@ -33,6 +33,6 @@ class Lucene10VectorResultCollector extends Lucene10ScoredEntityResultCollector 
 
     @Override
     protected String entityIdFieldKey() {
-        return VectorDocumentStructure.ENTITY_ID_KEY;
+        return LuceneDocumentsFactory.ENTITY_ID_KEY;
     }
 }

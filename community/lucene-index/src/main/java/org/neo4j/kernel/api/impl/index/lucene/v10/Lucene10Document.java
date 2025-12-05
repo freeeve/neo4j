@@ -26,6 +26,7 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.util.BytesRef;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 
@@ -48,6 +49,10 @@ class Lucene10Document implements LuceneDocument {
     @Override
     public void addStringField(String key, String string, boolean store) {
         document.add(new StringField(key, string, store ? Field.Store.YES : Field.Store.NO));
+    }
+
+    public void addStringField(String key, BytesRef bytesRef, boolean store) {
+        document.add(new StringField(key, bytesRef, store ? Field.Store.YES : Field.Store.NO));
     }
 
     @Override

@@ -32,6 +32,7 @@ public interface LuceneDocumentsFactory {
     String TEXT_VALUE_KEY_SUFFIX = "string";
 
     String TRIGRAM_VALUE_KEY = "0";
+    String EXISTS_KEY = "exists";
 
     /**
      * Get the lucene document field name for a text value.

@@ -69,11 +69,11 @@ public final class Values {
     public static final Value MAX_NUMBER = Values.doubleValue(Double.NaN);
     public static final Value ZERO_FLOAT = Values.doubleValue(0.0);
     public static final IntegralValue ZERO_INT = Values.longValue(0);
-    public static final Value MIN_STRING = StringValue.EMPTY;
-    public static final Value MAX_STRING = Values.booleanValue(false);
-    public static final BooleanValue TRUE = Values.booleanValue(true);
-    public static final BooleanValue FALSE = Values.booleanValue(false);
     public static final StringValue EMPTY_STRING = StringValue.EMPTY;
+    public static final Value MIN_STRING = StringValue.EMPTY;
+    public static final Value MAX_STRING = BooleanValue.FALSE;
+    public static final BooleanValue TRUE = BooleanValue.TRUE;
+    public static final BooleanValue FALSE = BooleanValue.FALSE;
     public static final DoubleValue E = Values.doubleValue(Math.E);
     public static final DoubleValue PI = Values.doubleValue(Math.PI);
     public static final DoubleValue NaN = Values.doubleValue(Double.NaN);

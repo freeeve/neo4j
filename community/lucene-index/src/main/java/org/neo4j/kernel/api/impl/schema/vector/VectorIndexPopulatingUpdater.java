@@ -62,17 +62,17 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
             switch (updateMode) {
                 case ADDED ->
                     writer.updateDocument(
-                            VectorDocumentStructure.ENTITY_ID_KEY,
+                            LuceneDocumentsFactory.ENTITY_ID_KEY,
                             entityId,
                             documentsFactory.createVectorDocument(
                                     documentStructure, entityId, similarityFunction, values));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
-                            VectorDocumentStructure.ENTITY_ID_KEY,
+                            LuceneDocumentsFactory.ENTITY_ID_KEY,
                             entityId,
                             documentsFactory.createVectorDocument(
                                     documentStructure, entityId, similarityFunction, values));
-                case REMOVED -> writer.deleteDocuments(VectorDocumentStructure.ENTITY_ID_KEY, entityId);
+                case REMOVED -> writer.deleteDocuments(LuceneDocumentsFactory.ENTITY_ID_KEY, entityId);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

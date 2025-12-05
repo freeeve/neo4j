@@ -41,13 +41,17 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.document.Field.Store;
+import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.memory.MemoryIndex;
 import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.util.BytesRef;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.kernel.api.StatementConstants;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
+import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
 import org.neo4j.values.storable.Value;
@@ -70,8 +74,20 @@ public class Lucene10FilterQueryBuilderTest {
     PropertyIndexQuery[] queries = new PropertyIndexQuery[10 /*enough*/];
 
     private void addField(int fieldPosition, Value value) {
+        if (value == null) {
+            return;
+        }
+
+        var exists = new StringField(
+                Lucene10DocumentsFactory.EXISTS_KEY,
+                new BytesRef(Lucene10ValueFields.intToBytes(fieldPosition)),
+                Store.NO);
+        index.addField(exists, analyzer);
+
         var field = Lucene10DocumentsFactory.indexableField(documentStructure, fieldPosition, value);
-        index.addField(field, analyzer);
+        if (field != null) {
+            index.addField(field, analyzer);
+        }
     }
 
     private float scoreForQuery(int position, PropertyIndexQuery... queries) {
@@ -84,6 +100,25 @@ public class Lucene10FilterQueryBuilderTest {
         }
         var luceneQuery = Lucene10FilterQueryBuilder.build(documentStructure, 0, this.queries);
         return index.search(new ConstantScoreQuery(luceneQuery));
+    }
+
+    @Test
+    void propertyExists() {
+        int indexablePropertyIndex = 3;
+        addField(indexablePropertyIndex, Values.utf8Value("indexed"));
+
+        int nonIndexablePropertyIndex = 4;
+        addField(nonIndexablePropertyIndex, Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 0.f, 1.f));
+
+        int noValuePropertyIndex = 5;
+        addField(noValuePropertyIndex, null);
+
+        assertThat(scoreForQuery(indexablePropertyIndex, PropertyIndexQuery.exists(1)))
+                .isEqualTo(1.0f);
+        assertThat(scoreForQuery(nonIndexablePropertyIndex, PropertyIndexQuery.exists(2)))
+                .isEqualTo(1.0f);
+        assertThat(scoreForQuery(noValuePropertyIndex, PropertyIndexQuery.exists(3)))
+                .isEqualTo(0.0f);
     }
 
     @Test
@@ -640,14 +675,6 @@ public class Lucene10FilterQueryBuilderTest {
                                 Values.of(Duration.of(20, ChronoUnit.MINUTES)),
                                 true)))
                 .isEqualTo(0.0f);
-    }
-
-    @Test
-    public void badIndexFieldValue() {
-        int keyIndex = KEY_INDEX;
-        assertThatThrownBy(() -> addField(keyIndex, Values.of(new int[] {42, 43})))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unsupported value type: IntegerArray for vector index field 4");
     }
 
     @Test

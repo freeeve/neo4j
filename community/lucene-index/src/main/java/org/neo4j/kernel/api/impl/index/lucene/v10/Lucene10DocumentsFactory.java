@@ -27,6 +27,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.util.BytesRef;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.BooleanField;
@@ -103,6 +104,10 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
 
         for (int i = 1; i < values.length; i++) {
             Value value = values[i];
+            if (value == null) {
+                continue;
+            }
+            document.addStringField(EXISTS_KEY, new BytesRef(Lucene10ValueFields.intToBytes(i)), false);
             IndexableField field = indexableField(vectorDocumentStructure, i, value);
             if (field == null) {
                 // value type not supported for metadata filter
@@ -149,10 +154,7 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
                 yield new SingleInstantField(
                         vectorDocumentStructure.temporalValueKeyFor(index, tv.valueGroup()), instant);
             }
-            case null -> null;
-            default ->
-                throw new IllegalArgumentException(String.format(
-                        "Unsupported value type: %s for vector index field %d", value.getTypeName(), index));
+            case null, default -> null;
         };
     }
 }

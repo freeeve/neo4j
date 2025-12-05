@@ -31,11 +31,13 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery.NearestNeighborsPredicat
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.io.IOUtils.AutoCloseables;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.collector.ScoredEntityIterator;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.AbstractLuceneIndexReader;
 import org.neo4j.kernel.api.impl.schema.LuceneQueryFactory;
@@ -80,7 +82,7 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
                 .getFirst()
                 .getIndexSearcher()
                 .newQueryContext()
-                .exactTerm(VectorDocumentStructure.ENTITY_ID_KEY, entityId);
+                .exactTerm(LuceneDocumentsFactory.ENTITY_ID_KEY, entityId);
         for (final var searcher : searchers) {
             try {
                 count += searcher.getIndexSearcher().count(queryContext);
@@ -132,17 +134,16 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
             throws IndexNotApplicableKernelException {
 
         for (int i = 1; i < predicates.length; i++) {
-            var predicate = predicates[i];
-
+            PropertyIndexQuery predicate = predicates[i];
             if (predicate == null) {
                 throw nullVectorQueryFilter(
                         msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
                         predicates);
             }
 
-            var type = predicate.type();
+            IndexQueryType type = predicate.type();
             switch (type) {
-                case EXACT, RANGE, ALL -> {
+                case ALL, EXISTS, EXACT, RANGE -> {
                     // Each filter predicate is independent of others;
                     // so we can support arbitrary combinations range and exact predicates
                 }
@@ -185,7 +186,7 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
 
     @Override
     protected String entityIdFieldKey() {
-        return VectorDocumentStructure.ENTITY_ID_KEY;
+        return LuceneDocumentsFactory.ENTITY_ID_KEY;
     }
 
     @Override
@@ -223,7 +224,7 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
         if (searchers.isEmpty()) {
             return BoundedIterable.empty();
         }
-        String field = VectorDocumentStructure.ENTITY_ID_KEY;
+        String field = LuceneDocumentsFactory.ENTITY_ID_KEY;
         LuceneQueryContext queryContext =
                 searchers.getFirst().getIndexSearcher().newQueryContext().matchAll();
         final var iterables = new ArrayList<BoundedIterable<Long>>(searchers.size());

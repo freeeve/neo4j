@@ -63,7 +63,7 @@ final class Lucene10ValueFields {
 
         BooleanField(String name, boolean value) {
             super(name, TYPE);
-            fieldsData = value ? TRUE : FALSE;
+            this.fieldsData = value ? TRUE : FALSE;
         }
 
         public boolean getBoolValue() {
@@ -108,7 +108,7 @@ final class Lucene10ValueFields {
 
         SingleLongField(String name, long value) {
             super(name, TYPE);
-            fieldsData = value;
+            this.fieldsData = value;
         }
 
         @Override
@@ -214,7 +214,7 @@ final class Lucene10ValueFields {
 
         SingleDoubleField(String name, double value) {
             super(name, TYPE);
-            fieldsData = value;
+            this.fieldsData = value;
         }
 
         @Override
@@ -315,7 +315,13 @@ final class Lucene10ValueFields {
         }
     }
 
-    private static byte[] longToBytes(long value) {
+    static byte[] intToBytes(int value) {
+        byte[] data = new byte[Integer.BYTES];
+        NumericUtils.intToSortableBytes(value, data, 0);
+        return data;
+    }
+
+    static byte[] longToBytes(long value) {
         byte[] data = new byte[Long.BYTES];
         NumericUtils.longToSortableBytes(value, data, 0);
         return data;
