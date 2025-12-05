@@ -151,7 +151,7 @@ public class IndexIdMapper implements IdMapper {
     }
 
     @Override
-    public Setter newSetter() {
+    public Setter newSetter(int workerId) {
         return (inputId, actualId, group) -> {
             var populator = populators.get(group.name());
             var update = ValueIndexEntryUpdate.add(actualId, populator.descriptor, Values.of(inputId));
@@ -307,7 +307,7 @@ public class IndexIdMapper implements IdMapper {
     }
 
     @Override
-    public Getter newGetter() {
+    public Getter newGetter(int workerId) {
         return new Getter() {
             @Override
             public long get(Object inputId, Group group) {

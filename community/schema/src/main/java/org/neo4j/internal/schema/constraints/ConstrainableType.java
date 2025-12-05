@@ -19,10 +19,11 @@
  */
 package org.neo4j.internal.schema.constraints;
 
+import java.io.Serializable;
 import org.neo4j.graphdb.schema.PropertyType;
 
 // Marker interface for Constrainable types
-public sealed interface ConstrainableType extends TypeRepresentation permits SchemaValueType, VectorType {
+public sealed interface ConstrainableType extends TypeRepresentation, Serializable permits SchemaValueType, VectorType {
     String serialize();
 
     PropertyType toPublicApi();

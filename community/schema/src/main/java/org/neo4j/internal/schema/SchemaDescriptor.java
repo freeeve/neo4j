@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.schema;
 
+import java.io.Serializable;
 import org.neo4j.common.EntityType;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.lock.ResourceType;
@@ -26,7 +27,7 @@ import org.neo4j.lock.ResourceType;
 /**
  * Internal representation of one schema unit, for example a label-property pair.
  */
-public interface SchemaDescriptor {
+public interface SchemaDescriptor extends Serializable {
     /**
      * Test if this schema descriptor is a {@link LabelSchemaDescriptor}.
      * @return {@code true} if calling {@link #asLabelSchemaDescriptor()} will not throw an exception.

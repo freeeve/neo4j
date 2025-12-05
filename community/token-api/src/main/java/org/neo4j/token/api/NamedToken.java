@@ -19,13 +19,14 @@
  */
 package org.neo4j.token.api;
 
+import java.io.Serializable;
 import java.util.Objects;
 import org.neo4j.string.Mask;
 
 /**
  * A token with its associated name.
  */
-public final class NamedToken {
+public final class NamedToken implements Serializable {
     private final int id;
     private final String name;
     private final boolean internal;

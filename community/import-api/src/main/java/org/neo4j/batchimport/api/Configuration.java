@@ -34,7 +34,7 @@ import org.neo4j.io.pagecache.PageCache;
  */
 public interface Configuration {
     int DEFAULT_BATCH_SIZE = getInteger(Configuration.class, "DEFAULT_BATCH_SIZE", 10_000);
-    int DEFAULT_ENTITY_BATCH_SIZE = 100;
+    int DEFAULT_ENTITY_BATCH_SIZE = 500;
 
     int DEFAULT_MAX_MEMORY_PERCENT = 90;
 

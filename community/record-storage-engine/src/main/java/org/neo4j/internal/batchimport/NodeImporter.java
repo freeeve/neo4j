@@ -87,6 +87,7 @@ public class NodeImporter extends EntityImporter {
     private boolean hasExternallyChosenIds;
 
     NodeImporter(
+            int workerId,
             BatchingNeoStores stores,
             IdMapper idMapper,
             Monitor monitor,
@@ -97,7 +98,7 @@ public class NodeImporter extends EntityImporter {
         super(stores, monitor, contextFactory, memoryTracker, schemaMonitor);
         this.labelTokenRepository = stores.getTokenHolders().labelTokens();
         this.idMapper = idMapper;
-        this.idMapperSetter = idMapper.newSetter();
+        this.idMapperSetter = idMapper.newSetter(workerId);
         this.nodeStore = stores.getNodeStore();
         this.badCollector = badCollector;
         this.nodeRecord = nodeStore.newRecord();

@@ -20,6 +20,7 @@
 package org.neo4j.batchimport.api.input;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import org.neo4j.batchimport.api.BatchImporter;
@@ -61,7 +62,8 @@ public interface Input extends AutoCloseable {
             long sizeOfRelationshipProperties,
             long numberOfNodeLabels,
             boolean containsNodeUpdates,
-            boolean containsRelationshipUpdates) {}
+            boolean containsRelationshipUpdates)
+            implements Serializable {}
 
     /**
      * Provides all node data for an import.

@@ -43,6 +43,7 @@ import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.consistency.checking.ConsistencyCheckIncompleteException;
+import org.neo4j.consistency.checking.ConsistencyCheckMonitor;
 import org.neo4j.consistency.checking.ConsistencyFlags;
 import org.neo4j.consistency.report.ConsistencySummaryStatistics;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
@@ -517,7 +518,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             LogTailMetadata logTailMetadata,
-            MemoryTracker memoryTracker)
+            MemoryTracker memoryTracker,
+            ConsistencyCheckMonitor monitor)
             throws ConsistencyCheckIncompleteException {
         delegate.consistencyCheck(
                 fileSystem,
@@ -536,7 +538,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 contextFactory,
                 pageCacheTracer,
                 logTailMetadata,
-                memoryTracker);
+                memoryTracker,
+                monitor);
     }
 
     @Override

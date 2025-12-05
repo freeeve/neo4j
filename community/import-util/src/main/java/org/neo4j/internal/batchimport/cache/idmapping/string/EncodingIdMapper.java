@@ -67,7 +67,7 @@ import org.neo4j.util.concurrent.IdSpaceParallelExecution;
 import org.neo4j.util.concurrent.IdSpaceParallelExecution.Partition;
 
 /**
- * Maps arbitrary values to long ids. The values can be {@link #put(Object, long, Group) added} in any order,
+ * Maps arbitrary values to long ids. The values can be {@link Setter#put(Object, long, Group) added} in any order,
  * but {@link #needsPreparation() needs} {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet) preparation}
  *
  * in order to {@link Getter#get(Object, Group) get} ids back later.
@@ -82,7 +82,7 @@ import org.neo4j.util.concurrent.IdSpaceParallelExecution.Partition;
  * of terms used in comments and variable names and some description what each generally means
  * (also applies to {@link ParallelSort} btw):
  * - input id:
- *       An id coming from the user that is associated with a neo4j id by calling {@link #put(Object, long, Group)}.
+ *       An id coming from the user that is associated with a neo4j id by calling {@link Setter#put(Object, long, Group)}.
  *       the first argument is the id that the user specified, the second is the neo4j id that user id will
  *       be associated with.
  * - encoder:
@@ -205,7 +205,7 @@ public class EncodingIdMapper implements IdMapper {
     }
 
     @Override
-    public Getter newGetter() {
+    public Getter newGetter(int workerId) {
         if (inputIdLookup == null) {
             return new Getter() {
                 @Override
@@ -239,7 +239,7 @@ public class EncodingIdMapper implements IdMapper {
     }
 
     @Override
-    public Setter newSetter() {
+    public Setter newSetter(int workerId) {
         return (inputId, nodeId, group) -> {
             // Encode and add the input id
             long eId = encode(inputId);
@@ -252,7 +252,13 @@ public class EncodingIdMapper implements IdMapper {
 
     @Override
     public void remove(Object inputId, long actualId, Group group) {
-        trackerCache.markAsDuplicate(actualId);
+        if (!readyForUse) {
+            // If we haven't yet prepared this IdMapper then we can simply mark this ID as removed
+            dataCache.set(actualId, GAP_VALUE);
+        } else {
+            // If we have prepared this IdMapper then we need to use the trackerCache to convey this fact
+            trackerCache.markAsDuplicate(actualId);
+        }
     }
 
     private long encode(Object inputId) {
@@ -336,6 +342,10 @@ public class EncodingIdMapper implements IdMapper {
     }
 
     private long binarySearch(Object inputId, int groupId, PropertyValueLookup.Lookup lookup) {
+        if (highestSetTrackerIndex == -1) {
+            return ID_NOT_FOUND;
+        }
+
         long low = 0;
         long high = highestSetTrackerIndex;
         long x = encode(inputId);

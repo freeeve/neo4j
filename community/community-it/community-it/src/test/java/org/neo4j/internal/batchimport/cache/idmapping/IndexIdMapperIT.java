@@ -257,7 +257,7 @@ class IndexIdMapperIT {
         start();
 
         // when
-        IdMapper.Setter setter = idMapper.newSetter();
+        IdMapper.Setter setter = idMapper.newSetter(0);
         setter.put("110", 101, group);
         setter.put("110", 102, group);
         var collector = mock(Collector.class);
@@ -301,11 +301,11 @@ class IndexIdMapperIT {
     }
 
     private void put(long nodeId, Group group) throws KeyCollisionException {
-        idMapper.newSetter().put(ID_FUNCTION.valueOf(nodeId), nodeId, group);
+        idMapper.newSetter(0).put(ID_FUNCTION.valueOf(nodeId), nodeId, group);
     }
 
     private void assertId(long nodeId, Group group) {
-        try (var getter = idMapper.newGetter()) {
+        try (var getter = idMapper.newGetter(0)) {
             assertThat(getter.get(ID_FUNCTION.valueOf(nodeId), group)).isEqualTo(nodeId);
         }
     }

@@ -58,14 +58,14 @@ class CuckooIdMapperTest {
     @Test
     void simpleLong() throws KeyCollisionException {
         try (IdMapper idMapper = getCuckooIdMapperForLongs()) {
-            IdMapper.Setter setter = idMapper.newSetter();
+            IdMapper.Setter setter = idMapper.newSetter(0);
             setter.put(10L, 0, emptyGroup);
             setter.put(25L, 1, emptyGroup);
             setter.put(79L, 2, emptyGroup);
             setter.put(2L, 3, emptyGroup);
             setter.put(100L, 4, emptyGroup);
             setter.put(5000L, 5, emptyGroup);
-            IdMapper.Getter getter = idMapper.newGetter();
+            IdMapper.Getter getter = idMapper.newGetter(0);
             assertThat(getter.get(10L, emptyGroup)).isEqualTo(0);
             assertThat(getter.get(25L, emptyGroup)).isEqualTo(1);
             assertThat(getter.get(79L, emptyGroup)).isEqualTo(2);
@@ -80,14 +80,14 @@ class CuckooIdMapperTest {
     void simpleString() throws KeyCollisionException {
         Map<Long, String> values = Map.of(2L, "foo", 3L, "bar", 4L, "baz", 5L, "kaz", 6L, "taz", 7L, "maz");
         try (IdMapper idMapper = getCuckooIdMapperForString(values)) {
-            IdMapper.Setter setter = idMapper.newSetter();
+            IdMapper.Setter setter = idMapper.newSetter(0);
             setter.put("foo", 2, emptyGroup);
             setter.put("bar", 3, emptyGroup);
             setter.put("baz", 4, emptyGroup);
             setter.put("kaz", 5, emptyGroup);
             setter.put("taz", 6, emptyGroup);
             setter.put("maz", 7, emptyGroup);
-            IdMapper.Getter getter = idMapper.newGetter();
+            IdMapper.Getter getter = idMapper.newGetter(0);
             assertThat(getter.get("foo", emptyGroup)).isEqualTo(2);
             assertThat(getter.get("bar", emptyGroup)).isEqualTo(3);
             assertThat(getter.get("baz", emptyGroup)).isEqualTo(4);
@@ -101,8 +101,8 @@ class CuckooIdMapperTest {
     @Test
     void dontAllowDuplicateActualIds() throws KeyCollisionException {
         try (IdMapper idMapper = getCuckooIdMapperForString(Map.of(2L, "foo"))) {
-            idMapper.newSetter().put("foo", 2, emptyGroup);
-            assertThatCode(() -> idMapper.newSetter().put("bar", 2, emptyGroup))
+            idMapper.newSetter(0).put("foo", 2, emptyGroup);
+            assertThatCode(() -> idMapper.newSetter(0).put("bar", 2, emptyGroup))
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
@@ -110,8 +110,8 @@ class CuckooIdMapperTest {
     @Test
     void detectDuplicateKeys() throws KeyCollisionException {
         try (IdMapper idMapper = getCuckooIdMapperForString(Map.of(2L, "foo"))) {
-            idMapper.newSetter().put("foo", 2, emptyGroup);
-            assertThatCode(() -> idMapper.newSetter().put("foo", 3, emptyGroup))
+            idMapper.newSetter(0).put("foo", 2, emptyGroup);
+            assertThatCode(() -> idMapper.newSetter(0).put("foo", 3, emptyGroup))
                     .isInstanceOf(KeyCollisionException.class);
         }
     }
@@ -127,11 +127,11 @@ class CuckooIdMapperTest {
         Map<Long, String> values = Map.of(1234L, "foo", 4321L, "bar");
 
         try (IdMapper idMapper = getCuckooIdMapperForString(values, badHash)) {
-            IdMapper.Setter setter = idMapper.newSetter();
+            IdMapper.Setter setter = idMapper.newSetter(0);
             setter.put("foo", 2, emptyGroup);
             setter.put("bar", 3, emptyGroup);
             setter.put("baz", 4, emptyGroup);
-            IdMapper.Getter getter = idMapper.newGetter();
+            IdMapper.Getter getter = idMapper.newGetter(0);
             assertThat(getter.get("foo", emptyGroup)).isEqualTo(2);
             assertThat(getter.get("bar", emptyGroup)).isEqualTo(3);
             assertThat(getter.get("baz", emptyGroup)).isEqualTo(4);
@@ -145,11 +145,11 @@ class CuckooIdMapperTest {
         Group g2 = groups.getOrCreate("G2");
         Group g3 = groups.getOrCreate("G3");
         try (IdMapper idMapper = new CuckooIdMapper(10, OFF_HEAP, groups, EmptyMemoryTracker.INSTANCE)) {
-            IdMapper.Setter setter = idMapper.newSetter();
+            IdMapper.Setter setter = idMapper.newSetter(0);
             setter.put(10L, 2, g1);
             setter.put(10L, 3, g2);
             setter.put(10L, 4, g3);
-            IdMapper.Getter getter = idMapper.newGetter();
+            IdMapper.Getter getter = idMapper.newGetter(0);
             assertThat(getter.get(10L, g1)).isEqualTo(2);
             assertThat(getter.get(10L, g2)).isEqualTo(3);
             assertThat(getter.get(10L, g3)).isEqualTo(4);
@@ -164,12 +164,12 @@ class CuckooIdMapperTest {
             groups.getOrCreate("" + i);
         }
         try (IdMapper mapper = new StringCuckooIdMapper(size, OFF_HEAP, groups, INSTANCE, null)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             for (int i = 0; i < size; i++) {
                 setter.put(i, i, groups.get("" + i));
             }
 
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 for (int i = 0; i < size; i++) {
                     assertThat(getter.get(i, groups.get("" + i))).isEqualTo(i);
                 }
@@ -180,9 +180,9 @@ class CuckooIdMapperTest {
     @Test
     void emptyStringShouldNotBeFound() throws KeyCollisionException {
         try (IdMapper mapper = getCuckooIdMapperForString(Map.of(1L, "1"))) {
-            mapper.newSetter().put("1", 1, emptyGroup);
+            mapper.newSetter(0).put("1", 1, emptyGroup);
 
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 assertThat(getter.get("1", emptyGroup)).isEqualTo(1);
                 assertThat(getter.get("", emptyGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
             }
@@ -199,10 +199,10 @@ class CuckooIdMapperTest {
             AtomicLong highNodeId = new AtomicLong();
             long batchSize = 1234;
             Race race = new Race();
-            race.addContestants(processors, () -> {
+            race.addContestants(processors, c -> () -> {
                 long cursor = batchSize;
                 long nextNodeId = 0;
-                IdMapper.Setter setter = idMapper.newSetter();
+                IdMapper.Setter setter = idMapper.newSetter(c);
                 for (int j = 0; j < countPerThread; j++) {
                     if (cursor == batchSize) {
                         nextNodeId = highNodeId.getAndAdd(batchSize);
@@ -226,7 +226,7 @@ class CuckooIdMapperTest {
             long count = processors * countPerThread;
             long countWithGapsWorstCase = count + batchSize * processors;
             int correctHits = 0;
-            try (var getter = idMapper.newGetter()) {
+            try (var getter = idMapper.newGetter(0)) {
                 for (long nodeId = 0; nodeId < countWithGapsWorstCase; nodeId++) {
                     long result = getter.get(String.valueOf(nodeId), emptyGroup);
                     if (result != -1) {

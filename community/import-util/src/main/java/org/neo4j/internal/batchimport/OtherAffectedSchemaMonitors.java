@@ -125,7 +125,7 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
      * Will be invoked once for each worker, i.e. this should create a new monitor used by a single thread.
      */
     @Override
-    public SchemaMonitor get() {
+    public SchemaMonitor newMonitor(int workerId) {
         return new OtherAffectedSchemaMonitor();
     }
 

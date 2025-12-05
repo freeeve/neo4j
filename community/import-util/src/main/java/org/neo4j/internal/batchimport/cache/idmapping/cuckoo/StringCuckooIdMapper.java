@@ -66,7 +66,7 @@ public class StringCuckooIdMapper extends CuckooIdMapper {
     }
 
     @Override
-    public Setter newSetter() {
+    public Setter newSetter(int workerId) {
         return (objectInputId, actualId, group) -> {
             String inputId = objectInputId.toString();
 
@@ -82,7 +82,7 @@ public class StringCuckooIdMapper extends CuckooIdMapper {
     }
 
     @Override
-    public Getter newGetter() {
+    public Getter newGetter(int workerId) {
         return new Getter() {
             @Override
             public long get(Object objectInputId, Group group) {

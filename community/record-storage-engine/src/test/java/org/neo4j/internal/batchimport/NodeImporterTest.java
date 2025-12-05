@@ -117,6 +117,7 @@ class NodeImporterTest {
 
         // when
         try (NodeImporter importer = new NodeImporter(
+                0,
                 stores,
                 idMapper,
                 new DataImporter.Monitor(),
@@ -152,6 +153,7 @@ class NodeImporterTest {
 
         // when
         try (NodeImporter importer = new NodeImporter(
+                0,
                 stores,
                 IdMappers.actual(),
                 new DataImporter.Monitor(),
@@ -191,6 +193,7 @@ class NodeImporterTest {
 
         // when
         try (var importer = new NodeImporter(
+                0,
                 stores,
                 mock(IdMapper.class),
                 new DataImporter.Monitor(),

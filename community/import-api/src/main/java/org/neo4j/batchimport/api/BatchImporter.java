@@ -19,12 +19,16 @@
  */
 package org.neo4j.batchimport.api;
 
+import java.io.Closeable;
 import java.io.IOException;
 import org.neo4j.batchimport.api.input.Input;
 
 /**
  * Imports graph data given as {@link Input}.
  */
-public interface BatchImporter {
+public interface BatchImporter extends Closeable {
     void doImport(Input input) throws IOException;
+
+    @Override
+    default void close() throws IOException {}
 }

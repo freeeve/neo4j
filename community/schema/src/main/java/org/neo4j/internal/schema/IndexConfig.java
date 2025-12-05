@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.schema;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -37,7 +38,7 @@ import org.neo4j.values.storable.ValueCategory;
  * Not all value types are supported, however. Only "storable" values are supported, with the additional restriction that temporal and spatial values are
  * <em>not</em> supported.
  */
-public final class IndexConfig {
+public final class IndexConfig implements Serializable {
     private static final IndexConfig EMPTY = new IndexConfig(SortedMaps.immutable.empty());
 
     private final ImmutableSortedMap<String, Value> map;

@@ -80,6 +80,7 @@ class RelationshipImporterTest {
         var output = new ByteArrayOutputStream();
         try (var collector = Collectors.badCollector(output, 1);
                 var importer = new RelationshipImporter(
+                        0,
                         stores,
                         idMapper,
                         new DataStatistics(monitor, new DataStatistics.RelationshipTypeCount[0]),

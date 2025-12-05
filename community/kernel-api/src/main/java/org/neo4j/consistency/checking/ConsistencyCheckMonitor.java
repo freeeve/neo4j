@@ -17,15 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.batchimport.api;
+package org.neo4j.consistency.checking;
 
-import java.io.IOException;
-import org.neo4j.batchimport.api.input.Input;
+public interface ConsistencyCheckMonitor {
+    ConsistencyCheckMonitor NO_MONITOR = entityStatistics -> {};
 
-public interface IncrementalBatchImporter extends BatchImporter {
-    void prepare(Input input) throws IOException;
+    /**
+     * @param entityStatistics statistics over number of entities etc. that the checker saw during the run.
+     */
+    void entityStatistics(EntityStatistics entityStatistics);
 
-    void build(Input input) throws IOException;
-
-    void merge() throws IOException;
+    record EntityStatistics(
+            long numNodes, long numRelationships, long numNodeProperties, long numRelationshipProperties) {}
 }

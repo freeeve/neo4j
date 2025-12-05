@@ -49,12 +49,12 @@ public class CuckooIdMapper implements IdMapper {
     }
 
     @Override
-    public Setter newSetter() {
+    public Setter newSetter(int workerId) {
         return (inputId, actualId, group) -> cuckooTable.insert(getKey(inputId, group), actualId);
     }
 
     @Override
-    public Getter newGetter() {
+    public Getter newGetter(int workerId) {
         return new Getter() {
             @Override
             public long get(Object inputId, Group group) {

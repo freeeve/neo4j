@@ -106,7 +106,7 @@ public class EncodingIdMapperTest {
     public void shouldHandleGreatAmountsOfStuff(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper idMapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
-            IdMapper.Setter setter = idMapper.newSetter();
+            IdMapper.Setter setter = idMapper.newSetter(0);
             PropertyValueLookup inputIdLookup = CONVERT_TO_STRING;
             int count = 300_000;
 
@@ -119,7 +119,7 @@ public class EncodingIdMapperTest {
             idMapper.prepare(inputIdLookup, mock(Collector.class), NONE, LongSets.immutable.empty());
 
             // THEN
-            try (var getter = idMapper.newGetter();
+            try (var getter = idMapper.newGetter(0);
                     var lookup = inputIdLookup.newLookup(true)) {
                 for (long nodeId = 0; nodeId < count; nodeId++) {
                     // the UUIDs here will be generated in the same sequence as above because we reset the random
@@ -141,7 +141,7 @@ public class EncodingIdMapperTest {
 
             // WHEN
             long id;
-            try (var getter = idMapper.newGetter()) {
+            try (var getter = idMapper.newGetter(0)) {
                 id = getter.get("123", globalGroup);
             }
 
@@ -161,7 +161,7 @@ public class EncodingIdMapperTest {
 
             // WHEN
             long id;
-            try (var getter = idMapper.newGetter()) {
+            try (var getter = idMapper.newGetter(0)) {
                 id = getter.get("123", globalGroup);
             }
 
@@ -178,13 +178,13 @@ public class EncodingIdMapperTest {
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
 
             // WHEN
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             setter.put("123", 0, globalGroup);
             setter.put("456", 1, globalGroup);
             mapper.prepare(values("123", "456"), mock(Collector.class), NONE, LongSets.immutable.empty());
 
             // THEN
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 assertEquals(1L, getter.get("456", globalGroup));
                 assertEquals(0L, getter.get("123", globalGroup));
             }
@@ -197,11 +197,11 @@ public class EncodingIdMapperTest {
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, 1)) {
 
             // WHEN
-            mapper.newSetter().put("1", 1, globalGroup);
+            mapper.newSetter(0).put("1", 1, globalGroup);
             mapper.prepare(values(null, "1"), mock(Collector.class), NONE, LongSets.immutable.empty());
 
             // THEN
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 assertEquals(1L, getter.get("1", globalGroup));
                 assertEquals(IdMapper.ID_NOT_FOUND, getter.get("", globalGroup));
             }
@@ -221,11 +221,11 @@ public class EncodingIdMapperTest {
         // Now the strict mapper should detect that these two are not the same by using the property value lookup
         try (var mapper = strictMapper(encoder, Radix.STRING, EncodingIdMapper.NO_MONITOR, 1)) {
             final var nodeId = 7L;
-            mapper.newSetter().put(existingInputId, nodeId, globalGroup);
+            mapper.newSetter(0).put(existingInputId, nodeId, globalGroup);
             Collector collector = mock(Collector.class);
             mapper.prepare(alwaysReturn(existingInputId), collector, NONE, LongSets.immutable.empty());
 
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 assertEquals(nodeId, getter.get(existingInputId, globalGroup));
                 assertEquals(IdMapper.ID_NOT_FOUND, getter.get(nonExistingCollidingInputId, globalGroup));
             }
@@ -240,13 +240,13 @@ public class EncodingIdMapperTest {
             // WHEN
             var v1 = "P_Évora";
             var v2 = "P_Setúbal";
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             setter.put(v1, 0, globalGroup);
             setter.put(v2, 1, globalGroup);
             mapper.prepare(values(v1, v2), mock(Collector.class), NONE, LongSets.immutable.empty());
 
             // THEN
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 assertEquals(1L, getter.get(v2, globalGroup));
                 assertEquals(0L, getter.get(v1, globalGroup));
             }
@@ -262,7 +262,7 @@ public class EncodingIdMapperTest {
         try (IdMapper mapper = mapper(type.encoder(), type.radix(), EncodingIdMapper.NO_MONITOR, processors)) {
 
             // WHEN
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             ValueGenerator values = new ValueGenerator(type.data(random.random()));
             for (int nodeId = 0; nodeId < size; nodeId++) {
                 setter.put(values.lookupProperty(nodeId, INSTANCE), nodeId, globalGroup);
@@ -270,7 +270,7 @@ public class EncodingIdMapperTest {
             mapper.prepare(values, mock(Collector.class), NONE, LongSets.immutable.empty());
 
             // THEN
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 for (int nodeId = 0; nodeId < size; nodeId++) {
                     Object value = values.values.get(nodeId);
                     assertEquals(nodeId, getter.get(value, globalGroup), "Expected " + value + " to map to " + nodeId);
@@ -284,7 +284,7 @@ public class EncodingIdMapperTest {
     public void shouldReportCollisionsForSameInputId(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             PropertyValueLookup values = values("10", "9", "10");
             try (var lookup = values.newLookup(true)) {
                 for (int i = 0; i < 3; i++) {
@@ -310,7 +310,7 @@ public class EncodingIdMapperTest {
         Encoder encoder = mock(Encoder.class);
         when(encoder.encode(any())).thenReturn(12345L);
         try (IdMapper mapper = mapper(encoder, Radix.STRING, monitor, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             PropertyValueLookup ids = values("10", "9");
             try (var lookup = ids.newLookup(true)) {
                 for (int i = 0; i < 2; i++) {
@@ -325,7 +325,7 @@ public class EncodingIdMapperTest {
             // THEN
             verifyNoMoreInteractions(collector);
             verify(monitor).numberOfCollisions(2);
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 assertEquals(0L, getter.get("10", globalGroup));
                 assertEquals(1L, getter.get("9", globalGroup));
             }
@@ -354,7 +354,7 @@ public class EncodingIdMapperTest {
         Group groupA = groups.getOrCreate("A");
         Group groupB = groups.getOrCreate("B");
         try (IdMapper mapper = mapper(encoder, Radix.STRING, monitor, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             PropertyValueLookup ids = values("a", "b", "c", "a", "e", "f");
             Group[] groups = new Group[] {groupA, groupA, groupA, groupB, groupB, groupB};
 
@@ -376,7 +376,7 @@ public class EncodingIdMapperTest {
 
             // THEN
             verify(monitor).numberOfCollisions(4);
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 assertEquals(0L, getter.get(a, groupA));
                 assertEquals(1L, getter.get(b, groupA));
                 assertEquals(2L, getter.get(c, groupA));
@@ -395,7 +395,7 @@ public class EncodingIdMapperTest {
         Group firstGroup = groups.getOrCreate("first");
         Group secondGroup = groups.getOrCreate("second");
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, monitor, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             PropertyValueLookup ids = values("10", "9", "10");
             int id = 0;
             // group 0
@@ -411,7 +411,7 @@ public class EncodingIdMapperTest {
             // WHEN/THEN
             verifyNoMoreInteractions(collector);
             verify(monitor).numberOfCollisions(0);
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 assertEquals(0L, getter.get("10", firstGroup));
                 assertEquals(1L, getter.get("9", firstGroup));
                 assertEquals(2L, getter.get("10", secondGroup));
@@ -428,7 +428,7 @@ public class EncodingIdMapperTest {
         Group secondGroup = groups.getOrCreate("second");
         Group thirdGroup = groups.getOrCreate("third");
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             PropertyValueLookup ids = values("8", "9", "10");
             int id = 0;
             try (var lookup = ids.newLookup(true)) {
@@ -439,7 +439,7 @@ public class EncodingIdMapperTest {
             mapper.prepare(ids, mock(Collector.class), NONE, LongSets.immutable.empty());
 
             // WHEN/THEN
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 assertEquals(0L, getter.get("8", firstGroup));
                 assertEquals(IdMapper.ID_NOT_FOUND, getter.get("8", secondGroup));
                 assertEquals(IdMapper.ID_NOT_FOUND, getter.get("8", thirdGroup));
@@ -464,7 +464,7 @@ public class EncodingIdMapperTest {
             groups.getOrCreate("" + i);
         }
         try (IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, EncodingIdMapper.NO_MONITOR, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
 
             // WHEN
             Integer[] values = new Integer[size];
@@ -476,7 +476,7 @@ public class EncodingIdMapperTest {
             mapper.prepare(values(values), mock(Collector.class), NONE, LongSets.immutable.empty());
 
             // THEN
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 for (int i = 0; i < size; i++) {
                     assertEquals(i, getter.get(i, groups.get("" + i)));
                 }
@@ -496,7 +496,7 @@ public class EncodingIdMapperTest {
             groups.getOrCreate("Group " + i);
         }
         try (var mapper = mapper(encoder, Radix.LONG, EncodingIdMapper.NO_MONITOR, ParallelSort.DEFAULT, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             Function<Long, Integer> nodeIdToGroupId = nodeId -> toIntExact(nodeId / idsPerGroup);
             PropertyValueLookup ids = r -> new PropertyValueLookup.Lookup() {
                 @Override
@@ -533,7 +533,7 @@ public class EncodingIdMapperTest {
 
             // THEN
             verifyNoMoreInteractions(collector);
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 for (long nodeId = 0; nodeId < count; nodeId++) {
                     var groupId = nodeIdToGroupId.apply(nodeId);
                     var inputId = lookup.lookupProperty(nodeId, INSTANCE);
@@ -552,7 +552,7 @@ public class EncodingIdMapperTest {
     public void shouldHandleHolesInIdSequence(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, EncodingIdMapper.NO_MONITOR, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             List<Object> ids = new ArrayList<>();
             for (int i = 0; i < 100; i++) {
                 if (!random.nextBoolean()) {
@@ -566,7 +566,7 @@ public class EncodingIdMapperTest {
             mapper.prepare(values(ids.toArray()), mock(Collector.class), NONE, LongSets.immutable.empty());
 
             // THEN
-            try (var getter = mapper.newGetter()) {
+            try (var getter = mapper.newGetter(0)) {
                 for (Object id : ids) {
                     assertEquals(((Long) id).longValue(), getter.get(id, globalGroup));
                 }
@@ -579,7 +579,7 @@ public class EncodingIdMapperTest {
     public void shouldHandleLargeAmountsOfDuplicateNodeIds(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, EncodingIdMapper.NO_MONITOR, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             long nodeId = 0;
             int high = 10;
             // a list of input ids
@@ -610,7 +610,7 @@ public class EncodingIdMapperTest {
     public void shouldDetectLargeAmountsOfCollisions(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
-            IdMapper.Setter setter = mapper.newSetter();
+            IdMapper.Setter setter = mapper.newSetter(0);
             int count = 20_000;
             List<Object> ids = new ArrayList<>();
             long id = 0;
@@ -650,11 +650,11 @@ public class EncodingIdMapperTest {
             Race race = new Race();
             PropertyValueLookup inputIdLookup = CONVERT_TO_STRING;
             int countPerThread = 30_000;
-            race.addContestants(processors, () -> {
+            race.addContestants(processors, c -> () -> {
                 try (var lookup = inputIdLookup.newLookup(true)) {
                     int cursor = batchSize;
                     long nextNodeId = 0;
-                    IdMapper.Setter setter = idMapper.newSetter();
+                    IdMapper.Setter setter = idMapper.newSetter(c);
                     for (int j = 0; j < countPerThread; j++) {
                         if (cursor == batchSize) {
                             nextNodeId = highNodeId.getAndAdd(batchSize);
@@ -678,7 +678,7 @@ public class EncodingIdMapperTest {
             int count = processors * countPerThread;
             int countWithGapsWorstCase = count + batchSize * processors;
             int correctHits = 0;
-            try (var getter = idMapper.newGetter();
+            try (var getter = idMapper.newGetter(0);
                     var lookup = inputIdLookup.newLookup(true)) {
                 for (long nodeId = 0; nodeId < countWithGapsWorstCase; nodeId++) {
                     long result = getter.get(lookup.lookupProperty(nodeId, INSTANCE), globalGroup);
@@ -705,7 +705,7 @@ public class EncodingIdMapperTest {
             }
         };
         try (IdMapper idMapper = mapper(new LongEncoder(), Radix.LONG, monitor, 4)) {
-            IdMapper.Setter setter = idMapper.newSetter();
+            IdMapper.Setter setter = idMapper.newSetter(0);
             long count = 1_000;
             for (long id = 0; id < count; id++) {
                 long nodeId = id * 2;
@@ -746,7 +746,7 @@ public class EncodingIdMapperTest {
             }
         };
         try (IdMapper idMapper = mapper(encoder, Radix.LONG, NO_MONITOR, comparator, nThreads)) {
-            IdMapper.Setter setter = idMapper.newSetter();
+            IdMapper.Setter setter = idMapper.newSetter(0);
             int count = nThreads * 1_000;
             MutableLong nextNodeId = new MutableLong();
             for (long id = 0; id < count; id++) {
@@ -771,7 +771,7 @@ public class EncodingIdMapperTest {
         try (var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1)) {
 
             // when
-            IdMapper.Setter setter = idMapper.newSetter();
+            IdMapper.Setter setter = idMapper.newSetter(0);
             var data = Map.of(546L, "1", 0L, "1", 547L, "2", 1L, "2", 548L, "3", 2L, "3");
             data.forEach((key, value) -> {
                 try {
@@ -783,7 +783,7 @@ public class EncodingIdMapperTest {
             idMapper.prepare(mapValues(data), Collector.EMPTY, NONE, LongSets.immutable.empty());
 
             // then
-            try (var getter = idMapper.newGetter()) {
+            try (var getter = idMapper.newGetter(0)) {
                 assertThat(getter.get("1", actor)).isEqualTo(546);
                 assertThat(getter.get("1", movie)).isEqualTo(0);
                 assertThat(getter.get("2", actor)).isEqualTo(547);
@@ -794,29 +794,34 @@ public class EncodingIdMapperTest {
         }
     }
 
-    @Test
-    void shouldManuallyRemoveIds() throws KeyCollisionException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldManuallyRemoveIds(boolean removeBeforePrepare) throws KeyCollisionException {
         // given
         var group = groups.getOrCreate("Group");
         try (var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1)) {
-            var setter = idMapper.newSetter();
+            var setter = idMapper.newSetter(0);
             int numNodes = 10;
             for (int i = 0; i < numNodes; i++) {
                 setter.put(String.valueOf(i), i, group);
             }
-            idMapper.prepare(CONVERT_TO_STRING, Collector.EMPTY, NONE, LongSets.immutable.empty());
-            try (var getter = idMapper.newGetter()) {
-                for (long i = 0; i < numNodes; i++) {
-                    assertThat(getter.get(String.valueOf(i), group)).isEqualTo(i);
-                }
-            }
+
+            long removedId = random.nextLong(numNodes);
+            Runnable prepareCall =
+                    () -> idMapper.prepare(CONVERT_TO_STRING, Collector.EMPTY, NONE, LongSets.immutable.empty());
+            Runnable removeCall = () -> idMapper.remove(String.valueOf(removedId), removedId, group);
 
             // when
-            long removedId = random.nextLong(numNodes);
-            idMapper.remove(String.valueOf(removedId), removedId, group);
+            if (removeBeforePrepare) {
+                removeCall.run();
+                prepareCall.run();
+            } else {
+                prepareCall.run();
+                removeCall.run();
+            }
 
             // then
-            try (var getter = idMapper.newGetter()) {
+            try (var getter = idMapper.newGetter(0)) {
                 for (long i = 0; i < numNodes; i++) {
                     assertThat(getter.get(String.valueOf(i), group))
                             .isEqualTo(i == removedId ? IdMapper.ID_NOT_FOUND : i);
@@ -841,7 +846,7 @@ public class EncodingIdMapperTest {
         }
         try (var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1)) {
             // when
-            try (var setter = idMapper.newSetter()) {
+            try (var setter = idMapper.newSetter(0)) {
                 for (long nodeId : data.keySet()) {
                     setter.put(data.get(nodeId), nodeId, group);
                 }
@@ -850,7 +855,7 @@ public class EncodingIdMapperTest {
                     mapValues(data), Collector.STRICT, ProgressMonitorFactory.NONE, LongSets.immutable.empty());
 
             // then
-            try (var getter = idMapper.newGetter()) {
+            try (var getter = idMapper.newGetter(0)) {
                 for (long nodeId : data.keySet()) {
                     var value = data.get(nodeId);
                     assertThat(getter.get(value, group)).isEqualTo(nodeId);

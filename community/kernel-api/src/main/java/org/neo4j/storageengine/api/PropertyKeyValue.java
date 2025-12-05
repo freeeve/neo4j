@@ -19,6 +19,7 @@
  */
 package org.neo4j.storageengine.api;
 
+import java.io.Serializable;
 import org.neo4j.token.api.TokenHolder;
 import org.neo4j.token.api.TokenNotFoundException;
 import org.neo4j.values.storable.Value;
@@ -27,7 +28,7 @@ import org.neo4j.values.storable.Values;
 /**
  * Default implementation of {@link StorageProperty} where the {@link Value} has already been materialized.
  */
-public record PropertyKeyValue(int propertyKeyId, Value value) implements StorageProperty {
+public record PropertyKeyValue(int propertyKeyId, Value value) implements StorageProperty, Serializable {
     public PropertyKeyValue {
         assert value != null;
     }
@@ -51,5 +52,9 @@ public record PropertyKeyValue(int propertyKeyId, Value value) implements Storag
             propertyKeyName = String.valueOf(propertyKeyId);
         }
         return "Property{" + propertyKeyName + "=" + value + '}';
+    }
+
+    public static StorageProperty of(int propertyKeyId, Value value) {
+        return new PropertyKeyValue(propertyKeyId, value);
     }
 }

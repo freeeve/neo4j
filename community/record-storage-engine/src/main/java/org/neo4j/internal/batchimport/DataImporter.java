@@ -32,6 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 import org.neo4j.batchimport.api.Configuration;
@@ -193,8 +194,19 @@ public class DataImporter {
             MemoryTracker memoryTracker,
             SchemaMonitors schemaMonitors)
             throws IOException {
-        Supplier<EntityImporter> importers = () -> new NodeImporter(
-                stores, idMapper, monitor, badCollector, contextFactory, memoryTracker, schemaMonitors.get());
+        AtomicInteger nextWorkerId = new AtomicInteger();
+        Supplier<EntityImporter> importers = () -> {
+            int workerId = nextWorkerId.getAndIncrement();
+            return new NodeImporter(
+                    workerId,
+                    stores,
+                    idMapper,
+                    monitor,
+                    badCollector,
+                    contextFactory,
+                    memoryTracker,
+                    schemaMonitors.newMonitor(workerId));
+        };
         importData(
                 NODE_IMPORT_NAME,
                 configuration,
@@ -219,17 +231,22 @@ public class DataImporter {
             SchemaMonitors schemaMonitors)
             throws IOException {
         DataStatistics typeDistribution = new DataStatistics(monitor, new DataStatistics.RelationshipTypeCount[0]);
-        Supplier<EntityImporter> importers = () -> new RelationshipImporter(
-                stores,
-                idMapper,
-                typeDistribution,
-                monitor,
-                badCollector,
-                validateRelationshipData,
-                stores.usesDoubleRelationshipRecordUnits(),
-                contextFactory,
-                memoryTracker,
-                schemaMonitors.get());
+        AtomicInteger nextWorkerId = new AtomicInteger();
+        Supplier<EntityImporter> importers = () -> {
+            int workerId = nextWorkerId.getAndIncrement();
+            return new RelationshipImporter(
+                    workerId,
+                    stores,
+                    idMapper,
+                    typeDistribution,
+                    monitor,
+                    badCollector,
+                    validateRelationshipData,
+                    stores.usesDoubleRelationshipRecordUnits(),
+                    contextFactory,
+                    memoryTracker,
+                    schemaMonitors.newMonitor(workerId));
+        };
         importData(
                 RELATIONSHIP_IMPORT_NAME,
                 configuration,

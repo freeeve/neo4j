@@ -19,7 +19,9 @@
  */
 package org.neo4j.batchimport.api.input;
 
-public interface ReadableGroups {
+import java.io.Serializable;
+
+public interface ReadableGroups extends Serializable {
     Group get(int id);
 
     Group get(String name);

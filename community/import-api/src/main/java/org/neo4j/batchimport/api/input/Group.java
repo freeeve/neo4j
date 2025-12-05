@@ -19,10 +19,12 @@
  */
 package org.neo4j.batchimport.api.input;
 
+import java.io.Serializable;
+
 /**
  * Group of input ids. Used primarily in mapping otherwise equal ids into different groups.
  */
-public record Group(int id, String name, String specificIdType) {
+public record Group(int id, String name, String specificIdType) implements Serializable {
     public String descriptiveName() {
         return name != null ? name : "global id space";
     }

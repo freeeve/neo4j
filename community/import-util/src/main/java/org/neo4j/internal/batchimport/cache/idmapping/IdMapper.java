@@ -78,9 +78,9 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
     /**
      * @return a {@link Getter} for the current thread to do lookups in.
      */
-    Getter newGetter();
+    Getter newGetter(int workerId);
 
-    Setter newSetter();
+    Setter newSetter(int workerId);
 
     /**
      * Releases all resources used by this {@link IdMapper}.

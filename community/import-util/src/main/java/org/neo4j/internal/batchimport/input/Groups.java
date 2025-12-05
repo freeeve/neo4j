@@ -98,4 +98,17 @@ public class Groups implements ReadableGroups {
     public int size() {
         return nextId;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Groups groups)) {
+            return false;
+        }
+        return nextId == groups.nextId && Objects.equals(byName, groups.byName) && Objects.equals(byId, groups.byId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(byName, byId, nextId);
+    }
 }

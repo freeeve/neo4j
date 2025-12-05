@@ -19,8 +19,10 @@
  */
 package org.neo4j.internal.batchimport;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Objects;
 import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
 import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
@@ -130,25 +132,25 @@ public interface SchemaMonitor extends AutoCloseable {
         IntSet lookupPropertyKeys(long entityId, IntSet keysToLookup);
     }
 
-    class Entity {
-        public final Object inputId;
+    class Entity implements Serializable {
+        public final transient Object inputId;
         public long entityId;
         public final List<StorageProperty> properties;
         public final List<StorageProperty> identifyingProperties;
-        public final ByteBuffer encodedProperties;
-        public final boolean encodedPropertiesOffloaded;
+        public final transient ByteBuffer encodedProperties;
+        public final transient boolean encodedPropertiesOffloaded;
         public final IntSet removedProperties;
         public final IntSet existingEntityTokens;
         public final IntSet entityTokens;
         public final IntSet removedEntityTokens;
         public final ApplicationMode mode;
-        public final String sourceDescription;
-        public final long lineNumber;
+        public final transient String sourceDescription;
+        public final transient long lineNumber;
 
-        private IntObjectMap<Value> propertiesMap;
-        private int[] sortedEntityTokens;
-        private int[] sortedExistingEntityTokens;
-        private IntSet identifierPropertyKeys;
+        private transient IntObjectMap<Value> propertiesMap;
+        private transient int[] sortedEntityTokens;
+        private transient int[] sortedExistingEntityTokens;
+        private transient IntSet identifierPropertyKeys;
 
         public Entity(
                 Object inputId,
@@ -231,13 +233,40 @@ public interface SchemaMonitor extends AutoCloseable {
                     sourceDescription,
                     lineNumber);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Entity entity)) return false;
+            return entityId == entity.entityId
+                    && Objects.equals(properties, entity.properties)
+                    && Objects.equals(identifyingProperties, entity.identifyingProperties)
+                    && Objects.equals(removedProperties, entity.removedProperties)
+                    && Objects.equals(existingEntityTokens, entity.existingEntityTokens)
+                    && Objects.equals(entityTokens, entity.entityTokens)
+                    && Objects.equals(removedEntityTokens, entity.removedEntityTokens)
+                    && mode == entity.mode;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(
+                    entityId,
+                    properties,
+                    identifyingProperties,
+                    removedProperties,
+                    existingEntityTokens,
+                    entityTokens,
+                    removedEntityTokens,
+                    mode);
+        }
     }
 
     class Relationship extends Entity {
         public final long startNodeId;
         public final long endNodeId;
-        public final Object startId;
-        public final Object endId;
+        public final transient Object startId;
+        public final transient Object endId;
 
         public Relationship(
                 long entityId,
@@ -318,6 +347,19 @@ public interface SchemaMonitor extends AutoCloseable {
                     endId,
                     sourceDescription,
                     lineNumber);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Relationship that)) return false;
+            if (!super.equals(o)) return false;
+            return startNodeId == that.startNodeId && endNodeId == that.endNodeId;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), startNodeId, endNodeId);
         }
     }
 

@@ -22,6 +22,7 @@ package org.neo4j.values.storable;
 import static java.lang.String.format;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -41,7 +42,7 @@ import org.neo4j.values.Equality;
 import org.neo4j.values.SequenceValue;
 import org.neo4j.values.TernaryComparator;
 
-public abstract class Value extends AnyValue {
+public abstract class Value extends AnyValue implements Serializable {
     private static final Pattern MAP_PATTERN = Pattern.compile("\\{(.*)}");
 
     public static final Pattern QUOTES_PATTERN = Pattern.compile("^[\"']|[\"']$");

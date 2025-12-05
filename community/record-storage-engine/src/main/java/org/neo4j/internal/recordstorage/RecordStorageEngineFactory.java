@@ -66,6 +66,7 @@ import org.neo4j.consistency.checker.EntityBasedMemoryLimiter;
 import org.neo4j.consistency.checker.RecordStorageConsistencyChecker;
 import org.neo4j.consistency.checking.ByteArrayBitsManipulator;
 import org.neo4j.consistency.checking.ConsistencyCheckIncompleteException;
+import org.neo4j.consistency.checking.ConsistencyCheckMonitor;
 import org.neo4j.consistency.checking.ConsistencyFlags;
 import org.neo4j.consistency.report.ConsistencySummaryStatistics;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
@@ -898,7 +899,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             LogTailMetadata logTailMetadata,
-            MemoryTracker memoryTracker)
+            MemoryTracker memoryTracker,
+            ConsistencyCheckMonitor monitor)
             throws ConsistencyCheckIncompleteException {
         IdGeneratorFactory idGeneratorFactory = new DefaultIdGeneratorFactory(
                 fileSystem, RecoveryCleanupWorkCollector.ignore(), pageCacheTracer, layout.getDatabaseName());

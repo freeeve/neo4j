@@ -72,6 +72,7 @@ public class RelationshipImporter extends EntityImporter {
     private String type;
 
     protected RelationshipImporter(
+            int workerId,
             BatchingNeoStores stores,
             IdMapper idMapper,
             DataStatistics typeDistribution,
@@ -85,7 +86,7 @@ public class RelationshipImporter extends EntityImporter {
         super(stores, monitor, contextFactory, memoryTracker, schemaMonitor);
         this.doubleRecordUnits = doubleRecordUnits;
         this.relationshipTypeTokenRepository = stores.getTokenHolders().relationshipTypeTokens();
-        this.idMapper = idMapper.newGetter();
+        this.idMapper = idMapper.newGetter(workerId);
         this.badCollector = badCollector;
         this.validateRelationshipData = validateRelationshipData;
         this.relationshipStore = stores.getRelationshipStore();

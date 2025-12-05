@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.schema.constraints;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -31,8 +32,7 @@ import java.util.stream.Stream;
  * An ordered set of {@link ConstrainableType}s, used to represent unions of types.
  * The order is defined in CIP-100 and implemented in terms of the natural ordering of {@link TypeRepresentation.Ordering}.
  */
-public class PropertyTypeSet implements Iterable<ConstrainableType> {
-
+public class PropertyTypeSet implements Iterable<ConstrainableType>, Serializable {
     private final Set<? extends ConstrainableType> lookup;
     private final List<? extends ConstrainableType> types;
     private final boolean acceptsEmptyList;

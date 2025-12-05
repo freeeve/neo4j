@@ -56,7 +56,7 @@ public final class IdMappers {
 
     private static class ActualIdMapper implements IdMapper, IdMapper.Getter {
         @Override
-        public Setter newSetter() {
+        public Setter newSetter(int workerId) {
             return (inputId, actualId, group) -> {};
         }
 
@@ -84,7 +84,7 @@ public final class IdMappers {
         }
 
         @Override
-        public Getter newGetter() {
+        public Getter newGetter(int workerId) {
             return this;
         }
 

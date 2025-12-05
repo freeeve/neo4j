@@ -24,6 +24,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.function.Consumer;
 import java.util.stream.DoubleStream;
@@ -262,6 +263,10 @@ public class RandomSupport {
 
     public <T> T among(RichIterable<T> among) {
         return randoms.among(among);
+    }
+
+    public <K, V> Map.Entry<K, V> among(Map<K, V> map) {
+        return among(map.entrySet().toArray(new Map.Entry[0]));
     }
 
     public Object nextValueAsObject() {

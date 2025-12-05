@@ -62,7 +62,7 @@ public interface SchemaMonitors extends Closeable {
         public void close() {}
 
         @Override
-        public SchemaMonitor get() {
+        public SchemaMonitor newMonitor(int workerId) {
             return SchemaMonitor.NO_MONITOR;
         }
     };
@@ -99,5 +99,5 @@ public interface SchemaMonitors extends Closeable {
 
     Optional<IndexAccessor> openIndexAccessor(long indexId) throws IOException;
 
-    SchemaMonitor get();
+    SchemaMonitor newMonitor(int workerId);
 }

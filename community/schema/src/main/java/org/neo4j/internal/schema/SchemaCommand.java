@@ -29,6 +29,7 @@ import static org.neo4j.internal.schema.SchemaCommandUtils.backingIndex;
 import static org.neo4j.internal.schema.SchemaCommandUtils.forSchema;
 import static org.neo4j.internal.schema.SchemaCommandUtils.withName;
 
+import java.io.Serializable;
 import java.util.List;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
@@ -38,7 +39,7 @@ import org.neo4j.token.TokenHolders;
 /**
  * Defines the different types of schema changes that can be performed in Cypher.
  */
-public sealed interface SchemaCommand {
+public sealed interface SchemaCommand extends Serializable {
 
     /**
      * @return the name of the schema change

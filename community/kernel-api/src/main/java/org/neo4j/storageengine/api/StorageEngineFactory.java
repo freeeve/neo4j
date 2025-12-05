@@ -46,6 +46,7 @@ import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.consistency.checking.ConsistencyCheckIncompleteException;
+import org.neo4j.consistency.checking.ConsistencyCheckMonitor;
 import org.neo4j.consistency.checking.ConsistencyFlags;
 import org.neo4j.consistency.report.ConsistencySummaryStatistics;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
@@ -486,12 +487,13 @@ public interface StorageEngineFactory {
      * @param numberOfThreads max number of threads to use.
      * @param maxOffHeapCachingMemory max amount of off-heap memory that the checker can allocate for caching data.
      * @param progressOutput output where progress of the check is printed, or {@code null} if no progress should be printed.
-     * @param verbose whether or not to print verbose progress output.
+     * @param verbose whether to print verbose progress output.
      * @param flags which parts of the store/indexes to check.
      * @param contextFactory underlying page cursor context factory.
      * @param pageCacheTracer underlying page cache tracer
-     * @param logTailMetadata meta data read from the tx log.
-     * @param memoryTracker
+     * @param logTailMetadata meta-data read from the tx log.
+     * @param memoryTracker for tracking memory usage.
+     * @param monitor for additional and optional monitoring.
      * @throws ConsistencyCheckIncompleteException on failure doing the consistency check.
      */
     void consistencyCheck(
@@ -511,7 +513,8 @@ public interface StorageEngineFactory {
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             LogTailMetadata logTailMetadata,
-            MemoryTracker memoryTracker)
+            MemoryTracker memoryTracker,
+            ConsistencyCheckMonitor monitor)
             throws ConsistencyCheckIncompleteException;
 
     /**
