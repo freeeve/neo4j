@@ -19,8 +19,7 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import static java.lang.String.format;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.impl.index.schema.NativeIndexKey.Inclusion.NEUTRAL;
 
@@ -77,24 +76,7 @@ public class NativeValueIndexUtility<KEY extends NativeIndexKey<KEY>> {
     }
 
     private void assertSameHits(List<KEY> expectedHits, List<KEY> actualHits, Comparator<KEY> comparator) {
-        expectedHits.sort(comparator);
-        actualHits.sort(comparator);
-        assertEquals(
-                expectedHits.size(),
-                actualHits.size(),
-                format(
-                        "Array length differ%nExpected size:%d, Actual size:%d%n" + "Expected hits: %s%n"
-                                + "Actual hits: %s",
-                        expectedHits.size(), actualHits.size(), expectedHits, actualHits));
-
-        for (int i = 0; i < expectedHits.size(); i++) {
-            KEY expected = expectedHits.get(i);
-            KEY actual = actualHits.get(i);
-            assertEquals(
-                    0,
-                    comparator.compare(expected, actual),
-                    "Hits differ on item number " + i + ". Expected " + expected + " but was " + actual);
-        }
+        assertThat(actualHits).usingElementComparator(comparator).containsExactlyInAnyOrderElementsOf(expectedHits);
     }
 
     private KEY deepCopy(Seeker<KEY, NullValue> from) {
