@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexDefinition
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexDefinition.EntityType
 import org.neo4j.cypher.internal.compiler.planner.logical.CostModelMonitor
 import org.neo4j.cypher.internal.compiler.planner.logical.ExpressionEvaluator
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.CardinalityModel
@@ -74,6 +75,7 @@ trait LogicalPlanningConfiguration {
   ]
   def graphStatistics: GraphStatistics
   def indexes: Map[IndexDef, IndexAttributes]
+  def vectorIndexes: Map[String, VectorIndexDefinition]
   def nodeConstraints: Set[(String, Set[String])]
   def relationshipConstraints: Set[(String, Set[String])]
   def procedureSignatures: Set[ProcedureSignature]
@@ -101,6 +103,12 @@ trait LogicalPlanningConfiguration {
 }
 
 case class IndexDef(entityType: IndexDefinition.EntityType, propertyKeys: Seq[String], indexType: IndexType)
+
+case class VectorIndexDefinition(
+  name: String,
+  entityType: EntityType,
+  propertyKey: String
+)
 
 class IndexAttributes(
   var isUnique: Boolean = false,
@@ -137,6 +145,15 @@ trait LogicalPlanningConfigurationAdHocSemanticTable {
       case IndexDef(IndexDefinition.EntityType.Relationship(relationshipType), properties, _) =>
         addRelationshipTypeIfUnknown(relationshipType)
         properties.foreach(addPropertyKeyIfUnknown)
+    }
+
+    vectorIndexes.values.foreach {
+      case VectorIndexDefinition(_, IndexDefinition.EntityType.Node(label), property) =>
+        addLabelIfUnknown(label)
+        addPropertyKeyIfUnknown(property)
+      case VectorIndexDefinition(_, IndexDefinition.EntityType.Relationship(relationshipType), property) =>
+        addRelationshipTypeIfUnknown(relationshipType)
+        addPropertyKeyIfUnknown(property)
     }
 
     labelCardinality.keys.foreach(addLabelIfUnknown)

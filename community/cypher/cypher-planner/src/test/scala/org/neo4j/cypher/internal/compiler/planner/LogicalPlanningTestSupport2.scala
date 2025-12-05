@@ -110,6 +110,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
+import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
@@ -121,11 +122,13 @@ import org.neo4j.cypher.internal.util.attribution.Attribute
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.exceptions.VectorIndexSearchException
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.scalatestplus.mockito.MockitoSugar
 
 import scala.language.implicitConversions
+import scala.util.Try
 
 object LogicalPlanningTestSupport2 extends MockitoSugar {
 
@@ -367,18 +370,22 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
         case (indexDef: IndexDef, indexAttributes: IndexAttributes) => newIndexDescriptor(indexDef, indexAttributes)
       }.toIterator
 
+      override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] = {
+        config.vectorIndexes.get(indexName) match {
+          case Some(vectorIndex) =>
+            scala.util.Success(VectorIndexDescriptor(
+              toIndexDescriptorEntityType(vectorIndex.entityType),
+              semanticTable.resolvedPropertyKeyNames(vectorIndex.propertyKey)
+            ))
+          case None => scala.util.Failure(VectorIndexSearchException.indexNotFound(indexName))
+        }
+      }
+
       override def procedureSignatureVersion: Long = -1
 
       private def newIndexDescriptor(indexDef: IndexDef, indexAttributes: IndexAttributes) = {
         val canGetValue = if (indexAttributes.withValues) CanGetValue else DoNotGetValue
-        val entityType = indexDef.entityType match {
-          case IndexDefinition.EntityType.Node(label) => IndexDescriptor.EntityType.Node(
-              semanticTable.resolvedLabelNames(label)
-            )
-          case IndexDefinition.EntityType.Relationship(relType) => IndexDescriptor.EntityType.Relationship(
-              semanticTable.resolvedRelTypeNames(relType)
-            )
-        }
+        val entityType = toIndexDescriptorEntityType(indexDef.entityType)
 
         val indexCapability = indexDef.indexType match {
           case IndexType.Range => IndexCapabilities.range
@@ -395,6 +402,16 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
           maybeKernelIndexCapability = Some(indexCapability),
           isUnique = indexAttributes.isUnique
         )
+      }
+
+      private def toIndexDescriptorEntityType(indexDefEntityType: IndexDefinition.EntityType)
+        : IndexDescriptor.EntityType = indexDefEntityType match {
+        case IndexDefinition.EntityType.Node(label) => IndexDescriptor.EntityType.Node(
+            semanticTable.resolvedLabelNames(label)
+          )
+        case IndexDefinition.EntityType.Relationship(relType) => IndexDescriptor.EntityType.Relationship(
+            semanticTable.resolvedRelTypeNames(relType)
+          )
       }
 
       override def nodeTokenIndex: Option[TokenIndexDescriptor] =
@@ -467,6 +484,10 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
         }
       }
 
+      override def getLabelName(id: Int): String = config.labelsById(id)
+
+      override def getRelTypeName(id: Int): String = config.relTypesById(id)
+
       override def indexExistsForRelType(relTypeId: Int): Boolean = {
         val relTypeName = config.relTypesById(relTypeId)
         config.indexes.keys.exists {
@@ -477,6 +498,9 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
 
       override def getOptPropertyKeyId(propertyKeyName: String): Option[Int] =
         semanticTable.resolvedPropertyKeyNames.get(propertyKeyName).map(_.id)
+
+      override def getPropertyKeyName(id: Int): String =
+        semanticTable.resolvedPropertyKeyNames.find(_._2.id == id).map(_._1).get
 
       override def getOptLabelId(labelName: String): Option[Int] =
         semanticTable.resolvedLabelNames.get(labelName).map(_.id)

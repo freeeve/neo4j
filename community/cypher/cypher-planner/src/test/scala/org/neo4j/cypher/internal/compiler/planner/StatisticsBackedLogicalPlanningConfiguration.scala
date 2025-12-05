@@ -247,12 +247,6 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
     }
   }
 
-  case class VectorIndexDefinition(
-    name: String,
-    entityType: EntityType,
-    propertyKey: String
-  )
-
   case class Indexes(
     nodeLookupIndex: Option[TokenIndexDescriptor] =
       Some(TokenIndexDescriptor(common.EntityType.NODE, IndexOrderCapability.BOTH)),

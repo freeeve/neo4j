@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
-import org.neo4j.cypher.internal.expressions.VectorSearchPredicate
+import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport {
@@ -53,18 +53,20 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
       Map.empty
     )
 
-    val vectorSearchExpression = VectorSearchPredicate(
+    val vectorSearchExpression = VectorSearchClause(
       bindingVariable = v"movie",
       indexName = "moviePlots",
       embedding = prop("m", "embedding"),
-      limit = SignedDecimalIntegerLiteral("5")(pos)
+      limit = SignedDecimalIntegerLiteral("5")(pos),
+      scoreVariable = None
     )(pos)
-    val expectedExpressions = Seq(hasLabels("movie", "Movie"), vectorSearchExpression, hasLabels("m", "Movie"))
+    val expectedExpressions = Seq(hasLabels("movie", "Movie"), hasLabels("m", "Movie"))
 
     query.asSinglePlannerQuery.queryGraph.selections.flatPredicates shouldEqual expectedExpressions
+    query.asSinglePlannerQuery.queryGraph.searchClause shouldEqual Some(vectorSearchExpression)
   }
 
-  test("Match Search should not allow returning a Score before it is implemented.") {
+  test("Match Search should allow returning a Score.") {
     val q = """MATCH (m:Movie)
               |MATCH (movie:Movie)
               |  SEARCH movie IN (
@@ -74,14 +76,26 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
               |  ) SCORE as score
               |RETURN score, movie.title AS title """.stripMargin
 
-    assertThrows[IllegalArgumentException](buildPlannerQuery(
+    val query = buildPlannerQuery(
       CypherVersion.Cypher25,
       q,
       None,
       None,
       compareVersions = false,
       Map.empty
-    ))
+    )
+
+    val vectorSearchExpression = VectorSearchClause(
+      bindingVariable = v"movie",
+      indexName = "moviePlots",
+      embedding = prop("m", "embedding"),
+      limit = SignedDecimalIntegerLiteral("5")(pos),
+      scoreVariable = Some(v"score")
+    )(pos)
+    val expectedExpressions = Seq(hasLabels("movie", "Movie"), hasLabels("m", "Movie"))
+
+    query.asSinglePlannerQuery.queryGraph.selections.flatPredicates shouldEqual expectedExpressions
+    query.asSinglePlannerQuery.queryGraph.searchClause shouldEqual Some(vectorSearchExpression)
   }
 
 }

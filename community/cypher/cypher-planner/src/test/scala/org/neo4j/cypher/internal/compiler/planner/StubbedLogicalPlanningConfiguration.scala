@@ -71,6 +71,8 @@ trait FakeIndexAndConstraintManagement {
 
   var procedureSignatures: Set[ProcedureSignature] = Set.empty
 
+  var vectorIndexes: Map[String, VectorIndexDefinition] = Map.empty
+
   def indexOn(label: String, properties: String*): IndexModifier = {
     val indexDef =
       indexOn(label, properties, isUnique = false, withValues = false, IndexOrderCapability.NONE, IndexType.Range)
@@ -87,6 +89,22 @@ trait FakeIndexAndConstraintManagement {
     val indexDef =
       indexOn(label, properties, isUnique = false, withValues = false, IndexOrderCapability.NONE, IndexType.Text)
     IndexModifier(indexes(indexDef))
+  }
+
+  def nodeVectorIndexOn(indexName: String, label: String, property: String): Unit = {
+    vectorIndexes += indexName -> VectorIndexDefinition(
+      indexName,
+      IndexDefinition.EntityType.Node(label),
+      property
+    )
+  }
+
+  def relationshipVectorIndexOn(indexName: String, relType: String, property: String): Unit = {
+    vectorIndexes += indexName -> VectorIndexDefinition(
+      indexName,
+      IndexDefinition.EntityType.Relationship(relType),
+      property
+    )
   }
 
   def relationshipIndexOn(relationshipType: String, properties: String*): IndexModifier = {
@@ -215,7 +233,9 @@ class StubbedLogicalPlanningConfiguration(val parent: LogicalPlanningConfigurati
   lazy val labelsById: Map[Int, String] = {
     val indexed = indexes.keys.collect {
       case IndexDef(IndexDefinition.EntityType.Node(label), _, _) => label
-    }.toSeq
+    }.toSeq ++ vectorIndexes.values.collect {
+      case VectorIndexDefinition(_, IndexDefinition.EntityType.Node(label), _) => label
+    }
     val known = knownLabels.toSeq
     val indexedThenKnown = (indexed ++ known).distinct
     indexedThenKnown.zipWithIndex.map(_.swap).toMap
@@ -224,7 +244,9 @@ class StubbedLogicalPlanningConfiguration(val parent: LogicalPlanningConfigurati
   lazy val relTypesById: Map[Int, String] = {
     val indexed = indexes.keys.collect {
       case IndexDef(IndexDefinition.EntityType.Relationship(relationshipType), _, _) => relationshipType
-    }.toSeq
+    }.toSeq ++ vectorIndexes.values.collect {
+      case VectorIndexDefinition(_, IndexDefinition.EntityType.Relationship(relationshipType), _) => relationshipType
+    }
     val known = knownRelationships.toSeq
     val indexedThenKnown = (indexed ++ known).distinct
     indexedThenKnown.zipWithIndex.map(_.swap).toMap

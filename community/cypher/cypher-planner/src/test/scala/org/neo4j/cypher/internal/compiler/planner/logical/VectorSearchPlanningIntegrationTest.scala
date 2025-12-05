@@ -24,10 +24,12 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
+import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.exceptions.VectorIndexSearchException
 
@@ -77,17 +79,14 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
-          score = "",
           argumentIds = Set(),
           getValueFromIndex = Map("plot" -> GetValue)
         )
         .build()
   }
 
-  // TODO: this incorrectly gets rejected by semantic analysis, probably because of NameAllPatternElements
-  //  See SURF-283
-  ignore("plan node vector index search as part of a longer path pattern") {
-    val planner = plannerBuilder().enablePrintCostComparisons().build()
+  test("plan node vector index search as part of a longer path pattern") {
+    val planner = plannerBuilder().build()
 
     val query =
       """MATCH (movie:Movie)-->()
@@ -103,7 +102,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults(column("movie", "cacheN[movie.plot]"))
-        .expandAll("(movie)-[`  UNNAMED0`]->(`  UNNAMED1`)")
+        .expandAll("(movie)-[]->()")
         .filter("movie:Movie")
         .nodeVectorIndexSearch(
           "movie",
@@ -214,6 +213,38 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "$limit",
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
+        .build()
+  }
+
+  test("plan node vector index search projecting the score variable") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  ) SCORE as similarity
+        |RETURN movie, similarity""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults(column("movie", "cacheN[movie.plot]"), column("similarity"))
+        .filter("movie:Movie")
+        .nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          score = "similarity",
+          argumentIds = Set(),
           getValueFromIndex = Map("plot" -> GetValue)
         )
         .build()
@@ -623,9 +654,8 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         |  )
         |RETURN c.description AS contributionDesc""".stripMargin
 
-    // Currently this gives an assertion error:
-    //    assertion failed: unexpected dependencies Set(Variable(r)) in vector search predicate VectorSearchPredicate(Variable(c),
-    intercept[AssertionError] {
+    // Currently this gives an assertion error in VerifyBestPlan
+    intercept[InternalException] {
       planner.plan(CypherVersion.Cypher25, query)
     }
 
@@ -678,6 +708,144 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           "actsInScript",
           "$embedding",
           "10"
+        )
+        .build()
+  }
+
+  ignore("plan vector index using another variable in the embedding") {
+    // Currently cartesian products do not allow vector search to be planned later
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 120)
+      .build()
+
+    val query =
+      """MATCH (person:Person)
+        |MATCH (movie:Movie)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR person.embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie, person""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults(column("movie", "cacheN[movie.plot]"), column("person"))
+        .apply()
+        .|.filter("movie:Movie")
+        .|.nodeVectorIndexSearch(
+          "movie",
+          Seq("Movie"),
+          Seq("plot"),
+          "moviePlots",
+          "$embedding",
+          "person.limit",
+          argumentIds = Set("person"),
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
+        .allNodeScan("person")
+        .build()
+  }
+
+  test("should support using a returned score in subsequent predicates") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie) WHERE movie.plot IS NOT NULL
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  ) SCORE AS similarity
+        |WITH movie, similarity
+        |WHERE similarity > 0.8
+        |RETURN movie.plot, similarity""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`movie.plot`", "similarity")
+        .projection("cacheN[movie.plot] AS `movie.plot`")
+        .filter("similarity > 0.8", "cacheN[movie.plot] IS NOT NULL", "movie:Movie")
+        .nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          score = "similarity",
+          argumentIds = Set(),
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
+        .build()
+  }
+
+  test("should not use the countStore to count when using vector search") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  ) SCORE AS similarity
+        |RETURN count(*)""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`count(*)`")
+        .aggregation(Seq(), Seq("count(*) AS `count(*)`"))
+        .filter("movie:Movie")
+        .nodeVectorIndexSearch(
+          "movie",
+          Seq("Movie"),
+          Seq("plot"),
+          "moviePlots",
+          "$embedding",
+          "10",
+          "similarity",
+          Set(),
+          Map("plot" -> DoNotGetValue)
+        )
+        .build()
+  }
+
+  test("should use getDegree when using vector search") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie)
+        |  WHERE NOT (movie)-[]->()
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults(column("movie", "cacheN[movie.plot]"))
+        .filter(not(hasDegreeGreater("movie", OUTGOING, literalInt(0))), "movie:Movie")
+        .nodeVectorIndexSearch(
+          "movie",
+          Seq("Movie"),
+          Seq("plot"),
+          "moviePlots",
+          "$embedding",
+          "10",
+          "",
+          Set(),
+          Map("plot" -> GetValue)
         )
         .build()
   }

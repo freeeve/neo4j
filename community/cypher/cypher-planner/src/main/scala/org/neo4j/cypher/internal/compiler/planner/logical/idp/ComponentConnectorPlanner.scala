@@ -70,11 +70,14 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
     // kit.select plans predicates and shortest path patterns. If nothing is left in this area, and no ORDER BY, we can skip IDP.
     val allSolved = components.flatMap(_.queryGraph.selections.predicates)
     val notYetSolved = queryGraph.selections.predicates -- allSolved
+    val allSolvedSearchClauses = components.flatMap(_.queryGraph.searchClause)
+    val searchClauseNotYetSolved = queryGraph.searchClause.filterNot(allSolvedSearchClauses.contains)
     val canUseHeuristic =
       notYetSolved.isEmpty &&
         queryGraph.optionalMatches.isEmpty &&
         queryGraph.shortestRelationshipPatterns.isEmpty &&
-        interestingOrderConfig.orderToSolve.isEmpty
+        interestingOrderConfig.orderToSolve.isEmpty &&
+        searchClauseNotYetSolved.isEmpty
 
     if (canUseHeuristic) {
       if (components.size == 1) {
@@ -107,6 +110,7 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
             .removeShortestRelationships(
               predicatesAndLegacyShortestWithArgumentDependenciesOnly.shortestRelationshipPatterns
             )
+            .removeSearchPredicate(predicatesAndLegacyShortestWithArgumentDependenciesOnly.searchPredicate)
           kit.select(plan, fixedQg)
         })
       }

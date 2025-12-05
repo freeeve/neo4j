@@ -44,7 +44,6 @@ import org.neo4j.cypher.internal.ast.RemovePropertyItem
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
-import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.SetClause
 import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
@@ -112,6 +111,7 @@ import org.neo4j.cypher.internal.ir.QueryPagination
 import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
+import org.neo4j.cypher.internal.ir.SearchClause
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SetDynamicPropertyPattern
 import org.neo4j.cypher.internal.ir.SetLabelPattern
@@ -215,12 +215,6 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
 
   private def asSelections(optWhere: Option[Where]) =
     Selections(optWhere.map(_.expression.asPredicates).getOrElse(Set.empty))
-
-  private def asSelections(optWhere: Option[Where], search: Option[Search]) =
-    Selections(
-      optWhere.map(_.expression.asPredicates).getOrElse(Set.empty) ++
-        search.map(_.asExpression.asPredicates).getOrElse(Set.empty)
-    )
 
   private def asQueryProjection(
     distinct: Boolean,
@@ -604,7 +598,7 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
         .withHorizon(PassthroughAllHorizon())
         .withTail(acc.emptySinglePlannerQuery)
 
-    val selections = asSelections(clause.where, clause.search)
+    val selections = asSelections(clause.where)
 
     val (accWithMaybeHorizon, remainingSelections) =
       if (acc.currentQueryGraph.containsUpdates) {
@@ -632,7 +626,8 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
           // It's either all or nothing per match clause.
           QueryGraph(
             selections = remainingSelections,
-            hints = clause.hints.toListSet
+            hints = clause.hints.toListSet,
+            searchClause = SearchClause.fromAst(clause.search)
           ).addPathPatterns(pathPatterns)
         )
       }
@@ -643,6 +638,7 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
             .addSelections(remainingSelections)
             .addHints(clause.hints)
             .addPathPatterns(pathPatterns)
+            .addSearchClause(SearchClause.fromAst(clause.search))
       }
     }
   }

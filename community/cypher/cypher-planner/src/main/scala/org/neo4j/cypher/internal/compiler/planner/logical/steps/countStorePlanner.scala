@@ -93,7 +93,8 @@ case object countStorePlanner {
           hints,
           shortestRelationshipPatterns,
           _,
-          shortestPathPatterns
+          shortestPathPatterns,
+          None // Do not use the count store when there is a search clause
         )
         if hints.isEmpty && shortestRelationshipPatterns.isEmpty && quantifiedPathPatterns.isEmpty && query.queryGraph.readOnly && patternHasNoDependencies && shortestPathPatterns.isEmpty =>
         checkForValidAggregations(

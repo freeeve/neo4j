@@ -106,7 +106,6 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     kit: QueryPlannerKit,
     singleComponentPlanner: SingleComponentPlannerTrait
   ): BestPlans = {
-
     @tailrec
     def recurse(
       plans: Set[PlannedComponent],

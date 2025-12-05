@@ -39,7 +39,6 @@ import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
-import org.neo4j.cypher.internal.expressions.VectorSearchPredicate
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -68,30 +67,6 @@ case class Search(
   limit: Limit
 )(val position: InputPosition)
     extends ASTNode with SemanticCheckable with SemanticAnalysisTooling {
-
-  def asExpression: Expression = {
-    indexName match {
-      case Right(_) =>
-        // We currently only support String, update this when we allow Parameter.
-        throw new IllegalArgumentException(
-          s"Index name as Parameter is not supported in the expression form of SEARCH at position $position"
-        )
-      case Left(indexName) =>
-        score match {
-          case Some(score) => // TODO: Support Score variable in planning https://linear.app/neo4j/issue/PLAN-2844/plan-vector-search-where-score-is-returned
-            throw new IllegalArgumentException(
-              s"Score is not supported in the expression form of SEARCH at position $position"
-            )
-          case None =>
-            VectorSearchPredicate(
-              bindingVariable,
-              indexName,
-              embedding,
-              limit.expression
-            )(position)
-        }
-    }
-  }
 
   def semanticCheck: SemanticCheck = {
     checkSearchFeatureFlag() ifOkChain

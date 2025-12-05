@@ -72,7 +72,8 @@ final case class QueryGraph private (
   hints: ListSet[Hint] = ListSet.empty,
   shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = Set.empty,
   mutatingPatterns: IndexedSeq[MutatingPattern] = IndexedSeq.empty,
-  selectivePathPatterns: Set[SelectivePathPattern] = Set.empty
+  selectivePathPatterns: Set[SelectivePathPattern] = Set.empty,
+  searchClause: Option[SearchClause] = None
   // !!! If you change anything here, make sure to update the equals, ++ and hashCode methods at the bottom of this class !!!
 ) extends UpdateGraph {
 
@@ -87,7 +88,8 @@ final case class QueryGraph private (
     hints: ListSet[Hint] = hints,
     shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = shortestRelationshipPatterns,
     mutatingPatterns: IndexedSeq[MutatingPattern] = mutatingPatterns,
-    selectivePathPatterns: Set[SelectivePathPattern] = selectivePathPatterns
+    selectivePathPatterns: Set[SelectivePathPattern] = selectivePathPatterns,
+    searchClause: Option[SearchClause] = searchClause
   ): QueryGraph =
     new QueryGraph(
       patternRelationships,
@@ -99,7 +101,8 @@ final case class QueryGraph private (
       hints,
       shortestRelationshipPatterns,
       mutatingPatterns,
-      selectivePathPatterns
+      selectivePathPatterns,
+      searchClause
     )
 
   val nodeConnections: Set[NodeConnection] = Set.empty[NodeConnection] ++
@@ -174,6 +177,9 @@ final case class QueryGraph private (
   // Add elements
   // ------------
 
+  def addSearchClause(searchClause: Option[SearchClause]): QueryGraph =
+    copy(searchClause = appendOtherSearchClause(searchClause))
+
   def addPathPatterns(pathPatterns: PathPatterns): QueryGraph =
     pathPatterns.pathPatterns.foldLeft(this) {
       case (qg, pathPattern) => qg.addPathPattern(pathPattern)
@@ -236,6 +242,11 @@ final case class QueryGraph private (
 
   def removeShortestRelationships(toRemove: Set[ShortestRelationshipPattern]): QueryGraph = {
     copy(shortestRelationshipPatterns = shortestRelationshipPatterns -- toRemove)
+  }
+
+  def removeSearchPredicate(toRemove: Option[SearchClause]): QueryGraph = toRemove match {
+    case Some(nonEmptyPredicate) => copy(searchClause = searchClause.filterNot(_ == nonEmptyPredicate))
+    case None                    => this
   }
 
   /**
@@ -336,11 +347,12 @@ final case class QueryGraph private (
    * Dependencies from this QG to variables - from WHERE predicates and update clauses using expressions
    */
   def dependencies: Set[LogicalVariable] =
-    optionalMatches.flatMap(_.dependencies).toSet ++
+    optionalMatches.flatMap(_.dependencies) ++
       selections.predicates.flatMap(_.dependencies) ++
       mutatingPatterns.flatMap(_.dependencies) ++
       quantifiedPathPatterns.flatMap(_.dependencies) ++
       selectivePathPatterns.flatMap(_.dependencies) ++
+      searchClause.map(_.dependencies).getOrElse(Set.empty) ++
       argumentIds
 
   /**
@@ -484,7 +496,8 @@ final case class QueryGraph private (
           otherHints,
           otherShortestRelationshipPatterns,
           otherMutatingPatterns,
-          otherSelectivePathPatterns
+          otherSelectivePathPatterns,
+          otherVectorSearchPredicate
         ) =>
         QueryGraph(
           selections = selections ++ otherSelections,
@@ -496,10 +509,22 @@ final case class QueryGraph private (
           hints = hints ++ otherHints,
           shortestRelationshipPatterns = shortestRelationshipPatterns ++ otherShortestRelationshipPatterns,
           mutatingPatterns = mutatingPatterns ++ otherMutatingPatterns,
-          selectivePathPatterns = selectivePathPatterns ++ otherSelectivePathPatterns
+          selectivePathPatterns = selectivePathPatterns ++ otherSelectivePathPatterns,
+          searchClause = appendOtherSearchClause(otherVectorSearchPredicate)
         )
     }
   }
+
+  private def appendOtherSearchClause(otherVectorSearchPredicate: Option[SearchClause]): Option[SearchClause] =
+    (searchClause, otherVectorSearchPredicate) match {
+      case (Some(thisSearch), None)                                           => Some(thisSearch)
+      case (None, Some(otherSearch))                                          => Some(otherSearch)
+      case (None, None)                                                       => None
+      case (Some(thisSearch), Some(otherSearch)) if thisSearch == otherSearch => Some(thisSearch)
+      case (Some(thisSearch), Some(otherSearch)) => throw new IllegalArgumentException(
+          s"Cannot combine two search clauses $thisSearch and $otherSearch in a single match clause"
+        )
+    }
 
   def hasOptionalPatterns: Boolean = optionalMatches.nonEmpty
 
@@ -546,15 +571,22 @@ final case class QueryGraph private (
     val (argumentOnlyPredicates, otherPredicates) = selections.predicates.partition(_.hasDependenciesMet(argumentIds))
     val (argumentOnlyShortest, otherShortest) =
       shortestRelationshipPatterns.partition(_.rel.boundaryNodesSet.forall(argumentIds.contains))
+    val (argumentOnlySearchPredicate, otherSearchPredicate) = searchClause match {
+      case Some(sp) if sp.dependencies.subsetOf(argumentIds) => (Some(sp), None)
+      case Some(sp)                                          => (None, Some(sp))
+      case None                                              => (None, None)
+    }
 
     PredicatesAndLegacyShortestByDependencies(
       dependOnArgumentsOnly = PredicatesAndLegacyShortestByDependencies.Bucket(
         predicates = argumentOnlyPredicates,
-        shortestRelationshipPatterns = argumentOnlyShortest
+        shortestRelationshipPatterns = argumentOnlyShortest,
+        searchPredicate = argumentOnlySearchPredicate
       ),
       hasNonArgumentDependencies = PredicatesAndLegacyShortestByDependencies.Bucket(
         predicates = otherPredicates,
-        shortestRelationshipPatterns = otherShortest
+        shortestRelationshipPatterns = otherShortest,
+        searchPredicate = otherSearchPredicate
       )
     )
   }
@@ -582,7 +614,7 @@ final case class QueryGraph private (
               predicatesAndLegacyShortestByDependencies.dependOnArgumentsOnly.predicates
             ).addShortestRelationships(
               predicatesAndLegacyShortestByDependencies.dependOnArgumentsOnly.shortestRelationshipPatterns
-            )
+            ).addSearchClause(predicatesAndLegacyShortestByDependencies.dependOnArgumentsOnly.searchPredicate)
           }
         } pipe { qg =>
         val coveredIds = qg.idsWithoutOptionalMatchesOrUpdates
@@ -600,6 +632,17 @@ final case class QueryGraph private (
           predicatesAndLegacyShortestByDependencies.hasNonArgumentDependencies
             .predicates.filter(_.dependencies.subsetOf(coveredIds))
         qg.addPredicates(predicates)
+      } pipe { qg =>
+        if (predicatesAndLegacyShortestByDependencies.hasNonArgumentDependencies.searchPredicate.nonEmpty) {
+          // this stage needs to see ids introduced by shortestRelationshipPatterns and predicates above
+          val coveredIds = qg.idsWithoutOptionalMatchesOrUpdates
+          val searchPredicate =
+            predicatesAndLegacyShortestByDependencies.hasNonArgumentDependencies.searchPredicate.filter(
+              _.dependencies.subsetOf(coveredIds)
+            )
+          qg.addSearchClause(searchPredicate)
+        } else
+          qg
       }
     }
 
@@ -720,6 +763,16 @@ final case class QueryGraph private (
       }
     }
 
+    def addOptionIfNonEmpty[T](s: Option[T], name: String, f: T => String): Unit = {
+      if (s.nonEmpty) {
+        if (added)
+          builder.append(", ")
+        else
+          added = true
+        builder.append(s"$name: ").append(s"Some('${s.map(f).get}')")
+      }
+    }
+
     addSetIfNonEmpty(patternNodes, "Nodes", (_: LogicalVariable).name)
     addSetIfNonEmpty(patternRelationships, "Rels", (_: PatternRelationship).toString)
     addSetIfNonEmpty(quantifiedPathPatterns, "Quantified path patterns", (_: QuantifiedPathPattern).toString)
@@ -730,6 +783,7 @@ final case class QueryGraph private (
     addSetIfNonEmpty(hints, "Hints", (_: Hint).toString)
     addSetIfNonEmpty(mutatingPatterns, "MutatingPatterns", (_: MutatingPattern).toString)
     addSetIfNonEmpty(selectivePathPatterns, "SelectivePathPatterns", (_: SelectivePathPattern).toString)
+    addOptionIfNonEmpty(searchClause, "Search Predicate", (_: SearchClause).toString)
 
     builder.append("}")
     builder.toString()
@@ -754,7 +808,8 @@ final case class QueryGraph private (
           otherHints,
           otherShortestRelationshipPatterns,
           otherMutatingPatterns,
-          otherSelectivePathPatterns
+          otherSelectivePathPatterns,
+          otherSearchPredicate
         ) =>
         if (this eq other) {
           true
@@ -768,7 +823,8 @@ final case class QueryGraph private (
           hints == otherHints &&
           shortestRelationshipPatterns == otherShortestRelationshipPatterns &&
           mutatingPatterns == otherMutatingPatterns &&
-          selectivePathPatterns == otherSelectivePathPatterns
+          selectivePathPatterns == otherSelectivePathPatterns &&
+          searchClause == otherSearchPredicate
         }
       case _ =>
         false
@@ -778,7 +834,7 @@ final case class QueryGraph private (
   override lazy val hashCode: Int = this match {
     // The point of this "useless" match case is to catch your attention if you modified the fields of the QueryGraph.
     // Please remember to update the hash code.
-    case QueryGraph(_, _, _, _, _, _, _, _, _, _) =>
+    case QueryGraph(_, _, _, _, _, _, _, _, _, _, _) =>
       ScalaRunTime._hashCode((
         patternRelationships,
         quantifiedPathPatterns,
@@ -789,7 +845,8 @@ final case class QueryGraph private (
         hints.groupBy(identity),
         shortestRelationshipPatterns,
         mutatingPatterns,
-        selectivePathPatterns
+        selectivePathPatterns,
+        searchClause
       ))
   }
 
@@ -809,7 +866,8 @@ object QueryGraph {
     hints: ListSet[Hint] = ListSet.empty,
     shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = Set.empty,
     mutatingPatterns: IndexedSeq[MutatingPattern] = IndexedSeq.empty,
-    selectivePathPatterns: Set[SelectivePathPattern] = Set.empty
+    selectivePathPatterns: Set[SelectivePathPattern] = Set.empty,
+    searchClause: Option[SearchClause] = None
   ): QueryGraph = {
     val allPatternNodes = patternNodes ++
       patternRelationships.flatMap(_.boundaryNodesSet) ++
@@ -827,7 +885,8 @@ object QueryGraph {
       hints,
       shortestRelationshipPatterns,
       mutatingPatterns,
-      selectivePathPatterns
+      selectivePathPatterns,
+      searchClause
     )
   }
 
@@ -853,8 +912,12 @@ object QueryGraph {
 
   object PredicatesAndLegacyShortestByDependencies {
 
-    case class Bucket(predicates: Set[Predicate], shortestRelationshipPatterns: Set[ShortestRelationshipPattern]) {
-      def isEmpty: Boolean = predicates.isEmpty && shortestRelationshipPatterns.isEmpty
+    case class Bucket(
+      predicates: Set[Predicate],
+      shortestRelationshipPatterns: Set[ShortestRelationshipPattern],
+      searchPredicate: Option[SearchClause]
+    ) {
+      def isEmpty: Boolean = predicates.isEmpty && shortestRelationshipPatterns.isEmpty && searchPredicate.isEmpty
     }
   }
 }

@@ -76,14 +76,12 @@ import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapProjection
-import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
-import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -92,7 +90,6 @@ import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
-import org.neo4j.cypher.internal.expressions.VectorSearchPredicate
 import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.expressions.functions.UnresolvedFunction
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
@@ -140,6 +137,7 @@ import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.ir.UnwindProjection
 import org.neo4j.cypher.internal.ir.VarPatternLength
+import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.ir.ordering
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
@@ -2020,18 +2018,24 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext,
     variable: LogicalVariable,
     label: LabelToken,
-    property: PropertyKeyToken,
+    indexedProperties: Seq[IndexedProperty],
     indexName: String,
     embedding: Expression,
     limit: Expression,
-    argumentIds: Set[LogicalVariable],
-    queryGraphPredicates: Set[Expression]
+    scoreVariable: Option[LogicalVariable],
+    argumentIds: Set[LogicalVariable]
   ): LogicalPlan = {
     val solved = RegularSinglePlannerQuery(
       queryGraph =
         QueryGraph.empty
           .addPatternNodes(variable)
-          .addPredicates(VectorSearchPredicate(variable, indexName, embedding, limit)(InputPosition.NONE))
+          .addSearchClause(Some(VectorSearchClause(
+            variable,
+            indexName,
+            embedding,
+            limit,
+            scoreVariable
+          )(InputPosition.NONE)))
           .addArgumentIds(argumentIds),
       horizon = RegularQueryProjection(
         importedExposedSymbols = context.plannerState.importedSubqueryVariables
@@ -2045,21 +2049,11 @@ case class LogicalPlanProducer(
     val newArguments = solver.newArguments
     val allArgumentIds = argumentIds.union(newArguments)
 
-    val indexedProperties = List(IndexedProperty(
-      propertyKeyToken = property,
-      getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
-        variable,
-        property.name,
-        queryGraphPredicates,
-        context.plannerState.contextualPropertyAccess
-      ),
-      entityType = NODE_TYPE
-    ))
     val nodeVectorIndexSearch = NodeVectorIndexSearch(
       idName = variable,
       labels = List(label),
       properties = indexedProperties,
-      score = None,
+      score = scoreVariable,
       indexName = indexName,
       vector = rewrittenEmbedding,
       limit = rewrittenLimit,
@@ -2083,23 +2077,24 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext,
     patternRelationship: PatternRelationship,
     indexedTypes: Seq[RelationshipTypeToken],
-    indexedProperty: PropertyKeyToken,
+    indexedProperties: Seq[IndexedProperty],
     indexName: String,
     embedding: Expression,
     limit: Expression,
-    argumentIds: Set[LogicalVariable],
-    queryGraphPredicates: Set[Expression]
+    scoreVariable: Option[LogicalVariable],
+    argumentIds: Set[LogicalVariable]
   ): LogicalPlan = {
     val solved = RegularSinglePlannerQuery(
       queryGraph =
         QueryGraph.empty
           .addPatternRelationship(patternRelationship)
-          .addPredicates(VectorSearchPredicate(
+          .addSearchClause(Some(VectorSearchClause(
             patternRelationship.variable,
             indexName,
             embedding,
-            limit
-          )(InputPosition.NONE))
+            limit,
+            scoreVariable
+          )(InputPosition.NONE)))
           .addArgumentIds(argumentIds),
       horizon = RegularQueryProjection(
         importedExposedSymbols = context.plannerState.importedSubqueryVariables
@@ -2114,16 +2109,6 @@ case class LogicalPlanProducer(
     val allArgumentIds = argumentIds.union(newArguments)
 
     val (startNode, endNode) = patternRelationship.inOrder
-    val indexedProperties = List(IndexedProperty(
-      propertyKeyToken = indexedProperty,
-      getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
-        patternRelationship.variable,
-        indexedProperty.name,
-        queryGraphPredicates,
-        context.plannerState.contextualPropertyAccess
-      ),
-      entityType = RELATIONSHIP_TYPE
-    ))
 
     val relVectorIndexSearch = patternRelationship.dir match {
       case SemanticDirection.BOTH => UndirectedRelationshipVectorIndexSearch(
