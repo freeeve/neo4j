@@ -27,6 +27,7 @@ import static org.neo4j.internal.recordstorage.RecordCursorTypes.DYNAMIC_REL_TYP
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.LABEL_TOKEN_CURSOR;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.PROPERTY_KEY_TOKEN_CURSOR;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.REL_TYPE_TOKEN_CURSOR;
+import static org.neo4j.io.pagecache.PageCacheOpenOptions.MULTI_VERSIONED;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.kernel.impl.store.StoreType.LABEL_TOKEN_NAME;
 import static org.neo4j.kernel.impl.store.StoreType.META_DATA;
@@ -139,6 +140,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.DefaultRecoveryBehavior;
 import org.neo4j.storageengine.OperationMode;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
@@ -147,6 +149,7 @@ import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.LogFilesInitializer;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.RecoveryBehavior;
 import org.neo4j.storageengine.api.SchemaRule44;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -963,6 +966,14 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
         }
 
         return PageCacheOptionsSelector.select(recordFormats);
+    }
+
+    @Override
+    public RecoveryBehavior recoveryBehavior(
+            FileSystemAbstraction fs, PageCache pageCache, DatabaseLayout layout, CursorContextFactory contextFactory) {
+        boolean multiversion =
+                getStoreOpenOptions(fs, pageCache, layout, contextFactory).contains(MULTI_VERSIONED);
+        return new DefaultRecoveryBehavior(multiversion);
     }
 
     @Override

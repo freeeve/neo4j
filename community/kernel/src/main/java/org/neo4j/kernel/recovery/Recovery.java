@@ -24,7 +24,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.helpers.collection.Iterables.stream;
-import static org.neo4j.io.pagecache.PageCacheOpenOptions.MULTI_VERSIONED;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.io.pagecache.context.OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
 import static org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory.EMPTY_SNAPSHOT_FACTORY;
@@ -143,6 +142,7 @@ import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
+import org.neo4j.storageengine.api.RecoveryBehavior;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StorageFilesState;
@@ -545,8 +545,11 @@ public final class Recovery {
         DatabaseAvailabilityGuard guard = new RecoveryAvailabilityGuard(namedDatabaseId, clock, recoveryLog);
         recoveryLife.add(guard);
 
-        boolean multiversion = detectMultiversion(fs, databaseLayout, storageEngineFactory, databasePageCache);
-        var versionContextSupplier = multiversion ? new TransactionVersionContextSupplier() : EMPTY_CONTEXT_SUPPLIER;
+        RecoveryBehavior recoveryBehavior = storageEngineFactory.recoveryBehavior(
+                fs, databasePageCache, databaseLayout, CursorContextFactory.NULL_CONTEXT_FACTORY);
+        var versionContextSupplier = recoveryBehavior.useTransactionVersionContext()
+                ? new TransactionVersionContextSupplier()
+                : EMPTY_CONTEXT_SUPPLIER;
         versionContextSupplier.init(EMPTY_SNAPSHOT_FACTORY, EMPTY_OLDEST_ID_FACTORY);
         CursorContextFactory cursorContextFactory =
                 new CursorContextFactory(tracers.getPageCacheTracer(), versionContextSupplier);
@@ -661,8 +664,7 @@ public final class Recovery {
 
         dependencies.satisfyDependency(storageEngine.metadataProvider());
 
-        // multi versioned stores recovery does not support format mode atm
-        if (multiversion) {
+        if (recoveryBehavior.forceFullRecovery()) {
             mode = RecoveryMode.FULL;
         } else {
             rollbackIncompleteTransactions = true;
@@ -752,18 +754,21 @@ public final class Recovery {
 
         CheckPointerImpl.ForceOperation forceOperation =
                 new DefaultForceOperation(indexingService, storageEngine, databasePageCache);
-        LogPruning logPruning = new LogPruningImpl(
-                fs,
-                logFiles,
-                logProvider,
-                new LogPruneStrategyFactory(),
-                clock,
-                config,
-                new ReentrantLock(),
-                logMetadataProvider,
-                storageEngineFactory.commandReaderFactory(),
-                binarySupportedKernelVersions,
-                memoryTracker);
+
+        LogPruning logPruning = recoveryBehavior.runLogPruningOnCompletion(storageEngine)
+                ? new LogPruningImpl(
+                        fs,
+                        logFiles,
+                        logProvider,
+                        new LogPruneStrategyFactory(),
+                        clock,
+                        config,
+                        new ReentrantLock(),
+                        logMetadataProvider,
+                        storageEngineFactory.commandReaderFactory(),
+                        binarySupportedKernelVersions,
+                        memoryTracker)
+                : LogPruning.NO_PRUNING;
         CheckPointerImpl checkPointer = new CheckPointerImpl(
                 logMetadataProvider,
                 RecoveryThreshold.INSTANCE,
@@ -811,16 +816,6 @@ public final class Recovery {
             throw new IllegalStateException(databaseHealth.causeOfPanic());
         }
         return true;
-    }
-
-    private static boolean detectMultiversion(
-            FileSystemAbstraction fs,
-            DatabaseLayout databaseLayout,
-            StorageEngineFactory storageEngineFactory,
-            DatabasePageCache databasePageCache) {
-        return storageEngineFactory
-                .getStoreOpenOptions(fs, databasePageCache, databaseLayout, CursorContextFactory.NULL_CONTEXT_FACTORY)
-                .contains(MULTI_VERSIONED);
     }
 
     private static void awaitIndexesOnline(IndexingService indexingService, long awaitIndexesOnlineMillis) {

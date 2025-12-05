@@ -528,6 +528,9 @@ public interface StorageEngineFactory {
     ImmutableSet<OpenOption> getStoreOpenOptions(
             FileSystemAbstraction fs, PageCache pageCache, DatabaseLayout layout, CursorContextFactory contextFactory);
 
+    RecoveryBehavior recoveryBehavior(
+            FileSystemAbstraction fs, PageCache pageCache, DatabaseLayout layout, CursorContextFactory contextFactory);
+
     /**
      * @return the default {@link StorageEngineFactory}.
      * @throws IllegalStateException if there were no storage engine factories to choose from.
