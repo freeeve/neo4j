@@ -219,6 +219,7 @@
     <jsr305.version>3.0.2</jsr305.version>
     <json4s.version>3.6.11</json4s.version>
     <java-jwt.version>4.5.0</java-jwt.version>
+    <lz4.version>1.9.0</lz4.version>
     <dependency.analyze.failOnWarning>false</dependency.analyze.failOnWarning>
     <dependency.analyze.skip>false</dependency.analyze.skip>
   </properties>
@@ -1277,9 +1278,9 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>org.lz4</groupId>
+        <groupId>at.yawk.lz4</groupId>
         <artifactId>lz4-java</artifactId>
-        <version>1.8.0</version>
+        <version>${lz4.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
