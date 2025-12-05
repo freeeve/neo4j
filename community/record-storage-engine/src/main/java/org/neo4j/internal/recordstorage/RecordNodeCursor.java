@@ -317,14 +317,6 @@ public class RecordNodeCursor extends NodeRecord implements StorageNodeCursor {
     }
 
     @Override
-    public void setForceLoad() {
-        this.loadMode = RecordLoadOverride.FORCE;
-        if (groupCursor != null) {
-            groupCursor.loadMode = RecordLoadOverride.FORCE;
-        }
-    }
-
-    @Override
     public Reference propertiesReference() {
         return longReference(getNextProp());
     }

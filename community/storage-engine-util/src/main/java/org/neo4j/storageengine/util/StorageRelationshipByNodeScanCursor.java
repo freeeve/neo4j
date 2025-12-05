@@ -70,12 +70,6 @@ public class StorageRelationshipByNodeScanCursor
     }
 
     @Override
-    public void setForceLoad() {
-        nodeCursor.setForceLoad();
-        relationshipCursor.setForceLoad();
-    }
-
-    @Override
     public void close() {
         IOUtils.closeAllUnchecked(nodeCursor, relationshipCursor);
     }

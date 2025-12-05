@@ -586,9 +586,6 @@ public class StubStorageCursors implements StorageReader {
         }
 
         @Override
-        public void setForceLoad() {}
-
-        @Override
         public void close() {
             reset();
         }
@@ -680,9 +677,6 @@ public class StubStorageCursors implements StorageReader {
         }
 
         @Override
-        public void setForceLoad() {}
-
-        @Override
         public void close() {
             reset();
         }
@@ -731,9 +725,6 @@ public class StubStorageCursors implements StorageReader {
         public void reset() {}
 
         @Override
-        public void setForceLoad() {}
-
-        @Override
         public boolean next() {
             if (iterator.hasNext()) {
                 current = iterator.next();
@@ -762,9 +753,6 @@ public class StubStorageCursors implements StorageReader {
             iterator = null;
             current = null;
         }
-
-        @Override
-        public void setForceLoad() {}
 
         @Override
         public void close() {}

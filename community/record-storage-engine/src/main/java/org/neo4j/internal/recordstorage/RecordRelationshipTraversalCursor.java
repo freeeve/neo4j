@@ -293,12 +293,6 @@ class RecordRelationshipTraversalCursor extends RecordRelationshipCursor impleme
     }
 
     @Override
-    public void setForceLoad() {
-        super.setForceLoad();
-        group.loadMode = loadMode;
-    }
-
-    @Override
     protected void resetState() {
         super.resetState();
         group.loadMode = loadMode;

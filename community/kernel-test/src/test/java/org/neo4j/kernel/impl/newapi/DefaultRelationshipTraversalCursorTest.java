@@ -365,9 +365,6 @@ class DefaultRelationshipTraversalCursorTest {
             public void reset() {}
 
             @Override
-            public void setForceLoad() {}
-
-            @Override
             public void close() {}
         };
     }

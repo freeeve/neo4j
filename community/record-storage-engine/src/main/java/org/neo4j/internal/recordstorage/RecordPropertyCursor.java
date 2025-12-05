@@ -215,11 +215,6 @@ public class RecordPropertyCursor implements StoragePropertyCursor {
     }
 
     @Override
-    public void setForceLoad() {
-        this.loadMode = RecordLoadOverride.FORCE;
-    }
-
-    @Override
     public int propertyKey() {
         return propertyKey;
     }
