@@ -28,8 +28,11 @@ import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
 import org.neo4j.cypher.internal.expressions.LiteralEntry
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
+import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
@@ -2381,6 +2384,62 @@ class PushdownPropertyReadsTest
         .cacheProperties("a.prop1", "a.prop2")
         .allNodeScan("a")
         .build()
+  }
+
+  test("should not pushdown read below assertSameNode") {
+    val plan = new LogicalPlanBuilder()
+      .produceResults("`a.id`", "`a.mail`", "`a.country`").withEffectiveCardinality(1.0)
+      .projection(
+        "a.id AS `a.id`",
+        "a.mail AS `a.mail`",
+        "a.country AS `a.country`"
+      ).withEffectiveCardinality(1.0)
+      .merge(
+        Seq(createNodeFull("a", labels = Seq("Person"), properties = Some("{id: 123, mail: 'user@neo4j'}"))),
+        onCreate = Seq(setNodeProperty("a", "country", "'Country'"))
+      ).withEffectiveCardinality(1.0)
+      .assertSameNode("a").withEffectiveCardinality(0.0)
+      .|.nodeIndexOperator(
+        "a:Person(mail = 'user@neo4j')",
+        getValue = Map("mail" -> GetValue),
+        unique = true
+      ).withEffectiveCardinality(0.0)
+      .nodeIndexOperator(
+        "a:Person(id = 123)",
+        getValue = Map("id" -> GetValue),
+        unique = true
+      ).withEffectiveCardinality(0.0)
+
+    val rewritten = PushdownPropertyReads.pushdown(
+      plan.build(),
+      plan.effectiveCardinalities,
+      Attributes(plan.idGen, plan.effectiveCardinalities),
+      plan.getSemanticTable,
+      DatabaseMode.SINGLE,
+      CancellationChecker.neverCancelled()
+    )
+
+    rewritten shouldEqual new LogicalPlanBuilder()
+      .produceResults("`a.id`", "`a.mail`", "`a.country`")
+      .projection("a.id AS `a.id`", "a.mail AS `a.mail`", "a.country AS `a.country`")
+      .merge(
+        nodes = Seq(createNodeFull("a", labels = Seq("Person"), properties = Some("{id: 123, mail: 'user@neo4j'}"))),
+        onCreate = Seq(setNodeProperty("a", "country", "'Country'"))
+      )
+      .cacheProperties("a.id", "a.mail", "a.country")
+      .assertSameNode("a")
+      .|.nodeIndexOperator(
+        "a:Person(mail = 'user@neo4j')",
+        getValue = Map("mail" -> GetValue),
+        unique = true,
+        indexType = IndexType.RANGE
+      )
+      .nodeIndexOperator(
+        "a:Person(id = 123)",
+        getValue = Map("id" -> GetValue),
+        unique = true
+      )
+      .build()
   }
 
 }

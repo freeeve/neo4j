@@ -530,7 +530,7 @@ sealed abstract class NodeIndexLeafPlan(idGen: IdGen) extends NodeLogicalLeafPla
    * When MVCC is enabled, this can be reverted, since with the higher serializable isolation level
    * these anomalies cannot occur anymore.
    */
-  final override val distinctness: Distinctness = NotDistinct
+  override val distinctness: Distinctness = NotDistinct
 
   def indexType: IndexType
 
@@ -563,7 +563,7 @@ sealed abstract class RelationshipIndexLeafPlan(idGen: IdGen) extends Relationsh
    * When MVCC is enabled, this can be reverted, since with the higher serializable isolation level
    * these anomalies cannot occur anymore.
    */
-  final override val distinctness: Distinctness = NotDistinct
+  override val distinctness: Distinctness = NotDistinct
 
   def indexType: IndexType
 
@@ -2367,6 +2367,18 @@ case class DirectedRelationshipUniqueIndexSeek(
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
     copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override val distinctness: Distinctness = {
+    valueExpr match {
+      case _: SingleQueryExpression[_] =>
+        AtMostOneRow
+      case comp: CompositeQueryExpression[_] if comp.exactOnly =>
+        AtMostOneRow
+      case _ =>
+        /** see [[RelationshipIndexLeafPlan.distinctness]] */
+        NotDistinct
+    }
+  }
 }
 
 object DirectedRelationshipUniqueIndexSeek {
@@ -3942,6 +3954,18 @@ case class NodeUniqueIndexSeek(
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
     copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override val distinctness: Distinctness = {
+    valueExpr match {
+      case _: SingleQueryExpression[_] =>
+        AtMostOneRow
+      case comp: CompositeQueryExpression[_] if comp.exactOnly =>
+        AtMostOneRow
+      case _ =>
+        /** see [[NodeIndexLeafPlan.distinctness]] */
+        NotDistinct
+    }
+  }
 }
 
 /**

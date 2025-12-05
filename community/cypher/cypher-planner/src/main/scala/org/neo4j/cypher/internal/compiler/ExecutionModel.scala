@@ -224,7 +224,7 @@ object ExecutionModel {
 
   object Batched {
 
-    val default: Batched = BatchedSingleThreaded(
+    val default: BatchedSingleThreaded = BatchedSingleThreaded(
       GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small.defaultValue(),
       GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big.defaultValue()
     )

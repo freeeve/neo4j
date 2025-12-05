@@ -75,19 +75,17 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
     readOnly: Boolean
   ): Rewriter = {
     val isShardedDatabase = context.planContext.databaseMode == DatabaseMode.SHARDED
-    val trailToVarExpandRewriter = RepeatToVarExpandRewriter(
+    val trailToVarExpandRewriter = RepeatToVarExpandRewriter.forGeneralCase(
       labelAndRelTypeInfos,
       otherAttributes.withAlso(solveds, cardinalities, effectiveCardinalities, providedOrders),
       anonymousVariableNameGenerator,
-      rewritableRepeatExtractor = RepeatToVarExpandRewriter.RewritableRepeatExtractor.FilterAfterExpand,
-      isBlockFormat = context.planContext.storageHasPropertyColocation,
-      executionModelSupportsCursorReuseInBlockFormat = context.executionModel.supportsCursorReuseInBlockFormat,
-      isShardedDatabase = isShardedDatabase
+      isShardedDatabase,
+      context
     )
     val pruningVarExpanderRewriter = pruningVarExpander(anonymousVariableNameGenerator, VarExpandRewritePolicy.default)
 
     val trailWithTwoFiltersToPruningVarExpandRewriter = trailWithTwoFiltersToPruningVarExpand(
-      originalTrailRewriter = trailToVarExpandRewriter,
+      trailRewriter = RepeatToVarExpandRewriter.forEnablingPruningVarExpand(trailToVarExpandRewriter),
       pruningRewriter = pruningVarExpanderRewriter
     )
 
@@ -239,12 +237,9 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
    * But _only_ if the resulting VarExpand is in turn rewritable by [[pruningVarExpander]].
    */
   private def trailWithTwoFiltersToPruningVarExpand(
-    originalTrailRewriter: RepeatToVarExpandRewriter,
+    trailRewriter: RepeatToVarExpandRewriter,
     pruningRewriter: Rewriter
   ): Rewriter = {
-    val trailRewriter = originalTrailRewriter.copy(
-      rewritableRepeatExtractor = RepeatToVarExpandRewriter.RewritableRepeatExtractor.FilterBeforeAndAfterExpand
-    )
     new Rewriter {
       override def apply(start: AnyRef): AnyRef = {
         val intermediate = trailRewriter(start)

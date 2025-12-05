@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.logical.plans.AbstractSemiApply
 import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.Anti
 import org.neo4j.cypher.internal.logical.plans.ApplyPlan
+import org.neo4j.cypher.internal.logical.plans.AssertSameNode
 import org.neo4j.cypher.internal.logical.plans.CacheProperties
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.Eager
@@ -325,8 +326,11 @@ case object PushdownPropertyReads {
     plan match {
 
       // Do _not_ pushdown from on top of these plans to the LHS or the RHS
-      case _: Union |
-        _: OrderedUnion =>
+      case _: Union
+        | _: OrderedUnion
+        // Plans below AssertSameNode are all NodeUniqueIndexSeek, so pushing reads below doesn't accomplish anything
+        // other than making rewriting to AssertingMultiNodeIndexSeek later more difficult
+        | _: AssertSameNode =>
         val newVariables = plan.availableSymbols
         val outgoingCardinality = effectiveCardinalities(plan.id)
         val outgoingVariableOptima =

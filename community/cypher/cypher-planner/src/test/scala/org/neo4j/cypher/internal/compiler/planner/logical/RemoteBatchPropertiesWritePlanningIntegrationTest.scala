@@ -355,7 +355,8 @@ abstract class AbstractRemoteBatchPropertiesWritePlanningIntegrationTest(executi
 
   test("should set eager when filters use cached properties") {
     val query =
-      """MATCH (person:Person {id:$Person}) WHERE person.firstName IS NOT NULL
+      """MATCH (person:Person)
+        |WHERE person.id IN [1, 2] AND person.firstName IS NOT NULL
         |CALL {
         |  WITH person
         |  SET person.firstName = 'Unknown'
@@ -387,10 +388,10 @@ abstract class AbstractRemoteBatchPropertiesWritePlanningIntegrationTest(executi
       .filter("cacheN[person.firstName] IS NOT NULL")
       .remoteBatchProperties("cacheNFromStore[person.firstName]")
       .nodeIndexOperator(
-        "person:Person(id = ???)",
-        paramExpr = Seq(parameter("Person", CTAny)),
+        "person:Person(id = 1 OR 2)",
         getValue = Map("id" -> DoNotGetValue),
-        unique = true
+        unique = true,
+        supportPartitionedScan = false
       )
       .build()
   }

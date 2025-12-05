@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
+import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.InlinedPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.convertToInlinedPredicates
 import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
@@ -33,6 +34,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.logical.plans.Argument
+import org.neo4j.cypher.internal.logical.plans.AtMostOneRow
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
@@ -50,7 +52,6 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.Rewriter
-import org.neo4j.cypher.internal.util.Rewriter.TopDownMergeableRewriter
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
@@ -79,18 +80,17 @@ import org.neo4j.cypher.internal.util.topDown
  *
  * This rewriter should run after [[RemoveUnusedGroupVariablesRewriter]], so that unused group variables are pruned.
  * This rewriter should run before [[pruningVarExpander]] so that the [[PruningVarExpand]] optimisation may take place.
- * This rewriter should run before [[VarLengthRewriter]] so that the quantifier may be rewritten.
- * This rewriter should run before [[UniquenessRewriter]] so that relationship uniqueness predicates may be rewritten.
+ * This rewriter should run before [[VarLengthBoundPredicateRewriter]] so that the quantifier may be rewritten.
+ * This rewriter should run before [[ElementUniquenessRewriter]] so that relationship uniqueness predicates may be rewritten.
  */
 case class RepeatToVarExpandRewriter(
   labelAndRelTypeInfos: LabelAndRelTypeInfos,
   otherAttributes: Attributes[LogicalPlan],
   anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
   rewritableRepeatExtractor: RepeatToVarExpandRewriter.RewritableRepeatExtractor,
-  isBlockFormat: Boolean,
-  executionModelSupportsCursorReuseInBlockFormat: Boolean,
-  isShardedDatabase: Boolean
-) extends Rewriter with TopDownMergeableRewriter {
+  isShardedDatabase: Boolean,
+  heuristics: Set[RepeatToVarExpandRewriter.Heuristic]
+) extends Rewriter {
 
   private def createVarLengthExpand(
     repeat: Repeat,
@@ -98,7 +98,8 @@ case class RepeatToVarExpandRewriter(
     predicates: Seq[Expression],
     quantifier: VarPatternLength,
     relationship: Option[VariableGrouping],
-    expansionMode: ExpansionMode
+    expansionMode: ExpansionMode,
+    rootPlan: LogicalPlan
   ): Option[LogicalPlan] = {
     val varExpandRel = relationship.map(_.group).getOrElse(repeat.innerRelationships.head)
     convertToInlinedPredicates(
@@ -113,7 +114,9 @@ case class RepeatToVarExpandRewriter(
       mode = convertToInlinedPredicates.Mode.Repeat,
       anonymousVariableNameGenerator = anonymousVariableNameGenerator
     ).collect {
-      case inlinedPredicates if shouldInlinePredicates(inlinedPredicates) =>
+      case inlinedPredicates
+        // the rewrite is possible, check if there are any heuristics saying that we shouldn't do it
+        if !heuristics.exists(_.shouldPreferRepeatOverVarExpand(repeat, inlinedPredicates, rootPlan)) =>
         val varExpand = createVarExpand(repeat, expand, quantifier, inlinedPredicates, varExpandRel, expansionMode)
         val expandWithUniqueRel = maybeAddRelUniquenessPredicates(repeat, varExpandRel, varExpand)
         val expandWithUniqueGroupRel = maybeAddGroupRelUniquenessPredicates(repeat, varExpandRel, expandWithUniqueRel)
@@ -121,19 +124,22 @@ case class RepeatToVarExpandRewriter(
     }
   }
 
-  override val innerRewriter: Rewriter = Rewriter.lift {
-    // Rewrite special cases of Repeat into VarLengthExpand(All)
-    case rewritableRepeatExtractor(repeat, expand, inlinablePredicates, quantifier, relationship, repeatExpansionMode)
-      if !requiresPropertyAccessFromShards(inlinablePredicates) =>
-      // Create the VarLengthExpandAll/VarLengthExpandInto
-      createVarLengthExpand(
-        repeat,
-        expand,
-        inlinablePredicates,
-        quantifier,
-        relationship,
-        repeatExpansionMode
-      ).getOrElse(repeat)
+  private def innerRewriter(rootPlan: LogicalPlan): Rewriter = {
+    Rewriter.lift {
+      // Rewrite special cases of Repeat into VarLengthExpand(All)
+      case rewritableRepeatExtractor(repeat, expand, inlinablePredicates, quantifier, relationship, repeatExpansionMode)
+        if !requiresPropertyAccessFromShards(inlinablePredicates) =>
+        // Create the VarLengthExpandAll/VarLengthExpandInto
+        createVarLengthExpand(
+          repeat,
+          expand,
+          inlinablePredicates,
+          quantifier,
+          relationship,
+          repeatExpansionMode,
+          rootPlan
+        ).getOrElse(repeat)
+    }
   }
 
   private def requiresPropertyAccessFromShards(predicates: Iterable[Expression]): Boolean = {
@@ -145,9 +151,17 @@ case class RepeatToVarExpandRewriter(
       case _: LogicalProperty => true
     }
 
-  private val instance: Rewriter = topDown(innerRewriter)
+  private def instance(rootPlan: LogicalPlan): Rewriter = topDown(innerRewriter(rootPlan))
 
-  override def apply(input: AnyRef): AnyRef = instance.apply(input)
+  override def apply(input: AnyRef): AnyRef = {
+    val rootPlan = input match {
+      case plan: LogicalPlan => plan
+      case _ => throw new IllegalArgumentException(
+          s"Expected ${classOf[LogicalPlan].getSimpleName}, but got [${input.getClass.getSimpleName}]: $input"
+        )
+    }
+    instance(rootPlan).apply(input)
+  }
 
   private def createVarExpand(
     repeat: Repeat,
@@ -237,27 +251,42 @@ case class RepeatToVarExpandRewriter(
     labelAndRelTypeInfos.set(id, Some(LabelAndRelTypeInfo(Map.empty, Map.empty)))
     Selection(Ands(predicates)(InputPosition.NONE), source)(SameId(id))
   }
-
-  private def shouldInlinePredicates(inlinedPredicates: InlinedPredicates): Boolean = {
-    // special rule for Block format and Pipelined/Parallel runtime
-    val shouldNotInline =
-      isBlockFormat &&
-        executionModelSupportsCursorReuseInBlockFormat &&
-        containsRelationshipPropertyPredicate(inlinedPredicates)
-
-    !shouldNotInline
-  }
-
-  private def containsRelationshipPropertyPredicate(inlinedPredicates: InlinedPredicates): Boolean = {
-    inlinedPredicates.relationshipPredicates.exists { variablePredicate =>
-      variablePredicate.predicate.folder.treeExists {
-        case LogicalProperty(v: LogicalVariable, _) if v == variablePredicate.variable => true
-      }
-    }
-  }
 }
 
 object RepeatToVarExpandRewriter {
+
+  def forGeneralCase(
+    labelAndRelTypeInfos: LabelAndRelTypeInfos,
+    otherAttributes: Attributes[LogicalPlan],
+    anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
+    isShardedDatabase: Boolean,
+    context: PlannerContext
+  ): RepeatToVarExpandRewriter = {
+    RepeatToVarExpandRewriter(
+      labelAndRelTypeInfos,
+      otherAttributes,
+      anonymousVariableNameGenerator,
+      rewritableRepeatExtractor = RepeatToVarExpandRewriter.RewritableRepeatExtractor.FilterAfterExpand,
+      isShardedDatabase = isShardedDatabase,
+      heuristics = Set(
+        Heuristic.PreferRepeatForRelationshipPredicatesWithCursorReuseOnBlock(
+          isBlockFormat = context.planContext.storageHasPropertyColocation,
+          executionModelSupportsCursorReuseInBlockFormat = context.executionModel.supportsCursorReuseInBlockFormat
+        ),
+        Heuristic.PreferRepeatForBetterParallelizationWhenInputCardinalityIsExactlyOne(
+          isParallelRuntime = context.executionModel.isParallel
+        )
+      )
+    )
+  }
+
+  def forEnablingPruningVarExpand(general: RepeatToVarExpandRewriter): RepeatToVarExpandRewriter = {
+    general.copy(
+      rewritableRepeatExtractor = RepeatToVarExpandRewriter.RewritableRepeatExtractor.FilterBeforeAndAfterExpand,
+      // We want to rewrite in as many cases as possible, disable any heuristic that prevents rewriting to VarExpand
+      heuristics = Set.empty
+    )
+  }
 
   object VariableGroupings {
 
@@ -479,6 +508,65 @@ object RepeatToVarExpandRewriter {
           max <-
             Option.when(repetition.max.limit.getOrElse(0L) <= Int.MaxValue.toLong)(repetition.max.limit.map(_.toInt))
         } yield VarPatternLength(min, max)
+      }
+    }
+  }
+
+  sealed trait Heuristic {
+
+    def shouldPreferRepeatOverVarExpand(
+      repeat: Repeat,
+      inlinedPredicates: InlinedPredicates,
+      rootPlan: LogicalPlan
+    ): Boolean
+  }
+
+  object Heuristic {
+
+    case class PreferRepeatForRelationshipPredicatesWithCursorReuseOnBlock(
+      isBlockFormat: Boolean,
+      executionModelSupportsCursorReuseInBlockFormat: Boolean
+    ) extends Heuristic {
+
+      override def shouldPreferRepeatOverVarExpand(
+        repeat: Repeat,
+        inlinedPredicates: InlinedPredicates,
+        rootPlan: LogicalPlan
+      ): Boolean = {
+        val repeatIsBetter =
+          isBlockFormat &&
+            executionModelSupportsCursorReuseInBlockFormat &&
+            containsRelationshipPropertyPredicate(inlinedPredicates)
+        repeatIsBetter
+      }
+
+      private def containsRelationshipPropertyPredicate(inlinedPredicates: InlinedPredicates): Boolean = {
+        inlinedPredicates.relationshipPredicates.exists { variablePredicate =>
+          variablePredicate.predicate.folder.treeExists {
+            case LogicalProperty(v: LogicalVariable, _) if v == variablePredicate.variable => true
+          }
+        }
+      }
+    }
+
+    case class PreferRepeatForBetterParallelizationWhenInputCardinalityIsExactlyOne(isParallelRuntime: Boolean)
+        extends Heuristic {
+
+      override def shouldPreferRepeatOverVarExpand(
+        repeat: Repeat,
+        inlinedPredicates: InlinedPredicates,
+        rootPlan: LogicalPlan
+      ): Boolean = {
+        // Only apply the heuristic if Repeat is not nested under e.g. Apply, as we don't have
+        // effective cardinalities calculated yet, and thus can't tell if it actually has just
+        // a single row on the LHS.
+        lazy val notNested =
+          repeat.leftmostLeaf eq rootPlan.leftmostLeaf
+        val repeatIsBetter =
+          isParallelRuntime &&
+            repeat.left.distinctness == AtMostOneRow &&
+            notNested
+        repeatIsBetter
       }
     }
   }

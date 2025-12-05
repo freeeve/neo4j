@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanTestOps
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriter.RewritableRepeatExtractor
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriter.RewritableRepeatExtractor.FilterAfterExpand
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriterTest.DbFormat
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriterTest.TrailParametersOps
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriterTest.WalkParametersOps
@@ -2215,6 +2216,61 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     preserves(walk, extractor = RewritableRepeatExtractor.FilterAfterExpand)
   }
 
+  test("does not rewrite Repeat with unique index seek on LHS in Parallel runtime") {
+    val trail = subPlanBuilder
+      .projection("1 AS s")
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
+      .|.filter(isRepeatTrailUnique("r_i"))
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .nodeIndexOperator("a:A(prop = 123)", unique = true)
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*1..]->(b)")
+      .nodeIndexOperator("a:A(prop = 123)", unique = true)
+      .build()
+
+    rewrites(trail, expand)
+    preserves(trail, executionModels = Seq(ExecutionModel.Batched.default.asParallel))
+  }
+
+  test("rewrites Repeat with unique index seek on LHS, nested under Apply, including in Parallel runtime") {
+    val trail = subPlanBuilder
+      .apply()
+      .|.projection("1 AS s")
+      .|.repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
+      .|.|.filter(isRepeatTrailUnique("r_i"))
+      .|.|.expand("(n_i)-[r_i]->(m_i)")
+      .|.|.argument("n_i")
+      .|.nodeIndexOperator("a:A(prop = x.prop)", unique = true, argumentIds = Set("x"))
+      .allNodeScan("x")
+      .build()
+
+    val expand = subPlanBuilder
+      .apply()
+      .|.projection("1 AS s")
+      .|.expand("(a)-[r_i*1..]->(b)")
+      .|.nodeIndexOperator("a:A(prop = x.prop)", unique = true, argumentIds = Set("x"))
+      .allNodeScan("x")
+      .build()
+
+    rewrites(trail, expand)
+    rewrites(trail, expand, executionModels = Seq(ExecutionModel.Batched.default.asParallel))
+  }
+
+  test("only accepts logical plan as an input") {
+    val plan = subPlanBuilder.argument().build()
+    val instance = rewriter(
+      isBlockFormat = false,
+      executionModelSupportsCursorReuseInBlockFormat = false,
+      extractor = FilterAfterExpand,
+      isParallel = false
+    )
+    an[IllegalArgumentException] should be thrownBy instance.apply(Vector(plan, plan))
+  }
+
   private def rewrites(
     repeat: LogicalPlan,
     expand: LogicalPlan,
@@ -2226,14 +2282,16 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       isBlockFormat <- dbFormat.isBlockFormat
       em <- executionModels
       supportsCursorReuse = em.supportsCursorReuseInBlockFormat
+      isParallel = em.isParallel
     } withClue(
-      s"isBlockFormat = $isBlockFormat, supportsCursorReuse = $supportsCursorReuse, extractor = $extractor\n"
+      s"isBlockFormat = $isBlockFormat, supportsCursorReuse = $supportsCursorReuse, extractor = $extractor, isParallel = $isParallel\n"
     ) {
       rewrite(
         repeat,
         isBlockFormat,
         supportsCursorReuse,
-        extractor
+        extractor,
+        isParallel
       ).stripProduceResults shouldEqual expand.stripProduceResults
     }
 
@@ -2247,14 +2305,16 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       isBlockFormat <- dbFormat.isBlockFormat
       em <- executionModels
       supportsCursorReuse = em.supportsCursorReuseInBlockFormat
+      isParallel = em.isParallel
     } withClue(
-      s"isBlockFormat = $isBlockFormat, supportsCursorReuse = $supportsCursorReuse, extractor = $extractor\n"
+      s"isBlockFormat = $isBlockFormat, supportsCursorReuse = $supportsCursorReuse, extractor = $extractor, isParallel = $isParallel\n"
     ) {
       rewrite(
         repeat,
         isBlockFormat,
         supportsCursorReuse,
-        extractor
+        extractor,
+        isParallel
       ).stripProduceResults shouldEqual repeat.stripProduceResults
     }
   }
@@ -2263,17 +2323,39 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     p: LogicalPlan,
     isBlockFormat: Boolean,
     executionModelSupportsCursorReuseInBlockFormat: Boolean,
-    extractor: RepeatToVarExpandRewriter.RewritableRepeatExtractor
+    extractor: RepeatToVarExpandRewriter.RewritableRepeatExtractor,
+    isParallel: Boolean
   ): LogicalPlan =
-    p.endoRewrite(RepeatToVarExpandRewriter(
+    p.endoRewrite(rewriter(
+      isBlockFormat = isBlockFormat,
+      executionModelSupportsCursorReuseInBlockFormat = executionModelSupportsCursorReuseInBlockFormat,
+      extractor = extractor,
+      isParallel = isParallel
+    ))
+
+  private def rewriter(
+    isBlockFormat: Boolean,
+    executionModelSupportsCursorReuseInBlockFormat: Boolean,
+    extractor: RepeatToVarExpandRewriter.RewritableRepeatExtractor,
+    isParallel: Boolean
+  ): RepeatToVarExpandRewriter = {
+    RepeatToVarExpandRewriter(
       new StubLabelAndRelTypeInfos,
       Attributes(idGen, new StubSolveds),
       new AnonymousVariableNameGenerator,
       rewritableRepeatExtractor = extractor,
-      isBlockFormat = isBlockFormat,
-      executionModelSupportsCursorReuseInBlockFormat = executionModelSupportsCursorReuseInBlockFormat,
-      isShardedDatabase = false
-    ))
+      isShardedDatabase = false,
+      heuristics = Set(
+        RepeatToVarExpandRewriter.Heuristic.PreferRepeatForRelationshipPredicatesWithCursorReuseOnBlock(
+          isBlockFormat,
+          executionModelSupportsCursorReuseInBlockFormat
+        ),
+        RepeatToVarExpandRewriter.Heuristic.PreferRepeatForBetterParallelizationWhenInputCardinalityIsExactlyOne(
+          isParallelRuntime = isParallel
+        )
+      )
+    )
+  }
 
   private def subPlanBuilder = new LogicalPlanBuilder(wholePlan = false)
 }
