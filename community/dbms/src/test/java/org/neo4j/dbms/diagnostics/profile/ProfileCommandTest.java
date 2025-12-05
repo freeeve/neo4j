@@ -24,13 +24,11 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
-import static org.neo4j.dbms.archive.StandardCompressionFormat.GZIP;
 import static org.neo4j.test.assertion.Assert.assertEventually;
 import static org.neo4j.test.conditions.Conditions.TRUE;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -43,8 +41,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.output.NullPrintStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +50,7 @@ import org.neo4j.cli.ExecutionContext;
 import org.neo4j.configuration.BootloaderSettings;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.dbms.archive.Tarball;
 import org.neo4j.dbms.diagnostics.jmx.JMXDumper;
 import org.neo4j.dbms.diagnostics.jmx.JmxDump;
 import org.neo4j.internal.helpers.Exceptions;
@@ -147,7 +144,7 @@ class ProfileCommandTest {
         execute(Duration.ofSeconds(1));
         Path[] paths = fs.listFiles(output);
         assertThat(paths).hasSize(1);
-        assertThat(paths[0].getFileName().toString()).endsWith(".gzip");
+        assertThat(paths[0].getFileName().toString()).endsWith(".tar.gz");
     }
 
     @Test
@@ -224,20 +221,7 @@ class ProfileCommandTest {
         Path[] paths = fs.listFiles(output);
         assertThat(paths).hasSize(1);
 
-        try (TarArchiveInputStream stream =
-                new TarArchiveInputStream(GZIP.decompress(fs.openAsInputStream(paths[0])))) {
-            ArchiveEntry entry;
-            while ((entry = stream.getNextEntry()) != null) {
-                Path file = output.resolve(entry.getName());
-                if (entry.isDirectory()) {
-                    fs.mkdirs(file);
-                } else {
-                    try (OutputStream output = fs.openAsOutputStream(file, false)) {
-                        stream.transferTo(output);
-                    }
-                }
-            }
-        }
+        Tarball.extract(paths[0], output);
     }
 
     private static class SeparateProcess {

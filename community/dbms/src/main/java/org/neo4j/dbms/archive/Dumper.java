@@ -94,10 +94,6 @@ public class Dumper {
         return dump.toString().endsWith(DUMP_EXTENSION);
     }
 
-    public void dump(Path path, Path archive, CompressionFormat format) throws IOException {
-        dump(path, path, openForDump(archive), format, Predicates.alwaysFalse());
-    }
-
     public OutputStream openForDump(Path archive) throws IOException {
         return openForDump(archive, false);
     }
@@ -116,6 +112,10 @@ public class Dumper {
         return Files.newOutputStream(archive, StandardOpenOption.CREATE_NEW);
     }
 
+    public void dump(Path path, Path archive, DumpFormat format) throws IOException {
+        dump(path, path, openForDump(archive), format, Predicates.alwaysFalse());
+    }
+
     /**
      * @param dbPath                store file location
      * @param transactionalLogsPath tx logs location
@@ -125,11 +125,7 @@ public class Dumper {
      * @throws IOException in case of error
      */
     public void dump(
-            Path dbPath,
-            Path transactionalLogsPath,
-            OutputStream out,
-            CompressionFormat format,
-            Predicate<Path> exclude)
+            Path dbPath, Path transactionalLogsPath, OutputStream out, DumpFormat format, Predicate<Path> exclude)
             throws IOException {
         operations.clear();
 
@@ -146,7 +142,7 @@ public class Dumper {
      * @param format compression format
      * @throws IOException in case of error
      */
-    public void dump(OutputStream out, CompressionFormat format) throws IOException {
+    public void dump(OutputStream out, DumpFormat format) throws IOException {
         progressPrinter.reset();
         for (ArchiveOperation operation : operations) {
             progressPrinter.maxBytes(progressPrinter.maxBytes() + operation.size);
@@ -179,7 +175,7 @@ public class Dumper {
                                 onFile(file -> dumpFile(folderPath, file), justContinue())))));
     }
 
-    private ArchiveOutputStream wrapArchiveOut(OutputStream out, CompressionFormat format) throws IOException {
+    private ArchiveOutputStream wrapArchiveOut(OutputStream out, DumpFormat format) throws IOException {
         OutputStream compress = format.compress(out);
 
         // Add enough archive meta-data that the load command can print a meaningful progress indicator.
@@ -249,4 +245,6 @@ public class Dumper {
             return archive.createArchiveEntry(file.toFile(), "./" + root.relativize(file));
         }
     }
+
+    public interface DumpFormat extends CompressionFormat {}
 }

@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.PushbackInputStream;
 import java.util.function.Consumer;
+import org.neo4j.dbms.archive.Dumper.DumpFormat;
 import org.neo4j.dbms.archive.backup.BackupDescription;
 import org.neo4j.dbms.archive.backup.BackupFormatSelector;
 import org.neo4j.function.ThrowingSupplier;
@@ -91,7 +92,7 @@ public class DumpFormatSelector {
         });
     }
 
-    private static CompressionFormat selectDumpFormat(byte[] bytes) {
+    private static DumpFormat selectDumpFormat(byte[] bytes) {
         return switch (new String(bytes)) {
             case DumpZstdFormatV1.MAGIC_HEADER -> new DumpZstdFormatV1();
             case DumpGzipFormatV1.MAGIC_HEADER -> new DumpGzipFormatV1();
@@ -99,11 +100,11 @@ public class DumpFormatSelector {
         };
     }
 
-    public static CompressionFormat selectFormat() {
+    public static DumpFormat selectFormat() {
         return selectFormat(null);
     }
 
-    public static CompressionFormat selectFormat(PrintStream err) {
+    public static DumpFormat selectFormat(PrintStream err) {
         if (StandardCompressionFormat.selectCompressionFormat(err) == ZSTD) {
             return new DumpZstdFormatV1();
         }

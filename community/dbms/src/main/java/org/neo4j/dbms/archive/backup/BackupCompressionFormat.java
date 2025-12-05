@@ -19,16 +19,17 @@
  */
 package org.neo4j.dbms.archive.backup;
 
+import static org.neo4j.dbms.archive.Dumper.DumpFormat;
+
 import java.io.IOException;
 import java.io.InputStream;
-import org.neo4j.dbms.archive.CompressionFormat;
 
 /**
  * Compression format that is used for backup artifacts.
  * Backup compression format have custom metadata that is stored together with artifact.
  * Content of metadata is compression format and version specific.
  */
-public interface BackupCompressionFormat extends CompressionFormat {
+public interface BackupCompressionFormat extends DumpFormat {
     void setMetadata(BackupDescription compressedMetadata);
 
     BackupDescription readMetadata(InputStream inputStream) throws IOException;

@@ -22,8 +22,9 @@ package org.neo4j.dbms.archive;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import org.neo4j.dbms.archive.Dumper.DumpFormat;
 
-public class DumpGzipFormatV1 implements CompressionFormat {
+public class DumpGzipFormatV1 implements DumpFormat {
     static final String MAGIC_HEADER = ArchiveFormat.DUMP_PREFIX + "GV1";
 
     @Override
