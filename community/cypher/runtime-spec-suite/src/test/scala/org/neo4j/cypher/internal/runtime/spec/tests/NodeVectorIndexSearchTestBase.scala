@@ -47,6 +47,7 @@ import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
 import org.neo4j.kernel.KernelVersion
+import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.BooleanValue
 import org.neo4j.values.storable.DateTimeValue
@@ -115,7 +116,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
 
   configurations.foreach {
     case (name, vector) =>
-      test(s"$name vector index should index vector values with score variable") {
+      test(s"$name vector index should index vector values with score variable", Tags.NoSpdOverride) {
         givenGraph {
           nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
           nodeGraph(1, "Foo").foreach(n => {
@@ -146,7 +147,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         })
       }
 
-      test(s"$name vector index should index vector values without score variable") {
+      test(s"$name vector index should index vector values without score variable", Tags.NoSpdOverride) {
         givenGraph {
           nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
           nodeGraph(1, "Foo").foreach(n => {
@@ -174,7 +175,10 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         runtimeResult should beColumns("id").withSingleRow(1)
       }
 
-      test(s"$name should be able to search using a list of integers instead of an explicit vector") {
+      test(
+        s"$name should be able to search using a list of integers instead of an explicit vector",
+        Tags.NoSpdOverride
+      ) {
         givenGraph {
           nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
           nodeGraph(1, "Foo").foreach(n => {
@@ -204,7 +208,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       }
   }
 
-  test(s"should be able to query the index with multiple inputs from a property") {
+  test("should be able to query the index with multiple inputs from a property", Tags.NoSpdOverride) {
     val random = new Random()
 
     givenGraph {
@@ -240,7 +244,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withRows(rowCount(20 * limit))
   }
 
-  test("should fail if index doesn't exists") {
+  test("should fail if index doesn't exists", Tags.NoSpdOverride) {
     val theVector = float32Vector((1 to sizeHint).map(_.toFloat): _*)
     givenGraph {
       nodeGraph(1, "Foo").zipWithIndex.foreach({
@@ -269,7 +273,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.gqlStatus() shouldBe "22N69"
   }
 
-  test("should fail if index isn't a vector index") {
+  test("should fail if index isn't a vector index", Tags.NoSpdOverride) {
+
     val theVector = float32Vector((1 to sizeHint).map(_.toFloat): _*)
     givenGraph {
       nodeIndex("VectorIndex", IndexType.RANGE, Seq("Foo"), "v")
@@ -301,7 +306,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     )) should have message "22NCG: Expected the index `VectorIndex` to be a vector index but was a range index."
   }
 
-  test("should fail if search item has the wrong type") {
+  test("should fail if search item has the wrong type", Tags.NoSpdOverride) {
+
     val theVector = float32Vector((1 to sizeHint).map(_.toFloat): _*)
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -335,7 +341,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.cause().get().gqlStatus() shouldBe "22N01"
   }
 
-  test("should return empty if search item is null") {
+  test("should return empty if search item is null", Tags.NoSpdOverride) {
+
     val theVector = float32Vector((1 to sizeHint).map(_.toFloat): _*)
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -365,7 +372,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withNoRows()
   }
 
-  test("should fail if search item is a list containing null") {
+  test("should fail if search item is a list containing null", Tags.NoSpdOverride) {
+
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
       nodeGraph(1, "Foo").zipWithIndex.foreach({
@@ -397,7 +405,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.gqlStatus() shouldBe "22NBG"
   }
 
-  test("should respect the limit") {
+  test("should respect the limit", Tags.NoSpdOverride) {
+
     val random = new Random()
 
     givenGraph {
@@ -428,7 +437,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withRows(rowCount(13))
   }
 
-  test("should handle limit 0") {
+  test("should handle limit 0", Tags.NoSpdOverride) {
+
     val random = new Random()
 
     givenGraph {
@@ -459,7 +469,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withNoRows()
   }
 
-  test("should fail on negative limits") {
+  test("should fail on negative limits", Tags.NoSpdOverride) {
+
     val random = new Random()
 
     givenGraph {
@@ -494,7 +505,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.cause().get().gqlStatus() shouldBe "22N03"
   }
 
-  test("should fail on too large limits") {
+  test("should fail on too large limits", Tags.NoSpdOverride) {
+
     val random = new Random()
 
     givenGraph {
@@ -529,7 +541,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.cause().get().gqlStatus() shouldBe "22N03"
   }
 
-  test("should support multiple labels (on same node)") {
+  test("should support multiple labels (on same node)", Tags.NoSpdOverride) {
+
     val random = new Random()
 
     givenGraph {
@@ -562,7 +575,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     )
   }
 
-  test("should support multiple labels (on different nodes)") {
+  test("should support multiple labels (on different nodes)", Tags.NoSpdOverride) {
+
     val random = new Random()
 
     givenGraph {
@@ -620,6 +634,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     val random = new Random()
     // we use a size small enough to have unique sequence of byte values
     val size = 256
+
     def createGraph(): Unit = {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
       val write = tx.kernelTransaction().dataWrite
@@ -639,7 +654,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     val indexToSearch = random.nextInt(size)
     val valueToSearch = range(indexToSearch)
 
-    test(s"should support single-stage filtering single exact seek with  n.id = $valueToSearch") {
+    test(s"should support single-stage filtering single exact seek with  n.id = $valueToSearch", Tags.NoSpdOverride) {
       // given
       givenGraph(createGraph())
 
@@ -672,7 +687,10 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("id").withSingleRow(valueToSearch)
     }
 
-    test(s"should support single-stage filtering single range seek $valueToSearch <= n.id <= $valueToSearch") {
+    test(
+      s"should support single-stage filtering single range seek $valueToSearch <= n.id <= $valueToSearch",
+      Tags.NoSpdOverride
+    ) {
       // given
       givenGraph(createGraph())
 
@@ -706,7 +724,10 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("id").withSingleRow(valueToSearch)
     }
 
-    test(s"should support single-stage filtering single range seek $valueToSearch < n.id <= $valueToSearch") {
+    test(
+      s"should support single-stage filtering single range seek $valueToSearch < n.id <= $valueToSearch",
+      Tags.NoSpdOverride
+    ) {
       // given
       givenGraph(createGraph())
 
@@ -740,7 +761,10 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("id").withNoRows()
     }
 
-    test(s"should support single-stage filtering single range seek $valueToSearch <= n.id < $valueToSearch") {
+    test(
+      s"should support single-stage filtering single range seek $valueToSearch <= n.id < $valueToSearch",
+      Tags.NoSpdOverride
+    ) {
       // given
       givenGraph(createGraph())
 
@@ -774,7 +798,10 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("id").withNoRows()
     }
 
-    test(s"should support single-stage filtering single range seek $valueToSearch < n.id < $valueToSearch") {
+    test(
+      s"should support single-stage filtering single range seek $valueToSearch < n.id < $valueToSearch",
+      Tags.NoSpdOverride
+    ) {
       // given
       givenGraph(createGraph())
 
@@ -808,7 +835,10 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("id").withNoRows()
     }
 
-    test(s"should support single-stage filtering single range seek ${range(size - 1)} <= n.id <= ${range(0)}") {
+    test(
+      s"should support single-stage filtering single range seek ${range(size - 1)} <= n.id <= ${range(0)}",
+      Tags.NoSpdOverride
+    ) {
       // given
       givenGraph(createGraph())
 
@@ -843,7 +873,10 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("id").withNoRows()
     }
 
-    test(s"should support single-stage filtering single range seek ${range(0)} <= n.id < ${range(size - 1)}") {
+    test(
+      s"should support single-stage filtering single range seek ${range(0)} <= n.id < ${range(size - 1)}",
+      Tags.NoSpdOverride
+    ) {
       // given
       givenGraph(createGraph())
 
@@ -879,7 +912,10 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("id").withRows(singleColumn(expected))
     }
 
-    test(s"should support single-stage filtering single range seek ${range(0)} < n.id <= ${range(size - 1)}") {
+    test(
+      s"should support single-stage filtering single range seek ${range(0)} < n.id <= ${range(size - 1)}",
+      Tags.NoSpdOverride
+    ) {
       // given
       givenGraph(createGraph())
 
@@ -915,7 +951,10 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("id").withRows(singleColumn(expected))
     }
 
-    test(s"should support single-stage filtering single range seek ${range(0)} <= n.id <= ${range(size - 1)}") {
+    test(
+      s"should support single-stage filtering single range seek ${range(0)} <= n.id <= ${range(size - 1)}",
+      Tags.NoSpdOverride
+    ) {
       // given
       givenGraph(createGraph())
 
@@ -951,7 +990,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("id").withRows(singleColumn(expected))
     }
 
-    test(s"should support single-stage filtering single range seek $valueToSearch < n.id") {
+    test(s"should support single-stage filtering single range seek $valueToSearch < n.id", Tags.NoSpdOverride) {
       // given
       givenGraph(createGraph())
 
@@ -987,7 +1026,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("r").withRows(singleColumn(Seq.fill(expectedNumberOfRows)(true)))
     }
 
-    test(s"should support single-stage filtering single range seek $valueToSearch <= n.id") {
+    test(s"should support single-stage filtering single range seek $valueToSearch <= n.id", Tags.NoSpdOverride) {
       // given
       givenGraph(createGraph())
 
@@ -1022,7 +1061,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("r").withRows(singleColumn(Seq.fill(expectedNumberOfRows)(true)))
     }
 
-    test(s"should support single-stage filtering single range seek $valueToSearch > n.id") {
+    test(s"should support single-stage filtering single range seek $valueToSearch > n.id", Tags.NoSpdOverride) {
       // given
       givenGraph(createGraph())
 
@@ -1057,7 +1096,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtimeResult should beColumns("r").withRows(singleColumn(Seq.fill(expectedNumberOfRows)(true)))
     }
 
-    test(s"should support single-stage filtering single range seek $valueToSearch >= n.id") {
+    test(s"should support single-stage filtering single range seek $valueToSearch >= n.id", Tags.NoSpdOverride) {
       // given
       givenGraph(createGraph())
 
@@ -1093,7 +1132,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
   })
 
-  test("should support single-stage filtering single range seek with different types") {
+  test("should support single-stage filtering single range seek with different types", Tags.NoSpdOverride) {
+
     val random = new Random()
 
     givenGraph {
@@ -1141,7 +1181,11 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support single-stage filtering single range seek with different non-storable types") {
+  test(
+    "should support single-stage filtering single range seek with different non-storable types",
+    Tags.NoSpdOverride
+  ) {
+
     val random = new Random()
 
     givenGraph {
@@ -1189,7 +1233,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support single-stage filtering single open range seek with non-storable type") {
+  test("should support single-stage filtering single open range seek with non-storable type", Tags.NoSpdOverride) {
+
     val random = new Random()
 
     givenGraph {
@@ -1236,7 +1281,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support single-stage filtering single range seek between null values") {
+  test("should support single-stage filtering single range seek between null values", Tags.NoSpdOverride) {
+
     val random = new Random()
 
     givenGraph {
@@ -1284,7 +1330,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support single-stage filtering single range seek of booleans") {
+  test("should support single-stage filtering single range seek of booleans", Tags.NoSpdOverride) {
+
     // given
     givenGraph(booleanVectorGraph(20))
 
@@ -1477,7 +1524,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       })
     }
 
-    test(s"index equivalence test iteration=$i, seed=$seed, predicate: $predicateString") {
+    test(s"index equivalence test iteration=$i, seed=$seed, predicate: $predicateString", Tags.NoSpdOverride) {
       // given
       givenGraph(randomGraph())
 
@@ -1507,7 +1554,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
   })
 
-  test("comparing floating point and integer") {
+  test("comparing floating point and integer", Tags.NoSpdOverride) {
+
     // given
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
@@ -1555,7 +1603,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("exact filter for non-storable value") {
+  test("exact filter for non-storable value", Tags.NoSpdOverride) {
+
     // given
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
@@ -1603,7 +1652,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support multiple composite exact filters") {
+  test("should support multiple composite exact filters", Tags.NoSpdOverride) {
+
     // given
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
@@ -1663,7 +1713,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     run(EMPTY_MAP, EMPTY_MAP) should beColumns("id1", "id2").withNoRows()
   }
 
-  test("should support exact composite query with one gap") {
+  test("should support exact composite query with one gap", Tags.NoSpdOverride) {
+
     // given
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -1746,7 +1797,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("id1", "id2", "id3").withNoRows()
   }
 
-  test("should support exact composite query with two gaps") {
+  test("should support exact composite query with two gaps", Tags.NoSpdOverride) {
+
     // given
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -1807,7 +1859,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     run(EMPTY_MAP) should beColumns("id1", "id2", "id3").withNoRows()
   }
 
-  test("should support exact composite query with just gaps") {
+  test("should support exact composite query with just gaps", Tags.NoSpdOverride) {
+
     // given
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -1853,7 +1906,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("id1", "id2", "id3").withRows(rowCount(1000))
   }
 
-  test("should support multiple composite range filters") {
+  test("should support multiple composite range filters", Tags.NoSpdOverride) {
+
     // given
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
@@ -1953,7 +2007,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     })
   }
 
-  test("should support composite combined exact and range filters") {
+  test("should support composite combined exact and range filters", Tags.NoSpdOverride) {
+
     // given
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
@@ -2038,7 +2093,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     })
   }
 
-  test("composite queries should find nodes with missing property") {
+  test("composite queries should find nodes with missing property", Tags.NoSpdOverride) {
+
     // given
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
