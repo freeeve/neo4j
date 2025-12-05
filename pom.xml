@@ -602,10 +602,6 @@
                   <include>src/**/*.feature</include>
                   <include>src/**/*.g4</include>
                 </includes>
-                <excludes>
-                  <exclude>**/cypher-shell/*</exclude>
-                  <exclude>**/apoc/*</exclude>
-                </excludes>
               </licenseSet>
             </licenseSets>
             <mapping>
