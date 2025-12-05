@@ -214,12 +214,12 @@ public class CypherExecutionException extends Neo4jException {
 
     public static CypherExecutionException grantOrDenyPrivilege(
             String type, String action, String role, Throwable cause) {
-        var msg = String.format("Failed to %s %s privilege to role '%s'", type, action, role);
+        var msg = String.format("Failed to %s %s privilege to role '%s'.", type, action, role);
         return genericAdministrationException(msg, cause);
     }
 
     public static CypherExecutionException revokePrivilege(String action, String role, Throwable cause) {
-        var msg = String.format("Failed to revoke %s privilege from role '%s'", action, role);
+        var msg = String.format("Failed to revoke %s privilege from role '%s'.", action, role);
         return genericAdministrationException(msg, cause);
     }
 
