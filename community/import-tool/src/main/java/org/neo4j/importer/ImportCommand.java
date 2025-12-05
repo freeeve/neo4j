@@ -75,6 +75,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.importer.FileImporter.CsvImportException;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
 import org.neo4j.internal.batchimport.DefaultAdditionalIds;
+import org.neo4j.internal.batchimport.input.BadCollector;
 import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaCommand.SchemaCommandReaderException;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -351,7 +352,7 @@ public class ImportCommand {
                                 + "Therefore, cleaning the data before importing it is highly recommended. If you encounter any bad entries during "
                                 + "the import process, you can set the number of bad entries to a specific value that suits your needs. "
                                 + "However, setting a high value may affect the performance of the tool.")
-        private long badTolerance = 1000;
+        private long badTolerance = BadCollector.UNLIMITED_TOLERANCE;
 
         public static final String SKIP_BAD_ENTRIES_LOGGING = "--skip-bad-entries-logging";
 
