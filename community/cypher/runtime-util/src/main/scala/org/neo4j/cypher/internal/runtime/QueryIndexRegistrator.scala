@@ -79,6 +79,14 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
   ): Int =
     registerQueryIndex(indexType, Seq(relationshipTypeToken.nameId), properties, None)
 
+  def registerNamedRelationshipQueryIndex(
+    indexName: String,
+    indexType: IndexType,
+    types: Seq[RelationshipTypeToken],
+    properties: collection.Seq[IndexedProperty]
+  ): Int =
+    registerQueryIndex(indexType, types.map(_.nameId), properties, Some(indexName))
+
   private def registerQueryIndex(
     indexType: IndexType,
     tokenNameId: collection.Seq[NameId],
@@ -108,6 +116,13 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
           if labels.forall(_.isInstanceOf[LabelId]) =>
           schemaRead.indexForSchemaAndIndexTypeNonTransactional(
             SchemaDescriptors.forSemanticSearch(EntityType.NODE, labels.map(_.id).toArray, properties.toArray),
+            schema.IndexType.VECTOR
+          )
+
+        case InternalIndexReference(types, properties, schema.IndexType.VECTOR, None)
+          if types.forall(_.isInstanceOf[RelTypeId]) =>
+          schemaRead.indexForSchemaAndIndexTypeNonTransactional(
+            SchemaDescriptors.forSemanticSearch(EntityType.RELATIONSHIP, types.map(_.id).toArray, properties.toArray),
             schema.IndexType.VECTOR
           )
 

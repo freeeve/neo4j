@@ -68,6 +68,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
@@ -168,6 +169,7 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.UndirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
@@ -275,6 +277,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.DirectedRelationshipIndex
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DirectedRelationshipIndexScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DirectedRelationshipIndexSeekSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DirectedRelationshipTypeScanSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.DirectedRelationshipVectorIndexSearchSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DirectedUnionRelationshipTypesScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPrimitivePipe
@@ -337,6 +340,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedRelationshipInd
 import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedRelationshipIndexScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedRelationshipIndexSeekSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedRelationshipTypeScanSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedRelationshipVectorIndexSearchSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedUnionRelationshipTypesScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.UnionNodesByLabelsScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.UnionSlottedPipe
@@ -1024,6 +1028,55 @@ class SlottedPipeMapper(
           convertExpressions(valueExpr),
           slots,
           indexOrder
+        )(id)
+      case DirectedRelationshipVectorIndexSearch(
+          relationship,
+          left,
+          right,
+          types,
+          properties,
+          score,
+          indexName,
+          vector,
+          limit,
+          maybeFilter,
+          _
+        ) =>
+        DirectedRelationshipVectorIndexSearchSlottedPipe(
+          relationship.map(r => slots.longOffset(r)),
+          left.map(n => slots.longOffset(n)),
+          right.map(n => slots.longOffset(n)),
+          score.map(s => slots.refOffset(s)),
+          properties.map(_.propertyKeyId).toArray,
+          convertExpressions(vector),
+          convertExpressions(limit),
+          indexRegistrator.registerNamedRelationshipQueryIndex(indexName, IndexType.VECTOR, types, properties),
+          maybeFilter.map(_.map(convertExpressions))
+        )(id)
+
+      case UndirectedRelationshipVectorIndexSearch(
+          relationship,
+          left,
+          right,
+          types,
+          properties,
+          score,
+          indexName,
+          vector,
+          limit,
+          maybeFilter,
+          _
+        ) =>
+        UndirectedRelationshipVectorIndexSearchSlottedPipe(
+          relationship.map(r => slots.longOffset(r)),
+          left.map(n => slots.longOffset(n)),
+          right.map(n => slots.longOffset(n)),
+          score.map(s => slots.refOffset(s)),
+          properties.map(_.propertyKeyId).toArray,
+          convertExpressions(vector),
+          convertExpressions(limit),
+          indexRegistrator.registerNamedRelationshipQueryIndex(indexName, IndexType.VECTOR, types, properties),
+          maybeFilter.map(_.map(convertExpressions))
         )(id)
 
       case _: Argument =>

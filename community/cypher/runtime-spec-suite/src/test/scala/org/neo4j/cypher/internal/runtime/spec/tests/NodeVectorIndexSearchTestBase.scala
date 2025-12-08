@@ -49,7 +49,6 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelExcept
 import org.neo4j.kernel.KernelVersion
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.values.AnyValue
-import org.neo4j.values.storable.BooleanValue
 import org.neo4j.values.storable.DateTimeValue
 import org.neo4j.values.storable.DateValue
 import org.neo4j.values.storable.LocalDateTimeValue
@@ -76,7 +75,6 @@ import org.neo4j.values.storable.Values.longValue
 import org.neo4j.values.storable.Values.shortValue
 import org.neo4j.values.storable.Values.stringValue
 import org.neo4j.values.storable.VectorValue
-import org.neo4j.values.virtual.VirtualValues
 import org.neo4j.values.virtual.VirtualValues.EMPTY_MAP
 
 import java.time.LocalTime
@@ -2186,7 +2184,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     val boolToken = tx.kernelTransaction().tokenRead().propertyKey("bool")
     nodeGraph(size, "Foo").zipWithIndex.foreach({
       case (n, i) =>
-        write.nodeSetProperty(n.getId, boolToken, Values.booleanValue(i < size / 2))
+        write.nodeSetProperty(n.getId, boolToken, booleanValue(i < size / 2))
         write.nodeSetProperty(
           n.getId,
           vectorToken,
@@ -2219,8 +2217,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       runtime,
       parameters =
         Map(
-          "min" -> Values.booleanValue(min),
-          "max" -> Values.booleanValue(max)
+          "min" -> booleanValue(min),
+          "max" -> booleanValue(max)
         )
     )
   }

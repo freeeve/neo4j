@@ -845,14 +845,26 @@ trait GraphCreation[CONTEXT <: RuntimeContext] {
     runtimeTestSupport.tx.schema().awaitIndexesOnline(10, TimeUnit.MINUTES)
   }
 
-  def relationshipIndex(relType: String)(f: IndexCreator => IndexCreator): Unit = {
+  def relationshipIndex(relType: String)(f: IndexCreator => IndexCreator): Unit = relationshipIndex(Seq(relType))(f)
+
+  def relationshipIndex(relTypes: Seq[String])(f: IndexCreator => IndexCreator): Unit = {
     runtimeTestSupport.restartTx()
     try {
-      f(runtimeTestSupport.tx.schema().indexFor(RelationshipType.withName(relType))).create()
+      f(runtimeTestSupport.tx.schema().indexFor(relTypes.map(relType =>
+        RelationshipType.withName(relType)
+      ): _*)).create()
     } finally {
       runtimeTestSupport.restartTx()
     }
     runtimeTestSupport.tx.schema().awaitIndexesOnline(10, TimeUnit.MINUTES)
+  }
+
+  def relationshipIndex(name: String, indexType: IndexType, types: Seq[String], properties: String*): Unit = {
+    relationshipIndex(types) { creator =>
+      properties.foldLeft(creator.withIndexType(indexType).withName(name)) { case (newCreator, prop) =>
+        newCreator.on(prop)
+      }
+    }
   }
 
   /**

@@ -64,6 +64,7 @@ import org.neo4j.cypher.internal.logical.plans.DeleteRelationship
 import org.neo4j.cypher.internal.logical.plans.DetachDeleteExpression
 import org.neo4j.cypher.internal.logical.plans.DetachDeleteNode
 import org.neo4j.cypher.internal.logical.plans.DetachDeletePath
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -152,6 +153,7 @@ import org.neo4j.cypher.internal.logical.plans.TransactionForeach
 import org.neo4j.cypher.internal.logical.plans.TriadicBuild
 import org.neo4j.cypher.internal.logical.plans.TriadicFilter
 import org.neo4j.cypher.internal.logical.plans.TriadicSelection
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
@@ -733,6 +735,20 @@ class SingleQuerySlotAllocator private[physicalplanning] (
     lp match {
       case leaf: NodeVectorIndexSearch =>
         slots.newLong(leaf.idName, nullable, CTNode)
+        leaf.score.foreach(slots.newReference(_, nullable, CTInteger))
+
+      case leaf: DirectedRelationshipVectorIndexSearch =>
+        leaf.idName.foreach(r => slots.newLong(r, nullable, CTRelationship))
+        leaf.leftNode.foreach(n => slots.newLong(n, nullable, CTNode))
+        leaf.rightNode.foreach(n => slots.newLong(n, nullable, CTNode))
+        leaf.cachedProperties.foreach(cp => slots.newCachedProperty(cp.runtimeKey))
+        leaf.score.foreach(slots.newReference(_, nullable, CTInteger))
+
+      case leaf: UndirectedRelationshipVectorIndexSearch =>
+        leaf.idName.foreach(r => slots.newLong(r, nullable, CTRelationship))
+        leaf.leftNode.foreach(n => slots.newLong(n, nullable, CTNode))
+        leaf.rightNode.foreach(n => slots.newLong(n, nullable, CTNode))
+        leaf.cachedProperties.foreach(cp => slots.newCachedProperty(cp.runtimeKey))
         leaf.score.foreach(slots.newReference(_, nullable, CTInteger))
 
       case MultiNodeIndexSeek(leafPlans) =>
