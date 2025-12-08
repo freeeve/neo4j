@@ -97,6 +97,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGET_NAME_PROP
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TOPOLOGY_GRAPH_CONFIG_AUTO_ENABLE_FREE_SERVERS_FLAG;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TOPOLOGY_GRAPH_CONFIG_DEFAULT_DATABASE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TOPOLOGY_GRAPH_CONFIG_DEFAULT_NUMBER_OF_PRIMARIES_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TOPOLOGY_GRAPH_CONFIG_DEFAULT_NUMBER_OF_PROPERTY_SHARD_REPLICAS_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TOPOLOGY_GRAPH_CONFIG_DEFAULT_NUMBER_OF_SECONDARIES_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TOPOLOGY_GRAPH_CONFIG_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.URL_PROPERTY;
@@ -757,6 +758,7 @@ public abstract class BaseTopologyGraphDbmsModelIT {
             var configNode = tx.createNode(TOPOLOGY_GRAPH_CONFIG_LABEL);
             configNode.setProperty(TOPOLOGY_GRAPH_CONFIG_DEFAULT_NUMBER_OF_PRIMARIES_PROPERTY, 9L);
             configNode.setProperty(TOPOLOGY_GRAPH_CONFIG_DEFAULT_NUMBER_OF_SECONDARIES_PROPERTY, 10L);
+            configNode.setProperty(TOPOLOGY_GRAPH_CONFIG_DEFAULT_NUMBER_OF_PROPERTY_SHARD_REPLICAS_PROPERTY, 11L);
             configNode.setProperty(TOPOLOGY_GRAPH_CONFIG_DEFAULT_DATABASE_PROPERTY, "bar");
             configNode.setProperty(TOPOLOGY_GRAPH_CONFIG_AUTO_ENABLE_FREE_SERVERS_FLAG, false);
             tx.commit();

@@ -3732,7 +3732,50 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "cypherVersionScope": [5, 25]
+    "cypherVersionScope": [5]
+  },
+  {
+    "admin": true,
+    "name": "dbms.setDefaultAllocationNumbers",
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "signature": "dbms.setDefaultAllocationNumbers(primaries :: INTEGER, secondaries :: INTEGER, propertyShardReplicas = null :: INTEGER)",
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "worksOnSystem": true,
+    "returnDescription": [],
+    "description": "With this method you can set the default number of primaries, secondaries and property shard replicas.",
+    "rolesExecution": [
+      "admin"
+    ],
+    "argumentDescription": [
+      {
+        "name": "primaries",
+        "description": "The default number of primaries.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      },
+      {
+        "name": "secondaries",
+        "description": "The default number of secondaries.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      },
+      {
+        "default": "DefaultParameterValue{value=null, type=INTEGER}",
+        "name": "propertyShardReplicas",
+        "description": "The default number of property shard replicas.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      }
+    ],
+    "mode": "WRITE",
+    "enterpriseOnly": true,
+    "cypherVersionScope": [25]
   },
   {
     "admin": true,
@@ -3866,7 +3909,67 @@
     "argumentDescription": [],
     "mode": "READ",
     "enterpriseOnly": true,
-    "cypherVersionScope": [5, 25]
+    "cypherVersionScope": [5]
+  },
+  {
+    "admin": true,
+    "name": "dbms.showTopologyGraphConfig",
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "signature": "dbms.showTopologyGraphConfig() :: (allocator :: STRING, defaultPrimariesCount :: INTEGER, defaultSecondariesCount :: INTEGER, defaultDatabase :: STRING, autoEnableFreeServers :: BOOLEAN, propertyShardReplicas :: INTEGER)",
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "worksOnSystem": true,
+    "returnDescription": [
+      {
+        "name": "allocator",
+        "description": "The name of the allocator.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "defaultPrimariesCount",
+        "description": "The default number of primaries.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      },
+      {
+        "name": "defaultSecondariesCount",
+        "description": "The default number of secondaries.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      },
+      {
+        "name": "defaultDatabase",
+        "description": "The name of the default database.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "autoEnableFreeServers",
+        "description": "Whether or not to automatically enable free servers.",
+        "type": "BOOLEAN",
+        "isDeprecated": false
+      },
+      {
+        "name": "propertyShardReplicas",
+        "description": "The default number of property shard replicas.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      }
+    ],
+    "description": "With this method the configuration of the Topology Graph can be displayed.",
+    "rolesExecution": [
+      "admin"
+    ],
+    "argumentDescription": [],
+    "mode": "READ",
+    "enterpriseOnly": true,
+    "cypherVersionScope": [25]
   },
   {
     "name": "dbms.upgrade",
