@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNextStatements
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoTopLevelBraces
@@ -101,7 +102,7 @@ case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTra
   override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(ContainsNoTopLevelBraces))
 
   override def invalidatedConditions: Set[StepSequencer.Condition] =
-    Set(ContainsNoReturnAll, ProjectionClausesHaveSemanticInfo)
+    Set(ContainsNoReturnAll, ProjectionClausesHaveSemanticInfo, UpToDateScopes)
 
   private def pushDownUse(query: Query, use: Option[UseGraph]): Query = {
     query match {

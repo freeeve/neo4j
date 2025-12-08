@@ -444,7 +444,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     val scopeTreeTransformation = new ScopeTreeTransformation()
 
     val transformers =
-      ScopeSurveyor andThen scopeTreeTransformation andThen ScopeSurveyor
+      ScopeSurveyor.getTransformerWithoutCheck andThen
+        scopeTreeTransformation andThen
+        ScopeSurveyor.getTransformerWithoutCheck
 
     val stateAfter = transformers.transform(initialStateWithStatement(statement), context)
     val actualWorkingScope = stateAfter.maybeScopeState match {
@@ -490,7 +492,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       }
     // running the ScopeSurveyor twice in a row is a trivial test that its working scope caching is idempotent w.r.t the resulting working scope
     val scopeSurveyorPipe =
-      if (withoutCachingCheck) ScopeSurveyor
+      if (withoutCachingCheck) ScopeSurveyor.getTransformerWithoutCheck
       else ScopeSurveyor andThen ScopeSurveyor
 
     val transformers = {

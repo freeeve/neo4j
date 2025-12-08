@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.Compilat
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.Deprecation
 import org.neo4j.cypher.internal.rewriting.Deprecations
 import org.neo4j.cypher.internal.rewriting.SemanticDeprecations
@@ -95,7 +96,7 @@ case class SyntaxDeprecationWarningsAndReplacements(deprecations: Deprecations)
       ) ++ SemanticInfoAvailable
   }
 
-  override def invalidatedConditions: Set[Condition] = SemanticInfoAvailable
+  override def invalidatedConditions: Set[Condition] = SemanticInfoAvailable + UpToDateScopes
 
   override def postConditions: Set[StepSequencer.Condition] = deprecations match {
     case _: SyntacticDeprecations => Set(DeprecatedSyntaxReplaced)

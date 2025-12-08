@@ -222,7 +222,7 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       query.resolvedLanguage,
       executionPlanCacheKeyHash,
       planState.returnColumns.toArray,
-      planState.maybeWorkingScope
+      planState.maybeExplainScope
     )
   }
 
@@ -438,7 +438,7 @@ object CypherCurrentCompiler {
     cypherVersion: CypherVersion,
     override val executionPlanCacheKeyHash: Int,
     val returnColumns: Array[String],
-    maybeWorkingScope: Option[WorkingScope]
+    maybeExplainScope: Option[WorkingScope]
   ) extends ExecutableQuery {
 
     // Monitors are implemented via dynamic proxies which are slow compared to NOOP which is why we want to able to completely disable
@@ -461,7 +461,7 @@ object CypherCurrentCompiler {
         executionPlan,
         renderPlanDescription,
         cypherVersion,
-        maybeWorkingScope
+        maybeExplainScope
       )
 
     private def createQueryContext(

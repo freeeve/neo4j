@@ -20,7 +20,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
@@ -91,17 +90,14 @@ trait FrontEndCompilationPhases {
         SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures),
         UnwrapTopLevelBraces,
         UnresolveShadowedFunctions,
-        WrapAndExpandProcedureCall
+        WrapAndExpandProcedureCall,
+        ScopeSurveyor
       ),
       initialConditions = Set(BaseContains[Statement]())
     )
 
   def postParsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    // let scope query step run before everything else, so use input is unchanged
-    val scopeQuerySteps =
-      if (config.semanticFeatures contains ScopeQueries) Seq(ScopeSurveyor)
-      else Seq()
-    Chainer.chainTransformers((scopeQuerySteps ++ orderedSteps).map(_.getCheckedTransformer(
+    Chainer.chainTransformers(orderedSteps.map(_.getCheckedTransformer(
       literalExtractionStrategy = config.literalExtractionStrategy,
       parameterTypeMapping = config.parameterTypeMapping,
       semanticFeatures = config.semanticFeatures,
@@ -115,6 +111,7 @@ trait FrontEndCompilationPhases {
         // Needs to be done before any other rewrites to not miss literals
         ExtractSensitiveLiterals.andThen(ObfuscationMetadataCollection)
       ) andThen
+      ScopeSurveyor andThen
       postParsingBase(config) andThen
       If((_: BaseState) => config.resolveSimpleDynamicExpressions)(
         IfChangedSetSemantics.using(ResolveSimpleDynamicExpressions(parameters))

@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Pattern
@@ -59,10 +60,13 @@ case class SurveyorNameGenerator() extends AnonymousVariableNameGenerator {
   }
 }
 
+case object UpToDateScopes extends StepSequencer.Condition
+
 /**
  * Produce a WorkingScope tree that makes it easy to check variable availability for the whole query
  */
-case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with StepSequencer.Step
+case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState]
+    with StepSequencer.Step
     with ParsePipelineTransformerFactory {
 
   val unitVariables: Set[LogicalVariable] = Set.empty[LogicalVariable]
@@ -73,7 +77,12 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
     case v @ Variable(namespacing(varName)) => v.copy(name = varName)(v.position, v.isIsolated)
   }
 
-  override def process(from: BaseState, context: BaseContext): BaseState = {
+  override def process(from: BaseState, context: BaseContext): BaseState =
+    if (from.maybeScopeState.isEmpty || from.statement != from.scopeState().workingScope.astNode)
+      run(from, context)
+    else from
+
+  private def run(from: BaseState, context: BaseContext) = {
     val anonVarGen = SurveyorNameGenerator()
     val statement = from.statement().endoRewrite(topDown(removeNamespacing))
 
@@ -87,11 +96,26 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
         from.maybeScopeState.map(_.recordedScopes).getOrElse(ScopeState.emptyRecordedScopes)
       )
     )
-
     val recordedScopes = workingContextOfStatement.getRecordedScopes
 
-    from.withScopeState(ScopeState(workingContextOfStatement, recordedScopes))
+    val explainScope =
+      if (context.semanticFeatures.contains(ScopeQueries) && from.maybeScopeState.isEmpty)
+        Some(workingContextOfStatement)
+      else from.maybeScopeState.flatMap(x => x.explainScope)
+
+    from.withScopeState(ScopeState(workingContextOfStatement, recordedScopes, explainScope))
   }
+
+  def getTransformerWithoutCheck: Transformer[BaseContext, BaseState, BaseState] =
+
+    new Transformer[BaseContext, BaseState, BaseState] {
+
+      override def transform(from: BaseState, context: BaseContext): BaseState = run(from, context)
+
+      override def postConditions: Set[StepSequencer.Condition] = Set.empty
+
+      override def name: String = "ScopeSurveyor without check statement"
+    }
 
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
@@ -104,9 +128,9 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty
 
-  override def preConditions: Set[StepSequencer.Condition] = Set.empty
+  override def preConditions: Set[StepSequencer.Condition] = Set(BaseContains[Statement])
 
-  override def postConditions: Set[StepSequencer.Condition] = Set(BaseContains[WorkingScope]())
+  override def postConditions: Set[StepSequencer.Condition] = Set(BaseContains[WorkingScope](), UpToDateScopes)
 
   def scope(
     astNode: ASTNode,
@@ -145,4 +169,5 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
       case _ => UnexpectedAstNodeScopingError(astNode, incoming)
     }
   }
+
 }

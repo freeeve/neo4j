@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -62,7 +63,7 @@ case object RemoveDuplicateUseClauses extends StatementRewriter with StepSequenc
 
   override def postConditions: Set[StepSequencer.Condition] = Set(NoDuplicateUseClauses)
 
-  override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
+  override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable + UpToDateScopes
 
   /**
    * Rewriter that keeps track of the working graph and removes use clauses with the same target

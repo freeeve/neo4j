@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
@@ -85,7 +86,8 @@ case object IsolateSubqueriesInMutatingPatterns extends StatementRewriter
 
   override def postConditions: Set[StepSequencer.Condition] = Set(SubqueriesInMutatingPatternsIsolated)
 
-  override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable + ContainsNoReturnAll
+  override def invalidatedConditions: Set[StepSequencer.Condition] =
+    Set(ContainsNoReturnAll, UpToDateScopes) ++ SemanticInfoAvailable
 
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,

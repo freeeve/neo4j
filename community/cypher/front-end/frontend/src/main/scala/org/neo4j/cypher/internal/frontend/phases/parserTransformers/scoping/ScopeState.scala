@@ -23,7 +23,8 @@ import org.neo4j.cypher.internal.util.ASTNode
 
 case class ScopeState(
   workingScope: WorkingScope,
-  recordedScopes: RecordedScopes
+  recordedScopes: RecordedScopes,
+  explainScope: Option[WorkingScope] = None
 )
 
 object ScopeState {

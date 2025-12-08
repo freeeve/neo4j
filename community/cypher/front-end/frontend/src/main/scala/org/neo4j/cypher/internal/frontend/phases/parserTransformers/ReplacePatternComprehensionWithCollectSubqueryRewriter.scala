@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
@@ -73,7 +74,8 @@ case object ReplacePatternComprehensionWithCollectSubqueryRewriter extends Phase
   override def invalidatedConditions: Set[StepSequencer.Condition] =
     Set(
       // It can invalidate this condition by rewriting things inside WITH/RETURN.
-      ProjectionClausesHaveSemanticInfo
+      ProjectionClausesHaveSemanticInfo,
+      UpToDateScopes
     ) ++ SemanticInfoAvailable
 
 }

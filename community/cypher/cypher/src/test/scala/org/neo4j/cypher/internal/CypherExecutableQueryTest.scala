@@ -86,7 +86,7 @@ class CypherExecutableQueryTest extends CypherFunSuite {
       cypherVersion = CypherVersion.Legacy.legacyVersion(),
       executionPlanCacheKeyHash = 0,
       returnColumns = Array.empty,
-      maybeWorkingScope = None
+      maybeExplainScope = None
     )
 
     val provider = query.deprecationNotificationsProvider(InputPosition.NONE)
