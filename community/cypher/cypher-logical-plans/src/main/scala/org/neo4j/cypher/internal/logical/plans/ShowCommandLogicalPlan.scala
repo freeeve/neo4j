@@ -35,7 +35,6 @@ case class ShowIndexes(
   yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
   columnVariables: Set[LogicalVariable],
-  hasOrderByOnYield: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW INDEXES"
@@ -56,7 +55,6 @@ case class ShowConstraints(
   yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
   columnVariables: Set[LogicalVariable],
-  hasOrderByOnYield: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW CONSTRAINTS"
@@ -96,7 +94,6 @@ case class ShowProcedures(
   yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
   columnVariables: Set[LogicalVariable],
-  hasOrderByOnYield: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW PROCEDURES"
@@ -118,7 +115,6 @@ case class ShowFunctions(
   yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
   columnVariables: Set[LogicalVariable],
-  hasOrderByOnYield: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW FUNCTIONS"
@@ -183,7 +179,6 @@ case class ShowSettings(
   yieldColumns: List[CommandYieldColumn],
   yieldAll: Boolean,
   columnVariables: Set[LogicalVariable],
-  hasOrderByOnYield: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
   override def commandDescription: String = "SHOW SETTINGS"

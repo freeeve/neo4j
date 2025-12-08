@@ -2637,8 +2637,7 @@ case class ShowIndexesClause(
   where: Option[Where],
   yieldItems: List[CommandResultItem],
   yieldAll: Boolean,
-  yieldWith: Option[With],
-  hasOrderByOnYield: Boolean
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClause {
   override def name: String = "SHOW INDEXES"
 
@@ -2683,8 +2682,7 @@ object ShowIndexesClause {
     where: Option[Where],
     yieldItems: List[CommandResultItem],
     yieldAll: Boolean,
-    yieldWith: Option[With],
-    hasOrderByOnYield: Boolean
+    yieldWith: Option[With]
   )(position: InputPosition): ShowIndexesClause = {
     val briefCols = List(
       ShowAndTerminateColumn(idColumn, CTInteger),
@@ -2714,8 +2712,7 @@ object ShowIndexesClause {
       where,
       yieldItems,
       yieldAll,
-      yieldWith,
-      hasOrderByOnYield
+      yieldWith
     )(position)
   }
 }
@@ -2727,8 +2724,7 @@ case class ShowConstraintsClause(
   where: Option[Where],
   yieldItems: List[CommandResultItem],
   yieldAll: Boolean,
-  yieldWith: Option[With],
-  hasOrderByOnYield: Boolean
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClause {
   override def name: String = "SHOW CONSTRAINTS"
 
@@ -2803,7 +2799,6 @@ object ShowConstraintsClause {
     yieldItems: List[CommandResultItem],
     yieldAll: Boolean,
     yieldWith: Option[With],
-    hasOrderByOnYield: Boolean,
     returnCypher5Columns: Boolean
   )(position: InputPosition): ShowConstraintsClause = {
     val columns = List(
@@ -2836,8 +2831,7 @@ object ShowConstraintsClause {
       where,
       yieldItems,
       yieldAll,
-      yieldWith,
-      hasOrderByOnYield
+      yieldWith
     )(position)
   }
 }
@@ -2890,8 +2884,7 @@ case class ShowProceduresClause(
   where: Option[Where],
   yieldItems: List[CommandResultItem],
   yieldAll: Boolean,
-  yieldWith: Option[With],
-  hasOrderByOnYield: Boolean
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClause with CommandClauseAllowedOnSystem {
   override def name: String = "SHOW PROCEDURES"
 
@@ -2933,8 +2926,7 @@ object ShowProceduresClause {
     where: Option[Where],
     yieldItems: List[CommandResultItem],
     yieldAll: Boolean,
-    yieldWith: Option[With],
-    hasOrderByOnYield: Boolean
+    yieldWith: Option[With]
   )(position: InputPosition): ShowProceduresClause = {
     val briefCols = List(
       ShowAndTerminateColumn(nameColumn),
@@ -2961,8 +2953,7 @@ object ShowProceduresClause {
       where,
       yieldItems,
       yieldAll,
-      yieldWith,
-      hasOrderByOnYield
+      yieldWith
     )(position)
   }
 }
@@ -2975,8 +2966,7 @@ case class ShowFunctionsClause(
   where: Option[Where],
   yieldItems: List[CommandResultItem],
   yieldAll: Boolean,
-  yieldWith: Option[With],
-  hasOrderByOnYield: Boolean
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClause with CommandClauseAllowedOnSystem {
   override def name: String = "SHOW FUNCTIONS"
 
@@ -3018,8 +3008,7 @@ object ShowFunctionsClause {
     where: Option[Where],
     yieldItems: List[CommandResultItem],
     yieldAll: Boolean,
-    yieldWith: Option[With],
-    hasOrderByOnYield: Boolean
+    yieldWith: Option[With]
   )(position: InputPosition): ShowFunctionsClause = {
     val briefCols = List(
       ShowAndTerminateColumn(nameColumn),
@@ -3046,8 +3035,7 @@ object ShowFunctionsClause {
       where,
       yieldItems,
       yieldAll,
-      yieldWith,
-      hasOrderByOnYield
+      yieldWith
     )(position)
   }
 }
@@ -3263,8 +3251,7 @@ case class ShowSettingsClause(
   where: Option[Where],
   yieldItems: List[CommandResultItem],
   yieldAll: Boolean,
-  yieldWith: Option[With],
-  hasOrderByOnYield: Boolean
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClauseWithNames with CommandClauseAllowedOnSystem {
 
   override def name: String = "SHOW SETTINGS"
@@ -3311,8 +3298,7 @@ object ShowSettingsClause {
     where: Option[Where],
     yieldItems: List[CommandResultItem],
     yieldAll: Boolean,
-    yieldWith: Option[With],
-    hasOrderByOnYield: Boolean
+    yieldWith: Option[With]
   )(position: InputPosition): ShowSettingsClause = {
     val defaultCols = List(
       ShowAndTerminateColumn(nameColumn),
@@ -3335,8 +3321,7 @@ object ShowSettingsClause {
       where,
       yieldItems,
       yieldAll,
-      yieldWith,
-      hasOrderByOnYield
+      yieldWith
     )(position)
   }
 }

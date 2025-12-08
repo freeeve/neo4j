@@ -43,7 +43,6 @@ import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.api.QueryLanguage.CYPHER_5
 import org.neo4j.procedure.Mode
 import org.neo4j.values.AnyValue
-import org.neo4j.values.storable.StringValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
 
@@ -55,14 +54,14 @@ import scala.jdk.CollectionConverters.SetHasAsJava
 class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   private val defaultColumns =
-    ShowProceduresClause(None, None, List.empty, yieldAll = false, None, hasOrderByOnYield = false)(InputPosition.NONE)
+    ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
       .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
 
   // The yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
   private val allColumns =
-    ShowProceduresClause(None, None, List.empty, yieldAll = true, None, hasOrderByOnYield = false)(InputPosition.NONE)
+    ShowProceduresClause(None, None, List.empty, yieldAll = true, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
       .map(sc => CommandDefaultColumn(sc.name, sc.cypherType))
@@ -230,8 +229,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2, proc3, proc4))
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, defaultColumns, List.empty, hasOrderByOnYield = false, isCommunity = true, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, defaultColumns, List.empty, isCommunity = true, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -285,8 +283,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2, proc3, proc4))
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, defaultColumns, List.empty, hasOrderByOnYield = false, isCommunity = false, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, defaultColumns, List.empty, isCommunity = false, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -340,8 +337,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2, proc3, proc4))
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, allColumns, List.empty, hasOrderByOnYield = false, isCommunity = true, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, allColumns, List.empty, isCommunity = true, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -426,8 +422,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2, proc3, proc4))
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, allColumns, List.empty, hasOrderByOnYield = false, isCommunity = false, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, allColumns, List.empty, isCommunity = false, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -507,13 +502,12 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     )
   }
 
-  test("show procedures should return the procedures sorted on name without an order by on yield") {
+  test("show procedures should return the procedures sorted on name") {
     // Set-up which procedures to return, not ordered by name:
     when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc2, proc4, proc3, proc1))
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, defaultColumns, List.empty, hasOrderByOnYield = false, isCommunity = true, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, defaultColumns, List.empty, isCommunity = true, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -522,24 +516,6 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     checkResult(result(1), name = "proc2")
     checkResult(result(2), name = "proc3")
     checkResult(result(3), name = "zzz.proc4")
-  }
-
-  test("show procedures should not sort the procedures if there is an order by on yield") {
-    // Set-up which procedures to return, not ordered by name:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc2, proc4, proc3, proc1))
-
-    // When
-    val showProcedures =
-      ShowProceduresCommand(None, defaultColumns, List.empty, hasOrderByOnYield = true, isCommunity = true, CYPHER_5)
-    val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
-
-    // Then
-    result should have size 4
-
-    val resultNames = result.map(m => m(ShowProceduresClause.nameColumn).asInstanceOf[StringValue].stringValue())
-    resultNames should not be resultNames.sorted
-
-    resultNames should contain theSameElementsAs List("proc2", "zzz.proc4", "proc3", "proc1")
   }
 
   test("show procedures should not return internal procedures") {
@@ -565,8 +541,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, internalProc))
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, defaultColumns, List.empty, hasOrderByOnYield = false, isCommunity = true, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, defaultColumns, List.empty, isCommunity = true, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -617,8 +592,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     )
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, allColumns, List.empty, hasOrderByOnYield = false, isCommunity = true, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, allColumns, List.empty, isCommunity = true, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -652,8 +626,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     })
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, allColumns, List.empty, hasOrderByOnYield = false, isCommunity = false, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, allColumns, List.empty, isCommunity = false, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -674,8 +647,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     })
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, allColumns, List.empty, hasOrderByOnYield = false, isCommunity = false, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, allColumns, List.empty, isCommunity = false, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -732,8 +704,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
       .thenAnswer(invocation => specialHandlingOfPrivileges(invocation.getArgument(0)))
 
     // When
-    val showProcedures =
-      ShowProceduresCommand(None, allColumns, List.empty, hasOrderByOnYield = false, isCommunity = false, CYPHER_5)
+    val showProcedures = ShowProceduresCommand(None, allColumns, List.empty, isCommunity = false, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -776,14 +747,8 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     when(systemTx.execute(any(), any())).thenReturn(MockResult())
 
     // When
-    val showProcedures = ShowProceduresCommand(
-      Some(CurrentUser),
-      defaultColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      isCommunity = false,
-      CYPHER_5
-    )
+    val showProcedures =
+      ShowProceduresCommand(Some(CurrentUser), defaultColumns, List.empty, isCommunity = false, CYPHER_5)
     val result = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -804,14 +769,8 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     when(securityContext.roles()).thenReturn(Set(publicRole).asJava)
 
     // When: EXECUTABLE BY CURRENT USER
-    val showProceduresCurrent = ShowProceduresCommand(
-      Some(CurrentUser),
-      defaultColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      isCommunity = false,
-      CYPHER_5
-    )
+    val showProceduresCurrent =
+      ShowProceduresCommand(Some(CurrentUser), defaultColumns, List.empty, isCommunity = false, CYPHER_5)
     val resultCurrent = showProceduresCurrent.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -819,14 +778,8 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     checkResult(resultCurrent.head, name = "proc1")
 
     // When: EXECUTABLE BY <current user>
-    val showProceduresSame = ShowProceduresCommand(
-      Some(User(username)),
-      defaultColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      isCommunity = false,
-      CYPHER_5
-    )
+    val showProceduresSame =
+      ShowProceduresCommand(Some(User(username)), defaultColumns, List.empty, isCommunity = false, CYPHER_5)
     val resultSame = showProceduresSame.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -844,14 +797,8 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     when(securityContext.subject()).thenReturn(user)
 
     // When
-    val showProceduresCurrent = ShowProceduresCommand(
-      Some(User(otherUser)),
-      defaultColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      isCommunity = false,
-      CYPHER_5
-    )
+    val showProceduresCurrent =
+      ShowProceduresCommand(Some(User(otherUser)), defaultColumns, List.empty, isCommunity = false, CYPHER_5)
     val resultCurrent = showProceduresCurrent.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -881,14 +828,8 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
       .thenAnswer(invocation => specialHandlingOfUserRoles(invocation.getArgument(0)))
 
     // When
-    val showProceduresCurrent = ShowProceduresCommand(
-      Some(User(missingUser)),
-      defaultColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      isCommunity = false,
-      CYPHER_5
-    )
+    val showProceduresCurrent =
+      ShowProceduresCommand(Some(User(missingUser)), defaultColumns, List.empty, isCommunity = false, CYPHER_5)
     val resultCurrent = showProceduresCurrent.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -918,7 +859,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
     // When
     val showProcedures =
-      ShowProceduresCommand(None, allColumns, yieldColumns, hasOrderByOnYield = false, isCommunity = false, CYPHER_5)
+      ShowProceduresCommand(None, allColumns, yieldColumns, isCommunity = false, CYPHER_5)
     val resultOriginal = showProcedures.originalNameRows(queryState, initialCypherRow).toList
 
     // Then

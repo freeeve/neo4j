@@ -47,8 +47,7 @@ import scala.util.Try
 case class ShowSettingsCommand(
   givenNames: Either[List[String], Expression],
   columns: List[CommandDefaultColumn],
-  yieldColumns: List[CommandYieldColumn],
-  hasOrderByOnYield: Boolean
+  yieldColumns: List[CommandYieldColumn]
 ) extends Command(columns, yieldColumns) {
 
   private def asMap[T](config: Config)(setting: SettingImpl[T]): Map[String, AnyValue] = requestedColumnsNames.map {
@@ -84,10 +83,9 @@ case class ShowSettingsCommand(
       .filterNot(_.internal())
       .filter(setting => accessMode.allowsShowSetting(setting.name()).allowsAccess())
       .toList
+      .sortBy(_.name())
+      .map(asMap(config)(_))
 
-    // Only sort if we don't have an ORDER BY on the YIELD to avoid double sorting
-    val sortedRows = if (!hasOrderByOnYield) rows.sortBy(_.name()) else rows
-
-    ClosingIterator.apply(sortedRows.map(asMap(config)(_)).iterator)
+    ClosingIterator.apply(rows.iterator)
   }
 }

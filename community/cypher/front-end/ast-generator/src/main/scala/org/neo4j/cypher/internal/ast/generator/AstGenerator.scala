@@ -2183,8 +2183,7 @@ class AstGenerator(
             Some(w),
             List.empty,
             yieldAll = false,
-            None,
-            hasOrderByOnYield = false
+            None
           )(pos)
         )
       case Some(Left((y, r))) =>
@@ -2195,8 +2194,7 @@ class AstGenerator(
             None,
             yi,
             yieldAll = false,
-            Some(w),
-            y.orderBy.isDefined
+            Some(w)
           )(pos)
         ) ++ r
       case _ if yieldAll =>
@@ -2206,8 +2204,7 @@ class AstGenerator(
             None,
             List.empty,
             yieldAll = true,
-            Some(getFullWithStarFromYield),
-            hasOrderByOnYield = false
+            Some(getFullWithStarFromYield)
           )(pos)
         )
       case _ =>
@@ -2217,8 +2214,7 @@ class AstGenerator(
             None,
             List.empty,
             yieldAll = false,
-            None,
-            hasOrderByOnYield = false
+            None
           )(pos)
         )
     }
@@ -2234,26 +2230,10 @@ class AstGenerator(
   } yield {
     val showClauses = yields match {
       case Some(Right(w)) =>
-        Seq(ShowConstraintsClause(
-          constraintType,
-          Some(w),
-          List.empty,
-          yieldAll = false,
-          None,
-          hasOrderByOnYield = false,
-          usesCypher5
-        )(pos))
+        Seq(ShowConstraintsClause(constraintType, Some(w), List.empty, yieldAll = false, None, usesCypher5)(pos))
       case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowConstraintsClause(
-          constraintType,
-          None,
-          yi,
-          yieldAll = false,
-          Some(w),
-          y.orderBy.isDefined,
-          usesCypher5
-        )(pos)) ++ r
+        Seq(ShowConstraintsClause(constraintType, None, yi, yieldAll = false, Some(w), usesCypher5)(pos)) ++ r
       case _ if yieldAll =>
         Seq(
           ShowConstraintsClause(
@@ -2262,20 +2242,11 @@ class AstGenerator(
             List.empty,
             yieldAll = true,
             Some(getFullWithStarFromYield),
-            hasOrderByOnYield = false,
             usesCypher5
           )(pos)
         )
       case _ =>
-        Seq(ShowConstraintsClause(
-          constraintType,
-          None,
-          List.empty,
-          yieldAll = false,
-          None,
-          hasOrderByOnYield = false,
-          usesCypher5
-        )(pos))
+        Seq(ShowConstraintsClause(constraintType, None, List.empty, yieldAll = false, None, usesCypher5)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -2310,21 +2281,14 @@ class AstGenerator(
   } yield {
     val showClauses = yields match {
       case Some(Right(w)) =>
-        Seq(ShowProceduresClause(exec, Some(w), List.empty, yieldAll = false, None, hasOrderByOnYield = false)(pos))
+        Seq(ShowProceduresClause(exec, Some(w), List.empty, yieldAll = false, None)(pos))
       case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowProceduresClause(exec, None, yi, yieldAll = false, Some(w), y.orderBy.isDefined)(pos)) ++ r
+        Seq(ShowProceduresClause(exec, None, yi, yieldAll = false, Some(w))(pos)) ++ r
       case _ if yieldAll =>
-        Seq(ShowProceduresClause(
-          exec,
-          None,
-          List.empty,
-          yieldAll = true,
-          Some(getFullWithStarFromYield),
-          hasOrderByOnYield = false
-        )(pos))
+        Seq(ShowProceduresClause(exec, None, List.empty, yieldAll = true, Some(getFullWithStarFromYield))(pos))
       case _ =>
-        Seq(ShowProceduresClause(exec, None, List.empty, yieldAll = false, None, hasOrderByOnYield = false)(pos))
+        Seq(ShowProceduresClause(exec, None, List.empty, yieldAll = false, None)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -2340,38 +2304,14 @@ class AstGenerator(
   } yield {
     val showClauses = yields match {
       case Some(Right(w)) =>
-        Seq(ShowFunctionsClause(
-          funcType,
-          exec,
-          Some(w),
-          List.empty,
-          yieldAll = false,
-          None,
-          hasOrderByOnYield = false
-        )(pos))
+        Seq(ShowFunctionsClause(funcType, exec, Some(w), List.empty, yieldAll = false, None)(pos))
       case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowFunctionsClause(funcType, exec, None, yi, yieldAll = false, Some(w), y.orderBy.isDefined)(pos)) ++ r
+        Seq(ShowFunctionsClause(funcType, exec, None, yi, yieldAll = false, Some(w))(pos)) ++ r
       case _ if yieldAll =>
-        Seq(ShowFunctionsClause(
-          funcType,
-          exec,
-          None,
-          List.empty,
-          yieldAll = true,
-          Some(getFullWithStarFromYield),
-          hasOrderByOnYield = false
-        )(pos))
+        Seq(ShowFunctionsClause(funcType, exec, None, List.empty, yieldAll = true, Some(getFullWithStarFromYield))(pos))
       case _ =>
-        Seq(ShowFunctionsClause(
-          funcType,
-          exec,
-          None,
-          List.empty,
-          yieldAll = false,
-          None,
-          hasOrderByOnYield = false
-        )(pos))
+        Seq(ShowFunctionsClause(funcType, exec, None, List.empty, yieldAll = false, None)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -2434,22 +2374,13 @@ class AstGenerator(
     use <- option(_use)
   } yield {
     val showClauses = yields match {
-      case Some(Right(w)) =>
-        Seq(ShowSettingsClause(names, Some(w), List.empty, yieldAll = false, None, hasOrderByOnYield = false)(pos))
+      case Some(Right(w)) => Seq(ShowSettingsClause(names, Some(w), List.empty, yieldAll = false, None)(pos))
       case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowSettingsClause(names, None, yi, yieldAll = false, Some(w), y.orderBy.isDefined)(pos)) ++ r
+        Seq(ShowSettingsClause(names, None, yi, yieldAll = false, Some(w))(pos)) ++ r
       case _ if yieldAll =>
-        Seq(ShowSettingsClause(
-          names,
-          None,
-          List.empty,
-          yieldAll = true,
-          Some(getFullWithStarFromYield),
-          hasOrderByOnYield = false
-        )(pos))
-      case _ =>
-        Seq(ShowSettingsClause(names, None, List.empty, yieldAll = false, None, hasOrderByOnYield = false)(pos))
+        Seq(ShowSettingsClause(names, None, List.empty, yieldAll = true, Some(getFullWithStarFromYield))(pos))
+      case _ => Seq(ShowSettingsClause(names, None, List.empty, yieldAll = false, None)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -2504,29 +2435,27 @@ class AstGenerator(
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowTransactionsClause(ids, None, item, all, Some(w), usesCypher5)(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowFunctionsClause(funcType, exec, None, item, all, Some(w), w.orderBy.isDefined)(pos),
+        ShowFunctionsClause(funcType, exec, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowProceduresClause(exec, None, item, all, Some(w), w.orderBy.isDefined)(pos),
+        ShowProceduresClause(exec, None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) => ShowSettingsClause(ids, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowSettingsClause(ids, None, item, all, Some(w), w.orderBy.isDefined)(pos),
+        ShowConstraintsClause(constraintType, None, item, all, Some(w), usesCypher5)(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowConstraintsClause(constraintType, None, item, all, Some(w), w.orderBy.isDefined, usesCypher5)(pos),
-      (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowIndexesClause(indexType, None, item, all, Some(w), w.orderBy.isDefined)(pos)
+        ShowIndexesClause(indexType, None, item, all, Some(w))(pos)
     )
     clauseCypher25orAbove <- oneOf(
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowTransactionsClause(ids, None, item, all, Some(w), usesCypher5)(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowFunctionsClause(funcType, exec, None, item, all, Some(w), w.orderBy.isDefined)(pos),
+        ShowFunctionsClause(funcType, exec, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowProceduresClause(exec, None, item, all, Some(w), w.orderBy.isDefined)(pos),
+        ShowProceduresClause(exec, None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) => ShowSettingsClause(ids, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowSettingsClause(ids, None, item, all, Some(w), w.orderBy.isDefined)(pos),
+        ShowConstraintsClause(constraintType, None, item, all, Some(w), usesCypher5)(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowConstraintsClause(constraintType, None, item, all, Some(w), w.orderBy.isDefined, usesCypher5)(pos),
-      (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowIndexesClause(indexType, None, item, all, Some(w), w.orderBy.isDefined)(pos),
+        ShowIndexesClause(indexType, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowCurrentGraphTypeClause(None, item, all, Some(w))(pos)
     )

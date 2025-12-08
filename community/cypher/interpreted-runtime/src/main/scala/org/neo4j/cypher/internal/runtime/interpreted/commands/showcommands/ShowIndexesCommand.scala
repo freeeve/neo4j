@@ -89,7 +89,6 @@ case class ShowIndexesCommand(
   indexType: ShowIndexType,
   columns: List[CommandDefaultColumn],
   yieldColumns: List[CommandYieldColumn],
-  hasOrderByOnYield: Boolean,
   cypherVersion: CypherVersion
 ) extends Command(columns, yieldColumns) {
   private val returnCypher5Values: Boolean = cypherVersion == CypherVersion.Cypher5
@@ -131,10 +130,8 @@ case class ShowIndexesCommand(
         }
     }
 
-    // Only sort if we don't have an ORDER BY on the YIELD to avoid double sorting
     val sortedRelevantIndexes: ListMap[IndexDescriptor, IndexInfo] =
-      if (!hasOrderByOnYield) ListMap(relevantIndexes.toSeq.sortBy(_._1.getName): _*)
-      else ListMap(relevantIndexes.toSeq: _*)
+      ListMap(relevantIndexes.toSeq.sortBy(_._1.getName): _*)
 
     val zoneId = getConfiguredTimeZone(ctx)
     val rows = sortedRelevantIndexes.map {

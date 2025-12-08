@@ -1240,98 +1240,32 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
   test("ShowIndexes") {
     assertGood(
-      attach(
-        ShowIndexes(
-          AllIndexes,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty,
-          hasOrderByOnYield = false,
-          Set.empty
-        ),
-        1.0
-      ),
+      attach(ShowIndexes(AllIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("allIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(
-        ShowIndexes(
-          RangeIndexes,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty,
-          hasOrderByOnYield = false,
-          Set.empty
-        ),
-        1.0
-      ),
+      attach(ShowIndexes(RangeIndexes, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("rangeIndexes, defaultColumns")), Set.empty)
     )
 
     assertGood(
-      attach(
-        ShowIndexes(
-          FulltextIndexes,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty,
-          hasOrderByOnYield = false,
-          Set.empty
-        ),
-        1.0
-      ),
+      attach(ShowIndexes(FulltextIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("fulltextIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(
-        ShowIndexes(
-          TextIndexes,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty,
-          hasOrderByOnYield = false,
-          Set.empty
-        ),
-        1.0
-      ),
+      attach(ShowIndexes(TextIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("textIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(
-        ShowIndexes(
-          PointIndexes,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty,
-          hasOrderByOnYield = false,
-          Set.empty
-        ),
-        1.0
-      ),
+      attach(ShowIndexes(PointIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("pointIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(
-        ShowIndexes(
-          VectorIndexes,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty,
-          hasOrderByOnYield = false,
-          Set.empty
-        ),
-        1.0
-      ),
+      attach(ShowIndexes(VectorIndexes, List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", Seq.empty, Seq(details("vectorIndexes, allColumns")), Set.empty)
     )
 
@@ -1347,7 +1281,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           ),
           yieldAll = false,
           Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
-          hasOrderByOnYield = true,
           Set.empty
         ),
         1.0
@@ -2310,7 +2243,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = false,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2326,7 +2258,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2348,7 +2279,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2370,7 +2300,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2392,7 +2321,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = false,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2408,7 +2336,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = false,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2424,7 +2351,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = false,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2446,7 +2372,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2462,7 +2387,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = false,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2484,7 +2408,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2506,7 +2429,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2522,7 +2444,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = false,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2544,7 +2465,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2566,7 +2486,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = false,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2588,7 +2507,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -2614,7 +2532,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           ),
           yieldAll = false,
           Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
-          hasOrderByOnYield = true,
           Set.empty
         ),
         1.0
@@ -4929,18 +4846,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
   test("ShowProcedures") {
     assertGood(
-      attach(
-        ShowProcedures(
-          None,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty,
-          hasOrderByOnYield = false,
-          Set.empty
-        ),
-        1.0
-      ),
+      attach(ShowProcedures(None, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty), 1.0),
       planDescription(
         id,
         "ShowProcedures",
@@ -4951,18 +4857,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
     )
 
     assertGood(
-      attach(
-        ShowProcedures(
-          Some(CurrentUser),
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty,
-          hasOrderByOnYield = true,
-          Set.empty
-        ),
-        1.0
-      ),
+      attach(ShowProcedures(Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty, Set.empty), 1.0),
       planDescription(
         id,
         "ShowProcedures",
@@ -4984,7 +4879,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           ),
           yieldAll = false,
           Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -5001,19 +4895,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
   test("ShowFunctions") {
     assertGood(
-      attach(
-        ShowFunctions(
-          AllFunctions,
-          None,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty,
-          hasOrderByOnYield = false,
-          Set.empty
-        ),
-        1.0
-      ),
+      attach(ShowFunctions(AllFunctions, None, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty), 1.0),
       planDescription(
         id,
         "ShowFunctions",
@@ -5032,7 +4914,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           Set.empty,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -5059,7 +4940,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           ),
           yieldAll = false,
           Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
-          hasOrderByOnYield = true,
           Set.empty
         ),
         1.0
@@ -5086,7 +4966,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = true,
           defaultVariables,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -5108,7 +4987,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           List.empty,
           yieldAll = false,
           defaultVariables,
-          hasOrderByOnYield = false,
           Set.empty
         ),
         1.0
@@ -5134,7 +5012,6 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           ),
           yieldAll = false,
           Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
-          hasOrderByOnYield = true,
           Set.empty
         ),
         1.0

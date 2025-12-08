@@ -1092,7 +1092,6 @@ case class InterpretedPipeMapper(
           s.indexType,
           s.defaultColumns,
           s.yieldColumns,
-          s.hasOrderByOnYield,
           cypherVersion
         ))(id)
 
@@ -1101,7 +1100,6 @@ case class InterpretedPipeMapper(
           s.constraintType,
           s.defaultColumns,
           s.yieldColumns,
-          s.hasOrderByOnYield,
           cypherVersion
         ))(id)
 
@@ -1110,7 +1108,6 @@ case class InterpretedPipeMapper(
           s.executableBy,
           s.defaultColumns,
           s.yieldColumns,
-          s.hasOrderByOnYield,
           isCommunity,
           toKernelScope(cypherVersion)
         ))(id)
@@ -1121,7 +1118,6 @@ case class InterpretedPipeMapper(
           s.executableBy,
           s.defaultColumns,
           s.yieldColumns,
-          s.hasOrderByOnYield,
           isCommunity,
           toKernelScope(cypherVersion)
         ))(id)
@@ -1150,7 +1146,7 @@ case class InterpretedPipeMapper(
           case Right(e) => Right(buildExpression(e))
           case Left(l)  => Left(l)
         }
-        CommandPipe(ShowSettingsCommand(newNames, s.defaultColumns, s.yieldColumns, s.hasOrderByOnYield))(id)
+        CommandPipe(ShowSettingsCommand(newNames, s.defaultColumns, s.yieldColumns))(id)
 
       // Throw on non-community show/terminate commands
       case c: CommandLogicalPlan =>

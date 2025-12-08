@@ -64,7 +64,6 @@ case class ShowFunctionsCommand(
   executableBy: Option[ExecutableBy],
   columns: List[CommandDefaultColumn],
   yieldColumns: List[CommandYieldColumn],
-  hasOrderByOnYield: Boolean,
   isCommunity: Boolean,
   scope: QueryLanguage
 ) extends Command(columns, yieldColumns) {
@@ -140,8 +139,7 @@ case class ShowFunctionsCommand(
       case BuiltInFunctions     => allFunctions.filter(f => f.isBuiltIn)
       case UserDefinedFunctions => allFunctions.filter(f => !f.isBuiltIn)
     }).filter(f => !(shadowedNamespaces.contains(f.name) && f.isBuiltIn))
-    // Only sort if we don't have an ORDER BY on the YIELD to avoid double sorting
-    val sortedFunctions = if (!hasOrderByOnYield) filteredFunctions.sortBy(a => a.name) else filteredFunctions
+    val sortedFunctions = filteredFunctions.sortBy(a => a.name)
 
     val rows = sortedFunctions.map { func =>
       val (executeRoles, boostedExecuteRoles, allowedExecute) =

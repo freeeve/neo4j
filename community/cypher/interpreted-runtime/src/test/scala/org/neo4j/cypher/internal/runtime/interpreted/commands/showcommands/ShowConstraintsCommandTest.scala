@@ -55,7 +55,6 @@ import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.internal.schema.constraints.SchemaValueType
 import org.neo4j.values.AnyValue
-import org.neo4j.values.storable.StringValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
 
@@ -70,7 +69,6 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       List.empty,
       yieldAll = false,
       None,
-      hasOrderByOnYield = false,
       returnCypher5Columns = false
     )(InputPosition.NONE)
       .unfilteredColumns
@@ -85,7 +83,6 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       yieldAll = true,
       // This yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
       None,
-      hasOrderByOnYield = false,
       returnCypher5Columns = false
     )(InputPosition.NONE)
       .unfilteredColumns
@@ -100,7 +97,6 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       yieldAll = true,
       // This yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
       None,
-      hasOrderByOnYield = false,
       returnCypher5Columns = true
     )(InputPosition.NONE)
       .unfilteredColumns
@@ -353,13 +349,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     ))
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      AllConstraints,
-      defaultColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(AllConstraints, defaultColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -406,8 +397,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     ))
 
     // When
-    val showConstraints =
-      ShowConstraintsCommand(AllConstraints, allColumns, List.empty, hasOrderByOnYield = false, CypherVersion.Cypher25)
+    val showConstraints = ShowConstraintsCommand(AllConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -444,7 +434,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
   }
 
-  test("show constraints should return the constraints sorted on name without an order by on yield") {
+  test("show constraints should return the constraints sorted on name") {
     // Set-up which constraints to return, ordered descending by name:
     when(ctx.getAllConstraints()).thenReturn(Map(
       relExistConstraintDescriptor -> relExistConstraintInfo,
@@ -452,13 +442,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     ))
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      AllConstraints,
-      defaultColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(AllConstraints, defaultColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -467,40 +452,12 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     checkResult(result.last, name = "constraint1")
   }
 
-  test("show constraints should not sort the constraints if there is an order by on yield") {
-    // Set-up which constraints to return, ordered descending by name:
-    when(ctx.getAllConstraints()).thenReturn(Map(
-      relExistConstraintDescriptor -> relExistConstraintInfo,
-      nodeUniquenessConstraintDescriptor -> nodeUniquenessConstraintInfo
-    ))
-
-    // When
-    val showConstraints = ShowConstraintsCommand(
-      AllConstraints,
-      defaultColumns,
-      List.empty,
-      hasOrderByOnYield = true,
-      CypherVersion.Cypher25
-    )
-    val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
-
-    // Then
-    // order isn't guaranteed as we just get values from a map and doesn't sort them
-    result should have size 2
-
-    val resultNames = result.map(m => m(ShowConstraintsClause.nameColumn).asInstanceOf[StringValue].stringValue())
-    resultNames should not be resultNames.sorted
-
-    resultNames should contain theSameElementsAs List("constraint1", "constraint0")
-  }
-
   test("show constraints should show all constraint types") {
     // Given
     setupAllConstraints()
 
     // When
-    val showConstraints =
-      ShowConstraintsCommand(AllConstraints, allColumns, List.empty, hasOrderByOnYield = false, CypherVersion.Cypher25)
+    val showConstraints = ShowConstraintsCommand(AllConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -665,13 +622,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      UniqueConstraints.cypher25,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(UniqueConstraints.cypher25, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -705,13 +657,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      NodeUniqueConstraints.cypher25,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(NodeUniqueConstraints.cypher25, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -736,13 +683,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      RelUniqueConstraints.cypher25,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(RelUniqueConstraints.cypher25, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -765,8 +707,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints =
-      ShowConstraintsCommand(KeyConstraints, allColumns, List.empty, hasOrderByOnYield = false, CypherVersion.Cypher25)
+    val showConstraints = ShowConstraintsCommand(KeyConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -800,13 +741,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      NodeKeyConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(NodeKeyConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -829,13 +765,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      RelKeyConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints = ShowConstraintsCommand(RelKeyConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -858,13 +788,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      PropExistsConstraints.cypher25,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(PropExistsConstraints.cypher25, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -898,13 +823,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      NodePropExistsConstraints.cypher25,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(NodePropExistsConstraints.cypher25, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -929,13 +849,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      RelPropExistsConstraints.cypher25,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(RelPropExistsConstraints.cypher25, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -958,13 +873,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      AllExistsConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(AllExistsConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1011,13 +921,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      NodeAllExistsConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(NodeAllExistsConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1055,13 +960,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      RelAllExistsConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(RelAllExistsConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1084,13 +984,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      PropTypeConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(PropTypeConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1124,13 +1019,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      NodePropTypeConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(NodePropTypeConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1155,13 +1045,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      RelPropTypeConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(RelPropTypeConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1222,13 +1107,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       ))
 
       // When
-      val showConstraints = ShowConstraintsCommand(
-        PropTypeConstraints,
-        allColumns,
-        List.empty,
-        hasOrderByOnYield = false,
-        CypherVersion.Cypher25
-      )
+      val showConstraints =
+        ShowConstraintsCommand(PropTypeConstraints, allColumns, List.empty, CypherVersion.Cypher25)
       val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
       // Then
@@ -1269,13 +1149,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
         ))
 
         // When
-        val showConstraints = ShowConstraintsCommand(
-          PropTypeConstraints,
-          allColumns,
-          List.empty,
-          hasOrderByOnYield = false,
-          CypherVersion.Cypher25
-        )
+        val showConstraints =
+          ShowConstraintsCommand(PropTypeConstraints, allColumns, List.empty, CypherVersion.Cypher25)
         val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
         // Then
@@ -1336,13 +1211,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     ))
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      PropTypeConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints =
+      ShowConstraintsCommand(PropTypeConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1390,13 +1260,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     when(ctx.getAllConstraints()).thenReturn(Map(nodeUniquenessConstraintDescriptor -> nodeUniquenessConstraintInfo))
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      AllConstraints,
-      allColumns,
-      yieldColumns,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints = ShowConstraintsCommand(AllConstraints, allColumns, yieldColumns, CypherVersion.Cypher25)
     val resultOriginal = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1430,13 +1294,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      AllConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraints = ShowConstraintsCommand(AllConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1586,13 +1444,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When: all unique
-    val showConstraintsAll = ShowConstraintsCommand(
-      UniqueConstraints.cypher5,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsAll =
+      ShowConstraintsCommand(UniqueConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1621,13 +1474,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: node unique
-    val showConstraintsNode = ShowConstraintsCommand(
-      NodeUniqueConstraints.cypher5,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsNode =
+      ShowConstraintsCommand(NodeUniqueConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1645,13 +1493,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: rel unique
-    val showConstraintsRel = ShowConstraintsCommand(
-      RelUniqueConstraints.cypher5,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsRel =
+      ShowConstraintsCommand(RelUniqueConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1682,13 +1525,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When: all key
-    val showConstraintsAll = ShowConstraintsCommand(
-      KeyConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsAll =
+      ShowConstraintsCommand(KeyConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1717,13 +1555,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: node key
-    val showConstraintsNode = ShowConstraintsCommand(
-      NodeKeyConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsNode =
+      ShowConstraintsCommand(NodeKeyConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1741,13 +1574,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: rel key
-    val showConstraintsRel = ShowConstraintsCommand(
-      RelKeyConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsRel =
+      ShowConstraintsCommand(RelKeyConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1778,13 +1606,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When: all exists
-    val showConstraintsAll = ShowConstraintsCommand(
-      PropExistsConstraints.cypher5,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsAll =
+      ShowConstraintsCommand(PropExistsConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1813,13 +1636,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: node exists
-    val showConstraintsNode = ShowConstraintsCommand(
-      NodePropExistsConstraints.cypher5,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsNode =
+      ShowConstraintsCommand(NodePropExistsConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1837,13 +1655,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: rel exists
-    val showConstraintsRel = ShowConstraintsCommand(
-      RelPropExistsConstraints.cypher5,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsRel =
+      ShowConstraintsCommand(RelPropExistsConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1874,13 +1687,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When: all exists
-    val showConstraintsAll = ShowConstraintsCommand(
-      AllExistsConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsAll =
+      ShowConstraintsCommand(AllExistsConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1922,13 +1730,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: node exists
-    val showConstraintsNode = ShowConstraintsCommand(
-      NodeAllExistsConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsNode =
+      ShowConstraintsCommand(NodeAllExistsConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1959,13 +1762,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: rel exists
-    val showConstraintsRel = ShowConstraintsCommand(
-      RelAllExistsConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsRel =
+      ShowConstraintsCommand(RelAllExistsConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1996,13 +1794,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When: all prop type
-    val showConstraintsAll = ShowConstraintsCommand(
-      PropTypeConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsAll =
+      ShowConstraintsCommand(PropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -2031,13 +1824,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: node prop type
-    val showConstraintsNode = ShowConstraintsCommand(
-      NodePropTypeConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsNode =
+      ShowConstraintsCommand(NodePropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -2055,13 +1843,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: rel prop type
-    val showConstraintsRel = ShowConstraintsCommand(
-      RelPropTypeConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsRel =
+      ShowConstraintsCommand(RelPropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -2102,13 +1885,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     ))
 
     // When: all prop type
-    val showConstraintsAll = ShowConstraintsCommand(
-      PropTypeConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsAll =
+      ShowConstraintsCommand(PropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -2125,13 +1903,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     )
 
     // When: node prop type
-    val showConstraintsNode = ShowConstraintsCommand(
-      NodePropTypeConstraints,
-      allColumnsCypher5,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher5
-    )
+    val showConstraintsNode =
+      ShowConstraintsCommand(NodePropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -2182,13 +1955,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     ))
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      AllConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints = ShowConstraintsCommand(AllConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -2259,13 +2026,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     ))
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      AllConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints = ShowConstraintsCommand(AllConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -2309,13 +2070,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     ))
 
     // When
-    val showConstraints = ShowConstraintsCommand(
-      AllConstraints,
-      allColumns,
-      List.empty,
-      hasOrderByOnYield = false,
-      CypherVersion.Cypher25
-    )
+    val showConstraints = ShowConstraintsCommand(AllConstraints, allColumns, List.empty, CypherVersion.Cypher25)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
