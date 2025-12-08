@@ -19,14 +19,14 @@ package org.neo4j.cypher.internal.rewriting.conditions
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IsAggregate
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
+import org.neo4j.cypher.internal.rewriting.LimitedValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 
-case object AggregationsAreIsolated extends ValidatingCondition {
+case object AggregationsAreIsolated extends LimitedValidatingCondition {
 
-  override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
+  override def check(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
     that.folder(cancellationChecker).treeFold(Seq.empty[String]) {
       case expr: Expression if HasAggregateButIsNotAggregate(expr)(cancellationChecker) =>
         acc => SkipChildren(acc :+ s"Expression $expr contains child expressions which are aggregations")

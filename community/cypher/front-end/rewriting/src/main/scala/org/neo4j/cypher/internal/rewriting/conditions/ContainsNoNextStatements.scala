@@ -27,7 +27,7 @@ case object ContainsNoNextStatements extends ValidatingCondition {
   })
 
   override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] =
-    matcher(that)(cancellationChecker)
+    matcher.check(that)(cancellationChecker)
 
   override def name: String = productPrefix
 }

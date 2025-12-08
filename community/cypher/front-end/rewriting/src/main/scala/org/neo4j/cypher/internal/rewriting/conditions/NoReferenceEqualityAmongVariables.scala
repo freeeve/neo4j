@@ -17,14 +17,14 @@
 package org.neo4j.cypher.internal.rewriting.conditions
 
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
+import org.neo4j.cypher.internal.rewriting.LimitedValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Ref
 
 // We have this check because SymbolUse, Namespacer and maybe others relies on variable reference equality.
-case object NoReferenceEqualityAmongVariables extends ValidatingCondition {
+case object NoReferenceEqualityAmongVariables extends LimitedValidatingCondition {
 
-  override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
+  override def check(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
     val ids = CollectNodesOfType[Variable]().apply(that)(cancellationChecker).map(Ref[Variable])
     ids.groupBy(x => x).collect {
       case (id, others) if others.size > 1 =>

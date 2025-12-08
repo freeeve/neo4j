@@ -23,11 +23,12 @@ import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState
+import org.neo4j.cypher.internal.rewriting.SimpleState
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ObfuscationMetadata
 import org.neo4j.cypher.internal.util.StepSequencer
 
-trait BaseState {
+trait BaseState extends SimpleState {
   def queryText: String
   def plannerName: PlannerName
   def maybeProcedureSignatureVersion: Option[Long]

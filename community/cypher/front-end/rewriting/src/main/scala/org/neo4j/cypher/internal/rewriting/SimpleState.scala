@@ -14,18 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.rewriting.conditions
+package org.neo4j.cypher.internal.rewriting
 
-import org.neo4j.cypher.internal.ast.TopLevelBraces
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
-import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 
-case object ContainsNoTopLevelBraces extends ValidatingCondition {
-
-  private val matcher = ContainsNoMatchingNodes({ case _: TopLevelBraces => "TopLevelBraces(...)" })
-
-  override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] =
-    matcher.check(that)(cancellationChecker)
-
-  override def name: String = productPrefix
+trait SimpleState {
+  def maybeStatement: Option[Statement]
+  def maybeSemantics: Option[SemanticState]
 }
