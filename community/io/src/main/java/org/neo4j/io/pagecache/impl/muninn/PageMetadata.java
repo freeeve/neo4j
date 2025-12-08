@@ -209,8 +209,8 @@ class PageMetadata implements PageReferenceTranslator {
         return OffHeapPageLock.isWriteLocked(offsetLock(pageRef));
     }
 
-    static boolean tryWriteLock(long pageRef, boolean multiVersioned) {
-        return OffHeapPageLock.tryWriteLock(offsetLock(pageRef), multiVersioned);
+    static boolean tryWriteLock(long pageRef, boolean singleWriter) {
+        return OffHeapPageLock.tryWriteLock(offsetLock(pageRef), singleWriter);
     }
 
     static void unlockWrite(long pageRef) {

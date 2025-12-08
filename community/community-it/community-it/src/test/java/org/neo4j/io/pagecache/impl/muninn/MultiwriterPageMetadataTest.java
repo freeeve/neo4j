@@ -42,8 +42,8 @@ class MultiwriterPageMetadataTest extends AbstractPageMetadataTest {
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
             PageMetadata.unlockExclusive(pageRef);
-            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
-            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
+            assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         });
     }
 
@@ -57,7 +57,7 @@ class MultiwriterPageMetadataTest extends AbstractPageMetadataTest {
             int threads = 10;
             CountDownLatch end = new CountDownLatch(threads);
             Runnable runnable = () -> {
-                assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+                assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
                 end.countDown();
             };
             List<Future<?>> futures = new ArrayList<>();
@@ -79,7 +79,7 @@ class MultiwriterPageMetadataTest extends AbstractPageMetadataTest {
                     PageMetadata.unlockExclusive(pageRef);
                     //noinspection InfiniteLoopStatement
                     for (; ; ) {
-                        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+                        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
                     }
                 }));
     }
@@ -90,8 +90,8 @@ class MultiwriterPageMetadataTest extends AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         PageMetadata.unlockWrite(pageRef);
         assertFalse(PageMetadata.tryExclusiveLock(pageRef));
     }
@@ -104,7 +104,7 @@ class MultiwriterPageMetadataTest extends AbstractPageMetadataTest {
         assertTimeoutPreemptively(TIMEOUT, () -> {
             // exclusive lock implied by constructor
             PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
-            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         });
     }
 
@@ -114,7 +114,7 @@ class MultiwriterPageMetadataTest extends AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned)); // two write locks, now
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter)); // two write locks, now
         long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef); // one flush, one write lock
         assertThat(stamp).isNotEqualTo(0L);
         PageMetadata.unlockWrite(pageRef); // one flush, zero write locks

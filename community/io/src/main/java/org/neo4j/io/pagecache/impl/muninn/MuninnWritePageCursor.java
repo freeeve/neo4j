@@ -127,7 +127,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
             if (isPinnedByLinkedFriends(pageRef)) {
                 return true;
             }
-            if (LOCKED_PAGES != null) {
+            if (singleWriter && LOCKED_PAGES != null) {
                 // you see we are not atomic or synchronized here, this is ok, because we care about *current* thread
                 // already being successful in taking write lock on this page
                 var locker = LOCKED_PAGES.getIfAbsent(pageRef, -1);
@@ -138,7 +138,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
                                     + threadId + " already holds write lock on page " + pageRef);
                 }
             }
-            var writeLock = PageMetadata.tryWriteLock(pageRef, true);
+            var writeLock = PageMetadata.tryWriteLock(pageRef, singleWriter);
             if (LOCKED_PAGES != null && writeLock) {
                 LOCKED_PAGES.put(pageRef, Thread.currentThread().threadId());
             }
@@ -170,7 +170,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
         if (multiVersioned) {
             // in multiversion case check if we last of the linked cursors who pin that page
             if (!isPinnedByLinkedFriends(pageRef)) {
-                if (LOCKED_PAGES != null) {
+                if (singleWriter && LOCKED_PAGES != null) {
                     // remove before unlock to avoid clearing others lock
                     var locker = LOCKED_PAGES.removeKeyIfAbsent(pageRef, -1);
                     var currentThread = Thread.currentThread().threadId();

@@ -91,7 +91,7 @@ public class AbstractPageMetadataTest {
     private long nextPageRef;
     private int pageSize;
     private PageMetadata pageMetadata;
-    protected boolean multiVersioned;
+    protected boolean singleWriter;
 
     protected void init(int pageId) {
         prevPageId = pageId == 0 ? pageIds.length - 1 : (pageId - 1) % pageIds.length;
@@ -162,7 +162,7 @@ public class AbstractPageMetadataTest {
 
         PageMetadata.unlockExclusive(pageRef);
         long r = PageMetadata.tryOptimisticReadLock(pageRef);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         PageMetadata.unlockWrite(pageRef);
         assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
@@ -173,7 +173,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         long r = PageMetadata.tryOptimisticReadLock(pageRef);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
@@ -182,7 +182,7 @@ public class AbstractPageMetadataTest {
     public void optimisticReadLockMustNotValidateUnderWriteLock(int pageId) {
         init(pageId);
 
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         long r = PageMetadata.tryOptimisticReadLock(pageRef);
         assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
@@ -193,7 +193,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         long r = PageMetadata.tryOptimisticReadLock(pageRef);
         PageMetadata.unlockWrite(pageRef);
         assertFalse(PageMetadata.validateReadLock(pageRef, r));
@@ -205,7 +205,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -214,7 +214,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         PageMetadata.unlockWrite(pageRef);
         long r = PageMetadata.tryOptimisticReadLock(pageRef);
         assertTrue(PageMetadata.validateReadLock(pageRef, r));
@@ -299,7 +299,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         assertFalse(PageMetadata.tryExclusiveLock(pageRef));
     }
 
@@ -309,7 +309,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         PageMetadata.unlockWrite(pageRef);
         assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
@@ -344,7 +344,7 @@ public class AbstractPageMetadataTest {
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
             // exclusive lock implied by constructor
-            assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            assertFalse(PageMetadata.tryWriteLock(pageRef, singleWriter));
         });
     }
 
@@ -380,7 +380,7 @@ public class AbstractPageMetadataTest {
             PageMetadata.unlockExclusive(pageRef);
             PageMetadata.tryExclusiveLock(pageRef);
             PageMetadata.unlockExclusive(pageRef);
-            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
             PageMetadata.unlockWrite(pageRef);
         });
     }
@@ -456,7 +456,7 @@ public class AbstractPageMetadataTest {
 
         // exclusive lock implied by constructor
         long r = PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         assertFalse(PageMetadata.validateReadLock(pageRef, r));
     }
 
@@ -488,7 +488,7 @@ public class AbstractPageMetadataTest {
 
         PageMetadata.unlockExclusive(pageRef);
         PageMetadata.tryFlushLock(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -517,7 +517,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
     }
 
@@ -604,7 +604,7 @@ public class AbstractPageMetadataTest {
         PageMetadata.unlockExclusive(pageRef);
         long s = PageMetadata.tryFlushLock(pageRef);
         PageMetadata.unlockFlush(pageRef, s, true);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -624,7 +624,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
         PageMetadata.unlockWrite(pageRef);
         assertTrue(PageMetadata.tryFlushLock(pageRef) != 0);
     }
@@ -670,8 +670,8 @@ public class AbstractPageMetadataTest {
         PageMetadata.unlockExclusive(prevPageRef);
         PageMetadata.unlockExclusive(pageRef);
         PageMetadata.unlockExclusive(nextPageRef);
-        assertTrue(PageMetadata.tryWriteLock(prevPageRef, multiVersioned));
-        assertTrue(PageMetadata.tryWriteLock(nextPageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(prevPageRef, singleWriter));
+        assertTrue(PageMetadata.tryWriteLock(nextPageRef, singleWriter));
         long r = PageMetadata.tryOptimisticReadLock(pageRef);
         assertTrue(PageMetadata.validateReadLock(pageRef, r));
         PageMetadata.unlockWrite(prevPageRef);
@@ -726,7 +726,7 @@ public class AbstractPageMetadataTest {
         PageMetadata.unlockExclusive(nextPageRef);
         assertTrue(PageMetadata.tryExclusiveLock(prevPageRef));
         assertTrue(PageMetadata.tryExclusiveLock(nextPageRef));
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         PageMetadata.unlockWrite(pageRef);
         PageMetadata.unlockExclusive(prevPageRef);
         PageMetadata.unlockExclusive(nextPageRef);
@@ -795,8 +795,8 @@ public class AbstractPageMetadataTest {
         PageMetadata.unlockExclusive(pageRef);
         PageMetadata.unlockExclusive(prevPageRef);
         PageMetadata.unlockExclusive(nextPageRef);
-        assertTrue(PageMetadata.tryWriteLock(prevPageRef, multiVersioned));
-        assertTrue(PageMetadata.tryWriteLock(nextPageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(prevPageRef, singleWriter));
+        assertTrue(PageMetadata.tryWriteLock(nextPageRef, singleWriter));
         assertTrue(PageMetadata.tryExclusiveLock(pageRef));
         PageMetadata.unlockExclusive(pageRef);
         PageMetadata.unlockWrite(prevPageRef);
@@ -852,7 +852,7 @@ public class AbstractPageMetadataTest {
 
         PageMetadata.unlockExclusive(pageRef);
         assertFalse(PageMetadata.isModified(pageRef));
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         assertTrue(PageMetadata.isModified(pageRef));
         PageMetadata.unlockWrite(pageRef);
     }
@@ -877,7 +877,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         PageMetadata.unlockWrite(pageRef);
         assertTrue(PageMetadata.isModified(pageRef));
         long s = PageMetadata.tryFlushLock(pageRef);
@@ -891,7 +891,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         PageMetadata.unlockWrite(pageRef);
         assertTrue(PageMetadata.isModified(pageRef));
         long s = PageMetadata.tryFlushLock(pageRef);
@@ -909,7 +909,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         PageMetadata.unlockWrite(pageRef);
         assertTrue(PageMetadata.isModified(pageRef));
         long s = PageMetadata.tryFlushLock(pageRef);
@@ -924,7 +924,7 @@ public class AbstractPageMetadataTest {
 
         PageMetadata.unlockExclusive(pageRef);
         long s = PageMetadata.tryFlushLock(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         PageMetadata.unlockWrite(pageRef);
         PageMetadata.unlockFlush(pageRef, s, true);
         assertTrue(PageMetadata.isModified(pageRef));
@@ -936,7 +936,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         long s = PageMetadata.tryFlushLock(pageRef);
         PageMetadata.unlockWrite(pageRef);
         PageMetadata.unlockFlush(pageRef, s, true);
@@ -950,7 +950,7 @@ public class AbstractPageMetadataTest {
 
         PageMetadata.unlockExclusive(pageRef);
         long s = PageMetadata.tryFlushLock(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         PageMetadata.unlockFlush(pageRef, s, true);
         assertTrue(PageMetadata.isModified(pageRef));
         PageMetadata.unlockWrite(pageRef);
@@ -963,7 +963,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         long s = PageMetadata.tryFlushLock(pageRef);
         PageMetadata.unlockFlush(pageRef, s, true);
         assertTrue(PageMetadata.isModified(pageRef));
@@ -979,9 +979,9 @@ public class AbstractPageMetadataTest {
         PageMetadata.unlockExclusive(prevPageRef);
         PageMetadata.unlockExclusive(pageRef);
         PageMetadata.unlockExclusive(nextPageRef);
-        assertTrue(PageMetadata.tryWriteLock(prevPageRef, multiVersioned));
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
-        assertTrue(PageMetadata.tryWriteLock(nextPageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(prevPageRef, singleWriter));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
+        assertTrue(PageMetadata.tryWriteLock(nextPageRef, singleWriter));
         PageMetadata.unlockWrite(prevPageRef);
         PageMetadata.unlockWrite(pageRef);
         PageMetadata.unlockWrite(nextPageRef);
@@ -1003,7 +1003,7 @@ public class AbstractPageMetadataTest {
         PageMetadata.unlockExclusive(prevPageRef);
         PageMetadata.unlockExclusive(pageRef);
         PageMetadata.unlockExclusive(nextPageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         PageMetadata.unlockWrite(pageRef);
         assertFalse(PageMetadata.isModified(prevPageRef));
         assertTrue(PageMetadata.isModified(pageRef));
@@ -1052,7 +1052,7 @@ public class AbstractPageMetadataTest {
 
         assertThrows(IllegalStateException.class, () -> {
             PageMetadata.unlockExclusive(pageRef);
-            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
             PageMetadata.explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
         });
     }
@@ -1064,7 +1064,7 @@ public class AbstractPageMetadataTest {
 
         PageMetadata.unlockExclusive(pageRef);
         assertFalse(PageMetadata.isModified(pageRef));
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         PageMetadata.unlockWrite(pageRef);
         assertTrue(PageMetadata.isModified(pageRef));
         assertTrue(PageMetadata.tryExclusiveLock(pageRef));
@@ -1080,7 +1080,7 @@ public class AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
         long flushStamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
         assertThat(flushStamp).isNotEqualTo(0L);
         assertThat(PageMetadata.tryFlushLock(pageRef)).isEqualTo(0L);
@@ -1193,7 +1193,7 @@ public class AbstractPageMetadataTest {
         long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef); // one flush lock
         assertThat(stamp).isNotEqualTo(0L);
         assertTrue(PageMetadata.isModified(pageRef));
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned)); // one flush and one write lock
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter)); // one flush and one write lock
         PageMetadata.unlockFlush(pageRef, stamp, true); // flush is successful, but have one overlapping writer
         PageMetadata.unlockWrite(pageRef); // no more locks, but a writer started within flush section ...
         assertTrue(PageMetadata.isModified(pageRef)); // ... and overlapped unlockFlush, so it's still modified
@@ -1209,7 +1209,7 @@ public class AbstractPageMetadataTest {
         long stamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef); // one flush lock
         assertThat(stamp).isNotEqualTo(0L);
         assertTrue(PageMetadata.isModified(pageRef));
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned)); // one flush and one write lock
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter)); // one flush and one write lock
         PageMetadata.unlockWrite(pageRef); // back to one flush lock
         PageMetadata.unlockFlush(pageRef, stamp, true); // flush is successful, but had one overlapping writer
         assertTrue(PageMetadata.isModified(pageRef)); // so it's still modified
@@ -1670,11 +1670,11 @@ public class AbstractPageMetadataTest {
         PageMetadata.unlockExclusive(pageRef);
 
         assertFalse(PageMetadata.isWriteLocked(pageRef));
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
 
-        if (!multiVersioned) {
+        if (!singleWriter) {
             for (int i = 0; i < 11; i++) {
-                assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+                assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
                 assertTrue(PageMetadata.isWriteLocked(pageRef));
             }
 

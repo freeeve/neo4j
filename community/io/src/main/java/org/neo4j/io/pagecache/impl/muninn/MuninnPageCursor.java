@@ -92,6 +92,7 @@ public abstract class MuninnPageCursor extends PageCursor {
     protected final boolean noGrow;
     private final boolean updateUsage;
     protected final boolean multiVersioned;
+    protected final boolean singleWriter;
     protected final boolean contextVersionUpdates;
     protected final boolean littleEndian;
 
@@ -137,6 +138,7 @@ public abstract class MuninnPageCursor extends PageCursor {
         this.pageReservedBytes = pagedFile.pageReservedBytes();
         this.versionStorage = pagedFile.versionStorage;
         this.multiVersioned = pagedFile.multiVersioned;
+        this.singleWriter = pagedFile.singleWriter;
         this.contextVersionUpdates = pagedFile.contextVersionUpdates;
         this.littleEndian = pagedFile.littleEndian;
         this.filePayloadSize = filePageSize - pageReservedBytes;

@@ -500,7 +500,7 @@ public class MuninnPageCache implements PageCache {
         ensureThreadsInitialised();
         if (filePageSize > cachePageSize) {
             throw new IllegalArgumentException("Cannot map files with a filePageSize (" + filePageSize
-                    + ") that is greater than the " + "cachePageSize (" + cachePageSize + ")");
+                    + ") that is greater than the cachePageSize (" + cachePageSize + ")");
         }
         path = path.normalize();
         boolean createIfNotExists = false;
@@ -510,6 +510,7 @@ public class MuninnPageCache implements PageCache {
         boolean useDirectIO = false;
         boolean littleEndian = true;
         boolean multiVersioned = false;
+        boolean singleMvccWriter = true;
         boolean preallocation = preallocateStoreFiles;
         boolean contextVersionUpdates = false;
         for (OpenOption option : openOptions) {
@@ -527,6 +528,8 @@ public class MuninnPageCache implements PageCache {
                 littleEndian = false;
             } else if (option.equals(PageCacheOpenOptions.MULTI_VERSIONED)) {
                 multiVersioned = true;
+            } else if (option.equals(PageCacheOpenOptions.MVCC_MULTI_WRITER)) {
+                singleMvccWriter = false;
             } else if (option.equals(PageCacheOpenOptions.NOPREALLOCATION)) {
                 preallocation = false;
             } else if (option.equals(PageCacheOpenOptions.CONTEXT_VERSION_UPDATES)) {
@@ -590,6 +593,7 @@ public class MuninnPageCache implements PageCache {
                 ioController,
                 evictionBouncer,
                 multiVersioned,
+                singleMvccWriter,
                 contextVersionUpdates,
                 multiVersioned ? pageReservedBytes : 0,
                 versionStorage,

@@ -108,6 +108,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
     private final int fileReservedPageBytes;
     final VersionStorage versionStorage;
     final boolean multiVersioned;
+    final boolean singleWriter;
     final boolean contextVersionUpdates;
     final boolean littleEndian;
     private final PageCacheTracer pageCacheTracer;
@@ -196,6 +197,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
             IOController ioController,
             EvictionBouncer evictionBouncer,
             boolean multiVersioned,
+            boolean singleWriter,
             boolean contextVersionUpdates,
             int reservedBytes,
             VersionStorage versionStorage,
@@ -209,6 +211,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
         this.fileReservedPageBytes = reservedBytes;
         this.versionStorage = versionStorage;
         this.multiVersioned = multiVersioned;
+        this.singleWriter = singleWriter;
         this.contextVersionUpdates = contextVersionUpdates;
         this.littleEndian = littleEndian;
         this.cursorFactory = new CursorFactory(this, pageMetadata, victimPage);

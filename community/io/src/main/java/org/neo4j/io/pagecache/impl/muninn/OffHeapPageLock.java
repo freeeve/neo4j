@@ -94,7 +94,7 @@ public final class OffHeapPageLock {
     private static final long EXL_MASK = 0b01000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L;
     private static final long MOD_MASK = 0b00100000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L;
     private static final long CNT_MASK = 0b00011111_11111111_11110000_00000000_00000000_00000000_00000000_00000000L;
-    private static final long MULTI_VERSIONED_CNT_MASK =
+    private static final long SINGLE_WRITER_CNT_MASK =
             0b00000000_00000000_00010000_00000000_00000000_00000000_00000000_00000000L;
     private static final long SEQ_MASK = 0b00000000_00000000_00001111_11111111_11111111_11111111_11111111_11111111L;
     private static final long CNT_UNIT = 0b00000000_00000000_00010000_00000000_00000000_00000000_00000000_00000000L;
@@ -172,17 +172,17 @@ public final class OffHeapPageLock {
      *
      * @return {@code true} if the write lock was taken, {@code false} otherwise.
      */
-    public static boolean tryWriteLock(long address, boolean multiVersioned) {
+    public static boolean tryWriteLock(long address, boolean singleWriter) {
         long s;
         long n;
-        final long cntMask = multiVersioned ? MULTI_VERSIONED_CNT_MASK : CNT_MASK;
+        final long cntMask = singleWriter ? SINGLE_WRITER_CNT_MASK : CNT_MASK;
         for (; ; ) {
             s = getState(address);
             boolean unwritablyLocked = (s & EXL_MASK) != 0;
             boolean writeCountOverflow = (s & cntMask) == cntMask;
 
             if (unwritablyLocked || writeCountOverflow) {
-                return failWriteLock(s, !multiVersioned && writeCountOverflow);
+                return failWriteLock(s, !singleWriter && writeCountOverflow);
             }
 
             n = s + CNT_UNIT | MOD_MASK;

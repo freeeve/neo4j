@@ -62,5 +62,7 @@ public enum PageCacheOpenOptions implements OpenOption {
     /**
      * Update context with version information in non multi_versioned mapped file
      */
-    CONTEXT_VERSION_UPDATES
+    CONTEXT_VERSION_UPDATES,
+
+    MVCC_MULTI_WRITER
 }

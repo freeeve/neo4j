@@ -42,7 +42,7 @@ class MultiversionedPageMetadataTest extends AbstractPageMetadataTest {
 
     @BeforeEach
     void setUp() {
-        multiVersioned = true;
+        singleWriter = true;
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -51,8 +51,8 @@ class MultiversionedPageMetadataTest extends AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
-        assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
+        assertFalse(PageMetadata.tryWriteLock(pageRef, singleWriter));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -62,12 +62,12 @@ class MultiversionedPageMetadataTest extends AbstractPageMetadataTest {
 
         assertTimeoutPreemptively(TIMEOUT, () -> {
             PageMetadata.unlockExclusive(pageRef);
-            assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
 
             int threads = 10;
             CountDownLatch end = new CountDownLatch(threads);
             Runnable runnable = () -> {
-                assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+                assertFalse(PageMetadata.tryWriteLock(pageRef, singleWriter));
                 end.countDown();
             };
             List<Future<?>> futures = new ArrayList<>();
@@ -85,8 +85,8 @@ class MultiversionedPageMetadataTest extends AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusive(pageRef);
-        assertTrue(PageMetadata.tryWriteLock(pageRef, multiVersioned));
-        assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertTrue(PageMetadata.tryWriteLock(pageRef, singleWriter));
+        assertFalse(PageMetadata.tryWriteLock(pageRef, singleWriter));
         PageMetadata.unlockWrite(pageRef);
         assertTrue(PageMetadata.tryExclusiveLock(pageRef));
     }
@@ -99,7 +99,7 @@ class MultiversionedPageMetadataTest extends AbstractPageMetadataTest {
         assertTimeoutPreemptively(TIMEOUT, () -> {
             // exclusive lock implied by constructor
             PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
-            assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+            assertFalse(PageMetadata.tryWriteLock(pageRef, singleWriter));
         });
     }
 
@@ -109,7 +109,7 @@ class MultiversionedPageMetadataTest extends AbstractPageMetadataTest {
         init(pageId);
 
         PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
-        assertFalse(PageMetadata.tryWriteLock(pageRef, multiVersioned));
+        assertFalse(PageMetadata.tryWriteLock(pageRef, singleWriter));
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
@@ -117,14 +117,14 @@ class MultiversionedPageMetadataTest extends AbstractPageMetadataTest {
     void concurrentWriteShouldBeBlocked(int pageId) throws InterruptedException, ExecutionException {
         init(pageId);
 
-        PageMetadata.tryWriteLock(pageRef, multiVersioned);
+        PageMetadata.tryWriteLock(pageRef, singleWriter);
 
         int threads = 10;
         AtomicLong locksSneaked = new AtomicLong();
         AtomicBoolean execute = new AtomicBoolean(true);
 
         Runnable runnable = () -> {
-            while (execute.get() && !PageMetadata.tryWriteLock(pageRef, multiVersioned)) {
+            while (execute.get() && !PageMetadata.tryWriteLock(pageRef, singleWriter)) {
                 // loop
             }
             locksSneaked.getAndIncrement();
