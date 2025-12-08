@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LeftOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
@@ -1380,6 +1381,7 @@ class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with Logic
       .setRelationshipCardinality("()-[]->()", 300)
       .setRelationshipCardinality("(:B)-[]->()", 300)
       .setRelationshipCardinality("(:B)-[]->(:C)", 300)
+      .setRelationshipCardinality("()-[]->(:C)", 300)
       .build()
 
     val q =
@@ -1410,6 +1412,7 @@ class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with Logic
       .setRelationshipCardinality("()-[]->()", 300)
       .setRelationshipCardinality("(:B)-[]->()", 300)
       .setRelationshipCardinality("(:B)-[]->(:C)", 300)
+      .setRelationshipCardinality("()-[]->(:C)", 300)
       .build()
 
     val q =
@@ -1444,6 +1447,8 @@ class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with Logic
       .setRelationshipCardinality("(:B)-[]->(:D)", 300)
       .setRelationshipCardinality("(:A)-[]->()", 300)
       .setRelationshipCardinality("(:A)-[]->(:C)", 300)
+      .setRelationshipCardinality("()-[]->(:C)", 300)
+      .setRelationshipCardinality("()-[]->(:D)", 300)
       .build()
 
     val q =
@@ -1775,6 +1780,48 @@ class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with Logic
       .valueMergeJoin("cacheN[a.prop] = cacheN[b.prop]")
       .|.nodeIndexOperator("b:B(prop)", indexOrder = IndexOrderAscending, getValue = Map("prop" -> GetValue))
       .nodeIndexOperator("a:A(prop)", indexOrder = IndexOrderAscending, getValue = Map("prop" -> GetValue))
+      .build()
+  }
+
+  test(
+    "should connect components with an Apply instead of a Cartesian Product when a predicate can be pushed down to another component"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(150)
+      .setLabelCardinality(
+        "A",
+        10
+      ) // we need a low cardinality here to make b.prop = cacheN[a.id] cheaper (fewer property accesses)
+      .setLabelCardinality("B", 10)
+      .setLabelCardinality("C", 100)
+      .setAllRelationshipsCardinality(1000)
+      .setRelationshipCardinality("(:B)-[:REL]->(:C)", 1000)
+      .setRelationshipCardinality("()-[:REL]->(:C)", 1000)
+      .setRelationshipCardinality("(:B)-[:REL]->()", 1000)
+      .setRelationshipCardinality("()-[:REL]->()", 1000)
+      .build()
+
+    val q =
+      """
+        |MATCH (a:A {id: 123})
+        |MATCH (b:B {prop: a.id})
+        |WHERE EXISTS { (b)-[:REL]->(:C) }
+        |RETURN count(*)
+        |""".stripMargin
+
+    val plan = planner.plan(q).stripProduceResults
+
+    plan shouldEqual planner.subPlanBuilder()
+      .aggregation(Seq(), Seq("count(*) AS `count(*)`"))
+      .apply()
+      .|.semiApply()
+      .|.|.filter("anon_0:C")
+      .|.|.expandAll("(b)-[:REL]->(anon_0)")
+      .|.|.argument("b")
+      .|.filter("b.prop = cacheN[a.id]")
+      .|.nodeByLabelScan("b", "B", IndexOrderNone, "a")
+      .filter("cacheNFromStore[a.id] = 123")
+      .nodeByLabelScan("a", "A")
       .build()
   }
 }

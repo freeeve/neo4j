@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerKit
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.cartesianProductsOrValueJoins.planNIJ
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.cartesianProductsOrValueJoins.connectWithApply
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.cartesianProductsOrValueJoins.predicatesDependendingOnBothSides
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.QuerySolvableByGetDegree.SetExtractor
@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
-case class NestedIndexJoinComponentConnector(singleComponentPlanner: SingleComponentPlannerTrait)
+case class ApplyComponentConnector(singleComponentPlanner: SingleComponentPlannerTrait)
     extends ComponentConnector {
 
   override def solverStep(
@@ -80,7 +80,7 @@ case class NestedIndexJoinComponentConnector(singleComponentPlanner: SingleCompo
             // This can make it possible to use composite indexes.
             predicates <- allPredicates.groupBy(_.dependencies.intersect(rightCovered)).values
 
-            plan <- planNIJ(
+            plan <- connectWithApply(
               leftPlan,
               rightPlan,
               leftQg,

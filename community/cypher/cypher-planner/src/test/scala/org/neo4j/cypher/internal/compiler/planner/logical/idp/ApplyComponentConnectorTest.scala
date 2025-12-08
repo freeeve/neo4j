@@ -23,23 +23,34 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.PlanMatchHelp
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
+import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.SimplePatternLength
+import org.neo4j.cypher.internal.ir.ordering.ColumnOrder.Asc
+import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
+import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
 import org.neo4j.cypher.internal.logical.builder.IndexSeek.nodeIndexSeek
 import org.neo4j.cypher.internal.logical.builder.IndexSeek.relationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.Apply
+import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
+import org.neo4j.cypher.internal.logical.plans.Projection
+import org.neo4j.cypher.internal.logical.plans.Selection
+import org.neo4j.cypher.internal.logical.plans.Sort
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.BitSet
 
-class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalPlanningTestSupport2 with PlanMatchHelp {
+class ApplyComponentConnectorTest extends CypherFunSuite with LogicalPlanningTestSupport2 with PlanMatchHelp {
 
   private def register[X](registry: IdRegistry[X], elements: X*): Goal = Goal(registry.registerAll(elements))
 
@@ -74,7 +85,7 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
       table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
       val goal = register(registry, nQg, mQg)
 
-      val step = NestedIndexJoinComponentConnector(singleComponentPlanner).solverStep(
+      val step = ApplyComponentConnector(singleComponentPlanner).solverStep(
         GoalBitAllocation(2, 0, Seq.empty),
         fullQg,
         order,
@@ -138,7 +149,7 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
       table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
       val goal = register(registry, nQg, mQg)
 
-      val step = NestedIndexJoinComponentConnector(singleComponentPlanner).solverStep(
+      val step = ApplyComponentConnector(singleComponentPlanner).solverStep(
         GoalBitAllocation(2, 0, Seq.empty),
         fullQg,
         order,
@@ -221,7 +232,7 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
 
       val goal = Goal(BitSet(noId, mpId))
 
-      val step = NestedIndexJoinComponentConnector(singleComponentPlanner).solverStep(
+      val step = ApplyComponentConnector(singleComponentPlanner).solverStep(
         GoalBitAllocation(4, 0, Seq.empty),
         fullQg,
         order,
@@ -265,7 +276,7 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
       table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
       val goal = register(registry, nQg, mQg)
 
-      val step = NestedIndexJoinComponentConnector(singleComponentPlanner).solverStep(
+      val step = ApplyComponentConnector(singleComponentPlanner).solverStep(
         GoalBitAllocation(2, 0, Seq.empty),
         fullQg,
         order,
@@ -282,6 +293,67 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
             paramExpr = Some(mProp),
             argumentIds = Set("m"),
             labelId = 0
+          )
+        )
+      )
+    }
+  }
+
+  test("produces an apply to connect two components when there are no indexes as long as the RHS cannot be unnested") {
+    val table = IDPTable.empty[LogicalPlan]
+    val registry: DefaultIdRegistry[QueryGraph] = IdRegistry[QueryGraph]
+
+    val nProp = prop("n", "prop")
+    val mProp = prop("m", "prop")
+    val joinPred = equals(mProp, nProp)
+    val labelNPred = hasLabels("n", "N")
+    val labelMPred = hasLabels("m", "M")
+
+    new givenConfig() {
+      addTypeToSemanticTable(nProp, CTAny)
+      addTypeToSemanticTable(mProp, CTAny)
+    }.withLogicalPlanningContext { (_, ctx) =>
+      val order =
+        InterestingOrderConfig(orderToReportAndSolve =
+          InterestingOrder(RequiredOrderCandidate(Seq(Asc(mProp))))
+        ) // sort cannot be unnested
+      val kit = ctx.plannerState.config.toKit(order, ctx)
+      val nQg = QueryGraph(
+        patternNodes = Set(v"n")
+      ).addPredicates(labelNPred)
+      val mQg = QueryGraph(
+        patternNodes = Set(v"m")
+      ).addPredicates(labelMPred)
+      val fullQg = (nQg ++ mQg).addPredicates(joinPred)
+
+      val nPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "n", "r")
+      val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m", "r2")
+      ctx.staticComponents.planningAttributes.solveds.set(nPlan.id, RegularSinglePlannerQuery(nQg))
+      ctx.staticComponents.planningAttributes.solveds.set(mPlan.id, RegularSinglePlannerQuery(mQg))
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
+      val goal = register(registry, nQg, mQg)
+
+      val step = ApplyComponentConnector(singleComponentPlanner).solverStep(
+        GoalBitAllocation(2, 0, Seq.empty),
+        fullQg,
+        order,
+        kit,
+        ctx
+      )
+      val plans = step(registry, goal, table, ctx).toSeq
+      plans should contain theSameElementsAs Seq(
+        Apply(
+          left = nPlan,
+          right = Sort(
+            Projection(
+              Selection(
+                Seq(joinPred),
+                NodeByLabelScan(v"m", LabelName("M")(InputPosition.NONE), Set(v"n"), IndexOrderNone)
+              ),
+              Map(v"  m.prop@0" -> mProp)
+            ),
+            sortItems = Seq(Ascending(v"  m.prop@0"))
           )
         )
       )

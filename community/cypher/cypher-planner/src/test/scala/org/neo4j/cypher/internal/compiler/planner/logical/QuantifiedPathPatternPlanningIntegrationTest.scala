@@ -62,7 +62,6 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
@@ -2637,49 +2636,117 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     )
   }
 
-  test("Should plan cartesian product for components connected only by a predicate inside QPP") {
-    // could be improved to plan Apply
+  test("Should plan cartesian product for components connected when the cardinality of LHS is low") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Car", 50)
+      .setLabelCardinality("Geo", 50)
+      .setAllRelationshipsCardinality(40)
+      .setRelationshipCardinality("()-[:ROAD]->()", 40)
+      .setRelationshipCardinality("(:Geo)-[:ROAD]->(:Geo)", 40)
+      .setRelationshipCardinality("()-[:ROAD]->(:Geo)", 40)
+      .setRelationshipCardinality("(:Geo)-[:ROAD]->()", 40)
+      .build()
+
     val query =
       """
-        |MATCH (a:User)
-        |MATCH (b) ((c)-[r]->(d) WHERE r.x > a.y)+ (e)
-        |RETURN a, b, c, d, e
+        |MATCH (c:Car {id: $car_id})
+        |MATCH (a:Geo {name: $source_geo_name})
+        |MATCH (b:Geo {name: $target_geo_name})
+        |MATCH p =  (a)
+        |  (() -[rels:ROAD]->(x:Geo) WHERE rels.distance_km <> c.battery_capacity_kwh)+
+        |  (b)
+        |RETURN p
         |""".stripMargin
 
     val plan = planner.plan(query).stripProduceResults
-
-    val trailParameters = TrailParameters(
-      min = 1,
-      max = Unlimited,
-      start = "b",
-      end = "e",
-      innerStart = "c",
-      innerEnd = "d",
-      groupNodes = Set(("c", "c"), ("d", "d")),
-      groupRelationships = Set(("r", "r")),
-      innerRelationships = Set("r"),
-      previouslyBoundRelationships = Set(),
-      previouslyBoundRelationshipGroups = Set(),
-      reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll,
-      accumulators = Set.empty
-    )
-
     plan shouldEqual planner.subPlanBuilder()
-      .filter("all(anon_0 IN range(0, size(r) - 1) WHERE (r[anon_0]).x > cacheN[a.y])")
+      .projection(Map("p" -> varLengthPathExpression(
+        start = v"a",
+        end = v"b",
+        relationships = v"rels",
+        direction = OUTGOING
+      )))
+      .filter("all(anon_0 IN range(0, size(rels) - 1) WHERE NOT (rels[anon_0]).distance_km = c.battery_capacity_kwh)")
       .cartesianProduct()
-      .|.repeatTrail(trailParameters)
-      .|.|.filter(isRepeatTrailUnique("r"))
-      .|.|.expandAll("(c)-[r]->(d)")
-      .|.|.argument("c")
-      .|.allNodeScan("b")
-      .cacheProperties("cacheNFromStore[a.y]")
-      .nodeByLabelScan("a", "User")
+      .|.filter("b.name = $target_geo_name", "b:Geo")
+      .|.expandExpr(
+        "(a)-[rels:ROAD*1..]->(b)",
+        expandMode = ExpandAll,
+        projectedDir = OUTGOING,
+        nodePredicates = Seq(),
+        relationshipPredicates = Seq(VariablePredicate(v"anon_1", hasLabels(endNode("anon_1"), "Geo"))),
+        pathMode = Trail
+      )
+      .|.filter("a.name = $source_geo_name")
+      .|.nodeByLabelScan("a", "Geo", IndexOrderNone)
+      .filter("c.id = $car_id")
+      .nodeByLabelScan("c", "Car", IndexOrderNone)
       .build()
   }
 
-  test("Should plan cartesian product for components connected only by a predicate inside QPP, subquery expression") {
-    // could be improved to plan Apply
+  test("should plan Apply for components connected by predicates in QPP if RHS doesn't use AllNodesScan") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Car", 50)
+      .setLabelCardinality("Geo", 50)
+      .setAllRelationshipsCardinality(1000)
+      .setRelationshipCardinality("()-[:ROAD]->()", 500)
+      .setRelationshipCardinality("(:Geo)-[:ROAD]->(:Geo)", 500)
+      .setRelationshipCardinality("()-[:ROAD]->(:Geo)", 500)
+      .setRelationshipCardinality("(:Geo)-[:ROAD]->()", 500)
+      .build()
+
+    val query =
+      """
+        |MATCH (c:Car {id: $car_id})
+        |MATCH (a:Geo {name: $source_geo_name})
+        |MATCH (b:Geo {name: $target_geo_name})
+        |MATCH p =  (a)
+        |  (() -[rels:ROAD]->(x:Geo) WHERE rels.distance_km <> c.battery_capacity_kwh)+
+        |  (b)
+        |RETURN p
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection(Map("p" -> varLengthPathExpression(
+        start = v"a",
+        end = v"b",
+        relationships = v"rels",
+        direction = OUTGOING
+      )))
+      .filter("a.name = $source_geo_name", hasLabels("a", "Geo"))
+      .apply()
+      .|.repeatTrail(TrailParameters(
+        1,
+        Unlimited,
+        "b",
+        "a",
+        "x",
+        "anon_0",
+        Set(),
+        Set(("rels", "rels")),
+        Set("rels"),
+        Set(),
+        Set(),
+        true,
+        ExpandAll,
+        Set()
+      ))
+      .|.|.filter("NOT rels.distance_km = cacheN[c.battery_capacity_kwh]", isRepeatTrailUnique("rels"))
+      .|.|.expandAll("(x)<-[rels:ROAD]-(anon_0)")
+      .|.|.filter("x:Geo")
+      .|.|.argument("x", "c")
+      .|.filter("b.name = $target_geo_name")
+      .|.nodeByLabelScan("b", "Geo", IndexOrderNone, "c")
+      .cacheProperties("cacheNFromStore[c.battery_capacity_kwh]")
+      .filter("c.id = $car_id")
+      .nodeByLabelScan("c", "Car", IndexOrderNone)
+      .build()
+  }
+
+  test("Should plan apply for components connected only by a predicate inside QPP, subquery expression") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setLabelCardinality("User", 50)
@@ -2700,47 +2767,31 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     val trailParameters = TrailParameters(
       min = 1,
       max = Unlimited,
-      start = "b",
-      end = "e",
-      innerStart = "  c@0",
-      innerEnd = "  d@2",
+      start = "e",
+      end = "b",
+      innerStart = "  d@2",
+      innerEnd = "  c@0",
       groupNodes = Set(("  c@0", "  c@3"), ("  d@2", "  d@4")),
       groupRelationships = Set(),
       innerRelationships = Set("  r@1"),
       previouslyBoundRelationships = Set(),
       previouslyBoundRelationshipGroups = Set(),
-      reverseGroupVariableProjections = false,
+      reverseGroupVariableProjections = true,
       expansionMode = ExpandAll,
       accumulators = Set.empty
     )
 
-    val nestedPlan = planner.subPlanBuilder()
-      .expandInto("(a)-[]->(`  d@5`)")
-      .projection("`  d@4`[`  UNNAMED0`] AS `  d@5`")
-      .argument("  d@4", "  UNNAMED0", "a")
-      .build()
-
-    val patternExpressionPredicate = NestedPlanExistsExpression(
-      plan = nestedPlan,
-      solvedExpressionAsString = "EXISTS { MATCH (a)-[rr]->(`  d@2`) }"
-    )(pos)
-
-    // all(anon_0 IN range(0, size(d) - 1) WHERE ...)
-    val allInPredicate = allInList(
-      v"  UNNAMED0",
-      function("range", literalInt(0), subtract(function("size", v"  d@4"), literalInt(1))),
-      patternExpressionPredicate
-    )
-
     val expected = planner.subPlanBuilder()
-      .filter(allInPredicate)
-      .cartesianProduct()
+      .apply()
       .|.repeatTrail(trailParameters)
       .|.|.filter(isRepeatTrailUnique("  r@1"))
-      .|.|.expandAll("(`  c@0`)-[`  r@1`]->(`  d@2`)")
-      .|.|.argument("  c@0")
-      .|.allNodeScan("b")
-      .nodeByLabelScan("a", "User")
+      .|.|.expandAll("(`  d@2`)<-[`  r@1`]-(`  c@0`)")
+      .|.|.semiApply()
+      .|.|.|.expandInto("(a)-[]->(`  d@2`)")
+      .|.|.|.argument("a", "  d@2")
+      .|.|.argument("  d@2", "a")
+      .|.allNodeScan("e", "a")
+      .nodeByLabelScan("a", "User", IndexOrderNone)
       .build()
 
     plan shouldEqual expected

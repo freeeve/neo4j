@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTest
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.expressions.ListLiteral
+import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
@@ -1634,6 +1635,105 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .|.expandAll("(anon_0)-[r]->(anon_1)")
       .|.argument("anon_0", "acc")
       .nodeByLabelScan("a", "N")
+      .build()
+  }
+
+  test("should plan Apply for components connected by AllReduce") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Car", 50)
+      .setLabelCardinality("Geo", 50)
+      .setAllRelationshipsCardinality(1000)
+      .setRelationshipCardinality("()-[:ROAD]->()", 500)
+      .setRelationshipCardinality("(:Geo)-[:ROAD]->(:Geo)", 500)
+      .setRelationshipCardinality("()-[:ROAD]->(:Geo)", 500)
+      .setRelationshipCardinality("(:Geo)-[:ROAD]->()", 500)
+      .build()
+
+    val query =
+      """
+        |MATCH (rental:Car {id: $car_id})
+        |MATCH (a:Geo {name: "source_geo_name"})
+        |MATCH (b:Geo {name: "target_geo_name"})
+        |MATCH p =  (a)(()-[roads:ROAD]->(x:Geo))+(b)
+        |WHERE allReduce(
+        |  allowed_distance = rental.allowed_distance,
+        |  step IN roads | allowed_distance - step.distance_km,
+        |  allowed_distance >= 0)
+        |RETURN p
+        |""".stripMargin
+
+    val `(() -[roads:ROAD]->(x:Geo))+ with allowed_distance=rental.allowed_distance` = TrailParameters(
+      1,
+      Unlimited,
+      "a",
+      "b",
+      "anon_0",
+      "x",
+      Set(),
+      Set(("roads", "roads")),
+      Set("roads"),
+      Set(),
+      Set(),
+      false,
+      ExpandAll,
+      Set(("cacheN[rental.allowed_distance]", "allowed_distance", "allowed_distance"))
+    )
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    val expectedPlan = planner.subPlanBuilder()
+      .projection(Map("p" -> varLengthPathExpression(v"a", v"roads", v"b", OUTGOING)))
+      .filter("b.name = 'target_geo_name'", "b:Geo")
+      .apply()
+      .|.repeatTrail(`(() -[roads:ROAD]->(x:Geo))+ with allowed_distance=rental.allowed_distance`)
+      .|.|.filter("allowed_distance >= 0", isRepeatTrailUnique("roads"), "x:Geo")
+      .|.|.projection("allowed_distance - roads.distance_km AS allowed_distance")
+      .|.|.expandAll("(anon_0)-[roads:ROAD]->(x)")
+      .|.|.argument("anon_0", "allowed_distance")
+      .|.filter("a.name = 'source_geo_name'")
+      .|.nodeByLabelScan("a", "Geo", IndexOrderNone, "rental")
+      .cacheProperties("cacheNFromStore[rental.allowed_distance]")
+      .filter("rental.id = $car_id")
+      .nodeByLabelScan("rental", "Car", IndexOrderNone)
+      .build()
+    plan shouldEqual expectedPlan
+  }
+
+  test("should not connect components with Apply when variable is used in non-inlined allReduce") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("B", 50)
+      .setLabelCardinality("A", 50)
+      .setAllRelationshipsCardinality(1000)
+      .setRelationshipCardinality("(:A)-[:REL]->()", 500)
+      .setRelationshipCardinality("()-[:REL]->()", 500)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 500)
+      .build()
+
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (c:B {id: 1})
+        |MATCH (a:A)((left)-[rel]->(right))+(b)
+        |RETURN allReduce(acc = c.prop, r IN rel | acc + r.prop, acc < r.otherProp + c.prop2) AS res""".stripMargin
+    ).stripProduceResults
+
+    // The repeat trail will not contain any dependencies on 'c', so planning an Apply would be worse than a CartesianProduct
+    plan shouldEqual planner.subPlanBuilder()
+      .projection(Map("res" -> allReduceFallBack(
+        accumulator = v"acc",
+        init = cachedNodeProp("c", "prop"),
+        stepVariable = v"r",
+        groupVariable = v"rel",
+        allReduceStepExpression = add(v"acc", prop(v"r", "prop")),
+        allReducePredicate = lessThan(v"acc", add(prop(v"r", "otherProp"), prop(v"c", "prop2"))),
+        nextAnonymousVariable = v"anon_0"
+      )))
+      .cartesianProduct()
+      .|.expand("(a)-[rel*1..]->()")
+      .|.nodeByLabelScan("a", "A", IndexOrderNone)
+      .cacheProperties("cacheNFromStore[c.prop]")
+      .filter("c.id = 1")
+      .nodeByLabelScan("c", "B", IndexOrderNone)
       .build()
   }
 }

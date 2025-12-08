@@ -20,16 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.compiler.planner.logical.CostModelMonitor
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
-import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerKit
 import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingResult
 import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner.SatisfiedForPlan
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.UnnestApply.UnnestableUnaryPlan
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.BestPlans
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.QuerySolvableByGetDegree.SetExtractor
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.In
@@ -189,9 +187,10 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     So, when we have too many plans to combine, we fall back to the naive way of just building a left deep tree with
     all query parts cross joined together.
      */
+
     val joins =
       produceHashJoins(plans, qg, context, kit) ++
-        produceNIJVariations(plans, qg, interestingOrderConfig, context, kit, singleComponentPlanner)
+        connectedByApplyVariants(plans, qg, interestingOrderConfig, context, kit, singleComponentPlanner)
 
     val (joinsSatisfyingOrder, joinsOther) = joins.partition { case (comp, _) =>
       require(
@@ -212,8 +211,7 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     } else if (joinsOther.nonEmpty) {
       pickTheBest(plans, kit, joinsOther)
     } else if (plans.size < COMPONENT_THRESHOLD_FOR_CARTESIAN_PRODUCT) {
-      val cartesianProducts = produceCartesianProducts(plans, qg, context, kit)
-      pickTheBest(plans, kit, cartesianProducts)
+      pickTheBest(plans, kit, produceCartesianProducts(plans, qg, context, kit))
     } else {
       Set(planLotsOfCartesianProducts(plans, qg, interestingOrderConfig, context, kit, considerSelections = true))
     }
@@ -396,7 +394,7 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
   // Developers note: This method has been re-implemented in a very low-level imperative style, because
   // this code path caused a big SOAK regression for queries with 50-60 plans. The current implementation is
   // about 100x faster than the old one, please change functionality here with one eye on performance.
-  private def produceNIJVariations(
+  private def connectedByApplyVariants(
     plans: Set[PlannedComponent],
     qg: QueryGraph,
     interestingOrderConfig: InterestingOrderConfig,
@@ -425,7 +423,7 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
           predicate <-
             this.predicatesDependendingOnBothSides(predicatesWithDependencies, allCoveredIds(a), allCoveredIds(b))
         ) {
-          val nestedIndexJoinAB = planNIJIfApplicable(
+          val nestedIndexJoinAB = connectWithApplyIfPossible(
             planA.bestResult,
             planB.bestResult,
             qgA,
@@ -437,7 +435,7 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
             kit,
             singleComponentPlanner
           )
-          val nestedIndexJoinBA = planNIJIfApplicable(
+          val nestedIndexJoinBA = connectWithApplyIfPossible(
             planB.bestResult,
             planA.bestResult,
             qgB,
@@ -517,7 +515,7 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     }).flatten.toMap
   }
 
-  private def planNIJIfApplicable(
+  private def connectWithApplyIfPossible(
     lhsPlan: LogicalPlan,
     rhsInputPlan: LogicalPlan,
     lhsQG: QueryGraph,
@@ -540,7 +538,7 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     if (notSingleComponent || containsOptionals) {
       Iterator.empty
     } else {
-      planNIJ(
+      connectWithApply(
         lhsPlan,
         rhsInputPlan,
         lhsQG,
@@ -564,13 +562,10 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
   }
 
   /**
-   * Index Nested Loop Joins -- if there is a value join connection between the LHS and RHS, and a useful index exists for
-   * one of the sides, it can be used if the query is planned as an apply with the index seek on the RHS.
-   *
-   *   Apply
-   * LHS  Index Seek
+   * Nested Loop Joins -- if there is a connection between the LHS and RHS,
+   * the query is planned with the RHS component replanned to fit the new connection.
    */
-  def planNIJ(
+  def connectWithApply(
     lhsPlan: LogicalPlan,
     rhsInputPlan: LogicalPlan,
     lhsQG: QueryGraph,
@@ -598,69 +593,79 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
         .addPredicates(predicates: _*)
         .addHints(rhsQG.hints)
 
-    val (leftSymbols, rightSymbols) = predicates
-      .view
-      .flatMap(_.dependencies)
-      .to(Set)
-      .partition(lhsQG.idsWithoutOptionalMatchesOrUpdates.contains)
+    val contextForRhs = context.withModifiedPlannerState(_
+      .withUpdatedLabelInfo(lhsPlanWithPrefetchedProperties, context.staticComponents.planningAttributes.solveds)
+      .withPreviouslyCachedProperties(
+        context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(lhsPlanWithPrefetchedProperties.id)
+      ))
+    val componentInterestingOrderConfig = interestingOrderConfig.forQueryGraph(rhsQgWithLhsArguments)
 
-    rightSymbols match {
-      case SetExtractor(rightSymbol) =>
-        val contextForRhs = context.withModifiedPlannerState(_
-          .withUpdatedLabelInfo(lhsPlanWithPrefetchedProperties, context.staticComponents.planningAttributes.solveds)
-          .withPreviouslyCachedProperties(
-            context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(lhsPlanWithPrefetchedProperties.id)
-          ))
-        val leafPlanCandidates = {
-          val contextForRhsLeaves =
-            contextForRhs.withModifiedPlannerState(_.withConfig(context.plannerState.config.withLeafPlanners(
-              QueryPlannerConfiguration.leafPlannersForNestedIndexJoins(LeafPlanRestrictions.OnlyIndexSeekPlansFor(
-                rightSymbol,
-                leftSymbols
-              ))
-            )))
+    val rhsPlans =
+      replanRHSForNestedApply(
+        kit,
+        singleComponentPlanner,
+        rhsQgWithLhsArguments,
+        contextForRhs,
+        componentInterestingOrderConfig
+      )
 
-          val componentInterestingOrderConfig = interestingOrderConfig.forQueryGraph(rhsQgWithLhsArguments)
+    rhsPlans.map(context.staticComponents.logicalPlanProducer.planApply(lhsPlanWithPrefetchedProperties, _, context))
 
-          contextForRhsLeaves.plannerState.config.leafPlanners.candidates(
-            rhsQgWithLhsArguments,
-            interestingOrderConfig = componentInterestingOrderConfig,
-            context = contextForRhsLeaves
-          )
+  }
+
+  private def replanRHSForNestedApply(
+    kit: QueryPlannerKit,
+    singleComponentPlanner: SingleComponentPlannerTrait,
+    rhsQG: QueryGraph,
+    contextForRhs: LogicalPlanningContext,
+    interestingOrderConfig: InterestingOrderConfig
+  ): Iterator[LogicalPlan] = {
+    // Get all candidate plans for the RHS with the LHS arguments available
+    val candidatePlans = contextForRhs.plannerState.config.leafPlanners.candidates(
+      rhsQG,
+      interestingOrderConfig = interestingOrderConfig,
+      context = contextForRhs
+    )
+
+    try {
+      // planComponent throws if it can't find a solution, which is normally the expected behavior.
+      // Here, however, restricting the leaf planners might lead to no solutions found and that is OK.
+      singleComponentPlanner.planComponent(
+        candidatePlans,
+        rhsQG,
+        contextForRhs,
+        kit,
+        interestingOrderConfig
+      ).allResults.iterator.filter(rhsPlan =>
+        unnestApplyRhs(rhsPlan) match {
+          case plan if containsDependentIndexSeeks(plan) =>
+            // Leaf plan that depends on LHS arguments
+            true
+          case plan if plan.isLeaf =>
+            // It looks like most of the RHS is unnestable and the leaf plan doesn't depend on LHS,
+            // This could be more effectively planned as a cartesian product
+            false
+          case _ =>
+            // Non-leaf plan that cannot be unnested from Apply, this would be effectively planned as an apply.
+            true
         }
-        val rhsPlans =
-          try {
-            // planComponent throws if it can't find a solution, which is normally the expected behavior.
-            // Here, however, restricting the leaf planners might lead to no solutions found and that is OK.
-            Some(singleComponentPlanner.planComponent(
-              leafPlanCandidates,
-              rhsQgWithLhsArguments,
-              contextForRhs,
-              kit,
-              interestingOrderConfig
-            ))
-          } catch {
-            case _: InternalException =>
-              None
-          }
-
-        // Keep only RHSs that actually leverage the data from the LHS to use an index.
-        // The reason is that otherwise, we are producing a cartesian product disguising as an Apply, and
-        // this confuses the cost model
-        rhsPlans.fold[Iterator[LogicalPlan]](Iterator.empty)(_.allResults.iterator.collect {
-          case rhsPlan if containsDependentIndexSeeks(rhsPlan) =>
-            context.staticComponents.logicalPlanProducer.planApply(lhsPlanWithPrefetchedProperties, rhsPlan, context)
-        })
-      case _ =>
-        // If there are more than one dependency on RHS symbols, no index can solve the predicate
+      )
+    } catch {
+      case _: InternalException =>
         Iterator.empty
     }
+  }
+
+  @tailrec
+  private def unnestApplyRhs(plan: LogicalPlan): LogicalPlan = plan match {
+    case UnnestableUnaryPlan(plan) => unnestApplyRhs(plan.source)
+    case _                         => plan
   }
 
   /**
    * Checks whether a plan contains an index seek that depends on a different variable than the one it is introducing.
    */
-  def containsDependentIndexSeeks(plan: LogicalPlan): Boolean =
+  private def containsDependentIndexSeeks(plan: LogicalPlan): Boolean =
     plan.leaves.exists {
       case NodeIndexSeek(_, _, _, valueExpr, _, _, _, _) =>
         valueExpr.expressions.exists(_.dependencies.nonEmpty)
@@ -717,7 +722,7 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
 
   /**
    * Find all the predicates that depend on both the RHS and the LHS.
-   * Imperative implementation style for performance. See produceNIJVariations.
+   * Imperative implementation style for performance. See connectedByApplyVariants.
    */
   def predicatesDependendingOnBothSides(
     predicateDependencies: Array[(Expression, Array[LogicalVariable])],

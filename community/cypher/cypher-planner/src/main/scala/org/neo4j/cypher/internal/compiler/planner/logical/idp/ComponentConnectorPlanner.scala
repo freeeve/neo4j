@@ -52,7 +52,7 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
   private val cpConnector = CartesianProductComponentConnector
 
   private val joinConnectors = Seq(
-    NestedIndexJoinComponentConnector(singleComponentPlanner),
+    ApplyComponentConnector(singleComponentPlanner),
     ValueHashJoinComponentConnector,
     ValueMergeJoinComponentConnector
   )
