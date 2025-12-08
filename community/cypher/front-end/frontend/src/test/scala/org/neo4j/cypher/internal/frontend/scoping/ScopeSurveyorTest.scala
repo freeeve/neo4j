@@ -93,6 +93,12 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           )
         ),
         ExpectedWorkingScope(
+          Ast("YIELD a AS a"),
+          Declared(variables = Seq("a")),
+          Referenced(Set("a")),
+          Outgoing(variables = Set("a"))
+        ),
+        ExpectedWorkingScope(
           Ast("RETURN a + 1 AS b"), // query level
           Incoming(variables = Set("a")),
           Referenced(Set("a")),
@@ -151,6 +157,12 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           )
         ),
         ExpectedWorkingScope(
+          Ast("YIELD a AS a"),
+          Declared(variables = Seq("a")),
+          Referenced(Set("a")),
+          Outgoing(variables = Set("a"))
+        ),
+        ExpectedWorkingScope(
           Ast("RETURN a + 1 AS b"), // query level
           Incoming(variables = Set("a")),
           Referenced(Set("a")),
@@ -170,6 +182,12 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedWorkingScope.varExp("a", Set("a"))
             )
           )
+        ),
+        ExpectedWorkingScope(
+          Ast("YIELD b AS b"),
+          Declared(variables = Seq("b")),
+          Referenced(Set("b")),
+          Outgoing(variables = Set("b"))
         ),
         ExpectedWorkingScope(
           Ast("RETURN 1 * b AS b"), // query level
@@ -260,6 +278,13 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 ExpectedResult.TableResult("a"),
                 ExpectedWorkingScope.varExp("x", Set("x"))
               )
+            ),
+            ExpectedWorkingScope(
+              Ast("YIELD a AS a"),
+              Incoming(constants = Set("x")),
+              Referenced(Set("a")),
+              Declared(variables = Seq("a")),
+              Outgoing(constants = Set("x"), variables = Set("a"))
             ),
             ExpectedWorkingScope(
               Ast("RETURN x + 1 AS b, a AS c"), // query level
@@ -410,6 +435,12 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           )
         ),
         ExpectedWorkingScope(
+          Ast("YIELD a AS a"),
+          Referenced(Set("a")),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a"))
+        ),
+        ExpectedWorkingScope(
           Ast("""RETURN a + 1 AS a
                 |UNION
                 |RETURN a + 2 AS a""".stripMargin),
@@ -544,6 +575,12 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           )
         ),
         ExpectedWorkingScope(
+          Ast("YIELD y AS y"),
+          Referenced(Set("y")),
+          Declared(variables = Seq("y")),
+          Outgoing(variables = Set("y"))
+        ),
+        ExpectedWorkingScope(
           Ast(
             """WHEN y % 2 = 0 THEN RETURN y * -1 AS x
               |ELSE RETURN y AS x""".stripMargin
@@ -651,6 +688,12 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
             ExpectedResult.TableResult("y"),
             ExpectedWorkingScope.varExp("x", Set("x"))
           )
+        ),
+        ExpectedWorkingScope(
+          Ast("YIELD y AS y"),
+          Referenced(Set("y")),
+          Declared(variables = Seq("y")),
+          Outgoing(variables = Set("y"))
         ),
         ExpectedWorkingScope(
           Ast(
@@ -3625,7 +3668,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
   test("""MATCH (a)
          |RETURN EXISTS {
          |  MATCH (a)
-         |  RETURN a
+         |  RETURN a AS b
          |  NEXT
          |  RETURN a
          |} AS x""".stripMargin) {
@@ -3634,7 +3677,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         Ast("""MATCH (a)
               |RETURN EXISTS {
               |  MATCH (a)
-              |  RETURN a
+              |  RETURN a AS b
               |  NEXT
               |  RETURN a
               |} AS x""".stripMargin),
@@ -3655,7 +3698,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ExpectedWorkingScope(
           Ast("""RETURN EXISTS {
                 |  MATCH (a)
-                |  RETURN a
+                |  RETURN a AS b
                 |  NEXT
                 |  RETURN a
                 |} AS x""".stripMargin),
@@ -3666,7 +3709,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedWorkingScope(
             Ast("""EXISTS {
                   |  MATCH (a)
-                  |  RETURN a
+                  |  RETURN a AS b
                   |  NEXT
                   |  RETURN a
                   |}""".stripMargin),
@@ -3674,7 +3717,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
             Referenced(Set("a")),
             ExpectedWorkingScope(
               Ast("""MATCH (a)
-                    |RETURN a
+                    |RETURN a AS b
                     |NEXT
                     |RETURN a""".stripMargin),
               Incoming(constants = Set("a")),
@@ -3682,10 +3725,11 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedResult.TableResult("a"),
               ExpectedWorkingScope(
                 Ast("""MATCH (a)
-                      |RETURN a""".stripMargin),
+                      |RETURN a AS b""".stripMargin),
                 Incoming(constants = Set("a")),
                 Referenced(Set("a")),
-                ExpectedResult.TableResult("a"),
+                Outgoing(variables = Set("b")),
+                ExpectedResult.TableResult("b"),
                 ExpectedWorkingScope(
                   Ast("""MATCH (a)""".stripMargin),
                   Incoming(constants = Set("a")),
@@ -3700,24 +3744,32 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                   )
                 ),
                 ExpectedWorkingScope(
-                  Ast("""RETURN a""".stripMargin),
+                  Ast("""RETURN a AS b""".stripMargin),
                   Incoming(constants = Set("a")),
                   Referenced(Set("a")),
-                  ExpectedResult.TableResult("a"),
+                  Outgoing(variables = Set("b")),
+                  ExpectedResult.TableResult("b"),
                   ExpectedWorkingScope.varExp("a", Set("a"))
                 )
               ),
               ExpectedWorkingScope(
-                Ast("""RETURN a""".stripMargin),
+                Ast("YIELD b AS b"),
                 Incoming(constants = Set("a")),
+                Referenced(Set("b")),
+                Declared(variables = Seq("b")),
+                Outgoing(constants = Set("a"), variables = Set("b"))
+              ),
+              ExpectedWorkingScope(
+                Ast("""RETURN a""".stripMargin), // query level
+                Incoming(constants = Set("a"), variables = Set("b")),
                 Referenced(Set("a")),
                 ExpectedResult.TableResult("a"),
                 ExpectedWorkingScope(
                   Ast("""RETURN a""".stripMargin),
-                  Incoming(constants = Set("a")),
+                  Incoming(constants = Set("a"), variables = Set("b")),
                   Referenced(Set("a")),
                   ExpectedResult.TableResult("a"),
-                  ExpectedWorkingScope.varExp("a", Set("a"))
+                  ExpectedWorkingScope.varExp("a", Set("a", "b"))
                 )
               )
             )
@@ -3730,7 +3782,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
   test("""UNWIND [1, 2, 3] AS x
          |RETURN COLLECT {
          |  UNWIND [1, 2] AS y
-         |  RETURN x, y
+         |  RETURN y
          |  NEXT
          |  RETURN x + COUNT(y)
          |} AS y""".stripMargin) {
@@ -3739,7 +3791,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         Ast("""UNWIND [1, 2, 3] AS x
               |RETURN COLLECT {
               |  UNWIND [1, 2] AS y
-              |  RETURN x, y
+              |  RETURN y
               |  NEXT
               |  RETURN x + COUNT(y)
               |} AS y""".stripMargin),
@@ -3754,7 +3806,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ExpectedWorkingScope(
           Ast("""RETURN COLLECT {
                 |  UNWIND [1, 2] AS y
-                |  RETURN x, y
+                |  RETURN y
                 |  NEXT
                 |  RETURN x + COUNT(y)
                 |} AS y""".stripMargin),
@@ -3765,7 +3817,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedWorkingScope(
             Ast("""COLLECT {
                   |  UNWIND [1, 2] AS y
-                  |  RETURN x, y
+                  |  RETURN y
                   |  NEXT
                   |  RETURN x + COUNT(y)
                   |}""".stripMargin),
@@ -3773,7 +3825,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
             Referenced(Set("x")),
             ExpectedWorkingScope(
               Ast("""UNWIND [1, 2] AS y
-                    |RETURN x, y
+                    |RETURN y
                     |NEXT
                     |RETURN x + COUNT(y)""".stripMargin),
               Incoming(constants = Set("x")),
@@ -3782,11 +3834,10 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedResult.TableResult("x + COUNT(y)"),
               ExpectedWorkingScope(
                 Ast("""UNWIND [1, 2] AS y
-                      |RETURN x, y""".stripMargin),
+                      |RETURN y""".stripMargin),
                 Incoming(constants = Set("x")),
-                Referenced(Set("x")),
                 Outgoing(variables = Set("y")),
-                ExpectedResult.TableResult("x", "y"),
+                ExpectedResult.TableResult("y"),
                 ExpectedWorkingScope(
                   Ast("""UNWIND [1, 2] AS y""".stripMargin),
                   Incoming(constants = Set("x")),
@@ -3795,17 +3846,23 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                   ExpectedWorkingScope.constExp("[1, 2]", Set("x"))
                 ),
                 ExpectedWorkingScope(
-                  Ast("""RETURN x, y""".stripMargin),
+                  Ast("""RETURN y""".stripMargin),
                   Incoming(constants = Set("x"), variables = Set("y")),
-                  Referenced(Set("x", "y")),
+                  Referenced(Set("y")),
                   Outgoing(variables = Set("y")),
-                  ExpectedResult.TableResult("x", "y"),
-                  ExpectedWorkingScope.varExp("x", Set("x", "y")),
+                  ExpectedResult.TableResult("y"),
                   ExpectedWorkingScope.varExp("y", Set("x", "y"))
                 )
               ),
               ExpectedWorkingScope(
-                Ast("""RETURN x + COUNT(y)""".stripMargin),
+                Ast("YIELD y AS y"),
+                Incoming(constants = Set("x")),
+                Referenced(Set("y")),
+                Declared(variables = Seq("y")),
+                Outgoing(constants = Set("x"), variables = Set("y"))
+              ),
+              ExpectedWorkingScope(
+                Ast("""RETURN x + COUNT(y)""".stripMargin), // query level
                 Incoming(constants = Set("x"), variables = Set("y")),
                 Referenced(Set("x", "y")),
                 Outgoing(variables = Set("x + COUNT(y)")),
@@ -3870,6 +3927,10 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedResult.TableResult("a")
             )
           )
+        ),
+        ExpectedWorkingScope(
+          Ast("YIELD"),
+          Outgoing(constants = Set(), variables = Set())
         ),
         ExpectedWorkingScope(
           Ast("""MATCH (n)

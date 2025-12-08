@@ -860,6 +860,115 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     )
   }
 
+  test("""WITH 7 AS x
+         |CALL (x) {
+         |  RETURN "hello" AS x
+         |  UNION
+         |  RETURN x
+         |
+         |  NEXT
+         |
+         |  RETURN x + 2 AS y
+         |}
+         |RETURN x, y""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""RETURN 7 AS x
+         |
+         |NEXT
+         |
+         |WHEN true THEN  {
+         |  {
+         |    RETURN x + 4 AS x
+         |
+         |    NEXT
+         |
+         |    RETURN x + 5 AS x
+         |  }
+         |  UNION
+         |  RETURN 2 AS x
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""UNWIND [1,2,3] AS x
+         |RETURN COLLECT {
+         |  UNWIND [1,2] AS y
+         |  RETURN x, y
+         |  NEXT
+         |  RETURN x + COUNT(y)
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""UNWIND [1,2,3] AS x
+         |RETURN COLLECT {
+         |  UNWIND [1,2] AS y
+         |  RETURN x, y
+         |  NEXT
+         |  RETURN x + y
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (a)
+         |  RETURN a
+         |  NEXT
+         |  MATCH (b)
+         |  RETURN a AS a
+         |  NEXT
+         |  MATCH (a)
+         |  RETURN a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""MATCH (a)
+         |RETURN EXISTS {
+         |  MATCH (a)
+         |  RETURN a
+         |  NEXT
+         |  RETURN a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""RETURN 1 AS a
+         |
+         |NEXT
+         |{
+         |  RETURN a + 4 AS a
+         |  UNION
+         |  RETURN a + 2 AS a
+         |}""".stripMargin) {
+    passes()
+  }
+
+  test("""RETURN 1 AS b NEXT RETURN x + 1 AS b""".stripMargin) {
+    error("42N62", "Variable `x` not defined.")
+  }
+
   /**
    * Multiple return columns
    */
@@ -1518,12 +1627,12 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   test("""MATCH (a)
          |RETURN EXISTS {
          |  MATCH (a)
-         |  RETURN a
+         |  RETURN a AS b
          |  NEXT
          |  MATCH (b)
-         |  RETURN a AS a
+         |  RETURN b AS c
          |  NEXT
-         |  MATCH (a)
+         |  MATCH (c)
          |  RETURN a
          |}""".stripMargin) {
     passes()
@@ -1532,7 +1641,7 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   test("""MATCH (a)
          |RETURN EXISTS {
          |  MATCH (a)
-         |  RETURN a
+         |  RETURN a AS b
          |  NEXT
          |  RETURN a
          |}""".stripMargin) {
@@ -1560,26 +1669,6 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |  RETURN a
          |}""".stripMargin) {
     error("42N38", "Return items must have unique names.")
-  }
-
-  test("""UNWIND [1,2,3] AS x
-         |RETURN COLLECT {
-         |  UNWIND [1,2] AS y
-         |  RETURN x, y
-         |  NEXT
-         |  RETURN x + COUNT(y)
-         |}""".stripMargin) {
-    passes()
-  }
-
-  test("""UNWIND [1,2,3] AS x
-         |RETURN COLLECT {
-         |  UNWIND [1,2] AS y
-         |  RETURN x, y
-         |  NEXT
-         |  RETURN x + y
-         |}""".stripMargin) {
-    passes()
   }
 
   test("""MATCH p = ()-[]->()

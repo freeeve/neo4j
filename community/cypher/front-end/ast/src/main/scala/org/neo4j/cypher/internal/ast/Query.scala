@@ -1526,8 +1526,18 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   private case class CheckWithPrevious(
     check: Query => SemanticCheck,
     accumulator: SemanticCheck = SemanticCheck.success,
-    previous: Option[Query] = None
+    previous: Option[Query] = None,
+    outer: Option[SemanticState]
   ) {
+
+    private def checkNoRedeclarationOfOuter(query: Query): SemanticCheck = {
+      val constantSymbols = outer.map(_.currentScope.symbolNames).getOrElse(Set.empty)
+      val symbolIntersection =
+        query.returnVariables.explicitVariables.filter(v => constantSymbols.contains(v.name))
+
+      val errors = symbolIntersection.map(v => SemanticError.variableAlreadyDeclaredInOuterScope(v.name, v.position))
+      when(symbolIntersection.nonEmpty)(SemanticCheck.error(errors))
+    }
 
     private def innerCheck(query: Query): SemanticCheck =
       withScopedState(
@@ -1535,6 +1545,7 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
           when(previous.fold(false)(_.isReturning)) {
             previous.map(importValuesFromRecordedFinalScope).getOrElse(SemanticCheck.success)
           } chain
+          checkNoRedeclarationOfOuter(query) chain
           query.semanticCheckInContext(NextStatement)
       )
 
@@ -1551,9 +1562,9 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
     )
   }
 
-  private def semanticCheckAbstract(check: Query => SemanticCheck): SemanticCheck = {
+  private def semanticCheckAbstract(check: Query => SemanticCheck, outer: Option[SemanticState]): SemanticCheck = {
     val trunk = queries.dropRight(1)
-    trunk.foldLeft(CheckWithPrevious(check)) {
+    trunk.foldLeft(CheckWithPrevious(check, outer = outer)) {
       case (accCheck, q) => accCheck.checkQuery(q)
     }.accumulator chain
       withScopedState(fromState(s =>
@@ -1568,10 +1579,10 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   }
 
   override def semanticCheck: SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInContext(NextStatement))
+    semanticCheckAbstract(_.semanticCheckInContext(NextStatement), None)
 
   override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))
+    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current), Some(outer))
 
   override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
     SemanticCheck.error(SemanticError.invalidUseOfOldCall(NextStatement.name, position))
@@ -1581,10 +1592,10 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
     outer: SemanticState,
     context: UnaliasedNotAllowed
   ): SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context))
+    semanticCheckAbstract(_.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context), Some(outer))
 
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInContext(context))
+    semanticCheckAbstract(_.semanticCheckInContext(context), None)
 
 }
 

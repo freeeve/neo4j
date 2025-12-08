@@ -17,15 +17,19 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.ast.AdministrationCommand
+import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.NextStatement
+import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.UnresolvedCall
+import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.util.ASTNode
 
 object pegStatement {
@@ -42,12 +46,24 @@ object pegStatement {
        * Statement
        */
       case NextStatement(queries) =>
-        val children = queries.scanLeft(WorkingScope.apriori(incoming)) {
-          case (previous, query) if previous.result.isInstanceOf[TableResult] =>
-            apply(query, incoming.replaceWith(previous.outgoing.variables))
-          case (_, query) =>
-            apply(query, incoming.replaceWith(Set.empty))
-        }.tail
+        val children = queries.foldLeft(Seq(WorkingScope.apriori(incoming))) {
+          case (previous, query) =>
+            val nextQuery = apply(query, previous.last.outgoing)
+            val connectingQuery =
+              StatementScope(
+                astNode = Yield(ReturnItems(
+                  FreeProjection,
+                  nextQuery.result.getColumns.map(AliasedReturnItem(_))
+                )(query.position))(query.position),
+                incoming = incoming,
+                referenced = nextQuery.result.getColumns.toSet,
+                declared = Declarations(constants = Seq.empty, variables = nextQuery.result.getColumns),
+                outgoing = incoming.amendedWith(nextQuery.result.getColumns.toSet)
+              )
+
+            previous ++ Seq(nextQuery, connectingQuery)
+        }.tail.dropRight(1)
+
         // Alternatively, referenced can be computed by referencedInChildren minus "declaredInChildren"
         val referenced =
           Some(WorkingScope.referencedInChildren(children) intersect incoming.constantsAndVariables)

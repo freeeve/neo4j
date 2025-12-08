@@ -2160,6 +2160,12 @@ case class Return(
     With(distinct, returnItems, orderBy, skip, limit, None, AddedInRewriteGeneral)(position)
 }
 
+case object Yield {
+
+  def apply(returnItems: ReturnItems)(position: InputPosition): Yield =
+    Yield(returnItems, None, None, None, None)(position)
+}
+
 case class Yield(
   returnItems: ReturnItems,
   orderBy: Option[OrderBy],
