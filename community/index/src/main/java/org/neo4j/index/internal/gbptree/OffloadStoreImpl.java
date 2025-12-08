@@ -185,7 +185,8 @@ public class OffloadStoreImpl<KEY, VALUE> implements OffloadStore<KEY, VALUE> {
                 stableGeneration,
                 unstableGeneration,
                 offloadId,
-                bind(pcFactory, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext));
+                bind(pcFactory, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext),
+                cursorContext);
     }
 
     @VisibleForTesting
@@ -217,7 +218,7 @@ public class OffloadStoreImpl<KEY, VALUE> implements OffloadStore<KEY, VALUE> {
     private long acquireNewId(long stableGeneration, long unstableGeneration, CursorContext cursorContext)
             throws IOException {
         return idProvider.acquireNewId(
-                stableGeneration, unstableGeneration, bind(pcFactory, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext));
+                stableGeneration, bind(pcFactory, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext), cursorContext);
     }
 
     private static void placeCursorAtOffloadId(PageCursor cursor, long offloadId) throws IOException {

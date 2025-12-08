@@ -362,14 +362,15 @@ class RootLayerSupport {
             Layout<K, V> layout,
             LeafNodeBehaviour<K, V> leafNode,
             InternalNodeBehaviour<K> internalNode,
-            CursorContext cursorContext)
+            CursorContext cursorContext,
+            boolean multiVersioned)
             throws IOException {
         TreeState state;
         try (PageCursor cursor = pagedFile.io(0, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext)) {
             // todo find better way of getting TreeState?
             Pair<TreeState, TreeState> states =
-                    TreeStatePair.readStatePages(cursor, IdSpace.STATE_PAGE_A, IdSpace.STATE_PAGE_B);
-            state = TreeStatePair.selectNewestValidOrFirst(states);
+                    TreeStatePair.readStatePages(cursor, IdSpace.STATE_PAGE_A, IdSpace.STATE_PAGE_B, multiVersioned);
+            state = TreeStatePair.selectNewestValidOrFirst(states, multiVersioned);
         }
         unsafe.access(pagedFile, layout, leafNode, internalNode, state);
     }

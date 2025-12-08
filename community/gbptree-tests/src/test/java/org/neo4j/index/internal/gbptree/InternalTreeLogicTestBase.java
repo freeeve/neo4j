@@ -102,7 +102,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         id = new SimpleIdProvider(cursor::duplicate);
 
         id.reset();
-        long newId = id.acquireNewId(stableGeneration, unstableGeneration, CursorCreator.bind(cursor));
+        long newId = id.acquireNewId(stableGeneration, CursorCreator.bind(cursor), NULL_CONTEXT);
         goTo(cursor, newId);
         readCursor.next(newId);
 
@@ -1877,7 +1877,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         long currentPageId = cursor.getCurrentPageId();
         cursor.next(root.id());
         new GBPTreeStructure<>(null, null, null, layout, leaf, internal, stableGeneration, unstableGeneration)
-                .visitTree(cursor, new PrintingGBPTreeVisitor<>(PrintConfig.defaults()), NULL_CONTEXT);
+                .visitTree(cursor, new PrintingGBPTreeVisitor<>(PrintConfig.defaults()), NULL_CONTEXT, false);
         cursor.next(currentPageId);
     }
 
@@ -1895,7 +1895,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
 
     private void newRootFromSplit(StructurePropagation<KEY> split) throws IOException {
         assertThat(split.hasRightKeyInsert).isTrue();
-        long rootId = id.acquireNewId(stableGeneration, unstableGeneration, CursorCreator.bind(cursor));
+        long rootId = id.acquireNewId(stableGeneration, CursorCreator.bind(cursor), NULL_CONTEXT);
         goTo(cursor, rootId);
         internal.initialize(cursor, DATA_LAYER_FLAG, stableGeneration, unstableGeneration);
         internal.setChildAt(cursor, split.midChild, 0, stableGeneration, unstableGeneration);

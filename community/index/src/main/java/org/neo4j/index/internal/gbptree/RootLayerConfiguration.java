@@ -45,6 +45,10 @@ public abstract sealed class RootLayerConfiguration<ROOT_KEY>
 
     abstract Layout<ROOT_KEY, RootMappingValue> rootLayout();
 
+    public static <ROOT_KEY> boolean isMultiRoot(RootLayerConfiguration<ROOT_KEY> rootLayerConfiguration) {
+        return rootLayerConfiguration instanceof MultiRootLayerConfiguration;
+    }
+
     static final class SingleRootLayerConfiguration extends RootLayerConfiguration<SingleRoot> {
 
         @Override

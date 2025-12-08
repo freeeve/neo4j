@@ -104,7 +104,7 @@ class SingleRootLayer<KEY, VALUE> extends RootLayer<SingleRoot, KEY, VALUE> {
                     internalNode,
                     stableGeneration(generation),
                     unstableGeneration(generation));
-            structure.visitTree(cursor, visitor, cursorContext);
+            structure.visitTree(cursor, visitor, cursorContext, false);
             support.idProvider().visitFreelist(visitor, bind(support, PF_SHARED_READ_LOCK, cursorContext));
         }
     }
@@ -159,7 +159,7 @@ class SingleRootLayer<KEY, VALUE> extends RootLayer<SingleRoot, KEY, VALUE> {
     @Override
     void unsafe(GBPTreeUnsafe unsafe, boolean dataTree, CursorContext cursorContext) throws IOException {
         Preconditions.checkState(dataTree, "Can only operate on data tree");
-        support.unsafe(unsafe, layout, leafNode, internalNode, cursorContext);
+        support.unsafe(unsafe, layout, leafNode, internalNode, cursorContext, false);
     }
 
     @Override

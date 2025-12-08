@@ -29,6 +29,8 @@ import static org.neo4j.index.internal.gbptree.TreeNodeUtil.goTo;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 
 import java.io.IOException;
+import org.neo4j.index.internal.gbptree.FreeListIdProvider.FreelistMetaData;
+import org.neo4j.index.internal.gbptree.FreeListIdProvider.FreelistPositions;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -321,18 +323,23 @@ public final class GBPTreeCorruption {
         return (pagedFile, layout, leafNode, internalNode, treeState) -> {
             try (PageCursor cursor = pagedFile.io(0, PagedFile.PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
                 goTo(cursor, "", treeState.pageId());
-                int decrementedWritePos = treeState.freeListWritePos() - 1;
+                FreelistMetaData freelistMetaData = treeState.freelistMetaData();
+                FreelistPositions freelistPositions = freelistMetaData.genFreelistPos();
+                int decrementedWritePos = freelistPositions.writePos() - 1;
+                FreelistPositions adjustedPositions = new FreelistPositions(
+                        freelistPositions.writePageId(),
+                        freelistPositions.readPageId(),
+                        decrementedWritePos,
+                        freelistPositions.readPos());
+                FreelistMetaData adjustedMetadata =
+                        FreelistMetaData.nonVersioned(freelistMetaData.lastId(), adjustedPositions);
                 TreeState.write(
                         cursor,
                         treeState.stableGeneration(),
                         treeState.unstableGeneration(),
                         treeState.rootId(),
                         treeState.rootGeneration(),
-                        treeState.lastId(),
-                        treeState.freeListWritePageId(),
-                        treeState.freeListReadPageId(),
-                        decrementedWritePos,
-                        treeState.freeListReadPos(),
+                        adjustedMetadata,
                         treeState.isClean());
             }
         };
@@ -340,24 +347,25 @@ public final class GBPTreeCorruption {
 
     public static <KEY, VALUE> IndexCorruption<KEY, VALUE> addFreelistEntry(long releasedId) {
         return (pagedFile, layout, leafNode, internalNode, treeState) -> {
-            FreeListIdProvider freelist = getFreelist(pagedFile, treeState);
+            DefaultFreelistIdProvider freelist = getFreelist(pagedFile, treeState);
             var cursorCreator = bind(pagedFile, PagedFile.PF_SHARED_WRITE_LOCK, NULL_CONTEXT);
-            freelist.releaseId(treeState.stableGeneration(), treeState.unstableGeneration(), releasedId, cursorCreator);
-            freelist.flush(treeState.stableGeneration(), treeState.unstableGeneration(), cursorCreator);
+            freelist.releaseId(
+                    treeState.stableGeneration(),
+                    treeState.unstableGeneration(),
+                    releasedId,
+                    cursorCreator,
+                    NULL_CONTEXT);
+            freelist.flush(treeState.stableGeneration(), treeState.unstableGeneration(), cursorCreator, NULL_CONTEXT);
             try (PageCursor cursor = pagedFile.io(0, PagedFile.PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
                 goTo(cursor, "", treeState.pageId());
-                FreeListIdProvider.FreelistMetaData freelistMetaData = freelist.metaData();
+                FreelistMetaData freelistMetaData = freelist.metaData();
                 TreeState.write(
                         cursor,
                         treeState.stableGeneration(),
                         treeState.unstableGeneration(),
                         treeState.rootId(),
                         treeState.rootGeneration(),
-                        freelistMetaData.lastId(),
-                        freelistMetaData.writePageId(),
-                        freelistMetaData.readPageId(),
-                        freelistMetaData.writePos(),
-                        freelistMetaData.readPos(),
+                        freelistMetaData,
                         treeState.isClean());
             }
         };
@@ -373,11 +381,7 @@ public final class GBPTreeCorruption {
                         target.unstableGeneration(),
                         target.rootId(),
                         target.rootGeneration(),
-                        target.lastId(),
-                        target.freeListWritePageId(),
-                        target.freeListReadPageId(),
-                        target.freeListWritePos(),
-                        target.freeListReadPos(),
+                        target.freelistMetaData(),
                         target.isClean());
             }
         };
@@ -439,24 +443,15 @@ public final class GBPTreeCorruption {
                         treeState.unstableGeneration() + 1,
                         treeState.rootId(),
                         treeState.rootGeneration(),
-                        treeState.lastId(),
-                        treeState.freeListWritePageId(),
-                        treeState.freeListReadPageId(),
-                        treeState.freeListWritePos(),
-                        treeState.freeListReadPos(),
+                        treeState.freelistMetaData(),
                         false);
             }
         };
     }
 
-    private static FreeListIdProvider getFreelist(PagedFile pagedFile, TreeState treeState) {
-        FreeListIdProvider freelist = new FreeListIdProvider(pagedFile.payloadSize());
-        freelist.initialize(
-                treeState.lastId(),
-                treeState.freeListWritePageId(),
-                treeState.freeListReadPageId(),
-                treeState.freeListWritePos(),
-                0);
+    private static DefaultFreelistIdProvider getFreelist(PagedFile pagedFile, TreeState treeState) {
+        DefaultFreelistIdProvider freelist = new DefaultFreelistIdProvider(pagedFile.payloadSize());
+        freelist.initialize(treeState.freelistMetaData());
         return freelist;
     }
 

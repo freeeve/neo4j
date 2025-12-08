@@ -59,6 +59,7 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.annotations.documented.ReporterFactory;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.function.ThrowingAction;
+import org.neo4j.index.internal.gbptree.FreeListIdProvider.FreelistMetaData;
 import org.neo4j.index.internal.gbptree.GBPTreeConsistencyChecker.ConsistencyCheckState;
 import org.neo4j.index.internal.gbptree.Header.Reader;
 import org.neo4j.index.internal.gbptree.RootLayer.TreeRootsVisitor;
@@ -472,6 +473,8 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
      */
     private final ImmutableSet<OpenOption> openOptions;
 
+    private final boolean multiVersionMultiRoot;
+
     /**
      * Whether this tree has been closed. Accessed and changed solely in
      * {@link #close()} to be able to close tree multiple times gracefully.
@@ -612,8 +615,13 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                 created = needRecreation(pagedFile, cursorContext, monitor, readOnly);
             }
 
+            boolean multiVersioned = engineOpenOptions.contains(MULTI_VERSIONED);
+            boolean multiRoot = RootLayerConfiguration.isMultiRoot(rootLayerConfiguration);
+            this.multiVersionMultiRoot = multiVersioned && multiRoot;
             this.payloadSize = pagedFile.payloadSize();
-            this.freeList = new FreeListIdProvider(pagedFile.payloadSize());
+            this.freeList = multiVersionMultiRoot
+                    ? new VersionedFreelistIdProvider(payloadSize)
+                    : new DefaultFreelistIdProvider(payloadSize);
             TreeNodeLatchService latchService = new TreeNodeLatchService();
             var treeNodeSelector = treeNodeLayoutFactory.createSelector(engineOpenOptions);
             this.rootLayerSupport = new RootLayerSupport(
@@ -632,11 +640,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                     () -> writersMustEagerlyFlush,
                     structureWriteLog);
             this.rootLayer = rootLayerConfiguration.buildRootLayer(
-                    rootLayerSupport,
-                    layout,
-                    treeNodeSelector,
-                    dependencyResolver,
-                    engineOpenOptions.contains(MULTI_VERSIONED));
+                    rootLayerSupport, layout, treeNodeSelector, dependencyResolver, multiVersionMultiRoot);
 
             // Create or load state
             if (created) {
@@ -794,17 +798,14 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
     private void initialize(PagedFile pagedFile, Header.Reader headerReader, CursorContext cursorContext)
             throws IOException {
         var openOptions = this.openOptions;
-        TreeState state = readHeaderFromPagedFiled(pagedFile, headerReader, cursorContext, openOptions);
+        TreeState state =
+                readHeaderFromPagedFiled(pagedFile, headerReader, cursorContext, openOptions, multiVersionMultiRoot);
         generation = Generation.generation(state.stableGeneration(), state.unstableGeneration());
         var root = new Root(state.rootId(), state.rootGeneration());
         rootLayer.initialize(root, cursorContext);
 
-        long lastId = state.lastId();
-        long freeListWritePageId = state.freeListWritePageId();
-        long freeListReadPageId = state.freeListReadPageId();
-        int freeListWritePos = state.freeListWritePos();
-        int freeListReadPos = state.freeListReadPos();
-        freeList.initialize(lastId, freeListWritePageId, freeListReadPageId, freeListWritePos, freeListReadPos);
+        FreelistMetaData freelistMetaData = state.freelistMetaData();
+        freeList.initialize(freelistMetaData);
         clean = state.isClean();
     }
 
@@ -821,8 +822,8 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                 int pageSize = meta.getPayloadSize();
 
                 // Read both states
-                TreeState stateA = getTreeState(buffer, channel, pageSize, IdSpace.STATE_PAGE_A);
-                TreeState stateB = getTreeState(buffer, channel, pageSize, IdSpace.STATE_PAGE_B);
+                TreeState stateA = getTreeState(buffer, channel, pageSize, IdSpace.STATE_PAGE_A, false);
+                TreeState stateB = getTreeState(buffer, channel, pageSize, IdSpace.STATE_PAGE_B, false);
 
                 // Determine which one is stable
                 TreeState state = TreeStatePair.selectNewestValidState(Pair.of(stateA, stateB));
@@ -840,7 +841,8 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             Header.Reader headerReader, StoreChannel channel, ByteBuffer buffer, int pageSize, TreeState state)
             throws IOException {
         buffer.clear().limit(Integer.BYTES);
-        long headerPosition = state.pageId() * pageSize + TreeState.SIZE;
+        int treeStateSize = TreeState.size(state.freelistMetaData().multiVersioned());
+        long headerPosition = state.pageId() * pageSize + treeStateSize;
         channel.position(headerPosition);
         channel.readAll(buffer);
         int headerSize = buffer.flip().getInt();
@@ -862,13 +864,15 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
         return Meta.read(buffer);
     }
 
-    private static TreeState getTreeState(ByteBuffer buffer, StoreChannel read, int pageSize, long statePage)
+    private static TreeState getTreeState(
+            ByteBuffer buffer, StoreChannel read, int pageSize, long statePage, boolean multiversion)
             throws IOException {
-        buffer.clear().limit(TreeState.SIZE);
+        int treeStateSize = TreeState.size(multiversion);
+        buffer.clear().limit(treeStateSize);
         read.position(pageSize * statePage);
         read.readAll(buffer);
         buffer.flip();
-        return TreeState.read(statePage, buffer);
+        return TreeState.read(statePage, buffer, multiversion);
     }
 
     /**
@@ -893,7 +897,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             throws IOException, MetadataMismatchException {
         try (PagedFile pagedFile =
                 openExistingIndexFile(pageCache, indexFile, cursorContext, databaseName, openOptions)) {
-            readHeaderFromPagedFiled(pagedFile, headerReader, cursorContext, openOptions);
+            readHeaderFromPagedFiled(pagedFile, headerReader, cursorContext, openOptions, false);
         } catch (Throwable t) {
             // Decorate outgoing exceptions with basic tree information. This is similar to how the constructor
             // appends its information, but the constructor has read more information at that point so this one
@@ -904,22 +908,26 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
     }
 
     private static TreeState readHeaderFromPagedFiled(
-            PagedFile pagedFile, Reader headerReader, CursorContext cursorContext, ImmutableSet<OpenOption> openOptions)
+            PagedFile pagedFile,
+            Reader headerReader,
+            CursorContext cursorContext,
+            ImmutableSet<OpenOption> openOptions,
+            boolean multiVersionMultiRoot)
             throws IOException {
-        Pair<TreeState, TreeState> states = loadStatePages(pagedFile, cursorContext);
+        Pair<TreeState, TreeState> states = loadStatePages(pagedFile, cursorContext, multiVersionMultiRoot);
         TreeState state = TreeStatePair.selectNewestValidState(states);
         try (PageCursor cursor = pagedFile.io(state.pageId(), PF_SHARED_READ_LOCK, cursorContext)) {
             PageCursorUtil.goTo(cursor, "header data", state.pageId());
-            doReadHeader(headerReader, cursor, getEndianness(openOptions));
+            doReadHeader(headerReader, cursor, getEndianness(openOptions), multiVersionMultiRoot);
         }
         return state;
     }
 
-    private static void doReadHeader(Header.Reader headerReader, PageCursor cursor, ByteOrder order)
-            throws IOException {
+    private static void doReadHeader(
+            Header.Reader headerReader, PageCursor cursor, ByteOrder order, boolean multiversion) throws IOException {
         int headerDataLength;
         do {
-            TreeState.read(cursor);
+            TreeState.read(cursor, multiversion);
             headerDataLength = cursor.getInt();
         } while (cursor.shouldRetry());
 
@@ -935,27 +943,24 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
 
     private void writeState(PagedFile pagedFile, Header.Writer headerWriter, CursorContext cursorContext)
             throws IOException {
-        Pair<TreeState, TreeState> states = readStatePages(pagedFile, cursorContext);
+        Pair<TreeState, TreeState> states = readStatePages(pagedFile, cursorContext, multiVersionMultiRoot);
         TreeState oldestState = TreeStatePair.selectOldestOrInvalid(states);
         long pageToOverwrite = oldestState.pageId();
         Root root = rootLayer.getRoot(cursorContext);
         try (PageCursor cursor = pagedFile.io(pageToOverwrite, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext)) {
             PageCursorUtil.goTo(cursor, "state page", pageToOverwrite);
-            FreeListIdProvider.FreelistMetaData freelistMetaData = freeList.metaData();
+            FreelistMetaData freelistMetaData = freeList.metaData();
             TreeState.write(
                     cursor,
                     stableGeneration(generation),
                     unstableGeneration(generation),
                     root.id(),
                     root.generation(),
-                    freelistMetaData.lastId(),
-                    freelistMetaData.writePageId(),
-                    freelistMetaData.readPageId(),
-                    freelistMetaData.writePos(),
-                    freelistMetaData.readPos(),
+                    freelistMetaData,
                     clean);
 
-            writerHeader(pagedFile, headerWriter, other(states, oldestState), cursor, cursorContext);
+            writerHeader(
+                    pagedFile, headerWriter, other(states, oldestState), cursor, cursorContext, multiVersionMultiRoot);
 
             checkOutOfBounds(cursor);
         }
@@ -966,7 +971,8 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             Header.Writer headerWriter,
             TreeState otherState,
             PageCursor cursor,
-            CursorContext cursorContext)
+            CursorContext cursorContext,
+            boolean multiVersionMultiRoot)
             throws IOException {
         // Write/carry over header
         int headerOffset = cursor.getOffset();
@@ -979,7 +985,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                     // Clear any out-of-bounds from prior attempts
                     cursor.checkAndClearBoundsFlag();
                     // Place the previous state cursor after state data
-                    TreeState.read(previousCursor);
+                    TreeState.read(previousCursor, multiVersionMultiRoot);
                     // Read length of previous header
                     int previousLength = previousCursor.getInt();
                     // Reserve space to store length
@@ -1003,19 +1009,21 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             Consumer<PageCursor> headerWriter,
             String databaseName,
             CursorContext cursorContext,
-            ImmutableSet<OpenOption> openOptions)
+            ImmutableSet<OpenOption> openOptions,
+            boolean multiVersionMultiRoot)
             throws IOException {
         Header.Writer writer = replace(headerWriter);
         try (PagedFile pagedFile =
                 openExistingIndexFile(pageCache, indexFile, cursorContext, databaseName, openOptions)) {
-            Pair<TreeState, TreeState> states = readStatePages(pagedFile, cursorContext);
+            Pair<TreeState, TreeState> states = readStatePages(pagedFile, cursorContext, multiVersionMultiRoot);
             TreeState newestValidState = TreeStatePair.selectNewestValidState(states);
             long pageToOverwrite = newestValidState.pageId();
             try (PageCursor cursor = pagedFile.io(pageToOverwrite, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext)) {
                 PageCursorUtil.goTo(cursor, "state page", pageToOverwrite);
 
                 // Place cursor after state data
-                cursor.setOffset(TreeState.SIZE);
+                int treeStateSize = TreeState.size(multiVersionMultiRoot);
+                cursor.setOffset(treeStateSize);
 
                 // Note offset to header
                 int headerOffset = cursor.getOffset();
@@ -1043,7 +1051,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
     }
 
     /**
-     * Basically {@link #readStatePages(PagedFile, CursorContext)} with some more checks, suitable for when first opening an index file,
+     * Basically {@link #readStatePages(PagedFile, CursorContext, boolean)} with some more checks, suitable for when first opening an index file,
      * not while running it and check pointing.
      *
      * @param pagedFile {@link PagedFile} to read the state pages from.
@@ -1052,10 +1060,11 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
      * @throws MetadataMismatchException if state pages are missing (file is smaller than that) or if they are both empty.
      * @throws IOException on {@link PageCursor} error.
      */
-    private static Pair<TreeState, TreeState> loadStatePages(PagedFile pagedFile, CursorContext cursorContext)
+    private static Pair<TreeState, TreeState> loadStatePages(
+            PagedFile pagedFile, CursorContext cursorContext, boolean multiVersioned)
             throws MetadataMismatchException, IOException {
         try {
-            Pair<TreeState, TreeState> states = readStatePages(pagedFile, cursorContext);
+            Pair<TreeState, TreeState> states = readStatePages(pagedFile, cursorContext, multiVersioned);
             if (states.getLeft().isEmpty() && states.getRight().isEmpty()) {
                 throw new MetadataMismatchException("Index is not fully initialized since its state pages are empty");
             }
@@ -1065,11 +1074,11 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
         }
     }
 
-    private static Pair<TreeState, TreeState> readStatePages(PagedFile pagedFile, CursorContext cursorContext)
-            throws IOException {
+    private static Pair<TreeState, TreeState> readStatePages(
+            PagedFile pagedFile, CursorContext cursorContext, boolean multiVersioned) throws IOException {
         Pair<TreeState, TreeState> states;
         try (PageCursor cursor = pagedFile.io(0L /*ignored*/, PF_SHARED_READ_LOCK, cursorContext)) {
-            states = TreeStatePair.readStatePages(cursor, IdSpace.STATE_PAGE_A, IdSpace.STATE_PAGE_B);
+            states = TreeStatePair.readStatePages(cursor, IdSpace.STATE_PAGE_A, IdSpace.STATE_PAGE_B, multiVersioned);
         }
         return states;
     }
@@ -1178,7 +1187,10 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                 long stableGeneration = stableGeneration(generation);
                 long unstableGeneration = unstableGeneration(generation);
                 freeList.flush(
-                        stableGeneration, unstableGeneration, bind(pagedFile, PF_SHARED_WRITE_LOCK, cursorContext));
+                        stableGeneration,
+                        unstableGeneration,
+                        bind(pagedFile, PF_SHARED_WRITE_LOCK, cursorContext),
+                        cursorContext);
 
                 // Force any potential pages flushed from writers after completion of the above flushAndForce
                 // so that there's no chance that the state page change below can make it to disk before
@@ -1392,11 +1404,6 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
         rootLayer.unsafe(unsafe, dataTree, cursorContext);
     }
 
-    @VisibleForTesting
-    public int leafMaxKeyCount() {
-        return rootLayer.leafNodeMaxKeys();
-    }
-
     @Override
     public String toString() {
         long generation = this.generation;
@@ -1475,7 +1482,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
     public void printState(CursorContext cursorContext) throws IOException {
         try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, cursorContext)) {
             GBPTreeStructure.visitTreeState(
-                    cursor, new PrintingGBPTreeVisitor<>(PrintConfig.defaults().printState()));
+                    cursor, new PrintingGBPTreeVisitor<>(PrintConfig.defaults().printState()), multiVersionMultiRoot);
         }
     }
 
@@ -1498,12 +1505,6 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
 
     private static ImmutableSet<OpenOption> treeOpenOptions(ImmutableSet<OpenOption> openOptions) {
         return openOptions.newWithout(MULTI_VERSIONED);
-    }
-
-    protected static <KEY, VALUE> OffloadStoreImpl<KEY, VALUE> buildOffload(
-            Layout<KEY, VALUE> layout, IdProvider idProvider, PagedFile pagedFile, int pageSize) {
-        OffloadIdValidator idValidator = id -> id >= IdSpace.MIN_TREE_NODE_ID && id <= pagedFile.getLastPageId();
-        return new OffloadStoreImpl<>(layout, idProvider, pagedFile::io, idValidator, pageSize);
     }
 
     private static void verifyPayloadSize(PagedFile pagedFile, CursorContext cursorContext) throws IOException {

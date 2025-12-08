@@ -47,6 +47,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.neo4j.index.internal.gbptree.FreeListIdProvider.FreelistMetaData;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
@@ -497,7 +498,7 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
                 index().with(immutable.with(NO_FLUSH_ON_CLOSE)).build()) {
             GBPTreeInspection inspection = inspect(index);
             TreeState treeState = inspection.treeState();
-            lastId = treeState.lastId() + 1;
+            lastId = treeState.freelistMetaData().lastId() + 1;
             TreeState newTreeState = treeStateWithLastId(lastId, treeState);
 
             GBPTreeCorruption.IndexCorruption<KEY, VALUE> corruption = GBPTreeCorruption.setTreeState(newTreeState);
@@ -534,7 +535,7 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
         final long lastId;
         try (var index = index().with(immutable.with(NO_FLUSH_ON_CLOSE)).build()) {
             final var treeState = inspect(index).treeState();
-            lastId = treeState.lastId() + 1;
+            lastId = treeState.freelistMetaData().lastId() + 1;
             final var newTreeState = treeStateWithLastId(lastId, treeState);
             index.unsafe(GBPTreeCorruption.setTreeState(newTreeState), NULL_CONTEXT);
         }
@@ -601,8 +602,9 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
                 index().with(immutable.with(NO_FLUSH_ON_CLOSE)).build()) {
             GBPTreeInspection inspection = inspect(index);
             TreeState treeState = inspection.treeState();
-            targetPageId = treeState.lastId();
-            targetLastId = treeState.lastId() - 1;
+            FreelistMetaData freelistMetaData = treeState.freelistMetaData();
+            targetPageId = freelistMetaData.lastId();
+            targetLastId = freelistMetaData.lastId() - 1;
             TreeState newTreeState = treeStateWithLastId(targetLastId, treeState);
 
             GBPTreeCorruption.IndexCorruption<KEY, VALUE> corruption = GBPTreeCorruption.setTreeState(newTreeState);
@@ -616,17 +618,15 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
     }
 
     private static TreeState treeStateWithLastId(long lastId, TreeState treeState) {
+        FreelistMetaData freelistMetaData = treeState.freelistMetaData();
+        FreelistMetaData adjustedMetadata = FreelistMetaData.nonVersioned(lastId, freelistMetaData.genFreelistPos());
         return new TreeState(
                 treeState.pageId(),
                 treeState.stableGeneration(),
                 treeState.unstableGeneration(),
                 treeState.rootId(),
                 treeState.rootGeneration(),
-                lastId,
-                treeState.freeListWritePageId(),
-                treeState.freeListReadPageId(),
-                treeState.freeListWritePos(),
-                treeState.freeListReadPos(),
+                adjustedMetadata,
                 treeState.isClean(),
                 treeState.isValid());
     }

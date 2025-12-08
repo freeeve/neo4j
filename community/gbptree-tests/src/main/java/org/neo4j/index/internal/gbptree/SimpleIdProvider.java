@@ -25,6 +25,7 @@ import java.util.Queue;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.tuple.Pair;
 import org.neo4j.io.pagecache.PageCursor;
+import org.neo4j.io.pagecache.context.CursorContext;
 
 public class SimpleIdProvider implements IdProvider {
     private final Queue<Pair<Long, Long>> releasedIds = new ArrayDeque<>();
@@ -37,7 +38,7 @@ public class SimpleIdProvider implements IdProvider {
     }
 
     @Override
-    public long acquireNewId(long stableGeneration, long unstableGeneration, CursorCreator cursorCreator) {
+    public long acquireNewId(long stableGeneration, CursorCreator cursorCreator, CursorContext cursorContext) {
         if (!releasedIds.isEmpty()) {
             Pair<Long, Long> free = releasedIds.peek();
             if (free.getLeft() <= stableGeneration) {
@@ -52,8 +53,24 @@ public class SimpleIdProvider implements IdProvider {
     }
 
     @Override
-    public void releaseId(long stableGeneration, long unstableGeneration, long id, CursorCreator cursorCreator) {
+    public void releaseId(
+            long stableGeneration,
+            long unstableGeneration,
+            long id,
+            CursorCreator cursorCreator,
+            CursorContext cursorContext) {
         releasedIds.add(Pair.of(unstableGeneration, id));
+    }
+
+    @Override
+    public void releaseIdWithVersion(
+            long stableGeneration,
+            long unstableGeneration,
+            long id,
+            CursorCreator cursorCreator,
+            CursorContext cursorContext)
+            throws IOException {
+        throw new UnsupportedOperationException("Not yet implemented.");
     }
 
     @Override
@@ -61,7 +78,7 @@ public class SimpleIdProvider implements IdProvider {
         int pos = 0;
         visitor.beginFreelistPage(0);
         for (Pair<Long, Long> releasedId : releasedIds) {
-            visitor.freelistEntry(releasedId.getRight(), releasedId.getLeft(), pos++);
+            visitor.freelistEntry(releasedId.getRight(), releasedId.getLeft(), Long.MIN_VALUE, pos++);
         }
         visitor.endFreelistPage(0);
     }

@@ -51,7 +51,7 @@ public class PrintingGBPTreeVisitor<ROOT_KEY, KEY, VALUE> extends GBPTreeVisitor
     }
 
     @Override
-    public void treeState(Pair<TreeState, TreeState> statePair) {
+    public void treeState(Pair<TreeState, TreeState> statePair, boolean multiVersioned) {
         if (printState) {
             out.println("StateA: " + statePair.getLeft());
             out.println("StateB: " + statePair.getRight());
@@ -152,7 +152,7 @@ public class PrintingGBPTreeVisitor<ROOT_KEY, KEY, VALUE> extends GBPTreeVisitor
     }
 
     @Override
-    public void freelistEntry(long pageId, long generation, int pos) {
+    public void freelistEntry(long pageId, long generation, long releaseVersion, int pos) {
         if (printFreelist) {
             out.print("[" + generation + "," + pageId + "] ");
         }

@@ -26,7 +26,7 @@ import org.neo4j.util.VisibleForTesting;
 public interface GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> extends IdProvider.IdProviderVisitor {
     void meta(Meta meta);
 
-    void treeState(Pair<TreeState, TreeState> statePair);
+    void treeState(Pair<TreeState, TreeState> statePair, boolean multiVersioned);
 
     void beginTree(boolean dataTree);
 
@@ -50,6 +50,8 @@ public interface GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> extends IdProvid
 
     void endNode(long pageId);
 
+    void endDataNode(long pageId);
+
     void endLevel(int level);
 
     void endTree(boolean dataTree);
@@ -69,7 +71,7 @@ public interface GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> extends IdProvid
         public void meta(Meta meta) {}
 
         @Override
-        public void treeState(Pair<TreeState, TreeState> statePair) {}
+        public void treeState(Pair<TreeState, TreeState> statePair, boolean multiVersioned) {}
 
         @Override
         public void beginTree(boolean dataTree) {}
@@ -105,6 +107,9 @@ public interface GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> extends IdProvid
         public void endNode(long pageId) {}
 
         @Override
+        public void endDataNode(long pageId) {}
+
+        @Override
         public void endLevel(int level) {}
 
         @Override
@@ -126,7 +131,7 @@ public interface GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> extends IdProvid
         public void endFreelistPage(long pageId) {}
 
         @Override
-        public void freelistEntry(long pageId, long generation, int pos) {}
+        public void freelistEntry(long pageId, long generation, long releaseVersion, int pos) {}
 
         @Override
         public void freelistEntryFromReleaseCache(long pageId) {}

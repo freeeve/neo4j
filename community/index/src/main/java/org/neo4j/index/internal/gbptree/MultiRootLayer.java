@@ -151,7 +151,7 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
                 long generation = support.generation();
                 long stableGeneration = stableGeneration(generation);
                 long unstableGeneration = unstableGeneration(generation);
-                long rootId = support.idProvider().acquireNewId(stableGeneration, unstableGeneration, cursorCreator);
+                long rootId = support.idProvider().acquireNewId(stableGeneration, cursorCreator, cursorContext);
                 try {
                     dataRoot = new Root(rootId, unstableGeneration);
                     support.initializeNewRoot(dataRoot, dataLeafNode, DATA_LAYER_FLAG, cursorContext);
@@ -161,11 +161,12 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
                             new RootMappingValue().initialize(dataRoot),
                             multiVersioned
                                     ? createMultiVersionMerger(
-                                            stableGeneration, unstableGeneration, rootId, cursorCreator)
+                                            stableGeneration, unstableGeneration, rootId, cursorCreator, cursorContext)
                                     : DONT_ALLOW_CREATE_EXISTING_ROOT);
                     support.structureWriteLog().createRoot(unstableGeneration, rootId);
                 } catch (DataTreeAlreadyExistsException e) {
-                    support.idProvider().releaseId(stableGeneration, unstableGeneration, rootId, cursorCreator);
+                    support.idProvider()
+                            .releaseId(stableGeneration, unstableGeneration, rootId, cursorCreator, cursorContext);
                     throw e;
                 }
             }
@@ -183,10 +184,8 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
     @Override
     void delete(ROOT_KEY dataRootKey, CursorContext cursorContext) throws IOException {
         if (multiVersioned) {
-            try (var rootDeleteValueMerger = new MultiVersionRootDeleteValueMerger()) {
-                deleteRootFromTree(dataRootKey, cursorContext, rootDeleteValueMerger);
-                return;
-            }
+            deleteMultiVersionedRoot(dataRootKey, cursorContext);
+            return;
         }
 
         try (var rootDeleteValueMerger = new DefaultRootDeleteValueMerger(cursorContext, dataRootKey)) {
@@ -195,16 +194,17 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
             var rootUnderDeletion = new DataTreeRoot<ROOT_KEY>(null, NULL_ROOT);
             rootMappingCache.put(dataRootKey, rootUnderDeletion);
             try {
-                long rootIdToDelete = deleteRootFromTree(dataRootKey, cursorContext, rootDeleteValueMerger);
+                long dataRootIdToDelete = deleteRootFromTree(dataRootKey, cursorContext, rootDeleteValueMerger);
                 long generation = support.generation();
                 var unstableGeneration = unstableGeneration(generation);
-                support.structureWriteLog().deleteRoot(unstableGeneration, rootIdToDelete);
+                support.structureWriteLog().deleteRoot(unstableGeneration, dataRootIdToDelete);
                 support.idProvider()
                         .releaseId(
                                 stableGeneration(generation),
                                 unstableGeneration,
-                                rootIdToDelete,
-                                bind(support, PF_SHARED_WRITE_LOCK, cursorContext));
+                                dataRootIdToDelete,
+                                bind(support, PF_SHARED_WRITE_LOCK, cursorContext),
+                                cursorContext);
             } finally {
                 rootMappingCache.remove(dataRootKey);
             }
@@ -238,6 +238,24 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
         }
     }
 
+    /*
+    In mvcc we have to keep the root key and all data keys while they are still visible. Therefore,
+    the root key is just marked as deleted while visible, and actually deleted when seen by everyone.
+    And the data layer pages are released with the condition that they have to be seen by all before being reused.
+     */
+    private void deleteMultiVersionedRoot(ROOT_KEY dataRootKey, CursorContext cursorContext) throws IOException {
+        try (var rootDeleteValueMerger = new MultiVersionRootDeleteValueMerger()) {
+            long dataRootIdToDelete = deleteRootFromTree(dataRootKey, cursorContext, rootDeleteValueMerger);
+            long generation = support.generation();
+            var unstableGeneration = unstableGeneration(generation);
+            support.structureWriteLog().deleteRoot(unstableGeneration, dataRootIdToDelete);
+        }
+
+        try (var dataLayerWriter = access(dataRootKey).writer(cursorContext)) {
+            dataLayerWriter.execute(new DataTreeVersionedCleanup<>());
+        }
+    }
+
     @Override
     DataTree<DATA_KEY, DATA_VALUE> access(ROOT_KEY dataRootKey) {
         return new MultiDataTree(dataRootKey);
@@ -258,7 +276,7 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
                 unstableGeneration(generation));
         var cursorCreator = bind(support, PF_SHARED_READ_LOCK, cursorContext);
         try (PageCursor cursor = support.openRootCursor(root, PF_SHARED_READ_LOCK, cursorContext)) {
-            structure.visitTree(cursor, visitor, cursorContext);
+            structure.visitTree(cursor, visitor, cursorContext, multiVersioned);
             support.idProvider().visitFreelist(visitor, cursorCreator);
         }
 
@@ -267,7 +285,7 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
                 // Data
                 try (PageCursor cursor =
                         support.openRootCursor(allRootsSeek.value().asRoot(), PF_SHARED_READ_LOCK, cursorContext)) {
-                    structure.visitTree(cursor, visitor, cursorContext);
+                    structure.visitTree(cursor, visitor, cursorContext, multiVersioned);
                     support.idProvider().visitFreelist(visitor, cursorCreator);
                 }
             }
@@ -366,12 +384,17 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
     }
 
     private ValueMerger<ROOT_KEY, RootMappingValue> createMultiVersionMerger(
-            long stableGeneration, long unstableGeneration, long rootId, CursorCreator cursorCreator) {
+            long stableGeneration,
+            long unstableGeneration,
+            long rootId,
+            CursorCreator cursorCreator,
+            CursorContext cursorContext) {
         // In multi version we allow duplicate creates in the root layer, resulting in the old root staying unchanged
         // when this happens the id that was allocated for this duplicate create is not used, so we release it!
         return (ignored1, ignored2, ignored3, ignored4) -> {
             try {
-                support.idProvider().releaseId(stableGeneration, unstableGeneration, rootId, cursorCreator);
+                support.idProvider()
+                        .releaseId(stableGeneration, unstableGeneration, rootId, cursorCreator, cursorContext);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -481,9 +504,9 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
     @Override
     void unsafe(GBPTreeUnsafe unsafe, boolean dataTree, CursorContext cursorContext) throws IOException {
         if (dataTree) {
-            support.unsafe(unsafe, dataLayout, dataLeafNode, dataInternalNode, cursorContext);
+            support.unsafe(unsafe, dataLayout, dataLeafNode, dataInternalNode, cursorContext, multiVersioned);
         } else {
-            support.unsafe(unsafe, rootLayout, rootLeafNode, rootInternalNode, cursorContext);
+            support.unsafe(unsafe, rootLayout, rootLeafNode, rootInternalNode, cursorContext, multiVersioned);
         }
     }
 

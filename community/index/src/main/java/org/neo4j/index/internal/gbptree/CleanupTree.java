@@ -46,14 +46,8 @@ public class CleanupTree<K, V> implements TreeWriteOperation<K, V> {
             return false;
         }
         // cursor is at root
-        if (!isLeaf(cursor)) {
-            long rootPageId = cursor.getCurrentPageId();
-            long child = internalAccess.internalNode().childAt(cursor, 0, stableGeneration, unstableGeneration);
-            while (child >= 0) {
-                child = cleanLevel(cursor, child, internalAccess, stableGeneration, unstableGeneration, freeList);
-            }
-            cursor.next(rootPageId);
-        }
+        cleanLevels(internalAccess, cursor, stableGeneration, unstableGeneration, cursorContext, freeList::releaseId);
+
         // reinit root as leaf and reset key count to zero
         internalAccess
                 .leafNode()
@@ -63,13 +57,51 @@ public class CleanupTree<K, V> implements TreeWriteOperation<K, V> {
         return true;
     }
 
-    private long cleanLevel(
+    static void cleanLevels(
+            InternalAccess<?, ?> internalAccess,
             PageCursor cursor,
-            long child,
-            InternalAccess<K, V> internalAccess,
             long stableGeneration,
             long unstableGeneration,
-            IdProvider freeList)
+            CursorContext cursorContext,
+            TreeNodeVisitor treeNodeVisitor)
+            throws IOException {
+        if (!isLeaf(cursor)) {
+            // cursor is at root
+            long rootPageId = cursor.getCurrentPageId();
+            long child = internalAccess.internalNode().childAt(cursor, 0, stableGeneration, unstableGeneration);
+            while (child >= 0) {
+                child = cleanLevel(
+                        cursor,
+                        child,
+                        internalAccess,
+                        stableGeneration,
+                        unstableGeneration,
+                        cursorContext,
+                        treeNodeVisitor);
+            }
+            cursor.next(rootPageId);
+        }
+    }
+
+    @FunctionalInterface
+    interface TreeNodeVisitor {
+        void accept(
+                long stableGeneration,
+                long unstableGeneration,
+                long id,
+                CursorCreator cursorCreator,
+                CursorContext cursorContext)
+                throws IOException;
+    }
+
+    private static long cleanLevel(
+            PageCursor cursor,
+            long child,
+            InternalAccess<?, ?> internalAccess,
+            long stableGeneration,
+            long unstableGeneration,
+            CursorContext cursorContext,
+            TreeNodeVisitor treeNodeVisitor)
             throws IOException {
         goTo(cursor, "child", child);
         long leftMostChild = isLeaf(cursor)
@@ -78,8 +110,12 @@ public class CleanupTree<K, V> implements TreeWriteOperation<K, V> {
 
         long rightSibling;
         while (true) {
-            freeList.releaseId(
-                    stableGeneration, unstableGeneration, cursor.getCurrentPageId(), CursorCreator.bind(cursor));
+            treeNodeVisitor.accept(
+                    stableGeneration,
+                    unstableGeneration,
+                    cursor.getCurrentPageId(),
+                    CursorCreator.bind(cursor),
+                    cursorContext);
             rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
                     .pointer();
             if (!isNode(rightSibling)) {

@@ -32,7 +32,8 @@ public interface InternalAccess<KEY, VALUE> {
             PageCursor cursor,
             StructurePropagation<KEY> structurePropagation,
             long stableGeneration,
-            long unstableGeneration)
+            long unstableGeneration,
+            CursorContext cursorContext)
             throws IOException;
 
     void underflowInLeaf(
@@ -49,7 +50,8 @@ public interface InternalAccess<KEY, VALUE> {
             StructurePropagation<KEY> structurePropagation,
             StructureUpdate updateMidChild,
             long stableGeneration,
-            long unstableGeneration)
+            long unstableGeneration,
+            CursorContext cursorContext)
             throws IOException;
 
     void handleStructureChanges(

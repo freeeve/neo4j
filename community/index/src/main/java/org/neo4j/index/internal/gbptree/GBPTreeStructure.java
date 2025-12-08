@@ -115,13 +115,14 @@ public class GBPTreeStructure<ROOT_KEY, DATA_KEY, DATA_VALUE> {
             GBPTreeVisitor visitor,
             String databaseName,
             CursorContext cursorContext,
-            ImmutableSet<OpenOption> openOptions)
+            ImmutableSet<OpenOption> openOptions,
+            boolean multiversioned)
             throws IOException {
         var options =
                 openOptions.newWithoutAll(asList(GBPTreeOpenOptions.values())).newWith(StandardOpenOption.READ);
         try (var pagedFile = pageCache.map(file, databaseName, options)) {
             try (var cursor = pagedFile.io(IdSpace.STATE_PAGE_A, PagedFile.PF_SHARED_READ_LOCK, cursorContext)) {
-                visitTreeState(cursor, visitor);
+                visitTreeState(cursor, visitor, multiversioned);
             }
         }
     }
@@ -132,10 +133,10 @@ public class GBPTreeStructure<ROOT_KEY, DATA_KEY, DATA_VALUE> {
         visitor.meta(meta);
     }
 
-    static void visitTreeState(PageCursor cursor, GBPTreeVisitor visitor) throws IOException {
+    static void visitTreeState(PageCursor cursor, GBPTreeVisitor visitor, boolean multiversioned) throws IOException {
         Pair<TreeState, TreeState> statePair =
-                TreeStatePair.readStatePages(cursor, IdSpace.STATE_PAGE_A, IdSpace.STATE_PAGE_B);
-        visitor.treeState(statePair);
+                TreeStatePair.readStatePages(cursor, IdSpace.STATE_PAGE_A, IdSpace.STATE_PAGE_B, multiversioned);
+        visitor.treeState(statePair, multiversioned);
     }
 
     /**
@@ -147,11 +148,14 @@ public class GBPTreeStructure<ROOT_KEY, DATA_KEY, DATA_VALUE> {
      * @throws IOException on page cache access error.
      */
     void visitTree(
-            PageCursor cursor, GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> visitor, CursorContext cursorContext)
+            PageCursor cursor,
+            GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> visitor,
+            CursorContext cursorContext,
+            boolean multiVersionedMultiRoot)
             throws IOException {
         // TreeState
         long currentPage = cursor.getCurrentPageId();
-        visitTreeState(cursor, visitor);
+        visitTreeState(cursor, visitor, multiVersionedMultiRoot);
         TreeNodeUtil.goTo(cursor, "back to tree node from reading state", currentPage);
 
         assertOnTreeNode(cursor);
@@ -225,6 +229,7 @@ public class GBPTreeStructure<ROOT_KEY, DATA_KEY, DATA_VALUE> {
         for (int i = 0; i < keyCount; i++) {
             if (isDataNode) {
                 visitDataEntry(cursor, visitor, cursorContext, isLeaf, i);
+                visitor.endDataNode(cursor.getCurrentPageId());
             } else {
                 visitRootEntry(cursor, visitor, cursorContext, isLeaf, i);
             }

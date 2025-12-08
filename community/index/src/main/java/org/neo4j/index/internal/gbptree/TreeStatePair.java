@@ -19,8 +19,6 @@
  */
 package org.neo4j.index.internal.gbptree;
 
-import static org.neo4j.index.internal.gbptree.GenerationSafePointer.FIRST_STABLE_GENERATION;
-import static org.neo4j.index.internal.gbptree.GenerationSafePointer.FIRST_UNSTABLE_GENERATION;
 import static org.neo4j.index.internal.gbptree.PointerChecking.checkOutOfBounds;
 
 import java.io.IOException;
@@ -34,24 +32,6 @@ import org.neo4j.io.pagecache.PageCursorUtil;
  * depending on the {@link TreeState#isValid() validity} and {@link TreeState#stableGeneration()} of each.
  */
 final class TreeStatePair {
-
-    // Simulates the tree state before first checkpoint
-    private static final int MISSING_INT = -1;
-    private static final long MISSING_LONG = -1;
-    static final TreeState FIRST_TREE_STATE = new TreeState(
-            MISSING_LONG,
-            FIRST_STABLE_GENERATION,
-            FIRST_UNSTABLE_GENERATION,
-            MISSING_LONG,
-            MISSING_LONG,
-            MISSING_LONG,
-            MISSING_LONG,
-            MISSING_LONG,
-            MISSING_INT,
-            MISSING_INT,
-            false,
-            true);
-
     private TreeStatePair() {}
 
     /**
@@ -66,25 +46,26 @@ final class TreeStatePair {
      * @return {@link Pair} of both tree states.
      * @throws IOException on {@link PageCursor} reading error.
      */
-    static Pair<TreeState, TreeState> readStatePages(PageCursor cursor, long pageIdA, long pageIdB) throws IOException {
-        TreeState stateA = readStatePage(cursor, pageIdA);
-        TreeState stateB = readStatePage(cursor, pageIdB);
+    static Pair<TreeState, TreeState> readStatePages(
+            PageCursor cursor, long pageIdA, long pageIdB, boolean multiversioned) throws IOException {
+        TreeState stateA = readStatePage(cursor, pageIdA, multiversioned);
+        TreeState stateB = readStatePage(cursor, pageIdB, multiversioned);
         return Pair.of(stateA, stateB);
     }
 
-    private static TreeState readStatePage(PageCursor cursor, long pageIdA) throws IOException {
+    private static TreeState readStatePage(PageCursor cursor, long pageIdA, boolean multiversioned) throws IOException {
         PageCursorUtil.goTo(cursor, "state page", pageIdA);
         TreeState state;
         do {
-            state = TreeState.read(cursor);
+            state = TreeState.read(cursor, multiversioned);
         } while (cursor.shouldRetry());
         checkOutOfBounds(cursor);
         return state;
     }
 
-    static TreeState selectNewestValidOrFirst(Pair<TreeState, TreeState> states) {
+    static TreeState selectNewestValidOrFirst(Pair<TreeState, TreeState> states, boolean multiversioned) {
         if (neverCheckpointed(states)) {
-            return FIRST_TREE_STATE;
+            return TreeState.firstState(multiversioned);
         }
         return selectNewestValidState(states);
     }

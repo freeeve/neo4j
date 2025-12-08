@@ -21,6 +21,7 @@ package org.neo4j.index.internal.gbptree;
 
 import java.io.IOException;
 import org.neo4j.io.pagecache.PageCursor;
+import org.neo4j.io.pagecache.context.CursorContext;
 
 /**
  * Provide tree node (page) ids which can be used for storing tree node data.
@@ -30,13 +31,27 @@ public interface IdProvider {
 
     IdProvider NO_OP = new IdProvider() {
         @Override
-        public long acquireNewId(long stableGeneration, long unstableGeneration, CursorCreator cursorCreator)
-                throws IOException {
+        public long acquireNewId(long stableGeneration, CursorCreator cursorCreator, CursorContext cursorContext) {
             throw new IllegalStateException("No-op provider");
         }
 
         @Override
-        public void releaseId(long stableGeneration, long unstableGeneration, long id, CursorCreator cursorCreator)
+        public void releaseId(
+                long stableGeneration,
+                long unstableGeneration,
+                long id,
+                CursorCreator cursorCreator,
+                CursorContext cursorContext) {
+            throw new IllegalStateException("No-op provider");
+        }
+
+        @Override
+        public void releaseIdWithVersion(
+                long stableGeneration,
+                long unstableGeneration,
+                long id,
+                CursorCreator cursorCreator,
+                CursorContext cursorContext)
                 throws IOException {
             throw new IllegalStateException("No-op provider");
         }
@@ -57,16 +72,16 @@ public interface IdProvider {
      * are all guaranteed to be zero at the point of returning from this method.
      *
      * @param stableGeneration current stable generation.
-     * @param unstableGeneration current unstable generation.
-     * @param cursorCreator function to create write page cursor, if this method is called within context of another write cursor, this should create linked cursor
+     * @param cursorCreator    function to create write page cursor, if this method is called within context of another write cursor, this should create linked cursor
      * @return page id guaranteed to current not be used and whose bytes are all zeros.
      * @throws IOException on {@link PageCursor} error.
      */
-    long acquireNewId(long stableGeneration, long unstableGeneration, CursorCreator cursorCreator) throws IOException;
+    long acquireNewId(long stableGeneration, CursorCreator cursorCreator, CursorContext cursorContext)
+            throws IOException;
 
     /**
      * Releases a page id which has previously been used, but isn't anymore, effectively allowing
-     * it to be reused and returned from {@link #acquireNewId(long, long, CursorCreator)}.
+     * it to be reused and returned from {@link #acquireNewId(long, CursorCreator, CursorContext)}.
      *
      * @param stableGeneration current stable generation.
      * @param unstableGeneration current unstable generation.
@@ -74,7 +89,20 @@ public interface IdProvider {
      * @param cursorCreator function to create write page cursor, if this method is called within context of another write cursor, this should create linked cursor
      * @throws IOException on {@link PageCursor} error.
      */
-    void releaseId(long stableGeneration, long unstableGeneration, long id, CursorCreator cursorCreator)
+    void releaseId(
+            long stableGeneration,
+            long unstableGeneration,
+            long id,
+            CursorCreator cursorCreator,
+            CursorContext cursorContext)
+            throws IOException;
+
+    void releaseIdWithVersion(
+            long stableGeneration,
+            long unstableGeneration,
+            long id,
+            CursorCreator cursorCreator,
+            CursorContext cursorContext)
             throws IOException;
 
     /**
@@ -91,7 +119,7 @@ public interface IdProvider {
 
         void endFreelistPage(long pageId);
 
-        void freelistEntry(long pageId, long generation, int pos);
+        void freelistEntry(long pageId, long generation, long releaseVersion, int pos);
 
         void freelistEntryFromReleaseCache(long pageId);
 
@@ -103,7 +131,7 @@ public interface IdProvider {
             public void endFreelistPage(long pageId) {}
 
             @Override
-            public void freelistEntry(long pageId, long generation, int pos) {}
+            public void freelistEntry(long pageId, long generation, long releaseVersion, int pos) {}
 
             @Override
             public void freelistEntryFromReleaseCache(long pageId) {}

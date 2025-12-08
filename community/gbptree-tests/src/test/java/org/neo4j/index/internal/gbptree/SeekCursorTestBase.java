@@ -97,7 +97,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
                 id, leaf, internal, layout, NO_MONITOR, TreeWriterCoordination.NO_COORDINATION, DATA_LAYER_FLAG);
         structurePropagation = new StructurePropagation<>(layout.newKey(), layout.newKey(), layout.newKey());
 
-        long firstPage = id.acquireNewId(stableGeneration, unstableGeneration, CursorCreator.bind(cursor));
+        long firstPage = id.acquireNewId(stableGeneration, CursorCreator.bind(cursor), NULL_CONTEXT);
         goTo(cursor, firstPage);
         goTo(utilCursor, firstPage);
 
@@ -2228,7 +2228,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
 
     private void newRootFromSplit(StructurePropagation<KEY> split) throws IOException {
         assertTrue(split.hasRightKeyInsert);
-        long rootId = id.acquireNewId(stableGeneration, unstableGeneration, CursorCreator.bind(cursor));
+        long rootId = id.acquireNewId(stableGeneration, CursorCreator.bind(cursor), NULL_CONTEXT);
         cursor.next(rootId);
         internal.initialize(cursor, DATA_LAYER_FLAG, stableGeneration, unstableGeneration);
         internal.setChildAt(cursor, split.midChild, 0, stableGeneration, unstableGeneration);
@@ -2474,7 +2474,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         long currentPageId = cursor.getCurrentPageId();
         cursor.next(rootId);
         new GBPTreeStructure<>(null, null, null, layout, leaf, internal, stableGeneration, unstableGeneration)
-                .visitTree(cursor, new PrintingGBPTreeVisitor<>(PrintConfig.defaults()), NULL_CONTEXT);
+                .visitTree(cursor, new PrintingGBPTreeVisitor<>(PrintConfig.defaults()), NULL_CONTEXT, false);
         cursor.next(currentPageId);
     }
 

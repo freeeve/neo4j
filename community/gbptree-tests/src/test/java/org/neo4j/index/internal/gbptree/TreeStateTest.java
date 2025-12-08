@@ -27,7 +27,10 @@ import static org.neo4j.index.internal.gbptree.TreeState.read;
 
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.index.internal.gbptree.FreeListIdProvider.FreelistMetaData;
+import org.neo4j.index.internal.gbptree.FreeListIdProvider.FreelistPositions;
 import org.neo4j.io.pagecache.PageCursor;
 
 class TreeStateTest {
@@ -40,68 +43,89 @@ class TreeStateTest {
         cursor.next();
     }
 
-    @Test
-    void readEmptyStateShouldThrow() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void readEmptyStateShouldThrow(boolean multiversioned) throws IOException {
         // GIVEN empty state
 
         // WHEN
-        TreeState state = read(cursor);
+        TreeState state = read(cursor, multiversioned);
 
         // THEN
         assertFalse(state.isValid());
     }
 
-    @Test
-    void shouldReadValidPage() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldReadValidPage(boolean multiversioned) throws IOException {
         // GIVEN valid state
         long pageId = cursor.getCurrentPageId();
-        TreeState expected = new TreeState(pageId, 1, 2, 3, 4, 5, 6, 7, 8, 9, true, true);
+        FreelistMetaData freelistMetaData = freelistMetaData(multiversioned);
+
+        TreeState expected = new TreeState(pageId, 1, 2, 3, 4, freelistMetaData, true, true);
         write(cursor, expected);
         cursor.setOffset(0);
 
         // WHEN
-        TreeState read = read(cursor);
+        TreeState read = read(cursor, multiversioned);
 
         // THEN
         assertEquals(expected, read);
     }
 
-    @Test
-    void readBrokenStateShouldFail() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void readBrokenStateShouldFail(boolean multiversioned) throws IOException {
         // GIVEN broken state
         long pageId = cursor.getCurrentPageId();
-        TreeState expected = new TreeState(pageId, 1, 2, 3, 4, 5, 6, 7, 8, 9, true, true);
+        FreelistMetaData freelistMetaData = freelistMetaData(multiversioned);
+        TreeState expected = new TreeState(pageId, 1, 2, 3, 4, freelistMetaData, true, true);
         write(cursor, expected);
         cursor.setOffset(0);
-        assertTrue(read(cursor).isValid());
+        assertTrue(read(cursor, multiversioned).isValid());
         cursor.setOffset(0);
         breakChecksum(cursor);
 
         // WHEN
-        TreeState state = read(cursor);
+        TreeState state = read(cursor, multiversioned);
 
         // THEN
         assertFalse(state.isValid());
     }
 
-    @Test
-    void shouldNotWriteInvalidStableGeneration() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldNotWriteInvalidStableGeneration(boolean multiversioned) {
         long generation = GenerationSafePointer.MAX_GENERATION + 1;
 
         assertThrows(IllegalArgumentException.class, () -> {
             long pageId = cursor.getCurrentPageId();
-            write(cursor, new TreeState(pageId, generation, 2, 3, 4, 5, 6, 7, 8, 9, true, true));
+            FreelistMetaData freelistMetaData = freelistMetaData(multiversioned);
+            write(cursor, new TreeState(pageId, generation, 2, 3, 4, freelistMetaData, true, true));
         });
     }
 
-    @Test
-    void shouldNotWriteInvalidUnstableGeneration() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldNotWriteInvalidUnstableGeneration(boolean multiversioned) {
         long generation = GenerationSafePointer.MAX_GENERATION + 1;
 
         assertThrows(IllegalArgumentException.class, () -> {
             long pageId = cursor.getCurrentPageId();
-            write(cursor, new TreeState(pageId, 1, generation, 3, 4, 5, 6, 7, 8, 9, true, true));
+            FreelistMetaData freelistMetaData = freelistMetaData(multiversioned);
+            write(cursor, new TreeState(pageId, 1, generation, 3, 4, freelistMetaData, true, true));
         });
+    }
+
+    private FreelistMetaData freelistMetaData(boolean multiversioned) {
+        FreelistMetaData freelistMetaData;
+        if (multiversioned) {
+            freelistMetaData = FreelistMetaData.versioned(
+                    5, new FreelistPositions(6, 7, 8, 9), new FreelistPositions(10, 11, 12, 13));
+        } else {
+            freelistMetaData = FreelistMetaData.nonVersioned(5, new FreelistPositions(6, 7, 8, 9));
+        }
+        return freelistMetaData;
     }
 
     private static void breakChecksum(PageCursor cursor) {
@@ -118,11 +142,7 @@ class TreeStateTest {
                 origin.unstableGeneration(),
                 origin.rootId(),
                 origin.rootGeneration(),
-                origin.lastId(),
-                origin.freeListWritePageId(),
-                origin.freeListReadPageId(),
-                origin.freeListWritePos(),
-                origin.freeListReadPos(),
+                origin.freelistMetaData(),
                 origin.isClean());
     }
 }
