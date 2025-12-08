@@ -172,14 +172,20 @@ public class TxState implements TransactionState {
     }
 
     @Override
-    public void accept(final TxStateVisitor visitor) throws KernelException {
+    public void accept(TxStateVisitor visitor) throws KernelException {
+        accept(visitor, stateMemoryTracker);
+    }
+
+    @Override
+    public void accept(final TxStateVisitor visitor, MemoryTracker memoryTracker) throws KernelException {
         if (nodes != null) {
             nodes.getAdded().each(visitor::visitCreatedNode);
         }
 
         if (relationships != null) {
-            try (HeapTrackingArrayList<NodeRelationshipIds> sortedNodeRelState =
-                    HeapTrackingArrayList.newArrayList(nodeStatesMap.size(), stateMemoryTracker)) {
+            try (MemoryTracker scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
+                    HeapTrackingArrayList<NodeRelationshipIds> sortedNodeRelState =
+                            HeapTrackingArrayList.newArrayList(nodeStatesMap.size(), scopedMemoryTracker)) {
                 for (NodeStateImpl nodeState : nodeStatesMap.values()) {
                     if (nodeState.isDeleted() && nodeState.hasAddedRelationships()) {
                         // The usual case for nodes created in previous tx is handled by
@@ -195,7 +201,7 @@ public class TxState implements TransactionState {
                     if (!(nodeState.isDeleted() && nodeState.isAddedInThisBatch())) {
                         if (nodeState.hasRelationshipChanges()) {
                             sortedNodeRelState.add(StateNodeRelationshipIds.createStateNodeRelationshipIds(
-                                    nodeState, this::relationshipVisitWithProperties, stateMemoryTracker));
+                                    nodeState, this::relationshipVisitWithProperties, scopedMemoryTracker));
                         }
                     }
                 }

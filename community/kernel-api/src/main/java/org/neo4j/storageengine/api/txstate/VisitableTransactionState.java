@@ -20,7 +20,10 @@
 package org.neo4j.storageengine.api.txstate;
 
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.memory.MemoryTracker;
 
 public interface VisitableTransactionState {
     void accept(TxStateVisitor visitor) throws KernelException;
+
+    void accept(TxStateVisitor visitor, MemoryTracker memoryTracker) throws KernelException;
 }
