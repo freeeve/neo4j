@@ -34,7 +34,6 @@ Apache Software License, Version 2.0
   Apache Commons Lang
   Apache Commons Logging
   Apache Commons Text
-  Apache Log4j API
   Apache Log4j Core
   Apache Log4j JSON Template Layout
   Apache Lucene (module: backward-codecs)
@@ -54,7 +53,6 @@ Apache Software License, Version 2.0
   Jettison
   jPowerShell
   jProcesses
-  magnolia
   Netty/Buffer
   Netty/Codec/Base
   Netty/Codec/Compression
@@ -67,21 +65,11 @@ Apache Software License, Version 2.0
   Netty/Transport/Classes/KQueue
   Netty/Transport/Native/Unix/Common
   picocli
-  Scala Reflect
-  scala-collection-contrib
   snappy-java
   Strategic Blue Parquet Floor
   WMI4Java
 
-BSD - Scala License
-  Scala Library
-
 BSD License
-  ANTLR 4 Runtime
-  asm
-  asm-analysis
-  asm-tree
-  asm-util
   Zstandard
 
 BSD License 2-clause
@@ -108,9 +96,6 @@ GNU General Public License, version 2 with the Classpath Exception
 
 MIT License
   SLF4J API Module
-
-Mozilla Public License, Version 2.0
-  kiama
 
 Dependencies with multiple licenses
 -----------------------------------
