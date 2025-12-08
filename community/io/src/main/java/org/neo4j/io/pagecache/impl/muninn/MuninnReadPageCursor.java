@@ -241,6 +241,6 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
 
     @Override
     public boolean includesChangesFromThisTransaction() {
-        return multiVersioned && cursorContext.includeCurrentTransaction();
+        return !multiVersioned || cursorContext.includeCurrentTransaction();
     }
 }
