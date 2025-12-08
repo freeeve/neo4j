@@ -102,6 +102,7 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
         initializeNodeTransactionState(nodeReference, txStateHolder);
         if (!addedInChunk) {
             if (initStoreCursor) {
+                nodeCursor.storeCursor.check();
                 storeCursor.initNodeProperties(nodeCursor.storeCursor, filterSelectionForTxState(selection));
             }
         } else {

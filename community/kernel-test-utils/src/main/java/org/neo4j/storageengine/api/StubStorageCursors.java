@@ -586,6 +586,9 @@ public class StubStorageCursors implements StorageReader {
         }
 
         @Override
+        public void check() {}
+
+        @Override
         public void close() {
             reset();
         }

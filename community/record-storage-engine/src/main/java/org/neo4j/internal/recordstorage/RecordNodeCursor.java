@@ -317,6 +317,9 @@ public class RecordNodeCursor extends NodeRecord implements StorageNodeCursor {
     }
 
     @Override
+    public void check() {}
+
+    @Override
     public Reference propertiesReference() {
         return longReference(getNextProp());
     }

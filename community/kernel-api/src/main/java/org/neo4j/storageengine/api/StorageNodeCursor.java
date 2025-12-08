@@ -102,4 +102,9 @@ public interface StorageNodeCursor extends StorageEntityScanCursor<AllNodeScan> 
      * @return whether or not this node is dense.
      */
     boolean supportsFastDegreeLookup();
+
+    /**
+     * Check that the cursor is properly initialised
+     */
+    void check();
 }
