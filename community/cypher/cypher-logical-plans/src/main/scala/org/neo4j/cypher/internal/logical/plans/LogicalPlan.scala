@@ -2100,6 +2100,8 @@ case class DirectedRelationshipVectorIndexSearch(
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
 
+  override val localAvailableSymbols: Set[LogicalVariable] = argumentIds ++ idName ++ leftNode ++ rightNode ++ score
+
   override def usedVariables: Set[LogicalVariable] =
     vector.dependencies ++ limit.dependencies ++ maybeFilter.map(
       _.expressions.flatMap(_.dependencies)
@@ -2151,6 +2153,8 @@ case class UndirectedRelationshipVectorIndexSearch(
   maybeFilter: Option[QueryExpression[Expression]],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
+
+  override val localAvailableSymbols: Set[LogicalVariable] = argumentIds ++ idName ++ leftNode ++ rightNode ++ score
 
   override def usedVariables: Set[LogicalVariable] =
     vector.dependencies ++ limit.dependencies ++ maybeFilter.map(
