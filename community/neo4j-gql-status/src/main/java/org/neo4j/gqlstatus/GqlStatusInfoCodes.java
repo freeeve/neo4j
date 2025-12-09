@@ -745,7 +745,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "division by zero",
-            ErrorClassification.UNKNOWN),
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22015(
             new GqlStatus("22015"),
             "",
