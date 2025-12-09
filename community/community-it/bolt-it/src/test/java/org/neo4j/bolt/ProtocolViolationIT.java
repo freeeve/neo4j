@@ -88,10 +88,7 @@ public class ProtocolViolationIT {
                                 "22G03",
                                 GqlStatusInfoCodes.STATUS_22G03.getGqlStatus(),
                                 "error: data exception - invalid value type",
-                                // 22G03 has UNKNOWN classification, no parameters and no position, so no diagnostic
-                                // record is sent over Bolt.
-                                // Instead a default diagnostic record is created on driver side.
-                                null,
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
                                 BoltConnectionAssertions.assertErrorCause(
                                         "22N01: Expected the value 192 to be of type STRING, but was of type NONE.",
                                         GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
@@ -118,10 +115,7 @@ public class ProtocolViolationIT {
                                 "22G03",
                                 GqlStatusInfoCodes.STATUS_22G03.getGqlStatus(),
                                 "error: data exception - invalid value type",
-                                // 22G03 has UNKNOWN classification, no parameters and no position, so no diagnostic
-                                // record is sent over Bolt.
-                                // Instead a default diagnostic record is created on driver side.
-                                null,
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
                                 BoltConnectionAssertions.assertErrorCause(
                                         "22N01: Expected the value 192 to be of type STRING, but was of type NONE.",
                                         GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),

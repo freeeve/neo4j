@@ -809,7 +809,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "invalid value type",
-            ErrorClassification.UNKNOWN),
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22G04(
             new GqlStatus("22G04"),
             "",
@@ -817,7 +817,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "values not comparable",
-            ErrorClassification.UNKNOWN),
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22G05(
             new GqlStatus("22G05"),
             "",
