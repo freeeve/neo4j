@@ -42,8 +42,8 @@ import org.neo4j.io.memory.UnsafeDirectByteBufferAllocator;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexUpdater;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.Race;
 import org.neo4j.values.storable.Value;
 
@@ -61,7 +61,7 @@ abstract class GenericBlockBasedIndexPopulatorTest<KEY extends GenericKey<KEY>>
             int size = populator.tree.keyValueSizeCap();
             Layout<KEY, NullValue> layout = layout();
             Value value = generateStringValueResultingInIndexEntrySize(layout, size);
-            IndexEntryUpdate update = ValueIndexEntryUpdate.add(0, INDEX_DESCRIPTOR, value);
+            IndexEntryUpdate update = EagerValueIndexEntryUpdate.add(0, INDEX_DESCRIPTOR, value);
             Race.ThrowingRunnable updateAction = () -> {
                 try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
                     updater.process(update);
@@ -99,7 +99,7 @@ abstract class GenericBlockBasedIndexPopulatorTest<KEY extends GenericKey<KEY>>
                 Layout<KEY, NullValue> layout = layout();
                 Value value = generateStringValueResultingInIndexEntrySize(layout, size);
                 Collection<? extends IndexEntryUpdate> data =
-                        singletonList(ValueIndexEntryUpdate.add(0, INDEX_DESCRIPTOR, value));
+                        singletonList(EagerValueIndexEntryUpdate.add(0, INDEX_DESCRIPTOR, value));
                 populator.add(data, NULL_CONTEXT);
                 populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
 

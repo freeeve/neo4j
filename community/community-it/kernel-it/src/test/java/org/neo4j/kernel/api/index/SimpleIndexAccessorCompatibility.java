@@ -67,7 +67,7 @@ import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
@@ -161,7 +161,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
     @Test
     void shouldUpdateWithAllValues() throws Exception {
         // GIVEN
-        List<ValueIndexEntryUpdate> updates = updates(valueSet1);
+        List<EagerValueIndexEntryUpdate> updates = updates(valueSet1);
         updateAndCommit(updates);
 
         // then
@@ -175,7 +175,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
     @Test
     void shouldScanAllValues() throws Exception {
         // GIVEN
-        List<ValueIndexEntryUpdate> updates = updates(valueSet1);
+        List<EagerValueIndexEntryUpdate> updates = updates(valueSet1);
         updateAndCommit(updates);
         Long[] allNodes = valueSet1.stream().map(x -> x.nodeId).toArray(Long[]::new);
 
@@ -187,7 +187,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
     @Test
     void shouldScanAllValuesThatExistWithPropKey() throws Exception {
         // GIVEN
-        List<ValueIndexEntryUpdate> updates = updates(valueSet1);
+        List<EagerValueIndexEntryUpdate> updates = updates(valueSet1);
         updateAndCommit(updates);
         Long[] allNodes = valueSet1.stream().map(x -> x.nodeId).toArray(Long[]::new);
 
@@ -320,7 +320,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
     private void testIndexRangeSeek(Supplier<? extends Value> generator) throws Exception {
         int count = random.nextInt(5, 10);
         List<Value> values = new ArrayList<>();
-        List<ValueIndexEntryUpdate> updates = new ArrayList<>();
+        List<EagerValueIndexEntryUpdate> updates = new ArrayList<>();
         Set<Value> duplicateCheck = new HashSet<>();
         for (int i = 0; i < count; i++) {
             Value value;
@@ -875,7 +875,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
             assumeTrue(descriptor.getCapability().supportsOrdering(), "Assume support for order " + order);
         }
 
-        List<ValueIndexEntryUpdate> additions =
+        List<EagerValueIndexEntryUpdate> additions =
                 Arrays.stream(objects).map(o -> add(1, descriptor, o)).collect(Collectors.toList());
         Collections.shuffle(additions, random.random());
         updateAndCommit(additions);
@@ -899,7 +899,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
                             .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
                             .build());
             Value value = rv.nextValueOfType(valueType);
-            updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
+            updateAndCommit(singletonList(EagerValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(PropertyIndexQuery.exact(0, value)));
 
             // when
@@ -907,7 +907,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
             do {
                 newValue = rv.nextValueOfType(valueType);
             } while (value.equals(newValue));
-            updateAndCommit(singletonList(ValueIndexEntryUpdate.change(entityId, descriptor, value, newValue)));
+            updateAndCommit(singletonList(EagerValueIndexEntryUpdate.change(entityId, descriptor, value, newValue)));
 
             // then
             assertEquals(emptyList(), query(PropertyIndexQuery.exact(0, value)));
@@ -927,11 +927,11 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
                             .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
                             .build());
             Value value = rv.nextValueOfType(valueType);
-            updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
+            updateAndCommit(singletonList(EagerValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(PropertyIndexQuery.exact(0, value)));
 
             // when
-            updateAndCommit(singletonList(ValueIndexEntryUpdate.remove(entityId, descriptor, value)));
+            updateAndCommit(singletonList(EagerValueIndexEntryUpdate.remove(entityId, descriptor, value)));
 
             // then
             assertTrue(query(PropertyIndexQuery.exact(0, value)).isEmpty());
@@ -1109,7 +1109,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
         }
 
         private void doTestShouldHandleLargeAmountOfDuplicates(Object value) throws Exception {
-            List<ValueIndexEntryUpdate> updates = new ArrayList<>();
+            List<EagerValueIndexEntryUpdate> updates = new ArrayList<>();
             List<Long> nodeIds = new ArrayList<>();
             for (long i = 0; i < 1000; i++) {
                 nodeIds.add(i);

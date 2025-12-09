@@ -76,7 +76,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.test.InMemoryTokens;
 import org.neo4j.values.storable.ArrayValue;
@@ -616,10 +616,10 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
         // given
         ValueType[] types = randomSetOfSupportedTypes();
         RandomValues randomValues = randomValues(2);
-        List<ValueIndexEntryUpdate> updates = new ArrayList<>();
+        List<EagerValueIndexEntryUpdate> updates = new ArrayList<>();
         Set<ValueTuple> duplicateChecker = new HashSet<>();
         for (long id = 0; id < 10_000; id++) {
-            ValueIndexEntryUpdate update;
+            EagerValueIndexEntryUpdate update;
             do {
                 update =
                         add(id, descriptor, randomValues.nextValueOfTypes(types), randomValues.nextValueOfTypes(types));
@@ -630,7 +630,7 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
 
         // when
         InMemoryTokens tokenNameLookup = new InMemoryTokens();
-        for (ValueIndexEntryUpdate update : updates) {
+        for (EagerValueIndexEntryUpdate update : updates) {
             // then
             List<Long> hits = query(exact(0, update.values()[0]), exact(1, update.values()[1]));
             assertEquals(1, hits.size(), update.describe(tokenNameLookup) + " " + hits);
@@ -1187,7 +1187,7 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
             // given
             Value[] value =
                     new Value[] {randomValues.nextValueOfType(valueType), randomValues.nextValueOfType(valueType)};
-            updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
+            updateAndCommit(singletonList(EagerValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(exactQuery(value)));
 
             // when
@@ -1196,7 +1196,7 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
                 newValue =
                         new Value[] {randomValues.nextValueOfType(valueType), randomValues.nextValueOfType(valueType)};
             } while (ValueTuple.of(value).equals(ValueTuple.of(newValue)));
-            updateAndCommit(singletonList(ValueIndexEntryUpdate.change(entityId, descriptor, value, newValue)));
+            updateAndCommit(singletonList(EagerValueIndexEntryUpdate.change(entityId, descriptor, value, newValue)));
 
             // then
             assertEquals(emptyList(), query(exactQuery(value)));
@@ -1213,11 +1213,11 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
             // given
             Value[] value =
                     new Value[] {randomValues.nextValueOfType(valueType), randomValues.nextValueOfType(valueType)};
-            updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
+            updateAndCommit(singletonList(EagerValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(exactQuery(value)));
 
             // when
-            updateAndCommit(singletonList(ValueIndexEntryUpdate.remove(entityId, descriptor, value)));
+            updateAndCommit(singletonList(EagerValueIndexEntryUpdate.remove(entityId, descriptor, value)));
 
             // then
             assertEquals(emptyList(), query(exactQuery(value)));
@@ -1327,12 +1327,13 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
         return Values.dateArray(localDates);
     }
 
-    private static ValueIndexEntryUpdate add(
+    private static EagerValueIndexEntryUpdate add(
             long nodeId, IndexDescriptor indexDescriptor, Object value1, Object value2) {
         return add(nodeId, indexDescriptor, Values.of(value1), Values.of(value2));
     }
 
-    private static ValueIndexEntryUpdate add(long nodeId, IndexDescriptor indexDescriptor, Value value1, Value value2) {
-        return ValueIndexEntryUpdate.add(nodeId, indexDescriptor, value1, value2);
+    private static EagerValueIndexEntryUpdate add(
+            long nodeId, IndexDescriptor indexDescriptor, Value value1, Value value2) {
+        return EagerValueIndexEntryUpdate.add(nodeId, indexDescriptor, value1, value2);
     }
 }

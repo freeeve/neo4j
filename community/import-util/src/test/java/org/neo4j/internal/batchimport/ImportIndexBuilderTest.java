@@ -54,8 +54,8 @@ import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -179,12 +179,12 @@ class ImportIndexBuilderTest {
     }
 
     private IndexEntryUpdate addition(int roughByteSize) {
-        return ValueIndexEntryUpdate.add(0, indexDescriptor, Values.byteArray(new byte[roughByteSize]));
+        return EagerValueIndexEntryUpdate.add(0, indexDescriptor, Values.byteArray(new byte[roughByteSize]));
     }
 
     private IndexEntryUpdate change(int roughByteSize) {
         var before = new Value[] {Values.byteArray(new byte[roughByteSize / 2])};
         var after = new Value[] {Values.byteArray(new byte[roughByteSize / 2])};
-        return ValueIndexEntryUpdate.change(0, indexDescriptor, before, after);
+        return EagerValueIndexEntryUpdate.change(0, indexDescriptor, before, after);
     }
 }

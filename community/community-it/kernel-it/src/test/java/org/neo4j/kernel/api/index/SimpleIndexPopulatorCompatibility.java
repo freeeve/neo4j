@@ -30,7 +30,7 @@ import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.kernel.api.InternalIndexState.FAILED;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
 import static org.neo4j.values.storable.Values.stringValue;
 
 import java.io.IOException;
@@ -56,7 +56,7 @@ import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.index.schema.NodeValueIterator;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
@@ -261,8 +261,8 @@ abstract class SimpleIndexPopulatorCompatibility extends PropertyIndexProviderCo
             // WHEN
             try (IndexUpdater updater =
                     accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-                List<ValueIndexEntryUpdate> updates = updates(valueSet2);
-                for (ValueIndexEntryUpdate update : updates) {
+                List<EagerValueIndexEntryUpdate> updates = updates(valueSet2);
+                for (EagerValueIndexEntryUpdate update : updates) {
                     updater.process(update);
                 }
             }
@@ -358,7 +358,8 @@ abstract class SimpleIndexPopulatorCompatibility extends PropertyIndexProviderCo
             try (IndexUpdater updater =
                     accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
                 for (NodeAndValue nodeAndValue : toRemove) {
-                    updater.process(ValueIndexEntryUpdate.remove(nodeAndValue.nodeId, descriptor, nodeAndValue.value));
+                    updater.process(
+                            EagerValueIndexEntryUpdate.remove(nodeAndValue.nodeId, descriptor, nodeAndValue.value));
                 }
             }
 

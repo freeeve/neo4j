@@ -27,8 +27,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.remove;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +40,8 @@ import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.api.schema.index.TestIndexDescriptorFactory;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -59,24 +59,24 @@ class DeferredConflictCheckingIndexUpdaterTest {
                 .when(reader)
                 .query(any(), any(), any(), any(), any(), any());
         long nodeId = 0;
-        List<ValueIndexEntryUpdate> updates = new ArrayList<>();
+        List<EagerValueIndexEntryUpdate> updates = new ArrayList<>();
         updates.add(add(nodeId++, descriptor, tuple(10, 11)));
-        updates.add(ValueIndexEntryUpdate.change(nodeId++, descriptor, tuple("abc", "def"), tuple("ghi", "klm")));
+        updates.add(EagerValueIndexEntryUpdate.change(nodeId++, descriptor, tuple("abc", "def"), tuple("ghi", "klm")));
         updates.add(remove(nodeId++, descriptor, tuple(1001L, 1002L)));
-        updates.add(ValueIndexEntryUpdate.change(
+        updates.add(EagerValueIndexEntryUpdate.change(
                 nodeId++, descriptor, tuple((byte) 2, (byte) 3), tuple((byte) 4, (byte) 5)));
         updates.add(add(nodeId, descriptor, tuple(5, "5")));
         try (DeferredConflictCheckingIndexUpdater updater = new DeferredConflictCheckingIndexUpdater(
                 actual, () -> reader, descriptor, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP)) {
             // when
-            for (ValueIndexEntryUpdate update : updates) {
+            for (EagerValueIndexEntryUpdate update : updates) {
                 updater.process(update);
                 verify(actual).process(update);
             }
         }
 
         // then
-        for (ValueIndexEntryUpdate update : updates) {
+        for (EagerValueIndexEntryUpdate update : updates) {
             if (update.updateMode() == UpdateMode.ADDED || update.updateMode() == UpdateMode.CHANGED) {
                 Value[] tuple = update.values();
                 PropertyIndexQuery[] query = new PropertyIndexQuery[tuple.length];

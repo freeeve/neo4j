@@ -20,6 +20,7 @@
 package org.neo4j.storageengine.api;
 
 import java.io.IOException;
+import java.util.Iterator;
 import org.neo4j.common.Subject;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -58,7 +59,7 @@ public interface IndexUpdateListener {
      * @param cursorContext underlying page cursor context
      * @param parallel whether the updates can be applied with a parallel writer
      */
-    void applyUpdates(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel)
+    void applyUpdates(Iterator<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel)
             throws IOException, KernelException;
 
     class Adapter implements IndexUpdateListener {
@@ -72,7 +73,7 @@ public interface IndexUpdateListener {
         public void dropIndex(IndexDescriptor index) {}
 
         @Override
-        public void applyUpdates(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel)
+        public void applyUpdates(Iterator<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel)
                 throws IOException, KernelException {}
     }
 }

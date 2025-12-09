@@ -34,7 +34,7 @@ import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_C
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
 import static org.neo4j.kernel.api.schema.SchemaTestUtil.SIMPLE_NAME_LOOKUP;
 import static org.neo4j.kernel.impl.api.index.PhaseTracker.nullInstance;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -62,7 +62,7 @@ import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobHandle;
 import org.neo4j.scheduler.JobMonitoringParams;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
@@ -162,8 +162,9 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
         try {
             // when
             Value duplicate = supportedValue(1);
-            ValueIndexEntryUpdate firstScanUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate secondScanUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
+            EagerValueIndexEntryUpdate firstScanUpdate = EagerValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
+            EagerValueIndexEntryUpdate secondScanUpdate =
+                    EagerValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
             assertThrows(IndexEntryConflictException.class, () -> {
                 populator.add(singleton(firstScanUpdate), CursorContext.NULL_CONTEXT);
                 populator.add(singleton(secondScanUpdate), CursorContext.NULL_CONTEXT);
@@ -181,8 +182,10 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
         try {
             // when
             Value duplicate = supportedValue(1);
-            ValueIndexEntryUpdate firstExternalUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate secondExternalUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
+            EagerValueIndexEntryUpdate firstExternalUpdate =
+                    EagerValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
+            EagerValueIndexEntryUpdate secondExternalUpdate =
+                    EagerValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
             assertThrows(IndexEntryConflictException.class, () -> {
                 try (IndexUpdater updater = populator.newPopulatingUpdater(CursorContext.NULL_CONTEXT)) {
                     updater.process(firstExternalUpdate);
@@ -202,8 +205,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
         try {
             // when
             Value duplicate = supportedValue(1);
-            ValueIndexEntryUpdate externalUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate scanUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
+            EagerValueIndexEntryUpdate externalUpdate = EagerValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
+            EagerValueIndexEntryUpdate scanUpdate = EagerValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
             assertThrows(IndexEntryConflictException.class, () -> {
                 try (IndexUpdater updater = populator.newPopulatingUpdater(CursorContext.NULL_CONTEXT)) {
                     updater.process(externalUpdate);
@@ -225,9 +228,11 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
             // when
             Value duplicate = supportedValue(1);
             Value unique = supportedValue(2);
-            ValueIndexEntryUpdate firstScanUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate secondScanUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate externalUpdate = ValueIndexEntryUpdate.change(1, INDEX_DESCRIPTOR, duplicate, unique);
+            EagerValueIndexEntryUpdate firstScanUpdate = EagerValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
+            EagerValueIndexEntryUpdate secondScanUpdate =
+                    EagerValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
+            EagerValueIndexEntryUpdate externalUpdate =
+                    EagerValueIndexEntryUpdate.change(1, INDEX_DESCRIPTOR, duplicate, unique);
             populator.add(singleton(firstScanUpdate), CursorContext.NULL_CONTEXT);
             try (IndexUpdater updater = populator.newPopulatingUpdater(CursorContext.NULL_CONTEXT)) {
                 updater.process(externalUpdate);

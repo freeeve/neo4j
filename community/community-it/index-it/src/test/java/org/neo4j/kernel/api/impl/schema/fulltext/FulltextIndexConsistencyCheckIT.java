@@ -69,9 +69,9 @@ import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageFileSelection;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -686,7 +686,7 @@ class FulltextIndexConsistencyCheckIT {
         IndexingService indexes = getIndexingService(db);
         IndexProxy indexProxy = indexes.getIndexProxy(indexDescriptor);
         try (IndexUpdater updater = indexProxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-            updater.process(ValueIndexEntryUpdate.remove(nodeId, indexDescriptor, Values.stringValue("value")));
+            updater.process(EagerValueIndexEntryUpdate.remove(nodeId, indexDescriptor, Values.stringValue("value")));
         }
 
         managementService.shutdown();
@@ -718,7 +718,7 @@ class FulltextIndexConsistencyCheckIT {
         IndexProxy indexProxy = indexes.getIndexProxy(indexDescriptor);
         try (IndexUpdater updater = indexProxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
             updater.process(
-                    ValueIndexEntryUpdate.remove(nodeId, indexDescriptor, Values.stringArray("value1", "value2")));
+                    EagerValueIndexEntryUpdate.remove(nodeId, indexDescriptor, Values.stringArray("value1", "value2")));
         }
 
         managementService.shutdown();
@@ -796,7 +796,7 @@ class FulltextIndexConsistencyCheckIT {
         IndexingService indexes = getIndexingService(db);
         IndexProxy indexProxy = indexes.getIndexProxy(indexDescriptor);
         try (IndexUpdater updater = indexProxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-            updater.process(ValueIndexEntryUpdate.remove(relId, indexDescriptor, Values.stringValue("value")));
+            updater.process(EagerValueIndexEntryUpdate.remove(relId, indexDescriptor, Values.stringValue("value")));
         }
 
         managementService.shutdown();
@@ -829,7 +829,7 @@ class FulltextIndexConsistencyCheckIT {
         IndexProxy indexProxy = indexes.getIndexProxy(indexDescriptor);
         try (IndexUpdater updater = indexProxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
             updater.process(
-                    ValueIndexEntryUpdate.remove(relId, indexDescriptor, Values.stringArray("value1", "value2")));
+                    EagerValueIndexEntryUpdate.remove(relId, indexDescriptor, Values.stringArray("value1", "value2")));
         }
 
         managementService.shutdown();

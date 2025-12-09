@@ -89,8 +89,8 @@ import org.neo4j.kernel.recovery.Recovery;
 import org.neo4j.kernel.recovery.RecoveryMode;
 import org.neo4j.kernel.recovery.RecoveryMonitor;
 import org.neo4j.monitoring.Monitors;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
@@ -560,7 +560,7 @@ class IndexRecoveryIT {
             for (int number : new int[] {4, 10}) {
                 Node node = tx.createNode(label);
                 node.setProperty(key, number);
-                updates.add(ValueIndexEntryUpdate.add(node.getId(), index, Values.of(number)));
+                updates.add(EagerValueIndexEntryUpdate.add(node.getId(), index, Values.of(number)));
             }
             tx.commit();
             return updates;

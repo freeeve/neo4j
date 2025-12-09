@@ -45,7 +45,7 @@ import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.logging.NullLogProvider;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
@@ -90,11 +90,11 @@ class RangeIndexProviderTest extends IndexProviderTests {
                         Sets.immutable.empty(),
                         StorageEngineIndexingBehaviour.EMPTY);
                 IndexUpdater indexUpdater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-            indexUpdater.process(ValueIndexEntryUpdate.add(1, descriptor, someValue));
+            indexUpdater.process(EagerValueIndexEntryUpdate.add(1, descriptor, someValue));
 
             // then
             // ... expect no failure on duplicate value
-            indexUpdater.process(ValueIndexEntryUpdate.add(2, descriptor, someValue));
+            indexUpdater.process(EagerValueIndexEntryUpdate.add(2, descriptor, someValue));
         }
     }
 

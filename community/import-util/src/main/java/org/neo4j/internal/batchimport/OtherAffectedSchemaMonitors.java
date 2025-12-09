@@ -48,6 +48,7 @@ import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -272,7 +273,7 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
         }
 
         @Override
-        public boolean checkUniqueness(ValueIndexEntryUpdate[] checks) {
+        public boolean checkUniqueness(EagerValueIndexEntryUpdate[] checks) {
             return indexBuilder.checkUniqueness(checks);
         }
 
@@ -317,7 +318,7 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             var indexes = schemaCache.getValueIndexesRelatedTo(
                     allEntityTokens.toSortedArray(), EMPTY_INT_ARRAY, propertyKeyTokens, true, entityType);
             if (!indexes.isEmpty()) {
-                List<ValueIndexEntryUpdate> appliedAdditions = new ArrayList<>();
+                List<EagerValueIndexEntryUpdate> appliedAdditions = new ArrayList<>();
                 boolean failed = false;
                 for (var index : indexes) {
                     if (index.isUnique()) {
@@ -347,18 +348,19 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             return true;
         }
 
-        private ValueIndexEntryUpdate asRemoval(IndexEntryUpdate update) {
+        private EagerValueIndexEntryUpdate asRemoval(IndexEntryUpdate update) {
             var valueUpdate = (ValueIndexEntryUpdate) update;
-            return ValueIndexEntryUpdate.remove(update.getEntityId(), update.indexKey(), valueUpdate.beforeValues());
+            return EagerValueIndexEntryUpdate.remove(
+                    update.getEntityId(), update.indexKey(), valueUpdate.beforeValues());
         }
 
-        private ValueIndexEntryUpdate constructIndexUpdate(Entity entity, IndexDescriptor index) {
+        private EagerValueIndexEntryUpdate constructIndexUpdate(Entity entity, IndexDescriptor index) {
             var propertyIds = index.schema().getPropertyIds();
             Value[] values = new Value[propertyIds.length];
             for (int i = 0; i < propertyIds.length; i++) {
                 values[i] = entity.propertiesMap().get(propertyIds[i]);
             }
-            return ValueIndexEntryUpdate.add(indexedEntityIdConverter.applyAsLong(entity.entityId), index, values);
+            return EagerValueIndexEntryUpdate.add(indexedEntityIdConverter.applyAsLong(entity.entityId), index, values);
         }
 
         private boolean checkPropertyExistenceConstraintsOnCreate(Entity entity, ViolationVisitor violationVisitor) {

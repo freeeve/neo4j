@@ -63,8 +63,8 @@ import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.logging.NullLogProvider;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -270,7 +270,7 @@ class TextIndexIT {
     }
 
     private IndexEntryUpdate add(long nodeId, Object value) {
-        return ValueIndexEntryUpdate.add(nodeId, descriptor, Values.of(value));
+        return EagerValueIndexEntryUpdate.add(nodeId, descriptor, Values.of(value));
     }
 
     private static Map<String, Integer> countTemplateMatches(List<String> nameTemplates, List<String> fileNames) {

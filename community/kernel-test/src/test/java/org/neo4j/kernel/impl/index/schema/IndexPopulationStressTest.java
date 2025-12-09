@@ -34,8 +34,8 @@ import static org.neo4j.kernel.api.schema.SchemaTestUtil.SIMPLE_NAME_LOOKUP;
 import static org.neo4j.kernel.impl.api.index.PhaseTracker.nullInstance;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.remove;
 import static org.neo4j.test.Race.throwing;
 
 import java.io.IOException;
@@ -84,7 +84,7 @@ import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobHandle;
 import org.neo4j.scheduler.JobMonitoringParams;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityClient;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
@@ -190,7 +190,7 @@ abstract class IndexPopulationStressTest {
     @Test
     void stressIt() throws Throwable {
         Race race = new Race();
-        AtomicReferenceArray<List<ValueIndexEntryUpdate>> lastBatches = new AtomicReferenceArray<>(THREADS);
+        AtomicReferenceArray<List<EagerValueIndexEntryUpdate>> lastBatches = new AtomicReferenceArray<>(THREADS);
         Generator[] generators = new Generator[THREADS];
 
         populator.create();
@@ -199,7 +199,7 @@ abstract class IndexPopulationStressTest {
         for (int i = 0; i < THREADS; i++) {
             race.addContestant(inserter(lastBatches, generators, insertersDone, updateLock, i), 1);
         }
-        Collection<ValueIndexEntryUpdate> updates = new ArrayList<>();
+        Collection<EagerValueIndexEntryUpdate> updates = new ArrayList<>();
         race.addContestant(updater(lastBatches, insertersDone, updateLock, updates));
 
         race.go();
@@ -253,10 +253,10 @@ abstract class IndexPopulationStressTest {
     }
 
     private Runnable updater(
-            AtomicReferenceArray<List<ValueIndexEntryUpdate>> lastBatches,
+            AtomicReferenceArray<List<EagerValueIndexEntryUpdate>> lastBatches,
             CountDownLatch insertersDone,
             ReadWriteLock updateLock,
-            Collection<ValueIndexEntryUpdate> updates) {
+            Collection<EagerValueIndexEntryUpdate> updates) {
         return throwing(() -> {
             // Entity ids that have been removed, so that additions can reuse them
             List<Long> removed = new ArrayList<>();
@@ -271,9 +271,9 @@ abstract class IndexPopulationStressTest {
                 updateLock.writeLock().lock();
                 try (IndexUpdater updater = populator.newPopulatingUpdater(CursorContext.NULL_CONTEXT)) {
                     for (int i = 0; i < THREADS; i++) {
-                        List<ValueIndexEntryUpdate> batch = lastBatches.get(i);
+                        List<EagerValueIndexEntryUpdate> batch = lastBatches.get(i);
                         if (batch != null) {
-                            ValueIndexEntryUpdate update = null;
+                            EagerValueIndexEntryUpdate update = null;
                             switch (randomValues.nextInt(3)) {
                                 case 0: // add
                                     if (!removed.isEmpty()) {
@@ -282,13 +282,13 @@ abstract class IndexPopulationStressTest {
                                     }
                                     break;
                                 case 1: // remove
-                                    ValueIndexEntryUpdate removal = batch.get(randomValues.nextInt(batch.size()));
+                                    EagerValueIndexEntryUpdate removal = batch.get(randomValues.nextInt(batch.size()));
                                     update = remove(removal.getEntityId(), descriptor, removal.values());
                                     removed.add(removal.getEntityId());
                                     break;
                                 case 2: // change
                                     removal = batch.get(randomValues.nextInt(batch.size()));
-                                    ValueIndexEntryUpdate.change(
+                                    EagerValueIndexEntryUpdate.change(
                                             removal.getEntityId(),
                                             descriptor,
                                             removal.values(),
@@ -311,7 +311,7 @@ abstract class IndexPopulationStressTest {
     }
 
     private Runnable inserter(
-            AtomicReferenceArray<List<ValueIndexEntryUpdate>> lastBatches,
+            AtomicReferenceArray<List<EagerValueIndexEntryUpdate>> lastBatches,
             Generator[] generators,
             CountDownLatch insertersDone,
             ReadWriteLock updateLock,
@@ -322,7 +322,7 @@ abstract class IndexPopulationStressTest {
                 Generator generator = generators[slot] =
                         new Generator(MAX_BATCH_SIZE, random.seed() + slot, slot * worstCaseEntriesPerThread);
                 for (int j = 0; j < BATCHES_PER_THREAD; j++) {
-                    List<ValueIndexEntryUpdate> batch = generator.batch(descriptor);
+                    List<EagerValueIndexEntryUpdate> batch = generator.batch(descriptor);
                     updateLock.readLock().lock();
                     try {
                         populator.add(batch, CursorContext.NULL_CONTEXT);
@@ -339,7 +339,7 @@ abstract class IndexPopulationStressTest {
     }
 
     private void buildReferencePopulatorSingleThreaded(
-            Generator[] generators, Collection<ValueIndexEntryUpdate> updates)
+            Generator[] generators, Collection<EagerValueIndexEntryUpdate> updates)
             throws IndexEntryConflictException, IOException {
         IndexPopulator referencePopulator = indexProvider.getPopulator(
                 descriptor2,
@@ -360,7 +360,7 @@ abstract class IndexPopulationStressTest {
                 }
             }
             try (IndexUpdater updater = referencePopulator.newPopulatingUpdater(CursorContext.NULL_CONTEXT)) {
-                for (ValueIndexEntryUpdate update : updates) {
+                for (EagerValueIndexEntryUpdate update : updates) {
                     updater.process(update);
                 }
             }
@@ -396,9 +396,9 @@ abstract class IndexPopulationStressTest {
             nextEntityId = startEntityId;
         }
 
-        List<ValueIndexEntryUpdate> batch(IndexDescriptor descriptor) {
+        List<EagerValueIndexEntryUpdate> batch(IndexDescriptor descriptor) {
             int n = randomValues.nextInt(maxBatchSize) + 1;
-            List<ValueIndexEntryUpdate> updates = new ArrayList<>(n);
+            List<EagerValueIndexEntryUpdate> updates = new ArrayList<>(n);
             for (int i = 0; i < n; i++) {
                 updates.add(add(nextEntityId++, descriptor, valueGenerator.apply(randomValues)));
             }

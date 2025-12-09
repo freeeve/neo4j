@@ -19,15 +19,15 @@
  */
 package org.neo4j.internal.indexcommand;
 
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 
 public interface IndexUpdatesState extends AutoCloseable {
     void addTokenUpdate(TokenIndexEntryUpdate tokenIndexUpdate);
 
-    void putValueUpdate(IndexEntityPair key, ValueIndexEntryUpdate update);
+    void putValueUpdate(IndexEntityPair key, EagerValueIndexEntryUpdate update);
 
-    ValueIndexEntryUpdate getValueUpdate(IndexEntityPair key);
+    EagerValueIndexEntryUpdate getValueUpdate(IndexEntityPair key);
 
     record IndexEntityPair(long indexId, long entityId) {}
 }

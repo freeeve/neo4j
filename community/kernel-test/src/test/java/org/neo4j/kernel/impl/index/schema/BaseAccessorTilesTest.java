@@ -49,8 +49,8 @@ import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexReader;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -202,7 +202,7 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
             PointValue point =
                     Values.pointValue(WGS_84, searchStart[0] + distanceMultiplier * xTileWidth, searchStart[1]);
 
-            updates.add(ValueIndexEntryUpdate.add(0, descriptor, point));
+            updates.add(EagerValueIndexEntryUpdate.add(0, descriptor, point));
 
             if (distanceMultiplier <= 1) {
                 pointsInside.add(point);
@@ -232,7 +232,7 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
             List<Value> pointValues, List<IndexEntryUpdate> updates, long nodeId, PointValue... values) {
         for (PointValue value : values) {
             pointValues.add(value);
-            updates.add(ValueIndexEntryUpdate.add(nodeId++, descriptor, value));
+            updates.add(EagerValueIndexEntryUpdate.add(nodeId++, descriptor, value));
         }
         return nodeId;
     }

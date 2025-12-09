@@ -34,7 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.neo4j.internal.schema.IndexPrototype;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
@@ -307,14 +307,14 @@ abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProvider
                             Values.pointValue(CoordinateReferenceSystem.WGS_84, 9.21, 9.65)));
         }
 
-        List<ValueIndexEntryUpdate> updates(List<NodeAndValue> values) {
+        List<EagerValueIndexEntryUpdate> updates(List<NodeAndValue> values) {
             return updates(values, 0);
         }
 
-        List<ValueIndexEntryUpdate> updates(List<NodeAndValue> values, long nodeIdOffset) {
-            List<ValueIndexEntryUpdate> updates = new ArrayList<>();
+        List<EagerValueIndexEntryUpdate> updates(List<NodeAndValue> values, long nodeIdOffset) {
+            List<EagerValueIndexEntryUpdate> updates = new ArrayList<>();
             values.forEach(entry ->
-                    updates.add(ValueIndexEntryUpdate.add(nodeIdOffset + entry.nodeId, descriptor, entry.value)));
+                    updates.add(EagerValueIndexEntryUpdate.add(nodeIdOffset + entry.nodeId, descriptor, entry.value)));
             return updates;
         }
 

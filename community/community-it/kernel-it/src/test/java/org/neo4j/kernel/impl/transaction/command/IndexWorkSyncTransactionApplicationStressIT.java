@@ -32,6 +32,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_I
 import static org.neo4j.storageengine.api.txstate.TxStateVisitor.NO_DECORATION;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -300,14 +301,14 @@ class IndexWorkSyncTransactionApplicationStressIT {
         private final ConcurrentMap<Value, Set<Long>> index = new ConcurrentHashMap<>();
 
         @Override
-        public void applyUpdates(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
-            updates.forEach(rawUpdate -> {
-                // Only additions assumed
+        public void applyUpdates(Iterator<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
+            while (updates.hasNext()) {
+                var rawUpdate = updates.next();
                 assert rawUpdate.updateMode() == UpdateMode.ADDED;
-                ValueIndexEntryUpdate update = (ValueIndexEntryUpdate) rawUpdate;
+                var update = (ValueIndexEntryUpdate) rawUpdate;
                 index.computeIfAbsent(update.values()[0], value -> ConcurrentHashMap.newKeySet())
                         .add(update.getEntityId());
-            });
+            }
         }
 
         void assertHasIndexEntry(Value value, long entityId) {

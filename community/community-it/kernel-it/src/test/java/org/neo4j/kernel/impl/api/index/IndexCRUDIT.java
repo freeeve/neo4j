@@ -68,6 +68,7 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.impl.index.schema.CollectingIndexUpdater;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
@@ -111,7 +112,7 @@ class IndexCRUDIT {
             IndexDescriptor indexDescriptor =
                     ktx.schemaRead().indexesGetForLabel(label).next();
             assertThat(writer.updatesCommitted)
-                    .isEqualTo(asSet(ValueIndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value1))));
+                    .isEqualTo(asSet(EagerValueIndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value1))));
             tx.commit();
         }
         // We get two updates because we both add a label and a property to be indexed
@@ -150,7 +151,7 @@ class IndexCRUDIT {
             IndexDescriptor indexDescriptor =
                     ktx.schemaRead().indexesGetForLabel(label).next();
             assertThat(writer.updatesCommitted)
-                    .isEqualTo(asSet(ValueIndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value))));
+                    .isEqualTo(asSet(EagerValueIndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value))));
             tx.commit();
         }
     }

@@ -22,9 +22,9 @@ package org.neo4j.internal.indexcommand;
 import java.util.Optional;
 import java.util.function.LongFunction;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 
 public class IndexCommandConversion {
 
@@ -54,14 +54,15 @@ public class IndexCommandConversion {
     private static IndexEntryUpdate convertValueCommand(
             ValueIndexUpdateCommand valueCommand, IndexDescriptor index, IndexCommandSelector commandSelector) {
         return switch (commandSelector.mode(valueCommand)) {
-            case ADDED -> ValueIndexEntryUpdate.add(valueCommand.getEntityId(), index, valueCommand.getAfter());
+            case ADDED -> EagerValueIndexEntryUpdate.add(valueCommand.getEntityId(), index, valueCommand.getAfter());
             case CHANGED ->
-                ValueIndexEntryUpdate.change(
+                EagerValueIndexEntryUpdate.change(
                         valueCommand.getEntityId(),
                         index,
                         commandSelector.getBefore(valueCommand),
                         commandSelector.getAfter(valueCommand));
-            case REMOVED -> ValueIndexEntryUpdate.remove(valueCommand.getEntityId(), index, valueCommand.getAfter());
+            case REMOVED ->
+                EagerValueIndexEntryUpdate.remove(valueCommand.getEntityId(), index, valueCommand.getAfter());
         };
     }
 }

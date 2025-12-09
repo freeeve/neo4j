@@ -84,9 +84,9 @@ import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.Inject;
@@ -225,8 +225,9 @@ class OnlineIndexUpdatesTest {
         onlineIndexUpdates.feed(
                 nodeGroup(nodeCommand, propertyCommand), relationshipGroup(null), CommandSelector.NORMAL);
         assertTrue(onlineIndexUpdates.hasUpdates());
-        Iterator<IndexEntryUpdate> iterator = onlineIndexUpdates.iterator();
-        assertEquals(iterator.next(), ValueIndexEntryUpdate.remove(nodeId, indexDescriptor, propertyValue, null, null));
+        Iterator<IndexEntryUpdate> iterator = onlineIndexUpdates.updates().iterator();
+        assertEquals(
+                iterator.next(), EagerValueIndexEntryUpdate.remove(nodeId, indexDescriptor, propertyValue, null, null));
         assertFalse(iterator.hasNext());
     }
 
@@ -266,8 +267,9 @@ class OnlineIndexUpdatesTest {
         onlineIndexUpdates.feed(
                 nodeGroup(null), relationshipGroup(relationshipCommand, propertyCommand), CommandSelector.NORMAL);
         assertTrue(onlineIndexUpdates.hasUpdates());
-        Iterator<IndexEntryUpdate> iterator = onlineIndexUpdates.iterator();
-        assertEquals(iterator.next(), ValueIndexEntryUpdate.remove(relId, indexDescriptor, propertyValue, null, null));
+        Iterator<IndexEntryUpdate> iterator = onlineIndexUpdates.updates().iterator();
+        assertEquals(
+                iterator.next(), EagerValueIndexEntryUpdate.remove(relId, indexDescriptor, propertyValue, null, null));
         assertFalse(iterator.hasNext());
     }
 
@@ -333,11 +335,11 @@ class OnlineIndexUpdatesTest {
                 relationshipGroup(relationshipCommand, relationshipPropertyCommand),
                 CommandSelector.NORMAL);
         assertTrue(onlineIndexUpdates.hasUpdates());
-        assertThat(onlineIndexUpdates)
+        assertThat(onlineIndexUpdates.updates())
                 .contains(
-                        ValueIndexEntryUpdate.remove(
+                        EagerValueIndexEntryUpdate.remove(
                                 relId, relationshipIndexDescriptor, relationshipPropertyValue, null, null),
-                        ValueIndexEntryUpdate.remove(nodeId, nodeIndexDescriptor, nodePropertyValue, null, null));
+                        EagerValueIndexEntryUpdate.remove(nodeId, nodeIndexDescriptor, nodePropertyValue, null, null));
     }
 
     @Test
@@ -393,11 +395,11 @@ class OnlineIndexUpdatesTest {
                 relationshipGroup(relationshipCommand, propertyCommand, propertyCommand2),
                 CommandSelector.NORMAL);
         assertTrue(onlineIndexUpdates.hasUpdates());
-        assertThat(onlineIndexUpdates)
+        assertThat(onlineIndexUpdates.updates())
                 .contains(
-                        ValueIndexEntryUpdate.remove(relId, indexDescriptor0, propertyValue, propertyValue2, null),
-                        ValueIndexEntryUpdate.remove(relId, indexDescriptor1, null, propertyValue2, null),
-                        ValueIndexEntryUpdate.remove(relId, indexDescriptor, propertyValue));
+                        EagerValueIndexEntryUpdate.remove(relId, indexDescriptor0, propertyValue, propertyValue2, null),
+                        EagerValueIndexEntryUpdate.remove(relId, indexDescriptor1, null, propertyValue2, null),
+                        EagerValueIndexEntryUpdate.remove(relId, indexDescriptor, propertyValue));
     }
 
     private void createIndexes(IndexDescriptor... indexDescriptors) {

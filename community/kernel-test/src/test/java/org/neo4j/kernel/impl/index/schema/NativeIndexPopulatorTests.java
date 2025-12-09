@@ -40,8 +40,8 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexUpdater;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Values;
 
@@ -91,7 +91,7 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
     void addShouldApplyAllUpdatesOnce() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
+        EagerValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
 
         // when
         populator.add(asList(updates), NULL_CONTEXT);
@@ -106,10 +106,10 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
     void updaterShouldApplyUpdates() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
+        EagerValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
         try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
             // when
-            for (ValueIndexEntryUpdate update : updates) {
+            for (EagerValueIndexEntryUpdate update : updates) {
                 updater.process(update);
             }
         }
@@ -138,7 +138,7 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
     void shouldApplyInterleavedUpdatesFromAddAndUpdater() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
+        EagerValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
 
         // when
         applyInterleaved(updates, populator);
@@ -158,7 +158,7 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
                 .build();
         var randomValues = RandomValues.create(random.random(), cfg);
         Random updaterRandom = new Random(random.seed());
-        Iterator<ValueIndexEntryUpdate> updates = valueCreatorUtil.randomUpdateGenerator(randomValues);
+        Iterator<EagerValueIndexEntryUpdate> updates = valueCreatorUtil.randomUpdateGenerator(randomValues);
 
         // when
         int count = interleaveLargeAmountOfUpdates(updaterRandom, updates);
@@ -170,9 +170,10 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
         verifyUpdates(valueCreatorUtil.randomUpdateGenerator(RandomValues.create(random.random(), cfg)), count);
     }
 
-    private void verifyUpdates(Iterator<ValueIndexEntryUpdate> indexEntryUpdateIterator, int count) throws IOException {
+    private void verifyUpdates(Iterator<EagerValueIndexEntryUpdate> indexEntryUpdateIterator, int count)
+            throws IOException {
         @SuppressWarnings("unchecked")
-        ValueIndexEntryUpdate[] updates = new ValueIndexEntryUpdate[count];
+        EagerValueIndexEntryUpdate[] updates = new EagerValueIndexEntryUpdate[count];
         for (int i = 0; i < count; i++) {
             updates[i] = indexEntryUpdateIterator.next();
         }

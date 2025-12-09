@@ -60,6 +60,7 @@ import org.neo4j.scheduler.JobHandle;
 import org.neo4j.scheduler.JobHandles;
 import org.neo4j.scheduler.JobMonitoringParams;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
@@ -133,7 +134,7 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
                                                 values[i] = Values.stringValue("");
                                             }
                                             updater.process(
-                                                    ValueIndexEntryUpdate.remove(candidate, descriptor, values));
+                                                    EagerValueIndexEntryUpdate.remove(candidate, descriptor, values));
                                             progress.add(1);
                                         }
                                     }

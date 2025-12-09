@@ -759,7 +759,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
                 return;
             }
             numberOfIndexUpdatesSinceSample.incrementAndGet();
-            super.process(valueUpdate);
+            super.process(update);
         }
     }
 

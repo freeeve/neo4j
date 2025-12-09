@@ -48,7 +48,7 @@ import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -132,7 +132,7 @@ public class PointBlockBasedIndexPopulatorTest extends BlockBasedIndexPopulatorT
             // when   processing unsupported value types
             final var updates = UNSUPPORTED_TYPES.stream()
                     .map(randomValues::nextValueOfType)
-                    .map(value -> ValueIndexEntryUpdate.add(idGen.getAsLong(), INDEX_DESCRIPTOR, value))
+                    .map(value -> EagerValueIndexEntryUpdate.add(idGen.getAsLong(), INDEX_DESCRIPTOR, value))
                     .toList();
 
             populator.add(updates, CursorContext.NULL_CONTEXT);

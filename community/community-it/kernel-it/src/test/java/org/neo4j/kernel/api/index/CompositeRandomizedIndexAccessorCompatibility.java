@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.internal.helpers.collection.Iterables.single;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.exact;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -38,7 +38,7 @@ import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexPrototype;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.test.InMemoryTokens;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
@@ -63,10 +63,10 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
             // given
             RandomValues randomValues = randomValues(4);
             ValueType[] types = randomSetOfSupportedTypes();
-            List<ValueIndexEntryUpdate> updates = new ArrayList<>();
+            List<EagerValueIndexEntryUpdate> updates = new ArrayList<>();
             Set<ValueTuple> duplicateChecker = new HashSet<>();
             for (long id = 0; id < 30_000; id++) {
-                ValueIndexEntryUpdate update;
+                EagerValueIndexEntryUpdate update;
                 do {
                     update = add(
                             id,
@@ -82,7 +82,7 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
 
             // when
             TokenNameLookup tokens = new InMemoryTokens();
-            for (ValueIndexEntryUpdate update : updates) {
+            for (EagerValueIndexEntryUpdate update : updates) {
                 // then
                 List<Long> hits = query(
                         exact(100, update.values()[0]),
@@ -118,7 +118,7 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
             MutableLong nextId = new MutableLong();
 
             for (int i = 0; i < 5; i++) {
-                List<ValueIndexEntryUpdate> updates = new ArrayList<>();
+                List<EagerValueIndexEntryUpdate> updates = new ArrayList<>();
                 if (i == 0) {
                     // The initial batch of data can simply be additions
                     updates = generateUpdatesFromValues(generateValuesFromType(types, uniqueValues, 20_000), nextId);
@@ -146,14 +146,14 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
                             sortedValues.remove(existing);
                             uniqueValues.remove(existing.value);
                             sortedValues.add(new ValueAndId(newValue, existing.id));
-                            updates.add(ValueIndexEntryUpdate.change(
+                            updates.add(EagerValueIndexEntryUpdate.change(
                                     existing.id, descriptor, existing.value.getValues(), newValue.getValues()));
                         } else { // remove
                             ValueAndId existing = random.among(sortedValues.toArray(new ValueAndId[0]));
                             sortedValues.remove(existing);
                             uniqueValues.remove(existing.value);
-                            updates.add(
-                                    ValueIndexEntryUpdate.remove(existing.id, descriptor, existing.value.getValues()));
+                            updates.add(EagerValueIndexEntryUpdate.remove(
+                                    existing.id, descriptor, existing.value.getValues()));
                         }
                     }
                 }
@@ -244,8 +244,9 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
             return value;
         }
 
-        private List<ValueIndexEntryUpdate> generateUpdatesFromValues(List<ValueTuple> values, MutableLong nextId) {
-            List<ValueIndexEntryUpdate> updates = new ArrayList<>();
+        private List<EagerValueIndexEntryUpdate> generateUpdatesFromValues(
+                List<ValueTuple> values, MutableLong nextId) {
+            List<EagerValueIndexEntryUpdate> updates = new ArrayList<>();
             for (ValueTuple value : values) {
                 updates.add(add(nextId.getAndIncrement(), descriptor, value.getValues()));
             }

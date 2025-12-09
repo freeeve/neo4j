@@ -47,7 +47,7 @@ import static org.neo4j.logging.AssertableLogProvider.Level.ERROR;
 import static org.neo4j.logging.AssertableLogProvider.Level.INFO;
 import static org.neo4j.logging.LogAssertions.assertThat;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.PageCacheTracerAssertions.assertThatTracing;
 import static org.neo4j.test.PageCacheTracerAssertions.pins;
@@ -109,6 +109,7 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobHandle;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageEngine;
@@ -193,7 +194,7 @@ class IndexPopulationJobTest {
         job.run();
 
         // THEN
-        IndexEntryUpdate update = ValueIndexEntryUpdate.add(nodeId, indexDescriptor, Values.of(value));
+        IndexEntryUpdate update = EagerValueIndexEntryUpdate.add(nodeId, indexDescriptor, Values.of(value));
 
         assertTrue(populator.created);
         assertEquals(Collections.singletonList(update), populator.includedSamples);
@@ -220,7 +221,7 @@ class IndexPopulationJobTest {
 
         job.run();
 
-        IndexEntryUpdate update = ValueIndexEntryUpdate.add(nodeId, indexDescriptor, Values.of(value));
+        IndexEntryUpdate update = EagerValueIndexEntryUpdate.add(nodeId, indexDescriptor, Values.of(value));
 
         assertTrue(populator.created);
         assertEquals(Collections.singletonList(update), populator.includedSamples);
@@ -254,7 +255,7 @@ class IndexPopulationJobTest {
         job.run();
 
         // THEN
-        IndexEntryUpdate update = ValueIndexEntryUpdate.add(relationship, indexDescriptor, Values.of(age));
+        IndexEntryUpdate update = EagerValueIndexEntryUpdate.add(relationship, indexDescriptor, Values.of(age));
 
         assertTrue(populator.created);
         assertEquals(Collections.singletonList(update), populator.includedSamples);
@@ -281,7 +282,7 @@ class IndexPopulationJobTest {
 
         job.run();
 
-        IndexEntryUpdate update = ValueIndexEntryUpdate.add(relationship, indexDescriptor, Values.of(age));
+        IndexEntryUpdate update = EagerValueIndexEntryUpdate.add(relationship, indexDescriptor, Values.of(age));
 
         assertTrue(populator.created);
         assertEquals(Collections.singletonList(update), populator.includedSamples);
@@ -765,7 +766,7 @@ class IndexPopulationJobTest {
         void add(ValueIndexEntryUpdate update) {
             if (update.getEntityId() == 2) {
                 job.queueConcurrentUpdate(
-                        ValueIndexEntryUpdate.change(nodeToChange, index, previousValue, newValue),
+                        EagerValueIndexEntryUpdate.change(nodeToChange, index, previousValue, newValue),
                         CursorContext.NULL_CONTEXT);
             }
             added.add(Pair.of(update.getEntityId(), update.values()[0].asObjectCopy()));
@@ -776,7 +777,7 @@ class IndexPopulationJobTest {
             return new IndexUpdater() {
                 @Override
                 public void process(IndexEntryUpdate update) {
-                    ValueIndexEntryUpdate valueUpdate = asValueUpdate(update);
+                    var valueUpdate = asValueUpdate(update);
                     switch (valueUpdate.updateMode()) {
                         case ADDED:
                         case CHANGED:
@@ -826,7 +827,8 @@ class IndexPopulationJobTest {
         void add(ValueIndexEntryUpdate update) {
             if (update.getEntityId() == 2) {
                 job.queueConcurrentUpdate(
-                        ValueIndexEntryUpdate.remove(nodeToDelete, index, valueToDelete), CursorContext.NULL_CONTEXT);
+                        EagerValueIndexEntryUpdate.remove(nodeToDelete, index, valueToDelete),
+                        CursorContext.NULL_CONTEXT);
             }
             added.put(update.getEntityId(), update.values()[0].asObjectCopy());
         }
@@ -836,7 +838,7 @@ class IndexPopulationJobTest {
             return new IndexUpdater() {
                 @Override
                 public void process(IndexEntryUpdate update) {
-                    ValueIndexEntryUpdate valueUpdate = asValueUpdate(update);
+                    var valueUpdate = asValueUpdate(update);
                     switch (valueUpdate.updateMode()) {
                         case ADDED:
                         case CHANGED:

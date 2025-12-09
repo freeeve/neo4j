@@ -423,7 +423,7 @@ public final class Iterators {
     }
 
     /**
-     * Creates a {@link Set} from an array of items.an
+     * Creates a {@link Set} from an array of items.
      *
      * @param items the items to add to the set.
      * @param <T> the type of the items

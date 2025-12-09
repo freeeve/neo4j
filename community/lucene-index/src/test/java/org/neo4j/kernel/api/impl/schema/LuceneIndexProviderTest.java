@@ -35,7 +35,7 @@ import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.api.impl.schema.LuceneTestTokenNameLookup.SIMPLE_TOKEN_LOOKUP;
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
 import static org.neo4j.test.Race.throwing;
 import static org.neo4j.values.storable.Values.stringValue;
 
@@ -63,7 +63,7 @@ import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.test.Race;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -184,7 +184,7 @@ class LuceneIndexProviderTest {
         race.addContestant(throwing(() -> {
             try (var updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
                 for (int value = 0; value < 1000; value++) {
-                    updater.process(ValueIndexEntryUpdate.change(
+                    updater.process(EagerValueIndexEntryUpdate.change(
                             value, descriptor, stringValue(String.valueOf(value)), stringValue(String.valueOf(value))));
                 }
             }

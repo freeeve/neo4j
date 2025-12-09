@@ -61,7 +61,6 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.index_usage_
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.helpers.collection.Iterators.asCollection;
 import static org.neo4j.internal.helpers.collection.Iterators.asResourceIterator;
-import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 import static org.neo4j.internal.helpers.collection.Iterators.iterator;
 import static org.neo4j.internal.helpers.collection.Iterators.loop;
 import static org.neo4j.internal.kernel.api.InternalIndexState.FAILED;
@@ -93,6 +92,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -177,10 +177,10 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageEngine;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityTokenClient;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
@@ -690,7 +690,7 @@ class IndexingServiceTest {
 
         var e = assertThrows(
                 IllegalStateException.class,
-                () -> indexingService.applyUpdates(asSet(add(1, "foo")), NULL_CONTEXT, false));
+                () -> indexingService.applyUpdates(iterator(add(1, "foo")), NULL_CONTEXT, false));
         assertThat(e.getMessage()).startsWith("Can't apply index updates");
     }
 
@@ -707,7 +707,7 @@ class IndexingServiceTest {
         verify(populator, timeout(10000)).close(eq(true), any());
 
         // When
-        indexing.applyUpdates(asList(add(1, "foo"), add(2, "bar")), NULL_CONTEXT, false);
+        indexing.applyUpdates(iterator(add(1, "foo"), add(2, "bar")), NULL_CONTEXT, false);
 
         // Then
         InOrder inOrder = inOrder(updater);
@@ -768,7 +768,7 @@ class IndexingServiceTest {
         verify(populator, timeout(10000).times(2)).close(eq(true), any());
 
         // When
-        indexing.applyUpdates(asList(add(1, "foo", index1), add(2, "bar", index2)), NULL_CONTEXT, false);
+        indexing.applyUpdates(iterator(add(1, "foo", index1), add(2, "bar", index2)), NULL_CONTEXT, false);
 
         // Then
         verify(updater1).close();
@@ -801,14 +801,12 @@ class IndexingServiceTest {
         return true;
     }
 
-    private Iterable<IndexEntryUpdate> nodeIdsAsIndexUpdates(long... nodeIds) {
-        return () -> {
-            List<IndexEntryUpdate> updates = new ArrayList<>();
-            for (long nodeId : nodeIds) {
-                updates.add(ValueIndexEntryUpdate.add(nodeId, index, Values.of(1)));
-            }
-            return updates.iterator();
-        };
+    private Iterator<IndexEntryUpdate> nodeIdsAsIndexUpdates(long... nodeIds) {
+        List<IndexEntryUpdate> updates = new ArrayList<>();
+        for (long nodeId : nodeIds) {
+            updates.add(EagerValueIndexEntryUpdate.add(nodeId, index, Values.of(1)));
+        }
+        return updates.iterator();
     }
 
     /*
@@ -1441,7 +1439,7 @@ class IndexingServiceTest {
         proxy.awaitStoreScanCompleted(1, HOURS);
         proxy.activate();
         try (IndexUpdater updater = proxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-            updater.process(ValueIndexEntryUpdate.add(123, indexDescriptor, stringValue("some value")));
+            updater.process(EagerValueIndexEntryUpdate.add(123, indexDescriptor, stringValue("some value")));
         }
 
         // then
@@ -1809,11 +1807,11 @@ class IndexingServiceTest {
         life.start();
 
         // when explicitly mixing updates for different indexes back and forth
-        var index1Update1 = ValueIndexEntryUpdate.add(10, index1, Values.intValue(10));
-        var index2Update1 = ValueIndexEntryUpdate.add(11, index2, Values.intValue(11));
-        var index1Update2 = ValueIndexEntryUpdate.add(12, index1, Values.intValue(12));
-        var index2Update2 = ValueIndexEntryUpdate.add(13, index2, Values.intValue(13));
-        List<IndexEntryUpdate> mixedUpdates = List.of(index1Update1, index2Update1, index1Update2, index2Update2);
+        var index1Update1 = EagerValueIndexEntryUpdate.add(10, index1, Values.intValue(10));
+        var index2Update1 = EagerValueIndexEntryUpdate.add(11, index2, Values.intValue(11));
+        var index1Update2 = EagerValueIndexEntryUpdate.add(12, index1, Values.intValue(12));
+        var index2Update2 = EagerValueIndexEntryUpdate.add(13, index2, Values.intValue(13));
+        Iterator<IndexEntryUpdate> mixedUpdates = iterator(index1Update1, index2Update1, index1Update2, index2Update2);
         indexingService.applyUpdates(mixedUpdates, NULL_CONTEXT, true);
 
         // then the order in which those updates arrive to the updaters should be ordered by index
@@ -1894,11 +1892,11 @@ class IndexingServiceTest {
     }
 
     private IndexEntryUpdate add(long nodeId, Object propertyValue) {
-        return ValueIndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
+        return EagerValueIndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
     }
 
     private static IndexEntryUpdate add(long nodeId, Object propertyValue, IndexDescriptor index) {
-        return ValueIndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
+        return EagerValueIndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
     }
 
     private IndexingService newIndexingServiceWithMockedDependencies(

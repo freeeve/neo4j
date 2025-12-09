@@ -43,7 +43,7 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.schema.SchemaTestUtil;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.test.Race;
 import org.neo4j.values.ElementIdMapper;
 
@@ -109,10 +109,10 @@ class RangeBlockBasedIndexPopulatorTest extends GenericBlockBasedIndexPopulatorT
             race.addContestants(
                     numThreads,
                     contestantId -> throwing(() -> {
-                        List<ValueIndexEntryUpdate> batch = new ArrayList<>();
+                        List<EagerValueIndexEntryUpdate> batch = new ArrayList<>();
                         long dataId = contestantId;
                         for (int i = 0; i < numEntriesPerThread; i++, dataId += numThreads) {
-                            batch.add(ValueIndexEntryUpdate.add(dataId, INDEX_DESCRIPTOR, longValue(dataId)));
+                            batch.add(EagerValueIndexEntryUpdate.add(dataId, INDEX_DESCRIPTOR, longValue(dataId)));
                             if (ThreadLocalRandom.current().nextInt(20) == 0) {
                                 populator.add(batch, NULL_CONTEXT);
                                 batch = new ArrayList<>();

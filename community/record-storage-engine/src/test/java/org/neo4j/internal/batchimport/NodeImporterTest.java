@@ -60,8 +60,8 @@ import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.RecordLoad;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
@@ -269,7 +269,7 @@ class NodeImporterTest {
         }
 
         @Override
-        public boolean checkUniqueness(ValueIndexEntryUpdate[] checks) {
+        public boolean checkUniqueness(EagerValueIndexEntryUpdate[] checks) {
             return true;
         }
 

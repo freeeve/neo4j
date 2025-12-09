@@ -31,7 +31,7 @@ import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
 import static org.neo4j.kernel.impl.api.index.PhaseTracker.nullInstance;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
 import static org.neo4j.values.storable.Values.stringValue;
 
 import java.io.IOException;
@@ -85,8 +85,8 @@ import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -322,7 +322,8 @@ public class TextIndexAccessorIT {
             // when   an unsupported value type is added
             try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
                 final var unsupportedValue = random.randomValues().nextValueOfType(unsupportedType);
-                updater.process(ValueIndexEntryUpdate.add(idGenerator().getAsLong(), descriptor, unsupportedValue));
+                updater.process(
+                        EagerValueIndexEntryUpdate.add(idGenerator().getAsLong(), descriptor, unsupportedValue));
             }
 
             // then   it should not be indexed, and thus not visible
@@ -351,7 +352,7 @@ public class TextIndexAccessorIT {
             final var entityId = idGenerator().getAsLong();
             final var unsupportedValue = random.randomValues().nextValueOfType(unsupportedType);
             try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-                updater.process(ValueIndexEntryUpdate.add(entityId, descriptor, unsupportedValue));
+                updater.process(EagerValueIndexEntryUpdate.add(entityId, descriptor, unsupportedValue));
             }
 
             // then   it should not be indexed, and thus not visible
@@ -362,7 +363,8 @@ public class TextIndexAccessorIT {
             // when   the unsupported value type is changed to a supported value type
             try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
                 final var supportedValue = random.randomValues().nextValueOfTypes(SUPPORTED_TYPES);
-                updater.process(ValueIndexEntryUpdate.change(entityId, descriptor, unsupportedValue, supportedValue));
+                updater.process(
+                        EagerValueIndexEntryUpdate.change(entityId, descriptor, unsupportedValue, supportedValue));
             }
 
             // then   it should be added to the index, and thus now visible
@@ -392,7 +394,7 @@ public class TextIndexAccessorIT {
             final var entityId = idGenerator().getAsLong();
             final var supportedValue = random.randomValues().nextValueOfTypes(SUPPORTED_TYPES);
             try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-                updater.process(ValueIndexEntryUpdate.add(entityId, descriptor, supportedValue));
+                updater.process(EagerValueIndexEntryUpdate.add(entityId, descriptor, supportedValue));
             }
 
             // then   it should be added to the index, and thus visible
@@ -403,7 +405,8 @@ public class TextIndexAccessorIT {
             // when   the supported value type is changed to an unsupported value type
             try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
                 final var unsupportedValue = random.randomValues().nextValueOfType(unsupportedType);
-                updater.process(ValueIndexEntryUpdate.change(entityId, descriptor, supportedValue, unsupportedValue));
+                updater.process(
+                        EagerValueIndexEntryUpdate.change(entityId, descriptor, supportedValue, unsupportedValue));
             }
 
             // then   it should be removed from the index, and thus no longer visible
@@ -418,7 +421,7 @@ public class TextIndexAccessorIT {
             throws IndexEntryConflictException {
         try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
             for (long id = 0; id < nodes; id++) {
-                updater.process(ValueIndexEntryUpdate.remove(id, indexDescriptor, values(indexDescriptor, id)));
+                updater.process(EagerValueIndexEntryUpdate.remove(id, indexDescriptor, values(indexDescriptor, id)));
                 expectedNodes.remove(id);
             }
         }
@@ -500,13 +503,13 @@ public class TextIndexAccessorIT {
             }
             if (entityId != -1) {
                 liveEntityIds.clear(toIntExact(entityId));
-                return ValueIndexEntryUpdate.remove(entityId, descriptor, stringValue(String.valueOf(entityId)));
+                return EagerValueIndexEntryUpdate.remove(entityId, descriptor, stringValue(String.valueOf(entityId)));
             }
         }
 
         long entityId = highEntityId.getAndIncrement();
         liveEntityIds.set(toIntExact(entityId));
-        return ValueIndexEntryUpdate.add(entityId, descriptor, stringValue(String.valueOf(entityId)));
+        return EagerValueIndexEntryUpdate.add(entityId, descriptor, stringValue(String.valueOf(entityId)));
     }
 
     private static LongSupplier idGenerator() {

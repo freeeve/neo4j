@@ -83,6 +83,7 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.store.NodeStore;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.logging.log4j.Log4jLogProvider;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -222,7 +223,7 @@ class SpecialisedIndexFullCheckTest {
                             EntityUpdates updates = fixture.nodeAsUpdates(nodeId);
                             for (IndexEntryUpdate update :
                                     updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
-                                updater.process(ValueIndexEntryUpdate.remove(
+                                updater.process(EagerValueIndexEntryUpdate.remove(
                                         nodeId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                             }
                         }
@@ -254,7 +255,7 @@ class SpecialisedIndexFullCheckTest {
                             EntityUpdates updates = fixture.relationshipAsUpdates(relId);
                             for (IndexEntryUpdate update :
                                     updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
-                                updater.process(ValueIndexEntryUpdate.remove(
+                                updater.process(EagerValueIndexEntryUpdate.remove(
                                         relId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                             }
                         }
@@ -283,7 +284,8 @@ class SpecialisedIndexFullCheckTest {
                 if (indexDescriptor.schema().entityType() == EntityType.NODE && !indexDescriptor.isUnique()) {
                     IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                     try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                        updater.process(ValueIndexEntryUpdate.add(newNode, indexDescriptor, values(indexDescriptor)));
+                        updater.process(
+                                EagerValueIndexEntryUpdate.add(newNode, indexDescriptor, values(indexDescriptor)));
                     }
                 }
             }

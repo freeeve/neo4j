@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.recordstorage;
 
+import java.util.List;
 import org.neo4j.internal.recordstorage.Command.NodeCommand;
 import org.neo4j.internal.recordstorage.Command.RelationshipCommand;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
@@ -26,7 +27,7 @@ import org.neo4j.storageengine.api.IndexEntryUpdate;
 /**
  * Set of updates ({@link IndexEntryUpdate}) to apply to indexes.
  */
-public interface IndexUpdates extends Iterable<IndexEntryUpdate>, AutoCloseable {
+public interface IndexUpdates extends AutoCloseable {
     /**
      * Feeds updates raw material in the form of node/property commands, to create updates from.
      *
@@ -39,13 +40,16 @@ public interface IndexUpdates extends Iterable<IndexEntryUpdate>, AutoCloseable 
             EntityCommandGrouper<RelationshipCommand>.Cursor relationshipCommands,
             CommandSelector commandSelector);
 
+    /**
+     * Retrieves the index updates. This method also resets the internal state,
+     * such that this class can then be reused to be fed more index updates.
+     * After returning from this method, this class does not any longer reference
+     * the returned list.
+     */
+    List<IndexEntryUpdate> updates();
+
     boolean hasUpdates();
 
     @Override
     void close();
-
-    /**
-     * Cleans collected updates. Instance should be ready for re-use after this.
-     */
-    void reset();
 }

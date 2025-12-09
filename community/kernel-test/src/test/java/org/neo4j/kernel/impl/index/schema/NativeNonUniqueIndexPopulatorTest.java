@@ -38,7 +38,7 @@ import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.schema.index.TestIndexDescriptorFactory;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueType;
 
@@ -93,7 +93,7 @@ abstract class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>
     void addShouldApplyDuplicateValues() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
+        EagerValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
 
         // when
         populator.add(asList(updates), NULL_CONTEXT);
@@ -108,10 +108,10 @@ abstract class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>
     void updaterShouldApplyDuplicateValues() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
+        EagerValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
         try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
             // when
-            for (ValueIndexEntryUpdate update : updates) {
+            for (EagerValueIndexEntryUpdate update : updates) {
                 updater.process(update);
             }
         }
@@ -128,9 +128,9 @@ abstract class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>
         try {
             populator.create();
             Value[] updates = new Value[5];
-            ValueIndexEntryUpdate[] scanUpdates = valueCreatorUtil.someUpdates(random);
+            EagerValueIndexEntryUpdate[] scanUpdates = valueCreatorUtil.someUpdates(random);
             populator.add(asList(scanUpdates), NULL_CONTEXT);
-            Iterator<ValueIndexEntryUpdate> generator = valueCreatorUtil.randomUpdateGenerator(random);
+            Iterator<EagerValueIndexEntryUpdate> generator = valueCreatorUtil.randomUpdateGenerator(random);
             updates[0] = generator.next().values()[0];
             updates[1] = generator.next().values()[0];
             updates[2] = updates[1];
@@ -139,7 +139,7 @@ abstract class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>
             try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
                 long nodeId = 1000;
                 for (Value value : updates) {
-                    ValueIndexEntryUpdate update = valueCreatorUtil.add(nodeId++, value);
+                    EagerValueIndexEntryUpdate update = valueCreatorUtil.add(nodeId++, value);
                     updater.process(update);
                 }
             }

@@ -74,9 +74,9 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.scheduler.JobSchedulerExtension;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.PropertySelection;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.InMemoryTokens;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -525,7 +525,7 @@ class MultipleIndexPopulatorTest {
 
         // when
         for (int i = 0; !full && i < roughlyNumUpdates * 2; i++) {
-            var largeUpdate = ValueIndexEntryUpdate.add(i, indexDescriptor, largeStringValue);
+            var largeUpdate = EagerValueIndexEntryUpdate.add(i, indexDescriptor, largeStringValue);
             multipleIndexPopulator.queueConcurrentUpdate(largeUpdate, NULL_CONTEXT);
             full = multipleIndexPopulator.needToApplyExternalUpdates();
             if (full) {
@@ -551,8 +551,8 @@ class MultipleIndexPopulatorTest {
         addPopulator(populator, 1);
 
         // when external updates comes in
-        var lowUpdate = ValueIndexEntryUpdate.add(10, indexDescriptor, intValue(99));
-        var highUpdate = ValueIndexEntryUpdate.add(20, indexDescriptor, intValue(101));
+        var lowUpdate = EagerValueIndexEntryUpdate.add(10, indexDescriptor, intValue(99));
+        var highUpdate = EagerValueIndexEntryUpdate.add(20, indexDescriptor, intValue(101));
         multipleIndexPopulator.queueConcurrentUpdate(lowUpdate, NULL_CONTEXT);
         multipleIndexPopulator.queueConcurrentUpdate(highUpdate, NULL_CONTEXT);
 

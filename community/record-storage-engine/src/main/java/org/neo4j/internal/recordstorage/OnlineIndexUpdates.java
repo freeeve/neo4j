@@ -25,7 +25,7 @@ import static org.neo4j.io.IOUtils.closeAllUnchecked;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.List;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.recordstorage.Command.NodeCommand;
 import org.neo4j.internal.recordstorage.Command.PropertyCommand;
@@ -56,7 +56,7 @@ import org.neo4j.util.VisibleForTesting;
  * from store since the commands in that transaction cannot itself provide enough information.
  *
  * One instance can be {@link IndexUpdates#feed(Cursor, Cursor, CommandSelector) fed} data about
- * multiple transactions, to be {@link #iterator() accessed} later.
+ * multiple transactions, to be {@link #updates() accessed} later.
  */
 public class OnlineIndexUpdates implements IndexUpdates {
     private final NodeStore nodeStore;
@@ -66,7 +66,7 @@ public class OnlineIndexUpdates implements IndexUpdates {
     private final CursorContext cursorContext;
     private final MemoryTracker memoryTracker;
     private final StoreCursors storeCursors;
-    private final Collection<IndexEntryUpdate> updates = new ArrayList<>();
+    private List<IndexEntryUpdate> updates = new ArrayList<>();
     private StorageNodeCursor nodeCursor;
     private StorageRelationshipScanCursor relationshipCursor;
 
@@ -88,8 +88,10 @@ public class OnlineIndexUpdates implements IndexUpdates {
     }
 
     @Override
-    public Iterator<IndexEntryUpdate> iterator() {
-        return updates.iterator();
+    public List<IndexEntryUpdate> updates() {
+        var result = updates;
+        updates = new ArrayList<>();
+        return result;
     }
 
     @Override
@@ -258,11 +260,6 @@ public class OnlineIndexUpdates implements IndexUpdates {
     @Override
     public void close() {
         closeAllUnchecked(nodeCursor, relationshipCursor, reader);
-    }
-
-    @Override
-    public void reset() {
-        updates.clear();
     }
 
     @VisibleForTesting

@@ -59,7 +59,7 @@ import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -166,7 +166,7 @@ class TextIndexAccessorTest {
             throws IndexEntryConflictException {
         try (var updater = index.newUpdater(ONLINE, NULL_CONTEXT, false)) {
             for (int i = from; i < to; i++) {
-                updater.process(ValueIndexEntryUpdate.add(i, descriptor, Values.stringValue("string" + i)));
+                updater.process(EagerValueIndexEntryUpdate.add(i, descriptor, Values.stringValue("string" + i)));
             }
         }
     }

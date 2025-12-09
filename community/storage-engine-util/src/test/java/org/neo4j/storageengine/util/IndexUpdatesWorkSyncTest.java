@@ -24,6 +24,7 @@ import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_F
 import static org.neo4j.test.Race.throwing;
 import static org.neo4j.values.storable.Values.intValue;
 
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -35,9 +36,9 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexUpdateListener;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.Race;
 
 class IndexUpdatesWorkSyncTest {
@@ -58,10 +59,13 @@ class IndexUpdatesWorkSyncTest {
         IndexUpdateListener updateListener = new IndexUpdateListener.Adapter() {
             @Override
             public void applyUpdates(
-                    Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
+                    Iterator<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
                 assertThat(concurrentlyApplyingThreads.incrementAndGet()).isOne();
                 assertThat(parallel).isFalse();
-                updates.forEach(u -> appliedUpdates.add(new UpdateAndContext(u, cursorContext)));
+                while (updates.hasNext()) {
+                    IndexEntryUpdate u = updates.next();
+                    appliedUpdates.add(new UpdateAndContext(u, cursorContext));
+                }
                 concurrentlyApplyingThreads.decrementAndGet();
             }
         };
@@ -88,10 +92,13 @@ class IndexUpdatesWorkSyncTest {
         IndexUpdateListener updateListener = new IndexUpdateListener.Adapter() {
             @Override
             public void applyUpdates(
-                    Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
+                    Iterator<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
                 assertThat(parallel).isTrue();
                 applyingThreads.add(Thread.currentThread());
-                updates.forEach(u -> appliedUpdates.add(new UpdateAndContext(u, cursorContext)));
+                while (updates.hasNext()) {
+                    IndexEntryUpdate u = updates.next();
+                    appliedUpdates.add(new UpdateAndContext(u, cursorContext));
+                }
                 latch.countDown();
                 try {
                     latch.await();
@@ -119,7 +126,7 @@ class IndexUpdatesWorkSyncTest {
                 i -> throwing(() -> {
                     var cursorContext = contextFactory.create(Integer.toString(i));
                     try (IndexUpdatesWorkSync.Batch batch = workSync.newBatch(cursorContext)) {
-                        ValueIndexEntryUpdate update = ValueIndexEntryUpdate.add(i, index, intValue(10 + i));
+                        EagerValueIndexEntryUpdate update = EagerValueIndexEntryUpdate.add(i, index, intValue(10 + i));
                         sentUpdates.add(new UpdateAndContext(update, cursorContext));
                         batch.indexUpdate(update);
                     }

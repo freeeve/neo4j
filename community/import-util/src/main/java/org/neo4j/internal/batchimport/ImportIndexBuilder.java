@@ -77,9 +77,9 @@ import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
@@ -462,7 +462,7 @@ public class ImportIndexBuilder implements Closeable {
     /**
      * @return {@code true} if there are no updates that would violate uniqueness.
      */
-    public boolean checkUniqueness(ValueIndexEntryUpdate[] checks) {
+    public boolean checkUniqueness(EagerValueIndexEntryUpdate[] checks) {
         for (var check : checks) {
             try (var reader = getIndexBuilder(check.indexKey())
                             .accessor

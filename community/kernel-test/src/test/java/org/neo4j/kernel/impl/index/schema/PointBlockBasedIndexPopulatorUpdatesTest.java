@@ -53,8 +53,8 @@ import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -119,7 +119,7 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
             // when
             UNSUPPORTED_TYPES.forEach(unsupportedType -> {
                 IndexEntryUpdate update =
-                        ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, random.nextValue(unsupportedType));
+                        EagerValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, random.nextValue(unsupportedType));
                 populator.add(singleton(update), NULL_CONTEXT);
             });
             populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
@@ -139,7 +139,7 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
     final void shouldIgnoreAddedUnsupportedValueTypes(ScanUpdateOrder scanUpdateOrder) throws Exception {
         // given  the population of an empty index
         final var updates =
-                generateUpdatesToIgnore((id, value) -> ValueIndexEntryUpdate.add(id, INDEX_DESCRIPTOR, value));
+                generateUpdatesToIgnore((id, value) -> EagerValueIndexEntryUpdate.add(id, INDEX_DESCRIPTOR, value));
         // when   processing the addition of unsupported value types
         // then   updates should not have been indexed
         test(scanUpdateOrder, updates, 0L);
@@ -150,7 +150,7 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
     final void shouldIgnoreRemovedUnsupportedValueTypes(ScanUpdateOrder scanUpdateOrder) throws Exception {
         // given  the population of an empty index
         final var updates =
-                generateUpdatesToIgnore((id, value) -> ValueIndexEntryUpdate.remove(id, INDEX_DESCRIPTOR, value));
+                generateUpdatesToIgnore((id, value) -> EagerValueIndexEntryUpdate.remove(id, INDEX_DESCRIPTOR, value));
         // when   processing the removal of unsupported value types
         // then   updates should not have been indexed
         test(scanUpdateOrder, updates, 0L);
@@ -162,7 +162,7 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
         // given  the population of an empty index
         final var otherValue = random.randomValues().nextValueOfTypes(UNSUPPORTED_TYPES.toArray(ValueType[]::new));
         final var updates = generateUpdatesToIgnore(
-                (id, value) -> ValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, value, otherValue));
+                (id, value) -> EagerValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, value, otherValue));
         // when   processing the change between unsupported value types
         // then   updates should not have been indexed
         test(scanUpdateOrder, updates, 0L);
@@ -175,7 +175,7 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
         // given  the population of an empty index
         final var supportedValue = supportedValue(random.nextInt());
         final var updates = generateUpdatesToIgnore(
-                (id, value) -> ValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, value, supportedValue));
+                (id, value) -> EagerValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, value, supportedValue));
         // when   processing the change from an unsupported to a supported value type
         // then   updates should have been indexed as additions
         test(scanUpdateOrder, updates, updates.size());
@@ -188,7 +188,7 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
         // given  the population of an empty index
         final var supportedValue = supportedValue(random.nextInt());
         final var updates = generateUpdatesToIgnore(
-                (id, value) -> ValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, supportedValue, value));
+                (id, value) -> EagerValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, supportedValue, value));
         // when   processing the change from a supported to an unsupported value type
         // then   updates should have been indexed as removals
         test(scanUpdateOrder, updates, updates.size());

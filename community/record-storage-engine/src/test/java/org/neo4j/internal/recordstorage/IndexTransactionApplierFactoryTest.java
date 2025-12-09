@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.neo4j.internal.helpers.collection.Iterators.loop;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.impl.store.record.Record.NO_NEXT_PROPERTY;
@@ -32,6 +33,7 @@ import static org.neo4j.kernel.impl.store.record.Record.NO_NEXT_RELATIONSHIP;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.INTERNAL;
 
+import java.util.Iterator;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.Subject;
 import org.neo4j.internal.recordstorage.Command.NodeCommand;
@@ -184,8 +186,8 @@ class IndexTransactionApplierFactoryTest {
         public void dropIndex(IndexDescriptor index) {}
 
         @Override
-        public void applyUpdates(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
-            for (var update : updates) {
+        public void applyUpdates(Iterator<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
+            for (var update : loop(updates)) {
                 assertEquals(expectedNodeIds[cursor], update.getEntityId());
                 cursor++;
             }

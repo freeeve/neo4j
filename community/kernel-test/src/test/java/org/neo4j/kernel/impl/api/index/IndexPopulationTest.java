@@ -51,9 +51,9 @@ import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.PropertySelection;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.InMemoryTokens;
 import org.neo4j.values.storable.Values;
 
@@ -162,7 +162,7 @@ class IndexPopulationTest {
         return new ValueIndexProxyStrategy(indexDescriptor, indexStatisticsStore, tokens);
     }
 
-    private static ValueIndexEntryUpdate someUpdate(IndexDescriptor indexDescriptor) {
-        return ValueIndexEntryUpdate.add(0, indexDescriptor, Values.numberValue(0));
+    private static EagerValueIndexEntryUpdate someUpdate(IndexDescriptor indexDescriptor) {
+        return EagerValueIndexEntryUpdate.add(0, indexDescriptor, Values.numberValue(0));
     }
 }

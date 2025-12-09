@@ -43,7 +43,7 @@ import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.ValueIndexReader;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
@@ -57,7 +57,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     @Test
     void shouldReturnMatchingEntriesForRangePredicateWithInclusiveStartAndExclusiveEnd() throws Exception {
         // given
-        ValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
+        EagerValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
         processAll(updates);
         ValueCreatorUtil.sort(updates);
 
@@ -73,7 +73,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     @Test
     void shouldReturnMatchingEntriesForRangePredicateWithInclusiveStartAndInclusiveEnd() throws Exception {
         // given
-        ValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
+        EagerValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
 
         processAll(updates);
         ValueCreatorUtil.sort(updates);
@@ -90,7 +90,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     @Test
     void shouldReturnMatchingEntriesForRangePredicateWithExclusiveStartAndExclusiveEnd() throws Exception {
         // given
-        ValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
+        EagerValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
         processAll(updates);
         ValueCreatorUtil.sort(updates);
 
@@ -107,7 +107,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     @Test
     void shouldReturnMatchingEntriesForRangePredicateWithExclusiveStartAndInclusiveEnd() throws Exception {
         // given
-        ValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
+        EagerValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
         processAll(updates);
         ValueCreatorUtil.sort(updates);
 
@@ -123,7 +123,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     @Test
     void shouldReturnNoEntriesForRangePredicateOutsideAnyMatch() throws Exception {
         // given
-        ValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
+        EagerValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
         ValueCreatorUtil.sort(updates);
         processAll(updates[0], updates[1], updates[updates.length - 1], updates[updates.length - 2]);
 
@@ -139,7 +139,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     @Test
     void mustHandleNestedQueries() throws Exception {
         // given
-        ValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
+        EagerValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
 
         processAll(updates);
         ValueCreatorUtil.sort(updates);
@@ -171,7 +171,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     @Test
     void mustHandleMultipleNestedQueries() throws Exception {
         // given
-        ValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
+        EagerValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
 
         processAll(updates);
         ValueCreatorUtil.sort(updates);
@@ -215,7 +215,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     @Test
     void shouldNotSeeFilteredEntries() throws Exception {
         // given
-        ValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
+        EagerValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates(supportedTypesExcludingNonOrderable());
         processAll(updates);
         ValueCreatorUtil.sort(updates);
         var reader = accessor.newValueReader(NO_USAGE_TRACKING);
@@ -240,9 +240,10 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
         // given
         int nUpdates = 10000;
         ValueType[] types = supportedTypesExcludingNonOrderable();
-        Iterator<ValueIndexEntryUpdate> randomUpdateGenerator = valueCreatorUtil.randomUpdateGenerator(random, types);
+        Iterator<EagerValueIndexEntryUpdate> randomUpdateGenerator =
+                valueCreatorUtil.randomUpdateGenerator(random, types);
         //noinspection unchecked
-        ValueIndexEntryUpdate[] someUpdates = new ValueIndexEntryUpdate[nUpdates];
+        EagerValueIndexEntryUpdate[] someUpdates = new EagerValueIndexEntryUpdate[nUpdates];
         for (int i = 0; i < nUpdates; i++) {
             someUpdates[i] = randomUpdateGenerator.next();
         }
@@ -262,7 +263,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     @Test
     void shouldReturnAllEntriesForExistsPredicate() throws Exception {
         // given
-        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
+        EagerValueIndexEntryUpdate[] updates = someUpdatesSingleType();
         processAll(updates);
 
         // when
@@ -297,7 +298,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
         });
     }
 
-    private static long entityIdOf(ValueIndexEntryUpdate update) {
+    private static long entityIdOf(EagerValueIndexEntryUpdate update) {
         return update.getEntityId();
     }
 
@@ -327,7 +328,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
         }
     }
 
-    protected static Value valueOf(ValueIndexEntryUpdate update) {
+    protected static Value valueOf(EagerValueIndexEntryUpdate update) {
         return update.values()[0];
     }
 

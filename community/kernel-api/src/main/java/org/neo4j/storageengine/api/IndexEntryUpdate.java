@@ -21,6 +21,7 @@ package org.neo4j.storageengine.api;
 
 import static org.neo4j.internal.schema.SchemaUserDescription.TOKEN_ID_NAME_LOOKUP;
 
+import java.util.Objects;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.schema.IndexDescriptor;
 
@@ -30,7 +31,8 @@ import org.neo4j.internal.schema.IndexDescriptor;
  * This is of use in populating indexes that might be relevant to node label and property combinations.
  *
  */
-public abstract sealed class IndexEntryUpdate permits TokenIndexEntryUpdate, ValueIndexEntryUpdate {
+public abstract sealed class IndexEntryUpdate
+        permits TokenIndexEntryUpdate, EagerValueIndexEntryUpdate, LazyValueIndexEntryUpdate {
     private final long entityId;
     private final UpdateMode updateMode;
     private final IndexDescriptor indexKey;
@@ -71,7 +73,7 @@ public abstract sealed class IndexEntryUpdate permits TokenIndexEntryUpdate, Val
             return false;
         }
 
-        boolean schemaEquals = indexKey != null ? indexKey.equals(that.indexKey) : that.indexKey == null;
+        boolean schemaEquals = Objects.equals(indexKey, that.indexKey);
         if (!schemaEquals) {
             return false;
         }

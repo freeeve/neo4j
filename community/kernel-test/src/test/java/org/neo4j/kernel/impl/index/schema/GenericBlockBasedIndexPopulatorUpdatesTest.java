@@ -25,14 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.impl.api.index.PhaseTracker.nullInstance;
 import static org.neo4j.kernel.impl.index.schema.IndexEntryTestUtil.generateStringValueResultingInIndexEntrySize;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
 
 import java.io.IOException;
 import java.util.Collection;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -45,13 +45,13 @@ abstract class GenericBlockBasedIndexPopulatorUpdatesTest<KEY extends GenericKey
         BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(INDEX_DESCRIPTOR);
         try {
             int maxKeyValueSize = populator.tree.keyValueSizeCap();
-            ValueIndexEntryUpdate update = add(
+            EagerValueIndexEntryUpdate update = add(
                     1,
                     INDEX_DESCRIPTOR,
                     generateStringValueResultingInIndexEntrySize(populator.layout, maxKeyValueSize));
 
             // when
-            Collection<ValueIndexEntryUpdate> updates = singleton(update);
+            Collection<EagerValueIndexEntryUpdate> updates = singleton(update);
             populator.add(updates, NULL_CONTEXT);
             populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
 
@@ -68,12 +68,12 @@ abstract class GenericBlockBasedIndexPopulatorUpdatesTest<KEY extends GenericKey
         BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(INDEX_DESCRIPTOR);
         try {
             int maxKeyValueSize = populator.tree.keyValueSizeCap();
-            ValueIndexEntryUpdate update = add(
+            EagerValueIndexEntryUpdate update = add(
                     1,
                     INDEX_DESCRIPTOR,
                     generateStringValueResultingInIndexEntrySize(populator.layout, maxKeyValueSize + 1));
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
-                Collection<ValueIndexEntryUpdate> updates = singleton(update);
+                Collection<EagerValueIndexEntryUpdate> updates = singleton(update);
                 populator.add(updates, NULL_CONTEXT);
                 populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
             });

@@ -102,12 +102,12 @@ import org.neo4j.lock.LockService;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageReader;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
@@ -684,7 +684,7 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
                                 .materialise(0);
                         for (IndexEntryUpdate indexUpdate :
                                 update.valueUpdatesForIndexKeys(Collections.singleton(index))) {
-                            ValueIndexEntryUpdate valueUpdate = (ValueIndexEntryUpdate) indexUpdate;
+                            EagerValueIndexEntryUpdate valueUpdate = (EagerValueIndexEntryUpdate) indexUpdate;
                             switch (valueUpdate.updateMode()) {
                                 case CHANGED:
                                 case ADDED:
@@ -716,7 +716,7 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
                             EntityType.NODE);
                     Iterable<IndexEntryUpdate> entryUpdates = update.valueUpdatesForIndexKeys(
                             relatedIndexes, reader, EntityType.NODE, NULL_CONTEXT, StoreCursors.NULL, INSTANCE);
-                    indexService.applyUpdates(entryUpdates, NULL_CONTEXT, false);
+                    indexService.applyUpdates(entryUpdates.iterator(), NULL_CONTEXT, false);
                 }
             } catch (UncheckedIOException | KernelException e) {
                 throw new RuntimeException(e);

@@ -31,7 +31,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
@@ -44,7 +44,7 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
     static final double FRACTION_DUPLICATE_UNIQUE = 0;
     static final double FRACTION_DUPLICATE_NON_UNIQUE = 0.1;
     private static final double FRACTION_EXTREME_VALUE = 0.25;
-    private static final Comparator<ValueIndexEntryUpdate> UPDATE_COMPARATOR =
+    private static final Comparator<EagerValueIndexEntryUpdate> UPDATE_COMPARATOR =
             (u1, u2) -> Values.COMPARATOR.compare(u1.values()[0], u2.values()[0]);
     public static final int N_VALUES = 10;
 
@@ -62,16 +62,17 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         return PropertyIndexQuery.range(0, from, fromInclusive, to, toInclusive);
     }
 
-    ValueIndexEntryUpdate[] someUpdates(RandomSupport randomRule) {
+    EagerValueIndexEntryUpdate[] someUpdates(RandomSupport randomRule) {
         return someUpdates(randomRule, supportedTypes(), fractionDuplicates());
     }
 
-    ValueIndexEntryUpdate[] someUpdates(RandomSupport random, ValueType[] types, boolean allowDuplicates) {
+    EagerValueIndexEntryUpdate[] someUpdates(RandomSupport random, ValueType[] types, boolean allowDuplicates) {
         double fractionDuplicates = allowDuplicates ? FRACTION_DUPLICATE_NON_UNIQUE : FRACTION_DUPLICATE_UNIQUE;
         return someUpdates(random, types, fractionDuplicates);
     }
 
-    private ValueIndexEntryUpdate[] someUpdates(RandomSupport random, ValueType[] types, double fractionDuplicates) {
+    private EagerValueIndexEntryUpdate[] someUpdates(
+            RandomSupport random, ValueType[] types, double fractionDuplicates) {
         RandomValues rv = RandomValues.create(
                 random.random(),
                 RandomValues.newConfigurationBuilder()
@@ -79,14 +80,14 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
                         .build());
         RandomValueGenerator valueGenerator = new RandomValueGenerator(rv, types, fractionDuplicates);
         RandomUpdateGenerator randomUpdateGenerator = new RandomUpdateGenerator(valueGenerator);
-        ValueIndexEntryUpdate[] result = new ValueIndexEntryUpdate[N_VALUES];
+        EagerValueIndexEntryUpdate[] result = new EagerValueIndexEntryUpdate[N_VALUES];
         for (int i = 0; i < N_VALUES; i++) {
             result[i] = randomUpdateGenerator.next();
         }
         return result;
     }
 
-    ValueIndexEntryUpdate[] someUpdatesWithDuplicateValues(RandomSupport randomRule) {
+    EagerValueIndexEntryUpdate[] someUpdatesWithDuplicateValues(RandomSupport randomRule) {
         RandomValues randomValues = RandomValues.create(
                 randomRule.random(),
                 RandomValues.newConfigurationBuilder()
@@ -100,15 +101,15 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         return generateAddUpdatesFor(ArrayUtils.addAll(someValues, someValues));
     }
 
-    Iterator<ValueIndexEntryUpdate> randomUpdateGenerator(RandomSupport randomRule) {
+    Iterator<EagerValueIndexEntryUpdate> randomUpdateGenerator(RandomSupport randomRule) {
         return randomUpdateGenerator(randomRule, supportedTypes());
     }
 
-    Iterator<ValueIndexEntryUpdate> randomUpdateGenerator(RandomValues randomValues) {
+    Iterator<EagerValueIndexEntryUpdate> randomUpdateGenerator(RandomValues randomValues) {
         return randomUpdateGenerator(randomValues, supportedTypes());
     }
 
-    Iterator<ValueIndexEntryUpdate> randomUpdateGenerator(RandomSupport random, ValueType[] types) {
+    Iterator<EagerValueIndexEntryUpdate> randomUpdateGenerator(RandomSupport random, ValueType[] types) {
         Iterator<Value> valueIterator = new RandomValueGenerator(
                 RandomValues.create(
                         random.random(),
@@ -120,20 +121,20 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         return new RandomUpdateGenerator(valueIterator);
     }
 
-    Iterator<ValueIndexEntryUpdate> randomUpdateGenerator(RandomValues randomValues, ValueType[] types) {
+    Iterator<EagerValueIndexEntryUpdate> randomUpdateGenerator(RandomValues randomValues, ValueType[] types) {
         Iterator<Value> valueIterator = new RandomValueGenerator(randomValues, types, fractionDuplicates());
         return new RandomUpdateGenerator(valueIterator);
     }
 
-    ValueIndexEntryUpdate[] generateAddUpdatesFor(Value[] values) {
-        ValueIndexEntryUpdate[] indexEntryUpdates = new ValueIndexEntryUpdate[values.length];
+    EagerValueIndexEntryUpdate[] generateAddUpdatesFor(Value[] values) {
+        EagerValueIndexEntryUpdate[] indexEntryUpdates = new EagerValueIndexEntryUpdate[values.length];
         for (int i = 0; i < indexEntryUpdates.length; i++) {
             indexEntryUpdates[i] = add(i, values[i]);
         }
         return indexEntryUpdates;
     }
 
-    static Value[] extractValuesFromUpdates(ValueIndexEntryUpdate[] updates) {
+    static Value[] extractValuesFromUpdates(EagerValueIndexEntryUpdate[] updates) {
         Value[] values = new Value[updates.length];
         for (int i = 0; i < updates.length; i++) {
             if (updates[i].values().length > 1) {
@@ -144,11 +145,11 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         return values;
     }
 
-    ValueIndexEntryUpdate add(long nodeId, Value value) {
-        return ValueIndexEntryUpdate.add(nodeId, indexDescriptor, value);
+    EagerValueIndexEntryUpdate add(long nodeId, Value value) {
+        return EagerValueIndexEntryUpdate.add(nodeId, indexDescriptor, value);
     }
 
-    static long countUniqueValues(ValueIndexEntryUpdate[] updates) {
+    static long countUniqueValues(EagerValueIndexEntryUpdate[] updates) {
         return Stream.of(updates).map(update -> update.values()[0]).distinct().count();
     }
 
@@ -156,7 +157,7 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         return Arrays.stream(updates).distinct().count();
     }
 
-    static void sort(ValueIndexEntryUpdate[] updates) {
+    static void sort(EagerValueIndexEntryUpdate[] updates) {
         Arrays.sort(updates, UPDATE_COMPARATOR);
     }
 
@@ -216,7 +217,7 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         }
     }
 
-    private class RandomUpdateGenerator extends PrefetchingIterator<ValueIndexEntryUpdate> {
+    private class RandomUpdateGenerator extends PrefetchingIterator<EagerValueIndexEntryUpdate> {
         private final Iterator<Value> valueIterator;
         private long currentEntityId;
 
@@ -225,7 +226,7 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         }
 
         @Override
-        protected ValueIndexEntryUpdate fetchNextOrNull() {
+        protected EagerValueIndexEntryUpdate fetchNextOrNull() {
             Value value = valueIterator.next();
             return add(currentEntityId++, value);
         }

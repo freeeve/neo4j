@@ -37,10 +37,10 @@ import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.api.index.SwallowingIndexUpdater;
 import org.neo4j.scheduler.JobHandle;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 
 /**
@@ -64,7 +64,7 @@ public interface IndexPopulator extends MinimalIndexAccessor {
      * Implementations verify constraints at this time.
      *
      * @param updates batch of index updates (entity property updates or entity token updates) that needs to be inserted.
-     * Depending on the type of index the updates will be  {@link ValueIndexEntryUpdate property value index updates}
+     * Depending on the type of index the updates will be  {@link EagerValueIndexEntryUpdate property value index updates}
      * or {@link TokenIndexEntryUpdate token index updates}.
      * @param cursorContext underlying page cache events tracer
      * @throws IndexEntryConflictException if this is a uniqueness index and any of the updates are detected

@@ -19,12 +19,13 @@
  */
 package org.neo4j.kernel.api.index;
 
-import org.neo4j.storageengine.api.EntityUpdates;
+import org.neo4j.storageengine.api.LazyEntityUpdates;
 
-class EntityTokenUpdatesTest
-        extends AbstractEntityTokenUpdatesTest<EntityUpdates.PropertyValue, EntityUpdates, EntityUpdates.Builder> {
+class LazyEntityTokenUpdatesTest
+        extends AbstractEntityTokenUpdatesTest<
+                LazyEntityUpdates.PropertyValueSupplier, LazyEntityUpdates, LazyEntityUpdates.Builder> {
     @Override
-    EntityUpdates.Builder forEntity(long entityId, boolean isNode) {
-        return EntityUpdates.forEntity(entityId, isNode);
+    LazyEntityUpdates.Builder forEntity(long entityId, boolean isNode) {
+        return LazyEntityUpdates.forEntity(entityId, isNode);
     }
 }

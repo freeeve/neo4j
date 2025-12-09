@@ -33,17 +33,17 @@ import org.neo4j.internal.indexcommand.TokenIndexUpdateCommand;
 import org.neo4j.internal.indexcommand.ValueIndexUpdateCommand;
 import org.neo4j.internal.recordstorage.RecordState;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 
 public class IndexRecordState implements RecordState, IndexUpdatesState {
 
     private final IndexCommandSerialization serialization;
     private final List<TokenIndexEntryUpdate> tokenIndexUpdates = new ArrayList<>();
-    private final Map<IndexEntityPair, ValueIndexEntryUpdate> valueIndexUpdates = new HashMap<>();
+    private final Map<IndexEntityPair, EagerValueIndexEntryUpdate> valueIndexUpdates = new HashMap<>();
 
     public IndexRecordState(IndexCommandSerialization serialization) {
         this.serialization = serialization;
@@ -106,12 +106,12 @@ public class IndexRecordState implements RecordState, IndexUpdatesState {
     }
 
     @Override
-    public void putValueUpdate(IndexEntityPair key, ValueIndexEntryUpdate update) {
+    public void putValueUpdate(IndexEntityPair key, EagerValueIndexEntryUpdate update) {
         valueIndexUpdates.put(key, update);
     }
 
     @Override
-    public ValueIndexEntryUpdate getValueUpdate(IndexEntityPair key) {
+    public EagerValueIndexEntryUpdate getValueUpdate(IndexEntityPair key) {
         return valueIndexUpdates.get(key);
     }
 

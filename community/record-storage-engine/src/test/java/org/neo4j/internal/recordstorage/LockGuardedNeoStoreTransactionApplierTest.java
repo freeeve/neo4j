@@ -82,10 +82,10 @@ import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.kernel.impl.store.record.SchemaRecord;
 import org.neo4j.lock.LockGroup;
 import org.neo4j.lock.LockService;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
 import org.neo4j.storageengine.util.IdUpdateListener;
@@ -732,7 +732,7 @@ class LockGuardedNeoStoreTransactionApplierTest {
         IndexUpdates indexEntryUpdates = batchContext.indexUpdates();
         ((OnlineIndexUpdates) indexEntryUpdates)
                 .getUpdates()
-                .add(ValueIndexEntryUpdate.add(1, IndexDescriptor.NO_INDEX));
+                .add(EagerValueIndexEntryUpdate.add(1, IndexDescriptor.NO_INDEX));
 
         assertTrue(batchContext.hasUpdates());
 
@@ -762,7 +762,7 @@ class LockGuardedNeoStoreTransactionApplierTest {
         IndexUpdates indexEntryUpdates = batchContext.indexUpdates();
         ((OnlineIndexUpdates) indexEntryUpdates)
                 .getUpdates()
-                .add(ValueIndexEntryUpdate.add(1, IndexDescriptor.NO_INDEX));
+                .add(EagerValueIndexEntryUpdate.add(1, IndexDescriptor.NO_INDEX));
 
         assertTrue(batchContext.hasUpdates());
 

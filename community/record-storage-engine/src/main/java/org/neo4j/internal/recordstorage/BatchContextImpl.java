@@ -97,9 +97,7 @@ public class BatchContextImpl implements BatchContext {
     public void applyPendingIndexUpdates() throws IOException {
         if (hasUpdates()) {
             try (IndexUpdatesWorkSync.Batch indexUpdatesBatch = indexUpdatesSync.newBatch(cursorContext)) {
-                indexUpdatesBatch.indexUpdates(indexUpdates);
-            } finally {
-                indexUpdates.reset();
+                indexUpdatesBatch.indexUpdates(indexUpdates.updates());
             }
         }
     }

@@ -57,8 +57,8 @@ import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -144,7 +144,7 @@ class TextIndexPopulatingUpdaterIT {
     final void shouldIgnoreAddedUnsupportedValueTypes(LuceneContext luceneContext) throws Exception {
         // given  the population of an empty index
         final var externalUpdates =
-                generateUpdates(10, id -> ValueIndexEntryUpdate.add(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
+                generateUpdates(10, id -> EagerValueIndexEntryUpdate.add(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
         // when   processing the addition of unsupported value types
         // then   updates should not have been indexed
         test(luceneContext, List.of(), externalUpdates, 0);
@@ -154,8 +154,8 @@ class TextIndexPopulatingUpdaterIT {
     @EnumSource
     final void shouldIgnoreRemovedUnsupportedValueTypes(LuceneContext luceneContext) throws Exception {
         // given  the population of an empty index
-        final var externalUpdates =
-                generateUpdates(10, id -> ValueIndexEntryUpdate.remove(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
+        final var externalUpdates = generateUpdates(
+                10, id -> EagerValueIndexEntryUpdate.remove(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
         // when   processing the removal of unsupported value types
         // then   updates should not have been indexed
         test(luceneContext, List.of(), externalUpdates, 0);
@@ -167,7 +167,7 @@ class TextIndexPopulatingUpdaterIT {
         // given  the population of an empty index
         final var externalUpdates = generateUpdates(
                 10,
-                id -> ValueIndexEntryUpdate.change(
+                id -> EagerValueIndexEntryUpdate.change(
                         id, INDEX_DESCRIPTOR, unsupportedValue(id), unsupportedValue(id + 1)));
         // when   processing the change between unsupported value types
         // then   updates should not have been indexed
@@ -180,7 +180,9 @@ class TextIndexPopulatingUpdaterIT {
             throws Exception {
         // given  the population of an empty index
         final var externalUpdates = generateUpdates(
-                10, id -> ValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, unsupportedValue(id), supportedValue(id)));
+                10,
+                id -> EagerValueIndexEntryUpdate.change(
+                        id, INDEX_DESCRIPTOR, unsupportedValue(id), supportedValue(id)));
         // when   processing the change from an unsupported to a supported value type
         // then   updates should have been indexed as additions
         test(luceneContext, List.of(), externalUpdates, externalUpdates.size());
@@ -192,9 +194,11 @@ class TextIndexPopulatingUpdaterIT {
             throws Exception {
         // given  the population of an empty index
         final var internalUpdates =
-                generateUpdates(10, id1 -> ValueIndexEntryUpdate.add(id1, INDEX_DESCRIPTOR, supportedValue(id1)));
+                generateUpdates(10, id1 -> EagerValueIndexEntryUpdate.add(id1, INDEX_DESCRIPTOR, supportedValue(id1)));
         final var externalUpdates = generateUpdates(
-                10, id -> ValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, supportedValue(id), unsupportedValue(id)));
+                10,
+                id -> EagerValueIndexEntryUpdate.change(
+                        id, INDEX_DESCRIPTOR, supportedValue(id), unsupportedValue(id)));
         // when   processing the change from a supported to an unsupported value type
         // then   updates should have been indexed as removals
         test(luceneContext, internalUpdates, externalUpdates, 0);

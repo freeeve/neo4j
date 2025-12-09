@@ -125,8 +125,8 @@ import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 import org.neo4j.kernel.impl.store.record.SchemaRecord;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.CursorType;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.RandomSupport;
@@ -992,10 +992,10 @@ public class DetectRandomSabotageIT {
                         accessor.newUpdater(IndexUpdateMode.ONLINE_IDEMPOTENT, NULL_CONTEXT, false)) {
                     if (add) {
                         selectedEntityId = random.nextLong(SOME_WAY_TOO_HIGH_ID);
-                        updater.process(ValueIndexEntryUpdate.add(
+                        updater.process(EagerValueIndexEntryUpdate.add(
                                 selectedEntityId, indexProxy.getDescriptor(), selectedValues));
                     } else {
-                        updater.process(ValueIndexEntryUpdate.remove(
+                        updater.process(EagerValueIndexEntryUpdate.remove(
                                 selectedEntityId, indexProxy.getDescriptor(), selectedValues));
                     }
                 }

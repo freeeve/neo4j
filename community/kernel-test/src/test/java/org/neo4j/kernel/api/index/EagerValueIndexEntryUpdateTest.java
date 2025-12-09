@@ -21,16 +21,9 @@ package org.neo4j.kernel.api.index;
 
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
-import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.values.storable.Value;
 
-class EntityValueUpdatesTest
-        extends AbstractEntityValueUpdatesTest<EntityUpdates.PropertyValue, EntityUpdates, EntityUpdates.Builder> {
-    @Override
-    EntityUpdates.Builder forEntity(long entityId, boolean isNode) {
-        return EntityUpdates.forEntity(entityId, isNode);
-    }
-
+class EagerValueIndexEntryUpdateTest extends AbstractValueIndexEntryUpdateTest {
     @Override
     EagerValueIndexEntryUpdate add(long entityId, IndexDescriptor indexKey, Value... values) {
         return EagerValueIndexEntryUpdate.add(entityId, indexKey, values);

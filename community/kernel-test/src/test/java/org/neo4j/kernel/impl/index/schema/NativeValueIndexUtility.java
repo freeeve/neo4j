@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.index.internal.gbptree.Seeker;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.values.storable.ValueGroup;
 
 public class NativeValueIndexUtility<KEY extends NativeIndexKey<KEY>> {
@@ -43,7 +43,7 @@ public class NativeValueIndexUtility<KEY extends NativeIndexKey<KEY>> {
         this.layout = layout;
     }
 
-    void verifyUpdates(ValueIndexEntryUpdate[] updates, Supplier<GBPTree<KEY, NullValue>> treeProvider)
+    void verifyUpdates(EagerValueIndexEntryUpdate[] updates, Supplier<GBPTree<KEY, NullValue>> treeProvider)
             throws IOException {
         List<KEY> expectedHits = convertToHits(updates, layout);
         List<KEY> actualHits = new ArrayList<>();
@@ -85,9 +85,9 @@ public class NativeValueIndexUtility<KEY extends NativeIndexKey<KEY>> {
         return intoKey;
     }
 
-    private List<KEY> convertToHits(ValueIndexEntryUpdate[] updates, Layout<KEY, NullValue> layout) {
+    private List<KEY> convertToHits(EagerValueIndexEntryUpdate[] updates, Layout<KEY, NullValue> layout) {
         List<KEY> hits = new ArrayList<>(updates.length);
-        for (ValueIndexEntryUpdate u : updates) {
+        for (EagerValueIndexEntryUpdate u : updates) {
             KEY key = layout.newKey();
             key.initialize(u.getEntityId());
             for (int i = 0; i < u.values().length; i++) {

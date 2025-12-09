@@ -179,6 +179,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.logging.log4j.Log4jLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.ThreadSafePeakMemoryTracker;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.LogMetadataProvider;
@@ -613,7 +614,7 @@ public class FullCheckIntegrationTest {
                         EntityUpdates updates = fixture.nodeAsUpdates(nodeId);
                         for (IndexEntryUpdate update :
                                 updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
-                            updater.process(ValueIndexEntryUpdate.remove(
+                            updater.process(EagerValueIndexEntryUpdate.remove(
                                     nodeId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                         }
                     }
@@ -644,7 +645,7 @@ public class FullCheckIntegrationTest {
                         EntityUpdates updates = fixture.relationshipAsUpdates(relId);
                         for (IndexEntryUpdate update :
                                 updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
-                            updater.process(ValueIndexEntryUpdate.remove(
+                            updater.process(EagerValueIndexEntryUpdate.remove(
                                     relId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                         }
                     }
@@ -674,7 +675,7 @@ public class FullCheckIntegrationTest {
             if (indexDescriptor.schema().entityType() == EntityType.NODE && !indexDescriptor.isUnique()) {
                 IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                    updater.process(ValueIndexEntryUpdate.add(newNode, indexDescriptor, values(indexDescriptor)));
+                    updater.process(EagerValueIndexEntryUpdate.add(newNode, indexDescriptor, values(indexDescriptor)));
                 }
             }
         }
@@ -701,7 +702,7 @@ public class FullCheckIntegrationTest {
             if (indexDescriptor.schema().entityType() == EntityType.RELATIONSHIP && !indexDescriptor.isUnique()) {
                 IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                    updater.process(ValueIndexEntryUpdate.add(newRel, indexDescriptor, values(indexDescriptor)));
+                    updater.process(EagerValueIndexEntryUpdate.add(newRel, indexDescriptor, values(indexDescriptor)));
                 }
             }
         }
@@ -731,7 +732,7 @@ public class FullCheckIntegrationTest {
             if (indexDescriptor.schema().entityType() == EntityType.NODE && !indexDescriptor.isUnique()) {
                 IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                    updater.process(ValueIndexEntryUpdate.change(
+                    updater.process(EagerValueIndexEntryUpdate.change(
                             id.get(), indexDescriptor, values(indexDescriptor), otherValues(indexDescriptor)));
                 }
             }
@@ -765,7 +766,7 @@ public class FullCheckIntegrationTest {
             if (indexDescriptor.schema().entityType() == EntityType.RELATIONSHIP) {
                 IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                    updater.process(ValueIndexEntryUpdate.change(
+                    updater.process(EagerValueIndexEntryUpdate.change(
                             id.get(), indexDescriptor, values(indexDescriptor), otherValues(indexDescriptor)));
                 }
             }
@@ -806,7 +807,7 @@ public class FullCheckIntegrationTest {
 
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
                     // There is already another node (created in generateInitialData()) that has this value
-                    updater.process(ValueIndexEntryUpdate.add(nodeId, indexDescriptor, values(indexDescriptor)));
+                    updater.process(EagerValueIndexEntryUpdate.add(nodeId, indexDescriptor, values(indexDescriptor)));
                 }
                 accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             }

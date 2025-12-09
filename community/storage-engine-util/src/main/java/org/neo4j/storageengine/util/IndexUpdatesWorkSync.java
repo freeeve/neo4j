@@ -56,7 +56,7 @@ public class IndexUpdatesWorkSync {
     }
 
     public class Batch implements IndexUpdatesListener {
-        private final List<Iterable<IndexEntryUpdate>> updates = new ArrayList<>();
+        private final List<List<IndexEntryUpdate>> updates = new ArrayList<>();
         private final CursorContext cursorContext;
         private List<IndexEntryUpdate> singleUpdates;
         private AsyncApply apply;
@@ -65,8 +65,15 @@ public class IndexUpdatesWorkSync {
             this.cursorContext = cursorContext;
         }
 
+        /**
+         * {@inheritDoc}
+         * <p>
+         * When applying the updates later during {@link #close()},
+         * elements from the {@code indexUpdates} list will be nulled while iterating over the list.
+         * This is to reduce memory retention.
+         */
         @Override
-        public void indexUpdates(Iterable<IndexEntryUpdate> indexUpdates) {
+        public void indexUpdates(List<IndexEntryUpdate> indexUpdates) {
             updates.add(indexUpdates);
         }
 
@@ -142,11 +149,11 @@ public class IndexUpdatesWorkSync {
      * Combines index updates from multiple transactions into one bigger job.
      */
     private static class IndexUpdatesWork implements Work<IndexUpdateListener, IndexUpdatesWork> {
-        record OneWork(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext) {}
+        record OneWork(Iterator<IndexEntryUpdate> updates, CursorContext cursorContext) {}
 
         private final List<OneWork> works = new ArrayList<>(1);
 
-        IndexUpdatesWork(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext) {
+        IndexUpdatesWork(Iterator<IndexEntryUpdate> updates, CursorContext cursorContext) {
             works.add(new OneWork(updates, cursorContext));
         }
 
@@ -168,11 +175,30 @@ public class IndexUpdatesWorkSync {
         }
     }
 
-    private static Iterable<IndexEntryUpdate> combinedUpdates(List<Iterable<IndexEntryUpdate>> updates) {
-        return () -> new NestingIterator<>(updates.iterator()) {
+    private static <T> Iterator<T> combinedUpdates(List<List<T>> updates) {
+        return new NestingIterator<>(listNullingIterator(updates)) {
             @Override
-            protected Iterator<IndexEntryUpdate> createNestedIterator(Iterable<IndexEntryUpdate> item) {
-                return item.iterator();
+            protected Iterator<T> createNestedIterator(List<T> list) {
+                return listNullingIterator(list);
+            }
+        };
+    }
+
+    private static <T> Iterator<T> listNullingIterator(List<T> list) {
+        return new Iterator<>() {
+            private final Iterator<T> delegate = list.iterator();
+            private int index = 0;
+
+            @Override
+            public boolean hasNext() {
+                return delegate.hasNext();
+            }
+
+            @Override
+            public T next() {
+                T next = delegate.next();
+                list.set(index++, null);
+                return next;
             }
         };
     }

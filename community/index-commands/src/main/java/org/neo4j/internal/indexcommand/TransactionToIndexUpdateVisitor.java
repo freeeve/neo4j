@@ -22,10 +22,10 @@ package org.neo4j.internal.indexcommand;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 import static org.neo4j.common.EntityType.NODE;
 import static org.neo4j.internal.schema.SchemaDescriptors.forAnyEntityTokens;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.change;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.remove;
 import static org.neo4j.storageengine.api.TokenIndexEntryUpdate.tokenChange;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.change;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
 
 import java.util.Arrays;
 import org.eclipse.collections.api.set.primitive.IntSet;
@@ -37,9 +37,9 @@ import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationExcep
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.StorageNodeCursor;
 import org.neo4j.storageengine.api.StorageReader;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.api.txstate.EntityChange;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
@@ -107,18 +107,18 @@ public abstract sealed class TransactionToIndexUpdateVisitor extends TxStateVisi
             IndexDescriptor descriptor, long entityId, ValueTuple values, EntityChange entityChange) {
         super.visitValueIndexUpdate(descriptor, entityId, values, entityChange);
         var key = new IndexUpdatesState.IndexEntityPair(descriptor.getId(), entityId);
-        ValueIndexEntryUpdate existingUpdate = indexUpdatesState.getValueUpdate(key);
+        EagerValueIndexEntryUpdate existingUpdate = indexUpdatesState.getValueUpdate(key);
 
         var update = getValueUpdate(descriptor, entityId, values, entityChange, existingUpdate);
         indexUpdatesState.putValueUpdate(key, update);
     }
 
-    private ValueIndexEntryUpdate getValueUpdate(
+    private EagerValueIndexEntryUpdate getValueUpdate(
             IndexDescriptor descriptor,
             long entityId,
             ValueTuple values,
             EntityChange entityChange,
-            ValueIndexEntryUpdate existingUpdate) {
+            EagerValueIndexEntryUpdate existingUpdate) {
         if (entityChange == EntityChange.ADDED) {
             return existingUpdate == null
                     ? add(entityId, descriptor, values.getValues())

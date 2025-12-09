@@ -64,9 +64,9 @@ import static org.neo4j.kernel.impl.store.record.RecordLoad.NORMAL;
 import static org.neo4j.lock.LockTracer.NONE;
 import static org.neo4j.lock.LockType.EXCLUSIVE;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.remove;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.INTERNAL;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -141,6 +141,7 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandReader;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.RelationshipDirection;
@@ -148,7 +149,6 @@ import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.StorageReader;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
 import org.neo4j.test.LatestVersions;
@@ -585,9 +585,9 @@ class TransactionRecordStateTest {
         // THEN
         assertEquals(
                 asSet(
-                        ValueIndexEntryUpdate.change(nodeId, rule1, value1, newValue1),
-                        ValueIndexEntryUpdate.change(nodeId, rule2, value2, newValue2),
-                        ValueIndexEntryUpdate.change(
+                        EagerValueIndexEntryUpdate.change(nodeId, rule1, value1, newValue1),
+                        EagerValueIndexEntryUpdate.change(nodeId, rule2, value2, newValue2),
+                        EagerValueIndexEntryUpdate.change(
                                 nodeId, rule3, array(value1, value2), array(newValue1, newValue2))),
                 asSet(single(indexUpdates)));
     }
@@ -1785,7 +1785,7 @@ class TransactionRecordStateTest {
                 storeCursors);
         onlineIndexUpdates.feed(
                 extractor.getNodeCommands(), extractor.getRelationshipCommands(), CommandSelector.NORMAL);
-        updates.add(onlineIndexUpdates);
+        updates.add(onlineIndexUpdates.updates());
         reader.close();
         return updates;
     }

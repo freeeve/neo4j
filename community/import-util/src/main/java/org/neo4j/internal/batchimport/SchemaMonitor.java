@@ -28,9 +28,9 @@ import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.batchimport.api.input.ApplicationMode;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.StorageProperty;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 
 public interface SchemaMonitor extends AutoCloseable {
@@ -57,7 +57,7 @@ public interface SchemaMonitor extends AutoCloseable {
         }
 
         @Override
-        public boolean checkUniqueness(ValueIndexEntryUpdate[] checks) {
+        public boolean checkUniqueness(EagerValueIndexEntryUpdate[] checks) {
             return true;
         }
 
@@ -67,12 +67,12 @@ public interface SchemaMonitor extends AutoCloseable {
 
     UniquenessIndexUpdatesListener EMPTY_UNIQUENESS_UPDATES_LISTENER = new UniquenessIndexUpdatesListener() {
         @Override
-        public boolean shouldApply(ValueIndexEntryUpdate update) {
+        public boolean shouldApply(EagerValueIndexEntryUpdate update) {
             return true;
         }
 
         @Override
-        public void updates(List<ValueIndexEntryUpdate> updates) {}
+        public void updates(List<EagerValueIndexEntryUpdate> updates) {}
 
         @Override
         public void endEntity() {}
@@ -119,7 +119,7 @@ public interface SchemaMonitor extends AutoCloseable {
      * @param checks index updates to check.
      * @return {@code true} if no checks would violate a uniqueness constraint, otherwise {@code false}.
      */
-    boolean checkUniqueness(ValueIndexEntryUpdate[] checks);
+    boolean checkUniqueness(EagerValueIndexEntryUpdate[] checks);
 
     @Override
     void close();
@@ -364,9 +364,9 @@ public interface SchemaMonitor extends AutoCloseable {
     }
 
     interface UniquenessIndexUpdatesListener {
-        boolean shouldApply(ValueIndexEntryUpdate update);
+        boolean shouldApply(EagerValueIndexEntryUpdate update);
 
-        void updates(List<ValueIndexEntryUpdate> updates);
+        void updates(List<EagerValueIndexEntryUpdate> updates);
 
         void endEntity();
     }

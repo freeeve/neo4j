@@ -22,15 +22,16 @@ package org.neo4j.kernel.impl.api.index;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.internal.helpers.collection.Iterators.iterator;
 import static org.neo4j.internal.kernel.api.InternalIndexState.ONLINE;
 import static org.neo4j.internal.kernel.api.InternalIndexState.POPULATING;
 import static org.neo4j.internal.schema.IndexPrototype.uniqueForSchema;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.EagerValueIndexEntryUpdate.add;
 import static org.neo4j.values.storable.Values.longValue;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
@@ -128,7 +129,7 @@ public class IndexingServiceIntegrationTest {
             var kernelTransaction = ((InternalTransaction) transaction).kernelTransaction();
             var indexDescriptor = kernelTransaction.schemaRead().indexGetForName(testConstraint);
             try (var cursorContext = contextFactory.create("tracePageCacheAccessOnIndexUpdatesApply")) {
-                Iterable<IndexEntryUpdate> updates = List.of(add(1, indexDescriptor, longValue(4)));
+                Iterator<IndexEntryUpdate> updates = iterator(add(1, indexDescriptor, longValue(4)));
                 indexingService.applyUpdates(updates, cursorContext, false);
 
                 PageCursorTracer cursorTracer = cursorContext.getCursorTracer();

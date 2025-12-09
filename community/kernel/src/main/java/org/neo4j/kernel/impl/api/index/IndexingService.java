@@ -23,9 +23,9 @@ import static java.lang.String.format;
 import static org.neo4j.common.EntityType.NODE;
 import static org.neo4j.common.EntityType.RELATIONSHIP;
 import static org.neo4j.common.Subject.SYSTEM;
-import static org.neo4j.internal.helpers.collection.Iterables.asList;
 import static org.neo4j.internal.helpers.collection.Iterators.asResourceIterator;
 import static org.neo4j.internal.helpers.collection.Iterators.iterator;
+import static org.neo4j.internal.helpers.collection.Iterators.loop;
 import static org.neo4j.internal.kernel.api.InternalIndexState.FAILED;
 import static org.neo4j.internal.kernel.api.InternalIndexState.ONLINE;
 import static org.neo4j.internal.kernel.api.InternalIndexState.POPULATING;
@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -640,7 +641,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
      * @throws KernelException potentially thrown from index updating.
      */
     @Override
-    public void applyUpdates(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel)
+    public void applyUpdates(Iterator<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel)
             throws KernelException {
         if (state == State.NOT_STARTED) {
             // We're in recovery, which means we'll be telling indexes to apply with additional care for making
@@ -650,12 +651,12 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
             apply(updates, IndexUpdateMode.ONLINE, cursorContext, parallel);
         } else {
             throw new IllegalStateException(
-                    "Can't apply index updates " + asList(updates) + " while indexing service is " + state);
+                    "Can't apply index updates " + Iterators.asList(updates) + " while indexing service is " + state);
         }
     }
 
     private void apply(
-            Iterable<IndexEntryUpdate> updates,
+            Iterator<IndexEntryUpdate> updates,
             IndexUpdateMode updateMode,
             CursorContext cursorContext,
             boolean parallel)
@@ -664,7 +665,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
             // For parallel updates split updates by index and for all updates for each index: open updater,
             // apply updates and then close the updater. This removes a potential deadlock where open updaters
             // may hold on to internal index btree node latches, causing deadlocks.
-            for (var entry : LazyIterate.adapt(updates)
+            for (var entry : LazyIterate.adapt(loop(updates))
                     .groupBy(IndexEntryUpdate::indexKey)
                     .keyMultiValuePairsView()) {
                 var indexProxy = indexMapRef.getIndexProxy(entry.getOne());
@@ -678,7 +679,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
             }
         } else {
             try (IndexUpdaterMap updaterMap = indexMapRef.createIndexUpdaterMap(updateMode, false)) {
-                for (var indexUpdate : updates) {
+                for (var indexUpdate : loop(updates)) {
                     processUpdate(updaterMap, indexUpdate, cursorContext);
                 }
             }

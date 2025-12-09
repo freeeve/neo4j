@@ -68,11 +68,11 @@ import org.neo4j.lock.LockService;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.scheduler.JobSchedulerExtension;
+import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageReader;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.InMemoryTokens;
 import org.neo4j.test.extension.Inject;
@@ -124,7 +124,7 @@ public class BatchingMultipleIndexPopulatorTest {
 
         assertThat(batchingPopulator.needToApplyExternalUpdates()).isFalse();
 
-        verify(updater, never()).process(any(ValueIndexEntryUpdate.class));
+        verify(updater, never()).process(any(EagerValueIndexEntryUpdate.class));
         verify(populator, never()).newPopulatingUpdater(any());
     }
 

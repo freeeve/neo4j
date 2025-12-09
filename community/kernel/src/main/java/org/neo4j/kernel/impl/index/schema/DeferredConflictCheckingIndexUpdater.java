@@ -79,10 +79,9 @@ public class DeferredConflictCheckingIndexUpdater implements IndexUpdater {
 
     @Override
     public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
-        var valueUpdate = asValueUpdate(update);
-        actual.process(valueUpdate);
-        if (valueUpdate.updateMode() != REMOVED) {
-            touchedTuples.add(ValueTuple.of(valueUpdate.values()));
+        actual.process(update);
+        if (update.updateMode() != REMOVED) {
+            touchedTuples.add(ValueTuple.of(asValueUpdate(update).values()));
         }
     }
 

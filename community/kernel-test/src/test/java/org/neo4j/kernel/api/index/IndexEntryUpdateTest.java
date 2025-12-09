@@ -30,28 +30,36 @@ import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
-class ValueIndexEntryUpdateTest {
-    private final Value[] multiValue = new Value[] {Values.of("value"), Values.of("value2")};
-    private final Value singleValue = Values.of("value");
+abstract class AbstractValueIndexEntryUpdateTest {
+    protected final Value[] multiValue = new Value[] {Values.of("value"), Values.of("value2")};
+    protected final Value singleValue = Values.of("value");
 
-    private static IndexDescriptor forLabel(int labelId, int... propertyIds) {
+    protected static IndexDescriptor forLabel(int labelId, int... propertyIds) {
         return IndexPrototype.forSchema(SchemaDescriptors.forLabel(labelId, propertyIds))
                 .withName("0")
                 .materialise(0);
     }
 
+    abstract ValueIndexEntryUpdate add(long entityId, IndexDescriptor indexKey, Value... values);
+
+    abstract ValueIndexEntryUpdate remove(long entityId, IndexDescriptor indexKey, Value... values);
+
+    abstract ValueIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, Value before, Value after);
+
+    abstract ValueIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, Value[] before, Value... after);
+
     @Test
     void indexEntryUpdatesShouldBeEqual() {
-        ValueIndexEntryUpdate a = ValueIndexEntryUpdate.add(0, forLabel(3, 4), singleValue);
-        ValueIndexEntryUpdate b = ValueIndexEntryUpdate.add(0, forLabel(3, 4), singleValue);
+        ValueIndexEntryUpdate a = add(0, forLabel(3, 4), singleValue);
+        ValueIndexEntryUpdate b = add(0, forLabel(3, 4), singleValue);
         assertThat(a).isEqualTo(b);
         assertThat(a.hashCode()).isEqualTo(b.hashCode());
     }
 
     @Test
     void addShouldRetainValues() {
-        ValueIndexEntryUpdate single = ValueIndexEntryUpdate.add(0, forLabel(3, 4), singleValue);
-        ValueIndexEntryUpdate multi = ValueIndexEntryUpdate.add(0, forLabel(3, 4, 5), multiValue);
+        ValueIndexEntryUpdate single = add(0, forLabel(3, 4), singleValue);
+        ValueIndexEntryUpdate multi = add(0, forLabel(3, 4, 5), multiValue);
         assertThat(single).isNotEqualTo(multi);
         assertThat(single.values()).isEqualTo(new Object[] {singleValue});
         assertThat(multi.values()).isEqualTo(multiValue);
@@ -59,8 +67,8 @@ class ValueIndexEntryUpdateTest {
 
     @Test
     void removeShouldRetainValues() {
-        ValueIndexEntryUpdate single = ValueIndexEntryUpdate.remove(0, forLabel(3, 4), singleValue);
-        ValueIndexEntryUpdate multi = ValueIndexEntryUpdate.remove(0, forLabel(3, 4, 5), multiValue);
+        ValueIndexEntryUpdate single = remove(0, forLabel(3, 4), singleValue);
+        ValueIndexEntryUpdate multi = remove(0, forLabel(3, 4, 5), multiValue);
         assertThat(single).isNotEqualTo(multi);
         assertThat(single.values()).isEqualTo(new Object[] {singleValue});
         assertThat(multi.values()).isEqualTo(multiValue);
@@ -68,26 +76,25 @@ class ValueIndexEntryUpdateTest {
 
     @Test
     void addShouldThrowIfAskedForChanged() {
-        ValueIndexEntryUpdate single = ValueIndexEntryUpdate.add(0, forLabel(3, 4), singleValue);
+        ValueIndexEntryUpdate single = add(0, forLabel(3, 4), singleValue);
         assertThrows(UnsupportedOperationException.class, single::beforeValues);
     }
 
     @Test
     void removeShouldThrowIfAskedForChanged() {
-        ValueIndexEntryUpdate single = ValueIndexEntryUpdate.remove(0, forLabel(3, 4), singleValue);
+        ValueIndexEntryUpdate single = remove(0, forLabel(3, 4), singleValue);
         assertThrows(UnsupportedOperationException.class, single::beforeValues);
     }
 
     @Test
     void updatesShouldEqualRegardlessOfCreationMethod() {
-        ValueIndexEntryUpdate singleAdd = ValueIndexEntryUpdate.add(0, forLabel(3, 4), singleValue);
+        ValueIndexEntryUpdate singleAdd = add(0, forLabel(3, 4), singleValue);
         Value[] singleAsArray = {singleValue};
-        ValueIndexEntryUpdate multiAdd = ValueIndexEntryUpdate.add(0, forLabel(3, 4), singleAsArray);
-        ValueIndexEntryUpdate singleRemove = ValueIndexEntryUpdate.remove(0, forLabel(3, 4), singleValue);
-        ValueIndexEntryUpdate multiRemove = ValueIndexEntryUpdate.remove(0, forLabel(3, 4), singleAsArray);
-        ValueIndexEntryUpdate singleChange = ValueIndexEntryUpdate.change(0, forLabel(3, 4), singleValue, singleValue);
-        ValueIndexEntryUpdate multiChange =
-                ValueIndexEntryUpdate.change(0, forLabel(3, 4), singleAsArray, singleAsArray);
+        ValueIndexEntryUpdate multiAdd = add(0, forLabel(3, 4), singleAsArray);
+        ValueIndexEntryUpdate singleRemove = remove(0, forLabel(3, 4), singleValue);
+        ValueIndexEntryUpdate multiRemove = remove(0, forLabel(3, 4), singleAsArray);
+        ValueIndexEntryUpdate singleChange = change(0, forLabel(3, 4), singleValue, singleValue);
+        ValueIndexEntryUpdate multiChange = change(0, forLabel(3, 4), singleAsArray, singleAsArray);
         assertThat(singleAdd).isEqualTo(multiAdd);
         assertThat(singleRemove).isEqualTo(multiRemove);
         assertThat(singleChange).isEqualTo(multiChange);
@@ -96,9 +103,9 @@ class ValueIndexEntryUpdateTest {
     @Test
     void changedShouldRetainValues() {
         Value singleAfter = Values.of("Hello");
-        ValueIndexEntryUpdate singleChange = ValueIndexEntryUpdate.change(0, forLabel(3, 4), singleValue, singleAfter);
+        ValueIndexEntryUpdate singleChange = change(0, forLabel(3, 4), singleValue, singleAfter);
         Value[] multiAfter = {Values.of("Hello"), Values.of("Hi")};
-        ValueIndexEntryUpdate multiChange = ValueIndexEntryUpdate.change(0, forLabel(3, 4, 5), multiValue, multiAfter);
+        ValueIndexEntryUpdate multiChange = change(0, forLabel(3, 4, 5), multiValue, multiAfter);
         assertThat(new Object[] {singleValue}).isEqualTo(singleChange.beforeValues());
         assertThat(new Object[] {singleAfter}).isEqualTo(singleChange.values());
         assertThat(multiValue).isEqualTo(multiChange.beforeValues());
