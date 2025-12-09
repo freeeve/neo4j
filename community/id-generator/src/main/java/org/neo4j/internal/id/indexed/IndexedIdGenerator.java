@@ -19,7 +19,6 @@
  */
 package org.neo4j.internal.id.indexed;
 
-import static java.util.Collections.emptySet;
 import static org.eclipse.collections.impl.block.factory.Comparators.naturalOrder;
 import static org.neo4j.collection.PrimitiveLongResourceCollections.count;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -27,6 +26,7 @@ import static org.neo4j.index.internal.gbptree.GBPTree.NO_HEADER_READER;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.index.internal.gbptree.StructureWriteLog.structureWriteLog;
 import static org.neo4j.internal.id.IdValidator.assertIdWithinMaxCapacity;
+import static org.neo4j.internal.id.indexed.EmptyPageSet.EMPTY_PAGE_SET;
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
 import static org.neo4j.io.pagecache.PageCacheOpenOptions.MULTI_VERSIONED;
 
@@ -359,7 +359,7 @@ public class IndexedIdGenerator implements IdGenerator {
                 .orElseThrow();
         this.maxId = maxId;
         this.monitor = monitor;
-        this.lockedPageRanges = isMultiVersioned(openOptions) ? ConcurrentHashMap.newKeySet() : emptySet();
+        this.lockedPageRanges = isMultiVersioned(openOptions) ? ConcurrentHashMap.newKeySet() : EMPTY_PAGE_SET;
 
         this.idsPerEntry = slotDistribution.idsPerEntry();
         this.layout = new IdRangeLayout(idsPerEntry);
