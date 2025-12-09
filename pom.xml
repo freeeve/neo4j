@@ -938,7 +938,6 @@
                 <ignoredUnusedDeclaredDependency>org.scala-lang:scala-reflect</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.json4s:json4s-native_${scala.binary.version}</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-macros</ignoredUnusedDeclaredDependency>
-                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-gql-status</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-rendering</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
               <ignoredUsedUndeclaredDependencies>
@@ -947,7 +946,7 @@
                 <ignoredUsedUndeclaredDependency>com.neo4j:*</ignoredUsedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredNonTestScopedDependencies>
-                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-gql-status</ignoredUnusedDeclaredDependency>
+                <ignoredNonTestScopedDependency>org.neo4j:neo4j-gql-status</ignoredNonTestScopedDependency>
                 <ignoredNonTestScopedDependency>org.json4s:json4s-native_${scala.binary.version}</ignoredNonTestScopedDependency>
               </ignoredNonTestScopedDependencies>
             </configuration>
