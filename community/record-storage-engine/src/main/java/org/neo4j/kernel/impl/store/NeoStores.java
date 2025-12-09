@@ -34,7 +34,6 @@ import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.diagnostics.DiagnosticsLogger;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.id.IdGeneratorFactory;
-import org.neo4j.internal.id.SchemaIdType;
 import org.neo4j.internal.recordstorage.RecordIdType;
 import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.io.async.AsyncBlockAccessor;
@@ -490,7 +489,7 @@ public class NeoStores implements AutoCloseable {
                         layout.schemaStore(),
                         layout.idSchemaStore(),
                         config,
-                        SchemaIdType.SCHEMA,
+                        RecordIdType.SCHEMA,
                         idGeneratorFactory,
                         pageCache,
                         pageCacheTracer,

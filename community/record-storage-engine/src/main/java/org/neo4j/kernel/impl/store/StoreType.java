@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import org.neo4j.internal.id.IdType;
-import org.neo4j.internal.id.SchemaIdType;
 import org.neo4j.internal.recordstorage.RecordIdType;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseFile;
 
@@ -46,7 +45,7 @@ public enum StoreType {
             return neoStores.createPropertyKeyTokenNamesStore();
         }
     },
-    PROPERTY_KEY_TOKEN(RecordDatabaseFile.PROPERTY_KEY_TOKEN_STORE, SchemaIdType.PROPERTY_KEY_TOKEN) {
+    PROPERTY_KEY_TOKEN(RecordDatabaseFile.PROPERTY_KEY_TOKEN_STORE, RecordIdType.PROPERTY_KEY_TOKEN) {
         @Override
         public CommonAbstractStore open(NeoStores neoStores) {
             return neoStores.createPropertyKeyTokenStore();
@@ -83,7 +82,7 @@ public enum StoreType {
             return neoStores.createRelationshipTypeTokenNamesStore();
         }
     },
-    RELATIONSHIP_TYPE_TOKEN(RecordDatabaseFile.RELATIONSHIP_TYPE_TOKEN_STORE, SchemaIdType.RELATIONSHIP_TYPE_TOKEN) {
+    RELATIONSHIP_TYPE_TOKEN(RecordDatabaseFile.RELATIONSHIP_TYPE_TOKEN_STORE, RecordIdType.RELATIONSHIP_TYPE_TOKEN) {
         @Override
         public CommonAbstractStore open(NeoStores neoStores) {
             return neoStores.createRelationshipTypeTokenStore();
@@ -95,13 +94,13 @@ public enum StoreType {
             return neoStores.createLabelTokenNamesStore();
         }
     },
-    LABEL_TOKEN(RecordDatabaseFile.LABEL_TOKEN_STORE, SchemaIdType.LABEL_TOKEN) {
+    LABEL_TOKEN(RecordDatabaseFile.LABEL_TOKEN_STORE, RecordIdType.LABEL_TOKEN) {
         @Override
         public CommonAbstractStore open(NeoStores neoStores) {
             return neoStores.createLabelTokenStore();
         }
     },
-    SCHEMA(RecordDatabaseFile.SCHEMA_STORE, SchemaIdType.SCHEMA) {
+    SCHEMA(RecordDatabaseFile.SCHEMA_STORE, RecordIdType.SCHEMA) {
         @Override
         public CommonAbstractStore open(NeoStores neoStores) {
             return neoStores.createSchemaStore();

@@ -27,7 +27,7 @@ import java.nio.file.Path;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.id.IdGeneratorFactory;
-import org.neo4j.internal.id.SchemaIdType;
+import org.neo4j.internal.recordstorage.RecordIdType;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -61,7 +61,7 @@ public class RelationshipTypeTokenStore extends TokenStore<RelationshipTypeToken
                 path,
                 idFile,
                 config,
-                SchemaIdType.RELATIONSHIP_TYPE_TOKEN,
+                RecordIdType.RELATIONSHIP_TYPE_TOKEN,
                 idGeneratorFactory,
                 pageCache,
                 pageCacheTracer,

@@ -27,7 +27,7 @@ import java.nio.file.Path;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.id.IdGeneratorFactory;
-import org.neo4j.internal.id.SchemaIdType;
+import org.neo4j.internal.recordstorage.RecordIdType;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -60,7 +60,7 @@ public class LabelTokenStore extends TokenStore<LabelTokenRecord> {
                 path,
                 idFile,
                 config,
-                SchemaIdType.LABEL_TOKEN,
+                RecordIdType.LABEL_TOKEN,
                 idGeneratorFactory,
                 pageCache,
                 pageCacheTracer,

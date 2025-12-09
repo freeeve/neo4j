@@ -33,4 +33,14 @@ public enum TestIdType implements IdType {
     public boolean highActivity() {
         return false;
     }
+
+    @Override
+    public boolean isSchemaType() {
+        return false;
+    }
+
+    @Override
+    public boolean respectsReservedId() {
+        return true;
+    }
 }

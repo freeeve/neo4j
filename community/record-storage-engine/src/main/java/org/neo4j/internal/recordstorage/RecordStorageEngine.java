@@ -63,7 +63,6 @@ import org.neo4j.internal.diagnostics.DiagnosticsLogger;
 import org.neo4j.internal.diagnostics.DiagnosticsManager;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.id.IdType;
-import org.neo4j.internal.id.SchemaIdType;
 import org.neo4j.internal.indexcommand.IndexUpdateCommand;
 import org.neo4j.internal.indexcommand.RelationshipBasedTransactionToIndexUpdateVisitor;
 import org.neo4j.internal.kernel.api.exceptions.TransactionApplyKernelException;
@@ -244,7 +243,6 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         this.lockVerificationFactory = LockVerificationFactory.select(config, multiVersion);
         this.idGeneratorWorkSyncs = new IdGeneratorUpdatesWorkSync(false);
         Stream.of(RecordIdType.values()).forEach(idType -> idGeneratorWorkSyncs.add(idGeneratorFactory.get(idType)));
-        Stream.of(SchemaIdType.values()).forEach(idType -> idGeneratorWorkSyncs.add(idGeneratorFactory.get(idType)));
 
         this.indexingBehaviour = new RecordStorageIndexingBehaviour(
                 neoStores.getNodeStore().getRecordsPerPage(),

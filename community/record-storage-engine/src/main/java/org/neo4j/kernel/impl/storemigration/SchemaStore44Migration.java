@@ -30,7 +30,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.internal.id.IdGeneratorFactory;
-import org.neo4j.internal.id.SchemaIdType;
+import org.neo4j.internal.recordstorage.RecordIdType;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
@@ -288,7 +288,7 @@ public class SchemaStore44Migration {
                 recordDatabaseLayout.schemaStore(),
                 recordDatabaseLayout.idSchemaStore(),
                 config,
-                SchemaIdType.SCHEMA,
+                RecordIdType.SCHEMA,
                 idGeneratorFactory,
                 pageCache,
                 pageCacheTracer,

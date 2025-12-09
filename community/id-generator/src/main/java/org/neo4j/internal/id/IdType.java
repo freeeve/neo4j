@@ -34,15 +34,11 @@ public interface IdType {
      * schema/token stores.
      */
     @SuppressWarnings("unused") // method is used as part of external recovery robustness tests
-    default boolean isSchemaType() {
-        return false;
-    }
+    boolean isSchemaType();
 
     /**
      * @return if this type respects the reserved ID contained within {@link IdValidator},
      * i.e. if {@code true} this reserved ID won't be used.
      */
-    default boolean respectsReservedId() {
-        return true;
-    }
+    boolean respectsReservedId();
 }

@@ -199,6 +199,16 @@ class RecoveryIT {
         }
 
         @Override
+        public boolean isSchemaType() {
+            return false;
+        }
+
+        @Override
+        public boolean respectsReservedId() {
+            return true;
+        }
+
+        @Override
         public boolean highActivity() {
             return false;
         }

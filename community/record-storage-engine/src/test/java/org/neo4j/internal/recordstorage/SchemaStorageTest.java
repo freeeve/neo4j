@@ -47,7 +47,6 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.id.IdGenerator;
 import org.neo4j.internal.id.IdType;
-import org.neo4j.internal.id.SchemaIdType;
 import org.neo4j.internal.kernel.api.exceptions.schema.DuplicateSchemaRuleException;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaRuleNotFoundException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
@@ -302,7 +301,7 @@ class SchemaStorageTest {
     private static IdType[] expectedUsedIdTypes(SchemaRule schemaRule) {
         var expectedIdTypes = new ArrayList<IdType>();
         expectedIdTypes.add(RecordIdType.PROPERTY);
-        expectedIdTypes.add(SchemaIdType.SCHEMA);
+        expectedIdTypes.add(RecordIdType.SCHEMA);
         if (schemaRule.getName().length() > 36) {
             expectedIdTypes.add(RecordIdType.STRING_BLOCK);
         }

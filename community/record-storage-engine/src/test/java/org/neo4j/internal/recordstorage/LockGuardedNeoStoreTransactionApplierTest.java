@@ -46,7 +46,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.id.IdGenerator;
 import org.neo4j.internal.id.IdType;
-import org.neo4j.internal.id.SchemaIdType;
 import org.neo4j.internal.recordstorage.Command.LabelTokenCommand;
 import org.neo4j.internal.recordstorage.Command.PropertyKeyTokenCommand;
 import org.neo4j.internal.recordstorage.Command.RelationshipTypeTokenCommand;
@@ -110,11 +109,11 @@ class LockGuardedNeoStoreTransactionApplierTest {
     private final RelationshipGroupStore relationshipGroupStore =
             mockedStore(RelationshipGroupStore.class, RecordIdType.RELATIONSHIP_GROUP);
     private final RelationshipTypeTokenStore relationshipTypeTokenStore =
-            mockedStore(RelationshipTypeTokenStore.class, SchemaIdType.RELATIONSHIP_TYPE_TOKEN);
-    private final LabelTokenStore labelTokenStore = mockedStore(LabelTokenStore.class, SchemaIdType.LABEL_TOKEN);
+            mockedStore(RelationshipTypeTokenStore.class, RecordIdType.RELATIONSHIP_TYPE_TOKEN);
+    private final LabelTokenStore labelTokenStore = mockedStore(LabelTokenStore.class, RecordIdType.LABEL_TOKEN);
     private final PropertyKeyTokenStore propertyKeyTokenStore =
-            mockedStore(PropertyKeyTokenStore.class, SchemaIdType.PROPERTY_KEY_TOKEN);
-    private final SchemaStore schemaStore = mockedStore(SchemaStore.class, SchemaIdType.SCHEMA);
+            mockedStore(PropertyKeyTokenStore.class, RecordIdType.PROPERTY_KEY_TOKEN);
+    private final SchemaStore schemaStore = mockedStore(SchemaStore.class, RecordIdType.SCHEMA);
     private final DynamicArrayStore dynamicLabelStore = mockedStore(DynamicArrayStore.class, RecordIdType.ARRAY_BLOCK);
     private final DynamicStringStore dynamicStringStore =
             mockedStore(DynamicStringStore.class, RecordIdType.STRING_BLOCK);

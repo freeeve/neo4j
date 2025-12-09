@@ -83,7 +83,6 @@ import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.id.ScanOnOpenReadOnlyIdGeneratorFactory;
-import org.neo4j.internal.id.SchemaIdType;
 import org.neo4j.internal.schema.IndexConfigCompleter;
 import org.neo4j.internal.schema.SchemaRule;
 import org.neo4j.internal.schema.SchemaState;
@@ -452,7 +451,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                     recordDatabaseLayout.schemaStore(),
                     recordDatabaseLayout.idSchemaStore(),
                     config,
-                    SchemaIdType.SCHEMA,
+                    RecordIdType.SCHEMA,
                     idGeneratorFactory,
                     pageCache,
                     pageCacheTracer,
