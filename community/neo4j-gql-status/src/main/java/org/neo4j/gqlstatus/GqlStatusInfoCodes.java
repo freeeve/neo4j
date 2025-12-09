@@ -3155,7 +3155,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I70(
             new GqlStatus("42I70"),
-            "In order to have a search clause, a match statement can only have one bound variable.",
+            "In order to have a search clause, a MATCH statement can only have one bound variable.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3163,7 +3163,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I71(
             new GqlStatus("42I71"),
-            "In order to have a search clause, a match statement can only have predicates on the bound node or relationship.",
+            "In order to have a search clause, a MATCH statement can only have predicates on the bound node or relationship.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3171,7 +3171,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I72(
             new GqlStatus("42I72"),
-            "In order to have a search clause, a match statement can only have a single node or relationship pattern and no selectors.",
+            "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,

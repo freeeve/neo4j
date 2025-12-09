@@ -2283,7 +2283,7 @@ object SemanticError {
   def searchWithMultipleBoundVariables(position: InputPosition): SemanticError = {
     SemanticError(
       GqlHelper.getGql42001_42I70(position.offset, position.line, position.column),
-      "In order to have a search clause, a match statement can only have one bound variable.",
+      "In order to have a search clause, a MATCH statement can only have one bound variable.",
       position
     )
   }
@@ -2291,7 +2291,7 @@ object SemanticError {
   def searchWithInvalidPredicates(position: InputPosition): SemanticError = {
     SemanticError(
       GqlHelper.getGql42001_42I71(position.offset, position.line, position.column),
-      "In order to have a search clause, a match statement can only have predicates on the bound variable.",
+      "In order to have a search clause, a MATCH statement can only have predicates on the bound variable.",
       position
     )
   }
@@ -2299,7 +2299,7 @@ object SemanticError {
   def searchWithTooComplexMatch(position: InputPosition): SemanticError = {
     SemanticError(
       GqlHelper.getGql42001_42I72(position.offset, position.line, position.column),
-      "In order to have a search clause, a match statement can only have a single node or relationship pattern and no selectors.",
+      "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
       position
     )
   }

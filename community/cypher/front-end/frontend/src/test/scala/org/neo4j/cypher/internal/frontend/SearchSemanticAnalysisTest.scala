@@ -1010,7 +1010,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearchWithRewriter().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I70(21 + optionalLength, 1, 22 + optionalLength),
-          "In order to have a search clause, a match statement can only have one bound variable.",
+          "In order to have a search clause, a MATCH statement can only have one bound variable.",
           p(21 + optionalLength, 1, 22 + optionalLength)
         )
       )
@@ -1029,7 +1029,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearchWithRewriter().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I70(7 + optionalLength, 1, 8 + optionalLength),
-          "In order to have a search clause, a match statement can only have one bound variable.",
+          "In order to have a search clause, a MATCH statement can only have one bound variable.",
           p(7 + optionalLength, 1, 8 + optionalLength)
         )
       )
@@ -1048,7 +1048,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearchWithRewriter().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I70(7 + optionalLength, 1, 8 + optionalLength),
-          "In order to have a search clause, a match statement can only have one bound variable.",
+          "In order to have a search clause, a MATCH statement can only have one bound variable.",
           p(7 + optionalLength, 1, 8 + optionalLength)
         )
       )
@@ -1080,7 +1080,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearchWithRewriter().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I70(27 + optionalLength, 1, 28 + optionalLength),
-          "In order to have a search clause, a match statement can only have one bound variable.",
+          "In order to have a search clause, a MATCH statement can only have one bound variable.",
           p(27 + optionalLength, 1, 28 + optionalLength)
         )
       )
@@ -1119,7 +1119,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
         runSearchWithRewriter().hasErrors(
           SemanticError(
             GqlHelper.getGql42001_42I71(offset + optionalLength, 1, offset + optionalLength + 1),
-            "In order to have a search clause, a match statement can only have predicates on the bound variable.",
+            "In order to have a search clause, a MATCH statement can only have predicates on the bound variable.",
             if (length.isDefined)
               InputPosition.withLength(offset + optionalLength, 1, offset + optionalLength + 1, length.get)
             else p(offset + optionalLength, 1, offset + optionalLength + 1)
@@ -1156,7 +1156,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
         runSearchWithRewriter().hasErrors(
           SemanticError(
             GqlHelper.getGql42001_42I71(offset + optionalLength, 1, offset + optionalLength + 1),
-            "In order to have a search clause, a match statement can only have predicates on the bound variable.",
+            "In order to have a search clause, a MATCH statement can only have predicates on the bound variable.",
             if (length.isDefined)
               InputPosition.withLength(offset + optionalLength, 1, offset + optionalLength + 1, length.get)
             else p(offset + optionalLength, 1, offset + optionalLength + 1)
@@ -1189,7 +1189,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
         runSearchWithRewriter().hasErrors(
           SemanticError(
             GqlHelper.getGql42001_42I72(offset + optionalLength, 1, offset + optionalLength + 1),
-            "In order to have a search clause, a match statement can only have a single node or relationship pattern and no selectors.",
+            "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
             p(offset + optionalLength, 1, offset + optionalLength + 1)
           )
         )
