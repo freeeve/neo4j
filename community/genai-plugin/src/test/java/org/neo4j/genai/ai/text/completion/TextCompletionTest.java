@@ -43,6 +43,7 @@ import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.ProviderArgs;
 import org.neo4j.genai.ai.ProviderArguments;
 import org.neo4j.genai.ai.text.completion.provider.azure.AzureOpenAi;
+import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockConverse;
 import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockNova;
 import org.neo4j.genai.ai.text.completion.provider.bedrock.BedrockTitan;
 import org.neo4j.genai.ai.text.completion.provider.openai.OpenAi;
@@ -82,6 +83,7 @@ public class TextCompletionTest implements GenAITestExtension {
                 new OpenAi(baseUrl),
                 new AzureOpenAi(p -> URI.create(baseUrl)),
                 new VertexAi(p -> URI.create(baseUrl)),
+                new BedrockConverse(p -> URI.create(baseUrl)),
                 new BedrockNova(p -> URI.create(baseUrl)),
                 new BedrockTitan(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
@@ -105,10 +107,11 @@ public class TextCompletionTest implements GenAITestExtension {
                     "optionalConfigType",
                     """
                     {
-                      vendorOptions :: MAP NOT NULL
+                      vendorOptions :: MAP NOT NULL,
+                      chatHistory :: LIST<ANY> NOT NULL
                     }""",
                     "defaultConfig",
-                    Map.of("vendorOptions", Map.of())),
+                    Map.of("vendorOptions", Map.of(), "chatHistory", List.of())),
             Map.of(
                     "name",
                     "Azure-OpenAI",
@@ -122,10 +125,11 @@ public class TextCompletionTest implements GenAITestExtension {
                     "optionalConfigType",
                     """
                     {
-                      vendorOptions :: MAP NOT NULL
+                      vendorOptions :: MAP NOT NULL,
+                      chatHistory :: LIST<ANY> NOT NULL
                     }""",
                     "defaultConfig",
-                    Map.of("vendorOptions", Map.of())),
+                    Map.of("vendorOptions", Map.of(), "chatHistory", List.of())),
             Map.of(
                     "name",
                     "VertexAI",
@@ -142,10 +146,30 @@ public class TextCompletionTest implements GenAITestExtension {
                       token :: STRING,
                       apiKey :: STRING,
                       publisher :: STRING NOT NULL,
-                      vendorOptions :: MAP NOT NULL
+                      vendorOptions :: MAP NOT NULL,
+                      chatHistory :: LIST<ANY> NOT NULL
                     }""",
                     "defaultConfig",
-                    Map.of("publisher", "google", "vendorOptions", Map.of())),
+                    Map.of("publisher", "google", "vendorOptions", Map.of(), "chatHistory", List.of())),
+            Map.of(
+                    "name",
+                    "Bedrock",
+                    "requiredConfigType",
+                    """
+                    {
+                      accessKeyId :: STRING NOT NULL,
+                      secretAccessKey :: STRING NOT NULL,
+                      region :: STRING NOT NULL,
+                      model :: STRING NOT NULL
+                    }""",
+                    "optionalConfigType",
+                    """
+                    {
+                      vendorOptions :: MAP NOT NULL,
+                      chatHistory :: LIST<ANY> NOT NULL
+                    }""",
+                    "defaultConfig",
+                    Map.of("vendorOptions", Map.of(), "chatHistory", List.of())),
             Map.of(
                     "name",
                     "Bedrock-Nova",
@@ -302,6 +326,19 @@ public class TextCompletionTest implements GenAITestExtension {
                 .singleElement(resultMap())
                 .containsEntry("result", "Bla bla bla... (openai)");
     }
+
+    @ParameterizedTest
+    @ArgumentsSource(ChatHistoryArguments.class)
+    void providerWithChatHistory(ProviderArgs args) {
+        final var query = """
+                %s
+                RETURN ai.text.completion('What country is Paris in?', '%s', conf) as result
+                """.formatted(args.conf(), args.provider());
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
+                .singleElement(resultMap())
+                .containsEntry("result", "Paris is in France.");
+    }
 }
 
 class RequiredConfArguments implements ProviderArguments {
@@ -324,6 +361,15 @@ class RequiredConfArguments implements ProviderArguments {
                         "{ model: 'arn:aws:bedrock:xxx:001:custom-model/custom.nova', modelType: 'amazon.nova', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
                 new ProviderArgs(
                         "bedrock-nova:foundation model by arn",
+                        "{ model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
+                new ProviderArgs(
+                        "bedrock:model by name",
+                        "{ model: 'eu.amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
+                new ProviderArgs(
+                        "bedrock:custom nova type model",
+                        "{ model: 'arn:aws:bedrock:xxx:001:custom-model/custom.nova', modelType: 'amazon.nova', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
+                new ProviderArgs(
+                        "bedrock:foundation model by arn",
                         "{ model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret' }"),
                 new ProviderArgs(
                         "bedrock-titan:model by name",
@@ -418,6 +464,42 @@ class AllOptionsArguments implements ProviderArguments {
                           }
                         }
                         """),
+                new ProviderArgs("bedrock:model by name", """
+                        {
+                          model: 'eu.amazon.nova-micro-v1:0',
+                          region: 'eu-north-1',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            system: [{ text: 'You are Kommendoran' }],
+                            inferenceConfig: { maxTokens: 1024 }
+                          }
+                        }
+                        """),
+                new ProviderArgs("bedrock:custom nova type model", """
+                        {
+                          model: 'arn:aws:bedrock:xxx:001:custom-model/custom.nova',
+                          region: 'eu-north-1',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            system: [{ text: 'You are Kommendoran' }],
+                            inferenceConfig: { maxTokens: 1024 }
+                          }
+                        }
+                        """),
+                new ProviderArgs("bedrock:foundation model by arn", """
+                        {
+                          model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-micro-v1:0',
+                          region: 'eu-north-1',
+                          accessKeyId: 'bedrock-key',
+                          secretAccessKey: 'secret',
+                          vendorOptions: {
+                            system: [{ text: 'You are Kommendoran' }],
+                            inferenceConfig: { maxTokens: 1024 }
+                          }
+                        }
+                        """),
                 new ProviderArgs("bedrock-titan:model by name", """
                         {
                           model: 'amazon.titan-text-lite-v2',
@@ -456,6 +538,73 @@ class AllOptionsArguments implements ProviderArguments {
                             }
                           }
                         }
+                        """));
+    }
+}
+
+class ChatHistoryArguments implements ProviderArguments {
+    @Override
+    public Stream<ProviderArgs> providers() {
+        return Stream.of(
+                new ProviderArgs("Azure-OpenAI", """
+                        WITH [
+                           {
+                             role: "user",
+                             content: "What is the capital of France?"
+                           },
+                           {
+                             role: "assistant",
+                             content: "The capital of France is Paris."
+                           }
+                         ] AS messageHistory
+                        WITH { token: 'dummy-azure-token', resource: 'dummy', model: 'gpt-5', chatHistory: messageHistory } AS conf
+                        """),
+                new ProviderArgs("OpenAI", """
+                        WITH [
+                           {
+                             role: "user",
+                             content: "What is the capital of France?"
+                           },
+                           {
+                             role: "assistant",
+                             content: "The capital of France is Paris."
+                           }
+                         ] AS messageHistory
+                        WITH { token: 'dummy-openai-token', model: 'gpt-5', chatHistory: messageHistory } AS conf
+                        """),
+                new ProviderArgs("VertexAI", """
+                        WITH [
+                           {
+                             role: "user",
+                             parts: [
+                               { text: "What is the capital of France?" }
+                             ]
+                           },
+                           {
+                             role: "model",
+                             parts: [
+                               { text: "The capital of France is Paris." }
+                             ]
+                           }
+                         ] AS messageHistory
+                        WITH { token: 'dummy-vertex-token', model: 'gemini-3', region: 'smaland', project: 'astrid', publisher: 'google', chatHistory: messageHistory } AS conf
+                        """),
+                new ProviderArgs("Bedrock", """
+                        WITH [
+                           {
+                             role: "user",
+                             content: [
+                               { text: "What is the capital of France?" }
+                             ]
+                           },
+                           {
+                             role: "assistant",
+                             content: [
+                               { text: "The capital of France is Paris." }
+                             ]
+                           }
+                         ] AS messageHistory
+                        WITH { model: 'eu.amazon.nova-micro-v1:0', region: 'eu-north-1', accessKeyId: 'bedrock-key', secretAccessKey: 'secret', chatHistory: messageHistory } AS conf
                         """));
     }
 }

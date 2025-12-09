@@ -130,8 +130,8 @@ public class VectorEmbeddingIT {
     }
 
     @Nested
-    @EnabledIfEnvironmentVariable(named = VectorEmbeddingIT.BedrockTitan.KEY, matches = ".*")
-    @EnabledIfEnvironmentVariable(named = VectorEmbeddingIT.BedrockTitan.SECRET, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.ACCESS_KEY_ENV, matches = ".*")
+    @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.SECRET_ACCESS_KEY_ENV, matches = ".*")
     class BedrockTitan extends VectorEmbeddingITBase {
         static final String KEY = "BEDROCK_KEY";
         static final String SECRET = "BEDROCK_SECRET_KEY";

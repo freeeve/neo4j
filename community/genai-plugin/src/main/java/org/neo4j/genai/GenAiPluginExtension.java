@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 import org.eclipse.collections.api.list.ImmutableList;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.function.ThrowingFunction;
+import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.util.HttpService;
@@ -67,6 +68,7 @@ public class GenAiPluginExtension extends ExtensionFactory<GenAiPluginExtension.
 
                 registerSafe(HttpService.class, httpService);
                 registerSafe(TextCompletion.Providers.class, TxtCompProv.from(httpService, providers));
+                registerSafe(TextChat.Providers.class, TxtChatProv.from(httpService, providers));
                 registerSafe(VectorEmbedding.Providers.class, VectorEncodingCompProv.from(httpService, providers));
 
                 // This component is used by metrics, can't use context.
@@ -108,6 +110,17 @@ record TxtCompProv(HttpServiceProvider httpService, ImmutableList<TextCompletion
 
     public static TxtCompProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
         return new TxtCompProv(httpService, globalProviders.providers(TextCompletion.Provider.class));
+    }
+}
+
+record TxtChatProv(HttpServiceProvider httpService, ImmutableList<TextChat.Provider> providers)
+        implements ProcedureProvider<TextChat.Providers> {
+    public TextChat.Providers apply(Context context) throws ProcedureException {
+        return new TextChat.Providers.Impl(providers, httpService.apply(context));
+    }
+
+    public static TxtChatProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
+        return new TxtChatProv(httpService, globalProviders.providers(TextChat.Provider.class));
     }
 }
 

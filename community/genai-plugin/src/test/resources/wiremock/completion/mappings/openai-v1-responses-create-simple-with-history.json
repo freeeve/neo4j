@@ -1,0 +1,48 @@
+{
+  "request": {
+    "urlPath": "/v1/responses",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-openai-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "model": "gpt-5",
+          "input": [
+            {
+              "content": "What is the capital of France?",
+              "role": "user"
+            },
+            {
+              "content": "The capital of France is Paris.",
+              "role": "assistant"
+            },
+            {
+              "role": "user",
+              "content": "What country is Paris in?"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "openai-v1-responses-create-response.json",
+    "transformers": [
+      "response-template"
+    ],
+    "transformerParameters": {
+      "answer": "Paris is in France."
+    }
+  }
+}

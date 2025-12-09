@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.text.completion.provider.openai;
+package org.neo4j.genai.ai.text.chat.provider.openai;
 
 import static org.neo4j.genai.util.HttpService.jsonBody;
 
@@ -28,16 +28,15 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.MutableMap;
-import org.neo4j.genai.ai.text.completion.TextCompletion;
+import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
-import org.neo4j.util.VisibleForTesting;
 
-public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementation {
-
+public interface OpenAiChatBase<PARAMS> extends TextChat.Provider.Implementation {
     URI endpoint();
 
     HttpService httpService();
@@ -48,11 +47,9 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
 
     void extendPayload(MutableMap<String, Object> payload);
 
-    List<Map<String, Object>> chatHistory();
-
     @Override
-    default String complete(String prompt) {
-        final var payload = payload(prompt);
+    default TextChat.ChatResult chat(String prompt, Optional<String> previousResponseId) {
+        final var payload = payload(List.of(prompt), previousResponseId);
         final var response = httpService()
                 .request(
                         endpoint(),
@@ -64,15 +61,15 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
                                 .headers(authHeader())
                                 .POST(jsonBody(payload))
                                 .build(),
-                        OpenAiBase::parseResponse);
-        if (response.size() != 1) {
-            throw new MalformedGenAIResponseException("Expected exactly one message, but found " + response.size());
+                        OpenAiChatBase::parseResponse);
+        if (response.messages().size() != 1) {
+            throw new MalformedGenAIResponseException("Expected exactly one message, but found "
+                    + response.messages().size());
         }
-        return response.getFirst();
+        return new TextChat.ChatResult(response.messages().getFirst(), response.id());
     }
 
-    @VisibleForTesting
-    private static List<String> parseResponse(InputStream inputStream) throws MalformedGenAIResponseException {
+    private static ParsedResponse parseResponse(InputStream inputStream) throws MalformedGenAIResponseException {
         final var response = JsonUtils.readValue(inputStream, ResponseModel.Response.class);
         final var messages = response.output().stream()
                 .filter(o -> "message".equals(o.type()))
@@ -80,50 +77,26 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
                 .filter(c -> "output_text".equals(c.type()))
                 .map(ResponseModel.Content::text)
                 .toList();
-        if (messages.isEmpty() && response.incomplete_details() != null) {
-            final var reason = response.incomplete_details().get("reason");
-            throw new MalformedGenAIResponseException(
-                    "Request to OpenAI failed due to: " + (reason == null ? "an unknown reason." : reason));
-        }
-        return messages;
+        return new ParsedResponse(response.id(), messages);
     }
 
-    private MutableMap<String, Object> payload(String prompt) {
+    private MutableMap<String, Object> payload(List<String> prompts, Optional<String> previousResponseId) {
         final var payload = Maps.mutable.<String, Object>empty();
         extendPayload(payload);
 
-        var chatHistory = chatHistory();
-        final Map<String, Object> newInput = Map.of("role", "user", "content", prompt);
+        final var messages = prompts.stream()
+                .map(prompt -> Map.of("role", "user", "content", prompt))
+                .toList();
+        payload.put("input", messages);
+        previousResponseId.ifPresent(id -> payload.put("previous_response_id", id));
 
-        List<Map<String, Object>> input;
-        if (chatHistory != null && !chatHistory.isEmpty()) {
-            input = chatHistory;
-            input.add(newInput);
-        } else {
-            input = List.of(newInput);
-        }
-
-        payload.put("input", input);
         return payload;
     }
 
+    record ParsedResponse(String id, List<String> messages) {}
+
     /*
-     * {
-     *   "incomplete_details": {
-     *      "reason": "reason"
-     *   },
-     *   "output": [
-     *     {
-     *       "type": "message",
-     *       "content": [
-     *           {
-     *             "type": "output_text",
-     *             "text": "Hello! How can I assist you today?",
-     *           }
-     *       ],
-     *     }
-     *   ],
-     * }
+     * Minimal subset of the OpenAI responses schema we care about
      */
     interface ResponseModel {
         @JsonIgnoreProperties(ignoreUnknown = true)
@@ -134,7 +107,7 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
 
         @JsonIgnoreProperties(ignoreUnknown = true)
         record Response(
-                @JsonProperty(required = true) List<Output> output,
-                @JsonProperty("incomplete_details") Map<String, String> incomplete_details) {}
+                @JsonProperty(required = true) String id,
+                @JsonProperty(required = true) List<Output> output) {}
     }
 }

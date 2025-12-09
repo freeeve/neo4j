@@ -1,0 +1,65 @@
+{
+  "request": {
+    "urlPathPattern": "^/model/eu.amazon.nova-micro-v1%3A0/converse$",
+    "method": "POST",
+    "headers": {
+      "Authorization": {
+        "matches": "^AWS4-HMAC-SHA256 Credential=bedrock-key/\\d{8}/eu-north-1/bedrock/aws4_request, SignedHeaders=host;user-agent;x-amz-content-sha256;x-amz-date, Signature=.{64}$"
+      },
+      "X-Amz-Date": {
+        "matches": "^\\d{8}T\\d{6}Z$"
+      },
+      "X-Amz-Content-Sha256": {
+        "matches": "^.{64}$"
+      },
+      "User-Agent": {
+        "equalTo": "Neo4j-GenAIProcedures/1.2.0"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "What is the capital of France?"
+                }
+              ],
+              "role": "user"
+            },
+            {
+              "content": [
+                {
+                  "text": "The capital of France is Paris."
+                }
+              ],
+              "role": "assistant"
+            },
+            {
+              "content": [
+                {
+                  "text": "What country is Paris in?"
+                }
+              ],
+              "role": "user"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "bedrock-nova-text-model-invoke-response.json",
+    "transformers": [
+      "response-template"
+    ],
+    "transformerParameters": {
+      "answer": "Paris is in France."
+    }
+  }
+}

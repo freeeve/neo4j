@@ -1,0 +1,47 @@
+{
+  "request": {
+    "urlPathPattern": "^/model/(\\Qeu.amazon.nova-micro-v1%3A0\\E|\\Qarn%3Aaws%3Abedrock%3Axxx%3A001%3Acustom-model%2Fcustom.nova\\E|\\Qarn%3Aaws%3Abedrock%3Aeu-north-1%3A%3Afoundation-model%2Famazon.nova-micro-v1%3A0\\E)/converse$",
+    "method": "POST",
+    "headers": {
+      "Authorization": {
+        "matches": "^AWS4-HMAC-SHA256 Credential=bedrock-key/\\d{8}/eu-north-1/bedrock/aws4_request, SignedHeaders=host;user-agent;x-amz-content-sha256;x-amz-date, Signature=.{64}$"
+      },
+      "X-Amz-Date": {
+        "matches": "^\\d{8}T\\d{6}Z$"
+      },
+      "X-Amz-Content-Sha256": {
+        "matches": "^.{64}$"
+      },
+      "User-Agent": {
+        "equalTo": "Neo4j-GenAIProcedures/1.2.0"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "text": "Hello!"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "bedrock-nova-text-model-invoke-response.json",
+    "transformers": ["response-template"],
+    "transformerParameters": {
+      "answer": "Bla bla bla... (bedrock)"
+    }
+  }
+}

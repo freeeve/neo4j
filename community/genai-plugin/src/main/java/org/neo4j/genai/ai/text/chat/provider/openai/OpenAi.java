@@ -17,23 +17,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.text.completion.provider.openai;
+package org.neo4j.genai.ai.text.chat.provider.openai;
 
 import static org.neo4j.genai.util.Parameters.parse;
 
 import java.net.URI;
-import java.util.List;
 import java.util.Map;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.GenAIConfig;
-import org.neo4j.genai.ai.text.completion.TextCompletion;
+import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.virtual.MapValue;
 
 @ServiceProvider
-public class OpenAi implements TextCompletion.Provider {
+public class OpenAi implements TextChat.Provider {
     private static final String DEFAULT_BASE_URL = "https://api.openai.com";
     private static final String DEFAULT_API_PATH = "/v1/responses";
     private final URI endpoint;
@@ -51,7 +50,6 @@ public class OpenAi implements TextCompletion.Provider {
         public String token;
         public String model;
         public Map<String, Object> vendorOptions = Map.of();
-        public List<Map<String, Object>> chatHistory = List.of();
     }
 
     @Override
@@ -65,8 +63,7 @@ public class OpenAi implements TextCompletion.Provider {
     }
 
     @Override
-    public TextCompletion.Provider.Implementation configure(
-            HttpService httpService, MapValue conf, GenAIConfig genAIConfig) {
+    public TextChat.Provider.Implementation configure(HttpService httpService, MapValue conf, GenAIConfig genAIConfig) {
         // We create the URI already with the base url (or with a testing one which we don't want to override here).
         String baseUrl = genAIConfig == null ? null : genAIConfig.getStringProperty(GenAIConfig.GENAI_OPENAI_BASE_URL);
         var newEndpoint =
@@ -76,8 +73,7 @@ public class OpenAi implements TextCompletion.Provider {
     }
 
     record Implementation(String name, URI endpoint, HttpService httpService, Parameters params)
-            implements OpenAiBase<Parameters> {
-
+            implements OpenAiChatBase<Parameters> {
         @Override
         public String[] authHeader() {
             return new String[] {"Authorization", "Bearer " + params.token};
@@ -87,11 +83,6 @@ public class OpenAi implements TextCompletion.Provider {
         public void extendPayload(MutableMap<String, Object> payload) {
             payload.putAll(params.vendorOptions); // Needs to be first to not override model
             payload.put("model", params.model);
-        }
-
-        @Override
-        public List<Map<String, Object>> chatHistory() {
-            return params.chatHistory;
         }
     }
 }

@@ -1,0 +1,59 @@
+{
+  "request": {
+    "urlPath": "/v1/projects/astrid/locations/smaland/publishers/google/models/gemini-3:generateContent",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-vertex-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "contents": [
+            {
+              "parts": [
+                {
+                  "text": "What is the capital of France?"
+                }
+              ],
+              "role": "user"
+            },
+            {
+              "parts": [
+                {
+                  "text": "The capital of France is Paris."
+                }
+              ],
+              "role": "model"
+            },
+            {
+              "parts": [
+                {
+                  "text": "What country is Paris in?"
+                }
+              ],
+              "role": "user"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "vertexai-v1-generate-content-response.json",
+    "transformers": [
+      "response-template"
+    ],
+    "transformerParameters": {
+      "answer": "Paris is in France."
+    }
+  }
+}

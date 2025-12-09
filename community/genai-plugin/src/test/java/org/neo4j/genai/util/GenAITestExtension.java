@@ -26,6 +26,7 @@ import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.InstanceOfAssertFactory;
 import org.assertj.core.api.MapAssert;
+import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.dbs.VectorDatabases;
@@ -45,6 +46,7 @@ public interface GenAITestExtension {
                 DeprecatedVectorEncoding.class,
                 VectorDatabases.class,
                 TextCompletion.class,
+                TextChat.class,
                 VectorEmbedding.class);
     }
 

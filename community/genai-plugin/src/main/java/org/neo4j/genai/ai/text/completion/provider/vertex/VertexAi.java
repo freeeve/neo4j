@@ -69,6 +69,7 @@ public class VertexAi implements TextCompletion.Provider {
         public String region;
         public String publisher = "google";
         public Map<String, Object> vendorOptions = Map.of();
+        public List<Map<String, Object>> chatHistory = List.of();
     }
 
     @Override
@@ -97,7 +98,7 @@ public class VertexAi implements TextCompletion.Provider {
 
         @Override
         public String complete(String prompt) {
-            final Object payload = buildPayload(List.of(prompt));
+            final Object payload = buildPayload(prompt);
 
             URI requestEndpoint = endpoint;
             if (params.apiKey.isPresent()) {
@@ -133,12 +134,19 @@ public class VertexAi implements TextCompletion.Provider {
                     .toList();
         }
 
-        private Map<String, Object> buildPayload(List<String> prompts) {
+        private Map<String, Object> buildPayload(String prompt) {
             final var payload = Maps.mutable.ofMap(params.vendorOptions);
-            final var contents = prompts.stream()
-                    .map(p -> Maps.immutable.of(
-                            "role", "user", "parts", Lists.immutable.of(Maps.immutable.of("text", p))))
-                    .toList();
+            final var newContent =
+                    Map.of("role", "user", "parts", Lists.immutable.of(Maps.immutable.of("text", prompt)));
+
+            List<Map<String, Object>> contents;
+            if (params.chatHistory != null && !params.chatHistory.isEmpty()) {
+                contents = params.chatHistory;
+                contents.add(newContent);
+            } else {
+                contents = List.of(newContent);
+            }
+
             payload.put("contents", contents);
             return payload;
         }
