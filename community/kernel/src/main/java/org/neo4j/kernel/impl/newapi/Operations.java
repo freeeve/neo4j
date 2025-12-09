@@ -1294,7 +1294,9 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             int[] existingPropertyKeyIds = loadResult.propertyKeyIds();
             Value existingValue = loadResult.propertyValue();
 
-            checkUniquenessConstraints(node, propertyKey, value, labels, existingPropertyKeyIds);
+            if (propertyHasChanged(value, existingValue)) {
+                checkUniquenessConstraints(node, propertyKey, value, labels, existingPropertyKeyIds);
+            }
 
             if (existingValue == NO_VALUE) {
                 updater.onPropertyAdd(
@@ -1365,6 +1367,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         RichIterable<IntObjectPair<Value>> propertiesKeyValueView = properties.keyValuesView();
         MutableIntSet removedPropertyKeyIdsSet = null;
         MutableIntSet addedPropertyKeyIdsSet = null;
+        // Only kept for checking uniqueness constraints:
+        MutableIntSet changedPropertyKeyIdsSet = null;
         for (IntObjectPair<Value> property : propertiesKeyValueView) {
             int key = property.getOne();
             Value value = property.getTwo();
@@ -1380,18 +1384,28 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     addedPropertyKeyIdsSet = IntSets.mutable.empty();
                 }
                 addedPropertyKeyIdsSet.add(key);
+
+                Value existingValue = existingValuesForChangedProperties.get(key);
+                if (existingValue == null || propertyHasChanged(value, existingValue)) {
+                    if (changedPropertyKeyIdsSet == null) {
+                        changedPropertyKeyIdsSet = IntSets.mutable.empty();
+                    }
+                    changedPropertyKeyIdsSet.add(key);
+                }
             }
         }
         int[] afterPropertyKeyIds = afterPropertyKeyIdsSet.toSortedArray();
         int[] addedPropertyKeyIds =
                 addedPropertyKeyIdsSet != null ? addedPropertyKeyIdsSet.toSortedArray() : EMPTY_INT_ARRAY;
+        int[] changedPropertyKeyIds =
+                changedPropertyKeyIdsSet != null ? changedPropertyKeyIdsSet.toSortedArray() : EMPTY_INT_ARRAY;
 
         // Check uniqueness constraints for the added labels and _actually_ changed properties
         // TODO Due to previous assumptions around very specific use cases for the schema "get related" lookups and its
         // inherent accidental
         //  complexity we have to provide very specific argument to get it to do what we want it to do.
         //  The schema cache lookup methods should be revisited to naturally accomodate this new scenario.
-        int[] uniquenessPropertiesCheck = addedLabels.isEmpty() ? addedPropertyKeyIds : afterPropertyKeyIds;
+        int[] uniquenessPropertiesCheck = addedLabels.isEmpty() ? changedPropertyKeyIds : afterPropertyKeyIds;
         Collection<IndexBackedConstraintDescriptor> uniquenessConstraints =
                 storageReader.uniquenessConstraintsGetRelated(
                         combineLabelIds(EMPTY_INT_ARRAY, addedLabels, IntSets.immutable.empty()),
@@ -1559,6 +1573,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         MutableIntSet afterPropertyKeyIdsSet = IntSets.mutable.of(existingPropertyKeyIds);
         boolean hasPropertyRemovals = false;
         MutableIntSet addedPropertyKeyIdsSet = null;
+        // Only kept for checking uniqueness constraints:
+        MutableIntSet changedPropertyKeyIdsSet = null;
         RichIterable<IntObjectPair<Value>> propertiesKeyValueView = properties.keyValuesView();
         for (IntObjectPair<Value> property : propertiesKeyValueView) {
             int key = property.getOne();
@@ -1572,6 +1588,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     addedPropertyKeyIdsSet = IntSets.mutable.empty();
                 }
                 addedPropertyKeyIdsSet.add(key);
+
+                Value existingValue = existingValuesForChangedProperties.get(key);
+                if (existingValue == null || propertyHasChanged(value, existingValue)) {
+                    if (changedPropertyKeyIdsSet == null) {
+                        changedPropertyKeyIdsSet = IntSets.mutable.empty();
+                    }
+                    changedPropertyKeyIdsSet.add(key);
+                }
             }
         }
 
@@ -1579,11 +1603,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 addedPropertyKeyIdsSet != null ? addedPropertyKeyIdsSet.toSortedArray() : EMPTY_INT_ARRAY;
 
         // Check uniqueness constraints for the _actually_ changed properties
-        if (addedPropertyKeyIdsSet != null) {
+        if (changedPropertyKeyIdsSet != null) {
+            int[] changedPropertyKeyIds = changedPropertyKeyIdsSet.toSortedArray();
             int[] afterPropertyKeyIds = afterPropertyKeyIdsSet.toSortedArray();
 
             Collection<IndexBackedConstraintDescriptor> uniquenessConstraints =
-                    storageReader.uniquenessConstraintsGetRelated(new int[] {type}, addedPropertyKeyIds, RELATIONSHIP);
+                    storageReader.uniquenessConstraintsGetRelated(
+                            new int[] {type}, changedPropertyKeyIds, RELATIONSHIP);
             SchemaMatcher.onMatchingSchema(
                     uniquenessConstraints.iterator(),
                     TokenConstants.ANY_PROPERTY_KEY,
@@ -1770,7 +1796,9 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             int[] existingPropertyKeyIds = loadResult.propertyKeyIds();
             Value existingValue = loadResult.propertyValue();
 
-            checkRelationshipUniquenessConstraints(relationship, propertyKey, value, type, existingPropertyKeyIds);
+            if (propertyHasChanged(value, existingValue)) {
+                checkRelationshipUniquenessConstraints(relationship, propertyKey, value, type, existingPropertyKeyIds);
+            }
             if (existingValue == NO_VALUE) {
                 updater.onPropertyAdd(
                         localRelationshipCursor, localPropertyCursor, type, propertyKey, existingPropertyKeyIds, value);
@@ -2964,8 +2992,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private static boolean propertyHasChanged(Value lhs, Value rhs) {
         // It is not enough to check equality here since by our equality semantics `int == toFloat(int)` is `true`
-        // so by only checking for equality users cannot change type of property without also "changing" the value.
-        // Hence the extra type check here.
         return !lhs.isSameValueTypeAs(rhs) || !lhs.equals(rhs);
     }
 
