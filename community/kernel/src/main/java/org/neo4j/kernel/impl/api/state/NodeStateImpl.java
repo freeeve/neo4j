@@ -23,6 +23,7 @@ import static java.util.Collections.emptyList;
 import static org.neo4j.collection.diffset.TrackableDiffSets.newMutableIntDiffSets;
 import static org.neo4j.kernel.impl.api.state.RelationshipChangesForNode.createRelationshipChangesForNode;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.iterator.IntIterator;
 import org.eclipse.collections.api.iterator.LongIterator;
@@ -84,6 +85,11 @@ class NodeStateImpl extends EntityStateImpl implements NodeState {
         @Override
         public boolean isPropertyChangedOrRemoved(int propertyKey) {
             return false;
+        }
+
+        @Override
+        public int[] changedOrRemovedPropertyKeys() {
+            return ArrayUtils.EMPTY_INT_ARRAY;
         }
 
         @Override

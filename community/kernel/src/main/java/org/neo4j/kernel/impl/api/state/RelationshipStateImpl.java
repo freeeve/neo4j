@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.api.state;
 
 import static java.util.Collections.emptyList;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.collection.factory.CollectionsFactory;
@@ -85,6 +86,11 @@ class RelationshipStateImpl extends EntityStateImpl implements RelationshipState
         @Override
         public boolean isPropertyChangedOrRemoved(int propertyKey) {
             return false;
+        }
+
+        @Override
+        public int[] changedOrRemovedPropertyKeys() {
+            return ArrayUtils.EMPTY_INT_ARRAY;
         }
 
         @Override

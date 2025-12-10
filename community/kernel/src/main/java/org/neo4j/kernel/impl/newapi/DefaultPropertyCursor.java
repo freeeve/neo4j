@@ -132,7 +132,7 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
         // this created selection is kept around in a larger context. But here it isn't.
         return propertiesState == null || propertiesState == EntityState.EMPTY
                 ? selection
-                : selection.excluding(k -> propertiesState.isPropertyChangedOrRemoved(k));
+                : selection.excluding(propertiesState.changedOrRemovedPropertyKeys());
     }
 
     private void initializeNodeTransactionState(long nodeReference, TxStateHolder txStateHolder) {

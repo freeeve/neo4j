@@ -884,7 +884,7 @@ public final class CursorUtils {
                 TokenRead tokenRead, PropertyCursor propertyCursor, MapValueBuilder builder, IntSet seenTokens)
                 throws PropertyKeyIdNotFoundKernelException {
             if (next()) {
-                cursor.properties(propertyCursor, PropertySelection.ALL_PROPERTIES.excluding(seenTokens::contains));
+                cursor.properties(propertyCursor, PropertySelection.ALL_PROPERTIES.excluding(seenTokens.toArray()));
                 while (propertyCursor.next()) {
                     builder.add(
                             tokenRead.propertyKeyName(propertyCursor.propertyKey()), propertyCursor.propertyValue());

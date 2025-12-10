@@ -21,6 +21,7 @@ package org.neo4j.storageengine.api.txstate;
 
 import static java.util.Collections.emptyList;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.storageengine.api.StorageProperty;
@@ -41,6 +42,8 @@ public interface EntityState {
     boolean hasPropertyChanges();
 
     boolean isPropertyChangedOrRemoved(int propertyKey);
+
+    int[] changedOrRemovedPropertyKeys();
 
     boolean isPropertyAdded(int propertyKey);
 
@@ -67,6 +70,11 @@ public interface EntityState {
         @Override
         public boolean isPropertyChangedOrRemoved(int propertyKey) {
             return false;
+        }
+
+        @Override
+        public int[] changedOrRemovedPropertyKeys() {
+            return ArrayUtils.EMPTY_INT_ARRAY;
         }
 
         @Override

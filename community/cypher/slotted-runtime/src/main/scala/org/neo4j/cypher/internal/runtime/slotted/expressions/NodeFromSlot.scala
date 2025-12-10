@@ -71,7 +71,7 @@ case class ValuePopulatingNodeFromSlot(offset: Int, cachedProperties: Array[(Laz
         val propertyCursor = state.cursors.propertyCursor
         nodeCursor.properties(
           propertyCursor,
-          ALL_PROPERTIES.excluding((value: Int) => cachedTokens.contains(value))
+          ALL_PROPERTIES.excluding(cachedTokens.toArray: _*)
         )
         VirtualValues.nodeValue(
           id,

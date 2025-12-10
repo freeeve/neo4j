@@ -24,9 +24,11 @@ import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
 import org.eclipse.collections.api.IntIterable;
+import org.eclipse.collections.api.list.primitive.MutableIntList;
 import org.eclipse.collections.api.map.primitive.LongObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
+import org.eclipse.collections.impl.factory.primitive.IntLists;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.collection.factory.CollectionsFactory;
 import org.neo4j.memory.MemoryTracker;
@@ -109,6 +111,18 @@ class EntityStateImpl implements EntityState {
     public boolean isPropertyChangedOrRemoved(int propertyKey) {
         return (removedProperties != null && removedProperties.contains(propertyKey))
                 || (addedProperties != null && addedProperties.containsKey(propertyKey));
+    }
+
+    @Override
+    public int[] changedOrRemovedPropertyKeys() {
+        MutableIntList result = IntLists.mutable.empty();
+        if (removedProperties != null) {
+            removedProperties.forEach(key -> result.add(toIntExact(key)));
+        }
+        if (addedProperties != null) {
+            addedProperties.keysView().forEach(key -> result.add(toIntExact(key)));
+        }
+        return result.toArray();
     }
 
     @Override

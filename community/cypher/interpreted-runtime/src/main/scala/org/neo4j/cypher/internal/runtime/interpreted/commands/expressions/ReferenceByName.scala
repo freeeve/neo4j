@@ -98,7 +98,7 @@ case class ValuePopulatingReferenceByName(col: String, cachedProperties: Array[(
           val propertyCursor = state.cursors.propertyCursor
           nodeCursor.properties(
             propertyCursor,
-            ALL_PROPERTIES.excluding((value: Int) => cachedTokens.contains(value))
+            ALL_PROPERTIES.excluding(cachedTokens.toArray: _*)
           )
           VirtualValues.nodeValue(
             id,
@@ -144,7 +144,7 @@ case class ValuePopulatingReferenceByName(col: String, cachedProperties: Array[(
           val start = VirtualValues.node(relCursor.sourceNodeReference, idMapper)
           val end = VirtualValues.node(relCursor.targetNodeReference, idMapper)
           val propertyCursor = state.cursors.propertyCursor
-          relCursor.properties(propertyCursor, ALL_PROPERTIES.excluding((value: Int) => cachedTokens.contains(value)))
+          relCursor.properties(propertyCursor, ALL_PROPERTIES.excluding(cachedTokens.toArray: _*))
           VirtualValues.relationshipValue(
             id,
             elementId,

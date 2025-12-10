@@ -1198,7 +1198,7 @@ private[internal] class TransactionBoundReadQueryContext(
     if (!nodeCursor.next()) VirtualValues.EMPTY_MAP
     else {
       val tokens = tokenRead
-      nodeCursor.properties(propertyCursor, PropertySelection.ALL_PROPERTIES.excluding(p => seenTokens.contains(p)))
+      nodeCursor.properties(propertyCursor, PropertySelection.ALL_PROPERTIES.excluding(seenTokens.toArray: _*))
       while (propertyCursor.next()) {
         builder.add(tokens.propertyKeyName(propertyCursor.propertyKey()), propertyCursor.propertyValue())
       }

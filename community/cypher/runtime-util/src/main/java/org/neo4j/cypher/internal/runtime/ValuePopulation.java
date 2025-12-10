@@ -228,7 +228,7 @@ public final class ValuePopulation {
             return VirtualValues.nodeValue(id, elementId, EMPTY_TEXT_ARRAY, EMPTY_MAP, true);
         } else {
             nodeCursor.properties(
-                    propertyCursor, PropertySelection.ALL_PROPERTIES.excluding(readPropertyTokens::contains));
+                    propertyCursor, PropertySelection.ALL_PROPERTIES.excluding(readPropertyTokens.toArray()));
             return VirtualValues.nodeValue(
                     id,
                     elementId,
@@ -277,7 +277,7 @@ public final class ValuePopulation {
             final var start = VirtualValues.node(relCursor.sourceNodeReference(), idMapper);
             final var end = VirtualValues.node(relCursor.targetNodeReference(), idMapper);
             relCursor.properties(
-                    propertyCursor, PropertySelection.ALL_PROPERTIES.excluding(readPropertyTokens::contains));
+                    propertyCursor, PropertySelection.ALL_PROPERTIES.excluding(readPropertyTokens.toArray()));
             return VirtualValues.relationshipValue(
                     id,
                     elementId,

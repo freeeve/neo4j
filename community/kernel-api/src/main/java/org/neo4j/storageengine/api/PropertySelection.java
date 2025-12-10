@@ -24,11 +24,12 @@ import static org.neo4j.token.api.TokenConstants.NO_TOKEN;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.IntPredicate;
+import org.neo4j.collection.PrimitiveArrays;
 
 /**
  * Specifies criteria for which properties to select.
  */
-public abstract class PropertySelection {
+public abstract sealed class PropertySelection {
     public static final int UNKNOWN_NUMBER_OF_KEYS = -1;
 
     protected final boolean fallbackKeysOnly;
@@ -84,10 +85,9 @@ public abstract class PropertySelection {
     public abstract int highestKey();
 
     /**
-     * @param filter a predicate such that for any key where {@link IntPredicate#test(int)} returns true will be excluded.
      * @return a {@link PropertySelection} instance that excludes keys from the existing set of keys.
      */
-    public abstract PropertySelection excluding(IntPredicate filter);
+    public abstract PropertySelection excluding(int... keysToExclude);
 
     @Override
     public String toString() {
@@ -159,7 +159,7 @@ public abstract class PropertySelection {
         return new MultipleKeys(fallbackKeysOnly, valueSelection, keys);
     }
 
-    private static class SingleKey extends PropertySelection {
+    private static final class SingleKey extends PropertySelection {
         private static final int LOW_ID_THRESHOLD = 128;
         private static final PropertySelection[] SINGLE_LOW_ID_SELECTIONS = new PropertySelection[LOW_ID_THRESHOLD];
         private static final PropertySelection[] SINGLE_LOW_ID_KEY_SELECTIONS = new PropertySelection[LOW_ID_THRESHOLD];
@@ -217,8 +217,13 @@ public abstract class PropertySelection {
         }
 
         @Override
-        public PropertySelection excluding(IntPredicate filter) {
-            return filter.test(key) ? NO_PROPERTIES : this;
+        public PropertySelection excluding(int... keysToExclude) {
+            for (int k : keysToExclude) {
+                if (k == key) {
+                    return NO_PROPERTIES;
+                }
+            }
+            return this;
         }
 
         @Override
@@ -239,30 +244,12 @@ public abstract class PropertySelection {
         }
     }
 
-    private static class MultipleKeys extends PropertySelection {
+    private static final class MultipleKeys extends PropertySelection {
         private final int[] keys;
 
         private MultipleKeys(boolean fallbackKeysOnly, IntPredicate valueSelection, int[] keys) {
             super(fallbackKeysOnly, valueSelection);
             this.keys = cloneAndCleanUp(keys);
-        }
-
-        /**
-         * Clones the {@code suppliedKeys} for safety, since it's coming from "user" call site.
-         * The cloned keys are sorted and also any -1 values (likely coming from name->id lookup
-         * returning {@link org.neo4j.token.api.TokenConstants#NO_TOKEN}.
-         */
-        private int[] cloneAndCleanUp(int[] suppliedKeys) {
-            var keys = suppliedKeys.clone();
-            Arrays.sort(keys);
-            if (keys[0] == NO_TOKEN) {
-                int start = 1;
-                while (start < keys.length && keys[start] == NO_TOKEN) {
-                    start++;
-                }
-                keys = Arrays.copyOfRange(keys, start, keys.length);
-            }
-            return keys;
         }
 
         @Override
@@ -302,18 +289,20 @@ public abstract class PropertySelection {
         }
 
         @Override
-        public PropertySelection excluding(IntPredicate filter) {
-            var newKeys = new int[keys.length];
-            int t = 0;
-            for (int key : keys) {
-                if (!filter.test(key)) {
-                    newKeys[t++] = key;
-                }
-            }
-            if (t == keys.length) {
+        public PropertySelection excluding(int... keysToExclude) {
+            if (keysToExclude.length == 0) {
                 return this;
             }
-            return PropertySelection.multiSelection(fallbackKeysOnly, valueSelection, Arrays.copyOf(newKeys, t));
+            int[] cleanedUpKeysToExclude = cloneAndCleanUp(keysToExclude);
+            if (cleanedUpKeysToExclude.length == 0) {
+                return this;
+            }
+
+            int[] result = PrimitiveArrays.subtract(keys, cleanedUpKeysToExclude);
+            if (result.length == keys.length) {
+                return this;
+            }
+            return PropertySelection.multiSelection(fallbackKeysOnly, valueSelection, result);
         }
 
         @Override
@@ -325,7 +314,7 @@ public abstract class PropertySelection {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (!(o instanceof MultipleKeys that)) return false;
-            return Objects.deepEquals(keys, that.keys);
+            return Arrays.equals(keys, that.keys);
         }
 
         @Override
@@ -334,10 +323,13 @@ public abstract class PropertySelection {
         }
     }
 
-    private static class AllExcept extends PropertySelection {
-        private final IntPredicate excluded;
+    private static final class AllExcept extends PropertySelection {
+        private final int[] excluded;
 
-        AllExcept(boolean fallbackKeysOnly, IntPredicate valueSelection, IntPredicate excluded) {
+        /**
+         * @param excluded must have gone through {@link #cloneAndCleanUp(int[])}.
+         */
+        AllExcept(boolean fallbackKeysOnly, IntPredicate valueSelection, int... excluded) {
             super(fallbackKeysOnly, valueSelection);
             this.excluded = excluded;
         }
@@ -359,7 +351,12 @@ public abstract class PropertySelection {
 
         @Override
         public boolean test(int key) {
-            return !excluded.test(key);
+            for (int k : excluded) {
+                if (k == key) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         @Override
@@ -373,26 +370,42 @@ public abstract class PropertySelection {
         }
 
         @Override
-        public PropertySelection excluding(IntPredicate filter) {
-            return new AllExcept(fallbackKeysOnly, valueSelection, excluded.or(filter));
+        public PropertySelection excluding(int... keysToExclude) {
+            if (keysToExclude.length == 0) {
+                return this;
+            }
+            int[] cleanedUpKeysToExclude = cloneAndCleanUp(keysToExclude);
+            if (cleanedUpKeysToExclude.length == 0) {
+                return this;
+            }
+
+            int[] result = PrimitiveArrays.union(excluded, cleanedUpKeysToExclude);
+            if (result.length == excluded.length) {
+                return this;
+            }
+            // No need to call cloneAndCleanUp again, since the union logic already took care of sorting and uniqueness
+            return new AllExcept(fallbackKeysOnly, valueSelection, result);
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (!(o instanceof AllExcept allExcept)) return false;
-            return Objects.equals(excluded, allExcept.excluded);
+            return Arrays.equals(excluded, allExcept.excluded);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(excluded);
+            return Arrays.hashCode(excluded);
         }
     }
 
-    public static final PropertySelection ALL_PROPERTIES = allProperties(false, null);
-    public static final PropertySelection ALL_PROPERTY_KEYS = allProperties(true, null);
-    public static final PropertySelection NO_PROPERTIES = new PropertySelection(true, null) {
+    private static final class NoPropertiesSelection extends PropertySelection {
+
+        private NoPropertiesSelection() {
+            super(true, null);
+        }
+
         @Override
         public boolean isLimited() {
             return true;
@@ -424,52 +437,89 @@ public abstract class PropertySelection {
         }
 
         @Override
-        public PropertySelection excluding(IntPredicate filter) {
+        public PropertySelection excluding(int... keysToExclude) {
             return this;
         }
-    };
+    }
+
+    private static final class AllPropertiesSelection extends PropertySelection {
+        private AllPropertiesSelection(boolean keysOnly, IntPredicate valueSelection) {
+            super(keysOnly, valueSelection);
+        }
+
+        @Override
+        public boolean isLimited() {
+            return false;
+        }
+
+        @Override
+        public int numberOfKeys() {
+            return UNKNOWN_NUMBER_OF_KEYS;
+        }
+
+        @Override
+        public int key(int index) {
+            return NO_TOKEN;
+        }
+
+        @Override
+        public boolean test(int key) {
+            return true;
+        }
+
+        @Override
+        public int lowestKey() {
+            return 0;
+        }
+
+        @Override
+        public int highestKey() {
+            return Integer.MAX_VALUE;
+        }
+
+        @Override
+        public PropertySelection excluding(int... keysToExclude) {
+            if (keysToExclude.length == 0) {
+                return this;
+            }
+            int[] cleanedUpKeysToExclude = cloneAndCleanUp(keysToExclude);
+            if (cleanedUpKeysToExclude.length == 0) {
+                return this;
+            }
+            return new AllExcept(fallbackKeysOnly, valueSelection, cleanedUpKeysToExclude);
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() + "[*]";
+        }
+    }
+
+    public static final PropertySelection ALL_PROPERTIES = allProperties(false, null);
+    public static final PropertySelection ALL_PROPERTY_KEYS = allProperties(true, null);
+    public static final PropertySelection NO_PROPERTIES = new NoPropertiesSelection();
 
     private static PropertySelection allProperties(boolean keysOnly, IntPredicate valueSelection) {
-        return new PropertySelection(keysOnly, valueSelection) {
-            @Override
-            public boolean isLimited() {
-                return false;
-            }
+        return new AllPropertiesSelection(keysOnly, valueSelection);
+    }
 
-            @Override
-            public int numberOfKeys() {
-                return UNKNOWN_NUMBER_OF_KEYS;
+    /**
+     * Clones the {@code suppliedKeys} for safety, since it's coming from "user" call site.
+     * The cloned keys are sorted and also any -1 values (likely coming from name->id lookup
+     * returning {@link org.neo4j.token.api.TokenConstants#NO_TOKEN}) are removed.
+     *
+     * @param suppliedKeys must be a non-empty array
+     */
+    private static int[] cloneAndCleanUp(int[] suppliedKeys) {
+        var keys = suppliedKeys.clone();
+        Arrays.sort(keys);
+        if (keys[0] == NO_TOKEN) {
+            int start = 1;
+            while (start < keys.length && keys[start] == NO_TOKEN) {
+                start++;
             }
-
-            @Override
-            public int key(int index) {
-                return NO_TOKEN;
-            }
-
-            @Override
-            public boolean test(int key) {
-                return true;
-            }
-
-            @Override
-            public int lowestKey() {
-                return 0;
-            }
-
-            @Override
-            public int highestKey() {
-                return Integer.MAX_VALUE;
-            }
-
-            @Override
-            public PropertySelection excluding(IntPredicate filter) {
-                return new AllExcept(fallbackKeysOnly, valueSelection, filter);
-            }
-
-            @Override
-            public String toString() {
-                return super.toString() + "[*]";
-            }
-        };
+            keys = Arrays.copyOfRange(keys, start, keys.length);
+        }
+        return keys;
     }
 }

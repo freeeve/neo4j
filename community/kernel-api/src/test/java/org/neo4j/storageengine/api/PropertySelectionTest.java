@@ -27,7 +27,6 @@ import static org.neo4j.token.api.TokenConstants.NO_TOKEN;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;
-import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.factory.primitive.IntLists;
 import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.junit.jupiter.api.Test;
@@ -72,8 +71,8 @@ class PropertySelectionTest {
         var selection = selection(key);
 
         // when
-        var filteredSelection = selection.excluding(k -> k == key);
-        var unfilteredSelection = selection.excluding(k -> false);
+        var filteredSelection = selection.excluding(key);
+        var unfilteredSelection = selection.excluding();
 
         // then
         assertThat(filteredSelection.test(key)).isFalse();
@@ -89,12 +88,26 @@ class PropertySelectionTest {
 
         // when
         var keysToExclude = random.selection(keys, 1, keys.length, false);
-        Arrays.sort(keysToExclude);
-        var filteredSelection = selection.excluding(k -> ArrayUtils.contains(keysToExclude, k));
+        var filteredSelection = selection.excluding(keysToExclude);
 
         // then
         for (int key : keys) {
             assertThat(filteredSelection.test(key)).isEqualTo(!contains(keysToExclude, key));
+        }
+    }
+
+    @Test
+    void shouldExcludeKeysFromAllExceptionSelection() {
+        var keysToExclude0 = random.selection(new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, 2, 4, false);
+        var selection = PropertySelection.ALL_PROPERTIES.excluding(keysToExclude0);
+
+        var keysToExclude1 = random.selection(new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, 2, 4, false);
+        var filteredSelection = selection.excluding(keysToExclude1);
+
+        // then
+        for (int key : new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}) {
+            assertThat(filteredSelection.test(key))
+                    .isEqualTo(!contains(keysToExclude0, key) && !contains(keysToExclude1, key));
         }
     }
 
@@ -105,8 +118,7 @@ class PropertySelectionTest {
 
         // when
         var keysToExclude = random.selection(new int[] {0, 1, 2, 3, 4, 5}, 1, 6, false);
-        Arrays.sort(keysToExclude);
-        var filteredSelection = selection.excluding(k -> ArrayUtils.contains(keysToExclude, k));
+        var filteredSelection = selection.excluding(keysToExclude);
 
         // then
         for (int key = 0; key < 100; key++) {

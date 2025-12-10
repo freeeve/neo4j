@@ -81,7 +81,7 @@ case class ValuePopulatingRelationshipFromSlot(offset: Int, cachedProperties: Ar
         val start = VirtualValues.node(relCursor.sourceNodeReference, idMapper)
         val end = VirtualValues.node(relCursor.targetNodeReference, idMapper)
         val propertyCursor = state.cursors.propertyCursor
-        relCursor.properties(propertyCursor, ALL_PROPERTIES.excluding((value: Int) => cachedTokens.contains(value)))
+        relCursor.properties(propertyCursor, ALL_PROPERTIES.excluding(cachedTokens.toArray: _*))
         VirtualValues.relationshipValue(
           id,
           elementId,
