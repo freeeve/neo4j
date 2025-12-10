@@ -214,6 +214,33 @@ class ListSetTest extends CypherFunSuite with CypherScalaCheckDrivenPropertyChec
     }
   }
 
+  test("diff") {
+
+    def diffTest(xs: List[Int], ys: Set[Int]): Unit = {
+      val listSet = ListSet.from(xs) diff ys
+      val scalaListSet = immutable.ListSet.from(xs) diff ys
+      listSet shouldEqual scalaListSet
+    }
+
+    forAll(twoSmallIntLists) { case (xs, ys) =>
+      diffTest(xs, ys.toSet)
+      diffTest(ys, xs.toSet)
+
+      diffTest(xs, ListSet.from(ys))
+      diffTest(ys, ListSet.from(xs))
+
+      diffTest(xs, xs.empty.toSet)
+      diffTest(xs.empty, xs.toSet)
+
+      val (xs1, xs2) = xs.splitAt(xs.size / 2)
+      diffTest(xs, xs1.toSet)
+      diffTest(xs, xs2.toSet)
+
+      diffTest(xs, ListSet.from(xs1))
+      diffTest(xs, ListSet.from(xs2))
+    }
+  }
+
   test("distinctBy should return a ListSet with distinct elements based on the given function") {
     val listSet = ListSet.from(1 to 5)
     val result = listSet.distinctBy(_ % 2)

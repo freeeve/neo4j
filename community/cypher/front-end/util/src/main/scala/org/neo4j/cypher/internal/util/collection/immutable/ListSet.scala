@@ -79,18 +79,30 @@ class ListSet[A](private val underlying: java.util.LinkedHashSet[A])
 
   override def removedAll(that: IterableOnce[A]): ListSet[A] = {
     val it = that.iterator
-    if (it.isEmpty) {
+    if (it.isEmpty || this.isEmpty) {
       this
     } else {
-      val newJava = new java.util.LinkedHashSet(underlying)
-
       that match {
-        case ls: ListSet[A] => newJava.removeAll(ls.underlying)
-        case _              => it.foreach(newJava.remove)
+        case ls: ListSet[A] if size <= ls.size =>
+          val newJava = new java.util.LinkedHashSet[A](this.size)
+          val thisIt = underlying.iterator()
+          val thatJavaSet = ls.underlying
+          while (thisIt.hasNext) {
+            val elem = thisIt.next()
+            if (!thatJavaSet.contains(elem))
+              newJava.add(elem)
+          }
+          new ListSet(newJava)
+        case _ =>
+          val newJava = underlying.clone().asInstanceOf[java.util.LinkedHashSet[A]]
+          it.foreach(newJava.remove)
+          new ListSet(newJava)
       }
-
-      new ListSet(newJava)
     }
+  }
+
+  override def diff(that: collection.Set[A]): ListSet[A] = {
+    removedAll(that)
   }
 
   /**
