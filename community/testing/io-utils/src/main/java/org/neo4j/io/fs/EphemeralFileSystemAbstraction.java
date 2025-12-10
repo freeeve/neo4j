@@ -244,7 +244,7 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
     }
 
     @Override
-    public void deleteFile(Path fileName) throws IOException {
+    public synchronized void deleteFile(Path fileName) throws IOException {
         fileName = canonicalFile(fileName);
         EphemeralFileData removed = files.remove(fileName);
         if (removed != null) {
@@ -264,7 +264,7 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
     }
 
     @Override
-    public void deleteRecursively(Path directory) throws IOException {
+    public synchronized void deleteRecursively(Path directory) throws IOException {
         if (!fileExists(directory)) {
             return;
         }
@@ -293,7 +293,7 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
     }
 
     @Override
-    public void deleteRecursively(Path directory, Predicate<Path> removeFilePredicate) throws IOException {
+    public synchronized void deleteRecursively(Path directory, Predicate<Path> removeFilePredicate) throws IOException {
         if (!fileExists(directory)) {
             return;
         }
@@ -330,7 +330,7 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
     }
 
     @Override
-    public void renameFile(Path from, Path to, CopyOption... copyOptions) throws IOException {
+    public synchronized void renameFile(Path from, Path to, CopyOption... copyOptions) throws IOException {
         from = canonicalFile(from);
         to = canonicalFile(to);
 
@@ -541,7 +541,7 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
     }
 
     @Override
-    public void deleteFileOrThrow(Path file) throws IOException {
+    public synchronized void deleteFileOrThrow(Path file) throws IOException {
         file = canonicalFile(file);
         if (!fileExists(file)) {
             throw new NoSuchFileException(file.toAbsolutePath().toString());
