@@ -1262,10 +1262,10 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description(
-            "By default, the sharded property database is disabled. This setting is a feature toggle behind which sharded property database is developed.")
+    @Description("A legacy feature flag enabling Sharded Property Databases feature. This flag has no longer any use"
+            + "and is part of the settings only for backward compatibility reasons.")
     public static final Setting<Boolean> spd_enabled = newBuilder(
-                    "internal.dbms.sharded_property_database.enabled", BOOL, false)
+                    "internal.dbms.sharded_property_database.enabled", BOOL, true)
             .build();
 
     @Internal

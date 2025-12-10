@@ -166,7 +166,6 @@ object CypherParsingConfig {
           GraphDatabaseInternalSettings.graph_type_enabled -> SemanticFeature.GraphTypes.productPrefix,
           GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,
           GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix,
-          GraphDatabaseInternalSettings.spd_enabled -> SemanticFeature.ShardedPropertyDatabase.productPrefix,
           GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> SemanticFeature.VectorSingleStageFilteringEnabled.productPrefix,
           GraphDatabaseInternalSettings.cypher_vector_search_enabled -> SemanticFeature.VectorSearch.productPrefix,
           GraphDatabaseInternalSettings.cypher_enable_local_callables -> SemanticFeature.LocalCallables.productPrefix,

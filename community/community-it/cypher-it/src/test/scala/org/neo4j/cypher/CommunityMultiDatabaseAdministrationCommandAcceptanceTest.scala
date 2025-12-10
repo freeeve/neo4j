@@ -20,7 +20,6 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.cypher_hints_error
@@ -954,9 +953,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
   test("should fail on altering database from community") {
     // GIVEN
     // have to enable spd setting to get correct error message
-    val config = Config.newBuilder().fromConfig(defaultConfig)
-      .setRaw(Map(GraphDatabaseInternalSettings.spd_enabled.name() -> "true").asJava).build
-    setup(config)
+    setup(defaultConfig)
 
     // THEN
     assertFailureWithGQLStatus(

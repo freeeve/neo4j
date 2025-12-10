@@ -1781,56 +1781,55 @@ object ShowDatabase {
   def apply(
     scope: DatabaseScope,
     yieldOrWhere: YieldOrWhere,
-    cypher5ColumnsOnly: Boolean,
-    spdEnabled: Boolean
+    cypher5ColumnsOnly: Boolean
   )(position: InputPosition): ShowDatabase = {
     val columns = List(
-      // (column, brief, showCypher5, requiresSpdEnabled)
-      (ShowColumn(NAME_COL)(position), true, true, false),
-      (ShowColumn(TYPE_COL)(position), true, true, false),
-      (ShowColumn(ALIASES_COL, CTList(CTString))(position), true, true, false),
-      (ShowColumn(ACCESS_COL)(position), true, true, false),
-      (ShowColumn(DATABASE_ID_COL)(position), false, true, false),
-      (ShowColumn(SERVER_ID_COL)(position), false, true, false),
-      (ShowColumn(ADDRESS_COL)(position), true, true, false),
-      (ShowColumn(ROLE_COL)(position), true, true, false),
-      (ShowColumn(WRITER_COL, CTBoolean)(position), true, true, false),
-      (ShowColumn(REQUESTED_STATUS_COL)(position), true, true, false),
-      (ShowColumn(CURRENT_STATUS_COL)(position), true, true, false),
-      (ShowColumn(STATUS_MSG_COL)(position), true, true, false)
+      // (column, brief, showCypher5)
+      (ShowColumn(NAME_COL)(position), true, true),
+      (ShowColumn(TYPE_COL)(position), true, true),
+      (ShowColumn(ALIASES_COL, CTList(CTString))(position), true, true),
+      (ShowColumn(ACCESS_COL)(position), true, true),
+      (ShowColumn(DATABASE_ID_COL)(position), false, true),
+      (ShowColumn(SERVER_ID_COL)(position), false, true),
+      (ShowColumn(ADDRESS_COL)(position), true, true),
+      (ShowColumn(ROLE_COL)(position), true, true),
+      (ShowColumn(WRITER_COL, CTBoolean)(position), true, true),
+      (ShowColumn(REQUESTED_STATUS_COL)(position), true, true),
+      (ShowColumn(CURRENT_STATUS_COL)(position), true, true),
+      (ShowColumn(STATUS_MSG_COL)(position), true, true)
     ) ++ (scope match {
       case _: DefaultDatabaseScope => List.empty
       case _: HomeDatabaseScope    => List.empty
       case _ =>
         List(
-          (ShowColumn(DEFAULT_COL, CTBoolean)(position), true, true, false),
-          (ShowColumn(HOME_COL, CTBoolean)(position), true, true, false)
+          (ShowColumn(DEFAULT_COL, CTBoolean)(position), true, true),
+          (ShowColumn(HOME_COL, CTBoolean)(position), true, true)
         )
     }) ++ List(
-      (ShowColumn(CURRENT_PRIMARIES_COUNT_COL, CTInteger)(position), false, true, false),
-      (ShowColumn(CURRENT_SECONDARIES_COUNT_COL, CTInteger)(position), false, true, false),
-      (ShowColumn(CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL, CTInteger)(position), false, false, true),
-      (ShowColumn(REQUESTED_PRIMARIES_COUNT_COL, CTInteger)(position), false, true, false),
-      (ShowColumn(REQUESTED_SECONDARIES_COUNT_COL, CTInteger)(position), false, true, false),
-      (ShowColumn(REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL, CTInteger)(position), false, false, true),
-      (ShowColumn(CREATION_TIME_COL, CTDateTime)(position), false, true, false),
-      (ShowColumn(LAST_START_TIME_COL, CTDateTime)(position), false, true, false),
-      (ShowColumn(LAST_STOP_TIME_COL, CTDateTime)(position), false, true, false),
-      (ShowColumn(STORE_COL)(position), false, true, false),
-      (ShowColumn(LAST_COMMITTED_TX_COL, CTInteger)(position), false, true, false),
-      (ShowColumn(REPLICATION_LAG_COL, CTInteger)(position), false, true, false),
-      (ShowColumn(SHARD_TX_LAG_COL, CTInteger)(position), false, false, true),
-      (ShowColumn(CONSTITUENTS_COL, CTList(CTString))(position), true, true, false),
-      (ShowColumn(GRAPH_SHARDS_COL, CTList(CTString))(position), false, false, true),
-      (ShowColumn(PROPERTY_SHARDS_COL, CTList(CTString))(position), false, false, true),
-      (ShowColumn(DEFAULT_LANGUAGE_COL)(position), false, true, false),
-      (ShowColumn(OPTIONS_COL, CTMap)(position), false, true, false)
+      (ShowColumn(CURRENT_PRIMARIES_COUNT_COL, CTInteger)(position), false, true),
+      (ShowColumn(CURRENT_SECONDARIES_COUNT_COL, CTInteger)(position), false, true),
+      (ShowColumn(CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL, CTInteger)(position), false, false),
+      (ShowColumn(REQUESTED_PRIMARIES_COUNT_COL, CTInteger)(position), false, true),
+      (ShowColumn(REQUESTED_SECONDARIES_COUNT_COL, CTInteger)(position), false, true),
+      (ShowColumn(REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL, CTInteger)(position), false, false),
+      (ShowColumn(CREATION_TIME_COL, CTDateTime)(position), false, true),
+      (ShowColumn(LAST_START_TIME_COL, CTDateTime)(position), false, true),
+      (ShowColumn(LAST_STOP_TIME_COL, CTDateTime)(position), false, true),
+      (ShowColumn(STORE_COL)(position), false, true),
+      (ShowColumn(LAST_COMMITTED_TX_COL, CTInteger)(position), false, true),
+      (ShowColumn(REPLICATION_LAG_COL, CTInteger)(position), false, true),
+      (ShowColumn(SHARD_TX_LAG_COL, CTInteger)(position), false, false),
+      (ShowColumn(CONSTITUENTS_COL, CTList(CTString))(position), true, true),
+      (ShowColumn(GRAPH_SHARDS_COL, CTList(CTString))(position), false, false),
+      (ShowColumn(PROPERTY_SHARDS_COL, CTList(CTString))(position), false, false),
+      (ShowColumn(DEFAULT_LANGUAGE_COL)(position), false, true),
+      (ShowColumn(OPTIONS_COL, CTMap)(position), false, true)
     )
 
     val showColumns =
-      columns.filter { case (_, _, showInCypher5, requiresSpdEnabled) =>
-        (!cypher5ColumnsOnly || showInCypher5) && (spdEnabled || !requiresSpdEnabled)
-      }.map { case (showColumn, brief, _, _) => (showColumn, brief) }
+      columns.filter { case (_, _, showInCypher5) =>
+        !cypher5ColumnsOnly || showInCypher5
+      }.map { case (showColumn, brief, _) => (showColumn, brief) }
     ShowDatabase(scope, yieldOrWhere, DefaultOrAllShowColumns(showColumns, yieldOrWhere))(position)
   }
 }
@@ -1889,26 +1888,7 @@ case class ShardDefinition(
         SemanticCheck.success
       }
 
-    def featureCheckSpd: SemanticCheck = {
-      if (graphShardTopology.nonEmpty) {
-        requireFeatureSupport(
-          s"The `GRAPH SHARD` clause",
-          SemanticFeature.ShardedPropertyDatabase,
-          position
-        )
-      } else if (propertyShardCount > 0 || propertyShardReplicaCount.nonEmpty) {
-        requireFeatureSupport(
-          s"The `PROPERTY SHARD` clause",
-          SemanticFeature.ShardedPropertyDatabase,
-          position
-        )
-      } else {
-        SemanticCheck.success
-      }
-    }
-
-    featureCheckSpd chain
-      topologyCheck(graphShardTopology, command, action, position) chain
+    topologyCheck(graphShardTopology, command, action, position) chain
       numShardsInRange(propertyShardCount) chain
       numReplicasGreaterThanZero(propertyShardReplicaCount)
   }

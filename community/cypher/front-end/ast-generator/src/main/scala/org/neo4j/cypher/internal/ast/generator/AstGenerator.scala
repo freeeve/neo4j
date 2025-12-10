@@ -3863,9 +3863,7 @@ class AstGenerator(
       HomeDatabaseScope()(pos)
     )
     yields <- _eitherYieldOrWhere
-    // The test isn't run with the feature flag enabled so having false here is fine
-    spdEnabled <- const(false)
-  } yield ShowDatabase(scope, yields, usesCypher5, spdEnabled)(pos)
+  } yield ShowDatabase(scope, yields, usesCypher5)(pos)
 
   def _createDatabase: Gen[CreateDatabase] = for {
     dbName <- _databaseNameNoNamespace
