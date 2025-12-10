@@ -22,7 +22,6 @@ package org.neo4j.storageengine.api;
 import static org.neo4j.token.api.TokenConstants.NO_TOKEN;
 
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.function.IntPredicate;
 import org.neo4j.collection.PrimitiveArrays;
 
