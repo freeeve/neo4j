@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.PlanVarExpandInto
-import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
@@ -737,9 +736,9 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[:TYPE]->()", 10000)
       .build()
-    val query = "MATCH (a {name:'A'}), (b {name:'B'}) MERGE (a)-[r:TYPE]->(b) ON CREATE SET r = a"
+    val query = "MATCH (a {name:'A'}), (b {name:'B'}) MERGE (a)-[r:TYPE]->(b) ON CREATE SET r = properties(a)"
 
-    planner.plan(Cypher5, query) should containPlanMatching {
+    planner.plan(query) should containPlanMatching {
       case Expand(_, _, _, _, _, _, ExpandInto) =>
     }
   }
@@ -749,9 +748,9 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[:TYPE]->()", 10000)
       .build()
-    val query = "MATCH (a {name:'A'}), (b {name:'B'}) MERGE (a)-[r:TYPE]->(b) ON MATCH SET r = a"
+    val query = "MATCH (a {name:'A'}), (b {name:'B'}) MERGE (a)-[r:TYPE]->(b) ON MATCH SET r = properties(a)"
 
-    planner.plan(Cypher5, query) should containPlanMatching {
+    planner.plan(query) should containPlanMatching {
       case Expand(_, _, _, _, _, _, ExpandInto) =>
     }
   }

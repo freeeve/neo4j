@@ -535,8 +535,7 @@ final case class UseGraph(graphReference: GraphReference)(val position: InputPos
    *
    * USE comp // repeats session database
    * WITH "Pete" as pete
-   * CALL {
-   *   WITH pete
+   * CALL(pete) {
    *   USE comp.constituent // does not repeat session database
    *   MATCH (n { name: pete })
    *   RETURN n

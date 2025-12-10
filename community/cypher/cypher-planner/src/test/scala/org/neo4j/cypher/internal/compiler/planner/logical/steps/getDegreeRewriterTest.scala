@@ -126,7 +126,7 @@ class GetDegreeRewriterExistsExpressionTest extends GetDegreeRewriterTestBase {
   }
 
   test(
-    s"Rewrite ${testNameExpr("(a)-[:FOO|:BAR]->()")} to HasDegreeGreaterThan( (a)-[:FOO]->(), 0) OR HasDegreeGreaterThan( (a)-[:BAR]->(), 0)"
+    s"Rewrite ${testNameExpr("(a)-[:FOO|BAR]->()")} to HasDegreeGreaterThan( (a)-[:FOO]->(), 0) OR HasDegreeGreaterThan( (a)-[:BAR]->(), 0)"
   ) {
     val incoming = createIrExpressions(makeInputExpression(
       from = Some("a"),
@@ -358,7 +358,7 @@ class GetDegreeRewriterCountExpressionTest extends GetDegreeRewriterTestBase {
     getDegreeRewriter(incoming) should equal(expected)
   }
 
-  test(s"Rewrite ${testNameExpr("(a)-[:FOO|:BAR]->()")} to GetDegree( (a)-[:FOO]->() ) + GetDegree( (a)-[:BAR]->() )") {
+  test(s"Rewrite ${testNameExpr("(a)-[:FOO|BAR]->()")} to GetDegree( (a)-[:FOO]->() ) + GetDegree( (a)-[:BAR]->() )") {
     val incoming =
       createIrExpressions(makeInputExpression(
         from = Some("a"),

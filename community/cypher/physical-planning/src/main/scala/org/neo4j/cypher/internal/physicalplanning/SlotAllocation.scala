@@ -1385,7 +1385,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
 
         if (t.onErrorBehaviour != OnErrorFail) {
           // We need to make slots for variables inside the CALL {...} nullable,
-          // e.g. in CALL { CREATE p: Person(age : ...) RETURN p }, that's p,
+          // e.g. in CALL () { CREATE p: Person(age : ...) RETURN p }, that's p,
           // because we want to see a NULL if one of the transactions failed
           val nullableVars = t.right.availableSymbols.map(_.name) -- t.left.availableSymbols.map(_.name)
           nullableVars.foreach { name =>
