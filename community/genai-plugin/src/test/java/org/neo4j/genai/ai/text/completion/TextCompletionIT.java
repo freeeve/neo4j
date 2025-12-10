@@ -199,23 +199,21 @@ class TextCompletionIT {
                     "key",
                     System.getenv(Tokens.Bedrock.ACCESS_KEY_ENV),
                     "secret",
-                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV),
-                    "region",
-                    System.getenv(Tokens.Bedrock.REGION_ENV));
+                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV));
         }
 
         @Override
         List<String> confRequired() {
             return List.of(
-                    "{ model: 'amazon.nova-micro-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret }",
-                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.nova-micro-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret }");
+                    "{ model: 'amazon.nova-micro-v1:0', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret }",
+                    "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret }");
         }
 
         @Override
         List<String> confWithVendorOptions() {
             return List.of(
-                    "{ model: 'amazon.nova-micro-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }",
-                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.nova-micro-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }");
+                    "{ model: 'amazon.nova-micro-v1:0', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }",
+                    "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { system: [{ text: 'Include an emoji in the answer.' }] } }");
         }
     }
 
@@ -235,23 +233,21 @@ class TextCompletionIT {
                     "key",
                     System.getenv(Tokens.Bedrock.ACCESS_KEY_ENV),
                     "secret",
-                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV),
-                    "region",
-                    System.getenv(Tokens.Bedrock.REGION_ENV));
+                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV));
         }
 
         @Override
         List<String> confRequired() {
             return List.of(
-                    "{ model: 'amazon.titan-text-lite-v1', region: $region, accessKeyId: $key, secretAccessKey: $secret }",
-                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.titan-text-lite-v1', region: $region, accessKeyId: $key, secretAccessKey: $secret }");
+                    "{ model: 'amazon.titan-text-lite-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret }",
+                    "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-text-lite-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret }");
         }
 
         @Override
         List<String> confWithVendorOptions() {
             return List.of(
-                    "{ model: 'amazon.titan-text-lite-v1', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }",
-                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.titan-text-lite-v1', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }");
+                    "{ model: 'amazon.titan-text-lite-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }",
+                    "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-text-lite-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }");
         }
     }
 
@@ -294,27 +290,25 @@ class TextCompletionIT {
                     "key",
                     System.getenv(Tokens.Bedrock.ACCESS_KEY_ENV),
                     "secret",
-                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV),
-                    "region",
-                    System.getenv(Tokens.Bedrock.REGION_ENV));
+                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV));
         }
 
         @Override
         List<String> confRequired() {
             return List.of(
-                    "{ model: 'amazon.nova-lite-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret}",
-                    "{ model: 'amazon.nova-lite-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret, chatHistory: %s }"
+                    "{ model: 'amazon.nova-lite-v1:0', region: 'eu-north-1', accessKeyId: $key, secretAccessKey: $secret}",
+                    "{ model: 'amazon.nova-lite-v1:0', region: 'eu-north-1', accessKeyId: $key, secretAccessKey: $secret, chatHistory: %s }"
                             .formatted(chatHistory),
-                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.nova-lite-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret}");
+                    "{ model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-lite-v1:0', region: 'eu-north-1', accessKeyId: $key, secretAccessKey: $secret}");
         }
 
         @Override
         List<String> confWithVendorOptions() {
             return List.of(
-                    "{ model: 'openai.gpt-oss-20b-1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { inferenceConfig: { temperature: 0.5, maxTokens: 2048 } }}",
-                    "{ model: 'openai.gpt-oss-20b-1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { inferenceConfig: { temperature: 0.5, maxTokens: 2048 } }, chatHistory: %s }"
+                    "{ model: 'openai.gpt-oss-20b-1:0', region: 'eu-north-1', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { inferenceConfig: { temperature: 0.5, maxTokens: 2048 } }}",
+                    "{ model: 'openai.gpt-oss-20b-1:0', region: 'eu-north-1', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { inferenceConfig: { temperature: 0.5, maxTokens: 2048 } }, chatHistory: %s }"
                             .formatted(chatHistory),
-                    "{ model: 'arn:aws:bedrock:' + $region + '::foundation-model/amazon.nova-lite-v1:0', region: $region, accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { inferenceConfig: { temperature: 0.5, maxTokens: 2048 } }}");
+                    "{ model: 'arn:aws:bedrock:eu-north-1::foundation-model/amazon.nova-lite-v1:0', region: 'eu-north-1', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { inferenceConfig: { temperature: 0.5, maxTokens: 2048 } }}");
         }
     }
 }
