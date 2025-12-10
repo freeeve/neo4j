@@ -2023,8 +2023,10 @@ case class LogicalPlanProducer(
     embedding: Expression,
     limit: Expression,
     scoreVariable: Option[LogicalVariable],
-    argumentIds: Set[LogicalVariable]
+    argumentIds: Set[LogicalVariable],
+    implicitlySolvedPredicates: Set[Expression] = Set.empty
   ): LogicalPlan = {
+
     val solved = RegularSinglePlannerQuery(
       queryGraph =
         QueryGraph.empty
@@ -2036,6 +2038,7 @@ case class LogicalPlanProducer(
             limit,
             scoreVariable
           )(InputPosition.NONE)))
+          .addPredicates(implicitlySolvedPredicates)
           .addArgumentIds(argumentIds),
       horizon = RegularQueryProjection(
         importedExposedSymbols = context.plannerState.importedSubqueryVariables
@@ -2082,7 +2085,8 @@ case class LogicalPlanProducer(
     embedding: Expression,
     limit: Expression,
     scoreVariable: Option[LogicalVariable],
-    argumentIds: Set[LogicalVariable]
+    argumentIds: Set[LogicalVariable],
+    implicitlySolvedPredicates: Set[Expression] = Set.empty
   ): LogicalPlan = {
     val solved = RegularSinglePlannerQuery(
       queryGraph =
@@ -2095,6 +2099,7 @@ case class LogicalPlanProducer(
             limit,
             scoreVariable
           )(InputPosition.NONE)))
+          .addPredicates(implicitlySolvedPredicates)
           .addArgumentIds(argumentIds),
       horizon = RegularQueryProjection(
         importedExposedSymbols = context.plannerState.importedSubqueryVariables

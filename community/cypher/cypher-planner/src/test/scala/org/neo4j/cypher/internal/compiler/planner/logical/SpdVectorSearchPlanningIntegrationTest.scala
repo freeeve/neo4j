@@ -229,4 +229,61 @@ class SpdVectorSearchPlanningIntegrationTest extends CypherFunSuite
       )
       .build()
   }
+
+  test(
+    "should not get the property value from node vector index when the property is used only in implicit predicates"
+  ) {
+    val planner = planBuilder.build()
+    val query =
+      """MATCH (m) WHERE m.content IS NOT NULL
+        |  SEARCH m IN (
+        |    VECTOR INDEX messageContent
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN m
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .nodeVectorIndexSearch(
+        "m",
+        Seq("Message"),
+        Seq("content"),
+        "messageContent",
+        "$embedding",
+        "10",
+        getValueFromIndex = Map("content" -> DoNotGetValue)
+      )
+      .build()
+  }
+
+  test(
+    "should NOT get the property value from relationship vector index when the property if it is only used in implicit predicates"
+  ) {
+    val planner = planBuilder.build()
+    val query =
+      """MATCH ()-[r]->() WHERE r.description IS NOT NULL OR r.description = "friend"
+        |  SEARCH r IN (
+        |    VECTOR INDEX knowsDescr
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual
+      planner.subPlanBuilder()
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("KNOWS"),
+          Seq("description"),
+          "knowsDescr",
+          "$embedding",
+          "10",
+          getValueFromIndex = Map("description" -> DoNotGetValue)
+        )
+        .build()
+  }
 }

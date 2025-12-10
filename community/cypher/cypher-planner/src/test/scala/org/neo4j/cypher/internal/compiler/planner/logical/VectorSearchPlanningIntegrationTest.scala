@@ -71,7 +71,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`movie.plot`")
         .projection("cacheN[movie.plot] AS `movie.plot`")
-        .filter("cacheN[movie.plot] IS NOT NULL", "movie:Movie") // TODO: unnecessary filters. See PLAN-3052
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
@@ -103,7 +102,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults(column("movie", "cacheN[movie.plot]"))
         .expandAll("(movie)-[]->()")
-        .filter("movie:Movie")
         .nodeVectorIndexSearch(
           "movie",
           Seq("Movie"),
@@ -134,7 +132,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults(column("movie", "cacheN[movie.plot]"))
-        .filter("movie:Movie")
         .apply()
         .|.nodeVectorIndexSearch(
           node = "movie",
@@ -168,7 +165,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults(column("movie", "cacheN[movie.plot]"))
-        .filter("movie:Movie")
         .apply()
         .|.nodeVectorIndexSearch(
           "movie",
@@ -205,7 +201,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults(column("movie", "cacheN[movie.plot]"))
-        .filter("movie:Movie")
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
@@ -235,7 +230,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults(column("movie", "cacheN[movie.plot]"), column("similarity"))
-        .filter("movie:Movie")
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
@@ -306,10 +300,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`movie.p1`")
         .projection("cacheN[movie.p1] AS `movie.p1`")
-        .filter(
-          "cacheNFromStore[movie.p1] IS NOT NULL",
-          "movie:Movie"
-        ) // TODO: unnecessary filter 'movie:Movie'. See PLAN-3052
+        .filter("cacheNFromStore[movie.p1] IS NOT NULL")
         .nodeVectorIndexSearch(
           "movie",
           Seq("Movie"),
@@ -318,6 +309,39 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           "$embedding",
           "10",
           getValueFromIndex = Map("plot" -> DoNotGetValue)
+        )
+        .build()
+  }
+
+  test("should remove implicit disjunctions") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie) WHERE movie.plot IS NOT NULL OR movie.plot2 = 'someValue'
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`movie.plot`")
+        .projection("cacheN[movie.plot] AS `movie.plot`")
+        // movie.plot IS NOT NULL is solved by vector search implicitly so we don't need to check movie.plot2 = 'someValue'
+        .nodeVectorIndexSearch(
+          "movie",
+          Seq("Movie"),
+          Seq("plot"),
+          "moviePlots",
+          "$embedding",
+          "10",
+          "",
+          Set(),
+          Map("plot" -> GetValue)
         )
         .build()
   }
@@ -603,6 +627,68 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
+  test("identify implicitly solved predicates when planning relationship vector index search") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()-[r:ACTS_IN]-()
+        |  WHERE r.script IS NOT NULL
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("r.plot AS `r.plot`")
+        .relationshipVectorIndexSearch(
+          "()-[r]-()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10"
+        )
+        .build()
+  }
+
+  test("identify implicit type predicates within conjunctions and ensure plan filters on the non-implicit predicates") {
+    val planner = plannerBuilder().build()
+
+    // Since a relationship can only have one type, the filter on r:CONTRIBUTED should ensure that this query produces no results.
+    // The filter on r:ACTS_IN is implicit in the vector index search and need not be planned (even if it is in the WHERE clause).
+    val query =
+      """MATCH ()-[r]-()
+        |  WHERE r:ACTS_IN AND r:CONTRIBUTED
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("r.plot AS `r.plot`") // TODO: PLAN-3109 will ensure that we filter by CONTRIBUTED here.
+        .relationshipVectorIndexSearch(
+          "()-[r]-()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10"
+        )
+        .build()
+  }
+
   test("plan relationship vector index on RHS of apply - using WITH r SKIP 0") {
     val planner = plannerBuilder().build()
 
@@ -734,7 +820,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults(column("movie", "cacheN[movie.plot]"), column("person"))
         .apply()
-        .|.filter("movie:Movie")
         .|.nodeVectorIndexSearch(
           "movie",
           Seq("Movie"),
@@ -769,7 +854,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`movie.plot`", "similarity")
         .projection("cacheN[movie.plot] AS `movie.plot`")
-        .filter("similarity > 0.8", "cacheN[movie.plot] IS NOT NULL", "movie:Movie")
+        .filter("similarity > 0.8")
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
@@ -802,7 +887,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`count(*)`")
         .aggregation(Seq(), Seq("count(*) AS `count(*)`"))
-        .filter("movie:Movie")
         .nodeVectorIndexSearch(
           "movie",
           Seq("Movie"),
@@ -835,7 +919,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults(column("movie", "cacheN[movie.plot]"))
-        .filter(not(hasDegreeGreater("movie", OUTGOING, literalInt(0))), "movie:Movie")
+        .filter(not(hasDegreeGreater("movie", OUTGOING, literalInt(0))))
         .nodeVectorIndexSearch(
           "movie",
           Seq("Movie"),

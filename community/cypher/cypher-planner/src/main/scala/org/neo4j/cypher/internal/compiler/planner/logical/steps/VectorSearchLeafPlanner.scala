@@ -22,9 +22,15 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.HasLabel
+import org.neo4j.cypher.internal.expressions.HasTypes
+import org.neo4j.cypher.internal.expressions.IsNotNull
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
+import org.neo4j.cypher.internal.expressions.Ors
+import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
@@ -85,12 +91,21 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
             }
             val labelName = context.staticComponents.planContext.getLabelName(labelId)
 
+            val implicitlySolvedPredicates = queryGraph.selections.flatPredicatesSet.filter(
+              isImpliedByVectorIndex(
+                _,
+                vectorSearchPredicate.bindingVariable,
+                propertyKeyToken,
+                Left(LabelToken(labelName, labelId))
+              )
+            )
+
             val indexedProperties = List(IndexedProperty(
               propertyKeyToken,
               getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
                 vectorSearchPredicate.bindingVariable,
                 propertyKeyToken.name,
-                queryGraph.selections.flatPredicatesSet,
+                queryGraph.selections.flatPredicatesSet -- implicitlySolvedPredicates,
                 context.plannerState.contextualPropertyAccess
               ),
               entityType = NODE_TYPE
@@ -104,7 +119,8 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
               embedding = vectorSearchPredicate.embedding,
               limit = vectorSearchPredicate.limit,
               scoreVariable = vectorSearchPredicate.scoreVariable,
-              argumentIds = queryGraph.argumentIds
+              argumentIds = queryGraph.argumentIds,
+              implicitlySolvedPredicates = implicitlySolvedPredicates
             )
             Set(nodeVectorIndexSearch)
 
@@ -120,13 +136,21 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
               )
             }
             val relTypeName = context.staticComponents.planContext.getRelTypeName(relTypeId)
+            val implicitlySolvedPredicates = queryGraph.selections.flatPredicatesSet.filter(
+              isImpliedByVectorIndex(
+                _,
+                vectorSearchPredicate.bindingVariable,
+                propertyKeyToken,
+                Right(new RelationshipTypeToken(relTypeName, relTypeId))
+              )
+            )
 
             val indexedProperties = List(IndexedProperty(
               propertyKeyToken,
               getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
                 vectorSearchPredicate.bindingVariable,
                 propertyKeyToken.name,
-                queryGraph.selections.flatPredicatesSet,
+                queryGraph.selections.flatPredicatesSet -- implicitlySolvedPredicates,
                 context.plannerState.contextualPropertyAccess
               ),
               entityType = RELATIONSHIP_TYPE
@@ -144,7 +168,8 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
                     embedding = vectorSearchPredicate.embedding,
                     limit = vectorSearchPredicate.limit,
                     scoreVariable = vectorSearchPredicate.scoreVariable,
-                    argumentIds = queryGraph.argumentIds
+                    argumentIds = queryGraph.argumentIds,
+                    implicitlySolvedPredicates = implicitlySolvedPredicates
                   )
                 Set(relationshipVectorIndexSearch)
 
@@ -158,4 +183,25 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
       case _ => Set.empty
     }
   }
+
+  private def isImpliedByVectorIndex(
+    expression: Expression,
+    vectorSearchVariable: LogicalVariable,
+    propertyKeyToken: PropertyKeyToken,
+    labelOrType: Either[LabelToken, RelationshipTypeToken]
+  ): Boolean = {
+    (labelOrType, expression) match {
+      case (_, IsNotNull(Property(`vectorSearchVariable`, propertyKey))) if propertyKey.name == propertyKeyToken.name =>
+        true
+      case (Left(labelToken), HasLabel(`vectorSearchVariable`, lbl)) if lbl.name == labelToken.name => true
+      case (Right(typeToken), HasTypes(`vectorSearchVariable`, relTypes))
+        if relTypes.size == 1 && relTypes.exists(_.name == typeToken.name) =>
+        true
+
+      case (_, Ors(exprs)) =>
+        exprs.exists(isImpliedByVectorIndex(_, vectorSearchVariable, propertyKeyToken, labelOrType))
+      case _ => false
+    }
+  }
+
 }
