@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
+import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
@@ -165,6 +166,29 @@ object NodeVectorIndexSearchPipe {
     }
   }
 
+  /**
+   * NOTE: the properties array should always be organized so that the 0th element contains the property key
+   *       for the nearestNeighbour predicates, and subsequent elements the properties we use as filters in the
+   *       search.
+   *
+   *       Given a vector index on the n.embedding with filtering properties p1, p2, ... and a query like
+   *
+   *       {{{
+   *          MATCH (x)
+   *            SEARCH x IN (
+   *              VECTOR INDEX theIndex
+   *              FOR $embedding
+   *              WHERE p1 = 42 AND p2 > 45....
+   *              LIMIT 4
+   *           )
+   *          RETURN x
+   *       }}}
+   *
+   *       the resulting Array[PropertyIndexQuery] should look something like:
+   *       {{{
+   *         [NearestNeighborsPredicate($embedding), exact(42), rangeGreaterThan(42), ...]
+   *       }}}
+   */
   def predicate(
     limit: Int,
     vector: Array[Float],
@@ -207,6 +231,10 @@ object NodeVectorIndexSearchPipe {
               s"$notSupported not supported in vector searches"
             )
         }
+
+      case Some(ExistenceQueryExpression()) =>
+        checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
+        Array(nearestPredicate, PropertyIndexQuery.exists(properties(1)))
 
       case Some(CompositeQueryExpression(inner)) =>
         require(inner.length == properties.length - 1)
@@ -267,8 +295,12 @@ object NodeVectorIndexSearchPipe {
                 s"$notSupported not supported in vector searches"
               )
           }
+
         case AllQueryExpression() =>
           predicates(i) = PropertyIndexQuery.all(properties(i))
+
+        case ExistenceQueryExpression() =>
+          predicates(i) = PropertyIndexQuery.exists(properties(i))
 
         case notSupported =>
           throw InternalException.internalError(

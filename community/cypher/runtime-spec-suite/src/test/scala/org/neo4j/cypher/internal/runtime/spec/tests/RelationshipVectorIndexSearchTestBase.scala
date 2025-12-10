@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
+import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.InclusiveBound
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRange
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
@@ -44,6 +45,7 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.dbms.database.DbmsRuntimeVersion
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InvalidArgumentException
+import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.schema.IndexType
@@ -3745,6 +3747,184 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         Array(8, "8", null)
       )
     )
+  }
+
+  test("should support directed existence query", Tags.NoSpdOverride) {
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      relationshipGraph(1000, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, idToken, longValue(i))
+            relationships.append(r)
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .relationshipVectorIndexSearch(
+        "()-[r]->()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(ExistenceQueryExpression())
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("r").withRows(singleColumn(relationships))
+  }
+
+  test("should support undirected existence query", Tags.NoSpdOverride) {
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      relationshipGraph(1000, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, idToken, longValue(i))
+            relationships.append(r)
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .relationshipVectorIndexSearch(
+        "()-[r]-()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(ExistenceQueryExpression())
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("r").withRows(singleColumn(relationships.flatMap(r => Seq(r, r))))
+  }
+
+  test("should support composite directed existence query", Tags.NoSpdOverride) {
+
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      relationshipGraph(1000, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, id1Token, longValue(i))
+            write.relationshipSetProperty(r.getId, id2Token, longValue(i))
+            relationships.append(r)
+          } else if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, id1Token, longValue(i))
+          } else {
+            write.relationshipSetProperty(r.getId, id2Token, longValue(i))
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .relationshipVectorIndexSearch(
+        "()-[r]->()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(ExistenceQueryExpression(), ExistenceQueryExpression()))
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("r").withRows(singleColumn(relationships))
+  }
+
+  test("should support composite undirected existence query", Tags.NoSpdOverride) {
+
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      relationshipGraph(1000, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, id1Token, longValue(i))
+            write.relationshipSetProperty(r.getId, id2Token, longValue(i))
+            relationships.append(r)
+          } else if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, id1Token, longValue(i))
+          } else {
+            write.relationshipSetProperty(r.getId, id2Token, longValue(i))
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .relationshipVectorIndexSearch(
+        "()-[r]-()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(ExistenceQueryExpression(), ExistenceQueryExpression()))
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("r").withRows(singleColumn(relationships.flatMap(r => Seq(r, r))))
   }
 
   private def booleanVectorGraph(size: Int): Unit = {
