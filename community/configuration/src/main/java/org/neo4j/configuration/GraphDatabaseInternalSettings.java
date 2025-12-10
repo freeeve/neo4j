@@ -1486,7 +1486,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Internal
     @Description("A feature toggle behind which oidc credential forwarding is developed")
     public static final Setting<Boolean> oidc_credential_forwarding_enabled = newBuilder(
-                    "internal.cypher.enable_oidc_credential_forwarding", BOOL, false)
+                    "internal.cypher.enable_oidc_credential_forwarding", BOOL, true)
             .build();
 
     @Internal
