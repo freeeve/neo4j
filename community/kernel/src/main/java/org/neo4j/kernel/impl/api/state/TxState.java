@@ -26,20 +26,24 @@ import static org.neo4j.collection.diffset.TrackableDiffSets.newRemovalsCounting
 import static org.neo4j.collection.trackable.HeapTrackingCollections.newIntObjectHashMap;
 import static org.neo4j.collection.trackable.HeapTrackingCollections.newLongObjectMap;
 import static org.neo4j.collection.trackable.HeapTrackingCollections.newMap;
+import static org.neo4j.kernel.impl.api.state.StateNodeRelationshipIds.createStateNodeRelationshipIds;
 import static org.neo4j.kernel.impl.api.state.TokenState.createTokenState;
 import static org.neo4j.storageengine.api.txstate.EntityChange.ADDED;
 import static org.neo4j.storageengine.api.txstate.EntityChange.REMOVED;
+import static org.neo4j.storageengine.api.txstate.RelationshipModifications.IdDataDecorator.EMPTY_ID_DATA_DECORATOR;
 import static org.neo4j.storageengine.api.txstate.RelationshipModifications.idsAsBatch;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.function.IntPredicate;
 import org.eclipse.collections.api.map.MutableMap;
+import org.eclipse.collections.api.map.primitive.LongObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
@@ -82,7 +86,6 @@ import org.neo4j.storageengine.api.enrichment.ApplyEnrichmentStrategy;
 import org.neo4j.storageengine.api.enrichment.EnrichmentMode;
 import org.neo4j.storageengine.api.txstate.NodeState;
 import org.neo4j.storageengine.api.txstate.RelationshipModifications;
-import org.neo4j.storageengine.api.txstate.RelationshipModifications.NodeRelationshipIds;
 import org.neo4j.storageengine.api.txstate.RelationshipState;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
@@ -183,56 +186,27 @@ public class TxState implements TransactionState {
         }
 
         if (relationships != null) {
-            try (MemoryTracker scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
-                    HeapTrackingArrayList<NodeRelationshipIds> sortedNodeRelState =
-                            HeapTrackingArrayList.newArrayList(nodeStatesMap.size(), scopedMemoryTracker)) {
-                for (NodeStateImpl nodeState : nodeStatesMap.values()) {
-                    if (nodeState.isDeleted() && nodeState.hasAddedRelationships()) {
-                        // The usual case for nodes created in previous tx is handled by
-                        // IntegrityValidator/MutableRelationships, this is just for deleted nodes
-                        // with added rels in this tx.
-                        if (nodeState.isAddedInThisBatch()) {
-                            throw DeletedNodeStillHasRelationshipsException.nodeCreatedInThisTxStillHasRelationships();
-                        }
-                        throw DeletedNodeStillHasRelationshipsException.nodeStillHasRelationships(nodeState.getId());
+            for (NodeStateImpl nodeState : nodeStatesMap.values()) {
+                if (nodeState.isDeleted() && nodeState.hasAddedRelationships()) {
+                    // The usual case for nodes created in previous tx is handled by
+                    // IntegrityValidator/MutableRelationships, this is just for deleted nodes
+                    // with added rels in this tx.
+                    if (nodeState.isAddedInThisBatch()) {
+                        throw DeletedNodeStillHasRelationshipsException.nodeCreatedInThisTxStillHasRelationships();
                     }
-                    // For nodes that were added and removed in this tx there is no need to try to figure out any
-                    // relationship ids, there shouldn't be any.
-                    if (!(nodeState.isDeleted() && nodeState.isAddedInThisBatch())) {
-                        if (nodeState.hasRelationshipChanges()) {
-                            sortedNodeRelState.add(StateNodeRelationshipIds.createStateNodeRelationshipIds(
-                                    nodeState, this::relationshipVisitWithProperties, scopedMemoryTracker));
-                        }
-                    }
+                    throw DeletedNodeStillHasRelationshipsException.nodeStillHasRelationships(nodeState.getId());
                 }
-                sortedNodeRelState.sort(Comparator.comparingLong(NodeRelationshipIds::nodeId));
+            }
 
-                // Visit relationships, this will grab all the locks needed to do the updates
-                visitor.visitRelationshipModifications(new RelationshipModifications() {
-                    @Override
-                    public void forEachSplit(IdsVisitor visitor) {
-                        sortedNodeRelState.forEach(visitor);
-                    }
-
-                    @Override
-                    public RelationshipBatch creations() {
-                        return idsAsBatch(relationships.getAdded(), TxState.this::relationshipVisitWithProperties);
-                    }
-
-                    @Override
-                    public RelationshipBatch deletions() {
-                        if (behaviour.keepMetaDataForDeletedRelationship()) {
-                            return idsAsBatch(relationships.getRemoved(), TxState.this::deletedRelationshipVisit);
-                        } else {
-                            return idsAsBatch(relationships.getRemoved());
-                        }
-                    }
-
-                    @Override
-                    public RelationshipBatch updates() {
-                        return idsAsBatch(relationships.getChanged(), TxState.this::relationshipVisitWithProperties);
-                    }
-                });
+            try (RelationshipModificationsImpl modifications = new RelationshipModificationsImpl(
+                    nodeStatesMap,
+                    relationships,
+                    this::relationshipVisitWithProperties,
+                    behaviour.keepMetaDataForDeletedRelationship()
+                            ? this::deletedRelationshipVisit
+                            : EMPTY_ID_DATA_DECORATOR,
+                    memoryTracker)) {
+                visitor.visitRelationshipModifications(modifications);
             }
         }
 
@@ -297,6 +271,74 @@ public class TxState implements TransactionState {
 
         if (upgrade != null) {
             visitor.visitKernelUpgrade(upgrade);
+        }
+    }
+
+    private static class RelationshipModificationsImpl implements RelationshipModifications, AutoCloseable {
+        private final LongObjectMap<NodeStateImpl> nodes;
+        private final ChangeCountingDiffSet relationships;
+        private final IdDataDecorator visitChangedRelationships;
+        private final IdDataDecorator visitDeletedRelationships;
+        private final MemoryTracker memoryTracker;
+
+        private HeapTrackingArrayList<NodeStateImpl> sortedNodeRelState;
+
+        RelationshipModificationsImpl(
+                LongObjectMap<NodeStateImpl> nodes,
+                ChangeCountingDiffSet relationships,
+                IdDataDecorator visitChangedRelationships,
+                IdDataDecorator visitDeletedRelationships,
+                MemoryTracker memoryTracker) {
+            this.nodes = nodes;
+            this.relationships = relationships;
+            this.visitChangedRelationships = visitChangedRelationships;
+            this.visitDeletedRelationships = visitDeletedRelationships;
+            this.memoryTracker = memoryTracker;
+        }
+
+        @Override
+        public void forEachSplit(IdsVisitor visitor) {
+            for (NodeStateImpl nodeState : getOrCreateSortedNodeRelState()) {
+                visitor.accept(createStateNodeRelationshipIds(nodeState, visitChangedRelationships));
+            }
+        }
+
+        @Override
+        public RelationshipBatch creations() {
+            return idsAsBatch(relationships.getAdded(), visitChangedRelationships);
+        }
+
+        @Override
+        public RelationshipBatch deletions() {
+            return idsAsBatch(relationships.getRemoved(), visitDeletedRelationships);
+        }
+
+        @Override
+        public RelationshipBatch updates() {
+            return idsAsBatch(relationships.getChanged(), visitChangedRelationships);
+        }
+
+        private List<NodeStateImpl> getOrCreateSortedNodeRelState() {
+            if (sortedNodeRelState == null) {
+                sortedNodeRelState = HeapTrackingArrayList.newArrayList(nodes.size(), memoryTracker);
+                for (NodeStateImpl nodeState : nodes.values()) {
+                    // For nodes that were added and removed in this tx there is no need to try to figure
+                    // out any
+                    // relationship ids, there shouldn't be any.
+                    if (!(nodeState.isDeleted() && nodeState.isAddedInThisBatch())) {
+                        if (nodeState.hasRelationshipChanges()) {
+                            sortedNodeRelState.add(nodeState);
+                        }
+                    }
+                }
+                sortedNodeRelState.sort(Comparator.comparingLong(NodeState::getId));
+            }
+            return sortedNodeRelState;
+        }
+
+        @Override
+        public void close() {
+            try (var state = sortedNodeRelState) {}
         }
     }
 

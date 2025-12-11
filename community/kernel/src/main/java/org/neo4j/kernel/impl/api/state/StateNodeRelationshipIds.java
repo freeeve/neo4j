@@ -19,14 +19,11 @@
  */
 package org.neo4j.kernel.impl.api.state;
 
-import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 import static org.neo4j.storageengine.api.txstate.RelationshipModifications.noAdditionalDataDecorator;
 
-import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.txstate.RelationshipModifications;
 
 class StateNodeRelationshipIds implements RelationshipModifications.NodeRelationshipIds {
-    private static final long SHALLOW_SIZE = shallowSizeOfInstance(StateNodeRelationshipIds.class);
     private final NodeStateImpl nodeState;
     private final boolean hasCreations;
     private final boolean hasDeletions;
@@ -34,10 +31,7 @@ class StateNodeRelationshipIds implements RelationshipModifications.NodeRelation
     private final RelationshipModifications.IdDataDecorator relationshipVisit;
 
     static StateNodeRelationshipIds createStateNodeRelationshipIds(
-            NodeStateImpl nodeState,
-            RelationshipModifications.IdDataDecorator relationshipVisit,
-            MemoryTracker memoryTracker) {
-        memoryTracker.allocateHeap(SHALLOW_SIZE);
+            NodeStateImpl nodeState, RelationshipModifications.IdDataDecorator relationshipVisit) {
         return new StateNodeRelationshipIds(nodeState, relationshipVisit);
     }
 
