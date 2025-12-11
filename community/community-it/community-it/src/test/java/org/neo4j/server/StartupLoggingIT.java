@@ -27,9 +27,7 @@ import static org.neo4j.io.fs.FileSystemUtils.readLines;
 import static org.neo4j.server.AbstractNeoWebServer.NEO4J_IS_STARTING_MESSAGE;
 import static org.neo4j.test.conditions.Conditions.containsAtLeastTheseLines;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.URI;
@@ -37,7 +35,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.DependencyResolver;
@@ -52,6 +49,7 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.log4j.LogConfig;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.test.Barrier;
 import org.neo4j.test.ports.PortAuthority;
 import org.neo4j.test.server.ExclusiveWebContainerTestBase;
 
@@ -85,42 +83,43 @@ class StartupLoggingIT extends ExclusiveWebContainerTestBase {
     }
 
     @Test
-    void shouldLogFailuresToSystemErr() throws InterruptedException, IOException {
+    void shouldLogFailuresToSystemErr() throws InterruptedException {
         // A sister test for EnterpriseBootstrapper lives in com.neo4j.server.enterprise.EnterpriseBootstrapperIT
         // GIVEN
         CommunityBootstrapper bootstrapper = new CommunityBootstrapper();
-        ByteArrayOutputStream sysErr = new ByteArrayOutputStream();
-        System.setErr(new PrintStream(sysErr));
         int port = PortAuthority.allocatePort();
         Config.Builder configBuilder = Config.newBuilder()
                 .setDefaults(GraphDatabaseSettings.SERVER_DEFAULTS)
-                .set(HttpConnector.listen_address, new SocketAddress("localhost", port));
+                .set(HttpConnector.listen_address, new SocketAddress("localhost", port))
+                .set(GraphDatabaseSettings.neo4j_home, testDirectory.homePath());
         Config config = configBuilder.build();
 
         // WHEN - The port to be used by the Neo4j webserver is already occupied
-        CountDownLatch latch = new CountDownLatch(1);
+        Barrier.Control barrier = new Barrier.Control();
         Thread otherProcessThatHasPort = new Thread(() -> {
             try (ServerSocket s = new ServerSocket(port, 0, InetAddress.getByName(null))) {
-                latch.countDown();
-                s.accept();
+                barrier.reached();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
-        otherProcessThatHasPort.start();
+        try {
+            otherProcessThatHasPort.start();
 
-        // WHEN - We attempt to create the Neo4j webserver
-        latch.await();
-        bootstrapper.start(testDirectory.homePath(), config, true);
+            // WHEN - We attempt to create the Neo4j webserver
+            barrier.await();
+            bootstrapper.start(testDirectory.homePath(), config, true);
 
-        // THEN - Errors have been written to the correct System.err stream
-        sysErr.flush();
-        List<String> sysErrMsgs = List.of(sysErr.toString().split("\n"));
-        assertThat(sysErrMsgs)
-                .satisfies(containsAtLeastTheseLines(
-                        Pattern.compile("Failed to start Neo4j on localhost:\\d{1,6}.*"),
-                        // This exception can vary depending on environment. We only care that one is reported.
-                        Pattern.compile(".*Exception: .*")));
+            // THEN - Errors have been written to the correct System.err stream
+            assertThat(suppressOutput.getErrorVoice().lines())
+                    .satisfies(containsAtLeastTheseLines(
+                            Pattern.compile("Failed to start Neo4j on localhost:\\d{1,6}.*"),
+                            // This exception can vary depending on environment. We only care that one is reported.
+                            Pattern.compile(".*Exception: .*")));
+        } finally {
+            barrier.release();
+            otherProcessThatHasPort.join();
+        }
     }
 
     private static DependencyResolver getDependencyResolver(DatabaseManagementService managementService) {
