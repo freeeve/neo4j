@@ -151,24 +151,28 @@ class StandardInternalExecutionResult(
   override def notifications: Iterable[NotificationImplementation] = internalNotifications()
 
   override def gqlStatusObjects: Iterable[GqlStatusObject] = {
-    val gqlStatusObjectsNotifications = internalNotifications().asInstanceOf[Iterable[GqlStatusObject]]
+    val gqlStatusObjectsNotifications = internalNotifications().asInstanceOf[Seq[GqlStatusObject]]
+
+    // Filter out duplicate GqlStatusObjects where only the legacy notification description and title might differ
+    val uniqueGqlStatusObjects =
+      gqlStatusObjectsNotifications.distinctBy(g => (g.gqlStatus(), g.statusDescription(), g.diagnosticRecord()));
 
     val allGqlStatusObjects: Seq[GqlStatusObject] = {
 
       if (fieldNames().isEmpty) {
         // No result columns =>  OMITTED RESULT
-        gqlStatusObjectsNotifications ++ Seq(StandardGqlStatusObject.OMITTED_RESULT)
+        uniqueGqlStatusObjects ++ Seq(StandardGqlStatusObject.OMITTED_RESULT)
       } else if (!runtimeResult.hasServedRows) {
         if (runtimeResult.consumptionState() == ConsumptionState.EXHAUSTED) {
           // Exhausted without result rows => NO DATA
-          gqlStatusObjectsNotifications ++ Seq(StandardGqlStatusObject.NO_DATA)
+          uniqueGqlStatusObjects ++ Seq(StandardGqlStatusObject.NO_DATA)
         } else {
           // Not exhausted without result rows => UNKNOWN NO DATA
-          gqlStatusObjectsNotifications ++ Seq(StandardGqlStatusObject.UNKNOWN_NO_DATA)
+          uniqueGqlStatusObjects ++ Seq(StandardGqlStatusObject.UNKNOWN_NO_DATA)
         }
       } else {
         // At least one result row => SUCCESS
-        gqlStatusObjectsNotifications ++ Seq(StandardGqlStatusObject.SUCCESS)
+        uniqueGqlStatusObjects ++ Seq(StandardGqlStatusObject.SUCCESS)
       }
     }.toSeq
 
