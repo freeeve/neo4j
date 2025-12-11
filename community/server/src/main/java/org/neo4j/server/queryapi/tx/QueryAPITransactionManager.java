@@ -33,6 +33,9 @@ import org.neo4j.driver.TransactionConfig;
 import org.neo4j.driver.internal.InternalSession;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.server.queryapi.exception.TransactionConcurrentAccessException;
+import org.neo4j.server.queryapi.exception.TransactionIdCollisionException;
+import org.neo4j.server.queryapi.exception.TransactionNotFoundException;
 import org.neo4j.server.queryapi.metrics.QueryAPIMetricsMonitor;
 import org.neo4j.util.VisibleForTesting;
 
@@ -97,7 +100,7 @@ public class QueryAPITransactionManager implements TransactionManager {
                     tx.release();
                 }
             } else {
-                throw new TransactionConcurrentAccessException("Transaction was accessed concurrently");
+                throw new TransactionConcurrentAccessException();
             }
         }
         throw new TransactionNotFoundException(transactionId);

@@ -19,33 +19,49 @@
  */
 package org.neo4j.server.queryapi.response.format;
 
+import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_EVENT_ERROR;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_EVENT_HEADER;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_EVENT_RECORD;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_EVENT_SUMMARY;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import org.neo4j.driver.Bookmark;
+import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.summary.ResultSummary;
+import org.neo4j.server.queryapi.response.error.HttpErrorResponse;
 
 public class QueryBodyFormatter {
     private final DriverResultSerializer serializer;
     private State state;
 
-    public QueryBodyFormatter(JsonGenerator jsonGenerator) {
-        this.serializer = new DriverResultSerializer(jsonGenerator);
+    public QueryBodyFormatter(JsonGenerator jsonGenerator, OutputStream outputStream) {
+        this.serializer = new DriverResultSerializer(jsonGenerator, outputStream);
         this.state = State.CREATED;
     }
 
     public void json(FormatterConsumer<JsonBodyFormatter> consumer) throws IOException {
-        if (state != State.CREATED) {
+        accessState();
+        this.serializer.write(() -> consumer.accept(new JsonBodyFormatter(this.serializer)));
+    }
+
+    public JsonLinesFormatter jsonl() throws IOException {
+        accessState();
+        return new JsonLinesFormatter(this.serializer);
+    }
+
+    private void accessState() {
+        if (this.state != State.CREATED) {
             throw new IllegalStateException(
                     "This method is called only once and can't be used in combination with others");
         }
-        try {
-            this.serializer.write(() -> consumer.accept(new JsonBodyFormatter(this.serializer)));
-        } finally {
-            state = State.FINISHED;
-        }
+        state = State.USED;
     }
 
     public static class JsonBodyFormatter {
@@ -75,12 +91,85 @@ public class QueryBodyFormatter {
         }
     }
 
+    public static class JsonLinesFormatter {
+        private final DriverResultSerializer serializer;
+
+        private JsonLinesFormatter(DriverResultSerializer serializer) {
+            this.serializer = serializer;
+        }
+
+        public void header() throws IOException {
+            header(null);
+        }
+
+        public void header(List<String> keys) throws IOException {
+            this.serializer.writeEvent(CYPHER_EVENT_HEADER, () -> {
+                this.serializer.object(() -> {
+                    this.serializer.writeFieldNames(keys);
+                });
+            });
+        }
+
+        public void record(Record record) throws IOException {
+            this.serializer.writeEvent(CYPHER_EVENT_RECORD, () -> {
+                this.serializer.writeValue(record);
+            });
+        }
+
+        public void summary(ResultSummary resultSummary, Set<Bookmark> bookmarks, boolean requireCounters)
+                throws IOException {
+            this.summary(resultSummary, bookmarks, null, null, requireCounters);
+        }
+
+        public void summary(
+                ResultSummary resultSummary,
+                Set<Bookmark> bookmarks,
+                String txId,
+                Instant timeout,
+                boolean requireCounters)
+                throws IOException {
+            this.serializer.writeEvent(CYPHER_EVENT_SUMMARY, () -> {
+                this.serializer.object(() -> {
+                    this.serializer.writeNotifications(resultSummary.notifications());
+                    this.serializer.writeCounters(resultSummary, requireCounters);
+                    this.serializer.writeProfile(resultSummary);
+                    this.serializer.writeQueryPlan(resultSummary);
+                    this.serializer.writeBookmarks(bookmarks);
+                    this.serializer.writeTxInfo(txId, timeout);
+                });
+            });
+        }
+
+        public void summary(Collection<Bookmark> bookmarks) throws IOException {
+            this.summary(bookmarks, null, null);
+        }
+
+        public void summary(String txId, Instant timeout) throws IOException {
+            this.summary(null, txId, timeout);
+        }
+
+        public void summary(Collection<Bookmark> bookmarks, String txId, Instant timeout) throws IOException {
+            this.serializer.writeEvent(CYPHER_EVENT_SUMMARY, () -> {
+                this.serializer.object(() -> {
+                    this.serializer.writeBookmarks(bookmarks);
+                    this.serializer.writeTxInfo(txId, timeout);
+                });
+            });
+        }
+
+        public void error(HttpErrorResponse error) throws IOException {
+            this.serializer.writeEvent(CYPHER_EVENT_ERROR, () -> {
+                this.serializer.writeError(error);
+            });
+        }
+    }
+
     public interface FormatterConsumer<T> {
         void accept(T formatter) throws IOException;
     }
 
     private enum State {
         CREATED,
-        FINISHED,
+        USED,
     }
 }

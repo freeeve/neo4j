@@ -17,22 +17,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.response.error;
+package org.neo4j.server.queryapi.exception;
 
-import static org.neo4j.server.queryapi.response.error.HttpErrorResponse.singleError;
-
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
-public class WebApplicationExceptionMapper implements ExceptionMapper<WebApplicationException> {
-    @Override
-    public Response toResponse(WebApplicationException e) {
-        return Response.status(e.getResponse().getStatus())
-                .entity(singleError(
-                        Status.Request.Invalid.code().serialize(),
-                        e.getResponse().getStatusInfo().getReasonPhrase()))
-                .build();
+public class TransactionConcurrentAccessException extends QueryApiException {
+
+    public TransactionConcurrentAccessException() {
+        super(
+                "Another request is currently accessing this transaction.",
+                // todo: create a card for add the correct gql code here
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+                        .build(),
+                Status.Transaction.TransactionAccessedConcurrently,
+                Response.Status.BAD_REQUEST);
     }
 }

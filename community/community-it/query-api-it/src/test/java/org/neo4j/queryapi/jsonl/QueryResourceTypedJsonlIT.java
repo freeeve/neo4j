@@ -1,5 +1,3 @@
-package org.neo4j.queryapi.testclient;
-
 /*
  * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [https://neo4j.com]
@@ -19,22 +17,27 @@ package org.neo4j.queryapi.testclient;
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-public enum QueryContentType {
-    UNTYPED("application/json"),
-    TYPED("application/vnd.neo4j.query"),
-    TYPED_V1_0("application/vnd.neo4j.query.v1.0"),
-    TYPED_V1_1("application/vnd.neo4j.query.v1.1"),
-    UNTYPED_L("application/jsonl"),
-    TYPED_L_V1_0("application/vnd.neo4j.query.v1.0+jsonl"),
-    TYPED_L_V1_1("application/vnd.neo4j.query.v1.1+jsonl");
+package org.neo4j.queryapi.jsonl;
 
-    private final String mimeType;
+import java.util.List;
+import org.junit.jupiter.api.BeforeAll;
+import org.neo4j.queryapi.testclient.QueryContentType;
 
-    QueryContentType(String mimeType) {
-        this.mimeType = mimeType;
+class QueryResourceTypedJsonlIT extends AbstractQueryResourcedTypedJsonlIT {
+
+    @BeforeAll
+    static void setup() {
+        beforeAll(
+                QueryContentType.TYPED_V1_0,
+                List.of(
+                        QueryContentType.TYPED_L_V1_0,
+                        QueryContentType.TYPED_V1_0,
+                        QueryContentType.TYPED,
+                        QueryContentType.UNTYPED));
     }
 
-    public String mimeType() {
-        return mimeType;
+    @Override
+    protected QueryContentType expectedContentType() {
+        return QueryContentType.TYPED_L_V1_0;
     }
 }

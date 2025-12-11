@@ -17,10 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.tx;
+package org.neo4j.server.queryapi.response;
 
-public class TransactionConcurrentAccessException extends RuntimeException {
-    public TransactionConcurrentAccessException(String message) {
-        super(message);
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.ext.Provider;
+import org.neo4j.logging.InternalLog;
+import org.neo4j.server.queryapi.QueryMimeTypes;
+import org.neo4j.server.queryapi.response.format.View;
+
+@Provider
+@Produces(QueryMimeTypes.TYPED_JSONL_V1x1)
+public class TypedJsonlTxInfoWriterV11 extends AbstractJsonlTxInfoWriter {
+    protected TypedJsonlTxInfoWriterV11(@Context InternalLog log) {
+        super(log, View.TYPED_JSON);
     }
 }

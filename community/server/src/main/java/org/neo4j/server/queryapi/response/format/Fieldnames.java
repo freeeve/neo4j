@@ -63,5 +63,13 @@ public final class Fieldnames {
     public static final String ERROR_MESSAGE = "message";
     public static final String ERROR_CODE = "code";
 
+    public static final String CYPHER_EVENT = "$event";
+    public static final String CYPHER_BODY = "_body";
+
+    public static final String CYPHER_EVENT_HEADER = "Header";
+    public static final String CYPHER_EVENT_RECORD = "Record";
+    public static final String CYPHER_EVENT_SUMMARY = "Summary";
+    public static final String CYPHER_EVENT_ERROR = "Error";
+
     private Fieldnames() {}
 }

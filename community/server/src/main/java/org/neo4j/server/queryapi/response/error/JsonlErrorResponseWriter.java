@@ -34,15 +34,15 @@ import javax.ws.rs.ext.Provider;
 import org.neo4j.server.http.cypher.format.DefaultJsonFactory;
 import org.neo4j.server.queryapi.QueryMimeTypes;
 import org.neo4j.server.queryapi.response.format.QueryAPICodec;
+import org.neo4j.server.queryapi.response.format.QueryBodyFormatter;
 import org.neo4j.server.queryapi.response.format.View;
 
 @Provider
-@Produces(QueryMimeTypes.ALL_JSON)
-public class ErrorResponseWriter implements MessageBodyWriter<HttpErrorResponse> {
-
+@Produces(QueryMimeTypes.ALL_JSONL)
+public class JsonlErrorResponseWriter implements MessageBodyWriter<HttpErrorResponse> {
     private final JsonFactory jsonFactory;
 
-    public ErrorResponseWriter() {
+    public JsonlErrorResponseWriter() {
         this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.PLAIN_JSON));
     }
 
@@ -54,20 +54,24 @@ public class ErrorResponseWriter implements MessageBodyWriter<HttpErrorResponse>
     @Override
     public void writeTo(
             HttpErrorResponse httpErrorResponse,
-            Class<?> type,
-            Type genericType,
+            Class<?> aClass,
+            Type type,
             Annotation[] annotations,
             MediaType mediaType,
             MultivaluedMap<String, Object> httpHeaders,
-            OutputStream entityStream)
+            OutputStream outputStream)
             throws IOException, WebApplicationException {
-        if (mediaType != null && !httpHeaders.containsKey(HttpHeaders.CONTENT_TYPE)) {
-            httpHeaders.add(HttpHeaders.CONTENT_TYPE, mediaType.toString());
-        } else if (!httpHeaders.containsKey(HttpHeaders.CONTENT_TYPE)) {
+        var jsonGenerator = jsonFactory.createGenerator(outputStream);
+        // In some situations, the content type is not detect and it
+        // should fall back to JSON.
+        if (!httpHeaders.containsKey(HttpHeaders.CONTENT_TYPE)) {
             // If we don't know the content type, default it to application/json
             httpHeaders.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+            jsonFactory.createGenerator(outputStream).writeObject(httpErrorResponse);
+            return;
         }
 
-        jsonFactory.createGenerator(entityStream).writeObject(httpErrorResponse);
+        var formatter = new QueryBodyFormatter(jsonGenerator, outputStream).jsonl();
+        formatter.error(httpErrorResponse);
     }
 }

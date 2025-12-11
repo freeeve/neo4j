@@ -19,14 +19,12 @@
  */
 package org.neo4j.server.queryapi.response;
 
-import java.util.List;
 import java.util.Set;
 import org.neo4j.driver.Bookmark;
 
-public record QueryResponseBookmarks(List<String> bookmarks) {
+public record QueryResponseBookmarks(Set<Bookmark> bookmarks) {
 
     public static QueryResponseBookmarks fromBookmarks(Set<Bookmark> bookmarks) {
-        return new QueryResponseBookmarks(
-                bookmarks.stream().map(Bookmark::value).toList());
+        return new QueryResponseBookmarks(bookmarks);
     }
 }

@@ -24,11 +24,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyWriter;
-import org.neo4j.logging.InternalLog;
 import org.neo4j.server.http.cypher.format.DefaultJsonFactory;
 import org.neo4j.server.http.cypher.format.api.ConnectionException;
 import org.neo4j.server.queryapi.exception.ExceptionsUnwrapper;
@@ -37,52 +35,49 @@ import org.neo4j.server.queryapi.response.format.QueryAPICodec;
 import org.neo4j.server.queryapi.response.format.QueryBodyFormatter;
 import org.neo4j.server.queryapi.response.format.View;
 
-abstract class AbstractDriverResultWriter implements MessageBodyWriter<AutoCommitResultContainer> {
-    private final InternalLog log;
+abstract class AbstractJsonlDriverResultWriter implements MessageBodyWriter<AutoCommitResultContainer> {
+
     private final JsonFactory jsonFactory;
 
-    public AbstractDriverResultWriter(InternalLog log, View view) {
-        this.log = log;
+    protected AbstractJsonlDriverResultWriter(View view) {
         this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(view));
     }
 
-    public void writeDriverResult(JsonFactory factory, AutoCommitResultContainer result, OutputStream outputStream)
-            throws IOException {
-        var jsonGenerator = factory.createGenerator(outputStream);
-        var formatter = new QueryBodyFormatter(jsonGenerator, outputStream);
+    @Override
+    public boolean isWriteable(Class<?> aClass, Type type, Annotation[] annotations, MediaType mediaType) {
+        return AutoCommitResultContainer.class.isAssignableFrom(aClass);
+    }
 
-        try (var session = result.session()) {
-            formatter.json((singleBodyFormatter) -> {
-                singleBodyFormatter.data(result.result());
-                var resultSummary = result.result().consume();
-                singleBodyFormatter.metadata(
-                        resultSummary,
-                        session.lastBookmarks(),
-                        result.queryRequest().includeCounters());
-            });
+    @Override
+    public void writeTo(
+            AutoCommitResultContainer container,
+            Class<?> aClass,
+            Type type,
+            Annotation[] annotations,
+            MediaType mediaType,
+            MultivaluedMap<String, Object> httpHeaders,
+            OutputStream outputStream)
+            throws IOException {
+        httpHeaders.add("Transfer-encoding", "chunked");
+        var jsonGenerator = jsonFactory.createGenerator(outputStream);
+        var formatter = new QueryBodyFormatter(jsonGenerator, outputStream).jsonl();
+
+        try (var session = container.session()) {
+            var result = container.result();
+            formatter.header(result.keys());
+            while (result.hasNext()) {
+                formatter.record(result.next());
+                outputStream.flush();
+            }
+            formatter.summary(
+                    result.consume(),
+                    session.lastBookmarks(),
+                    container.queryRequest().includeCounters());
         } catch (IOException ex) {
             ExceptionsUnwrapper.unwrapAndThrowNeo4jAndQueryApiExceptions(ex);
             throw new ConnectionException("Failed to write to the connection", ex);
         } finally {
             jsonGenerator.flush();
         }
-    }
-
-    @Override
-    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
-        return AutoCommitResultContainer.class.isAssignableFrom(type);
-    }
-
-    @Override
-    public void writeTo(
-            AutoCommitResultContainer result,
-            Class<?> type,
-            Type genericType,
-            Annotation[] annotations,
-            MediaType mediaType,
-            MultivaluedMap<String, Object> httpHeaders,
-            OutputStream entityStream)
-            throws IOException, WebApplicationException {
-        writeDriverResult(jsonFactory, result, entityStream);
     }
 }

@@ -19,14 +19,14 @@
  */
 package org.neo4j.server.queryapi.response;
 
+import java.time.Instant;
 import org.neo4j.server.queryapi.tx.Transaction;
 
 public record QueryResponseTxInfo(TransactionInfo transaction) {
 
-    private record TransactionInfo(String id, String expires) {}
+    public record TransactionInfo(String id, Instant expires) {}
 
     public static QueryResponseTxInfo fromQueryAPITransaction(Transaction tx) {
-        return new QueryResponseTxInfo(
-                new TransactionInfo(tx.id(), tx.expiresAt().toString()));
+        return new QueryResponseTxInfo(new TransactionInfo(tx.id(), tx.expiresAt()));
     }
 }

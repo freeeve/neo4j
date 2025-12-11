@@ -19,12 +19,9 @@
  */
 package org.neo4j.server.queryapi;
 
-import static java.lang.String.format;
-import static org.neo4j.kernel.api.exceptions.Status.Transaction.TransactionAccessedConcurrently;
 import static org.neo4j.server.queryapi.request.AccessMode.toDriverAccessMode;
 import static org.neo4j.server.queryapi.response.QueryResponseBookmarks.fromBookmarks;
 import static org.neo4j.server.queryapi.response.QueryResponseTxInfo.fromQueryAPITransaction;
-import static org.neo4j.server.queryapi.response.error.HttpErrorResponse.singleError;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -43,17 +40,16 @@ import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.TransactionConfig;
 import org.neo4j.driver.exceptions.Neo4jException;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.server.queryapi.exception.QueryApiException;
+import org.neo4j.server.queryapi.exception.TransactionConcurrentAccessException;
+import org.neo4j.server.queryapi.exception.TransactionNotFoundException;
 import org.neo4j.server.queryapi.request.AutoCommitResultContainer;
 import org.neo4j.server.queryapi.request.QueryRequest;
 import org.neo4j.server.queryapi.request.TxManagedResultContainer;
 import org.neo4j.server.queryapi.tx.Transaction;
-import org.neo4j.server.queryapi.tx.TransactionConcurrentAccessException;
-import org.neo4j.server.queryapi.tx.TransactionIdCollisionException;
 import org.neo4j.server.queryapi.tx.TransactionManager;
-import org.neo4j.server.queryapi.tx.TransactionNotFoundException;
 import org.neo4j.server.queryapi.tx.WrongUserException;
 import org.neo4j.server.rest.dbms.AuthorizationHeaders;
 
@@ -122,10 +118,8 @@ public class QueryController {
                 txCleanUpAction = TxHandling.RETURN;
                 return transactionInfoOnlyResponse(queryTransaction);
             }
-        } catch (TransactionIdCollisionException ignored) {
-            return txCollisionResponse();
-        } catch (Neo4jException neo4jException) {
-            throw neo4jException;
+        } catch (QueryApiException | Neo4jException queryApiException) {
+            throw queryApiException;
         } catch (Exception exception) {
             log.error("Local driver failed to execute query", exception);
             throw exception;
@@ -144,14 +138,15 @@ public class QueryController {
         return executeStatement(request, txId, extractAuthToken(rawRequest), databaseName, true);
     }
 
-    public Response rollbackTransaction(String txId, HttpServletRequest rawRequest, String requestDatabase) {
+    public Response rollbackTransaction(String txId, HttpServletRequest rawRequest, String requestDatabase)
+            throws QueryApiException {
         Transaction transaction;
         try {
             transaction = transactionManager.retrieveTransaction(txId, requestDatabase, extractAuthToken(rawRequest));
-        } catch (TransactionNotFoundException | WrongUserException ex) {
-            return transactionNotFoundResponse(txId);
+        } catch (WrongUserException ex) {
+            throw new TransactionNotFoundException(txId);
         } catch (ConcurrentModificationException ex) {
-            return txConcurrentAccessResponse();
+            throw new TransactionConcurrentAccessException();
         }
 
         try {
@@ -159,7 +154,8 @@ public class QueryController {
         } finally {
             transactionManager.removeTransaction(txId);
         }
-        return Response.ok().build();
+        // Keeps the status as 200 for not breaking compatibility
+        return Response.ok().entity(fromBookmarks(null)).build();
     }
 
     private Response executeStatement(
@@ -167,15 +163,14 @@ public class QueryController {
             String txId,
             AuthToken requestAuthToken,
             String requestDatabase,
-            boolean requiresCommit) {
+            boolean requiresCommit)
+            throws QueryApiException {
         Transaction queryAPITransaction;
 
         try {
             queryAPITransaction = transactionManager.retrieveTransaction(txId, requestDatabase, requestAuthToken);
-        } catch (TransactionNotFoundException | WrongUserException ex) {
-            return transactionNotFoundResponse(txId);
-        } catch (TransactionConcurrentAccessException ex) {
-            return txConcurrentAccessResponse();
+        } catch (WrongUserException ex) {
+            throw new TransactionNotFoundException(txId);
         }
 
         var txCleanUpAction = TxHandling.CLOSE;
@@ -277,41 +272,12 @@ public class QueryController {
                 .build();
     }
 
-    private static Response txConcurrentAccessResponse() {
-        return Response.status(Response.Status.BAD_REQUEST)
-                .entity(singleError(
-                        TransactionAccessedConcurrently.code().serialize(),
-                        "Another request is currently accessing this transaction."))
-                .build();
-    }
-
     private static Response bookmarksOnlyResponse(Set<Bookmark> bookmarks) {
         return Response.accepted().entity(fromBookmarks(bookmarks)).build();
     }
 
     private static Response transactionInfoOnlyResponse(Transaction transaction) {
         return Response.accepted().entity(fromQueryAPITransaction(transaction)).build();
-    }
-
-    private static Response transactionNotFoundResponse(String transactionId) {
-        return Response.status(404)
-                .entity(singleError(
-                        Status.Request.Invalid.code().serialize(),
-                        format(
-                                "Transaction with Id: \"%s\" was not found. It may have timed out and therefore"
-                                        + " rolled back or the routing header \'neo4j-cluster-affinity\' was not provided.",
-                                transactionId)))
-                .build();
-    }
-
-    private static Response txCollisionResponse() {
-        return Response.status(Response.Status.BAD_REQUEST)
-                .entity(singleError(
-                        Status.Request.ResourceExhaustion.code().serialize(),
-                        "A transaction identifier collision has been detected whilst creating your"
-                                + " transaction. Please retry. If this occurs frequently consider increasing"
-                                + "the length of transaction identifier."))
-                .build();
     }
 
     private Instant generateTimeout() {

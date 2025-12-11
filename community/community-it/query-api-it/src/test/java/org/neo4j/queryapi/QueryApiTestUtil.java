@@ -30,6 +30,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Base64;
 import java.util.List;
+import java.util.stream.Stream;
 import org.neo4j.collection.ResourceRawIterator;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
@@ -55,6 +56,13 @@ public final class QueryApiTestUtil {
                 .header("Accept", "application/json");
     }
 
+    public static HttpRequest.Builder baseRequestBuilderJsonl(String endpoint, String databaseName) {
+        return HttpRequest.newBuilder()
+                .uri(URI.create(endpoint.replace("{databaseName}", databaseName)))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/jsonl");
+    }
+
     public static HttpResponse<String> simpleRequest(
             HttpClient client, String endpoint, String database, String requestBody)
             throws IOException, InterruptedException {
@@ -63,6 +71,21 @@ public final class QueryApiTestUtil {
                 .build();
 
         return client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+    }
+
+    public static HttpResponse<Stream<String>> simpleRequestJsonl(
+            HttpClient client, String endpoint, String database, String requestBody)
+            throws IOException, InterruptedException {
+        var httpRequest = baseRequestBuilderJsonl(endpoint, database)
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+
+        return client.send(httpRequest, HttpResponse.BodyHandlers.ofLines());
+    }
+
+    public static HttpResponse<Stream<String>> simpleRequestJsonl(
+            HttpClient client, String queryEndpoint, String requestBody) throws IOException, InterruptedException {
+        return simpleRequestJsonl(client, queryEndpoint, "neo4j", requestBody);
     }
 
     public static HttpResponse<String> simpleRequest(HttpClient client, String endpoint, String requestBody)

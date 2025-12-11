@@ -19,47 +19,16 @@
  */
 package org.neo4j.server.queryapi.response;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.ext.MessageBodyWriter;
 import javax.ws.rs.ext.Provider;
-import org.neo4j.server.http.cypher.format.DefaultJsonFactory;
 import org.neo4j.server.queryapi.QueryMimeTypes;
-import org.neo4j.server.queryapi.response.format.QueryAPICodec;
 import org.neo4j.server.queryapi.response.format.View;
 
 @Provider
 @Produces({QueryMimeTypes.TYPED_JSON, QueryMimeTypes.TYPED_JSON_V1x0, QueryMimeTypes.TYPED_JSON_V1x1})
-public class TypedJsonBookmarkWriter implements MessageBodyWriter<QueryResponseBookmarks> {
-
-    private final JsonFactory jsonFactory;
+public class TypedJsonBookmarkWriter extends AbstractBookmarkWriter {
 
     public TypedJsonBookmarkWriter() {
-        jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.TYPED_JSON));
-    }
-
-    @Override
-    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
-        return QueryResponseBookmarks.class.isAssignableFrom(type);
-    }
-
-    @Override
-    public void writeTo(
-            QueryResponseBookmarks queryResponseTxInfo,
-            Class<?> type,
-            Type genericType,
-            Annotation[] annotations,
-            MediaType mediaType,
-            MultivaluedMap<String, Object> httpHeaders,
-            OutputStream entityStream)
-            throws IOException, WebApplicationException {
-        jsonFactory.createGenerator(entityStream).writeObject(queryResponseTxInfo);
+        super(View.TYPED_JSON);
     }
 }

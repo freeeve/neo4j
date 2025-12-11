@@ -17,10 +17,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.tx;
+package org.neo4j.server.queryapi.response;
 
-public class TransactionNotFoundException extends Exception {
-    public TransactionNotFoundException(String txId) {
-        super("Transaction " + txId + " not found");
+import javax.ws.rs.Produces;
+import javax.ws.rs.ext.Provider;
+import org.neo4j.server.queryapi.QueryMimeTypes;
+import org.neo4j.server.queryapi.response.format.View;
+
+@Provider
+@Produces(QueryMimeTypes.PLAIN_JSONL)
+public class PlainJsonlBookmarkWriter extends AbstractJsonlBookmarkWriter {
+
+    public PlainJsonlBookmarkWriter() {
+        super(View.PLAIN_JSON);
     }
 }

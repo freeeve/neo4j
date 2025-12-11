@@ -32,6 +32,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class QueryAPITestClient {
 
@@ -86,25 +87,70 @@ public class QueryAPITestClient {
 
     public HttpResponse<QueryResponse> autoCommit(QueryRequest request, String database)
             throws IOException, InterruptedException {
-        return sendRequest(request, endpoint.replace("{databaseName}", database));
+        return autoCommit(request, database, responseHandler());
+    }
+
+    public HttpResponse<Stream<String>> autoCommitJsonl(QueryRequest request) throws IOException, InterruptedException {
+        return autoCommitJsonl(request, "neo4j");
+    }
+
+    public HttpResponse<Stream<String>> autoCommitJsonl(QueryRequest request, String database)
+            throws IOException, InterruptedException {
+        return autoCommit(request, database, HttpResponse.BodyHandlers.ofLines());
+    }
+
+    public <T> HttpResponse<T> autoCommit(
+            QueryRequest request, String database, HttpResponse.BodyHandler<T> responseHandler)
+            throws IOException, InterruptedException {
+        return sendRequest(request, endpoint.replace("{databaseName}", database), responseHandler);
     }
 
     public HttpResponse<QueryResponse> beginTx(QueryRequest request, String database)
             throws IOException, InterruptedException {
-        return sendRequest(request, endpoint.replace("{databaseName}", database) + "/tx");
+        return beginTx(request, database, responseHandler());
+    }
+
+    public HttpResponse<Stream<String>> beginTxJsonl(QueryRequest request, String database)
+            throws IOException, InterruptedException {
+        return beginTx(request, database, HttpResponse.BodyHandlers.ofLines());
+    }
+
+    public <T> HttpResponse<T> beginTx(
+            QueryRequest request, String database, HttpResponse.BodyHandler<T> responseHandler)
+            throws IOException, InterruptedException {
+        return sendRequest(request, endpoint.replace("{databaseName}", database) + "/tx", responseHandler);
     }
 
     public HttpResponse<QueryResponse> beginTx(QueryRequest request) throws IOException, InterruptedException {
         return beginTx(request, "neo4j");
     }
 
+    public HttpResponse<Stream<String>> beginTxJsonl(QueryRequest request) throws IOException, InterruptedException {
+        return beginTxJsonl(request, "neo4j");
+    }
+
     public HttpResponse<QueryResponse> beginTx() throws IOException, InterruptedException {
         return beginTx(null);
     }
 
+    public HttpResponse<Stream<String>> beginTxJsonl() throws IOException, InterruptedException {
+        return beginTxJsonl(null);
+    }
+
+    public <T> HttpResponse<T> runInTx(
+            QueryRequest request, String txId, String database, HttpResponse.BodyHandler<T> responseHandler)
+            throws IOException, InterruptedException {
+        return sendRequest(request, endpoint.replace("{databaseName}", database) + "/tx/" + txId, responseHandler);
+    }
+
     public HttpResponse<QueryResponse> runInTx(QueryRequest request, String txId, String database)
             throws IOException, InterruptedException {
-        return sendRequest(request, endpoint.replace("{databaseName}", database) + "/tx/" + txId);
+        return runInTx(request, txId, database, responseHandler());
+    }
+
+    public HttpResponse<Stream<String>> runInTxJsonl(QueryRequest request, String txId, String database)
+            throws IOException, InterruptedException {
+        return runInTx(request, txId, database, HttpResponse.BodyHandlers.ofLines());
     }
 
     public HttpResponse<QueryResponse> runInTx(QueryRequest request, String txId)
@@ -112,13 +158,34 @@ public class QueryAPITestClient {
         return runInTx(request, txId, "neo4j");
     }
 
+    public HttpResponse<Stream<String>> runInTxJsonl(QueryRequest request, String txId)
+            throws IOException, InterruptedException {
+        return runInTxJsonl(request, txId, "neo4j");
+    }
+
     public HttpResponse<QueryResponse> runInTx(String txId) throws IOException, InterruptedException {
         return runInTx(null, txId);
     }
 
+    public HttpResponse<Stream<String>> runInTxJsonl(String txId) throws IOException, InterruptedException {
+        return runInTxJsonl(null, txId);
+    }
+
+    public <T> HttpResponse<T> commitTx(
+            QueryRequest request, String txId, String database, HttpResponse.BodyHandler<T> responseHandler)
+            throws IOException, InterruptedException {
+        return sendRequest(
+                request, endpoint.replace("{databaseName}", database) + "/tx/" + txId + "/commit", responseHandler);
+    }
+
     public HttpResponse<QueryResponse> commitTx(QueryRequest request, String txId, String database)
             throws IOException, InterruptedException {
-        return sendRequest(request, endpoint.replace("{databaseName}", database) + "/tx/" + txId + "/commit");
+        return commitTx(request, txId, database, responseHandler());
+    }
+
+    public HttpResponse<Stream<String>> commitTxJsonl(QueryRequest request, String txId, String database)
+            throws IOException, InterruptedException {
+        return commitTx(request, txId, database, HttpResponse.BodyHandlers.ofLines());
     }
 
     public HttpResponse<QueryResponse> commitTx(QueryRequest request, String txId)
@@ -126,24 +193,58 @@ public class QueryAPITestClient {
         return commitTx(request, txId, "neo4j");
     }
 
+    public HttpResponse<Stream<String>> commitTxJsonl(QueryRequest request, String txId)
+            throws IOException, InterruptedException {
+        return commitTxJsonl(request, txId, "neo4j");
+    }
+
     public HttpResponse<QueryResponse> commitTx(String txId) throws IOException, InterruptedException {
         return commitTx(null, txId, "neo4j");
     }
 
-    public HttpResponse<QueryResponse> rollbackTx(String txId, String database)
+    public HttpResponse<Stream<String>> commitTxJsonl(String txId) throws IOException, InterruptedException {
+        return commitTxJsonl(null, txId, "neo4j");
+    }
+
+    public <T> HttpResponse<T> rollbackTx(String txId, String database, HttpResponse.BodyHandler<T> responseHandler)
             throws IOException, InterruptedException {
         return client.send(
                 HttpRequest.newBuilder(URI.create(endpoint.replace("{databaseName}", database) + "/tx/" + txId))
+                        .header("Content-Type", this.contentType.mimeType())
+                        .header("Accept", this.acceptedContentTypesHeader())
                         .DELETE()
                         .build(),
-                responseHandler());
+                responseHandler);
+    }
+
+    public HttpResponse<QueryResponse> rollbackTx(String txId, String database)
+            throws IOException, InterruptedException {
+        return rollbackTx(txId, database, responseHandler());
+    }
+
+    public HttpResponse<Stream<String>> rollbackTxJsonl(String txId, String database)
+            throws IOException, InterruptedException {
+        return rollbackTx(txId, database, HttpResponse.BodyHandlers.ofLines());
     }
 
     public HttpResponse<QueryResponse> rollbackTx(String txId) throws IOException, InterruptedException {
         return rollbackTx(txId, "neo4j");
     }
 
+    public HttpResponse<Stream<String>> rollbackTxJsonl(String txId) throws IOException, InterruptedException {
+        return rollbackTxJsonl(txId, "neo4j");
+    }
+
     public HttpResponse<QueryResponse> sendRaw(String rawJson) throws IOException, InterruptedException {
+        return sendRaw(rawJson, responseHandler());
+    }
+
+    public HttpResponse<Stream<String>> sendRawJsonl(String rawJson) throws IOException, InterruptedException {
+        return sendRaw(rawJson, HttpResponse.BodyHandlers.ofLines());
+    }
+
+    private <T> HttpResponse<T> sendRaw(String rawJson, HttpResponse.BodyHandler<T> responseHandler)
+            throws IOException, InterruptedException {
         return client.send(
                 HttpRequest.newBuilder()
                         .uri(URI.create(endpoint.replace("{databaseName}", "neo4j")))
@@ -151,10 +252,16 @@ public class QueryAPITestClient {
                         .header("Accept", this.acceptedContentTypesHeader())
                         .POST(HttpRequest.BodyPublishers.ofString(rawJson))
                         .build(),
-                responseHandler());
+                responseHandler);
     }
 
     private HttpResponse<QueryResponse> sendRequest(QueryRequest request, String endpoint)
+            throws IOException, InterruptedException {
+        return sendRequest(request, endpoint, responseHandler());
+    }
+
+    private <T> HttpResponse<T> sendRequest(
+            QueryRequest request, String endpoint, HttpResponse.BodyHandler<T> responseHandler)
             throws IOException, InterruptedException {
         var reqBuilder = HttpRequest.newBuilder().uri(URI.create(endpoint));
         reqBuilder
@@ -172,7 +279,7 @@ public class QueryAPITestClient {
         }
 
         var builtRequest = reqBuilder.build();
-        return client.send(builtRequest, responseHandler());
+        return client.send(builtRequest, responseHandler);
     }
 
     private HttpResponse.BodyHandler<QueryResponse> responseHandler() {

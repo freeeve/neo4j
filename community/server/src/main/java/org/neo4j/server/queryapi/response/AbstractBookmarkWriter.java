@@ -17,43 +17,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.response.error;
+package org.neo4j.server.queryapi.response;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyWriter;
-import javax.ws.rs.ext.Provider;
 import org.neo4j.server.http.cypher.format.DefaultJsonFactory;
-import org.neo4j.server.queryapi.QueryMimeTypes;
 import org.neo4j.server.queryapi.response.format.QueryAPICodec;
+import org.neo4j.server.queryapi.response.format.QueryBodyFormatter;
 import org.neo4j.server.queryapi.response.format.View;
 
-@Provider
-@Produces(QueryMimeTypes.ALL_JSON)
-public class ErrorResponseWriter implements MessageBodyWriter<HttpErrorResponse> {
+abstract class AbstractBookmarkWriter implements MessageBodyWriter<QueryResponseBookmarks> {
 
-    private final JsonFactory jsonFactory;
+    protected final JsonFactory jsonFactory;
 
-    public ErrorResponseWriter() {
-        this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.PLAIN_JSON));
+    AbstractBookmarkWriter(View view) {
+        jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(view));
     }
 
     @Override
     public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
-        return HttpErrorResponse.class.isAssignableFrom(type);
+        return QueryResponseBookmarks.class.isAssignableFrom(type);
     }
 
     @Override
     public void writeTo(
-            HttpErrorResponse httpErrorResponse,
+            QueryResponseBookmarks queryResponseBookmarks,
             Class<?> type,
             Type genericType,
             Annotation[] annotations,
@@ -61,13 +56,10 @@ public class ErrorResponseWriter implements MessageBodyWriter<HttpErrorResponse>
             MultivaluedMap<String, Object> httpHeaders,
             OutputStream entityStream)
             throws IOException, WebApplicationException {
-        if (mediaType != null && !httpHeaders.containsKey(HttpHeaders.CONTENT_TYPE)) {
-            httpHeaders.add(HttpHeaders.CONTENT_TYPE, mediaType.toString());
-        } else if (!httpHeaders.containsKey(HttpHeaders.CONTENT_TYPE)) {
-            // If we don't know the content type, default it to application/json
-            httpHeaders.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
-        }
 
-        jsonFactory.createGenerator(entityStream).writeObject(httpErrorResponse);
+        var jsonGenerator = jsonFactory.createGenerator(entityStream);
+        var formatter = new QueryBodyFormatter(jsonGenerator, entityStream);
+
+        formatter.json(bodyFormatter -> bodyFormatter.metadata(null, queryResponseBookmarks.bookmarks(), false));
     }
 }

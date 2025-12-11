@@ -21,6 +21,8 @@ package org.neo4j.server.queryapi.response.format;
 
 import static org.neo4j.server.queryapi.response.format.Fieldnames.BOOKMARKS_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.COUNTERS_KEY;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_BODY;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_EVENT;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.DATA_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.FIELDS_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.NOTIFICATIONS_KEY;
@@ -33,7 +35,9 @@ import static org.neo4j.server.queryapi.response.format.Fieldnames.VALUES_KEY;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import org.neo4j.driver.Bookmark;
@@ -41,17 +45,32 @@ import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.summary.Notification;
 import org.neo4j.driver.summary.ResultSummary;
+import org.neo4j.server.queryapi.response.error.HttpErrorResponse;
 
 class DriverResultSerializer {
 
     private final JsonGenerator jsonGenerator;
+    private final OutputStream outputStream;
 
-    public DriverResultSerializer(JsonGenerator jsonGenerator) {
+    public DriverResultSerializer(JsonGenerator jsonGenerator, OutputStream outputStream) {
         this.jsonGenerator = jsonGenerator;
+        this.outputStream = outputStream;
     }
 
     public void write(RunnableSerialization runnable) throws IOException {
         object(runnable);
+        jsonGenerator.flush();
+    }
+
+    public void writeEvent(String event, RunnableSerialization runnable) throws IOException {
+        object(() -> {
+            jsonGenerator.writeStringField(CYPHER_EVENT, event);
+            jsonGenerator.writeFieldName(CYPHER_BODY);
+            runnable.run();
+        });
+        jsonGenerator.flush();
+        outputStream.write("\n".getBytes());
+        outputStream.flush();
     }
 
     public void writeData(Result result) throws IOException {
@@ -64,6 +83,9 @@ class DriverResultSerializer {
     }
 
     public void writeFieldNames(List<String> keys) throws IOException {
+        if (keys == null) {
+            return;
+        }
         array(FIELDS_KEY, () -> {
             for (String key : keys) {
                 jsonGenerator.writeString(key);
@@ -107,10 +129,12 @@ class DriverResultSerializer {
     public void writeMetadata(
             ResultSummary resultSummary, Set<Bookmark> bookmarks, String txId, Instant timeout, boolean requireCounters)
             throws IOException {
-        writeNotifications(resultSummary.notifications());
-        writeCounters(resultSummary, requireCounters);
-        writeProfile(resultSummary);
-        writeQueryPlan(resultSummary);
+        if (resultSummary != null) {
+            writeNotifications(resultSummary.notifications());
+            writeCounters(resultSummary, requireCounters);
+            writeProfile(resultSummary);
+            writeQueryPlan(resultSummary);
+        }
         writeBookmarks(bookmarks);
         writeTxInfo(txId, timeout);
     }
@@ -122,21 +146,21 @@ class DriverResultSerializer {
         }
     }
 
-    private void writeProfile(ResultSummary resultSummary) throws IOException {
+    public void writeProfile(ResultSummary resultSummary) throws IOException {
         if (resultSummary.hasPlan() && resultSummary.hasProfile()) {
             jsonGenerator.writeFieldName(PROFILE_KEY);
             jsonGenerator.writeObject(resultSummary.profile());
         }
     }
 
-    private void writeQueryPlan(ResultSummary resultSummary) throws IOException {
+    public void writeQueryPlan(ResultSummary resultSummary) throws IOException {
         if (resultSummary.hasPlan() && !resultSummary.hasProfile()) {
             jsonGenerator.writeFieldName(QUERY_PLAN_KEY);
             jsonGenerator.writeObject(resultSummary.plan());
         }
     }
 
-    private void writeBookmarks(Set<Bookmark> bookmarks) throws IOException {
+    public void writeBookmarks(Collection<Bookmark> bookmarks) throws IOException {
         if (bookmarks != null) {
             array(BOOKMARKS_KEY, () -> {
                 for (Bookmark bookmark : bookmarks) {
@@ -146,7 +170,15 @@ class DriverResultSerializer {
         }
     }
 
-    private void object(RunnableSerialization runnable) throws IOException {
+    public void writeError(HttpErrorResponse errorResponse) throws IOException {
+        array(() -> {
+            for (var error : errorResponse.errors()) {
+                jsonGenerator.writeObject(error);
+            }
+        });
+    }
+
+    public void object(RunnableSerialization runnable) throws IOException {
         try {
             jsonGenerator.writeStartObject();
             runnable.run();

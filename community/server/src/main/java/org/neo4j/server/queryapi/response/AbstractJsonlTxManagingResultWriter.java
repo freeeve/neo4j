@@ -38,13 +38,13 @@ import org.neo4j.server.queryapi.response.format.QueryBodyFormatter;
 import org.neo4j.server.queryapi.response.format.View;
 import org.neo4j.server.queryapi.tx.TransactionManager;
 
-abstract class AbstractTxManagingResultWriter implements MessageBodyWriter<TxManagedResultContainer> {
+abstract class AbstractJsonlTxManagingResultWriter implements MessageBodyWriter<TxManagedResultContainer> {
 
     private final InternalLog log;
     private final JsonFactory jsonFactory;
     private final TransactionManager transactionManager;
 
-    public AbstractTxManagingResultWriter(InternalLog log, View view, TransactionManager transactionManager) {
+    protected AbstractJsonlTxManagingResultWriter(InternalLog log, View view, TransactionManager transactionManager) {
         this.log = log;
         this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(view));
         this.transactionManager = transactionManager;
@@ -52,7 +52,7 @@ abstract class AbstractTxManagingResultWriter implements MessageBodyWriter<TxMan
 
     @Override
     public void writeTo(
-            TxManagedResultContainer txManagedResultContainer,
+            TxManagedResultContainer container,
             Class<?> type,
             Type genericType,
             Annotation[] annotations,
@@ -60,51 +60,50 @@ abstract class AbstractTxManagingResultWriter implements MessageBodyWriter<TxMan
             MultivaluedMap<String, Object> httpHeaders,
             OutputStream entityStream)
             throws IOException, WebApplicationException {
-        writeDriverResult(txManagedResultContainer, entityStream);
-    }
-
-    @Override
-    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
-        return TxManagedResultContainer.class.isAssignableFrom(type);
-    }
-
-    public void writeDriverResult(TxManagedResultContainer result, OutputStream outputStream) throws IOException {
+        httpHeaders.add("Transfer-encoding", "chunked");
         var hasFailed = true;
-        var jsonGenerator = jsonFactory.createGenerator(outputStream);
-        var formatter = new QueryBodyFormatter(jsonGenerator, outputStream);
+        var jsonGenerator = jsonFactory.createGenerator(entityStream);
+        var formatter = new QueryBodyFormatter(jsonGenerator, entityStream).jsonl();
         try {
-            formatter.json((singleBodyFormatter) -> {
-                singleBodyFormatter.data(result.transaction().retrieveResults());
-
-                if (result.requiresCommit()) {
-                    var bookmarks = result.transaction().commit();
-                    singleBodyFormatter.metadata(
-                            result.transaction().resultSummary(),
-                            bookmarks,
-                            null,
-                            null,
-                            result.requireSummaryCounters());
-                } else {
-                    result.transaction().extendTimeout();
-                    singleBodyFormatter.metadata(
-                            result.transaction().resultSummary(),
-                            null,
-                            result.transaction().id(),
-                            result.transaction().expiresAt(),
-                            result.requireSummaryCounters());
+            var result = container.transaction().retrieveResults();
+            var keys = result != null ? result.keys() : null;
+            formatter.header(keys);
+            if (result != null) {
+                while (result.hasNext()) {
+                    formatter.record(result.next());
+                    entityStream.flush();
                 }
-            });
+            }
+            if (container.requiresCommit()) {
+                var bookmarks = container.transaction().commit();
+                formatter.summary(
+                        container.transaction().resultSummary(), bookmarks, container.requireSummaryCounters());
+            } else {
+                container.transaction().extendTimeout();
+                formatter.summary(
+                        container.transaction().resultSummary(),
+                        null,
+                        container.transaction().id(),
+                        container.transaction().expiresAt(),
+                        container.requireSummaryCounters());
+            }
+
             hasFailed = false;
         } catch (IOException ex) {
             ExceptionsUnwrapper.unwrapAndThrowNeo4jAndQueryApiExceptions(ex);
             throw new ConnectionException("Failed to write to the connection", ex);
         } finally {
-            if (!result.transaction().isOpen() || hasFailed) {
-                transactionManager.removeTransaction(result.transaction().id());
+            if (!container.transaction().isOpen() || hasFailed) {
+                transactionManager.removeTransaction(container.transaction().id());
             } else {
-                transactionManager.releaseTransaction(result.transaction().id());
+                transactionManager.releaseTransaction(container.transaction().id());
             }
             jsonGenerator.flush();
         }
+    }
+
+    @Override
+    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
+        return TxManagedResultContainer.class.isAssignableFrom(type);
     }
 }

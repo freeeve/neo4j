@@ -28,16 +28,31 @@ import org.neo4j.server.queryapi.metrics.QueryAPIMetricsMonitor;
 import org.neo4j.server.queryapi.request.JsonMessageBodyReader;
 import org.neo4j.server.queryapi.request.typed.TypedJsonMessageBodyReaderV1x0;
 import org.neo4j.server.queryapi.request.typed.TypedJsonMessageBodyReaderV1x1;
+import org.neo4j.server.queryapi.response.PlainJsonBookmarkWriter;
 import org.neo4j.server.queryapi.response.PlainJsonDriverAutoCommitResultWriter;
+import org.neo4j.server.queryapi.response.PlainJsonTxInfoWriter;
 import org.neo4j.server.queryapi.response.PlainJsonTxManagingResultWriter;
+import org.neo4j.server.queryapi.response.PlainJsonlBookmarkWriter;
+import org.neo4j.server.queryapi.response.PlainJsonlDriverAutoCommitResultWriter;
+import org.neo4j.server.queryapi.response.PlainJsonlTxInfoWriter;
+import org.neo4j.server.queryapi.response.PlainJsonlTxManagingResultWriter;
 import org.neo4j.server.queryapi.response.TypedJsonBookmarkWriter;
 import org.neo4j.server.queryapi.response.TypedJsonDriverAutoCommitResultWriter;
 import org.neo4j.server.queryapi.response.TypedJsonDriverAutoCommitResultWriterV11;
 import org.neo4j.server.queryapi.response.TypedJsonTxInfoWriter;
 import org.neo4j.server.queryapi.response.TypedJsonTxManagingResultWriter;
 import org.neo4j.server.queryapi.response.TypedJsonTxManagingResultWriterV11;
+import org.neo4j.server.queryapi.response.TypedJsonlBookmarkWriter;
+import org.neo4j.server.queryapi.response.TypedJsonlBookmarkWriterV11;
+import org.neo4j.server.queryapi.response.TypedJsonlDriverAutoCommitResultWriter;
+import org.neo4j.server.queryapi.response.TypedJsonlDriverAutoCommitResultWriterV11;
+import org.neo4j.server.queryapi.response.TypedJsonlTxInfoWriter;
+import org.neo4j.server.queryapi.response.TypedJsonlTxInfoWriterV11;
+import org.neo4j.server.queryapi.response.TypedJsonlTxManagingResultWriter;
+import org.neo4j.server.queryapi.response.TypedJsonlTxManagingResultWriterV11;
 import org.neo4j.server.queryapi.response.error.ErrorResponseWriter;
 import org.neo4j.server.queryapi.response.error.InternalServerExceptionMapper;
+import org.neo4j.server.queryapi.response.error.JsonlErrorResponseWriter;
 import org.neo4j.server.queryapi.response.error.Neo4jExceptionMapper;
 import org.neo4j.server.queryapi.response.error.QueryApiExceptionMapper;
 import org.neo4j.server.queryapi.response.error.WebApplicationExceptionMapper;
@@ -76,14 +91,17 @@ public class QueryModule implements ServerModule {
     private static List<Class<?>> jaxRsClasses() {
         return List.of(
                 QueryResource.class,
+                // JSON
                 PlainJsonDriverAutoCommitResultWriter.class,
                 TypedJsonDriverAutoCommitResultWriter.class,
                 TypedJsonDriverAutoCommitResultWriterV11.class,
                 PlainJsonTxManagingResultWriter.class,
                 TypedJsonTxManagingResultWriter.class,
                 TypedJsonTxManagingResultWriterV11.class,
+                PlainJsonTxInfoWriter.class,
                 TypedJsonTxInfoWriter.class,
                 TypedJsonBookmarkWriter.class,
+                PlainJsonBookmarkWriter.class,
                 JsonMessageBodyReader.class,
                 TypedJsonMessageBodyReaderV1x0.class,
                 TypedJsonMessageBodyReaderV1x1.class,
@@ -91,6 +109,20 @@ public class QueryModule implements ServerModule {
                 QueryApiExceptionMapper.class,
                 WebApplicationExceptionMapper.class,
                 InternalServerExceptionMapper.class,
-                ErrorResponseWriter.class);
+                ErrorResponseWriter.class,
+                // JSONL
+                PlainJsonlDriverAutoCommitResultWriter.class,
+                PlainJsonlTxManagingResultWriter.class,
+                PlainJsonlBookmarkWriter.class,
+                PlainJsonlTxInfoWriter.class,
+                TypedJsonlDriverAutoCommitResultWriter.class,
+                TypedJsonlDriverAutoCommitResultWriterV11.class,
+                TypedJsonlTxManagingResultWriter.class,
+                TypedJsonlTxManagingResultWriterV11.class,
+                TypedJsonlBookmarkWriter.class,
+                TypedJsonlBookmarkWriterV11.class,
+                TypedJsonlTxInfoWriter.class,
+                TypedJsonlTxInfoWriterV11.class,
+                JsonlErrorResponseWriter.class);
     }
 }

@@ -25,22 +25,31 @@ import javax.ws.rs.core.MediaType;
  * Holds methods related to Mime Types used in the Query API.
  */
 public final class QueryMimeTypes {
+    // JSON
     public static final String PLAIN_JSON = MediaType.APPLICATION_JSON;
     public static final String TYPED_JSON = "application/vnd.neo4j.query";
     public static final String TYPED_JSON_V1x0 = "application/vnd.neo4j.query.v1.0";
     public static final String TYPED_JSON_V1x1 = "application/vnd.neo4j.query.v1.1";
-    public static final String ALL =
+    // JSON LINES
+    public static final String PLAIN_JSONL = "application/jsonl";
+    public static final String TYPED_JSONL_V1x0 = TYPED_JSON_V1x0 + "+jsonl";
+    public static final String TYPED_JSONL_V1x1 = TYPED_JSON_V1x1 + "+jsonl";
+    // AGGREGATES
+    public static final String ALL_JSON =
             MediaType.APPLICATION_JSON + "," + TYPED_JSON + "," + TYPED_JSON_V1x0 + "," + TYPED_JSON_V1x1;
+    public static final String ALL_JSONL = PLAIN_JSONL + "," + TYPED_JSONL_V1x0 + "," + TYPED_JSONL_V1x1;
 
     private QueryMimeTypes() {}
 
     public static boolean hasTyped(String contentType) {
         return TYPED_JSON_V1x1.equals(contentType)
                 || TYPED_JSON_V1x0.equals(contentType)
-                || TYPED_JSON.equals(contentType);
+                || TYPED_JSON.equals(contentType)
+                || TYPED_JSONL_V1x0.equals(contentType)
+                || TYPED_JSONL_V1x1.equals(contentType);
     }
 
     public static boolean hasUntyped(String contentType) {
-        return PLAIN_JSON.equals(contentType);
+        return PLAIN_JSON.equals(contentType) || PLAIN_JSONL.equals(contentType);
     }
 }

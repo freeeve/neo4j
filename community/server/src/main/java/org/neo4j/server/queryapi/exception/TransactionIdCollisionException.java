@@ -1,0 +1,39 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.server.queryapi.exception;
+
+import javax.ws.rs.core.Response;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.kernel.api.exceptions.Status;
+
+public class TransactionIdCollisionException extends QueryApiException {
+    public TransactionIdCollisionException() {
+        super(
+                "A transaction identifier collision has been detected whilst creating your"
+                        + " transaction. Please retry. If this occurs frequently consider increasing"
+                        + "the length of transaction identifier.",
+                // todo: create a card for add the correct gql code here
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+                        .build(),
+                Status.Request.ResourceExhaustion,
+                Response.Status.BAD_REQUEST);
+    }
+}

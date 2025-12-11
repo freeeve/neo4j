@@ -17,6 +17,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.tx;
+package org.neo4j.server.queryapi.response;
 
-public class TransactionIdCollisionException extends Throwable {}
+import javax.ws.rs.Produces;
+import javax.ws.rs.ext.Provider;
+import org.neo4j.server.queryapi.QueryMimeTypes;
+import org.neo4j.server.queryapi.response.format.View;
+
+@Provider
+@Produces({QueryMimeTypes.TYPED_JSONL_V1x0})
+public class TypedJsonlDriverAutoCommitResultWriter extends AbstractJsonlDriverResultWriter {
+
+    public TypedJsonlDriverAutoCommitResultWriter() {
+        super(View.TYPED_JSON);
+    }
+}
