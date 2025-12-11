@@ -307,7 +307,7 @@ public class ConfigFileMigrator {
 
         for (String originalValue : originalValues) {
             Map<String, String> map = Maps.mutable.of(originalKey, originalValue);
-            migrators.forEach(m -> m.migrate(map, Map.of(), NullLog.getInstance()));
+            migrators.forEach(m -> m.migrate(map, Maps.mutable.of(), NullLog.getInstance()));
             if (!map.isEmpty()) {
                 for (var entry : map.entrySet()) {
                     // Remove any unrecognized "garbage"
