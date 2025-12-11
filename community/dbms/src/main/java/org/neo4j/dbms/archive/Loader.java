@@ -38,6 +38,8 @@ import java.nio.file.Path;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.io.input.CloseShieldInputStream;
+import org.neo4j.cli.ExecutionContext;
 import org.neo4j.commandline.dbms.StoreVersionLoader;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.archive.printer.OutputProgressPrinter;
@@ -91,8 +93,7 @@ public class Loader {
                 validateDatabaseExistence,
                 validateLogsExistence,
                 selector,
-                () -> filesystem.openAsInputStream(archive),
-                archive.toString());
+                new FileInput(filesystem, archive));
     }
 
     public void load(
@@ -100,8 +101,7 @@ public class Loader {
             boolean validateDatabaseExistence,
             boolean validateLogsExistence,
             DecompressionSelector selector,
-            ThrowingSupplier<InputStream, IOException> streamSupplier,
-            String inputName)
+            DumpInput input)
             throws IOException, IncorrectFormat {
         Path databaseDestination = databaseLayout.databaseDirectory();
         Path transactionLogsDirectory = databaseLayout.getTransactionLogsDirectory();
@@ -114,10 +114,10 @@ public class Loader {
 
         checkDatabasePresence(filesystem, databaseLayout);
 
-        try (var stream = openArchiveIn(selector, streamSupplier, inputName);
+        try (var stream = openArchiveIn(selector, input.streamSupplier(), input.description());
                 Resource ignore = progressPrinter.startPrinting()) {
             ArchiveEntry entry;
-            while ((entry = nextEntry(stream, inputName)) != null) {
+            while ((entry = nextEntry(stream, input.description())) != null) {
                 Path destination = determineEntryDestination(entry, databaseDestination, transactionLogsDirectory);
                 loadEntry(destination, stream, entry);
             }
@@ -244,4 +244,36 @@ public class Loader {
     public record SizeMeta(long files, long bytes) {}
 
     public record DumpMetaData(boolean compressed, SizeMeta sizeMeta) {}
+
+    public sealed interface DumpInput {
+        ThrowingSupplier<InputStream, IOException> streamSupplier();
+
+        String description();
+    }
+
+    public record FileInput(FileSystemAbstraction fs, Path path) implements DumpInput {
+
+        @Override
+        public ThrowingSupplier<InputStream, IOException> streamSupplier() {
+            return () -> fs.openAsInputStream(path);
+        }
+
+        @Override
+        public String description() {
+            return path.toString();
+        }
+    }
+
+    public record StdinInput(ExecutionContext ctx) implements DumpInput {
+        @Override
+        public ThrowingSupplier<InputStream, IOException> streamSupplier() {
+            // We should never go around closing the stdin stream.
+            return () -> CloseShieldInputStream.wrap(ctx.in());
+        }
+
+        @Override
+        public String description() {
+            return "reading from stdin";
+        }
+    }
 }

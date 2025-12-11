@@ -26,7 +26,6 @@ import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_C
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.FileAlreadyExistsException;
@@ -35,7 +34,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.dbms.archive.DecompressionSelector;
 import org.neo4j.dbms.archive.IncorrectFormat;
 import org.neo4j.dbms.archive.Loader;
-import org.neo4j.function.ThrowingSupplier;
+import org.neo4j.dbms.archive.Loader.DumpInput;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -111,13 +110,7 @@ public class LoadDumpExecutor {
 
     private void load(DumpInput dumpInput, DatabaseLayout databaseLayout) {
         try {
-            loader.load(
-                    databaseLayout,
-                    false,
-                    true,
-                    decompressionSelector,
-                    dumpInput.streamSupplier,
-                    dumpInput.description);
+            loader.load(databaseLayout, false, true, decompressionSelector, dumpInput);
         } catch (FileAlreadyExistsException e) {
             throw new CommandFailedException("Database already exists: " + databaseLayout.getDatabaseName(), e);
         } catch (AccessDeniedException e) {
@@ -127,7 +120,7 @@ public class LoadDumpExecutor {
         } catch (IOException e) {
             wrapIOException(e);
         } catch (IncorrectFormat incorrectFormat) {
-            throw new CommandFailedException("Not a valid Neo4j archive: " + dumpInput.description, incorrectFormat);
+            throw new CommandFailedException("Not a valid Neo4j archive: " + dumpInput.description(), incorrectFormat);
         }
     }
 
@@ -143,6 +136,4 @@ public class LoadDumpExecutor {
             wrapIOException(e);
         }
     }
-
-    public record DumpInput(ThrowingSupplier<InputStream, IOException> streamSupplier, String description) {}
 }

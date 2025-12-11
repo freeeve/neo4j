@@ -48,6 +48,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.archive.IncorrectFormat;
 import org.neo4j.dbms.archive.Loader;
+import org.neo4j.dbms.archive.Loader.DumpInput;
 import org.neo4j.dbms.archive.Loader.SizeMeta;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -161,7 +162,7 @@ class LoadCommandTest {
         createDummyDump("foo", archive);
         doThrow(FileAlreadyExistsException.class)
                 .when(loader)
-                .load(any(), anyBoolean(), anyBoolean(), any(), any(), any());
+                .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
         assertEquals("Load failed for databases: 'foo'", commandFailed.getMessage());
@@ -171,7 +172,9 @@ class LoadCommandTest {
     @Test
     void shouldGiveAClearMessageIfTheDatabasesDirectoryIsNotWritable() throws IOException, IncorrectFormat {
         createDummyDump("foo", archive);
-        doThrow(AccessDeniedException.class).when(loader).load(any(), anyBoolean(), anyBoolean(), any(), any(), any());
+        doThrow(AccessDeniedException.class)
+                .when(loader)
+                .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
         assertEquals("Load failed for databases: 'foo'", commandFailed.getMessage());
@@ -186,7 +189,7 @@ class LoadCommandTest {
         createDummyDump("foo", archive);
         doThrow(new FileSystemException("the-message"))
                 .when(loader)
-                .load(any(), anyBoolean(), anyBoolean(), any(), any(), any());
+                .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
         assertEquals("Load failed for databases: 'foo'", commandFailed.getMessage());
@@ -198,7 +201,9 @@ class LoadCommandTest {
     @Test
     void shouldThrowIfTheArchiveFormatIsInvalid() throws IOException, IncorrectFormat {
         createDummyDump("foo", archive);
-        doThrow(IncorrectFormat.class).when(loader).load(any(), anyBoolean(), anyBoolean(), any(), any(), any());
+        doThrow(IncorrectFormat.class)
+                .when(loader)
+                .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
         assertEquals("Load failed for databases: 'foo'", commandFailed.getMessage());

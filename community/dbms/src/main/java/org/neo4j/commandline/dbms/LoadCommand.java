@@ -51,7 +51,9 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.helpers.DatabaseNamePattern;
 import org.neo4j.dbms.archive.DumpFormatSelector;
 import org.neo4j.dbms.archive.Loader;
+import org.neo4j.dbms.archive.Loader.FileInput;
 import org.neo4j.dbms.archive.Loader.SizeMeta;
+import org.neo4j.dbms.archive.Loader.StdinInput;
 import org.neo4j.dbms.archive.backup.BackupDescription;
 import org.neo4j.dbms.archive.backup.BackupFormatSelector;
 import org.neo4j.function.ThrowingSupplier;
@@ -184,28 +186,23 @@ public class LoadCommand extends AbstractAdminCommand {
 
         List<FailedLoad> failedLoads = new ArrayList<>();
         for (DumpInfo dumpInfo : dbNames) {
-            if (dumpInfo.stdIn) {
-                inspectOne(dumpInfo.dbName, ctx::in, loader, failedLoads, "reading from stdin");
+            if (source.stdIn) {
+                inspectOne(dumpInfo.dbName, new StdinInput(ctx), loader, failedLoads);
             } else {
                 for (Path path : dumpInfo.archives) {
-                    inspectOne(dumpInfo.dbName, streamSupplierFor(fs, path), loader, failedLoads, path.toString());
+                    inspectOne(dumpInfo.dbName, new FileInput(fs, path), loader, failedLoads);
                 }
             }
         }
         checkFailure(failedLoads, "Print metadata failed for databases: '");
     }
 
-    private void inspectOne(
-            String dbName,
-            ThrowingSupplier<InputStream, IOException> archiveInputStreamSupplier,
-            Loader loader,
-            List<FailedLoad> failedLoads,
-            String streamDescription) {
+    private void inspectOne(String dbName, Loader.DumpInput input, Loader loader, List<FailedLoad> failedLoads) {
         try {
             MutableBoolean backup = new MutableBoolean(false);
             MutableBoolean fullBackup = new MutableBoolean(false);
             Loader.DumpMetaData metaData = loader.getMetaData(
-                    archiveInputStreamSupplier,
+                    input.streamSupplier(),
                     streamSupplier -> DumpFormatSelector.decompressWithBackupSupport(streamSupplier, bd -> {
                         backup.setTrue();
                         fullBackup.setValue(bd.isFull());
@@ -215,7 +212,7 @@ public class LoadCommand extends AbstractAdminCommand {
             SizeMeta sizeMeta = metaData.sizeMeta();
             printArchiveInfo(dbName, archiveFormat, sizeMeta);
         } catch (Exception e) {
-            ctx.err().printf("Failed to get metadata for archive '%s': %s%n", streamDescription, e.getMessage());
+            ctx.err().printf("Failed to get metadata for archive '%s': %s%n", input.description(), e.getMessage());
             failedLoads.add(new FailedLoad(dbName, e));
         }
     }
@@ -257,7 +254,7 @@ public class LoadCommand extends AbstractAdminCommand {
                     ctx.err().printf(SYSTEM_ERR_MESSAGE);
                 }
                 Path dumpPath = null;
-                if (!dbName.stdIn) {
+                if (!source.stdIn) {
                     if (dbName.archives.size() > 1) {
                         throw new CommandFailedException("Multiple archives match:\n"
                                 + dbName.archives.stream().map(Path::toString).collect(joining("\n"))
@@ -273,24 +270,15 @@ public class LoadCommand extends AbstractAdminCommand {
                         throw new CommandFailedException("Archive does not exist: " + dumpPath);
                     }
                 }
-                var dumpInputDescription = dbName.stdIn ? "reading from stdin" : dumpPath.toString();
-                ThrowingSupplier<InputStream, IOException> dumpInputStreamSupplier =
-                        dbName.stdIn ? ctx::in : streamSupplierFor(fs, dumpPath);
-                loadDumpExecutor.execute(
-                        new LoadDumpExecutor.DumpInput(dumpInputStreamSupplier, dumpInputDescription),
-                        dbName.dbName,
-                        force);
+
+                var input = (source.stdIn ? new StdinInput(ctx) : new FileInput(fs, dumpPath));
+                loadDumpExecutor.execute(input, dbName.dbName, force);
             } catch (Exception e) {
                 ctx.err().printf("Failed to load database '%s': %s%n", dbName.dbName, e.getMessage());
                 failedLoads.add(new FailedLoad(dbName.dbName, e));
             }
         }
         checkFailure(failedLoads, "Load failed for databases: '");
-    }
-
-    private static ThrowingSupplier<InputStream, IOException> streamSupplierFor(
-            FileSystemAbstraction fs, Path dumpPath) {
-        return () -> fs.openAsInputStream(dumpPath);
     }
 
     private void checkFailure(List<FailedLoad> failedLoads, String prefix) {
@@ -308,20 +296,20 @@ public class LoadCommand extends AbstractAdminCommand {
 
     record FailedLoad(String dbName, Exception e) {}
 
-    protected record DumpInfo(String dbName, boolean stdIn, List<Path> archives) {
+    protected record DumpInfo(String dbName, List<Path> archives) {
         public DumpInfo(Map.Entry<String, List<Path>> mapEntry) {
-            this(mapEntry.getKey(), false, mapEntry.getValue());
+            this(mapEntry.getKey(), mapEntry.getValue());
         }
     }
 
     private Set<DumpInfo> getDbNames(FileSystemAbstraction fs, Path sourcePath, boolean includeDiff) {
         if (source.stdIn) {
-            return Set.of(new DumpInfo(database.getDatabaseName(), true, emptyList()));
+            return Set.of(new DumpInfo(database.getDatabaseName(), emptyList()));
         }
         var dbsToArchives = listArchivesMatching(fs, sourcePath, database, includeDiff);
         if (!database.containsPattern()) {
             var archives = dbsToArchives.getOrDefault(database.getNormalizedDatabaseName(), emptyList());
-            return Set.of(new DumpInfo(database.getDatabaseName(), false, archives));
+            return Set.of(new DumpInfo(database.getDatabaseName(), archives));
         }
 
         var dbNames = dbsToArchives.entrySet().stream().map(DumpInfo::new).collect(Collectors.toSet());

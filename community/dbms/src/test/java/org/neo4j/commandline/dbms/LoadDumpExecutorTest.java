@@ -40,7 +40,6 @@ import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_logs_root_path;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +52,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.archive.DumpFormatSelector;
 import org.neo4j.dbms.archive.IncorrectFormat;
 import org.neo4j.dbms.archive.Loader;
-import org.neo4j.function.ThrowingSupplier;
+import org.neo4j.dbms.archive.Loader.FileInput;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -67,6 +66,9 @@ import org.neo4j.test.utils.TestDirectory;
 
 @Neo4jLayoutExtension
 public class LoadDumpExecutorTest {
+    @Inject
+    private FileSystemAbstraction fs;
+
     @Inject
     private TestDirectory testDirectory;
 
@@ -102,7 +104,7 @@ public class LoadDumpExecutorTest {
                 homeDir.resolve("data/databases"),
                 "foo",
                 homeDir.resolve("data/" + DEFAULT_TX_LOGS_ROOT_DIR_NAME));
-        verify(loader).load(eq(databaseLayout), anyBoolean(), anyBoolean(), any(), any(), any());
+        verify(loader).load(eq(databaseLayout), anyBoolean(), anyBoolean(), any(), any());
     }
 
     @Test
@@ -118,7 +120,7 @@ public class LoadDumpExecutorTest {
         execute("foo", archive);
         DatabaseLayout databaseLayout =
                 createDatabaseLayout(dataDir, databaseDir.getParent(), "foo", transactionLogsDir);
-        verify(loader).load(eq(databaseLayout), anyBoolean(), anyBoolean(), any(), any(), any());
+        verify(loader).load(eq(databaseLayout), anyBoolean(), anyBoolean(), any(), any());
     }
 
     @Test
@@ -132,7 +134,7 @@ public class LoadDumpExecutorTest {
 
         execute("foo", archive);
         DatabaseLayout databaseLayout = createDatabaseLayout(dataDir, databaseDir.getParent(), "foo", txLogsDir);
-        verify(loader).load(eq(databaseLayout), anyBoolean(), anyBoolean(), any(), any(), any());
+        verify(loader).load(eq(databaseLayout), anyBoolean(), anyBoolean(), any(), any());
     }
 
     @Test
@@ -157,7 +159,7 @@ public class LoadDumpExecutorTest {
 
         execute("foo", archive);
         DatabaseLayout databaseLayout = createDatabaseLayout(dataDir, databasesDir, "foo", txLogsDir);
-        verify(loader).load(eq(databaseLayout), anyBoolean(), anyBoolean(), any(), any(), any());
+        verify(loader).load(eq(databaseLayout), anyBoolean(), anyBoolean(), any(), any());
     }
 
     @Test
@@ -174,7 +176,7 @@ public class LoadDumpExecutorTest {
                     return null;
                 })
                 .when(loader)
-                .load(any(), anyBoolean(), anyBoolean(), any(), any(), any());
+                .load(any(), any());
 
         execute("foo", archive, true);
     }
@@ -190,7 +192,7 @@ public class LoadDumpExecutorTest {
                     return null;
                 })
                 .when(loader)
-                .load(any(), anyBoolean(), anyBoolean(), any(), any(), any());
+                .load(any(), any());
 
         execute("foo", archive);
     }
@@ -230,9 +232,7 @@ public class LoadDumpExecutorTest {
         LoadDumpExecutor loadDumpExecutor = new LoadDumpExecutor(
                 config, testDirectory.getFileSystem(), System.err, System.out, loader, DumpFormatSelector::decompress);
 
-        ThrowingSupplier<InputStream, IOException> dumpInputStreamSupplier = () -> Files.newInputStream(archive);
-
-        loadDumpExecutor.execute(new LoadDumpExecutor.DumpInput(dumpInputStreamSupplier, ""), database, force);
+        loadDumpExecutor.execute(new FileInput(fs, archive), database, force);
     }
 
     private void execute(String database, Path archive) throws IOException {
