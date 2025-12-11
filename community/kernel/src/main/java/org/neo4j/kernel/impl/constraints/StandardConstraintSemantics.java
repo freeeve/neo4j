@@ -195,42 +195,41 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
 
     @Override
     public ConstraintDescriptor createUniquenessConstraintRule(
-            long ruleId, UniquenessConstraintDescriptor descriptor, long indexId) {
-        return accessor.createUniquenessConstraintRule(ruleId, descriptor, indexId);
+            UniquenessConstraintDescriptor descriptor, long indexId) {
+        return accessor.createUniquenessConstraintRule(descriptor, indexId);
     }
 
     @Override
     public ConstraintDescriptor createKeyConstraintRule(
-            long ruleId, KeyConstraintDescriptor descriptor, long indexId, TokenNameLookup tokenNameLookup)
+            KeyConstraintDescriptor descriptor, long indexId, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
         throw keyConstraintsNotAllowed(descriptor.schema(), tokenNameLookup);
     }
 
     @Override
     public ConstraintDescriptor createExistenceConstraint(
-            long ruleId, ConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
-            throws CreateConstraintFailureException {
+            ConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup) throws CreateConstraintFailureException {
         throw propertyExistenceConstraintsNotAllowed(
                 descriptor.schema(), tokenNameLookup, descriptor.graphTypeDependence() == DEPENDENT);
     }
 
     @Override
     public ConstraintDescriptor createPropertyTypeConstraint(
-            long ruleId, TypeConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
+            TypeConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
         throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
     public ConstraintDescriptor createRelationshipEndpointLabelConstraint(
-            long ruleId, RelationshipEndpointLabelConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
+            RelationshipEndpointLabelConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
         throw relationshipEndpointLabelConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
     public ConstraintDescriptor createNodeLabelExistenceConstraint(
-            long ruleId, NodeLabelExistenceConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
+            NodeLabelExistenceConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
         throw nodeLabelExistenceConstraintsNotAllowed(descriptor, tokenNameLookup);
     }

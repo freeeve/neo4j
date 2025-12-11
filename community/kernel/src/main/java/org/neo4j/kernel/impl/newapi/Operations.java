@@ -2518,6 +2518,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         enforceNodePropertyExistenceConstraint(schema, isDependent);
 
         // create constraint
+        constraint = constraint.withId(commandCreationContext.reserveSchema());
         ktx.txState().constraintDoAdd(constraint);
         return constraint;
     }
@@ -2584,6 +2585,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         enforceRelationshipPropertyExistenceConstraint(schema, isDependent);
 
         // Create
+        constraint = constraint.withId(commandCreationContext.reserveSchema());
         ktx.txState().constraintDoAdd(constraint);
         return constraint;
     }
@@ -2665,6 +2667,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             enforceNodePropertyTypeConstraint(descriptor);
         }
 
+        constraint = constraint.withId(commandCreationContext.reserveSchema());
         ktx.txState().constraintDoAdd(constraint);
         return constraint;
     }
@@ -2691,6 +2694,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         enforceRelationshipEndpointLabelConstraint(constraint);
 
+        constraint = constraint.withId(commandCreationContext.reserveSchema());
         ktx.txState().constraintDoAdd(constraint);
         return constraint;
     }
@@ -2780,6 +2784,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         enforceNodeLabelExistenceConstraint(constraint);
 
+        constraint = constraint.withId(commandCreationContext.reserveSchema());
         ktx.txState().constraintDoAdd(constraint);
         return constraint;
     }
@@ -3109,7 +3114,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 // before we do, so now getting out here under the lock we must check again and if it exists
                 // we must at this point consider this an idempotent operation because we verified earlier
                 // that it didn't exist and went on to create it.
-                constraint = (T) constraint.withOwnedIndexId(index.getId());
+                constraint =
+                        (T) constraint.withOwnedIndexId(index.getId()).withId(commandCreationContext.reserveSchema());
                 ktx.txState().constraintDoAdd(constraint, index);
             } else {
                 Iterator<ConstraintDescriptor> constraintsWithSchema =

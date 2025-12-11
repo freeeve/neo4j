@@ -484,7 +484,8 @@ class TxStateTest {
     @Test
     void shouldAddRelationshipPropertyExistenceConstraint() {
         // Given
-        ConstraintDescriptor constraint = ConstraintDescriptorFactory.existsForRelType(false, 1, 42);
+        ConstraintDescriptor constraint =
+                ConstraintDescriptorFactory.existsForRelType(false, 1, 42).withId(123);
 
         // When
         state.constraintDoAdd(constraint);
@@ -498,8 +499,10 @@ class TxStateTest {
     @Test
     void addingRelationshipPropertyExistenceConstraintConstraintShouldBeIdempotent() {
         // Given
-        ConstraintDescriptor constraint1 = ConstraintDescriptorFactory.existsForRelType(false, 1, 42);
-        ConstraintDescriptor constraint2 = ConstraintDescriptorFactory.existsForRelType(false, 1, 42);
+        ConstraintDescriptor constraint1 =
+                ConstraintDescriptorFactory.existsForRelType(false, 1, 42).withId(99);
+        ConstraintDescriptor constraint2 =
+                ConstraintDescriptorFactory.existsForRelType(false, 1, 42).withId(999);
 
         // When
         state.constraintDoAdd(constraint1);
@@ -515,7 +518,8 @@ class TxStateTest {
     @Test
     void shouldDropRelationshipPropertyExistenceConstraint() {
         // Given
-        ConstraintDescriptor constraint = ConstraintDescriptorFactory.existsForRelType(false, 1, 42);
+        ConstraintDescriptor constraint =
+                ConstraintDescriptorFactory.existsForRelType(false, 1, 42).withId(11);
         state.constraintDoAdd(constraint);
 
         // When
@@ -528,9 +532,12 @@ class TxStateTest {
     @Test
     void shouldDifferentiateRelationshipPropertyExistenceConstraints() {
         // Given
-        ConstraintDescriptor constraint1 = ConstraintDescriptorFactory.existsForRelType(false, 1, 11);
-        ConstraintDescriptor constraint2 = ConstraintDescriptorFactory.existsForRelType(false, 1, 22);
-        ConstraintDescriptor constraint3 = ConstraintDescriptorFactory.existsForRelType(false, 3, 33);
+        ConstraintDescriptor constraint1 =
+                ConstraintDescriptorFactory.existsForRelType(false, 1, 11).withId(1);
+        ConstraintDescriptor constraint2 =
+                ConstraintDescriptorFactory.existsForRelType(false, 1, 22).withId(2);
+        ConstraintDescriptor constraint3 =
+                ConstraintDescriptorFactory.existsForRelType(false, 3, 33).withId(3);
 
         // When
         state.constraintDoAdd(constraint1);
@@ -969,7 +976,8 @@ class TxStateTest {
         assertThat(state.getDataRevision()).isEqualTo(0L);
         assertFalse(state.hasDataChanges());
 
-        UniquenessConstraintDescriptor constraint1 = ConstraintDescriptorFactory.uniqueForLabel(1, 17);
+        UniquenessConstraintDescriptor constraint1 =
+                ConstraintDescriptorFactory.uniqueForLabel(1, 17).withId(12);
         state.constraintDoAdd(constraint1);
         assertThat(state.getDataRevision()).isEqualTo(0L);
         assertFalse(state.hasDataChanges());

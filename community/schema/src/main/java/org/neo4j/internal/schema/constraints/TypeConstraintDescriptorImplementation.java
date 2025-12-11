@@ -44,7 +44,6 @@ public class TypeConstraintDescriptorImplementation extends ConstraintDescriptor
         implements TypeConstraintDescriptor {
     private final GraphTypeDependence graphTypeDependence;
     private final SchemaDescriptor schema;
-    private final long id;
     private final String name;
     private final PropertyTypeSet propertyType;
 
@@ -62,9 +61,9 @@ public class TypeConstraintDescriptorImplementation extends ConstraintDescriptor
             long id,
             String name,
             PropertyTypeSet propertyType) {
+        super(id);
         this.graphTypeDependence = dependence;
         this.schema = schema;
-        this.id = id;
         this.name = name;
         this.propertyType = propertyType;
     }
@@ -126,14 +125,6 @@ public class TypeConstraintDescriptorImplementation extends ConstraintDescriptor
     @Override
     public IndexBackedConstraintDescriptor withOwnedIndexId(long id) {
         throw new IllegalStateException("ConstraintDescriptor missing IndexType when connected to index");
-    }
-
-    @Override
-    public long getId() {
-        if (id == NO_ID) {
-            throw new IllegalStateException("This constraint descriptor have no id assigned: " + this);
-        }
-        return id;
     }
 
     @Override

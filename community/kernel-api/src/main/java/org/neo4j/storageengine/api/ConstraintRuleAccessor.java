@@ -31,26 +31,24 @@ import org.neo4j.internal.schema.constraints.UniquenessConstraintDescriptor;
 public interface ConstraintRuleAccessor {
     ConstraintDescriptor readConstraint(ConstraintDescriptor rule);
 
-    ConstraintDescriptor createUniquenessConstraintRule(
-            long ruleId, UniquenessConstraintDescriptor descriptor, long indexId);
+    ConstraintDescriptor createUniquenessConstraintRule(UniquenessConstraintDescriptor descriptor, long indexId);
 
     ConstraintDescriptor createKeyConstraintRule(
-            long ruleId, KeyConstraintDescriptor descriptor, long indexId, TokenNameLookup tokenNameLookup)
+            KeyConstraintDescriptor descriptor, long indexId, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException;
 
-    ConstraintDescriptor createExistenceConstraint(
-            long ruleId, ConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
+    ConstraintDescriptor createExistenceConstraint(ConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException;
 
     ConstraintDescriptor createPropertyTypeConstraint(
-            long ruleId, TypeConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
+            TypeConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException;
 
     ConstraintDescriptor createRelationshipEndpointLabelConstraint(
-            long ruleId, RelationshipEndpointLabelConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
+            RelationshipEndpointLabelConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException;
 
     ConstraintDescriptor createNodeLabelExistenceConstraint(
-            long ruleId, NodeLabelExistenceConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
+            NodeLabelExistenceConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException;
 }

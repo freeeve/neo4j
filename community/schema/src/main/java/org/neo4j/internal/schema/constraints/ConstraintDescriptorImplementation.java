@@ -47,7 +47,6 @@ public class ConstraintDescriptorImplementation extends ConstraintDescriptorAdap
     private final ConstraintType type;
     private final GraphTypeDependence graphTypeDependence;
     private final SchemaDescriptor schema;
-    private final long id;
     private final String name;
     private final Long ownedIndex;
     private final IndexType ownedIndexType;
@@ -73,10 +72,10 @@ public class ConstraintDescriptorImplementation extends ConstraintDescriptorAdap
             String name,
             Long ownedIndex,
             IndexType ownedIndexType) {
+        super(id);
         this.type = type;
         this.graphTypeDependence = graphTypeDependence;
         this.schema = schema;
-        this.id = id;
         this.name = name;
         this.ownedIndex = ownedIndex;
         this.ownedIndexType = ownedIndexType;
@@ -240,14 +239,6 @@ public class ConstraintDescriptorImplementation extends ConstraintDescriptorAdap
     @Override
     public final int hashCode() {
         return Objects.hash(type, graphTypeDependence, schema, name);
-    }
-
-    @Override
-    public long getId() {
-        if (id == NO_ID) {
-            throw new IllegalStateException("This constraint descriptor have no id assigned: " + this);
-        }
-        return id;
     }
 
     @Override

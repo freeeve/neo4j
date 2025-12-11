@@ -829,6 +829,9 @@ public class TxState implements TransactionState {
 
     @Override
     public void constraintDoAdd(ConstraintDescriptor constraint) {
+        if (!constraint.hasId()) {
+            throw new IllegalStateException(constraint + " should have been assigned an ID at this point");
+        }
         constraintsChangesDiffSets().add(constraint);
         changed();
     }

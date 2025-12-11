@@ -22,6 +22,11 @@ package org.neo4j.internal.schema.constraints;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 
 public abstract class ConstraintDescriptorAdaptor implements ConstraintDescriptor {
+    protected final long id;
+
+    protected ConstraintDescriptorAdaptor(long id) {
+        this.id = id;
+    }
 
     @Override
     public boolean enforcesUniqueness() {
@@ -146,6 +151,19 @@ public abstract class ConstraintDescriptorAdaptor implements ConstraintDescripto
     @Override
     public NodeLabelExistenceConstraintDescriptor asNodeLabelExistenceConstraint() {
         throw conversionException(NodeLabelExistenceConstraintDescriptor.class);
+    }
+
+    @Override
+    public long getId() {
+        if (!hasId()) {
+            throw new IllegalStateException("This constraint descriptor have no id assigned: " + this);
+        }
+        return id;
+    }
+
+    @Override
+    public boolean hasId() {
+        return id != NO_ID;
     }
 
     IllegalStateException conversionException(Class<? extends ConstraintDescriptor> targetType) {

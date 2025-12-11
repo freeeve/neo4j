@@ -36,40 +36,40 @@ public class StandardConstraintRuleAccessor implements ConstraintRuleAccessor {
 
     @Override
     public ConstraintDescriptor createUniquenessConstraintRule(
-            long ruleId, UniquenessConstraintDescriptor constraint, long indexId) {
-        return constraint.withId(ruleId).withOwnedIndexId(indexId);
+            UniquenessConstraintDescriptor constraint, long indexId) {
+        return constraint.withOwnedIndexId(indexId);
     }
 
     @Override
     public ConstraintDescriptor createKeyConstraintRule(
-            long ruleId, KeyConstraintDescriptor constraint, long indexId, TokenNameLookup tokenNameLookup) {
-        return constraint.withId(ruleId).withOwnedIndexId(indexId);
+            KeyConstraintDescriptor constraint, long indexId, TokenNameLookup tokenNameLookup) {
+        return constraint.withOwnedIndexId(indexId);
     }
 
     @Override
     public ConstraintDescriptor createExistenceConstraint(
-            long ruleId, ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup) {
-        return constraint.withId(ruleId);
+            ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup) {
+        return constraint;
     }
 
     @Override
     public ConstraintDescriptor createPropertyTypeConstraint(
-            long ruleId, TypeConstraintDescriptor constraint, TokenNameLookup tokenNameLookup)
+            TypeConstraintDescriptor constraint, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        return constraint.withId(ruleId);
+        return constraint;
     }
 
     @Override
     public ConstraintDescriptor createRelationshipEndpointLabelConstraint(
-            long ruleId, RelationshipEndpointLabelConstraintDescriptor constraint, TokenNameLookup tokenNameLookup)
+            RelationshipEndpointLabelConstraintDescriptor constraint, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        return constraint.withId(ruleId);
+        return constraint;
     }
 
     @Override
     public ConstraintDescriptor createNodeLabelExistenceConstraint(
-            long ruleId, NodeLabelExistenceConstraintDescriptor constraint, TokenNameLookup tokenNameLookup)
+            NodeLabelExistenceConstraintDescriptor constraint, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        return constraint.withId(ruleId);
+        return constraint;
     }
 }

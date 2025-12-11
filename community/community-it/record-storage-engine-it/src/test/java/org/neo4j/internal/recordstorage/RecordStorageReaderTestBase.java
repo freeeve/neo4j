@@ -179,7 +179,10 @@ public abstract class RecordStorageReaderTestBase {
         int labelId = getOrCreateLabelId(label);
         int propertyKeyId = getOrCreatePropertyKeyId(propertyKey);
         UniquenessConstraintDescriptor constraint = ConstraintDescriptorFactory.uniqueForLabel(labelId, propertyKeyId);
-        constraint = constraint.withName(index.getName()).withOwnedIndexId(index.getId());
+        constraint = constraint
+                .withName(index.getName())
+                .withOwnedIndexId(index.getId())
+                .withId(commitContext.reserveSchema());
         txState.constraintDoAdd(constraint);
         apply(txState);
         return index;
@@ -193,7 +196,10 @@ public abstract class RecordStorageReaderTestBase {
         int propertyKeyId = getOrCreatePropertyKeyId(propertyKey);
         UniquenessConstraintDescriptor constraint =
                 ConstraintDescriptorFactory.uniqueForSchema(SchemaDescriptors.forRelType(typeId, propertyKeyId));
-        constraint = constraint.withName(index.getName()).withOwnedIndexId(index.getId());
+        constraint = constraint
+                .withName(index.getName())
+                .withOwnedIndexId(index.getId())
+                .withId(commitContext.reserveSchema());
         txState.constraintDoAdd(constraint);
         apply(txState);
         return index;
@@ -205,7 +211,10 @@ public abstract class RecordStorageReaderTestBase {
         int labelId = getOrCreateLabelId(label);
         int propertyKeyId = getOrCreatePropertyKeyId(propertyKey);
         KeyConstraintDescriptor constraint = ConstraintDescriptorFactory.nodeKeyForLabel(labelId, propertyKeyId);
-        constraint = constraint.withName(index.getName()).withOwnedIndexId(index.getId());
+        constraint = constraint
+                .withName(index.getName())
+                .withOwnedIndexId(index.getId())
+                .withId(commitContext.reserveSchema());
         txState.constraintDoAdd(constraint);
         apply(txState);
     }
@@ -214,7 +223,10 @@ public abstract class RecordStorageReaderTestBase {
         IndexDescriptor index = createUniqueIndex(type, propertyKey);
         TxState txState = new TxState();
         KeyConstraintDescriptor constraint = ConstraintDescriptorFactory.keyForSchema(index.schema());
-        constraint = constraint.withName(index.getName()).withOwnedIndexId(index.getId());
+        constraint = constraint
+                .withName(index.getName())
+                .withOwnedIndexId(index.getId())
+                .withId(commitContext.reserveSchema());
         txState.constraintDoAdd(constraint);
         apply(txState);
     }

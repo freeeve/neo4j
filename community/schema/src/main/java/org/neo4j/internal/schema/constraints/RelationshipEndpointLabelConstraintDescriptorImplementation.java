@@ -37,7 +37,6 @@ import org.neo4j.string.Mask;
 
 final class RelationshipEndpointLabelConstraintDescriptorImplementation extends ConstraintDescriptorAdaptor
         implements RelationshipEndpointLabelConstraintDescriptor {
-    private final long id;
     private final int endpointLabelId;
     private final String name;
     private final RelationshipEndpointLabelSchemaDescriptor schema;
@@ -49,12 +48,12 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation extends 
             int endpointLabelId,
             String name,
             EndpointType endpointType) {
+        super(id);
         if (endpointLabelId < 0) {
             throw new IllegalArgumentException("endpointLabelId cannot be negative");
         }
         this.schema = requireNonNull(schema, "SchemaDescriptor cannot be null");
         this.endpointType = requireNonNull(endpointType, "EndpointType cannot be null");
-        this.id = id;
         this.endpointLabelId = endpointLabelId;
         this.name = name;
     }
@@ -158,14 +157,6 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation extends 
     @Override
     public int hashCode() {
         return Objects.hash(schema, endpointType, endpointLabelId, name);
-    }
-
-    @Override
-    public long getId() {
-        if (id == NO_ID) {
-            throw new IllegalStateException("This constraint descriptor have no id assigned: " + this);
-        }
-        return id;
     }
 
     @Override

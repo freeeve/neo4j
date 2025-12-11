@@ -191,6 +191,11 @@ public interface ConstraintDescriptor extends SchemaDescriptorSupplier, SchemaRu
     long getId();
 
     /**
+     * @return whether this constraint descriptor has been assigned an ID.
+     */
+    boolean hasId();
+
+    /**
      * Returns true if this constraint conflicts with the constraint described by `otherDescriptor`,
      * where conflicting is defined as having subsets of metadata that would be forbidden in combination with each other.
      * conflictsWith has different logic depending on the ConstraintDescriptor Implementation

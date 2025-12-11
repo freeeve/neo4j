@@ -36,13 +36,13 @@ import org.neo4j.string.Mask;
 
 final class NodeLabelExistenceConstraintDescriptorImplementation extends ConstraintDescriptorAdaptor
         implements NodeLabelExistenceConstraintDescriptor {
-    private final long id;
     private final String name;
     private final NodeLabelExistenceSchemaDescriptor schema;
     private final int requiredLabelId;
 
     NodeLabelExistenceConstraintDescriptorImplementation(
             NodeLabelExistenceSchemaDescriptor schema, long id, int requiredLabelId, String name) {
+        super(id);
         if (requiredLabelId < 0) {
             throw new IllegalArgumentException("requiredLabelId cannot be negative");
         }
@@ -51,7 +51,6 @@ final class NodeLabelExistenceConstraintDescriptorImplementation extends Constra
             throw new IllegalArgumentException("requiredLabelId cannot be same as schema labelId");
         }
         this.requiredLabelId = requiredLabelId;
-        this.id = id;
         this.name = name;
     }
 
@@ -148,14 +147,6 @@ final class NodeLabelExistenceConstraintDescriptorImplementation extends Constra
             }
         }
         return false;
-    }
-
-    @Override
-    public long getId() {
-        if (id == NO_ID) {
-            throw new IllegalStateException("This constraint descriptor have no id assigned: " + this);
-        }
-        return id;
     }
 
     @Override

@@ -43,7 +43,6 @@ public class ExistenceConstraintDescriptorImplementation extends ConstraintDescr
         implements ExistenceConstraintDescriptor {
     private final GraphTypeDependence graphTypeDependence;
     private final SchemaDescriptor schema;
-    private final long id;
     private final String name;
 
     static ExistenceConstraintDescriptor makeExistsConstraint(SchemaDescriptor schema, boolean isDependent) {
@@ -53,9 +52,9 @@ public class ExistenceConstraintDescriptorImplementation extends ConstraintDescr
 
     public ExistenceConstraintDescriptorImplementation(
             GraphTypeDependence dependence, SchemaDescriptor schema, long id, String name) {
+        super(id);
         this.graphTypeDependence = dependence;
         this.schema = schema;
-        this.id = id;
         this.name = name;
     }
 
@@ -116,14 +115,6 @@ public class ExistenceConstraintDescriptorImplementation extends ConstraintDescr
     @Override
     public IndexBackedConstraintDescriptor withOwnedIndexId(long id) {
         throw new IllegalStateException("ConstraintDescriptor missing IndexType when connected to index");
-    }
-
-    @Override
-    public long getId() {
-        if (id == NO_ID) {
-            throw new IllegalStateException("This constraint descriptor have no id assigned: " + this);
-        }
-        return id;
     }
 
     @Override
