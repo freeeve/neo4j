@@ -105,6 +105,14 @@ trait VariableCheckerUtil {
       }
     }
 
+    object UpdatingContext {
+
+      def unapply(acc: Acc): Option[Acc] = acc match {
+        case Acc(_, UpdatingPattern(_, _, _, _), _, _) => Some(acc)
+        case _                                         => None
+      }
+    }
+
     object CreatePattern {
 
       def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable], Set[LogicalVariable], CreateOrInsert, Boolean)] =
@@ -329,7 +337,10 @@ trait VariableCheckerUtil {
 
         def unapply(scope: (Acc, WorkingScope)): Option[(Acc, String, InputPosition)] =
           scope match {
-            case (acc, PatternScope(RelationshipPattern(Some(variable), _, _, _, _, _), _, referenced, _, _, _))
+            case (
+                Acc.UpdatingContext(acc),
+                PatternScope(RelationshipPattern(Some(variable), _, _, _, _, _), _, referenced, _, _, _)
+              )
               if referenced.exists(_.name == variable.name) => Some((acc, variable.name, variable.position))
             case (
                 Acc.InRelationshipChain(acc),
