@@ -86,9 +86,11 @@ import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability
 import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.MinimumGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.MutableGraphStatisticsSnapshot
+import org.neo4j.cypher.internal.planner.spi.NodeVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
+import org.neo4j.cypher.internal.planner.spi.RelationshipVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
-import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
+import org.neo4j.cypher.internal.planner.spi.VectorIndexError
 import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -129,7 +131,6 @@ import java.io.File
 
 import scala.Console.err
 import scala.jdk.CollectionConverters.MapHasAsJava
-import scala.util.Try
 
 trait StatisticsBackedLogicalPlanningSupport {
 
@@ -1696,20 +1697,35 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         }
       }
 
-      override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] = Try {
+      override def nodeVectorIndexByName(indexName: String): Either[VectorIndexError, NodeVectorIndexDescriptor] =
         indexes.vectorIndexes.collectFirst {
           case indexDefinition if indexDefinition.name == indexName =>
-            val entityType = indexDefinition.entityType match {
-              case EntityType.Node(label) => IndexDescriptor.EntityType.Node(LabelId(resolver.getLabelId(label)))
-              case EntityType.Relationship(relType) =>
-                IndexDescriptor.EntityType.Relationship(RelTypeId(resolver.getRelTypeId(relType)))
+            indexDefinition.entityType match {
+              case EntityType.Node(label) =>
+                Right(NodeVectorIndexDescriptor(
+                  labelId = LabelId(resolver.getLabelId(label)),
+                  property = PropertyKeyId(resolver.getPropertyKeyId(indexDefinition.propertyKey))
+                ))
+              case _ =>
+                Left(VectorIndexError.WrongEntityType(common.EntityType.NODE, common.EntityType.RELATIONSHIP))
             }
-            VectorIndexDescriptor(
-              entityType = entityType,
-              property = PropertyKeyId(resolver.getPropertyKeyId(indexDefinition.propertyKey))
-            )
         }.get
-      }
+
+      override def relationshipVectorIndexByName(indexName: String)
+        : Either[VectorIndexError, RelationshipVectorIndexDescriptor] =
+        indexes.vectorIndexes.collectFirst {
+          case indexDefinition if indexDefinition.name == indexName =>
+            indexDefinition.entityType match {
+              case EntityType.Relationship(relType) =>
+                Right(RelationshipVectorIndexDescriptor(
+                  relTypeId = RelTypeId(resolver.getRelTypeId(relType)),
+                  property = PropertyKeyId(resolver.getPropertyKeyId(indexDefinition.propertyKey))
+                ))
+              case _ =>
+                Left(VectorIndexError.WrongEntityType(common.EntityType.RELATIONSHIP, common.EntityType.NODE))
+            }
+        }.get
+
     }
     new StatisticsBackedLogicalPlanningConfiguration(
       resolver,

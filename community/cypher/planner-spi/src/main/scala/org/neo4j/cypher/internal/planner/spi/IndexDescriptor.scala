@@ -208,7 +208,11 @@ case class TokenIndexDescriptor(
   orderCapability: IndexOrderCapability
 )
 
-case class VectorIndexDescriptor(
-  entityType: EntityType,
-  property: PropertyKeyId
-)
+sealed trait VectorIndexDescriptor {
+  def property: PropertyKeyId
+}
+
+final case class NodeVectorIndexDescriptor(labelId: LabelId, property: PropertyKeyId) extends VectorIndexDescriptor
+
+final case class RelationshipVectorIndexDescriptor(relTypeId: RelTypeId, property: PropertyKeyId)
+    extends VectorIndexDescriptor

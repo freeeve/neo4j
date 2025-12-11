@@ -39,9 +39,11 @@ import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability
 import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.MutableGraphStatisticsSnapshot
+import org.neo4j.cypher.internal.planner.spi.NodeVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
+import org.neo4j.cypher.internal.planner.spi.RelationshipVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
-import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
+import org.neo4j.cypher.internal.planner.spi.VectorIndexError
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundReadTokenContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionalContextWrapper
 import org.neo4j.cypher.internal.spi.procsHelpers.asCypherProcedureSignature
@@ -51,10 +53,8 @@ import org.neo4j.cypher.internal.spi.procsHelpers.asOption
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
-import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.KernelException
 import org.neo4j.exceptions.Neo4jException
-import org.neo4j.exceptions.VectorIndexSearchException
 import org.neo4j.internal.kernel.api.InternalIndexState
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
 import org.neo4j.internal.kernel.api.procs
@@ -69,11 +69,8 @@ import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.logging.InternalLog
 
-import java.util.Locale
-
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.util.Try
 
 object TransactionBoundPlanContext {
 
@@ -202,33 +199,71 @@ class TransactionBoundPlanContext(
       .flatMap(getOnlineIndex)
   }
 
-  override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] = Try {
-    val indexDescriptor = Some(tc.schemaRead.indexGetForName(indexName))
-      .filter(indexCanBeUsed)
-      .getOrElse(throw VectorIndexSearchException.indexNotFound(indexName))
+  def nodeVectorIndexByName(indexName: String): Either[VectorIndexError, NodeVectorIndexDescriptor] = {
+    val indexDescriptor = tc.schemaRead.indexGetForName(indexName)
+    for {
+      _ <- ensureIndexCanBeUsed(indexDescriptor)
+      _ <- ensureIsVectorIndex(indexDescriptor)
+      labelId <- validateNodeIndexType(indexDescriptor)
+      property = getIndexPropertyId(indexDescriptor)
+    } yield NodeVectorIndexDescriptor(labelId, property)
+  }
 
-    if (indexDescriptor.getIndexType != IndexType.VECTOR) {
-      throw InvalidArgumentException.wrongIndexType(
-        indexName,
-        IndexType.VECTOR.name().toLowerCase(Locale.ROOT),
-        indexDescriptor.getIndexType.name().toLowerCase(Locale.ROOT)
-      )
-    }
+  def relationshipVectorIndexByName(indexName: String): Either[VectorIndexError, RelationshipVectorIndexDescriptor] = {
+    val indexDescriptor = tc.schemaRead.indexGetForName(indexName)
+    for {
+      _ <- ensureIndexCanBeUsed(indexDescriptor)
+      _ <- ensureIsVectorIndex(indexDescriptor)
+      relTypeId <- validateRelationshipIndexType(indexDescriptor)
+      property = getIndexPropertyId(indexDescriptor)
+    } yield RelationshipVectorIndexDescriptor(relTypeId, property)
+  }
 
+  final private def ensureIndexCanBeUsed(indexDescriptor: schema.IndexDescriptor)
+    : Either[VectorIndexError.NotFound.type, Unit] =
+    Either.cond(indexCanBeUsed(indexDescriptor), (), VectorIndexError.NotFound)
+
+  final private def ensureIsVectorIndex(indexDescriptor: schema.IndexDescriptor)
+    : Either[VectorIndexError.WrongIndexType, Unit] = {
+    val indexType = indexDescriptor.getIndexType
+    Either.cond(indexType == IndexType.VECTOR, (), VectorIndexError.WrongIndexType(indexType))
+  }
+
+  final private def validateNodeIndexType(
+    indexDescriptor: schema.IndexDescriptor
+  ): Either[VectorIndexError.WrongEntityType, LabelId] = {
     val schema = indexDescriptor.schema()
+    val tokenId = extractTokenId(schema, indexDescriptor.getName)
+    schema.entityType() match {
+      case EntityType.NODE => Right(LabelId(tokenId))
+      case indexType       => Left(VectorIndexError.WrongEntityType(EntityType.NODE, indexType))
+    }
+  }
+
+  final private def validateRelationshipIndexType(
+    indexDescriptor: schema.IndexDescriptor
+  ): Either[VectorIndexError.WrongEntityType, RelTypeId] = {
+    val schema = indexDescriptor.schema()
+    val tokenId = extractTokenId(schema, indexDescriptor.getName)
+    schema.entityType() match {
+      case EntityType.RELATIONSHIP => Right(RelTypeId(tokenId))
+      case indexType               => Left(VectorIndexError.WrongEntityType(EntityType.RELATIONSHIP, indexType))
+    }
+  }
+
+  private def extractTokenId(schema: SchemaDescriptor, indexName: String): Int = {
     val tokenIds = schema.getEntityTokenIds
     // TODO PLAN-3078: support for many tokens
-    assert(tokenIds.size == 1, s"unexpected token IDs for vector index: $indexDescriptor")
-    val tokenId = schema.getEntityTokenIds()(0)
-    val entityType = schema.entityType() match {
-      case EntityType.NODE         => IndexDescriptor.EntityType.Node(LabelId(tokenId))
-      case EntityType.RELATIONSHIP => IndexDescriptor.EntityType.Relationship(RelTypeId(tokenId))
-    }
+    assert(tokenIds.size == 1, s"unexpected token IDs for vector index: $indexName")
+    tokenIds(0)
+  }
+
+  final private def getIndexPropertyId(indexDescriptor: schema.IndexDescriptor): PropertyKeyId = {
+    val schema = indexDescriptor.schema()
     val propertyIds = schema.getPropertyIds
     // TODO PLAN-3049: support for many properties?
     assert(propertyIds.size == 1, s"unexpected property IDs for vector index: $indexDescriptor")
-    val property = PropertyKeyId(propertyIds(0))
-    VectorIndexDescriptor(entityType, property)
+    PropertyKeyId(propertyIds(0))
   }
 
   override def propertyIndexesGetAll(): Iterator[IndexDescriptor] =

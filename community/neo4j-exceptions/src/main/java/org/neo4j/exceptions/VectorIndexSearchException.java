@@ -42,10 +42,10 @@ public class VectorIndexSearchException extends Neo4jException {
     }
 
     public static VectorIndexSearchException wrongBindingVariableType(
-            String variableName, List<String> expectedTypes, String actualTypeOfVariable) {
+            String variableName, String expectedType, String actualTypeOfVariable) {
         var gqlCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
                 .withParam(GqlParams.StringParam.value, new GqlParams.IDENT().process(variableName))
-                .withParam(GqlParams.ListParam.valueTypeList, expectedTypes)
+                .withParam(GqlParams.ListParam.valueTypeList, List.of(expectedType))
                 .withParam(GqlParams.StringParam.valueType, actualTypeOfVariable)
                 .build();
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)

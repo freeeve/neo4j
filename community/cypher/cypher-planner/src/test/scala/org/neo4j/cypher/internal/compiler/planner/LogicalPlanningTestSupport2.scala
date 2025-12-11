@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner
 
 import org.neo4j.common
+import org.neo4j.common.EntityType
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.cypher.internal.CypherVersion
@@ -105,12 +106,15 @@ import org.neo4j.cypher.internal.planner.spi.IndexDescriptor.IndexType
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability
 import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.MutableGraphStatisticsSnapshot
+import org.neo4j.cypher.internal.planner.spi.NodeVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
+import org.neo4j.cypher.internal.planner.spi.RelationshipVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
-import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
+import org.neo4j.cypher.internal.planner.spi.VectorIndexError
+import org.neo4j.cypher.internal.planner.spi.VectorIndexError.WrongEntityType
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
@@ -122,13 +126,11 @@ import org.neo4j.cypher.internal.util.attribution.Attribute
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.exceptions.VectorIndexSearchException
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.scalatestplus.mockito.MockitoSugar
 
 import scala.language.implicitConversions
-import scala.util.Try
 
 object LogicalPlanningTestSupport2 extends MockitoSugar {
 
@@ -370,16 +372,30 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
         case (indexDef: IndexDef, indexAttributes: IndexAttributes) => newIndexDescriptor(indexDef, indexAttributes)
       }.toIterator
 
-      override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] = {
+      override def nodeVectorIndexByName(indexName: String): Either[VectorIndexError, NodeVectorIndexDescriptor] =
         config.vectorIndexes.get(indexName) match {
-          case Some(vectorIndex) =>
-            scala.util.Success(VectorIndexDescriptor(
-              toIndexDescriptorEntityType(vectorIndex.entityType),
-              semanticTable.resolvedPropertyKeyNames(vectorIndex.propertyKey)
+          case Some(VectorIndexDefinition(_, IndexDefinition.EntityType.Node(label), property)) =>
+            Right(NodeVectorIndexDescriptor(
+              semanticTable.resolvedLabelNames(label),
+              semanticTable.resolvedPropertyKeyNames(property)
             ))
-          case None => scala.util.Failure(VectorIndexSearchException.indexNotFound(indexName))
+          case Some(_) =>
+            Left(WrongEntityType(EntityType.NODE, EntityType.RELATIONSHIP))
+          case None => Left(VectorIndexError.NotFound)
         }
-      }
+
+      override def relationshipVectorIndexByName(indexName: String)
+        : Either[VectorIndexError, RelationshipVectorIndexDescriptor] =
+        config.vectorIndexes.get(indexName) match {
+          case Some(VectorIndexDefinition(_, IndexDefinition.EntityType.Relationship(relationshipType), property)) =>
+            Right(RelationshipVectorIndexDescriptor(
+              semanticTable.resolvedRelTypeNames(relationshipType),
+              semanticTable.resolvedPropertyKeyNames(property)
+            ))
+          case Some(_) =>
+            Left(WrongEntityType(EntityType.RELATIONSHIP, EntityType.NODE))
+          case None => Left(VectorIndexError.NotFound)
+        }
 
       override def procedureSignatureVersion: Long = -1
 

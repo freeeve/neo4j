@@ -38,17 +38,40 @@ import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.planner.spi.IndexDescriptor.EntityType
-import org.neo4j.cypher.internal.util.symbols.CTNode
-import org.neo4j.cypher.internal.util.symbols.CTRelationship
+import org.neo4j.cypher.internal.planner.spi.VectorIndexError
 import org.neo4j.exceptions.InternalException
+import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.VectorIndexSearchException
+import org.neo4j.graphdb.schema.IndexType
+
+import java.util.Locale
 
 /**
  * Plans ANN vector search leaf plans for nodes or relationships in SEARCH sub-clauses.
  * @param skipIDs IDs of variables that should not be planned as vector search.
  */
 final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+
+  private def handleErrors(indexDescriptorError: VectorIndexError, indexName: String, bindingVariableName: String) = {
+    indexDescriptorError match {
+      case VectorIndexError.NotFound =>
+        throw VectorIndexSearchException.indexNotFound(indexName)
+      case VectorIndexError.WrongIndexType(wrongIndexType) =>
+        throw InvalidArgumentException.wrongIndexType(
+          indexName,
+          IndexType.VECTOR.name().toLowerCase(Locale.ROOT), // must be a VECTOR index
+          wrongIndexType.name().toLowerCase(Locale.ROOT) // the index type of the index name that was provided
+        )
+      case VectorIndexError.WrongEntityType(variableType, indexType) =>
+        throw VectorIndexSearchException.wrongBindingVariableType(
+          bindingVariableName,
+          // the required type (for the binding variable) for the index name that was provided
+          indexType.name(),
+          // the actual type of the binding variable
+          variableType.name()
+        )
+    }
+  }
 
   override def apply(
     queryGraph: QueryGraph,
@@ -66,118 +89,113 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
           unresolvedDependencies.isEmpty,
           s"unexpected dependencies $unresolvedDependencies in vector search predicate $vectorSearchPredicate"
         )
+        if (queryGraph.patternNodes.contains(vectorSearchPredicate.bindingVariable)) {
+          context.staticComponents.planContext.nodeVectorIndexByName(vectorSearchPredicate.indexName) match {
+            case Right(descriptor) =>
+              val labelName = context.staticComponents.planContext.getLabelName(descriptor.labelId)
 
-        val variableType = context.semanticTable.typeFor(vectorSearchPredicate.bindingVariable)
-
-        val vectorIndexDescriptor =
-          context.staticComponents.planContext.vectorIndexByName(vectorSearchPredicate.indexName).get
-
-        val propertyKeyToken = PropertyKeyToken(
-          name = context.staticComponents.planContext.getPropertyKeyName(vectorIndexDescriptor.property.id),
-          nameId = vectorIndexDescriptor.property
-        )
-
-        vectorIndexDescriptor.entityType match {
-          case EntityType.Node(labelId) =>
-            if (!variableType.is(CTNode)) {
-              throw VectorIndexSearchException.wrongBindingVariableType(
-                vectorSearchPredicate.bindingVariable.name,
-                java.util.List.of("NODE"),
-                variableType.typeInfo match {
-                  case None           => "UNKNOWN"
-                  case Some(typeSpec) => typeSpec.toShortString.toUpperCase()
-                }
+              val propertyKeyToken = PropertyKeyToken(
+                name = context.staticComponents.planContext.getPropertyKeyName(descriptor.property.id),
+                nameId = descriptor.property
               )
-            }
-            val labelName = context.staticComponents.planContext.getLabelName(labelId)
 
-            val implicitlySolvedPredicates = queryGraph.selections.flatPredicatesSet.filter(
-              isImpliedByVectorIndex(
-                _,
-                vectorSearchPredicate.bindingVariable,
-                propertyKeyToken,
-                Left(LabelToken(labelName, labelId))
-              )
-            )
-
-            val indexedProperties = List(IndexedProperty(
-              propertyKeyToken,
-              getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
-                vectorSearchPredicate.bindingVariable,
-                propertyKeyToken.name,
-                queryGraph.selections.flatPredicatesSet -- implicitlySolvedPredicates,
-                context.plannerState.contextualPropertyAccess
-              ),
-              entityType = NODE_TYPE
-            ))
-            val nodeVectorIndexSearch = context.staticComponents.logicalPlanProducer.planNodeVectorIndexSearch(
-              context = context,
-              variable = vectorSearchPredicate.bindingVariable,
-              label = LabelToken(name = labelName, nameId = labelId),
-              indexedProperties = indexedProperties,
-              indexName = vectorSearchPredicate.indexName,
-              embedding = vectorSearchPredicate.embedding,
-              limit = vectorSearchPredicate.limit,
-              scoreVariable = vectorSearchPredicate.scoreVariable,
-              argumentIds = queryGraph.argumentIds,
-              implicitlySolvedPredicates = implicitlySolvedPredicates
-            )
-            Set(nodeVectorIndexSearch)
-
-          case EntityType.Relationship(relTypeId) =>
-            if (!variableType.is(CTRelationship)) {
-              throw VectorIndexSearchException.wrongBindingVariableType(
-                vectorSearchPredicate.bindingVariable.name,
-                java.util.List.of("RELATIONSHIP"),
-                variableType.typeInfo match {
-                  case None           => "UNKNOWN"
-                  case Some(typeSpec) => typeSpec.toShortString.toUpperCase()
-                }
-              )
-            }
-            val relTypeName = context.staticComponents.planContext.getRelTypeName(relTypeId)
-            val implicitlySolvedPredicates = queryGraph.selections.flatPredicatesSet.filter(
-              isImpliedByVectorIndex(
-                _,
-                vectorSearchPredicate.bindingVariable,
-                propertyKeyToken,
-                Right(new RelationshipTypeToken(relTypeName, relTypeId))
-              )
-            )
-
-            val indexedProperties = List(IndexedProperty(
-              propertyKeyToken,
-              getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
-                vectorSearchPredicate.bindingVariable,
-                propertyKeyToken.name,
-                queryGraph.selections.flatPredicatesSet -- implicitlySolvedPredicates,
-                context.plannerState.contextualPropertyAccess
-              ),
-              entityType = RELATIONSHIP_TYPE
-            ))
-
-            queryGraph.patternRelationships.find(_.variable == vectorSearchPredicate.bindingVariable) match {
-              case Some(patternRelationship) =>
-                val relationshipVectorIndexSearch =
-                  context.staticComponents.logicalPlanProducer.planRelationshipVectorIndexSearch(
-                    context = context,
-                    patternRelationship = patternRelationship,
-                    indexedTypes = Seq(new RelationshipTypeToken(relTypeName, relTypeId)),
-                    indexedProperties = indexedProperties,
-                    indexName = vectorSearchPredicate.indexName,
-                    embedding = vectorSearchPredicate.embedding,
-                    limit = vectorSearchPredicate.limit,
-                    scoreVariable = vectorSearchPredicate.scoreVariable,
-                    argumentIds = queryGraph.argumentIds,
-                    implicitlySolvedPredicates = implicitlySolvedPredicates
-                  )
-                Set(relationshipVectorIndexSearch)
-
-              case None => throw InternalException.internalError(
-                  "VectorSearchLeafPlanner",
-                  "Cannot find the vector search binding variable in the querygraph."
+              val implicitlySolvedPredicates = queryGraph.selections.flatPredicatesSet.filter(
+                isImpliedByVectorIndex(
+                  _,
+                  vectorSearchPredicate.bindingVariable,
+                  propertyKeyToken,
+                  Left(LabelToken(labelName, descriptor.labelId))
                 )
-            }
+              )
+              val indexedProperties = List(IndexedProperty(
+                propertyKeyToken,
+                getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
+                  vectorSearchPredicate.bindingVariable,
+                  propertyKeyToken.name,
+                  queryGraph.selections.flatPredicatesSet -- implicitlySolvedPredicates,
+                  context.plannerState.contextualPropertyAccess
+                ),
+                entityType = NODE_TYPE
+              ))
+              val nodeVectorIndexSearch = context.staticComponents.logicalPlanProducer.planNodeVectorIndexSearch(
+                context = context,
+                variable = vectorSearchPredicate.bindingVariable,
+                label = LabelToken(name = labelName, nameId = descriptor.labelId),
+                indexedProperties = indexedProperties,
+                indexName = vectorSearchPredicate.indexName,
+                embedding = vectorSearchPredicate.embedding,
+                limit = vectorSearchPredicate.limit,
+                scoreVariable = vectorSearchPredicate.scoreVariable,
+                argumentIds = queryGraph.argumentIds,
+                implicitlySolvedPredicates = implicitlySolvedPredicates
+              )
+              Set(nodeVectorIndexSearch)
+
+            case Left(vectorIndexError) => handleErrors(
+                vectorIndexError,
+                vectorSearchPredicate.indexName,
+                vectorSearchPredicate.bindingVariable.name
+              )
+          }
+        } else {
+          val patternRelationship =
+            queryGraph.patternRelationships.find(_.variable == vectorSearchPredicate.bindingVariable).getOrElse(
+              throw InternalException.internalError(
+                "VectorSearchLeafPlanner",
+                "The binding variable of the vector search is not a node or relationship in the query graph"
+              )
+            )
+
+          context.staticComponents.planContext.relationshipVectorIndexByName(vectorSearchPredicate.indexName) match {
+            case Right(descriptor) =>
+              val relTypeName = context.staticComponents.planContext.getRelTypeName(descriptor.relTypeId)
+
+              val propertyKeyToken = PropertyKeyToken(
+                name = context.staticComponents.planContext.getPropertyKeyName(descriptor.property.id),
+                nameId = descriptor.property
+              )
+
+              val implicitlySolvedPredicates = queryGraph.selections.flatPredicatesSet.filter(
+                isImpliedByVectorIndex(
+                  _,
+                  vectorSearchPredicate.bindingVariable,
+                  propertyKeyToken,
+                  Right(new RelationshipTypeToken(relTypeName, descriptor.relTypeId))
+                )
+              )
+
+              val indexedProperties = List(IndexedProperty(
+                propertyKeyToken,
+                getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
+                  vectorSearchPredicate.bindingVariable,
+                  propertyKeyToken.name,
+                  queryGraph.selections.flatPredicatesSet -- implicitlySolvedPredicates,
+                  context.plannerState.contextualPropertyAccess
+                ),
+                entityType = RELATIONSHIP_TYPE
+              ))
+
+              val relationshipVectorIndexSearch =
+                context.staticComponents.logicalPlanProducer.planRelationshipVectorIndexSearch(
+                  context = context,
+                  patternRelationship = patternRelationship,
+                  indexedTypes = Seq(new RelationshipTypeToken(relTypeName, descriptor.relTypeId)),
+                  indexedProperties = indexedProperties,
+                  indexName = vectorSearchPredicate.indexName,
+                  embedding = vectorSearchPredicate.embedding,
+                  limit = vectorSearchPredicate.limit,
+                  scoreVariable = vectorSearchPredicate.scoreVariable,
+                  argumentIds = queryGraph.argumentIds,
+                  implicitlySolvedPredicates = implicitlySolvedPredicates
+                )
+              Set(relationshipVectorIndexSearch)
+
+            case Left(vectorIndexError) => handleErrors(
+                vectorIndexError,
+                vectorSearchPredicate.indexName,
+                vectorSearchPredicate.bindingVariable.name
+              )
+          }
         }
 
       case _ => Set.empty

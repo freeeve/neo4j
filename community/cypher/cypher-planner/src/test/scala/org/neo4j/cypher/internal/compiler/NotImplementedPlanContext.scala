@@ -28,13 +28,13 @@ import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
+import org.neo4j.cypher.internal.planner.spi.NodeVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
+import org.neo4j.cypher.internal.planner.spi.RelationshipVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
-import org.neo4j.cypher.internal.planner.spi.VectorIndexDescriptor
+import org.neo4j.cypher.internal.planner.spi.VectorIndexError
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
-
-import scala.util.Try
 
 //noinspection NotImplementedCode
 class NotImplementedPlanContext extends PlanContext {
@@ -61,7 +61,10 @@ class NotImplementedPlanContext extends PlanContext {
 
   override def relationshipTokenIndex: Option[TokenIndexDescriptor] = ???
 
-  override def vectorIndexByName(indexName: String): Try[VectorIndexDescriptor] = ???
+  override def nodeVectorIndexByName(indexName: String): Either[VectorIndexError, NodeVectorIndexDescriptor] = ???
+
+  override def relationshipVectorIndexByName(indexName: String)
+    : Either[VectorIndexError, RelationshipVectorIndexDescriptor] = ???
 
   override def hasNodePropertyExistenceConstraint(labelName: String, propertyKey: String): Boolean = ???
 
