@@ -72,6 +72,7 @@ abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
   protected def empty: A
   protected def allLabels(labels: Array[Int]): A
   protected def anyLabel(labels: Array[Int]): A
+  protected def label(label: Int): A
 
   private def getIndexComparator: Comparator[IndexDescriptor] =
     state.indexComparatorFactory.createComparator(state.query.dataRead, state.query.transactionalContext.schemaRead)
@@ -97,10 +98,11 @@ abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
 
   private def labelScan(labels: Array[Int], operator: DynamicElement.SetOperator): A = {
     operator match {
-      case All if labels.isEmpty => allNodes
-      case Any if labels.isEmpty => empty
-      case All                   => allLabels(labels)
-      case Any                   => anyLabel(labels)
+      case All if labels.isEmpty   => allNodes
+      case Any if labels.isEmpty   => empty
+      case _ if labels.length == 1 => label(labels.head)
+      case All                     => allLabels(labels)
+      case Any                     => anyLabel(labels)
     }
   }
 
@@ -243,6 +245,9 @@ case class DynamicLabelNodeLookupIterator(
 
   override protected def anyLabel(labels: Array[Int]): ClosingLongIterator =
     unionIterator(state.query, labels, IndexOrderNone, state.nodeLabelTokenReadSession.get)
+
+  override protected def label(label: Int): ClosingLongIterator =
+    state.query.getNodesByLabel(state.nodeLabelTokenReadSession.get, label, IndexOrderNone)
 
   override protected def empty: ClosingLongIterator = ClosingLongIterator.empty
 
