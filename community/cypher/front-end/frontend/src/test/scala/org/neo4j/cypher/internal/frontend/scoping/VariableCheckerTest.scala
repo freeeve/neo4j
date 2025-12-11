@@ -965,6 +965,18 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test("""WITH true AS a
+         |CALL (*) {
+         |  RETURN 8 AS y
+         |
+         |  NEXT
+         |
+         |  WHEN EXISTS { RETURN 2 AS x } THEN RETURN 4 AS y
+         |}
+         |RETURN 1 AS x""".stripMargin) {
+    passes()
+  }
+
   test("""RETURN 1 AS b NEXT RETURN x + 1 AS b""".stripMargin) {
     error("42N62", "Variable `x` not defined.")
   }

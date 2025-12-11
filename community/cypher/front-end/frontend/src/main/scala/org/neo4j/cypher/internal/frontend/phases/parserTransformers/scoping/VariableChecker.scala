@@ -254,7 +254,12 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
 
   private def collectSemanticErrors(workingScope: WorkingScope) = workingScope.folder.treeFold(Acc.init) {
     case s @ ExpressionScope(_: FullSubqueryExpression, in, _, _, _) => acc =>
-        updateAccAndTraverse(acc, s)(_acc => TraverseChildren(_acc.inReturnContext(SubqueryExpression(in.allSymbols))))
+        updateAccAndTraverse(acc, s)(_acc =>
+          TraverseChildrenNewAccForSiblings(
+            _acc.inReturnContext(SubqueryExpression(in.allSymbols)),
+            acc => acc.inReturnContext(_acc.scopeContext)
+          )
+        )
     case s @ StatementScope(_: NextStatement, in, _, _, _, _, children) => acc =>
         updateAccAndTraverse(acc, s)(_acc => {
           val trunkAcc = folderWorkingScopes(_acc.inReturnContext(NextStatement(in.constants)), children.dropRight(1))
