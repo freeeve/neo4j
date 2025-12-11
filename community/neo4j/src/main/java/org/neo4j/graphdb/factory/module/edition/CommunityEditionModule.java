@@ -66,6 +66,7 @@ import org.neo4j.dbms.systemgraph.CommunityDefaultQueryLanguageLookup;
 import org.neo4j.dbms.systemgraph.CommunityTopologyGraphComponent;
 import org.neo4j.dbms.systemgraph.ContextBasedSystemDatabaseProvider;
 import org.neo4j.dbms.systemgraph.SystemDatabaseProvider;
+import org.neo4j.fleetmanagement.systemgraph.FleetManagementGraphComponent;
 import org.neo4j.graphdb.factory.module.GlobalModule;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
@@ -294,8 +295,10 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
         var clock = globalModule.getGlobalClock();
         var systemGraphComponent = new DefaultSystemGraphComponent(config, clock);
         var communityTopologyGraphComponentComponent = new CommunityTopologyGraphComponent(config, log);
+        var fleetManagementGraphComponent = new FleetManagementGraphComponent(config, log);
         systemGraphComponentsBuilder.register(systemGraphComponent);
         systemGraphComponentsBuilder.register(communityTopologyGraphComponentComponent);
+        systemGraphComponentsBuilder.register(fleetManagementGraphComponent);
         registerSecurityGraphComponent(systemGraphComponentsBuilder, globalModule);
         this.systemGraphComponents = systemGraphComponentsBuilder.build();
     }

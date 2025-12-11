@@ -245,36 +245,19 @@ public class Configuration {
     @Description("Restart fleet management")
     public Stream<Result> restart() {
         var state = State.getInstance();
-        var active = transactor.getTokenStatus();
+        var hasToken = transactor.getTokenStatus();
         var connected = state.isConnected();
 
-        ensureSystemDb();
-        return withTransactionAndErrorHandling(
-                db,
-                tx -> {
-                    Optional<Node> maybeNode = tx.findNodes(Label.label("FleetManagementConfiguration")).stream()
-                            .findFirst();
+        state.setActive(false);
+        if (hasToken) {
+            if (connected) {
+                state.setDisconnected("Disconnecting before restarting fleet management");
+            }
 
-                    if (maybeNode.isPresent() && maybeNode.get().hasProperty("token")) {
-                        if (active) {
-                            state.setActive(false);
-                        }
-
-                        if (connected) {
-                            state.setDisconnected("Disconnecting before restarting fleet management");
-                        }
-
-                        State.getInstance().setActive(true);
-                        return Stream.of(new Result("Fleet management is restarted"));
-                    } else {
-                        state.setActive(false);
-                        return Stream.of(new Result("Register a token to enable Fleet Management"));
-                    }
-                },
-                e -> {
-                    String message = "An error occurred while restarting fleet management: " + e.getMessage();
-                    log.error(message, e);
-                    return Stream.of(new Result(message));
-                });
+            State.getInstance().setActive(true);
+            return Stream.of(new Result("Fleet management is restarted"));
+        } else {
+            return Stream.of(new Result("Register a token to enable Fleet Management"));
+        }
     }
 }

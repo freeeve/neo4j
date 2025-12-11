@@ -30,6 +30,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import static org.neo4j.configuration.GraphDatabaseSettings.auth_enabled;
 import static org.neo4j.dbms.database.ComponentVersion.COMMUNITY_TOPOLOGY_GRAPH_COMPONENT;
 import static org.neo4j.dbms.database.ComponentVersion.DBMS_RUNTIME_COMPONENT;
+import static org.neo4j.dbms.database.ComponentVersion.FLEET_MANAGEMENT_COMPONENT;
 import static org.neo4j.dbms.database.ComponentVersion.MULTI_DATABASE_COMPONENT;
 import static org.neo4j.dbms.database.ComponentVersion.SECURITY_USER_COMPONENT;
 import static org.neo4j.dbms.database.SystemGraphComponent.Status.CURRENT;
@@ -191,6 +192,7 @@ class UserSecurityGraphComponentIT {
                 MULTI_DATABASE_COMPONENT,
                 SECURITY_USER_COMPONENT,
                 COMMUNITY_TOPOLOGY_GRAPH_COMPONENT,
+                FLEET_MANAGEMENT_COMPONENT,
                 overallStatus);
         assertThat(componentStatuses.keySet()).containsExactlyInAnyOrderElementsOf(expectedComponents);
         for (SystemGraphComponent.Name component : expectedComponents) {
@@ -432,6 +434,8 @@ class UserSecurityGraphComponentIT {
                         initialState,
                         COMMUNITY_TOPOLOGY_GRAPH_COMPONENT,
                         CURRENT,
+                        FLEET_MANAGEMENT_COMPONENT,
+                        CURRENT,
                         testComponent,
                         initialState));
 
@@ -449,6 +453,8 @@ class UserSecurityGraphComponentIT {
                         SECURITY_USER_COMPONENT,
                         CURRENT,
                         COMMUNITY_TOPOLOGY_GRAPH_COMPONENT,
+                        CURRENT,
+                        FLEET_MANAGEMENT_COMPONENT,
                         CURRENT,
                         testComponent,
                         CURRENT));
