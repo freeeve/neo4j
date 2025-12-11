@@ -90,8 +90,9 @@ object pegClause {
       // composition
       // Importing With is already deprecated
       case call @ ImportingWithSubqueryCall(query, inTransactionsParameters, _) =>
+        val importingAll = query.isCorrelated && query.importColumns.isEmpty
         val importedVariableSet: Set[LogicalVariable] =
-          if (query.isCorrelated && query.importColumns.isEmpty) incoming.variables else query.importColumns.toSet
+          if (importingAll) incoming.variables else query.importColumns.toSet
         val graphSelectionScopes = query.getGraphSelections.map(gs =>
           pegExpression(gs.graphReference, incoming.constantChildContext())
         )
@@ -102,6 +103,7 @@ object pegClause {
           incoming,
           importedVariableSet,
           innerQueryIncoming,
+          importingAll,
           innerQuery.get,
           inTransactionsParameters
         )
@@ -110,15 +112,15 @@ object pegClause {
 
       // TODO is this taking the USE clause in to consideration correctly
       case call @ ScopeClauseSubqueryCall(innerQuery, isImportingAll, importedVariables, inTransactionsParameters, _) =>
-        val importedVariableSet: Set[LogicalVariable] = importedVariables.toSet
         val innerQueryIncoming =
           if (isImportingAll) incoming.constantChildContext()
-          else RegularContext.unitWithConstants(importedVariableSet)
+          else RegularContext.unitWithConstants(importedVariables.toSet)
         scopeInlineSubquery(
           call,
           incoming,
-          importedVariableSet,
+          innerQueryIncoming.allSymbols,
           innerQueryIncoming,
+          isImportingAll,
           innerQuery,
           inTransactionsParameters
         )
@@ -443,12 +445,16 @@ object pegClause {
   private def getProjectionReferenced(
     children: Seq[WorkingScope],
     includedIncomingVariables: Set[LogicalVariable],
+    incomingConstants: Set[LogicalVariable],
+    projectionType: ProjectionType,
     clauseType: ClauseType
   ): Set[LogicalVariable] = {
     val referencedInChildren = WorkingScope.referencedInChildren(children)
-    clauseType match {
-      case _: StarNotReferencing => referencedInChildren
-      case _                     => referencedInChildren union includedIncomingVariables
+    (clauseType, projectionType) match {
+      case (_: StarNotReferencing, _) => referencedInChildren
+      case (_: WithType, proj) if proj != FreeProjection =>
+        referencedInChildren union includedIncomingVariables union incomingConstants
+      case _ => referencedInChildren union includedIncomingVariables
     }
   }
 
@@ -491,7 +497,8 @@ object pegClause {
     val outgoing = getProjectionOutgoing(incoming.constants, resultingVariables, constantItems, clauseType)
     val result = getProjectionResult(resultingVariables, clauseType)
     val declared = getProjectionDeclared(introducedVariables, clauseType)
-    val referenced = getProjectionReferenced(children, includedIncomingVariables, clauseType)
+    val referenced =
+      getProjectionReferenced(children, includedIncomingVariables, incoming.constants, projectionType, clauseType)
 
     StatementScope(astNode, incoming, referenced, declared, outgoing, result, children)
 
@@ -505,6 +512,7 @@ object pegClause {
     incoming: RegularContext,
     importedVariables: Set[LogicalVariable],
     innerQueryIncoming: RegularContext,
+    importingAll: Boolean,
     innerQuery: Query,
     inTransactionsParameters: Option[InTransactionsParameters]
   )(implicit c: PegContext) = {
@@ -525,7 +533,7 @@ object pegClause {
         throw new IllegalStateException("inner query cannot have an expression result")
     }
     val children = innerQueryScope +: inTransactionsChildren
-    val referenced = Some(innerQueryScope.referenced intersect importedVariables)
+    val referenced = Some(innerQueryScope.referenced union importedVariables)
     val declared = Declarations(Seq.empty, declaredVariables ++ declaredInTransactionsVariables)
     incoming.noResultScope(outgoing, children, referenced, declared)
   }
