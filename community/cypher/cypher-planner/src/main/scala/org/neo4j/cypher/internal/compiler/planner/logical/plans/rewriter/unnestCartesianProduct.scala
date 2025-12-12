@@ -28,8 +28,8 @@ import org.neo4j.cypher.internal.util.topDown
 case object unnestCartesianProduct extends Rewriter with TopDownMergeableRewriter {
 
   override val innerRewriter: Rewriter = Rewriter.lift {
-    case CartesianProduct(_: Argument, rhs) =>
-      rhs
+    case orig @ CartesianProduct(arg: Argument, rhs) =>
+      if (arg.argumentIds.subsetOf(rhs.localAvailableSymbols)) rhs else orig
 
     case CartesianProduct(lhs, _: Argument) =>
       lhs

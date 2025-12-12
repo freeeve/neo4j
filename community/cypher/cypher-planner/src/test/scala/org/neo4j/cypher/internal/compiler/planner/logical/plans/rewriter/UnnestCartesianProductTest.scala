@@ -56,6 +56,32 @@ class UnnestCartesianProductTest extends CypherFunSuite with LogicalPlanningTest
       .build())
   }
 
+  test("should not unnest cartesian product with a single Argument on the rhs") {
+    val input = new LogicalPlanBuilder()
+      .produceResults("x")
+      .letSemiApply("x")
+      .|.projection("a AS x")
+      .|.cartesianProduct()
+      .|.|.projection("2 AS b")
+      .|.|.argument()
+      .|.argument("a")
+      .projection("1 AS a")
+      .argument()
+      .build()
+
+    rewrite(input) should equal(new LogicalPlanBuilder()
+      .produceResults("x")
+      .letSemiApply("x")
+      .|.projection("a AS x")
+      .|.cartesianProduct()
+      .|.|.projection("2 AS b")
+      .|.|.argument()
+      .|.argument("a")
+      .projection("1 AS a")
+      .argument()
+      .build())
+  }
+
   private def rewrite(p: LogicalPlan): LogicalPlan =
     fixedPoint(CancellationChecker.neverCancelled())((p: LogicalPlan) => p.endoRewrite(unnestCartesianProduct))(p)
 }
