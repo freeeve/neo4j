@@ -62,13 +62,14 @@ public class ReversedMultiFileCommandBatchCursor implements CommandBatchCursor {
             LogEntryReader logEntryReader,
             boolean failOnCorruptedLogFiles,
             ReversedTransactionCursorMonitor monitor,
-            boolean presketch) {
+            boolean presketch,
+            LogPosition maxPosition) {
         if (presketch) {
             return new ReversedMultiFileCommandBatchCursor(new PrefetchedReverseCommandBatchCursors(
-                    logFile, backToPosition, logEntryReader, failOnCorruptedLogFiles, monitor));
+                    logFile, backToPosition, logEntryReader, failOnCorruptedLogFiles, monitor, maxPosition));
         } else {
             return new ReversedMultiFileCommandBatchCursor(new DefaultReverseCommandBatchCursors(
-                    logFile, backToPosition, logEntryReader, failOnCorruptedLogFiles, monitor));
+                    logFile, backToPosition, logEntryReader, failOnCorruptedLogFiles, monitor, maxPosition));
         }
     }
 

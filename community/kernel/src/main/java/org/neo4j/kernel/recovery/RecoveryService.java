@@ -30,9 +30,10 @@ import org.neo4j.storageengine.api.TransactionApplicationMode;
 public interface RecoveryService {
     CommandBatchCursor getCommandBatches(long appendIndex) throws IOException;
 
-    CommandBatchCursor getCommandBatches(LogPosition recoveryFromPosition) throws IOException;
+    CommandBatchCursor getCommandBatches(LogPosition recoveryFromPosition, LogPosition maxPosition) throws IOException;
 
-    CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition recoveryFromPosition) throws IOException;
+    CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition recoveryFromPosition, LogPosition maxPosition)
+            throws IOException;
 
     RecoveryStartInformation getRecoveryStartInformation() throws IOException;
 

@@ -20,6 +20,7 @@
 package org.neo4j.kernel.recovery.facade;
 
 import java.time.Instant;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.recovery.RecoveryPredicate;
 
 public interface RecoveryCriteria {
@@ -31,6 +32,10 @@ public interface RecoveryCriteria {
 
     static RecoveryCriteria until(Instant date) {
         return new TransactionDateCriteria(date);
+    }
+
+    static RecoveryCriteria untilPosition(LogPosition position) {
+        return () -> RecoveryPredicate.untilPosition(position);
     }
 
     RecoveryPredicate toPredicate();

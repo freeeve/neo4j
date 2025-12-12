@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.transaction.log.reverse;
 
 import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.reverse.EagerlyReversedCommandBatchCursor.eagerlyReverse;
+import static org.neo4j.util.Preconditions.checkArgument;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -32,28 +33,44 @@ import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 
 public final class DefaultReverseCommandBatchCursors implements CommandBatchCursors {
-
     private final LogFile logFile;
     private final LogPosition beginning;
     private final LogEntryReader reader;
     private final boolean failOnCorruptedLogFiles;
     private final ReversedTransactionCursorMonitor monitor;
     private long currentVersion;
+    private final LogPosition maxPosition;
 
     public DefaultReverseCommandBatchCursors(
             LogFile logFile,
             LogPosition beginning,
             LogEntryReader reader,
             boolean failOnCorruptedLogFiles,
-            ReversedTransactionCursorMonitor monitor) {
+            ReversedTransactionCursorMonitor monitor,
+            LogPosition maxPosition) {
         this.logFile = logFile;
         this.beginning = beginning;
         this.reader = reader;
         this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
         this.monitor = monitor;
-        this.currentVersion = logFile.getLogRangeInfo().highestVersion();
+        this.currentVersion = getHighestVersion(logFile, maxPosition);
+        this.maxPosition = maxPosition;
+    }
+
+    private long getHighestVersion(LogFile logFile, LogPosition maxPosition) {
+        LogRangeInfo logRange = logFile.getLogRangeInfo();
+        long highestVersion = logRange.highestVersion();
+        if (maxPosition == LogPosition.UNSPECIFIED) {
+            return highestVersion;
+        } else {
+            checkArgument(
+                    maxPosition.getLogVersion() <= highestVersion,
+                    "Max position in non-existing file " + maxPosition + ", current range " + logRange);
+            return maxPosition.getLogVersion();
+        }
     }
 
     @Override
@@ -88,12 +105,17 @@ public final class DefaultReverseCommandBatchCursors implements CommandBatchCurs
         try {
             return switch (channel) {
                 case ReadAheadLogChannel aheadChannel ->
-                    new ReversedSingleFileCommandBatchCursor(aheadChannel, reader, failOnCorruptedLogFiles, monitor);
+                    ReversedSingleFileCommandBatchCursor.create(
+                            aheadChannel, reader, failOnCorruptedLogFiles, monitor, maxPosition);
                 case EnvelopeReadChannel readChannel ->
                     new ReversedEnvelopedCommandBatchCursor(
-                            readChannel, reader, failOnCorruptedLogFiles, monitor, (EnvelopeReadChannel)
-                                    logFile.getReader(position));
-                default -> eagerlyReverse(new CommittedCommandBatchCursor(channel, reader));
+                            readChannel,
+                            reader,
+                            failOnCorruptedLogFiles,
+                            monitor,
+                            (EnvelopeReadChannel) logFile.getReader(position),
+                            maxPosition);
+                default -> eagerlyReverse(new CommittedCommandBatchCursor(channel, reader, maxPosition));
             };
         } catch (Exception e) {
             // sketchOut may fail as part of construction of reversed channels, and if that is happening channel will

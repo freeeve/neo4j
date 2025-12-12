@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.function.Predicate;
 import org.neo4j.internal.helpers.Format;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 
 public interface RecoveryPredicate extends Predicate<CommittedCommandBatchRepresentation> {
     RecoveryPredicate ALL = new AllTransactionsPredicate();
@@ -35,7 +36,19 @@ public interface RecoveryPredicate extends Predicate<CommittedCommandBatchRepres
         return new TransactionDatePredicate(date);
     }
 
+    static RecoveryPredicate untilPosition(LogPosition position) {
+        return new LogPositionPredicate(position);
+    }
+
     String describe();
+
+    default LogPosition maxPosition() {
+        return LogPosition.UNSPECIFIED;
+    }
+
+    default boolean changingTheLogAllowed() {
+        return true;
+    }
 
     class AllTransactionsPredicate implements RecoveryPredicate {
         private AllTransactionsPredicate() {}
@@ -84,6 +97,36 @@ public interface RecoveryPredicate extends Predicate<CommittedCommandBatchRepres
         @Override
         public String describe() {
             return "transaction date should be before " + Format.date(instant);
+        }
+    }
+
+    class LogPositionPredicate implements RecoveryPredicate {
+
+        public final LogPosition maxPosition;
+
+        private LogPositionPredicate(LogPosition maxPosition) {
+            this.maxPosition = maxPosition;
+        }
+
+        @Override
+        public boolean test(CommittedCommandBatchRepresentation commandBatch) {
+            // Only goes by position.
+            return true;
+        }
+
+        @Override
+        public LogPosition maxPosition() {
+            return maxPosition;
+        }
+
+        @Override
+        public boolean changingTheLogAllowed() {
+            return false;
+        }
+
+        @Override
+        public String describe() {
+            return "transaction position should be before " + maxPosition;
         }
     }
 }

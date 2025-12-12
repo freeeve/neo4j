@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.transaction.log.reverse;
 
+import static org.neo4j.util.Preconditions.checkState;
+
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -65,54 +67,71 @@ public class ReversedSingleFileCommandBatchCursor implements CommandBatchCursor 
     private static final int CHUNK_SIZE = ReadAheadChannel.DEFAULT_READ_AHEAD_SIZE;
 
     private final ReadAheadLogChannel channel;
-    private final boolean failOnCorruptedLogFiles;
-    private final ReversedTransactionCursorMonitor monitor;
     private final CommandBatchCursor commandBatchCursor;
     // Should be generally large enough to hold transactions in a chunk, where one chunk is the read-ahead size of
     // ReadAheadLogChannel
     private final Deque<ReservedBatch> chunkBatches = new ArrayDeque<>(20);
-    private final SketchingCommandBatchCursor sketchingCursor;
 
     private CommittedCommandBatchRepresentation currentCommandBatch;
     private LogPosition currentBatchStartPosition;
 
     // May be longer than required, offsetLength holds the actual length.
     private final long[] offsets;
-    private int offsetsLength;
+    private final int offsetsLength;
+    private final long totalSize;
     private int chunkStartOffsetIndex;
-    private long totalSize;
 
-    ReversedSingleFileCommandBatchCursor(
+    static ReversedSingleFileCommandBatchCursor create(
             ReadAheadLogChannel channel,
             LogEntryReader logEntryReader,
             boolean failOnCorruptedLogFiles,
-            ReversedTransactionCursorMonitor monitor)
+            ReversedTransactionCursorMonitor monitor,
+            LogPosition maxPosition)
             throws IOException {
-        this.channel = channel;
-        this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
-        this.monitor = monitor;
-        // There's an assumption here: that the underlying channel can move in between calls and that the
-        // transaction cursor will just happily read from the new position.
-        this.commandBatchCursor = new CommittedCommandBatchCursor(channel, logEntryReader);
-        this.sketchingCursor = new SketchingCommandBatchCursor(channel, logEntryReader);
-        this.offsets = sketchOutTransactionStartOffsets();
-    }
 
-    // Also initializes offset indexes
-    private long[] sketchOutTransactionStartOffsets() throws IOException {
-        // Grows on demand. Initially sized to be able to hold all transaction start offsets for a single log file
-        long[] offsets = new long[10_000];
-        int offsetCursor = 0;
+        boolean failOnLastBrokenEntry = maxPosition != LogPosition.UNSPECIFIED;
+
+        // Make sure we always use failOnCorruptedLogFiles when we have a maxPosition
+        assert (failOnLastBrokenEntry && failOnCorruptedLogFiles) || !failOnLastBrokenEntry;
 
         long logVersion = channel.getLogVersion();
         long startOffset = channel.position();
+
+        long maxOffset = Long.MAX_VALUE;
+        if (maxPosition != LogPosition.UNSPECIFIED && maxPosition.getLogVersion() == logVersion) {
+            maxOffset = maxPosition.getByteOffset();
+            if (startOffset > maxOffset) {
+                throw new IllegalArgumentException(
+                        "Already read past max position %d, currently at %d".formatted(maxOffset, startOffset));
+            }
+            if (startOffset == maxOffset) {
+                // Nothing interesting in this file at all
+                return new ReversedSingleFileCommandBatchCursor(channel, logEntryReader, new long[] {}, 0, startOffset);
+            }
+        }
+
+        long[] offsets = new long[10_000];
+        int offsetCursor = 0;
+
+        SketchingCommandBatchCursor sketchingCursor = new SketchingCommandBatchCursor(channel, logEntryReader);
+
         try {
+            // TODO Can we have a case where nothing should be read in this file?
             while (sketchingCursor.next()) {
                 if (offsetCursor == offsets.length) {
                     offsets = Arrays.copyOf(offsets, offsetCursor * 2);
                 }
                 offsets[offsetCursor++] = startOffset;
                 startOffset = channel.position();
+                if (startOffset >= maxOffset) {
+                    checkState(
+                            startOffset == maxOffset,
+                            "Max position must align with transaction start. max: %s, current offset: %d",
+                            maxPosition,
+                            startOffset);
+                    // Read up to the requested position, let's stop
+                    break;
+                }
             }
         } catch (IllegalStateException | IOException | UnsupportedLogVersionException e) {
             monitor.transactionalLogRecordReadFailure(offsets, offsetCursor, logVersion);
@@ -122,17 +141,41 @@ public class ReversedSingleFileCommandBatchCursor implements CommandBatchCursor 
         }
 
         if (channel.getLogVersion() != logVersion) {
-            throw new IllegalArgumentException(
-                    "The channel which was passed in bridged multiple log versions, it started at version " + logVersion
-                            + ", but continued through to version " + channel.getLogVersion()
-                            + ". This isn't supported");
+            throw bridgeChannelException(channel, logVersion);
         }
 
-        offsetsLength = offsetCursor;
-        chunkStartOffsetIndex = offsetCursor;
-        totalSize = channel.position();
+        long totalSize = channel.position();
 
-        return offsets;
+        if (failOnLastBrokenEntry
+                && (logEntryReader.hasBrokenLastEntry() || (maxOffset != Long.MAX_VALUE && totalSize != maxOffset))) {
+            // Checking the offset we got to as well since the logEntry reader does not report ReadPastEnd
+            // exceptions as broken last entry.
+            throw new IllegalStateException(
+                    totalSize != maxOffset
+                            ? "Log file ended (at %s) before requested maxOffset %s".formatted(totalSize, maxOffset)
+                            : "Log file ends with a last broken entry which is not okay when recovering to a specific position."
+                                    + " All broken parts should already have been truncated at this point.");
+        }
+
+        return new ReversedSingleFileCommandBatchCursor(channel, logEntryReader, offsets, offsetCursor, totalSize);
+    }
+
+    private ReversedSingleFileCommandBatchCursor(
+            ReadAheadLogChannel channel,
+            LogEntryReader logEntryReader,
+            long[] offsets,
+            int offsetCursor,
+            long totalSize)
+            throws IOException {
+        this.channel = channel;
+        this.offsets = offsets;
+        this.offsetsLength = offsetCursor;
+        this.chunkStartOffsetIndex = offsetCursor;
+        this.totalSize = totalSize;
+
+        // There's an assumption here: that the underlying channel can move in between calls and that the
+        // transaction cursor will just happily read from the new position.
+        this.commandBatchCursor = new CommittedCommandBatchCursor(channel, logEntryReader);
     }
 
     @Override
@@ -157,9 +200,8 @@ public class ReversedSingleFileCommandBatchCursor implements CommandBatchCursor 
         int newLowOffsetIndex = chunkStartOffsetIndex;
         while (newLowOffsetIndex > 0) {
             long deltaOffset = highOffset - offsets[--newLowOffsetIndex];
-            if (deltaOffset
-                    > CHUNK_SIZE) { // We've now read more than the read-ahead size, let's call this the end of this
-                // chunk
+            if (deltaOffset > CHUNK_SIZE) {
+                // We've now read more than the read-ahead size, let's call this the end of this chunk
                 break;
             }
         }
@@ -200,5 +242,12 @@ public class ReversedSingleFileCommandBatchCursor implements CommandBatchCursor 
     @Override
     public LogPosition position() {
         return currentBatchStartPosition;
+    }
+
+    private static IllegalArgumentException bridgeChannelException(ReadAheadLogChannel channel, long logVersion) {
+        return new IllegalArgumentException(
+                "The channel which was passed in bridged multiple log versions, it started at version " + logVersion
+                        + ", but continued through to version " + channel.getLogVersion()
+                        + ". This isn't supported");
     }
 }

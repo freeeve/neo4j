@@ -38,5 +38,7 @@ public interface LogEntryReader {
      */
     LogEntry readLogEntry(ReadableLogPositionAwareChannel source) throws IOException;
 
+    boolean hasBrokenLastEntry();
+
     LogPosition lastPosition();
 }

@@ -61,36 +61,84 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
             LogEntryReader logEntryReader,
             boolean failOnCorruptedLogFiles,
             ReversedTransactionCursorMonitor monitor,
-            EnvelopeReadChannel bridgedChannel)
+            EnvelopeReadChannel bridgedChannel,
+            LogPosition maxPosition)
             throws IOException {
         this.unbridgedChannel = channel;
         this.currentChannel = bridgedChannel;
         this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
+        boolean failOnLastBrokenEntry = maxPosition != LogPosition.UNSPECIFIED;
+        // Make sure we always use failOnCorruptedLogFiles when we have a maxOffset
+        assert (failOnLastBrokenEntry && failOnCorruptedLogFiles) || !failOnLastBrokenEntry
+                : "Fail on broken/corrupted not as expected. failOnLastBrokenEntry %s, failOnCorruptedLogFiles %s"
+                        .formatted(failOnLastBrokenEntry, failOnCorruptedLogFiles);
         this.monitor = monitor;
         this.commandBatchCursor = new CommittedCommandBatchCursor(bridgedChannel, logEntryReader);
         this.logVersion = channel.getLogVersion();
-        this.offsets = sketchOutEnvelopeStartOffsets();
+        this.offsets = sketchOutEnvelopeStartOffsets(maxPosition);
         this.logEntryReader = logEntryReader;
     }
 
-    private LongIterator sketchOutEnvelopeStartOffsets() throws IOException {
+    private LongIterator sketchOutEnvelopeStartOffsets(LogPosition maxPosition) throws IOException {
         LongArrayList entryStartPositions = new LongArrayList(10_000);
 
+        long maxOffset = Long.MAX_VALUE;
+        if (maxPosition != LogPosition.UNSPECIFIED) {
+            if (maxPosition.getLogVersion() == logVersion) {
+                maxOffset = maxPosition.getByteOffset();
+                if (unbridgedChannel.position() > maxOffset) {
+                    throw new IllegalArgumentException("Already read past max position %d, currently at %d"
+                            .formatted(maxOffset, unbridgedChannel.position()));
+                }
+
+                if (unbridgedChannel.position() == maxOffset) {
+                    // Nothing interesting in this file at all
+                    return entryStartPositions.longIterator();
+                }
+            }
+            assert maxPosition.getLogVersion() >= logVersion
+                    : "ReversedEnvelopedCommandBatchCursor should not be created for file (%d) above maxPosition %s"
+                            .formatted(logVersion, maxPosition);
+        }
+
         try {
-            long prevPos = -1;
-            long pos;
-            while (prevPos < (pos = unbridgedChannel.goToNextEntry())) {
+            // We don't want to go to next entry because that might be passed our maxOffset if
+            // there are no transactions of interest in this file.
+            // But we know we should at least look at the first envelope because we are not already at maxOffset.
+            long pos = unbridgedChannel.goToNextEnvelope();
+            if (unbridgedChannel.isStartEnvelope()) {
+                entryStartPositions.add(pos);
+            }
+            long prevPos = pos;
+
+            while ((pos = unbridgedChannel.goToEndOfEntry().getByteOffset()) < maxOffset && pos > prevPos) {
+                pos = unbridgedChannel.goToNextEntry();
                 entryStartPositions.add(pos);
                 prevPos = pos;
             }
-            // Should have read to the end of the file.. Something is wrong
-            throw new IOException("Failed to read to end of log file version %d. Last seen byte offset %d"
-                    .formatted(logVersion, pos));
+
+            if (maxOffset == Long.MAX_VALUE) {
+                // Should have read to the end of the file.. Something is wrong
+                throw new IOException("Failed to read to end of log file version %d. Last seen byte offset %d"
+                        .formatted(logVersion, pos));
+            }
+            if (pos != maxOffset) {
+                throw new IllegalStateException(
+                        "Log file ended (at %s) before requested maxOffset %s".formatted(pos, maxOffset));
+            }
         } catch (ReadPastEndException | InvalidEndOfFileReadException | IncompleteEnvelopeReadException e) {
             // Expected
             // Or well, IncompleteEnvelopeReadException isn't really expected, but it is signaling that the last
             // entry is broken. Last broken entry is not considered a corrupted log, and is recoverable.
             // The logs will be truncated after forward recovery.
+            if (maxOffset != Long.MAX_VALUE) {
+                throw new IllegalStateException(
+                        e instanceof ReadPastEndException
+                                ? "Log file ended before (at %s) before requested maxOffset %s"
+                                        .formatted(unbridgedChannel.position(), maxOffset)
+                                : "Log file ends with a last broken entry which is not okay when recovering to a specific position."
+                                        + " All broken parts should already have been truncated at this point.");
+            }
         } catch (IOException | RuntimeException e) {
             boolean first = entryStartPositions.isEmpty();
             monitor.transactionalLogRecordReadFailure(

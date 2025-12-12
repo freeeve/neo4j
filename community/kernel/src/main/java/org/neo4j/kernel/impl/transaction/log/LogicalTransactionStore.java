@@ -56,15 +56,23 @@ public interface LogicalTransactionStore {
     CommandBatchCursor getCommandBatches(LogPosition position) throws IOException;
 
     /**
+     * As {@link LogicalTransactionStore#getCommandBatches(LogPosition)} but only returns batches up to maxPosition
+     */
+    CommandBatchCursor getCommandBatches(LogPosition position, LogPosition maxPosition) throws IOException;
+
+    /**
      * Acquires a {@link CommandBatchCursor cursor} which will provide {@link CommittedCommandBatchRepresentation}
      * instances for committed transactions, starting from the end of the whole command batch stream
      * back to (and including) the batch at {@link LogPosition}.
      * Command batches will be returned in reverse order from the end of the batch stream.
      *
      * @param backToPosition {@link LogPosition} of the lowest (last to be returned) transaction.
+     * @param maxPosition {@link LogPosition} after the highest batch that should be returned, or
+     *                    {@link LogPosition#UNSPECIFIED} if it should go to the end.
      * @return an {@link CommandBatchCursor} capable of returning {@link CommittedCommandBatchRepresentation} instances
      * for committed command batches in the given range in reverse order.
      * @throws IOException if there was an I/O related error looking for the start transaction.
      */
-    CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition backToPosition) throws IOException;
+    CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition backToPosition, LogPosition maxPosition)
+            throws IOException;
 }

@@ -53,7 +53,6 @@ import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -88,12 +87,11 @@ class ReversedMultiFileCommandBatchCursorTest {
     private long txId = BASE_TX_ID;
     private ReverseTransactionCursorLoggingMonitor monitor;
     private LogFile logFile;
-    private LogFiles logFiles;
 
     @BeforeEach
     void setUp() throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        logFiles = LogFilesBuilder.writeableBuilder(
+        LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout, fs, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
@@ -217,11 +215,8 @@ class ReversedMultiFileCommandBatchCursorTest {
         assertEquals(expectedTxId, lowTxId);
     }
 
-    private CommandBatchCursor txCursor(LogPosition position, boolean presketch) throws IOException {
-        try (ReadableLogChannel fileReader =
-                logFile.getReader(logFiles.getLogFile().extractHeader(0).getStartPosition())) {
-            return fromLogFile(logFile, position, logEntryReader(), false, monitor, presketch);
-        }
+    private CommandBatchCursor txCursor(LogPosition position, boolean presketch) {
+        return fromLogFile(logFile, position, logEntryReader(), false, monitor, presketch, LogPosition.UNSPECIFIED);
     }
 
     private LogPosition writeTransactions(int count) throws IOException {

@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.pre_sketch_transaction_logs;
+import static org.neo4j.util.Preconditions.checkState;
 
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
@@ -70,14 +71,29 @@ public class PhysicalLogicalTransactionStore implements LogicalTransactionStore 
     }
 
     @Override
-    public CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition backToPosition) {
+    public CommandBatchCursor getCommandBatches(LogPosition position, LogPosition maxPosition) throws IOException {
+        checkState(
+                maxPosition == LogPosition.UNSPECIFIED || position.isBefore(maxPosition),
+                "maxPosition (%s) must be after position (%s)".formatted(maxPosition, position));
+        return new CommittedCommandBatchCursor(
+                logFile.getReader(position),
+                new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions, memoryTracker),
+                maxPosition);
+    }
+
+    @Override
+    public CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition backToPosition, LogPosition maxPosition) {
+        checkState(
+                maxPosition == LogPosition.UNSPECIFIED || backToPosition.isBefore(maxPosition),
+                "maxPosition (%s) must be after backToPosition (%s)".formatted(maxPosition, backToPosition));
         return ReversedMultiFileCommandBatchCursor.fromLogFile(
                 logFile,
                 backToPosition,
                 new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions, memoryTracker),
                 failOnCorruptedLogFiles,
                 monitors.newMonitor(ReversedTransactionCursorMonitor.class),
-                presketchLogFiles);
+                presketchLogFiles,
+                maxPosition);
     }
 
     @Override

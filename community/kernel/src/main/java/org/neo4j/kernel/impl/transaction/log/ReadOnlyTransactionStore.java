@@ -74,7 +74,13 @@ public class ReadOnlyTransactionStore implements LogicalTransactionStore {
     }
 
     @Override
-    public CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition backToPosition) throws IOException {
-        return physicalStore.getCommandBatchesInReverseOrder(backToPosition);
+    public CommandBatchCursor getCommandBatches(LogPosition position, LogPosition maxPosition) throws IOException {
+        return physicalStore.getCommandBatches(position, maxPosition);
+    }
+
+    @Override
+    public CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition backToPosition, LogPosition maxPosition)
+            throws IOException {
+        return physicalStore.getCommandBatchesInReverseOrder(backToPosition, maxPosition);
     }
 }

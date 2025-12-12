@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.reverse;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -193,8 +194,8 @@ class ReversedSingleFileCommandBatchCursorTest {
                 logFiles.getLogFile().extractHeader(0).getStartPosition().getByteOffset());
         try (ReadAheadLogChannel channel = new ReadAheadLogChannel(
                 logChannel, ReaderLogVersionBridge.forFile(logFile), EmptyMemoryTracker.INSTANCE)) {
-            assertThatThrownBy(
-                            () -> new ReversedSingleFileCommandBatchCursor(channel, logEntryReader(), false, monitor))
+            assertThatThrownBy(() -> ReversedSingleFileCommandBatchCursor.create(
+                            channel, logEntryReader(), false, monitor, LogPosition.UNSPECIFIED))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("multiple log versions");
         }
@@ -223,6 +224,78 @@ class ReversedSingleFileCommandBatchCursorTest {
         assertThrows(IllegalStateException.class, this::readAllFromReversedCursorFailOnCorrupted);
     }
 
+    @Test
+    void respectMaxPosition() throws IOException {
+        TransactionLogWriter writer = logFile.getTransactionLogWriter();
+        int firstBatch = 99;
+        writeTransactions(firstBatch, 1, 1);
+        LogPosition offsetAfterFirstBatch = writer.getCurrentPosition();
+
+        int secondBatch = 1;
+        writeTransactions(1, 2000, 2000);
+        LogPosition offsetAfterSecondBatch = writer.getCurrentPosition();
+
+        int thirdBatch = 20;
+        writeTransactions(thirdBatch, 1, 1);
+
+        // We should skip the third batch
+        txId -= thirdBatch;
+
+        CommittedCommandBatchRepresentation[] committedTransactionRepresentations =
+                readAllFromReversedCursorFailOnCorrupted(offsetAfterSecondBatch);
+        assertTransactionRange(
+                committedTransactionRepresentations,
+                firstBatch + secondBatch + TransactionIdStore.BASE_TX_ID,
+                TransactionIdStore.BASE_TX_ID);
+
+        // We should skip the second and the third batch
+        txId -= secondBatch;
+        committedTransactionRepresentations = readAllFromReversedCursorFailOnCorrupted(offsetAfterFirstBatch);
+        assertTransactionRange(
+                committedTransactionRepresentations,
+                firstBatch + TransactionIdStore.BASE_TX_ID,
+                TransactionIdStore.BASE_TX_ID);
+    }
+
+    @Test
+    void handleMaxPositionWithoutAnythingToReturnInLastFile() throws IOException {
+        TransactionLogWriter writer = logFile.getTransactionLogWriter();
+        int firstBatch = 1;
+        writeTransactions(firstBatch, 1, 1);
+        logFile.getLogRotation().rotateLogFile(LogAppendEvent.NULL);
+        LogPosition offsetBeginningOfFile = writer.getCurrentPosition();
+
+        writeTransactions(1, 1, 1);
+
+        // First try the first file which should work even with the position being in another file
+        CommittedCommandBatchRepresentation[] committedTransactionRepresentations =
+                readAllFromReversedCursorFailOnCorrupted(offsetBeginningOfFile);
+        assertTransactionRange(
+                committedTransactionRepresentations,
+                firstBatch + TransactionIdStore.BASE_TX_ID,
+                TransactionIdStore.BASE_TX_ID);
+
+        // The second that should return nothing
+        try (ReversedSingleFileCommandBatchCursor cursor =
+                txCursor(true, logFile.extractHeader(1).getStartPosition(), offsetBeginningOfFile)) {
+            CommittedCommandBatchRepresentation[] exhaust = exhaust(cursor);
+            assertThat(exhaust.length).isZero();
+        }
+    }
+
+    @Test
+    void validateMaxPositionBounds() {
+        // Recover to position before start
+        assertThatThrownBy(() -> readAllFromReversedCursorFailOnCorrupted(new LogPosition(0, 10)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("read past max position");
+
+        // Recover to position outside of file size
+        assertThatThrownBy(() -> readAllFromReversedCursorFailOnCorrupted(new LogPosition(0, Integer.MAX_VALUE)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("before requested maxOffset " + Integer.MAX_VALUE);
+    }
+
     private CommittedCommandBatchRepresentation[] readAllFromReversedCursor() throws IOException {
         try (ReversedSingleFileCommandBatchCursor cursor = txCursor(false)) {
             return exhaust(cursor);
@@ -231,6 +304,13 @@ class ReversedSingleFileCommandBatchCursorTest {
 
     private CommittedCommandBatchRepresentation[] readAllFromReversedCursorFailOnCorrupted() throws IOException {
         try (ReversedSingleFileCommandBatchCursor cursor = txCursor(true)) {
+            return exhaust(cursor);
+        }
+    }
+
+    private CommittedCommandBatchRepresentation[] readAllFromReversedCursorFailOnCorrupted(LogPosition maxPosition)
+            throws IOException {
+        try (ReversedSingleFileCommandBatchCursor cursor = txCursor(true, maxPosition)) {
             return exhaust(cursor);
         }
     }
@@ -246,11 +326,22 @@ class ReversedSingleFileCommandBatchCursorTest {
     }
 
     private ReversedSingleFileCommandBatchCursor txCursor(boolean failOnCorruptedLogFiles) throws IOException {
-        ReadAheadLogChannel fileReader = (ReadAheadLogChannel) logFile.getReader(
-                logFiles.getLogFile().extractHeader(0).getStartPosition(), LogVersionBridge.NO_MORE_CHANNELS);
+        return txCursor(failOnCorruptedLogFiles, LogPosition.UNSPECIFIED);
+    }
+
+    private ReversedSingleFileCommandBatchCursor txCursor(boolean failOnCorruptedLogFiles, LogPosition maxPosition)
+            throws IOException {
+        return txCursor(
+                failOnCorruptedLogFiles, logFiles.getLogFile().extractHeader(0).getStartPosition(), maxPosition);
+    }
+
+    private ReversedSingleFileCommandBatchCursor txCursor(
+            boolean failOnCorruptedLogFiles, LogPosition startPosition, LogPosition maxPosition) throws IOException {
+        ReadAheadLogChannel fileReader =
+                (ReadAheadLogChannel) logFile.getReader(startPosition, LogVersionBridge.NO_MORE_CHANNELS);
         try {
-            return new ReversedSingleFileCommandBatchCursor(
-                    fileReader, logEntryReader(), failOnCorruptedLogFiles, monitor);
+            return ReversedSingleFileCommandBatchCursor.create(
+                    fileReader, logEntryReader(), failOnCorruptedLogFiles, monitor, maxPosition);
         } catch (Exception e) {
             fileReader.close();
             throw e;

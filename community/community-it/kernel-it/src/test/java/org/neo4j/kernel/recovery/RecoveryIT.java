@@ -2308,6 +2308,54 @@ class RecoveryIT {
         assertFalse(isRecoveryRequired(layout));
     }
 
+    @Test
+    void recoverDatabaseWithLogPosition() throws Exception {
+        GraphDatabaseAPI db = createDatabase();
+        generateSomeData(db);
+        DatabaseLayout layout = db.databaseLayout();
+        StorageEngineFactory storageEngineFactory =
+                db.getDependencyResolver().resolveDependency(StorageEngineFactory.class);
+        LogMetadataProvider metadataProvider = getMetadataProvider(db);
+        long originalLastCommitted = metadataProvider.getLastCommittedTransactionId();
+        LogPosition lastLogPosition = metadataProvider.getLastCommittedBatch().logPositionAfter();
+        generateSomeData(db);
+        managementService.shutdown();
+
+        removeFileWithCheckpoint();
+        assertTrue(isRecoveryRequired(layout));
+
+        RecoveryCriteria recoveryCriteria = RecoveryCriteria.untilPosition(lastLogPosition);
+
+        Monitors monitors = new Monitors();
+        monitors.addMonitorListener(new LoggingLogFileMonitor(logProvider.getLog(getClass())));
+        Config config = Config.newBuilder().build();
+        additionalConfiguration(config);
+        assertTrue(isRecoveryRequired(databaseLayout, config, EMPTY));
+
+        Recovery.performRecovery(Recovery.contextWithNoLogTail(
+                        fileSystem,
+                        pageCache,
+                        EMPTY,
+                        config,
+                        databaseLayout,
+                        INSTANCE,
+                        IOController.DISABLED,
+                        logProvider,
+                        LATEST_KERNEL_VERSION_PROVIDER)
+                .recoveryPredicate(recoveryCriteria.toPredicate())
+                .monitors(monitors)
+                .startupChecker(RecoveryStartupChecker.EMPTY_CHECKER)
+                .clock(fakeClock)
+                .rollbackIncompleteTransactions(false));
+
+        // Verify where we recovered to by checking the checkpoint created by recovery
+        LogTailMetadata tailMetadata = new LogTailExtractor(fileSystem, config, storageEngineFactory, EMPTY)
+                .getTailMetadata(databaseLayout, INSTANCE);
+        assertThat(tailMetadata.getLastCheckPoint().get().transactionLogPosition())
+                .isEqualTo(lastLogPosition);
+        assertThat(tailMetadata.getLastCheckPoint().get().transactionId().id()).isEqualTo(originalLastCommitted);
+    }
+
     private void prepareEmptyZeroedLogFile(Path victimFilePath) throws IOException {
         fileSystem.deleteFileOrThrow(victimFilePath);
         var nativeAccess = NativeAccessProvider.getNativeAccess();

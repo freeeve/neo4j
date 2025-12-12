@@ -46,6 +46,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.configuration.Config;
+import org.neo4j.internal.helpers.ArrayUtil;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FlushableChannel;
@@ -159,7 +160,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
         LogPosition secondTxStart = writer.getCurrentPosition();
         writeTransactions(1, 1, 1);
 
-        try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(true)) {
+        try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(true, LogPosition.UNSPECIFIED)) {
             cursor.next();
             assertThat(cursor.position()).isEqualTo(secondTxStart);
             cursor.next();
@@ -228,8 +229,12 @@ class ReversedEnvelopedCommandBatchCursorTest {
                             ReadableLogChannel bridgedChannel =
                                     logFile.getReader(startPosition, ReaderLogVersionBridge.forFile(logFile))) {
                         new ReversedEnvelopedCommandBatchCursor(
-                                (EnvelopeReadChannel) channel, logEntryReader(), false, monitor, (EnvelopeReadChannel)
-                                        bridgedChannel);
+                                (EnvelopeReadChannel) channel,
+                                logEntryReader(),
+                                false,
+                                monitor,
+                                (EnvelopeReadChannel) bridgedChannel,
+                                LogPosition.UNSPECIFIED);
                     }
                 })
                 .isInstanceOf(IllegalArgumentException.class)
@@ -264,18 +269,26 @@ class ReversedEnvelopedCommandBatchCursorTest {
                 .hasMessageContaining("Unreadable bytes are encountered after last readable position");
     }
 
-    private void validateReversedRead(int totalTransactions, boolean expectLastTxToBeReadable, boolean isCorrupted)
+    private void validateReversedRead(
+            int totalTransactions, boolean expectLastTxToBeReadable, boolean isCorrupted, LogPosition maxPosition)
             throws IOException {
         CommittedCommandBatchRepresentation[] committedTransactionRepresentations;
         if (!isCorrupted) {
             // We expect no corrupted data encountered
-            committedTransactionRepresentations = readAllFromReversedCursorFailOnCorrupted();
+            committedTransactionRepresentations = readAllFromReversedCursorFailOnCorrupted(maxPosition);
         } else {
             assertThrows(Exception.class, this::readAllFromReversedCursorFailOnCorrupted);
             // We know we can't read the final transaction for some reason in subsequent file
             // so don't throw to fully exercise the code paths in the next method
-            committedTransactionRepresentations = readAllFromReversedCursor();
+            committedTransactionRepresentations = readAllFromReversedCursor(maxPosition);
         }
+        validateState(totalTransactions, expectLastTxToBeReadable, committedTransactionRepresentations);
+    }
+
+    private void validateState(
+            int totalTransactions,
+            boolean expectLastTxToBeReadable,
+            CommittedCommandBatchRepresentation[] committedTransactionRepresentations) {
         // Confirm we have the reverse ordered list possibly including the final transaction
         int expectedTransactionCount = expectLastTxToBeReadable ? totalTransactions : totalTransactions - 1;
         assertEquals(expectedTransactionCount, committedTransactionRepresentations.length);
@@ -303,7 +316,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
         // confirm all in one file
         assertEquals(0L, logFile.getLogRangeInfo().lowestVersion());
         // read back reversed
-        validateReversedRead(readableTransactions, true, false);
+        validateReversedRead(readableTransactions, true, false, LogPosition.UNSPECIFIED);
     }
 
     @Test
@@ -312,11 +325,9 @@ class ReversedEnvelopedCommandBatchCursorTest {
         writeTransactions(readableTransactions, 1, 1);
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
-        // Validate we rolled
-        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
-        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
+        validateRolled();
         // read back reversed
-        validateReversedRead(readableTransactions + 1, true, false);
+        validateReversedRead(readableTransactions + 1, true, false, LogPosition.UNSPECIFIED);
     }
 
     @Test
@@ -325,15 +336,13 @@ class ReversedEnvelopedCommandBatchCursorTest {
         writeTransactions(readableTransactions, 1, 1);
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
-        // Validate we rolled
-        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
-        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
+        LogRangeInfo logRangeInfo = validateRolled();
         // remove all except first file
         for (long version = logRangeInfo.highestVersion(); version > logRangeInfo.lowestVersion(); version--) {
             logFile.delete(version);
         }
         // read back reversed
-        validateReversedRead(readableTransactions + 1, false, false);
+        validateReversedRead(readableTransactions + 1, false, false, LogPosition.UNSPECIFIED);
     }
 
     @Test
@@ -342,9 +351,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
         writeTransactions(readableTransactions, 1, 1);
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
-        // Validate we rolled
-        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
-        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
+        LogRangeInfo logRangeInfo = validateRolled();
         // corrupt all except first file
         for (long version = logRangeInfo.highestVersion(); version > logRangeInfo.lowestVersion(); version--) {
             try (var channel = logFile.createLogChannelForExistingVersion(version)) {
@@ -358,7 +365,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
             }
         }
         // read back reversed
-        validateReversedRead(readableTransactions + 1, false, true);
+        validateReversedRead(readableTransactions + 1, false, true, LogPosition.UNSPECIFIED);
     }
 
     @ParameterizedTest
@@ -368,9 +375,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
         writeTransactions(readableTransactions, 1, 1);
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
-        // Validate we rolled
-        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
-        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
+        LogRangeInfo logRangeInfo = validateRolled();
         // truncate the rollover file
         try (var channel = logFile.createLogChannelForExistingVersion(logRangeInfo.lowestVersion() + 1L)) {
             if (truncateToSegmentBoundary) {
@@ -383,7 +388,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
             channel.flush();
         }
         // read back reversed
-        validateReversedRead(readableTransactions + 1, false, false);
+        validateReversedRead(readableTransactions + 1, false, false, LogPosition.UNSPECIFIED);
     }
 
     @ParameterizedTest
@@ -393,9 +398,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
         writeTransactions(readableTransactions, 1, 1);
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
-        // Validate we rolled
-        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
-        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
+        validateRolled();
         // Locate end of final transaction
         TransactionLogWriter writer = logFile.getTransactionLogWriter();
         LogPosition txEnd = writer.getCurrentPosition();
@@ -411,23 +414,106 @@ class ReversedEnvelopedCommandBatchCursorTest {
             channel.flush();
         }
         // read back reversed
-        validateReversedRead(readableTransactions + 1, true, false);
+        validateReversedRead(readableTransactions + 1, true, false, LogPosition.UNSPECIFIED);
+    }
+
+    @Test
+    void respectMaxPosition() throws IOException {
+        TransactionLogWriter writer = logFile.getTransactionLogWriter();
+        int firstBatch = 99;
+        writeTransactions(firstBatch, 1, 1);
+        LogPosition offsetAfterFirstBatch = writer.getCurrentPosition();
+
+        // Write large enough to bridge into next file
+        int secondBatch = 1;
+        writeTransactions(secondBatch, 200000, 200000);
+        LogPosition offsetAfterSecondBatch = writer.getCurrentPosition();
+        validateRolled();
+
+        int thirdBatch = 20;
+        writeTransactions(thirdBatch, 1, 1);
+
+        // We should skip the third batch
+        txId -= thirdBatch;
+
+        CommittedCommandBatchRepresentation[] committedCommandBatchRepresentations =
+                readAllFromReversedCursor(true, offsetAfterSecondBatch);
+        LogPosition startPosition = logFile.extractHeader(1).getStartPosition();
+        CommittedCommandBatchRepresentation[] committedCommandBatchRepresentationsFile1 =
+                readAllFromReversedCursor(true, startPosition, offsetAfterSecondBatch);
+        validateState(
+                firstBatch + secondBatch,
+                true,
+                ArrayUtil.concat(committedCommandBatchRepresentationsFile1, committedCommandBatchRepresentations));
+
+        // We should skip the second and the third batch
+        txId -= secondBatch;
+        committedCommandBatchRepresentations = readAllFromReversedCursor(true, offsetAfterFirstBatch);
+        validateState(firstBatch, true, committedCommandBatchRepresentations);
+    }
+
+    @Test
+    void validateMaxPositionBounds() {
+        // Recover to position before start
+        assertThatThrownBy(() -> readAllFromReversedCursorFailOnCorrupted(new LogPosition(0, 10)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("read past max position");
+
+        // Recover to position outside of file size
+        assertThatThrownBy(() -> readAllFromReversedCursorFailOnCorrupted(new LogPosition(0, Integer.MAX_VALUE)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("before requested maxOffset " + Integer.MAX_VALUE);
+    }
+
+    private LogRangeInfo validateRolled() {
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
+        return logRangeInfo;
     }
 
     private CommittedCommandBatchRepresentation[] readAllFromReversedCursor() throws IOException {
-        try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(false)) {
+        return readAllFromReversedCursor(LogPosition.UNSPECIFIED);
+    }
+
+    private CommittedCommandBatchRepresentation[] readAllFromReversedCursor(LogPosition maxPosition)
+            throws IOException {
+        return readAllFromReversedCursor(false, maxPosition);
+    }
+
+    private CommittedCommandBatchRepresentation[] readAllFromReversedCursor(
+            boolean failOnCorruptedLogFiles, LogPosition maxPosition) throws IOException {
+        try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(failOnCorruptedLogFiles, maxPosition)) {
+            return exhaust(cursor);
+        }
+    }
+
+    private CommittedCommandBatchRepresentation[] readAllFromReversedCursor(
+            boolean failOnCorruptedLogFiles, LogPosition startPosition, LogPosition maxPosition) throws IOException {
+        try (ReversedEnvelopedCommandBatchCursor cursor =
+                txCursor(failOnCorruptedLogFiles, startPosition, maxPosition)) {
             return exhaust(cursor);
         }
     }
 
     private CommittedCommandBatchRepresentation[] readAllFromReversedCursorFailOnCorrupted() throws IOException {
-        try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(true)) {
+        return readAllFromReversedCursorFailOnCorrupted(LogPosition.UNSPECIFIED);
+    }
+
+    private CommittedCommandBatchRepresentation[] readAllFromReversedCursorFailOnCorrupted(LogPosition maxPosition)
+            throws IOException {
+        try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(true, maxPosition)) {
             return exhaust(cursor);
         }
     }
 
-    private ReversedEnvelopedCommandBatchCursor txCursor(boolean failOnCorruptedLogFiles) throws IOException {
+    private ReversedEnvelopedCommandBatchCursor txCursor(boolean failOnCorruptedLogFiles, LogPosition maxPosition)
+            throws IOException {
         LogPosition startPosition = logFile.extractHeader(0).getStartPosition();
+        return txCursor(failOnCorruptedLogFiles, startPosition, maxPosition);
+    }
+
+    private ReversedEnvelopedCommandBatchCursor txCursor(
+            boolean failOnCorruptedLogFiles, LogPosition startPosition, LogPosition maxPosition) throws IOException {
         // get unbridged channel
         ReadableLogChannel fileReader = logFile.getReader(startPosition, LogVersionBridge.NO_MORE_CHANNELS);
         ReadableLogChannel fileReaderBridged =
@@ -438,9 +524,11 @@ class ReversedEnvelopedCommandBatchCursorTest {
                     logEntryReader(new BinarySupportedKernelVersions(config)),
                     failOnCorruptedLogFiles,
                     monitor,
-                    (EnvelopeReadChannel) fileReaderBridged);
+                    (EnvelopeReadChannel) fileReaderBridged,
+                    maxPosition);
         } catch (Exception e) {
             fileReader.close();
+            fileReaderBridged.close();
             throw e;
         }
     }

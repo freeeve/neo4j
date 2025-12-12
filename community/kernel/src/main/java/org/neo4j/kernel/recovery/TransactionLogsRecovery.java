@@ -156,7 +156,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
 
             var appendIndexProvider =
                     new RecoveryRollbackAppendIndexProvider(recoveryContextTracker.getLastBatchInfo());
-            if (rollbackIncompleteTransactions) {
+            if (rollbackIncompleteTransactions && recoveryPredicate.changingTheLogAllowed()) {
                 logsTruncator.truncate(
                         recoveryContextTracker.getRecoveryToPosition(), recoveryStartInformation.checkpointInfo());
                 var rollbackTransactionInfo = rollbackTransactions(
@@ -241,7 +241,8 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             LogPosition recoveryStartPosition,
             RecoveryContextTracker recoveryContextTracker)
             throws Exception {
-        try (var transactionsToRecover = recoveryService.getCommandBatches(recoveryStartPosition);
+        try (var transactionsToRecover =
+                        recoveryService.getCommandBatches(recoveryStartPosition, recoveryPredicate.maxPosition());
                 var recoveryVisitor = recoveryService.getRecoveryApplier(RECOVERY, contextFactory, RECOVERY_TAG)) {
             while (transactionsToRecover.next()) {
                 var nextCommandBatch = transactionsToRecover.get();
@@ -554,8 +555,8 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         var checkpointedLogPosition = recoveryStartInformation.transactionLogPosition();
 
         long lowestRecoveredAppendIndex = recoveryStartInformation.firstAppendIndexAfterLastCheckPoint();
-        try (var transactionsToRecover =
-                        recoveryService.getCommandBatchesInReverseOrder(oldestNotVisibleTransactionLogPosition);
+        try (var transactionsToRecover = recoveryService.getCommandBatchesInReverseOrder(
+                        oldestNotVisibleTransactionLogPosition, recoveryPredicate.maxPosition());
                 var recoveryVisitor =
                         recoveryService.getRecoveryApplier(REVERSE_RECOVERY, contextFactory, REVERSE_RECOVERY_TAG)) {
             while (transactionsToRecover.next()) {
@@ -579,7 +580,8 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
 
     private void initProgressReporter(
             RecoveryStartInformation recoveryStartInformation, LogPosition recoveryStartPosition) throws IOException {
-        try (var transactionsToRecover = recoveryService.getCommandBatchesInReverseOrder(recoveryStartPosition)) {
+        try (var transactionsToRecover = recoveryService.getCommandBatchesInReverseOrder(
+                recoveryStartPosition, recoveryPredicate.maxPosition())) {
             if (transactionsToRecover.next()) {
                 CommittedCommandBatchRepresentation commandBatch = transactionsToRecover.get();
                 initProgressReporter(recoveryStartInformation, commandBatch, mode);

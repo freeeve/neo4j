@@ -523,6 +523,22 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return position() - HEADER_SIZE;
     }
 
+    public boolean isStartEnvelope() {
+        return payloadType == EnvelopeType.FULL || payloadType == EnvelopeType.BEGIN;
+    }
+
+    public LogPosition goToEndOfEntry() throws IOException {
+        if (buffer.position() == payloadEndOffset
+                || (payloadType != EnvelopeType.FULL && payloadType != EnvelopeType.END)) {
+            do {
+                skipToNextEnvelope();
+                readEnvelopeHeader();
+            } while (payloadType != EnvelopeType.FULL && payloadType != EnvelopeType.END);
+        }
+        skipToNextEnvelope();
+        return getCurrentLogPosition();
+    }
+
     @Override
     public boolean isOpen() {
         return !closed;

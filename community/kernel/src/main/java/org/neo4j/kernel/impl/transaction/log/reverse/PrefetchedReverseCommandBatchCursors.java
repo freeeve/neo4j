@@ -45,19 +45,22 @@ public class PrefetchedReverseCommandBatchCursors implements CommandBatchCursors
     private final boolean failOnCorruptedLogFiles;
     private final ReversedTransactionCursorMonitor monitor;
     private long currentVersion;
+    private final LogPosition maxPosition;
 
     public PrefetchedReverseCommandBatchCursors(
             LogFile logFile,
             LogPosition beginning,
             LogEntryReader reader,
             boolean failOnCorruptedLogFiles,
-            ReversedTransactionCursorMonitor monitor) {
+            ReversedTransactionCursorMonitor monitor,
+            LogPosition maxPosition) {
         this.logFile = logFile;
         this.beginning = beginning;
         this.reader = reader;
         this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
         this.monitor = monitor;
         this.currentVersion = logFile.getLogRangeInfo().highestVersion();
+        this.maxPosition = maxPosition;
         monitor.presketchingTransactionLogs();
         executor.execute(this::prepare);
     }
@@ -83,11 +86,11 @@ public class PrefetchedReverseCommandBatchCursors implements CommandBatchCursors
                         ? logFile.extractHeader(currentVersion).getStartPosition()
                         : beginning;
                 ReadableLogChannel channel = logFile.getReader(position, NO_MORE_CHANNELS);
-                if (channel instanceof ReadAheadLogChannel) {
-                    cursors.put(new ReversedSingleFileCommandBatchCursor(
-                            (ReadAheadLogChannel) channel, reader, failOnCorruptedLogFiles, monitor));
+                if (channel instanceof ReadAheadLogChannel readAheadLogChannel) {
+                    cursors.put(ReversedSingleFileCommandBatchCursor.create(
+                            readAheadLogChannel, reader, failOnCorruptedLogFiles, monitor, maxPosition));
                 } else {
-                    cursors.put(eagerlyReverse(new CommittedCommandBatchCursor(channel, reader)));
+                    cursors.put(eagerlyReverse(new CommittedCommandBatchCursor(channel, reader, maxPosition)));
                 }
                 currentVersion--;
             }

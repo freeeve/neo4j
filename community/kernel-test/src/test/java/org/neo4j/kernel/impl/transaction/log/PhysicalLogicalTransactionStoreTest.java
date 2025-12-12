@@ -507,13 +507,14 @@ class PhysicalLogicalTransactionStoreTest {
         }
 
         @Override
-        public CommandBatchCursor getCommandBatches(LogPosition position) throws IOException {
-            return txStore.getCommandBatches(position);
+        public CommandBatchCursor getCommandBatches(LogPosition position, LogPosition maxPosition) throws IOException {
+            return txStore.getCommandBatches(position, maxPosition);
         }
 
         @Override
-        public CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition position) throws IOException {
-            return txStore.getCommandBatchesInReverseOrder(position);
+        public CommandBatchCursor getCommandBatchesInReverseOrder(LogPosition position, LogPosition maxPosition)
+                throws IOException {
+            return txStore.getCommandBatchesInReverseOrder(position, maxPosition);
         }
 
         @Override

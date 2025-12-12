@@ -38,6 +38,7 @@ import org.neo4j.storageengine.api.StorageCommand;
 
 public class CommittedCommandBatchCursor implements CommandBatchCursor {
     private final ReadableLogPositionAwareChannel channel;
+    private final LogPosition maxPosition;
     private final LogEntryCursor logEntryCursor;
     private final LogPositionMarker lastGoodPositionMarker = new LogPositionMarker();
 
@@ -45,7 +46,14 @@ public class CommittedCommandBatchCursor implements CommandBatchCursor {
 
     public CommittedCommandBatchCursor(ReadableLogPositionAwareChannel channel, LogEntryReader entryReader)
             throws IOException {
+        this(channel, entryReader, LogPosition.UNSPECIFIED);
+    }
+
+    public CommittedCommandBatchCursor(
+            ReadableLogPositionAwareChannel channel, LogEntryReader entryReader, LogPosition maxPosition)
+            throws IOException {
         this.channel = channel;
+        this.maxPosition = maxPosition;
         channel.getCurrentLogPosition(lastGoodPositionMarker);
         this.logEntryCursor = new LogEntryCursor(entryReader, channel);
     }
@@ -58,6 +66,11 @@ public class CommittedCommandBatchCursor implements CommandBatchCursor {
     @Override
     public boolean next() throws IOException {
         current = null;
+
+        if (maxPosition != LogPosition.UNSPECIFIED
+                && lastGoodPositionMarker.newPosition().isAfterOrSame(maxPosition)) {
+            return false;
+        }
 
         int previousChecksum = channel.getChecksum();
         if (!logEntryCursor.next()) {

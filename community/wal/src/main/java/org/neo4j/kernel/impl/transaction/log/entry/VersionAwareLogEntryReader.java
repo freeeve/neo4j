@@ -93,6 +93,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
         return null;
     }
 
+    @Override
     public boolean hasBrokenLastEntry() {
         return brokenLastEntry;
     }
