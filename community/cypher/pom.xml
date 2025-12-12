@@ -44,6 +44,7 @@
         <module>graph-counts</module>
         <module>cypher-rendering</module>
         <module>internal-notifications</module>
+        <module>jdbc-mapper</module>
     </modules>
 
     <profiles>
