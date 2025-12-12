@@ -374,9 +374,9 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
 
       override def nodeVectorIndexByName(indexName: String): Either[VectorIndexError, NodeVectorIndexDescriptor] =
         config.vectorIndexes.get(indexName) match {
-          case Some(VectorIndexDefinition(_, IndexDefinition.EntityType.Node(label), property)) =>
+          case Some(NodeVectorIndexDefinition(_, labels, property)) =>
             Right(NodeVectorIndexDescriptor(
-              semanticTable.resolvedLabelNames(label),
+              labels.map(label => semanticTable.resolvedLabelNames(label.label)),
               semanticTable.resolvedPropertyKeyNames(property)
             ))
           case Some(_) =>
@@ -387,9 +387,9 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
       override def relationshipVectorIndexByName(indexName: String)
         : Either[VectorIndexError, RelationshipVectorIndexDescriptor] =
         config.vectorIndexes.get(indexName) match {
-          case Some(VectorIndexDefinition(_, IndexDefinition.EntityType.Relationship(relationshipType), property)) =>
+          case Some(RelationshipVectorIndexDefinition(_, relTypes, property)) =>
             Right(RelationshipVectorIndexDescriptor(
-              semanticTable.resolvedRelTypeNames(relationshipType),
+              relTypes.map(relType => semanticTable.resolvedRelTypeNames(relType.relType)),
               semanticTable.resolvedPropertyKeyNames(property)
             ))
           case Some(_) =>

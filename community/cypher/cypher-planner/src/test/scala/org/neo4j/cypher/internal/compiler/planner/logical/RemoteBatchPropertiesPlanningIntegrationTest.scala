@@ -404,8 +404,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
   // Graph counts based on a subset of LDBC SF 1
   final protected val planner = spdPlanner
     .addSemanticFeature(VectorSearch)
-    .addNodeVectorIndex("messageContent", "Message", "content")
-    .addRelationshipVectorIndex("knowsDescr", "KNOWS", "description")
+    .addNodeVectorIndex("messageContent", Set("Message"), "content")
+    .addRelationshipVectorIndex("knowsDescr", Set("KNOWS"), "description")
     .setAllNodesCardinality(3181725)
     .setLabelCardinality("Person", 9892)
     .setLabelCardinality("Message", 3055774)

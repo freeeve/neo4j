@@ -104,11 +104,19 @@ trait LogicalPlanningConfiguration {
 
 case class IndexDef(entityType: IndexDefinition.EntityType, propertyKeys: Seq[String], indexType: IndexType)
 
-case class VectorIndexDefinition(
+sealed trait VectorIndexDefinition {
+  def name: String
+  def property: String
+}
+
+final case class NodeVectorIndexDefinition(name: String, labels: Set[EntityType.Node], property: String)
+    extends VectorIndexDefinition
+
+final case class RelationshipVectorIndexDefinition(
   name: String,
-  entityType: EntityType,
-  propertyKey: String
-)
+  relTypes: Set[EntityType.Relationship],
+  property: String
+) extends VectorIndexDefinition
 
 class IndexAttributes(
   var isUnique: Boolean = false,
@@ -148,11 +156,13 @@ trait LogicalPlanningConfigurationAdHocSemanticTable {
     }
 
     vectorIndexes.values.foreach {
-      case VectorIndexDefinition(_, IndexDefinition.EntityType.Node(label), property) =>
-        addLabelIfUnknown(label)
+      case NodeVectorIndexDefinition(_, labels, property) =>
+        labels.foreach(label =>
+          addLabelIfUnknown(label.label)
+        )
         addPropertyKeyIfUnknown(property)
-      case VectorIndexDefinition(_, IndexDefinition.EntityType.Relationship(relationshipType), property) =>
-        addRelationshipTypeIfUnknown(relationshipType)
+      case RelationshipVectorIndexDefinition(_, relTypes, property) =>
+        relTypes.foreach(relType => addRelationshipTypeIfUnknown(relType.relType))
         addPropertyKeyIfUnknown(property)
     }
 

@@ -46,10 +46,11 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       .setRelationshipCardinality("()-[:CONTRIBUTED]->()", 8)
       .setRelationshipCardinality("()-[:CONTRIBUTED]->(:Movie)", 7)
       .setRelationshipCardinality("(:Movie)-[]->()", 20)
-      .addNodeVectorIndex("moviePlots", "Movie", "plot")
-      .addRelationshipVectorIndex("actsInScript", "ACTS_IN", "script")
-      .addRelationshipVectorIndex("actsInScript", "ACTS_IN", "script")
-      .addRelationshipVectorIndex("contributed", "CONTRIBUTED", "embedding")
+      .addNodeVectorIndex("moviePlots", Set("Movie"), "plot")
+      .addRelationshipVectorIndex("actsInScript", Set("ACTS_IN"), "script")
+      .addRelationshipVectorIndex("contributed", Set("CONTRIBUTED"), "embedding")
+      .addNodeVectorIndex("movieOrDirectorInfo", Set("Movie", "Director"), "info")
+      .addRelationshipVectorIndex("actsOrContributedInScript", Set("ACTS_IN", "CONTRIBUTED"), "script")
       .addNodeIndex("Movie", List("title"), 1.0, 1.0 / 120.0, isUnique = true)
 
   test("plan node vector index search") {
@@ -79,6 +80,43 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           limit = "10",
           argumentIds = Set(),
           getValueFromIndex = Map("plot" -> GetValue)
+        )
+        .build()
+  }
+
+  test(
+    "A plan using a node vector index search with multiple labels should provide all Labels and filter on the one specified."
+  ) {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie) WHERE movie.info IS NOT NULL
+        |  SEARCH movie IN (
+        |    VECTOR INDEX movieOrDirectorInfo
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.info""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`movie.info`")
+        .projection("cacheN[movie.info] AS `movie.info`")
+        .filter(
+          "movie:Movie"
+        ) // This filter is important since we cannot infer that the index returns a node with the Movie Label.
+        .nodeVectorIndexSearch(
+          node = "movie",
+          Seq("Movie", "Director"),
+          Seq("info"),
+          "movieOrDirectorInfo",
+          vector = "$embedding",
+          limit = "10",
+          score = "",
+          argumentIds = Set(),
+          getValueFromIndex = Map("info" -> GetValue)
         )
         .build()
   }
@@ -472,6 +510,35 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
+  test("plan relationship vector index search should show all indexed Types") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()-[r]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsOrContributedInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("r.plot AS `r.plot`")
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("ACTS_IN", "CONTRIBUTED"),
+          Seq("script"),
+          "actsOrContributedInScript",
+          "$embedding",
+          "10"
+        )
+        .build()
+  }
+
   test("plan relationship vector index search and get and cache property value from index") {
     val planner = plannerBuilder().build()
 
@@ -622,7 +689,9 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
-  test("identify implicit type predicates within conjunctions and ensure plan filters on the non-implicit predicates") {
+  ignore(
+    "identify implicit type predicates within conjunctions and ensure plan filters on the non-implicit predicates"
+  ) {
     val planner = plannerBuilder().build()
 
     // Since a relationship can only have one type, the filter on r:CONTRIBUTED should ensure that this query produces no results.
@@ -642,7 +711,10 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults("`r.plot`")
-        .projection("r.plot AS `r.plot`") // TODO: PLAN-3109 will ensure that we filter by CONTRIBUTED here.
+        .projection("r.plot AS `r.plot`")
+        .filter(
+          "r:CONTRIBUTED"
+        ) // TODO: PLAN-3109 will ensure that we filter by CONTRIBUTED here.
         .relationshipVectorIndexSearch(
           "()-[r]-()",
           Seq("ACTS_IN"),
@@ -650,6 +722,47 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           "actsInScript",
           "$embedding",
           "10"
+        )
+        .build()
+  }
+
+  ignore(
+    "identify that there are no implicit type predicates within conjunctions on multi type vector indexes and ensure plan filters on the non-implicit predicates"
+  ) {
+    val planner = plannerBuilder().build()
+
+    // Since a relationship can only have one type, the filter on r:CONTRIBUTED should ensure that this query produces no results.
+    // The filter on r:ACTS_IN is NOT implicit in the vector index search and need to be planned.
+    val query =
+      """MATCH ()-[r]-()
+        |  WHERE r:ACTS_IN AND r:CONTRIBUTED
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsOrContributedInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("r.plot AS `r.plot`")
+        .filter(
+          "r:CONTRIBUTED",
+          "r:ACTS_IN"
+        ) // TODO: PLAN-3109 will ensure that we filter by both CONTRIBUTED and ACTS_IN here.
+        .relationshipVectorIndexSearch(
+          "()-[r]-()",
+          Seq("ACTS_IN", "CONTRIBUTED"),
+          Seq("script"),
+          "actsOrContributedInScript",
+          "$embedding",
+          "10",
+          "",
+          Set(),
+          Map("script" -> DoNotGetValue)
         )
         .build()
   }

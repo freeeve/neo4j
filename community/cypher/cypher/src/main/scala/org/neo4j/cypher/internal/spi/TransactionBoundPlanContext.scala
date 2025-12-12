@@ -204,9 +204,9 @@ class TransactionBoundPlanContext(
     for {
       _ <- ensureIndexCanBeUsed(indexDescriptor)
       _ <- ensureIsVectorIndex(indexDescriptor)
-      labelId <- validateNodeIndexType(indexDescriptor)
+      labelIds <- validateNodeIndexType(indexDescriptor)
       property = getIndexPropertyId(indexDescriptor)
-    } yield NodeVectorIndexDescriptor(labelId, property)
+    } yield NodeVectorIndexDescriptor(labelIds, property)
   }
 
   def relationshipVectorIndexByName(indexName: String): Either[VectorIndexError, RelationshipVectorIndexDescriptor] = {
@@ -214,9 +214,9 @@ class TransactionBoundPlanContext(
     for {
       _ <- ensureIndexCanBeUsed(indexDescriptor)
       _ <- ensureIsVectorIndex(indexDescriptor)
-      relTypeId <- validateRelationshipIndexType(indexDescriptor)
+      relTypeIds <- validateRelationshipIndexType(indexDescriptor)
       property = getIndexPropertyId(indexDescriptor)
-    } yield RelationshipVectorIndexDescriptor(relTypeId, property)
+    } yield RelationshipVectorIndexDescriptor(relTypeIds, property)
   }
 
   final private def ensureIndexCanBeUsed(indexDescriptor: schema.IndexDescriptor)
@@ -231,31 +231,24 @@ class TransactionBoundPlanContext(
 
   final private def validateNodeIndexType(
     indexDescriptor: schema.IndexDescriptor
-  ): Either[VectorIndexError.WrongEntityType, LabelId] = {
+  ): Either[VectorIndexError.WrongEntityType, Set[LabelId]] = {
     val schema = indexDescriptor.schema()
-    val tokenId = extractTokenId(schema, indexDescriptor.getName)
+    val tokenIds = schema.getEntityTokenIds
     schema.entityType() match {
-      case EntityType.NODE => Right(LabelId(tokenId))
+      case EntityType.NODE => Right(tokenIds.map(LabelId).toSet)
       case indexType       => Left(VectorIndexError.WrongEntityType(EntityType.NODE, indexType))
     }
   }
 
   final private def validateRelationshipIndexType(
     indexDescriptor: schema.IndexDescriptor
-  ): Either[VectorIndexError.WrongEntityType, RelTypeId] = {
+  ): Either[VectorIndexError.WrongEntityType, Set[RelTypeId]] = {
     val schema = indexDescriptor.schema()
-    val tokenId = extractTokenId(schema, indexDescriptor.getName)
+    val tokenIds = schema.getEntityTokenIds
     schema.entityType() match {
-      case EntityType.RELATIONSHIP => Right(RelTypeId(tokenId))
+      case EntityType.RELATIONSHIP => Right(tokenIds.map(RelTypeId).toSet)
       case indexType               => Left(VectorIndexError.WrongEntityType(EntityType.RELATIONSHIP, indexType))
     }
-  }
-
-  private def extractTokenId(schema: SchemaDescriptor, indexName: String): Int = {
-    val tokenIds = schema.getEntityTokenIds
-    // TODO PLAN-3078: support for many tokens
-    assert(tokenIds.size == 1, s"unexpected token IDs for vector index: $indexName")
-    tokenIds(0)
   }
 
   final private def getIndexPropertyId(indexDescriptor: schema.IndexDescriptor): PropertyKeyId = {

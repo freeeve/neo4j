@@ -47,6 +47,8 @@ import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlannin
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexCapabilities
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexDefinition
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexDefinition.EntityType
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexDefinition.EntityType.Node
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexDefinition.EntityType.Relationship
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.Indexes
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.Options
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.PropertyTypeDefinition
@@ -91,6 +93,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.RelationshipVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.VectorIndexError
+import org.neo4j.cypher.internal.planner.spi.VectorIndexError.NotFound
 import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -277,8 +280,13 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
 
     def removeRelationshipLookupIndex(): Indexes = this.copy(relationshipLookupIndex = None)
 
-    def addVectorIndex(name: String, entityType: EntityType, propertyKey: String): Indexes =
-      copy(vectorIndexes = vectorIndexes :+ VectorIndexDefinition(name, entityType, propertyKey))
+    def addNodeVectorIndex(name: String, labels: Set[String], propertyKey: String): Indexes =
+      copy(vectorIndexes = vectorIndexes :+ NodeVectorIndexDefinition(name, labels.map(Node), propertyKey))
+
+    def addRelationshipVectorIndex(name: String, types: Set[String], propertyKey: String): Indexes =
+      copy(vectorIndexes =
+        vectorIndexes :+ RelationshipVectorIndexDefinition(name, types.map(Relationship), propertyKey)
+      )
   }
 
   case class ExistenceConstraintDefinition(entityType: IndexDefinition.EntityType, propertyKey: String)
@@ -511,18 +519,18 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
   def addNodeVectorIndex(
     indexName: String,
-    labelName: String,
+    labelNames: Set[String],
     propertyKey: String
   ): StatisticsBackedLogicalPlanningConfigurationBuilder =
-    copy(indexes = indexes.addVectorIndex(indexName, IndexDefinition.EntityType.Node(labelName), propertyKey))
+    copy(indexes = indexes.addNodeVectorIndex(indexName, labelNames, propertyKey))
 
   def addRelationshipVectorIndex(
     indexName: String,
-    relationshipTypeName: String,
+    relationshipTypeNames: Set[String],
     propertyKey: String
   ): StatisticsBackedLogicalPlanningConfigurationBuilder =
     copy(indexes =
-      indexes.addVectorIndex(indexName, IndexDefinition.EntityType.Relationship(relationshipTypeName), propertyKey)
+      indexes.addRelationshipVectorIndex(indexName, relationshipTypeNames, propertyKey)
     )
 
   def addNodeLookupIndex(orderCapability: IndexOrderCapability = IndexOrderCapability.BOTH)
@@ -1699,33 +1707,28 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
       override def nodeVectorIndexByName(indexName: String): Either[VectorIndexError, NodeVectorIndexDescriptor] =
         indexes.vectorIndexes.collectFirst {
-          case indexDefinition if indexDefinition.name == indexName =>
-            indexDefinition.entityType match {
-              case EntityType.Node(label) =>
-                Right(NodeVectorIndexDescriptor(
-                  labelId = LabelId(resolver.getLabelId(label)),
-                  property = PropertyKeyId(resolver.getPropertyKeyId(indexDefinition.propertyKey))
-                ))
-              case _ =>
-                Left(VectorIndexError.WrongEntityType(common.EntityType.NODE, common.EntityType.RELATIONSHIP))
-            }
-        }.get
+          case NodeVectorIndexDefinition(name, labels, property) if name == indexName =>
+            Right(NodeVectorIndexDescriptor(
+              labelIds = labels.map {
+                case EntityType.Node(label) => LabelId(resolver.getLabelId(label))
+              },
+              property = PropertyKeyId(resolver.getPropertyKeyId(property))
+            ))
+          case RelationshipVectorIndexDefinition(name, _, _) if name == indexName =>
+            Left(VectorIndexError.WrongEntityType(common.EntityType.NODE, common.EntityType.RELATIONSHIP))
+        }.getOrElse(Left(VectorIndexError.NotFound))
 
       override def relationshipVectorIndexByName(indexName: String)
         : Either[VectorIndexError, RelationshipVectorIndexDescriptor] =
         indexes.vectorIndexes.collectFirst {
-          case indexDefinition if indexDefinition.name == indexName =>
-            indexDefinition.entityType match {
-              case EntityType.Relationship(relType) =>
-                Right(RelationshipVectorIndexDescriptor(
-                  relTypeId = RelTypeId(resolver.getRelTypeId(relType)),
-                  property = PropertyKeyId(resolver.getPropertyKeyId(indexDefinition.propertyKey))
-                ))
-              case _ =>
-                Left(VectorIndexError.WrongEntityType(common.EntityType.RELATIONSHIP, common.EntityType.NODE))
-            }
-        }.get
-
+          case NodeVectorIndexDefinition(name, _, _) if name == indexName =>
+            Left(VectorIndexError.WrongEntityType(common.EntityType.RELATIONSHIP, common.EntityType.NODE))
+          case RelationshipVectorIndexDefinition(name, relTypes, property) if name == indexName =>
+            Right(RelationshipVectorIndexDescriptor(
+              relTypeIds = relTypes.map(relType => RelTypeId(resolver.getRelTypeId(relType.relType))),
+              property = PropertyKeyId(resolver.getPropertyKeyId(property))
+            ))
+        }.getOrElse(Left(NotFound))
     }
     new StatisticsBackedLogicalPlanningConfiguration(
       resolver,

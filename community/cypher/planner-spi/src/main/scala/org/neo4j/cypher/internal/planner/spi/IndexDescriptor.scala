@@ -212,7 +212,8 @@ sealed trait VectorIndexDescriptor {
   def property: PropertyKeyId
 }
 
-final case class NodeVectorIndexDescriptor(labelId: LabelId, property: PropertyKeyId) extends VectorIndexDescriptor
+final case class NodeVectorIndexDescriptor(labelIds: Set[LabelId], property: PropertyKeyId)
+    extends VectorIndexDescriptor
 
-final case class RelationshipVectorIndexDescriptor(relTypeId: RelTypeId, property: PropertyKeyId)
+final case class RelationshipVectorIndexDescriptor(relTypeIds: Set[RelTypeId], property: PropertyKeyId)
     extends VectorIndexDescriptor

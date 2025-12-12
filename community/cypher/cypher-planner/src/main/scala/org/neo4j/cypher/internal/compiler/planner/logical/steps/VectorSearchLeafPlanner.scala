@@ -92,27 +92,29 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
         if (queryGraph.patternNodes.contains(vectorSearchPredicate.bindingVariable)) {
           context.staticComponents.planContext.nodeVectorIndexByName(vectorSearchPredicate.indexName) match {
             case Right(descriptor) =>
-              val labelName = context.staticComponents.planContext.getLabelName(descriptor.labelId)
+              val labelTokens =
+                descriptor.labelIds.map(labelId =>
+                  LabelToken(context.staticComponents.planContext.getLabelName(labelId), labelId)
+                )
 
               val propertyKeyToken = PropertyKeyToken(
                 name = context.staticComponents.planContext.getPropertyKeyName(descriptor.property.id),
                 nameId = descriptor.property
               )
-
-              val implicitlySolvedPredicates = queryGraph.selections.flatPredicatesSet.filter(
-                isImpliedByVectorIndex(
-                  _,
+              val (implicitlySolvedPredicates, otherPredicates) =
+                partitionNodePredicates(
                   vectorSearchPredicate.bindingVariable,
                   propertyKeyToken,
-                  Left(LabelToken(labelName, descriptor.labelId))
+                  labelTokens,
+                  queryGraph.selections.flatPredicatesSet
                 )
-              )
+
               val indexedProperties = List(IndexedProperty(
                 propertyKeyToken,
                 getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
                   vectorSearchPredicate.bindingVariable,
                   propertyKeyToken.name,
-                  queryGraph.selections.flatPredicatesSet -- implicitlySolvedPredicates,
+                  otherPredicates,
                   context.plannerState.contextualPropertyAccess
                 ),
                 entityType = NODE_TYPE
@@ -120,7 +122,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
               val nodeVectorIndexSearch = context.staticComponents.logicalPlanProducer.planNodeVectorIndexSearch(
                 context = context,
                 variable = vectorSearchPredicate.bindingVariable,
-                label = LabelToken(name = labelName, nameId = descriptor.labelId),
+                labels = labelTokens,
                 indexedProperties = indexedProperties,
                 indexName = vectorSearchPredicate.indexName,
                 embedding = vectorSearchPredicate.embedding,
@@ -148,28 +150,30 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
 
           context.staticComponents.planContext.relationshipVectorIndexByName(vectorSearchPredicate.indexName) match {
             case Right(descriptor) =>
-              val relTypeName = context.staticComponents.planContext.getRelTypeName(descriptor.relTypeId)
 
               val propertyKeyToken = PropertyKeyToken(
                 name = context.staticComponents.planContext.getPropertyKeyName(descriptor.property.id),
                 nameId = descriptor.property
               )
 
-              val implicitlySolvedPredicates = queryGraph.selections.flatPredicatesSet.filter(
-                isImpliedByVectorIndex(
-                  _,
+              val indexedTypes = descriptor.relTypeIds.map(relTypeId =>
+                RelationshipTypeToken(context.staticComponents.planContext.getRelTypeName(relTypeId), relTypeId)
+              ).toSeq
+
+              val (implicitlySolvedPredicates, otherPredicates) =
+                partitionRelationshipPredicates(
                   vectorSearchPredicate.bindingVariable,
                   propertyKeyToken,
-                  Right(new RelationshipTypeToken(relTypeName, descriptor.relTypeId))
+                  indexedTypes,
+                  queryGraph.selections.flatPredicatesSet
                 )
-              )
 
               val indexedProperties = List(IndexedProperty(
                 propertyKeyToken,
                 getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
                   vectorSearchPredicate.bindingVariable,
                   propertyKeyToken.name,
-                  queryGraph.selections.flatPredicatesSet -- implicitlySolvedPredicates,
+                  otherPredicates,
                   context.plannerState.contextualPropertyAccess
                 ),
                 entityType = RELATIONSHIP_TYPE
@@ -179,7 +183,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
                 context.staticComponents.logicalPlanProducer.planRelationshipVectorIndexSearch(
                   context = context,
                   patternRelationship = patternRelationship,
-                  indexedTypes = Seq(new RelationshipTypeToken(relTypeName, descriptor.relTypeId)),
+                  indexedTypes = indexedTypes,
                   indexedProperties = indexedProperties,
                   indexName = vectorSearchPredicate.indexName,
                   embedding = vectorSearchPredicate.embedding,
@@ -202,24 +206,90 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
     }
   }
 
-  private def isImpliedByVectorIndex(
-    expression: Expression,
+  private def partitionNodePredicates(
     vectorSearchVariable: LogicalVariable,
     propertyKeyToken: PropertyKeyToken,
-    labelOrType: Either[LabelToken, RelationshipTypeToken]
-  ): Boolean = {
-    (labelOrType, expression) match {
-      case (_, IsNotNull(Property(`vectorSearchVariable`, propertyKey))) if propertyKey.name == propertyKeyToken.name =>
-        true
-      case (Left(labelToken), HasLabel(`vectorSearchVariable`, lbl)) if lbl.name == labelToken.name => true
-      case (Right(typeToken), HasTypes(`vectorSearchVariable`, relTypes))
-        if relTypes.size == 1 && relTypes.exists(_.name == typeToken.name) =>
-        true
+    labelTokens: Set[LabelToken],
+    predicates: Set[Expression]
+  ): (Set[Expression], Set[Expression]) = {
+    val isSolved: Expression => Boolean =
+      if (labelTokens.size == 1) {
+        val labelToken = labelTokens.head
+        expression =>
+          solvesIsNotNull(vectorSearchVariable, propertyKeyToken, expression) ||
+            solvesHasLabel(vectorSearchVariable, labelToken, expression)
+      } else {
+        // If the index is defined for more than one label, the logic needs to be more complicated.
+        // For example, if it is defined for (n:Foo|Bar), it implicitly solves x:Foo|Bar or any superset like
+        // x:Foo|Bar|Zor but not x:Foo or x:Bar|Zor.
+        // We decided not to handle it for now.
+        solvesIsNotNull(vectorSearchVariable, propertyKeyToken, _)
+      }
 
-      case (_, Ors(exprs)) =>
-        exprs.exists(isImpliedByVectorIndex(_, vectorSearchVariable, propertyKeyToken, labelOrType))
+    partitionPredicates(predicates, isSolved)
+  }
+
+  private def partitionRelationshipPredicates(
+    vectorSearchVariable: LogicalVariable,
+    propertyKeyToken: PropertyKeyToken,
+    relationshipTokens: Seq[RelationshipTypeToken],
+    predicates: Set[Expression]
+  ): (Set[Expression], Set[Expression]) = {
+    val isSolved: Expression => Boolean =
+      if (relationshipTokens.size == 1) {
+        val typeToken = relationshipTokens.head
+        expression =>
+          solvesIsNotNull(vectorSearchVariable, propertyKeyToken, expression) ||
+            solvesHasTypes(vectorSearchVariable, typeToken, expression)
+      } else {
+        // If the index is defined for more than one relationship type, the logic needs to be more complicated.
+        // For example, if it is defined for ()-[r:R|S]-(), it implicitly solves x:R|S or any superset like
+        // x:R|S|T but not x:R or x:S|T.
+        // We decided not to handle it for now.
+        solvesIsNotNull(vectorSearchVariable, propertyKeyToken, _)
+      }
+
+    partitionPredicates(predicates, isSolved)
+  }
+
+  private def partitionPredicates(
+    predicates: Set[Expression],
+    isSolved: Expression => Boolean
+  ): (Set[Expression], Set[Expression]) =
+    predicates.partition {
+      case Ors(nestedExpressions) => nestedExpressions.exists(isSolved)
+      case otherExpression        => isSolved(otherExpression)
+    }
+
+  private def solvesIsNotNull(
+    vectorSearchVariable: LogicalVariable,
+    propertyKeyToken: PropertyKeyToken,
+    expression: Expression
+  ): Boolean =
+    expression match {
+      case IsNotNull(Property(`vectorSearchVariable`, propertyKey)) if propertyKey.name == propertyKeyToken.name => true
       case _ => false
     }
-  }
+
+  private def solvesHasLabel(
+    vectorSearchVariable: LogicalVariable,
+    labelToken: LabelToken,
+    expression: Expression
+  ): Boolean =
+    expression match {
+      case HasLabel(`vectorSearchVariable`, lbl) if lbl.name == labelToken.name => true
+      case _                                                                    => false
+    }
+
+  private def solvesHasTypes(
+    vectorSearchVariable: LogicalVariable,
+    typeToken: RelationshipTypeToken,
+    expression: Expression
+  ): Boolean =
+    expression match {
+      case HasTypes(`vectorSearchVariable`, relTypes)
+        if relTypes.size == 1 && relTypes.exists(_.name == typeToken.name) => true
+      case _ => false
+    }
 
 }

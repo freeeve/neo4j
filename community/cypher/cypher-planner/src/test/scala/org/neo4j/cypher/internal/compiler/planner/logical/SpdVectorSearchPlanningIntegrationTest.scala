@@ -47,8 +47,10 @@ class SpdVectorSearchPlanningIntegrationTest extends CypherFunSuite
   // Graph counts based on a subset of LDBC SF 1
   final protected val planBuilder = spdPlanner
     .addSemanticFeature(VectorSearch)
-    .addNodeVectorIndex("messageContent", "Message", "content")
-    .addRelationshipVectorIndex("knowsDescr", "KNOWS", "description")
+    .addNodeVectorIndex("messageContent", Set("Message"), "content")
+    .addRelationshipVectorIndex("knowsDescr", Set("KNOWS"), "description")
+    .addNodeVectorIndex("messageOrInfoContent", Set("Message", "Info"), "content")
+    .addRelationshipVectorIndex("knowsOrThinksDescr", Set("KNOWS", "THINKS"), "description")
     .setAllNodesCardinality(3181725)
     .setLabelCardinality("Message", 3055774)
     .setRelationshipCardinality("()-[:KNOWS]->()", 180623)
@@ -228,6 +230,63 @@ class SpdVectorSearchPlanningIntegrationTest extends CypherFunSuite
         getValueFromIndex = Map("content" -> DoNotGetValue)
       )
       .build()
+  }
+
+  test("should get both Labels from node vector index") {
+    val planner = planBuilder.build()
+    val query =
+      """MATCH (m)
+        |  SEARCH m IN (
+        |    VECTOR INDEX messageOrInfoContent
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN m.content
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[m.content] AS `m.content`")
+      .nodeVectorIndexSearch(
+        "m",
+        Seq("Message", "Info"),
+        Seq("content"),
+        "messageOrInfoContent",
+        "$embedding",
+        "10",
+        getValueFromIndex = Map("content" -> GetValue)
+      )
+      .build()
+  }
+
+  test(
+    "should get both Types from  relationship vector index"
+  ) {
+    val planner = planBuilder.build()
+    val query =
+      """MATCH ()-[r]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX knowsOrThinksDescr
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.description
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual
+      planner.subPlanBuilder()
+        .projection("cacheR[r.description] AS `r.description`")
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("KNOWS", "THINKS"),
+          Seq("description"),
+          "knowsOrThinksDescr",
+          "$embedding",
+          "10",
+          getValueFromIndex = Map("description" -> GetValue)
+        )
+        .build()
   }
 
   test(

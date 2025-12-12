@@ -2017,7 +2017,7 @@ case class LogicalPlanProducer(
   def planNodeVectorIndexSearch(
     context: LogicalPlanningContext,
     variable: LogicalVariable,
-    label: LabelToken,
+    labels: Set[LabelToken],
     indexedProperties: Seq[IndexedProperty],
     indexName: String,
     embedding: Expression,
@@ -2054,7 +2054,7 @@ case class LogicalPlanProducer(
 
     val nodeVectorIndexSearch = NodeVectorIndexSearch(
       idName = variable,
-      labels = List(label),
+      labels = labels.toList,
       properties = indexedProperties,
       score = scoreVariable,
       indexName = indexName,

@@ -46,7 +46,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     val bindingVariable = v"movie"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTNode)
-      nodeVectorIndexOn("moviePlots", "Movie", "plot")
+      nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val vectorSearchClause = VectorSearchClause(
         bindingVariable = bindingVariable,
@@ -77,7 +77,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     val bindingVariable = v"movie"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTNode)
-      nodeVectorIndexOn("moviePlots", "Movie", "plot")
+      nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val vectorSearchClause = VectorSearchClause(
         bindingVariable = bindingVariable,
@@ -104,7 +104,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     val bindingVariable = v"knows"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTRelationship)
-      relationshipVectorIndexOn("knowsEmbedding", "KNOWS", "embedding")
+      relationshipVectorIndexOn("knowsEmbedding", Set("KNOWS"), "embedding")
     } withLogicalPlanningContext { (_, context) =>
       val from = v"a"
       val to = v"b"
@@ -148,7 +148,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     val bindingVariable = v"knows"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTRelationship)
-      relationshipVectorIndexOn("knowsEmbedding", "KNOWS", "embedding")
+      relationshipVectorIndexOn("knowsEmbedding", Set("KNOWS"), "embedding")
     } withLogicalPlanningContext { (_, context) =>
       val from = v"a"
       val to = v"b"
@@ -188,7 +188,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     val bindingVariable = v"movie"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTNode)
-      nodeVectorIndexOn("moviePlots", "Movie", "plot")
+      nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val embeddingWithDeps = listOf(v"x", literalInt(2), literalInt(3))
 
@@ -218,7 +218,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     val bindingVariable = v"movie"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTNode)
-      nodeVectorIndexOn("moviePlots", "Movie", "plot")
+      nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val limitWithDeps = v"y"
 
@@ -248,7 +248,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     val bindingVariable = v"knows"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTRelationship)
-      nodeVectorIndexOn("moviePlots", "Movie", "plot")
+      nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val vectorSearchClause = VectorSearchClause(
         bindingVariable = bindingVariable,
@@ -285,7 +285,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     val bindingVariable = v"movie"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTNode)
-      relationshipVectorIndexOn("knowsEmbedding", "KNOWS", "embedding")
+      relationshipVectorIndexOn("knowsEmbedding", Set("KNOWS"), "embedding")
     } withLogicalPlanningContext { (_, context) =>
       val vectorSearchClause = VectorSearchClause(
         bindingVariable = bindingVariable,
@@ -313,7 +313,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     val bindingVariable = v"movie"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTNode)
-      nodeVectorIndexOn("moviePlots", "Movie", "plot")
+      nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val scoreVariable = v"similarity"
       val vectorSearchClause = VectorSearchClause(
@@ -347,7 +347,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTNode)
       addTypeToSemanticTable(parameter, CTNode)
-      nodeVectorIndexOn("moviePlots", "Movie", "plot")
+      nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val embeddingWithDeps = v"embeddingParam"
 
