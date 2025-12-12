@@ -39,6 +39,16 @@ public sealed interface BufferLeakTracker
 
     void checkLeaks(Supplier<String> testPlanDescriptionProvider);
 
+    /**
+     * Clears all currently tracked buffers. This can be used to disable leak detection for a test.
+     * <p/>
+     * Calling this method after a test or test class, e.g. in a method annotated with
+     * {@code @AfterEach} or {@code @AfterAll}, will remove all buffers that were potentially leaked by that
+     * test (class). Given the concurrency of JUnit runners, this can also remove tracked buffers of other
+     * test classes. We might therefore miss a buffer leak of a concurrently executing test class.
+     */
+    void clearTrackedBuffers();
+
     final class TrackingBufferLeakTracker implements BufferLeakTracker {
 
         private final Map<ByteBuffer, Exception> trackerBuffers = Collections.synchronizedMap(new IdentityHashMap<>());
@@ -83,6 +93,11 @@ public sealed interface BufferLeakTracker
             exceptionBuilder.append(DumpUtils.threadDump());
             throw new RuntimeException(exceptionBuilder.toString());
         }
+
+        @Override
+        public void clearTrackedBuffers() {
+            trackerBuffers.clear();
+        }
     }
 
     final class EmptyDefaultBufferLeakTracker implements BufferLeakTracker {
@@ -99,5 +114,8 @@ public sealed interface BufferLeakTracker
 
         @Override
         public void checkLeaks(Supplier<String> testPlanDescriptionProvider) {}
+
+        @Override
+        public void clearTrackedBuffers() {}
     }
 }
