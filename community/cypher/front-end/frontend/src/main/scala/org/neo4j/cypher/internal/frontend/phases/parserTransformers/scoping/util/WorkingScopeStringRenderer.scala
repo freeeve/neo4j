@@ -107,9 +107,11 @@ object WorkingScopeStringRenderer {
 
   private def renderDeclaration(declarations: Declarations): Text = {
     declarations match {
-      case Declarations(constants, variables) if constants.isEmpty && variables.isEmpty => EpsilonSpan
-      case Declarations(constants, variables) =>
-        Span(s"Decl Const: ${renderVariableSeq(constants)} | Var: ${renderVariableSeq(variables)}")
+      case Declarations(constants, variables, localCallables) if constants.isEmpty && variables.isEmpty => EpsilonSpan
+      case Declarations(constants, variables, localCallables) =>
+        Span(
+          s"Decl Const: ${renderVariableSeq(constants)} | Var: ${renderVariableSeq(variables)} | Call: ${renderCallableSeq(localCallables)}"
+        )
     }
   }
 
@@ -154,12 +156,18 @@ object WorkingScopeStringRenderer {
   }
 
   private def renderWorkingContext(workingContext: WorkingContext): String = workingContext match {
-    case CommonContext(constants, variables) =>
-      s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}"
-    case AggregatingExpressionContext(constants, variables, groupingKeys, _) =>
-      s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}; Keys: ${renderExpressionSet(groupingKeys)}";
-    case PatternIncomingContext(topologicalConstants, predicateConstants, pathConstants, groupConstants) =>
-      s"Topo: ${renderVariableSet(topologicalConstants)}; Pred: ${renderVariableSet(predicateConstants)}; Path: ${renderVariableSet(pathConstants)}; Group: ${renderVariableSet(groupConstants)}"
+    case CommonContext(constants, variables, localCallables) =>
+      s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}; Call: ${renderCallableSet(localCallables)}"
+    case AggregatingExpressionContext(constants, variables, localCallables, groupingKeys, _) =>
+      s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}; Call: ${renderCallableSet(localCallables)}; Keys: ${renderExpressionSet(groupingKeys)}";
+    case PatternIncomingContext(
+        topologicalConstants,
+        predicateConstants,
+        pathConstants,
+        groupConstants,
+        localCallables
+      ) =>
+      s"Topo: ${renderVariableSet(topologicalConstants)}; Pred: ${renderVariableSet(predicateConstants)}; Path: ${renderVariableSet(pathConstants)}; Group: ${renderVariableSet(groupConstants)}; Call: ${renderCallableSet(localCallables)}"
   }
 
   private def renderVariableSet(variables: Set[LogicalVariable]): String = {
@@ -177,6 +185,21 @@ object WorkingScopeStringRenderer {
       variables.map(renderVariable).mkString(", ")
     }
   }
+
+  private def renderCallableSet(callables: Set[LocalCallableScopeSignature]): String = {
+    renderCallableSeq(callables.toSeq.sortBy(_.name.fullName))
+  }
+
+  private def renderCallableSeq(callables: Seq[LocalCallableScopeSignature]): String = {
+    if (callables.isEmpty) {
+      "—"
+    } else {
+      callables.map(renderCallable).mkString(", ")
+    }
+  }
+
+  private def renderCallable(callable: LocalCallableScopeSignature): String =
+    (callable.name.namespace.parts :+ callable.name.name).mkString(".")
 
   private def renderExpressionSeq(expressions: Seq[Expression]): String = {
     if (expressions.isEmpty) {

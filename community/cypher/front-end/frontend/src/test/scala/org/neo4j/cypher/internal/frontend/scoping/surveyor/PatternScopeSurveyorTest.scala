@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.scoping
+package org.neo4j.cypher.internal.frontend.scoping.surveyor
+
+import org.neo4j.cypher.internal.frontend.scoping.VariableCheckingTestSuite
 
 class PatternScopeSurveyorTest extends VariableCheckingTestSuite {
 

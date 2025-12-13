@@ -96,7 +96,8 @@ object pegClause {
         val graphSelectionScopes = query.getGraphSelections.map(gs =>
           pegExpression(gs.graphReference, incoming.constantChildContext())
         )
-        val innerQueryIncoming = RegularContext(constants = unitVariables, variables = importedVariableSet)
+        val innerQueryIncoming =
+          RegularContext(constants = unitVariables, variables = importedVariableSet, incoming.localCallables)
         val innerQuery = query.withoutImportingWithAndGraphSelection
         val scope = if (innerQuery.isDefined) scopeInlineSubquery(
           call,
@@ -114,7 +115,11 @@ object pegClause {
       case call @ ScopeClauseSubqueryCall(innerQuery, isImportingAll, importedVariables, inTransactionsParameters, _) =>
         val innerQueryIncoming =
           if (isImportingAll) incoming.constantChildContext()
-          else RegularContext.unitWithConstants(importedVariables.toSet)
+          else RegularContext(
+            constants = importedVariables.toSet,
+            variables = unitVariables,
+            localCallables = incoming.localCallables
+          )
         scopeInlineSubquery(
           call,
           incoming,
@@ -126,14 +131,51 @@ object pegClause {
         )
 
       // unresolved named call
-      case UnresolvedCall(_, declaredArguments, declaredResult, isStandalone, _, _) =>
+      case UnresolvedCall(procedureName, declaredArguments, declaredResult, isStandalone, _, _) =>
         val children =
           declaredArguments.map(
             _.map(arg => pegExpression(arg, incoming.constantChildContext()))
           ).getOrElse(Seq.empty)
         val referenced = Some(WorkingScope.referencedInChildren(children))
 
+        val locallyResolved = incoming.localCallables.collectFirst {
+          case lc: LocalCallableScopeSignature if lc.name == procedureName => lc
+        }
+
         /**
+         *  Local callable:
+         *
+         *  Definition                   | result                             | outgoing     |
+         *  -----------------------------|------------------------------------|--------------|
+         *  DEFINE PROCEDURE a(...) {    |                                    |              |
+         *    ...                        |                                    |              |
+         *    RETURN a, ...              |                                    |              |
+         *  }                            |                                    |              |
+         *  ...                          |                                    |              |
+         *  CALL a(...)                  | NoResult                           | Set("a",...) |
+         *  -----------------------------|------------------------------------|--------------|
+         *  DEFINE PROCEDURE a(...) {    |                                    |              |
+         *    ...                        |                                    |              |
+         *    RETURN a, ...              |                                    |              |
+         *  }                            |                                    |              |
+         *  ...                          |                                    |              |
+         *  CALL a(...) YIELD *          | NoResult                           | Set("a",...) |
+         *  -----------------------------|------------------------------------|--------------|
+         *  DEFINE PROCEDURE ... {       |                                    |              |
+         *    ...                        |                                    |              |
+         *    RETURN a, ...              |                                    |              |
+         *  }                            |                                    |              |
+         *  ...                          |                                    |              |
+         *  CALL a(...) YIELD a AS x,... | NoResult                           | Set("x",...) |
+         *  -----------------------------|------------------------------------|--------------|
+         *  DEFINE PROCEDURE ... {       |                                    |              |
+         *    ...                        |                                    |              |
+         *    FINISH                     |                                    |              |
+         *  }                            |                                    |              |
+         *  ...                          |                                    |              |
+         *  CALL a(...)                  | NoResult                           | Set()        |
+         *
+         *  Non-local callable:
          *
          *  In standalone context        | result                             | outgoing     |
          *  -----------------------------|------------------------------------|--------------|
@@ -147,28 +189,54 @@ object pegClause {
          *  CALL db.labels() YIELD label | NoResult                           | Set("label") |
          *
          */
-        (isStandalone, declaredResult) match {
-          case (true, None) =>
-            incoming.resultScope(incoming, TableResultWithNotYetKnownColumns, children, referenced)
-          case (true, Some(procedureResult)) =>
-            val resultColumns = procedureResult.items.map(_.variable)
-            incoming.resultScope(
-              incoming.amendedWith(resultColumns.toSet),
-              TableResult(resultColumns),
-              children,
-              referenced,
-              Declarations(Seq.empty, resultColumns)
-            )
-          case (false, Some(procedureResult)) =>
-            val resultColumns = procedureResult.items.map(_.variable)
-            incoming.noResultScope(
-              incoming.amendedWith(resultColumns.toSet),
-              children,
-              referenced,
-              Declarations(Seq.empty, resultColumns)
-            )
-          case (false, _) =>
-            incoming.omittedResultScope(incoming, children, referenced)
+        locallyResolved match {
+          // Local callable
+          case Some(LocalCallableScopeSignature(_, procedureResult)) =>
+            val yieldColumnsOpt = declaredResult.map(_.items.map(_.variable))
+            val resultColumns = (procedureResult, yieldColumnsOpt) match {
+              // no YIELD and YIELD *
+              case (TableResult(columns), None) => columns
+              // concrete YIELD a, b, ...
+              case (TableResult(_), Some(yieldColumns)) => yieldColumns
+              // else
+              case _ => Seq.empty
+            }
+            val outgoing = incoming.amendedWith(resultColumns.toSet)
+            val declared = Declarations(Seq.empty, resultColumns)
+            incoming.noResultScope(outgoing, children, referenced, declared)
+
+          // Non-local callable
+          case None =>
+            (isStandalone, declaredResult) match {
+              // In standalone context
+              case (true, None) =>
+                // no YIELD and YIELD *
+                incoming.resultScope(incoming, TableResultWithNotYetKnownColumns, children, referenced)
+              case (true, Some(procedureResult)) =>
+                // concrete YIELD a, b, ...
+                val resultColumns = procedureResult.items.map(_.variable)
+                incoming.resultScope(
+                  incoming.amendedWith(resultColumns.toSet),
+                  TableResult(resultColumns),
+                  children,
+                  referenced,
+                  Declarations(Seq.empty, resultColumns)
+                )
+
+              // In inlined context
+              case (false, None) =>
+                // no YIELD  // TODO: This should be a NoResult, too
+                incoming.omittedResultScope(incoming, children, referenced)
+              case (false, Some(procedureResult)) =>
+                // concrete YIELD a, b, ...
+                val resultColumns = procedureResult.items.map(_.variable)
+                incoming.noResultScope(
+                  incoming.amendedWith(resultColumns.toSet),
+                  children,
+                  referenced,
+                  Declarations(Seq.empty, resultColumns)
+                )
+            }
         }
       // resolved named call
       case ResolvedCall(signature, callArguments, callResults, _, _, _, _) =>
@@ -408,20 +476,26 @@ object pegClause {
     incomingConstants: Set[LogicalVariable],
     resultingVariables: Seq[LogicalVariable],
     constantItems: Seq[ReturnItem],
-    clauseType: ClauseType
+    clauseType: ClauseType,
+    incomingLocalCallables: Set[LocalCallableScopeSignature]
   ): RegularContext = {
 
-    val (constants, variables) = clauseType match {
+    val (constants, variables, localCallables) = clauseType match {
       case _: ReturnType =>
-        (unitVariables, resultingVariables.filterNot(v => constantItems.exists(_.name == v.name)).toSet)
-
+        (
+          unitVariables,
+          resultingVariables.filterNot(v =>
+            constantItems.exists(_.name == v.name)
+          ).toSet,
+          Set.empty[LocalCallableScopeSignature]
+        )
       case _: YieldType =>
-        (unitVariables, resultingVariables.toSet)
+        (unitVariables, resultingVariables.toSet, incomingLocalCallables)
       case _: WithType =>
-        (incomingConstants, resultingVariables.toSet)
+        (incomingConstants, resultingVariables.toSet, incomingLocalCallables)
     }
 
-    RegularContext(constants, variables)
+    RegularContext(constants, variables, localCallables)
   }
 
   private def getProjectionResult(
@@ -494,7 +568,8 @@ object pegClause {
     val subclauseScopes = scopeSubclauses(subclauseIncoming, subclauses)
 
     val children = itemScopes ++ subclauseScopes
-    val outgoing = getProjectionOutgoing(incoming.constants, resultingVariables, constantItems, clauseType)
+    val outgoing =
+      getProjectionOutgoing(incoming.constants, resultingVariables, constantItems, clauseType, incoming.localCallables)
     val result = getProjectionResult(resultingVariables, clauseType)
     val declared = getProjectionDeclared(introducedVariables, clauseType)
     val referenced =

@@ -70,6 +70,7 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState]
     with ParsePipelineTransformerFactory {
 
   val unitVariables: Set[LogicalVariable] = Set.empty[LogicalVariable]
+  val noLocalCallables: Set[LocalCallableScopeSignature] = Set.empty[LocalCallableScopeSignature]
 
   private val namespacing: Regex = """[ ]{2}(?<varName>.*)@\d+""".r
 

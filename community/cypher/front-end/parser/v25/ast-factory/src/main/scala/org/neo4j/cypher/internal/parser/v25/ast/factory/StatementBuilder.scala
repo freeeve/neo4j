@@ -38,7 +38,7 @@ import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.Insert
 import org.neo4j.cypher.internal.ast.Limit
 import org.neo4j.cypher.internal.ast.LoadCSV
-import org.neo4j.cypher.internal.ast.LocalDefinition
+import org.neo4j.cypher.internal.ast.LocalCallableDefinition
 import org.neo4j.cypher.internal.ast.LocalFieldSignature
 import org.neo4j.cypher.internal.ast.LocalFunctionBody
 import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
@@ -173,7 +173,7 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitQueryWithLocalDefinitions(ctx: Cypher25Parser.QueryWithLocalDefinitionsContext): Unit = {
-    val definitions = astSeq[LocalDefinition](ctx.localDefinition())
+    val definitions = astSeq[LocalCallableDefinition](ctx.localDefinition())
     val query = ctx.nextStatement().ast[Query]()
     ctx.ast =
       if (definitions.isEmpty) query
@@ -181,7 +181,7 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitLocalDefinition(ctx: Cypher25Parser.LocalDefinitionContext): Unit = {
-    ctx.ast = ctxChild(ctx, 1).ast[LocalDefinition]()
+    ctx.ast = ctxChild(ctx, 1).ast[LocalCallableDefinition]()
   }
 
   final override def exitLocalProcedureDefinition(ctx: Cypher25Parser.LocalProcedureDefinitionContext): Unit = {

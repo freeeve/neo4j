@@ -194,7 +194,8 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
                 topologicalConstants = Set(varFor("n")),
                 predicateConstants = Set(varFor("n"), varFor("r")),
                 pathConstants = Set.empty,
-                groupConstants = Set.empty
+                groupConstants = Set.empty,
+                localCallables = Set.empty
               )
             )
           )
@@ -206,7 +207,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               aliasedReturnItem(varFor("x")),
-              RegularContext(constants = Set.empty, variables = Set(varFor("x")))
+              RegularContext(constants = Set.empty, variables = Set(varFor("x")), localCallables = Set.empty)
             )
           )
         )
@@ -217,11 +218,11 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               listOfInt(1, 2, 3),
-              RegularContext(constants = Set.empty, variables = Set.empty)
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty)
             ),
             mod(
               aliasedReturnItem(varFor("x")),
-              RegularContext(constants = Set.empty, variables = Set(varFor("x")))
+              RegularContext(constants = Set.empty, variables = Set(varFor("x")), localCallables = Set.empty)
             )
           )
         )
@@ -232,7 +233,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               unwind(listOfInt(1, 2, 3), varFor("x")),
-              RegularContext(constants = Set.empty, variables = Set.empty)
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty)
             )
           )
         )
@@ -243,7 +244,51 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               statement,
-              RegularContext(constants = Set.empty, variables = Set.empty)
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty)
+            )
+          )
+        )
+      }
+    }
+
+    withClue(
+      """=====
+        |DEFINED PROCEDURE proc() {
+        |  RETURN 1 AS a, 2 AS b
+        |}
+        |CALL proc() YIELD a AS a
+        |RETURN a AS a
+        |=====
+        |""".stripMargin
+    ) {
+      val statement = queryWithLocalDefinitions(
+        localProcedureDefinition("proc").body(
+          return_(aliasedReturnItem(literalInt(1), "a"), aliasedReturnItem(literalInt(2), "b"))
+        )
+      )(
+        singleQuery(
+          call(Seq.empty, "proc", yields = Some(Seq(varFor("a")))),
+          return_(aliasedReturnItem(varFor("a")))
+        )
+      )
+      test("modify local procedure definition return") {
+        shouldPickUpCacheModifications(
+          statement,
+          modify(
+            mod(
+              return_(aliasedReturnItem(literalInt(1), "a"), aliasedReturnItem(literalInt(2), "b")),
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty)
+            )
+          )
+        )
+      }
+      test("modify local procedure definition return item") {
+        shouldPickUpCacheModifications(
+          statement,
+          modify(
+            mod(
+              aliasedReturnItem(literalInt(2), "b"),
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty)
             )
           )
         )
@@ -272,7 +317,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               return_(AliasedReturnItem(literalInt(1), varFor("x"))(InputPosition(1, 1, 1))),
-              RegularContext(constants = Set.empty, variables = Set.empty),
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty),
               "first"
             )
           )
@@ -284,7 +329,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               return_(AliasedReturnItem(literalInt(1), varFor("x"))(InputPosition(2, 2, 2))),
-              RegularContext(constants = Set.empty, variables = Set.empty),
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty),
               "second"
             )
           )
@@ -296,12 +341,12 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               return_(AliasedReturnItem(literalInt(1), varFor("x"))(InputPosition(1, 1, 1))),
-              RegularContext(constants = Set.empty, variables = Set.empty),
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty),
               "first"
             ),
             mod(
               return_(AliasedReturnItem(literalInt(1), varFor("x"))(InputPosition(2, 2, 2))),
-              RegularContext(constants = Set.empty, variables = Set.empty),
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty),
               "second"
             )
           )
@@ -313,12 +358,12 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               return_(AliasedReturnItem(literalInt(1), varFor("x"))(InputPosition(2, 2, 2))),
-              RegularContext(constants = Set.empty, variables = Set.empty),
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty),
               "second"
             ),
             mod(
               return_(AliasedReturnItem(literalInt(1), varFor("x"))(InputPosition(1, 1, 1))),
-              RegularContext(constants = Set.empty, variables = Set.empty),
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty),
               "first"
             )
           )
@@ -364,7 +409,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               listOfInt(1, 4, 6),
-              RegularContext(constants = Set.empty, variables = Set.empty)
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty)
             )
           )
         )
@@ -373,7 +418,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               listOfInt(1, 4, 6),
-              RegularContext(constants = Set.empty, variables = Set.empty)
+              RegularContext(constants = Set.empty, variables = Set.empty, localCallables = Set.empty)
             )
           )
         )
@@ -384,7 +429,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               listOfInt(1, 2, 3),
-              RegularContext(constants = Set.empty, variables = Set(varFor("foo")))
+              RegularContext(constants = Set.empty, variables = Set(varFor("foo")), localCallables = Set.empty)
             )
           )
         )
@@ -393,7 +438,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               listOfInt(1, 2, 3),
-              RegularContext(constants = Set.empty, variables = Set(varFor("foo")))
+              RegularContext(constants = Set.empty, variables = Set(varFor("foo")), localCallables = Set.empty)
             )
           )
         )
@@ -404,7 +449,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               listOfInt(1, 2, 3),
-              RegularContext(constants = Set(varFor("foo")), variables = Set.empty)
+              RegularContext(constants = Set(varFor("foo")), variables = Set.empty, localCallables = Set.empty)
             )
           )
         )
@@ -413,7 +458,7 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           modify(
             mod(
               listOfInt(1, 2, 3),
-              RegularContext(constants = Set(varFor("foo")), variables = Set.empty)
+              RegularContext(constants = Set(varFor("foo")), variables = Set.empty, localCallables = Set.empty)
             )
           )
         )
@@ -465,12 +510,12 @@ class ScopeCachingTest extends VariableCheckingTestSuite with AstConstructionTes
           val mods = modify(
             mod(
               return1,
-              RegularContext(constants, variables),
+              RegularContext(constants, variables, Set.empty),
               "inner"
             ),
             mod(
               return2,
-              RegularContext(constants, variables),
+              RegularContext(constants, variables, Set.empty),
               "outer"
             )
           )

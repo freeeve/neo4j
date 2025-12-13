@@ -55,7 +55,7 @@ import org.neo4j.gqlstatus.GqlParams.StringParam
 case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
 
   private val redeclarationOfVariable: VariableCheck = {
-    case (acc, Scope.Clause.Declaring(astNode, incoming, Declarations(constants, variables), children))
+    case (acc, Scope.Clause.Declaring(astNode, incoming, Declarations(constants, variables, _), children))
       if !(constants.isEmpty && variables.isEmpty) =>
       // redeclaration of constants
       val redeclarationOfConstants =
@@ -94,7 +94,7 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
   }
 
   private val multipleReturnColumns: VariableCheck = {
-    case (acc, StatementScope(w: With, _, _, Declarations(_, variables), _, _, _)) =>
+    case (acc, StatementScope(w: With, _, _, Declarations(_, variables, _), _, _, _)) =>
       acc(findMultipleDeclarationsIn(variables, w))
     case (acc, StatementScope(y: Yield, _, _, _, _, TableResult(columns), _)) =>
       acc(findMultipleDeclarationsIn(columns, y))
@@ -196,7 +196,7 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
     )
 
   private val redeclarationOfVariablesInPatterns: VariableCheck = {
-    case (acc, Scope.Pattern.NamedPath(path, topo, Declarations(_, variables))) =>
+    case (acc, Scope.Pattern.NamedPath(path, topo, Declarations(_, variables, _))) =>
       acc((topo.filter(_.name == path.name) ++ variables.filter(x =>
         x.name == path.name && x.position != path.position
       ))
@@ -326,14 +326,14 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
           }
         )
 
-    case s @ PatternScope(_: RelationshipChain, _, _, Declarations(_, variables), _, _) => acc =>
+    case s @ PatternScope(_: RelationshipChain, _, _, Declarations(_, variables, _), _, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc =>
           TraverseChildrenNewAccForSiblings(
             if (_acc.hasPatternVariables) _acc else _acc.withPatternVariables(variables.toSet, inRelationship = true),
             acc => acc.inVariableContext(_acc.variableContext)
           )
         )
-    case s @ PatternScope(_: NodePattern, _, _, Declarations(_, variables), _, _) => acc =>
+    case s @ PatternScope(_: NodePattern, _, _, Declarations(_, variables, _), _, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc =>
           TraverseChildrenNewAccForSiblings(
             if (_acc.hasPatternVariables) _acc else _acc.withPatternVariables(variables.toSet),

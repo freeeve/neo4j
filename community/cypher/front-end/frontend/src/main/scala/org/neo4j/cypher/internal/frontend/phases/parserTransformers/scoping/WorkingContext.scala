@@ -22,17 +22,21 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor.noLocalCallables
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor.unitVariables
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 
 sealed trait WorkingContext {
   def allSymbols: Set[LogicalVariable]
+  val localCallables: Set[LocalCallableScopeSignature]
 }
 
 sealed trait RegularContext extends WorkingContext {
   val constants: Set[LogicalVariable]
   val variables: Set[LogicalVariable]
+  override val localCallables: Set[LocalCallableScopeSignature]
+
   lazy val constantsAndVariables: Set[LogicalVariable] = constants union variables
   override def allSymbols: Set[LogicalVariable] = constantsAndVariables
 
@@ -40,26 +44,37 @@ sealed trait RegularContext extends WorkingContext {
   @inline def isConstantsEmpty: Boolean = constants.isEmpty
   @inline def isVariablesEmpty: Boolean = variables.isEmpty
 
+  @inline def amendedWithLocalCallable(amendment: LocalCallableScopeSignature): RegularContext =
+    RegularContext(constants, variables, localCallables + amendment)
+
+  @inline def amendedWithLocalCallables(amendment: Set[LocalCallableScopeSignature]): RegularContext =
+    RegularContext(constants, variables, localCallables union amendment)
+
   @inline def amendedWithConstant(amendment: LogicalVariable): RegularContext =
-    RegularContext(constants + amendment, variables)
+    RegularContext(constants + amendment, variables, localCallables)
 
   @inline def amendedWithConstant(amendment: Set[LogicalVariable]): RegularContext =
-    RegularContext(constants union amendment, variables)
+    RegularContext(constants union amendment, variables, localCallables)
 
-  @inline def amendedWith(amendment: LogicalVariable): RegularContext = RegularContext(constants, variables + amendment)
+  @inline def amendedWith(amendment: LogicalVariable): RegularContext =
+    RegularContext(constants, variables + amendment, localCallables)
 
   @inline def amendedWith(amendment: Set[LogicalVariable]): RegularContext =
-    RegularContext(constants, variables union amendment)
+    RegularContext(constants, variables union amendment, localCallables)
 
   @inline def amendedWithGroupingKeys(
     groupingKeys: Set[Expression],
     inSubclause: Boolean
   ): AggregatingExpressionContext =
-    AggregatingExpressionContext(constants, variables, groupingKeys, inSubclause)
+    AggregatingExpressionContext(constants, variables, localCallables, groupingKeys, inSubclause)
 
-  @inline def constantChildContext(): RegularContext = RegularContext(constants union variables, unitVariables)
+  @inline def keepOnlyLocalCallable(): RegularContext = RegularContext(unitVariables, unitVariables, localCallables)
 
-  @inline def replaceWith(replacement: Set[LogicalVariable]): RegularContext = RegularContext(constants, replacement)
+  @inline def constantChildContext(): RegularContext =
+    RegularContext(constants union variables, unitVariables, localCallables)
+
+  @inline def replaceWith(replacement: Set[LogicalVariable]): RegularContext =
+    RegularContext(constants, replacement, localCallables)
 
   @inline def checkIfVariablesAreAlreadyDeclaredAsConstant(newVariables: Iterable[LogicalVariable])
     : Seq[SemanticError] = {
@@ -128,20 +143,6 @@ sealed trait RegularContext extends WorkingContext {
     StatementScope(astNode, this, referenced, declared, outgoing, result, children)
   }
 
-  @inline def forwardWithNoResultForward(children: Seq[WorkingScope] = WorkingScope.noChildren)(
-    implicit astNode: ASTNode
-  ): StatementScope = {
-    StatementScope(
-      astNode,
-      incoming = this,
-      referenced = WorkingScope.referencedInChildren(children),
-      declared = Declarations.noDeclarations,
-      outgoing = this,
-      NoResult,
-      children
-    )
-  }
-
   @inline def forwardWithOmittedResult(children: Seq[WorkingScope] = WorkingScope.noChildren)(
     implicit astNode: ASTNode
   ): StatementScope = {
@@ -199,18 +200,26 @@ sealed trait RegularContext extends WorkingContext {
 
 object RegularContext {
 
-  def apply(constants: Set[LogicalVariable], variables: Set[LogicalVariable]): CommonContext =
-    CommonContext(constants, variables)
+  def apply(
+    constants: Set[LogicalVariable],
+    variables: Set[LogicalVariable],
+    localCallables: Set[LocalCallableScopeSignature]
+  ): CommonContext =
+    CommonContext(constants, variables, localCallables)
 
-  def unit: RegularContext = RegularContext(unitVariables, unitVariables)
-  def unitWithConstants(constants: Set[LogicalVariable]): RegularContext = RegularContext(constants, unitVariables)
+  def unit: RegularContext = RegularContext(unitVariables, unitVariables, noLocalCallables)
 }
 
-case class CommonContext(constants: Set[LogicalVariable], variables: Set[LogicalVariable]) extends RegularContext
+case class CommonContext(
+  constants: Set[LogicalVariable],
+  variables: Set[LogicalVariable],
+  localCallables: Set[LocalCallableScopeSignature]
+) extends RegularContext
 
 case class AggregatingExpressionContext(
   constants: Set[LogicalVariable],
   variables: Set[LogicalVariable],
+  localCallables: Set[LocalCallableScopeSignature],
   groupingKeys: Set[Expression],
   inSubclause: Boolean
 ) extends RegularContext {
@@ -221,7 +230,7 @@ case class AggregatingExpressionContext(
       case v: LogicalVariable => v
       case expr: Expression   => Variable(stringifier(expr))(expr.position, isIsolated = false)
     }
-    RegularContext(constants union variables union groupingVars, unitVariables)
+    RegularContext(constants union variables union groupingVars, unitVariables, localCallables)
   }
 }
 
@@ -229,7 +238,8 @@ case class PatternIncomingContext(
   topologicalConstants: Set[LogicalVariable],
   predicateConstants: Set[LogicalVariable],
   pathConstants: Set[LogicalVariable],
-  groupConstants: Set[LogicalVariable]
+  groupConstants: Set[LogicalVariable],
+  override val localCallables: Set[LocalCallableScopeSignature]
 ) extends WorkingContext {
 
   override def allSymbols: Set[LogicalVariable] =
@@ -240,7 +250,8 @@ case class PatternIncomingContext(
       topologicalConstants + amendment,
       predicateConstants,
       pathConstants,
-      groupConstants
+      groupConstants,
+      localCallables
     )
 
   @inline def amendedWithTopologicalConstants(amendment: Set[LogicalVariable]): PatternIncomingContext =
@@ -248,7 +259,8 @@ case class PatternIncomingContext(
       topologicalConstants union amendment,
       predicateConstants,
       pathConstants,
-      groupConstants
+      groupConstants,
+      localCallables
     )
 
   @inline def amendedWithConstantsAccordingToVersion(
@@ -260,7 +272,8 @@ case class PatternIncomingContext(
       // CREATE/MERGE pattern in Cypher5 where predicates of pattern part can refer to variables introduce in earlier pattern parts
       if (version == CypherVersion.Cypher5) predicateConstants + amendment else predicateConstants,
       pathConstants,
-      groupConstants
+      groupConstants,
+      localCallables
     )
 
   @inline def amendedWithConstantAccordingToVersion(
@@ -272,7 +285,8 @@ case class PatternIncomingContext(
       // CREATE/MERGE pattern in Cypher5 where predicates of pattern part can refer to variables introduce in earlier pattern parts
       if (version == CypherVersion.Cypher5) predicateConstants union amendment else predicateConstants,
       pathConstants,
-      groupConstants
+      groupConstants,
+      localCallables
     )
 
   @inline def amendedWithPredicateConstant(amendment: LogicalVariable): PatternIncomingContext =
@@ -280,18 +294,20 @@ case class PatternIncomingContext(
       topologicalConstants + amendment,
       predicateConstants,
       pathConstants,
-      groupConstants
+      groupConstants,
+      localCallables
     )
 
   @inline def removePathConstants(): PatternIncomingContext =
-    PatternIncomingContext(topologicalConstants, predicateConstants, unitVariables, groupConstants)
+    PatternIncomingContext(topologicalConstants, predicateConstants, unitVariables, groupConstants, localCallables)
 
   @inline def addPathConstants(amendment: Set[LogicalVariable]): PatternIncomingContext =
     PatternIncomingContext(
       topologicalConstants,
       predicateConstants,
       pathConstants ++ amendment,
-      groupConstants
+      groupConstants,
+      localCallables
     )
 
   @inline def addGroupConstants(amendment: Set[LogicalVariable]): PatternIncomingContext =
@@ -299,7 +315,8 @@ case class PatternIncomingContext(
       topologicalConstants,
       predicateConstants,
       pathConstants,
-      groupConstants ++ amendment
+      groupConstants ++ amendment,
+      localCallables
     )
 
   @inline def resultScope(
@@ -317,13 +334,14 @@ case class PatternIncomingContext(
   def toRegularContext: RegularContext =
     RegularContext(
       constants = topologicalConstants union predicateConstants union pathConstants,
-      variables = unitVariables
+      variables = unitVariables,
+      localCallables = localCallables
     )
 }
 
 object PatternIncomingContext {
 
   def unit: PatternIncomingContext =
-    PatternIncomingContext(unitVariables, unitVariables, unitVariables, unitVariables)
+    PatternIncomingContext(unitVariables, unitVariables, unitVariables, unitVariables, noLocalCallables)
 
 }

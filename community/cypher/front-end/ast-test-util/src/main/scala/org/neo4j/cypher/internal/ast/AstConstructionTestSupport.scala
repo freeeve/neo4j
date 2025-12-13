@@ -1091,10 +1091,10 @@ trait AstConstructionTestSupport {
     FunctionInvocation(FunctionName(Relationships.name)(p.position), p)(p.position)
   }
 
-  def queryWithLocalDefinitions(definitions: LocalDefinition*)(query: Query): QueryWithLocalDefinitions =
+  def queryWithLocalDefinitions(definitions: LocalCallableDefinition*)(query: Query): QueryWithLocalDefinitions =
     QueryWithLocalDefinitions(definitions, query)(pos)
 
-  def singleQueryWithLocalDefinitions(definitions: LocalDefinition*)(cs: Clause*): QueryWithLocalDefinitions =
+  def singleQueryWithLocalDefinitions(definitions: LocalCallableDefinition*)(cs: Clause*): QueryWithLocalDefinitions =
     QueryWithLocalDefinitions(definitions, SingleQuery(cs)(pos))(pos)
 
   def localProcedureDefinition(

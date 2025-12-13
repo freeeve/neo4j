@@ -183,7 +183,7 @@ trait VariableCheckerUtil {
         def unapply(scope: WorkingScope)
           : Option[(LogicalVariable, Set[LogicalVariable], Set[LogicalVariable], Set[Expression])] =
           scope match {
-            case ExpressionScope(v: LogicalVariable, AggregatingExpressionContext(const, vars, keys, _), _, _, _) =>
+            case ExpressionScope(v: LogicalVariable, AggregatingExpressionContext(const, vars, _, keys, _), _, _, _) =>
               Some((v, const, vars, keys))
             case _ => None
           }
@@ -195,7 +195,7 @@ trait VariableCheckerUtil {
         def unapply(scope: WorkingScope)
           : Option[(Property, Set[Expression])] =
           scope match {
-            case ExpressionScope(p: Property, AggregatingExpressionContext(_, _, keys, _), _, _, Seq()) =>
+            case ExpressionScope(p: Property, AggregatingExpressionContext(_, _, _, keys, _), _, _, Seq()) =>
               Some((p, keys))
             case _ => None
           }

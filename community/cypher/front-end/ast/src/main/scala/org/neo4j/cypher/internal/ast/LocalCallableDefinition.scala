@@ -35,8 +35,9 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CypherType
 
-sealed trait LocalDefinition extends ASTNode with SemanticCheckable with SemanticAnalysisTooling {
+sealed trait LocalCallableDefinition extends ASTNode with SemanticCheckable with SemanticAnalysisTooling {
   def name: CallableName
+  def inputSignature: Seq[LocalFieldSignature]
   def position: InputPosition
 
   def semanticCheckInputSignature(inputSignature: Seq[LocalFieldSignature]): SemanticCheck =
@@ -60,7 +61,7 @@ case class LocalProcedureDefinition(
   inputSignature: Seq[LocalFieldSignature],
   outputSignature: Option[Seq[LocalFieldSignature]],
   body: Query
-)(val position: InputPosition) extends LocalDefinition {
+)(val position: InputPosition) extends LocalCallableDefinition {
 
   override def semanticCheck: SemanticCheck = {
     for {
@@ -105,7 +106,7 @@ case class LocalFunctionDefinition(
   inputSignature: Seq[LocalFieldSignature],
   outputSignature: Option[CypherType],
   body: LocalFunctionBody
-)(val position: InputPosition) extends LocalDefinition {
+)(val position: InputPosition) extends LocalCallableDefinition {
 
   override def semanticCheck: SemanticCheck = {
     for {

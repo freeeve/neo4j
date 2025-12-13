@@ -291,6 +291,33 @@ class DefineLocalProcedureTest extends AstParsingTestBase {
   }
 
   test(
+    """DEFINE PROCEDURE foo.bar(x :: INT, y :: INT | FLOAT = 1) :: () {
+      |  RETURN x + 1 * y AS one
+      |}
+      |
+      |CALL foo.bar(1)
+      |RETURN one""".stripMargin
+  ) {
+    parsesToStatement(
+      singleQueryWithLocalDefinitions(
+        localProcedureDefinition(
+          Seq("foo"),
+          "bar",
+          localFieldSignature("x", CTInteger),
+          localFieldSignature("y", ClosedDynamicUnionType(Set(CTInteger, CTFloat))(pos), literalInt(1))
+        ).out().body(
+          return_(
+            aliasedReturnItem(add(varFor("x"), multiply(literalInt(1), varFor("y"))), "one")
+          )
+        )
+      )(
+        call(Seq("foo"), "bar", Some(Seq(literalInt(1)))),
+        return_(returnItem(varFor("one"), "one"))
+      )
+    )
+  }
+
+  test(
     """DEFINE PROCEDURE foo.bar(x :: INT, y :: INT | FLOAT = 1) :: (one :: INT | FLOAT) {
       |  RETURN x + 1 * y AS one
       |}

@@ -20,8 +20,13 @@ import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
+import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.FreeProjection
+import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
+import org.neo4j.cypher.internal.ast.LocalProcedureDefinition
 import org.neo4j.cypher.internal.ast.NextStatement
+import org.neo4j.cypher.internal.ast.QueryBody
+import org.neo4j.cypher.internal.ast.QueryWithLocalDefinitions
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -30,6 +35,8 @@ import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Yield
+import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 
 object pegStatement {
@@ -45,6 +52,43 @@ object pegStatement {
       /**
        * Statement
        */
+      case QueryWithLocalDefinitions(definitions, query) =>
+        val definitionsChildren = definitions.scanLeft(WorkingScope.apriori(incoming.keepOnlyLocalCallable())) {
+          case (previous, lcd) =>
+            val bodyIncoming = previous.outgoing.amendedWithConstant(lcd.inputSignature.map(lfs =>
+              Variable(lfs.name)(lfs.position, Variable.isIsolatedDefault).asInstanceOf[LogicalVariable]
+            ).toSet)
+            val (bodyChild, definitionResult) = lcd match {
+              case LocalProcedureDefinition(_, _, outputSignatureOpt, body) =>
+                val bodyChild = apply(body, bodyIncoming)
+                val definitionResult = outputSignatureOpt.map(outputSignature =>
+                  TableResult(outputSignature.map(lfs =>
+                    Variable(lfs.name)(lfs.position, Variable.isIsolatedDefault).asInstanceOf[LogicalVariable]
+                  ))
+                ).getOrElse(bodyChild.result)
+                (bodyChild, definitionResult)
+              case LocalFunctionDefinition(_, _, _, body) =>
+                val bodyChild = body match {
+                  case QueryBody(query)           => apply(query, bodyIncoming)
+                  case ExpressionBody(expression) => pegExpression(expression, bodyIncoming)
+                }
+                val definitionResult = ExpressionResult
+                (bodyChild, definitionResult)
+            }
+            val localCallableScopeSignature = LocalCallableScopeSignature(lcd.name, definitionResult)
+            val referenced = Some(Set.empty[LogicalVariable])
+            val declared = Declarations.ofLocalCallable(localCallableScopeSignature)
+            val outgoing = previous.outgoing.amendedWithLocalCallable(localCallableScopeSignature)
+            implicit val astNode: ASTNode = lcd
+            previous.outgoing.noResultScope(outgoing, Seq(bodyChild), referenced, declared)
+        }.tail
+        val queryIncoming = definitionsChildren.lastOption.map(definitionChild =>
+          incoming.amendedWithLocalCallables(definitionChild.outgoing.localCallables)
+        ).getOrElse(incoming)
+        val queryChild = apply(query, queryIncoming)
+        val outgoing = queryChild.outgoing.amendedWithLocalCallables(incoming.localCallables)
+        val children = definitionsChildren :+ queryChild
+        incoming.resultScope(outgoing, queryChild.result, children)
       case NextStatement(queries) =>
         val children = queries.foldLeft(Seq(WorkingScope.apriori(incoming))) {
           case (previous, query) =>

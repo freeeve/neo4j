@@ -58,7 +58,8 @@ object pegPattern {
         case _: ForMatch  => collectPathVariables(pattern)
         case _: ForUpdate => Set.empty
       },
-      groupConstants = Set.empty
+      groupConstants = Set.empty,
+      localCallables = incoming.localCallables
     )
     val children =
       pattern.patternParts.scanLeft(WorkingScope.aprioriPattern(patternIncomingContext, RegularContext.unit)) {
@@ -89,7 +90,8 @@ object pegPattern {
       topologicalConstants = incoming.constants,
       predicateConstants = incoming.constants,
       pathConstants = Set.empty,
-      groupConstants = Set.empty
+      groupConstants = Set.empty,
+      localCallables = incoming.localCallables
     )
     scopePatternPart(patternPart, patternIncomingContext)
   }
@@ -105,7 +107,8 @@ object pegPattern {
       predicateConstants =
         incoming.constants union (collectVisibleVariablesOfPatternElement(patternElement) diff incoming.constants),
       pathConstants = Set.empty,
-      groupConstants = Set.empty
+      groupConstants = Set.empty,
+      localCallables = incoming.localCallables
     )
     scopePatternElement(patternElement, patternIncomingContext)
   }
@@ -297,7 +300,8 @@ object pegPattern {
       astNode,
       RegularContext(
         constants = incoming.predicateConstants union incoming.pathConstants,
-        variables = ScopeSurveyor.unitVariables
+        variables = ScopeSurveyor.unitVariables,
+        localCallables = incoming.localCallables
       ),
       c
     )

@@ -1604,7 +1604,10 @@ case object QueryWithLocalDefinitions extends UnaliasedNotAllowed {
   override val msg: String = "DEFINE"
 }
 
-case class QueryWithLocalDefinitions(definitions: Seq[LocalDefinition], query: Query)(val position: InputPosition)
+case class QueryWithLocalDefinitions(
+  definitions: Seq[LocalCallableDefinition],
+  query: Query
+)(val position: InputPosition)
     extends Query {
 
   override def containsUpdates: Boolean = query.containsUpdates

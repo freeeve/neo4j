@@ -112,6 +112,7 @@ import org.neo4j.cypher.internal.ast.LoadCSV
 import org.neo4j.cypher.internal.ast.LoadCidrQualifier
 import org.neo4j.cypher.internal.ast.LoadPrivilege
 import org.neo4j.cypher.internal.ast.LoadUrlQualifier
+import org.neo4j.cypher.internal.ast.LocalCallableDefinition
 import org.neo4j.cypher.internal.ast.LocalFieldSignature
 import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
 import org.neo4j.cypher.internal.ast.LocalProcedureDefinition
@@ -308,6 +309,8 @@ case class Prettifier(
     case c: AdministrationCommand => asString(c)
     case _                        => throw new IllegalStateException(s"Unknown statement: $statement")
   }
+
+  def asString(localCallableDefinition: LocalCallableDefinition): String = base.asString(localCallableDefinition)
 
   def asString(search: Search): String = base.asString(search)
 
@@ -1074,33 +1077,36 @@ case class Prettifier(
         case NextStatement(queries) =>
           queries.map(query).mkString(s"$NL$NL${INDENT}NEXT$NL$NL")
         case QueryWithLocalDefinitions(definitions, q) =>
-          def stringifyLFS(lfs: LocalFieldSignature): String = {
-            val defaultStr = lfs.default.map(d => s" = ${expr(d)}").getOrElse("")
-            val typeStr = lfs.typ.map(t => s" :: ${t.description}").getOrElse("")
-            s"${lfs.name}$typeStr$defaultStr"
-          }
-          val defs = definitions.map(ld => {
-            val ldStr = ld match {
-              case LocalProcedureDefinition(name, inputSignature, outputSignature, procedureBody) =>
-                val procedureName = expr(name)
-                val in = inputSignature.map(stringifyLFS).mkString("(", ", ", ")")
-                val out = outputSignature.map(_.map(stringifyLFS).mkString(" :: (", ", ", ")")).getOrElse("")
-                val body = s"{$NL${indented().query(procedureBody)}$NL$INDENT}"
-                s"PROCEDURE $procedureName$in$out $body"
-              case LocalFunctionDefinition(name, inputSignature, outputSignature, functionBody) =>
-                val functionName = expr(name)
-                val in = inputSignature.map(stringifyLFS).mkString("(", ", ", ")")
-                val out = outputSignature.map(t => s" :: ${t.description}").getOrElse("")
-                val body = functionBody match {
-                  case ExpressionBody(ex) => s"= ${expr(ex)}"
-                  case QueryBody(qu)      => s"{$NL${indented().query(qu)}$NL$INDENT}"
-                }
-                s"FUNCTION $functionName$in$out $body"
-            }
-            s"${INDENT}DEFINE $ldStr"
-          }).mkString(NL)
+          val defs = definitions.map(asString).mkString(NL)
           s"$defs$NL$NL${query(q)}"
       }
+
+    def asString(lfs: LocalFieldSignature): String = {
+      val defaultStr = lfs.default.map(d => s" = ${expr(d)}").getOrElse("")
+      val typeStr = lfs.typ.map(t => s" :: ${t.description}").getOrElse("")
+      s"${lfs.name}$typeStr$defaultStr"
+    }
+
+    def asString(lcd: LocalCallableDefinition): String = {
+      val ldStr = lcd match {
+        case LocalProcedureDefinition(name, inputSignature, outputSignature, procedureBody) =>
+          val procedureName = expr(name)
+          val in = inputSignature.map(asString).mkString("(", ", ", ")")
+          val out = outputSignature.map(_.map(asString).mkString(" :: (", ", ", ")")).getOrElse("")
+          val body = s"{$NL${indented().query(procedureBody)}$NL$INDENT}"
+          s"PROCEDURE $procedureName$in$out $body"
+        case LocalFunctionDefinition(name, inputSignature, outputSignature, functionBody) =>
+          val functionName = expr(name)
+          val in = inputSignature.map(asString).mkString("(", ", ", ")")
+          val out = outputSignature.map(t => s" :: ${t.description}").getOrElse("")
+          val body = functionBody match {
+            case ExpressionBody(ex) => s"= ${expr(ex)}"
+            case QueryBody(qu)      => s"{$NL${indented().query(qu)}$NL$INDENT}"
+          }
+          s"FUNCTION $functionName$in$out $body"
+      }
+      s"${INDENT}DEFINE $ldStr"
+    }
 
     def asString(clause: Clause): String = dispatch(clause)
 

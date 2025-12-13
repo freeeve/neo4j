@@ -127,7 +127,9 @@ case class PatternScope(
   children: Seq[WorkingScope] = WorkingScope.noChildren
 ) extends WorkingScope {
   override def incoming: RegularContext = patternIncoming.toRegularContext
-  override def outgoing: RegularContext = RegularContext(ScopeSurveyor.unitVariables, result.columns.toSet)
+
+  override def outgoing: RegularContext =
+    RegularContext(ScopeSurveyor.unitVariables, result.columns.toSet, ScopeSurveyor.noLocalCallables)
   def withAstNode(astNode: ASTNode): PatternScope = copy(astNode = astNode)
   override def withChildren(children: Seq[WorkingScope]): PatternScope = copy(children = children)
   override def withReferenced(referenced: Set[LogicalVariable]): PatternScope = copy(referenced = referenced)
@@ -186,7 +188,11 @@ case object OmittedResult extends Result
 case object NoResult extends Result
 case object ExpressionResult extends Result
 
-case class Declarations(constants: Seq[LogicalVariable], variables: Seq[LogicalVariable]) {
+case class Declarations(
+  constants: Seq[LogicalVariable],
+  variables: Seq[LogicalVariable],
+  localCallables: Seq[LocalCallableScopeSignature] = Seq.empty
+) {
   @inline def isEmpty: Boolean = isVariablesEmpty && isConstantsEmpty
   @inline def isConstantsEmpty: Boolean = constants.isEmpty
   @inline def isVariablesEmpty: Boolean = variables.isEmpty
@@ -196,5 +202,10 @@ case class Declarations(constants: Seq[LogicalVariable], variables: Seq[LogicalV
 }
 
 object Declarations {
-  def noDeclarations: Declarations = Declarations(Seq.empty[LogicalVariable], Seq.empty[LogicalVariable])
+
+  def noDeclarations: Declarations =
+    Declarations(Seq.empty[LogicalVariable], Seq.empty[LogicalVariable], Seq.empty[LocalCallableScopeSignature])
+
+  def ofLocalCallable(localCallableScopeSignature: LocalCallableScopeSignature) =
+    Declarations(Seq.empty[LogicalVariable], Seq.empty[LogicalVariable], Seq(localCallableScopeSignature))
 }

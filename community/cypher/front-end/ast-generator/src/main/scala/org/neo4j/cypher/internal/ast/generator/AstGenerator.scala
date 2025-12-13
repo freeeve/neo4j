@@ -197,7 +197,7 @@ import org.neo4j.cypher.internal.ast.LoadPrivilege
 import org.neo4j.cypher.internal.ast.LoadPrivilegeQualifier
 import org.neo4j.cypher.internal.ast.LoadUrlAction
 import org.neo4j.cypher.internal.ast.LoadUrlQualifier
-import org.neo4j.cypher.internal.ast.LocalDefinition
+import org.neo4j.cypher.internal.ast.LocalCallableDefinition
 import org.neo4j.cypher.internal.ast.LocalFieldSignature
 import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
 import org.neo4j.cypher.internal.ast.LocalProcedureDefinition
@@ -2061,7 +2061,7 @@ class AstGenerator(
       1 -> lzy(_next)
     )
 
-  def _localDefinition: Gen[LocalDefinition] = for {
+  def _localDefinition: Gen[LocalCallableDefinition] = for {
     definition <- oneOf(
       _localProcedureDefinition,
       _localFunctionDefinition

@@ -193,6 +193,10 @@ object Arguments {
     override def name = "incoming variables"
   }
 
+  case class IncomingCallables(value: String) extends Argument {
+    override def name = "incoming local callable"
+  }
+
   case class IncomingGroupingKeys(value: String) extends Argument {
     override def name = "incoming grouping keys"
   }
@@ -221,6 +225,10 @@ object Arguments {
     override def name = "declared variables"
   }
 
+  case class DeclaredCallables(value: String) extends Argument {
+    override def name = "declared local callable"
+  }
+
   case class ResultColumns(value: String) extends Argument {
     override def name = "result columns"
   }
@@ -231,6 +239,10 @@ object Arguments {
 
   case class OutgoingVariables(value: String) extends Argument {
     override def name = "outgoing variables"
+  }
+
+  case class OutgoingCallables(value: String) extends Argument {
+    override def name = "outgoing local callable"
   }
 
   case class Comment(value: String) extends Argument {

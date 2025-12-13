@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Comm
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Declarations
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionScope
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.LocalCallableScopeSignature
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.NoResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.OmittedResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.PatternIncomingContext
@@ -52,14 +53,17 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Work
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.plandescription.Arguments.Comment
+import org.neo4j.cypher.internal.plandescription.Arguments.DeclaredCallables
 import org.neo4j.cypher.internal.plandescription.Arguments.DeclaredConstants
 import org.neo4j.cypher.internal.plandescription.Arguments.DeclaredVariables
+import org.neo4j.cypher.internal.plandescription.Arguments.IncomingCallables
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingConstants
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingGroupingKeys
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPath
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPredicate
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingTopology
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingVariables
+import org.neo4j.cypher.internal.plandescription.Arguments.OutgoingCallables
 import org.neo4j.cypher.internal.plandescription.Arguments.OutgoingConstants
 import org.neo4j.cypher.internal.plandescription.Arguments.OutgoingVariables
 import org.neo4j.cypher.internal.plandescription.Arguments.Referenced
@@ -169,18 +173,21 @@ object WorkingScope2PlanDescription {
 
   private def renderIncoming(incoming: WorkingContext): Seq[Argument] = {
     incoming match {
-      case CommonContext(constants, variables) => Seq(
-          IncomingConstants(renderVariableSet(constants)),
-          IncomingVariables(renderVariableSet(variables))
-        )
-      case PatternIncomingContext(topology, predicate, path, _) => Seq(
-          IncomingTopology(renderVariableSet(topology)),
-          IncomingPredicate(renderVariableSet(predicate)),
-          IncomingPath(renderVariableSet(path))
-        )
-      case AggregatingExpressionContext(constants, variables, groupingKeys, _) => Seq(
+      case CommonContext(constants, variables, localCallables) => Seq(
           IncomingConstants(renderVariableSet(constants)),
           IncomingVariables(renderVariableSet(variables)),
+          IncomingCallables(renderCallableSet(localCallables))
+        )
+      case PatternIncomingContext(topology, predicate, path, _, localCallables) => Seq(
+          IncomingTopology(renderVariableSet(topology)),
+          IncomingPredicate(renderVariableSet(predicate)),
+          IncomingPath(renderVariableSet(path)),
+          IncomingCallables(renderCallableSet(localCallables))
+        )
+      case AggregatingExpressionContext(constants, variables, localCallables, groupingKeys, _) => Seq(
+          IncomingConstants(renderVariableSet(constants)),
+          IncomingVariables(renderVariableSet(variables)),
+          IncomingCallables(renderCallableSet(localCallables)),
           IncomingGroupingKeys(renderExpressionSet(groupingKeys))
         )
     }
@@ -188,11 +195,13 @@ object WorkingScope2PlanDescription {
 
   private def renderDeclaration(declarations: Declarations): Seq[Argument] = {
     declarations match {
-      case Declarations(constants, variables) if constants.isEmpty && variables.isEmpty => Seq.empty
-      case Declarations(constants, variables) =>
+      case Declarations(constants, variables, localCallables)
+        if constants.isEmpty && variables.isEmpty && localCallables.isEmpty => Seq.empty
+      case Declarations(constants, variables, localCallables) =>
         Seq(
           DeclaredConstants(renderVariableSeq(constants)),
-          DeclaredVariables(renderVariableSeq(variables))
+          DeclaredVariables(renderVariableSeq(variables)),
+          DeclaredCallables(renderCallableSeq(localCallables))
         )
     }
   }
@@ -225,7 +234,8 @@ object WorkingScope2PlanDescription {
     outgoing match {
       case rc: RegularContext => Seq(
           OutgoingConstants(renderVariableSet(rc.constants)),
-          OutgoingVariables(renderVariableSet(rc.variables))
+          OutgoingVariables(renderVariableSet(rc.variables)),
+          OutgoingCallables(renderCallableSet(rc.localCallables))
         )
       case _ => Seq.empty
     }
@@ -234,12 +244,20 @@ object WorkingScope2PlanDescription {
     variables.toSeq.sortBy(_.position.offset).map(renderVariable).mkString(", ")
   }
 
+  private def renderCallableSet(callables: Set[LocalCallableScopeSignature]): String = {
+    callables.toSeq.sortBy(_.name.fullName).map(renderCallable).mkString(", ")
+  }
+
   private def renderExpressionSet(expressions: Set[Expression]): String = {
     renderExpressionSeq(expressions.toSeq.sortBy(_.position.offset))
   }
 
   private def renderVariableSeq(variables: Seq[LogicalVariable]): String = {
     variables.map(renderVariable).mkString(", ")
+  }
+
+  private def renderCallableSeq(callables: Seq[LocalCallableScopeSignature]): String = {
+    callables.map(renderCallable).mkString(", ")
   }
 
   private def renderExpressionSeq(expressions: Seq[Expression]): String = {
@@ -253,4 +271,7 @@ object WorkingScope2PlanDescription {
 
   private def renderVariable(variable: LogicalVariable): String =
     variable.name
+
+  private def renderCallable(callable: LocalCallableScopeSignature): String =
+    callable.name.fullName
 }

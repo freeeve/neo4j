@@ -21,6 +21,8 @@ import org.neo4j.cypher.internal.ast.ASTAnnotationMap.PositionedNode
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
+import org.neo4j.cypher.internal.ast.Finish
+import org.neo4j.cypher.internal.ast.LocalCallableDefinition
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -28,6 +30,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Pattern
@@ -49,11 +52,13 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Comm
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Declarations
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ExpressionScope
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.LocalCallableScopeSignature
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.NoResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.OmittedResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.PatternIncomingContext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.PatternScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.RegularContext
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Result
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState.RecordedScopes
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.StatementScope
@@ -73,6 +78,7 @@ import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.scalatest.Assertion
 import org.scalatest.BeforeAndAfterAll
 
 import java.io.FileWriter
@@ -84,45 +90,66 @@ import scala.jdk.OptionConverters.RichOptional
 trait VariableCheckingTestSuite extends CypherFunSuite with TestName with BeforeAndAfterAll {
 
   val unit = Set.empty[String]
+  val noCallables = Set.empty[Callable]
+  val feature: Set[SemanticFeature] = Set.empty
 
   sealed trait ExpectedCharacteristic
+
   case class Ast(astNodeString: String) extends ExpectedCharacteristic
 
-  case class Incoming(constants: Set[String] = Set.empty, variables: Set[String] = Set.empty)
-      extends ExpectedCharacteristic
+  case class Callable(name: String, result: ExpectedCallableResult) extends ExpectedCharacteristic {
+    lazy val names: List[String] = name.split('.').toList
+    lazy val _name: String = names.last
+    lazy val _namespace: List[String] = names.dropRight(1)
+  }
+
+  case class Incoming(
+    constants: Set[String] = Set.empty,
+    variables: Set[String] = Set.empty,
+    localCallables: Set[Callable] = Set.empty
+  ) extends ExpectedCharacteristic
 
   case class AggregationIncoming(
     constants: Set[String] = Set.empty,
     variables: Set[String] = Set.empty,
+    localCallables: Set[Callable] = Set.empty,
     keys: Set[String] = Set.empty
   ) extends ExpectedCharacteristic
 
   case class PatternIncoming(
     topology: Set[String] = Set.empty,
     predicate: Set[String] = Set.empty,
-    path: Set[String] = Set.empty
+    path: Set[String] = Set.empty,
+    localCallables: Set[Callable] = Set.empty
   ) extends ExpectedCharacteristic
 
   case class Referenced(variables: Set[String]) extends ExpectedCharacteristic
 
-  case class Declared(constants: Seq[String] = Seq.empty, variables: Seq[String] = Seq.empty)
-      extends ExpectedCharacteristic
+  case class Declared(
+    constants: Seq[String] = Seq.empty,
+    variables: Seq[String] = Seq.empty,
+    localCallables: Seq[Callable] = Seq.empty
+  ) extends ExpectedCharacteristic
 
-  case class Outgoing(constants: Set[String] = Set.empty, variables: Set[String] = Set.empty)
-      extends ExpectedCharacteristic
+  case class Outgoing(
+    constants: Set[String] = Set.empty,
+    variables: Set[String] = Set.empty,
+    localCallables: Set[Callable] = Set.empty
+  ) extends ExpectedCharacteristic
 
   sealed trait ExpectedResult extends ExpectedCharacteristic
+  sealed trait ExpectedCallableResult extends ExpectedResult
 
   object ExpectedResult {
-    case class TableResult(columns: String*) extends ExpectedResult
+    case class TableResult(columns: String*) extends ExpectedCallableResult
 
     case object TableResultWithNotYetKnownColumns extends ExpectedResult
 
-    case object OmittedResult extends ExpectedResult
+    case object OmittedResult extends ExpectedCallableResult
 
     case object NoResult extends ExpectedResult
 
-    case object ExpressionResult extends ExpectedResult
+    case object ExpressionResult extends ExpectedCallableResult
   }
 
   case class ExpectedWorkingScope(expectedCharacteristics: ExpectedCharacteristic*) extends ExpectedCharacteristic
@@ -132,11 +159,12 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     def varExp(
       name: String,
       incomingConstants: Set[String],
-      incomingVariables: Set[String] = Set.empty
+      incomingVariables: Set[String] = Set.empty,
+      incomingCallables: Set[Callable] = Set.empty
     ): ExpectedWorkingScope =
       ExpectedWorkingScope(
         Ast(name),
-        Incoming(constants = incomingConstants, variables = incomingVariables),
+        Incoming(constants = incomingConstants, variables = incomingVariables, localCallables = incomingCallables),
         Referenced(Set(name))
       )
 
@@ -144,23 +172,33 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       name: String,
       incomingConstants: Set[String] = Set.empty,
       incomingVariables: Set[String] = Set.empty,
+      incomingCallables: Set[Callable] = Set.empty,
       incomingKeys: Set[String] = Set.empty
     ): ExpectedWorkingScope =
       ExpectedWorkingScope(
         Ast(name),
-        AggregationIncoming(constants = incomingConstants, variables = incomingVariables, keys = incomingKeys),
+        AggregationIncoming(
+          constants = incomingConstants,
+          variables = incomingVariables,
+          localCallables = incomingCallables,
+          keys = incomingKeys
+        ),
         Referenced(Set(name))
       )
 
-    def constExp(ast: String, incoming: Set[String] = Set.empty): ExpectedWorkingScope = {
-      if (incoming.isEmpty) {
+    def constExp(
+      ast: String,
+      incoming: Set[String] = Set.empty,
+      incomingCallables: Set[Callable] = Set.empty
+    ): ExpectedWorkingScope = {
+      if (incoming.isEmpty && incomingCallables.isEmpty) {
         ExpectedWorkingScope(
           Ast(ast)
         )
       } else {
         ExpectedWorkingScope(
           Ast(ast),
-          Incoming(constants = incoming)
+          Incoming(constants = incoming, localCallables = incomingCallables)
         )
       }
     }
@@ -169,15 +207,16 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
   private val prettifier: Prettifier = Prettifier(ExpressionStringifier())
 
   def prettify(astNode: ASTNode): String = (astNode match {
-    case s: Statement           => prettifier.asString(s)
-    case c: Clause              => prettifier.asString(SingleQuery(Seq(c))(InputPosition.NONE))
-    case s: Search              => prettifier.asString(s)
-    case ex: Expression         => prettifier.expr(ex)
-    case p: Pattern             => prettifier.expr.patterns(p)
-    case p: PatternPart         => prettifier.expr.patterns(p)
-    case p: PatternElement      => prettifier.expr.patterns(p)
-    case p: RelationshipPattern => prettifier.expr.patterns(p)
-    case lex: LabelExpression   => prettifier.expr.stringifyLabelExpression(lex)
+    case s: Statement               => prettifier.asString(s)
+    case d: LocalCallableDefinition => prettifier.asString(d)
+    case c: Clause                  => prettifier.asString(SingleQuery(Seq(c))(InputPosition.NONE))
+    case s: Search                  => prettifier.asString(s)
+    case ex: Expression             => prettifier.expr(ex)
+    case p: Pattern                 => prettifier.expr.patterns(p)
+    case p: PatternPart             => prettifier.expr.patterns(p)
+    case p: PatternElement          => prettifier.expr.patterns(p)
+    case p: RelationshipPattern     => prettifier.expr.patterns(p)
+    case lex: LabelExpression       => prettifier.expr.stringifyLabelExpression(lex)
     case cqb @ ConditionalQueryBranch(Some(_), _) =>
       prettifier.asString(ConditionalQueryWhen(Seq(cqb), None)(InputPosition.NONE))
     case cqb @ ConditionalQueryBranch(None, _) =>
@@ -688,24 +727,24 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }.getOrElse("—no expected ast node string given—")
     val incoming = expected.expectedCharacteristics.collectFirst {
       case i: Incoming => i
-    }.getOrElse(Incoming(unit, unit))
+    }.getOrElse(Incoming(unit, unit, noCallables))
     val aggregationIncoming = expected.expectedCharacteristics.collectFirst {
       case ai: AggregationIncoming => ai
-    }.getOrElse(AggregationIncoming(unit, unit, unit))
+    }.getOrElse(AggregationIncoming(unit, unit, noCallables, unit))
     val patternIncoming = expected.expectedCharacteristics.collectFirst {
       case pi: PatternIncoming => pi
-    }.getOrElse(PatternIncoming(unit, unit, unit))
+    }.getOrElse(PatternIncoming(unit, unit, unit, noCallables))
     val referenced = expected.expectedCharacteristics.collectFirst {
       case Referenced(refs) => refs
     }.getOrElse(unit)
     val declared = expected.expectedCharacteristics.collectFirst {
       case d: Declared => d
-    }.getOrElse(Declared(Seq.empty, Seq.empty))
+    }.getOrElse(Declared(Seq.empty, Seq.empty, Seq.empty))
     val outgoing = expected.expectedCharacteristics.collectFirst {
       case o: Outgoing => o
     }.getOrElse(ws.astNode match {
       // case _: Expression | _: LabelExpression => Outgoing(unit, unit)
-      case _ => Outgoing(unit, unit)
+      case _ => Outgoing(unit, unit, noCallables)
     })
     val result = expected.expectedCharacteristics.collectFirst {
       case r: ExpectedResult => r
@@ -717,12 +756,53 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       case c: ExpectedWorkingScope => c
     }
 
+    def assertResult(actualResult: Result, expectedResult: ExpectedResult): Assertion = {
+      (actualResult, result) match {
+        case (NoResult, ExpectedResult.NoResult)                                                   => succeed
+        case (ExpressionResult, ExpectedResult.ExpressionResult)                                   => succeed
+        case (OmittedResult, ExpectedResult.OmittedResult)                                         => succeed
+        case (TableResultWithNotYetKnownColumns, ExpectedResult.TableResultWithNotYetKnownColumns) => succeed
+        case (TableResult(columns), ExpectedResult.TableResult(expectedColumns @ _*)) =>
+          columns.map(_.name) should contain theSameElementsAs expectedColumns
+        case (actual, exp) => actual shouldBe exp
+      }
+    }
+
+    def assertLocalCallableSet(
+      actualCallables: Set[LocalCallableScopeSignature],
+      expectedCallables: Set[Callable]
+    ): Unit = {
+      assertLocalCallableSeq(
+        actualCallables.toSeq.sortBy(c => (c.name.namespace.parts :+ c.name.name).mkString("`", "`.`", "`")),
+        expectedCallables.toSeq.sortBy(c => (c._namespace :+ c._name).mkString("`", "`.`", "`"))
+      )
+    }
+
+    def assertLocalCallableSeq(
+      actualCallables: Seq[LocalCallableScopeSignature],
+      expectedCallables: Seq[Callable]
+    ): Unit = {
+      withClue("[number]") {
+        actualCallables.size shouldBe expectedCallables.size
+      }
+      (actualCallables zip expectedCallables) foreach {
+        case (actualCallable, expectedCallable) => assertLocalCallable(actualCallable, expectedCallable)
+      }
+    }
+
+    def assertLocalCallable(actualCallable: LocalCallableScopeSignature, expectedCallable: Callable): Assertion = {
+      withClue(s"[callable ${expectedCallable.name}]") {
+        actualCallable.name.namespace.parts should contain theSameElementsAs expectedCallable._namespace
+        actualCallable.name.name shouldBe expectedCallable._name
+      }
+    }
+
     withClue(s"['${prettify(ws.astNode)}']") {
       withClue("[query]") {
         whitespaceNormalization(prettify(ws.astNode)) shouldBe whitespaceNormalization(astNodeString)
       }
       ws match {
-        case StatementScope(_, CommonContext(constants, variables), _, _, _, _, _) =>
+        case StatementScope(_, CommonContext(constants, variables, localCallables), _, _, _, _, _) =>
           withClue("[statement incoming]") {
             withClue("[constants]") {
               constants.map(_.name) should contain theSameElementsAs incoming.constants
@@ -733,8 +813,19 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
             withClue("[invariance]") {
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
             }
+            withClue("[callables]") {
+              assertLocalCallableSet(localCallables, incoming.localCallables)
+            }
           }
-        case StatementScope(_, AggregatingExpressionContext(constants, variables, keys, _), _, _, _, _, _) =>
+        case StatementScope(
+            _,
+            AggregatingExpressionContext(constants, variables, localCallables, keys, _),
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
           withClue("[statement aggregation incoming]") {
             withClue("[constants]") {
               constants.map(_.name) should contain theSameElementsAs aggregationIncoming.constants
@@ -746,11 +837,14 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
               val stringifier = ExpressionStringifier()
               keys.map(k => stringifier(k)) should contain theSameElementsAs aggregationIncoming.keys
             }
+            withClue("[callables]") {
+              assertLocalCallableSet(localCallables, incoming.localCallables)
+            }
             withClue("[invariance]") {
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
             }
           }
-        case PatternScope(_, PatternIncomingContext(topology, predicate, path, _), _, _, _, _) =>
+        case PatternScope(_, PatternIncomingContext(topology, predicate, path, _, localCallables), _, _, _, _) =>
           withClue("[pattern incoming]") {
             withClue("[topology]") {
               topology.map(_.name) should contain theSameElementsAs patternIncoming.topology
@@ -761,12 +855,15 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
             withClue("[path]") {
               path.map(_.name) should contain theSameElementsAs patternIncoming.path
             }
+            withClue("[callables]") {
+              assertLocalCallableSet(localCallables, patternIncoming.localCallables)
+            }
             withClue("[invariance]") {
               (topology.map(_.name) intersect path.map(_.name)) shouldBe empty
               (predicate.map(_.name) intersect path.map(_.name)) shouldBe empty
             }
           }
-        case ExpressionScope(_, CommonContext(constants, variables), _, _, _) =>
+        case ExpressionScope(_, CommonContext(constants, variables, localCallables), _, _, _) =>
           withClue("[expression incoming]") {
             withClue("[constants]") {
               constants.map(_.name) should contain theSameElementsAs incoming.constants
@@ -774,11 +871,14 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
             withClue("[variables]") {
               variables.map(_.name) should contain theSameElementsAs incoming.variables
             }
+            withClue("[callables]") {
+              assertLocalCallableSet(localCallables, incoming.localCallables)
+            }
             withClue("[invariance]") {
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
             }
           }
-        case ExpressionScope(_, AggregatingExpressionContext(constants, variables, keys, _), _, _, _) =>
+        case ExpressionScope(_, AggregatingExpressionContext(constants, variables, localCallables, keys, _), _, _, _) =>
           withClue("[expression aggregation incoming]") {
             withClue("[constants]") {
               constants.map(_.name) should contain theSameElementsAs aggregationIncoming.constants
@@ -789,6 +889,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
             withClue("[keys]") {
               val stringifier = ExpressionStringifier()
               keys.map(k => stringifier(k)) should contain theSameElementsAs aggregationIncoming.keys
+            }
+            withClue("[callables]") {
+              assertLocalCallableSet(localCallables, incoming.localCallables)
             }
             withClue("[invariance]") {
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
@@ -817,6 +920,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         withClue("[invariance]") {
           (ws.declared.constants.map(_.name) intersect ws.declared.variables.map(_.name)) shouldBe empty
         }
+        withClue("[callables]") {
+          assertLocalCallableSeq(ws.declared.localCallables, declared.localCallables)
+        }
       }
       withClue("[outgoing]") {
         withClue("[constants]") {
@@ -828,24 +934,37 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         withClue("[invariance]") {
           (ws.outgoing.constants.map(_.name) intersect ws.outgoing.variables.map(_.name)) shouldBe empty
         }
+        withClue("[callables]") {
+          assertLocalCallableSet(ws.outgoing.localCallables, outgoing.localCallables)
+        }
         ws.astNode match {
-          case _: Return =>
+          case _: Return | _: Finish =>
             withClue("[RETURN invariance]") {
-              ws.outgoing.constants shouldBe empty
+              withClue("[constants]") {
+                ws.outgoing.constants shouldBe empty
+              }
+              withClue("[callables]") {
+                ws.outgoing.localCallables shouldBe empty
+              }
             }
-          case _ => ()
+          case _: Clause /* implicitly: if !_.isInstanceOf[Return] && !_.isInstanceOf[Finish] */ =>
+            withClue("[non-RETURN clause callable invariance]") {
+              ws.outgoing.localCallables shouldBe ws.incoming.localCallables
+            }
+          case _: LocalCallableDefinition =>
+            withClue("[local callable definition invariance]") {
+              withClue("[number: outgoing = incoming + 1]") {
+                ws.outgoing.localCallables.size shouldBe ws.incoming.localCallables.size + 1
+              }
+              withClue("[outgoing superset of incoming]") {
+                (ws.outgoing.localCallables intersect ws.incoming.localCallables) should contain theSameElementsAs ws.incoming.localCallables
+              }
+            }
+          case _ => succeed
         }
       }
       withClue("[result]") {
-        (ws.result, result) match {
-          case (NoResult, ExpectedResult.NoResult)                                                   => succeed
-          case (ExpressionResult, ExpectedResult.ExpressionResult)                                   => succeed
-          case (OmittedResult, ExpectedResult.OmittedResult)                                         => succeed
-          case (TableResultWithNotYetKnownColumns, ExpectedResult.TableResultWithNotYetKnownColumns) => succeed
-          case (TableResult(columns), ExpectedResult.TableResult(expectedColumns @ _*)) =>
-            columns.map(_.name) should contain theSameElementsAs expectedColumns
-          case (actual, exp) => actual shouldBe exp
-        }
+        assertResult(ws.result, result)
         ws.astNode match {
           case _: Return =>
             withClue("[RETURN invariance]") {
