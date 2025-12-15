@@ -128,7 +128,6 @@ import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.StorageFileSelection;
 import org.neo4j.storageengine.api.StorageLocks;
 import org.neo4j.storageengine.api.StorageReader;
-import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.api.enrichment.Enrichment;
@@ -759,11 +758,6 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     @VisibleForTesting
     public SchemaRuleAccess testAccessSchemaRules() {
         return schemaRuleAccess;
-    }
-
-    @Override
-    public StoreId retrieveStoreId() {
-        return metadataProvider().getStoreId();
     }
 
     @Override

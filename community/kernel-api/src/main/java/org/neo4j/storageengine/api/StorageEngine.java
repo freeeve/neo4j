@@ -181,8 +181,6 @@ public interface StorageEngine extends ReadableStorageEngine, Lifecycle {
      */
     Collection<Path> listStorageFiles(StorageFileSelection selection);
 
-    StoreId retrieveStoreId();
-
     /**
      * The life cycle that is used for initialising the token holders, and filling the schema cache.
      */

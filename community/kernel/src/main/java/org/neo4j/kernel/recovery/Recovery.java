@@ -706,7 +706,7 @@ public final class Recovery {
                 fs,
                 EMPTY_VISIBILITY_PROVIDER);
 
-        validateStoreId(logTailMetadata, storageEngine.retrieveStoreId());
+        validateStoreId(logTailMetadata, storageEngine.metadataProvider().getStoreId());
 
         TransactionMetadataCache metadataCache = new TransactionMetadataCache();
         PhysicalLogicalTransactionStore transactionStore = new PhysicalLogicalTransactionStore(

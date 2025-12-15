@@ -77,7 +77,6 @@ import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.StorageFileSelection;
 import org.neo4j.storageengine.api.StorageLocks;
 import org.neo4j.storageengine.api.StorageReader;
-import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.api.enrichment.Enrichment;
@@ -467,11 +466,6 @@ class ParallelRecoveryVisitorTest {
 
         @Override
         public Collection<Path> listStorageFiles(StorageFileSelection selection) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public StoreId retrieveStoreId() {
             throw new UnsupportedOperationException();
         }
 

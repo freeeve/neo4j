@@ -647,7 +647,7 @@ public class Database extends AbstractDatabase {
 
         databaseDependencies.resolveDependency(DbmsDiagnosticsManager.class).dumpDatabaseDiagnostics(this);
 
-        String format = storageEngine.retrieveStoreId().getFormatName();
+        String format = storageEngine.metadataProvider().getStoreId().getFormatName();
         if (storageEngineFactory.isDeprecated(format)) {
             internalLog.warn(DeprecatedFormatWarning.getFormatWarning(databaseLayout.getDatabaseName(), format));
         }
@@ -1217,7 +1217,7 @@ public class Database extends AbstractDatabase {
 
     @Override
     public StoreId getStoreId() {
-        return storageEngine.retrieveStoreId();
+        return storageEngine.metadataProvider().getStoreId();
     }
 
     @Override
