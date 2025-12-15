@@ -35,8 +35,8 @@ trait CypherExceptionFactory {
   }
 
   def insertExistsInOtherLanguageVersion(
-    unsupportedVersion: String,
-    supportedVersion: String,
+    unsupportedVersion: Int,
+    supportedVersion: Int,
     ex: SyntaxException
   ): RuntimeException = {
     val exceptionCause = ex.gqlStatusObject()
@@ -53,8 +53,8 @@ trait CypherExceptionFactory {
     val gql_42I67 =
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I67)
         .atPosition(offset, line, col)
-        .withParam(GqlParams.StringParam.feat1, unsupportedVersion)
-        .withParam(GqlParams.StringParam.feat2, supportedVersion).buildImpl()
+        .withParam(GqlParams.NumberParam.version1, unsupportedVersion)
+        .withParam(GqlParams.NumberParam.version2, supportedVersion).buildImpl()
 
     val gql = exceptionCause match {
       case c: ErrorGqlStatusObjectImplementation =>

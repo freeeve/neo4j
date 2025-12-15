@@ -3127,9 +3127,9 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I67(
             new GqlStatus("42I67"),
-            "The query is a valid `CYPHER { %s }` query, but it is run in `CYPHER { %s }`. Consider changing the database default Cypher version using `ALTER DATABASE SET DEFAULT LANGUAGE` or prefix the query with `CYPHER { %s }`.",
+            "The query is parsable in `CYPHER { %s }`, but it is run in `CYPHER { %s }`. Consider changing the database default Cypher version using `ALTER DATABASE SET DEFAULT LANGUAGE` or prefix the query with `CYPHER { %s }`.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.feat2, GqlParams.StringParam.feat1, GqlParams.StringParam.feat2
+                GqlParams.NumberParam.version2, GqlParams.NumberParam.version1, GqlParams.NumberParam.version2
             },
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,

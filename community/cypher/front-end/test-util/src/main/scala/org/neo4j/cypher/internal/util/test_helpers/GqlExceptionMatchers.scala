@@ -338,7 +338,7 @@ object GqlExceptionMatchers extends GqlExceptionMatchers {
 
   val Reparsesable_42I67: GqlExceptionMatcher = gqlStatus(
     GqlStatusInfoCodes.STATUS_42I67,
-    "error: syntax error or access rule violation - unsupported language feature. The query is a valid `CYPHER 25` query, but it is run in `CYPHER 5`. Consider changing the database default Cypher version using `ALTER DATABASE SET DEFAULT LANGUAGE` or prefix the query with `CYPHER 25`."
+    "error: syntax error or access rule violation - unsupported language feature. The query is parsable in `CYPHER 25`, but it is run in `CYPHER 5`. Consider changing the database default Cypher version using `ALTER DATABASE SET DEFAULT LANGUAGE` or prefix the query with `CYPHER 25`."
   )
 
   def functionArgumentGqlException(legacyMsg: String, func: String, msgPart: String): BeMatcher[Exception] = {

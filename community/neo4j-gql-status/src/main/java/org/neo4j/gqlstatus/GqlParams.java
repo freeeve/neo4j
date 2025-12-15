@@ -202,7 +202,9 @@ public class GqlParams {
         timeAmount(new NUM()), // Integral amount of some time unit
         tokenId(new NUM()), // Token id
         upper(new NUM()), // Upper bound
-        value(new VAL()); // Value
+        value(new VAL()), // Value
+        version1(new NUM()), // A version, for example, `25` in `CYPHER 25`.
+        version2(new NUM());
 
         public final Processor processor;
 

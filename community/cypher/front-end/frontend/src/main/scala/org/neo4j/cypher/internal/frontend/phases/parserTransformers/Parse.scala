@@ -77,7 +77,7 @@ case object Parse extends Phase[BaseContext, BaseState, BaseState]
             notificationLogger,
             semanticFeatures
           ).singleStatement()
-          throw exceptionFactory.insertExistsInOtherLanguageVersion("5", "25", e)
+          throw exceptionFactory.insertExistsInOtherLanguageVersion(5, 25, e)
         } catch {
           case _: Throwable => throw e
         }
