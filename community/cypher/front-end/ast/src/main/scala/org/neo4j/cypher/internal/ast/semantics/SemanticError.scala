@@ -2308,7 +2308,7 @@ object SemanticError {
     val exprString = ExpressionStringifier().apply(expr)
     SemanticError(
       GqlHelper.getGql42001_42I73(exprString, position.offset, position.line, position.column),
-      s"Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. '$exprString' does not fulfill this.",
+      s"Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. '$exprString' does not fulfill this.",
       position
     )
   }
@@ -2316,7 +2316,7 @@ object SemanticError {
   def singleStageWithInvalidVariable(variable1: String, variable2: String, position: InputPosition): SemanticError = {
     SemanticError(
       GqlHelper.getGql42001_42I74(variable1, variable2, position.offset, position.line, position.column),
-      s"The variable `$variable1` in a single-stage filter property predicate must be the same as the search clause binding variable `$variable2`.",
+      s"The variable `$variable1` in a graph metadata filter property predicate must be the same as the search clause binding variable `$variable2`.",
       position
     )
   }

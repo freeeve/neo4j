@@ -521,7 +521,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("true", 97 + optionalLength, 5, 11),
-          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'true' does not fulfill this.",
+          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'true' does not fulfill this.",
           p(97 + optionalLength, 5, 11).withInputLength(4)
         )
       )
@@ -541,7 +541,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("2008 < movie.year", 102 + optionalLength, 5, 16),
-          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. '2008 < movie.year' does not fulfill this.",
+          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. '2008 < movie.year' does not fulfill this.",
           p(102 + optionalLength, 5, 16)
         )
       )
@@ -561,7 +561,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("movie.imdbRating > 8 OR movie.year > 2010", 118 + optionalLength, 5, 32),
-          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'movie.imdbRating > 8 OR movie.year > 2010' does not fulfill this.",
+          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'movie.imdbRating > 8 OR movie.year > 2010' does not fulfill this.",
           p(118 + optionalLength, 5, 32)
         )
       )
@@ -581,7 +581,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("NOT movie.imdbRating = 8", 97 + optionalLength, 5, 11),
-          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'NOT movie.imdbRating = 8' does not fulfill this.",
+          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'NOT movie.imdbRating = 8' does not fulfill this.",
           p(97 + optionalLength, 5, 11)
         )
       )
@@ -601,7 +601,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("true", 122 + optionalLength, 5, 36),
-          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'true' does not fulfill this.",
+          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'true' does not fulfill this.",
           p(122 + optionalLength, 5, 36).withInputLength(4)
         )
       )
@@ -624,7 +624,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I74("m", "movie", 137 + optionalLength, 6, 11),
-          "The variable `m` in a single-stage filter property predicate must be the same as the search clause binding variable `movie`.",
+          "The variable `m` in a graph metadata filter property predicate must be the same as the search clause binding variable `movie`.",
           p(137 + optionalLength, 6, 11)
         )
       )
@@ -645,7 +645,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I74("m", "movie", 159 + optionalLength, 6, 33),
-          "The variable `m` in a single-stage filter property predicate must be the same as the search clause binding variable `movie`.",
+          "The variable `m` in a graph metadata filter property predicate must be the same as the search clause binding variable `movie`.",
           p(159 + optionalLength, 6, 33)
         )
       )
@@ -911,7 +911,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("movie.imdbRating <> 8", 114 + optionalLength, 5, 28),
-          "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'movie.imdbRating <> 8' does not fulfill this.",
+          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'movie.imdbRating <> 8' does not fulfill this.",
           p(114 + optionalLength, 5, 28)
         )
       )

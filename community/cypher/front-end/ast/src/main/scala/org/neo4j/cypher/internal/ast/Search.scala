@@ -87,7 +87,7 @@ case class Search(
 
   private def checkSingleStageFeatureFlag(): SemanticCheck =
     requireFeatureSupport(
-      "Single-stage filtering for vector search",
+      "Graph metadata filtering for vector search",
       SemanticFeature.VectorSingleStageFilteringEnabled,
       position
     )

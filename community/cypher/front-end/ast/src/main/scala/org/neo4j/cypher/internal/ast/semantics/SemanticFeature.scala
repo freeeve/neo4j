@@ -74,7 +74,7 @@ object SemanticFeature {
   }
 
   case object VectorSingleStageFilteringEnabled extends SemanticFeature with FeatureToString {
-    override def name: String = "vector single stage filtering"
+    override def name: String = "vector graph metadata filtering"
   }
 
   case object VectorSearch extends SemanticFeature with FeatureToString {

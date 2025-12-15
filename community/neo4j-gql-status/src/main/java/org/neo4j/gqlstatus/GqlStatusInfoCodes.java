@@ -3179,19 +3179,19 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I73(
             new GqlStatus("42I73"),
-            "Single-stage filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. { %s } does not fulfill this.",
+            "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. { %s } does not fulfill this.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "invalid predicate for single-stage filtering",
+            "invalid predicate for graph metadata filtering",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I74(
             new GqlStatus("42I74"),
-            "The variable { %s } in a single-stage filter property predicate must be the same as the search clause binding variable { %s }.",
+            "The variable { %s } in a graph metadata filter property predicate must be the same as the search clause binding variable { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable1, GqlParams.StringParam.variable2},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "wrong variable for single-stage filtering",
+            "wrong variable for graph metadata filtering",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
