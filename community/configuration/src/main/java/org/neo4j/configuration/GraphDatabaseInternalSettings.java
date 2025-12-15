@@ -1333,18 +1333,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("Enables creation of graph type dependent constraints")
-    public static final Setting<Boolean> dependent_constraints_enabled = newBuilder(
-                    "internal.dbms.dependent_constraints_enabled", BOOL, false)
-            .build();
-
-    @Internal
-    @Description("Enables usage of relationship endpoint label and node label existence constraints")
-    public static final Setting<Boolean> relationship_endpoint_label_and_node_label_existence_constraints = newBuilder(
-                    "internal.dbms.relationship_endpoint_label_and_node_label_existence_constraints", BOOL, false)
-            .build();
-
-    @Internal
     @Description("Set this to enable the use of single stage filtering on vector indexes.")
     public static final Setting<Boolean> vector_single_stage_filtering_enabled = newBuilder(
                     "internal.dbms.vector_single_stage_filtering_enabled", BOOL, false)
@@ -1497,7 +1485,23 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Internal
     @Description("A feature toggle behind which graph types are developed")
     public static final Setting<Boolean> graph_type_enabled =
-            newBuilder("internal.dbms.graph_type", BOOL, false).build();
+            newBuilder("internal.dbms.graph_type", BOOL, false).immutable().build();
+
+    @Internal
+    @Description("Enables creation of graph type dependent constraints")
+    public static final Setting<Boolean> dependent_constraints_enabled = newBuilder(
+                    "internal.dbms.dependent_constraints_enabled", BOOL, null)
+            .setDependency(graph_type_enabled)
+            .immutable()
+            .build();
+
+    @Internal
+    @Description("Enables usage of relationship endpoint label and node label existence constraints")
+    public static final Setting<Boolean> relationship_endpoint_label_and_node_label_existence_constraints = newBuilder(
+                    "internal.dbms.relationship_endpoint_label_and_node_label_existence_constraints", BOOL, null)
+            .setDependency(dependent_constraints_enabled)
+            .immutable()
+            .build();
 
     @Internal
     @Description("A feature toggle behind which out of disk space protection feature is developed")
