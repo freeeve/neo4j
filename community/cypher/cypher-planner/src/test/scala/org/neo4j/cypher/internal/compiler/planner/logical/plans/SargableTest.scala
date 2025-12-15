@@ -603,6 +603,70 @@ class SargableTest extends CypherFunSuite with AstConstructionTestSupport {
     }
   }
 
+  test("should produce scannable property for both sides of inequality predicates") {
+    val axProp = prop("a", "x")
+    val byProp = prop("b", "y")
+    val predicateFactories: Seq[(Expression, Expression) => Expression] =
+      Seq(lessThan, lessThanOrEqual, greaterThan, greaterThanOrEqual)
+
+    for (predicateFactory <- predicateFactories) {
+      val predicate = predicateFactory(axProp, byProp)
+      assertMatches(predicate) {
+        case AsPropertyScannable(scannables) =>
+          scannables.iterator.toList shouldEqual List(
+            ImplicitlyPropertyScannable(
+              PartialPredicateWrapper(isNotNull(axProp), predicate),
+              v"a",
+              axProp,
+              solvesPredicate = false,
+              CTAny,
+              safelyScannableWhenNegated = true
+            ),
+            ImplicitlyPropertyScannable(
+              PartialPredicateWrapper(isNotNull(byProp), predicate),
+              v"b",
+              byProp,
+              solvesPredicate = false,
+              CTAny,
+              safelyScannableWhenNegated = true
+            )
+          )
+      }
+    }
+  }
+
+  test("should produce scannable property for both sides of string predicates") {
+    val axProp = prop("a", "x")
+    val byProp = prop("b", "y")
+    val predicateFactories: Seq[(Expression, Expression) => Expression] =
+      Seq(startsWith, contains, endsWith, AstConstructionTestSupport.regex)
+
+    for (predicateFactory <- predicateFactories) {
+      val predicate = predicateFactory(axProp, byProp)
+      assertMatches(predicate) {
+        case AsPropertyScannable(scannables) =>
+          scannables.iterator.toList shouldEqual List(
+            ImplicitlyPropertyScannable(
+              PartialPredicateWrapper(isNotNull(axProp), predicate),
+              v"a",
+              axProp,
+              solvesPredicate = false,
+              CTString,
+              safelyScannableWhenNegated = true
+            ),
+            ImplicitlyPropertyScannable(
+              PartialPredicateWrapper(isNotNull(byProp), predicate),
+              v"b",
+              byProp,
+              solvesPredicate = false,
+              CTString,
+              safelyScannableWhenNegated = true
+            )
+          )
+      }
+    }
+  }
+
   private def assertMatches[T](item: Expression)(pf: PartialFunction[Expression, T]) =
     if (pf.isDefinedAt(item)) pf(item) else fail(s"Failed to match: $item")
 

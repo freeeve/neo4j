@@ -171,11 +171,30 @@ class EntityIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTest
   testFindIndexCompatiblePredicate(
     "lessThan with other property",
     lessThan(property, property2),
-    expectedPredicatesOrArgs = Args(
-      solvedPredicate = Some(PartialPredicateWrapper(isNotNull(property), _)),
-      indexRequirements = Set(IndexRequirement.SupportsIndexQuery(IndexQueryType.EXISTS)),
-      cypherType = CTAny
-    )
+    expectedPredicatesOrArgs = Predicates(Seq(
+      IndexCompatiblePredicate(
+        property = property,
+        solvedPredicate = Some(PartialPredicateWrapper(isNotNull(property), lessThan(property, property2))),
+        variable = v"n",
+        predicate = lessThan(property, property2),
+        queryExpression = ExistenceQueryExpression(),
+        predicateExactness = NotExactPredicate,
+        dependencies = Set.empty,
+        indexRequirements = Set(IndexRequirement.SupportsIndexQuery(IndexQueryType.EXISTS)),
+        cypherType = CTAny
+      ),
+      IndexCompatiblePredicate(
+        property = property2,
+        solvedPredicate = Some(PartialPredicateWrapper(isNotNull(property2), lessThan(property, property2))),
+        variable = v"n",
+        predicate = lessThan(property, property2),
+        queryExpression = ExistenceQueryExpression(),
+        predicateExactness = NotExactPredicate,
+        dependencies = Set.empty,
+        indexRequirements = Set(IndexRequirement.SupportsIndexQuery(IndexQueryType.EXISTS)),
+        cypherType = CTAny
+      )
+    ))
   )
 
   testFindIndexCompatiblePredicate(

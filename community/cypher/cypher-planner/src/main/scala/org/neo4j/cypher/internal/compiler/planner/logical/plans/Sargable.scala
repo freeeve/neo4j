@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsValueRangeSeekable.AsVariableProperty
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
+import org.neo4j.cypher.internal.expressions.BinaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.Contains
 import org.neo4j.cypher.internal.expressions.EndsWith
@@ -158,9 +159,7 @@ object AsPropertyScannable {
       ).toSeq.toNonEmptyListOption
 
     case expr: Equals =>
-      (partialPropertyPredicate(expr, expr.lhs) ++
-        partialPropertyPredicate(expr, expr.rhs))
-        .toNonEmptyListOption
+      partialPropertySymmetricalBinaryPredicate(expr, expr)
 
     case expr @ In(lhs, rhs) =>
       // Because `NOT NULL IN []` is `TRUE`, then null property values can only be safely
@@ -169,22 +168,22 @@ object AsPropertyScannable {
         .map(NonEmptyList(_))
 
     case expr: InequalityExpression =>
-      partialPropertyPredicate(expr, expr.lhs).map(NonEmptyList(_))
+      partialPropertySymmetricalBinaryPredicate(expr, expr)
 
     case outerExpr @ AndedPropertyInequalities(_, _, NonEmptyList(expr: InequalityExpression)) =>
-      partialPropertyPredicate(outerExpr, expr.lhs).map(NonEmptyList(_))
+      partialPropertySymmetricalBinaryPredicate(outerExpr, expr)
 
     case startsWith: StartsWith =>
-      partialPropertyPredicate(startsWith, startsWith.lhs, cypherType = CTString).map(NonEmptyList(_))
+      partialPropertySymmetricalBinaryPredicate(startsWith, startsWith, cypherType = CTString)
 
     case contains: Contains =>
-      partialPropertyPredicate(contains, contains.lhs, cypherType = CTString).map(NonEmptyList(_))
+      partialPropertySymmetricalBinaryPredicate(contains, contains, cypherType = CTString)
 
     case endsWith: EndsWith =>
-      partialPropertyPredicate(endsWith, endsWith.lhs, cypherType = CTString).map(NonEmptyList(_))
+      partialPropertySymmetricalBinaryPredicate(endsWith, endsWith, cypherType = CTString)
 
     case regex: RegexMatch =>
-      partialPropertyPredicate(regex, regex.lhs, cypherType = CTString).map(NonEmptyList(_))
+      partialPropertySymmetricalBinaryPredicate(regex, regex, cypherType = CTString)
 
     case isTyped @ IsTyped(lhs, cypherType) if !cypherType.isNullable =>
       partialPropertyPredicate(isTyped, lhs, cypherType = cypherType, safelyScannableWhenNegated = false)
@@ -236,6 +235,17 @@ object AsPropertyScannable {
       case _ =>
         None
     }
+  }
+
+  private def partialPropertySymmetricalBinaryPredicate[P <: Expression](
+    predicate: P,
+    predicateArgumentExpr: BinaryOperatorExpression,
+    cypherType: CypherType = CTAny,
+    safelyScannableWhenNegated: Boolean = true
+  ): Option[NonEmptyList[ImplicitlyPropertyScannable[IsNotNull]]] = {
+    (partialPropertyPredicate(predicate, predicateArgumentExpr.lhs, cypherType, safelyScannableWhenNegated) ++
+      partialPropertyPredicate(predicate, predicateArgumentExpr.rhs, cypherType, safelyScannableWhenNegated))
+      .toNonEmptyListOption
   }
 }
 

@@ -3198,4 +3198,52 @@ class IndexPlanningIntegrationTest
       .build()
   }
 
+  test("should plan a node index scan from a scannable non-equality predicate spanning multiple components") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 800)
+      .setLabelCardinality("B", 500)
+      .addNodeIndex("A", Seq("prop"), 0.1, 0.1)
+      .build()
+
+    for (op <- List("<", "<=", ">", ">=", "STARTS WITH", "CONTAINS", "ENDS WITH", "=~")) {
+      val query = s"MATCH (a:A), (b:B) WHERE b.prop $op a.prop RETURN *"
+      val plan = planner.plan(query).stripProduceResults
+      plan shouldEqual planner.subPlanBuilder()
+        .filter(s"cacheN[b.prop] $op cacheN[a.prop]")
+        .cartesianProduct()
+        .|.cacheProperties("cacheNFromStore[b.prop]")
+        .|.nodeByLabelScan("b", "B")
+        .nodeIndexOperator("a:A(prop)", getValue = Map("prop" -> GetValue))
+        .build()
+    }
+  }
+
+  test("should plan a TEXT node index scan from a scannable non-equality predicate spanning multiple components") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 800)
+      .setLabelCardinality("B", 500)
+      .addNodeIndex("A", Seq("prop"), 0.1, 0.1, indexType = IndexType.TEXT)
+      .build()
+
+    for (op <- List("STARTS WITH", "CONTAINS", "ENDS WITH", "=~")) {
+      val query = s"MATCH (a:A), (b:B) WHERE b.prop $op a.prop RETURN *"
+      val plan = planner.plan(query).stripProduceResults
+      plan shouldEqual planner.subPlanBuilder()
+        .filter(s"cacheN[b.prop] $op cacheN[a.prop]")
+        .cartesianProduct()
+        .|.cacheProperties("cacheNFromStore[b.prop]")
+        .|.nodeByLabelScan("b", "B")
+        .cacheProperties("cacheNFromStore[a.prop]")
+        .nodeIndexOperator(
+          "a:A(prop)",
+          getValue = Map("prop" -> DoNotGetValue),
+          indexType = IndexType.TEXT,
+          supportPartitionedScan = false
+        )
+        .build()
+    }
+  }
+
 }
