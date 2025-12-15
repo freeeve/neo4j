@@ -2268,6 +2268,78 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("n").withRows(singleColumn(nodes))
   }
 
+  test("should work without issues on the RHS of cartesian product", Tags.NoSpdOverride) {
+    // given
+    val nodes = ArrayBuffer.empty[Node]
+    val size = 10
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      nodeGraph(size, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, vectorToken, randomVector)
+          write.nodeSetProperty(n.getId, idToken, longValue(i))
+          nodes.append(n)
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("i", "n")
+      .cartesianProduct()
+      .|.nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = vectorAsCypherList(randomVector),
+        limit = s"10000000"
+      )
+      .input(variables = Seq("i"))
+      .build()
+
+    // then
+    val input = inputValues((1 to size).map(i => Array[Any](i)): _*)
+    val expected = nodes.flatMap(n => (1 to size).map(i => Array(i, n)))
+    execute(logicalQuery, runtime, input) should beColumns("i", "n").withRows(expected)
+  }
+
+  test("sort on top of vector search", Tags.NoSpdOverride) {
+    // given
+    val nodes = ArrayBuffer.empty[Node]
+    val size = 10
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      nodeGraph(size, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, vectorToken, randomVector)
+          write.nodeSetProperty(n.getId, idToken, longValue(i))
+          nodes.append(n)
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("n")
+      .sort("n DESC")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = vectorAsCypherList(randomVector),
+        limit = s"10000000",
+        score = "score"
+      )
+      .build()
+
+    // then
+    execute(logicalQuery, runtime) should beColumns("n").withRows(inOrder(nodes.sortBy(-_.getId).map(Array(_))))
+  }
+
   private def booleanVectorGraph(size: Int): Unit = {
     val random = new Random()
     nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "bool")

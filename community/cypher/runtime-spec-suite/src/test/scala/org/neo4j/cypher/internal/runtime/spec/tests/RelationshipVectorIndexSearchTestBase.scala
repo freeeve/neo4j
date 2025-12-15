@@ -3927,6 +3927,41 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("r").withRows(singleColumn(relationships.flatMap(r => Seq(r, r))))
   }
 
+  test("sort on top of vector search", Tags.NoSpdOverride) {
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    val size = 10
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      relationshipGraph(size, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.relationshipSetProperty(n.getId, vectorToken, randomVector)
+          write.relationshipSetProperty(n.getId, idToken, longValue(i))
+          relationships.append(n)
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .sort("r DESC")
+      .relationshipVectorIndexSearch(
+        "()-[r]->()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = vectorAsCypherList(randomVector),
+        limit = s"10000000",
+        score = "score"
+      )
+      .build()
+
+    // then
+    execute(logicalQuery, runtime) should beColumns("r").withRows(inOrder(relationships.sortBy(-_.getId).map(Array(_))))
+  }
+
   private def booleanVectorGraph(size: Int): Unit = {
     relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "bool")
     val write = tx.kernelTransaction().dataWrite
