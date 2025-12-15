@@ -877,6 +877,55 @@ final case class RevokeRolesFromAuthRules(
 
 // AuthRule commands
 
+final case class ShowAuthRules(
+  override val yieldOrWhere: YieldOrWhere,
+  override val defaultColumnSet: List[ShowColumn],
+  asCommands: Boolean
+)(val position: InputPosition) extends ReadAdministrationCommand {
+
+  override def name: String = "SHOW AUTH RULES"
+
+  override def semanticCheck: SemanticCheck =
+    super.semanticCheck chain
+      featureCheck chain
+      SemanticState.recordCurrentScope(this)
+
+  override def withYieldOrWhere(newYieldOrWhere: YieldOrWhere): ShowAuthRules =
+    this.copy(yieldOrWhere = newYieldOrWhere)(position)
+
+  private val featureCheck =
+    requireFeatureSupport(
+      s"The `$name` clause",
+      SemanticFeature.AttributeBasedAccessControl,
+      position
+    )
+}
+
+object ShowAuthRules {
+
+  def apply(yieldOrWhere: YieldOrWhere, asCommands: Boolean)(position: InputPosition): ShowAuthRules = {
+    val columns =
+      if (asCommands)
+        List(
+          (ShowColumn("command")(position), true),
+          (ShowColumn("roles", CTList(CTString))(position), false)
+        )
+      else
+        List(
+          ShowColumn("name")(position),
+          ShowColumn("condition", CTString)(position),
+          ShowColumn("enabled", CTBoolean)(position),
+          ShowColumn("roles", CTList(CTString))(position)
+        ).map(column => (column, true))
+
+    ShowAuthRules(
+      yieldOrWhere,
+      DefaultOrAllShowColumns(columns, yieldOrWhere).columns,
+      asCommands
+    )(position)
+  }
+}
+
 final case class CreateAuthRule(
   authRuleName: Expression,
   ifExistsDo: IfExistsDo,

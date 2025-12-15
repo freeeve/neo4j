@@ -323,6 +323,7 @@ import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.ShowAliasAction
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
+import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowConstraintAction
 import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
@@ -3347,6 +3348,11 @@ class AstGenerator(
 
   // Auth rule commands
 
+  def _showAuthRules: Gen[ShowAuthRules] = for {
+    yields <- _eitherYieldOrWhere
+    asCommands <- boolean
+  } yield ShowAuthRules(yields, asCommands)(pos)
+
   def _createAuthRule: Gen[CreateAuthRule] = for {
     authRuleName <- _stringLiteralOrParameter
     ifExistsDo <- _ifExistsDo
@@ -3369,6 +3375,7 @@ class AstGenerator(
 
   def _authRuleCommand: Gen[AdministrationCommand] =
     oneOf(
+      _showAuthRules.filterNot(_ => usesCypher5),
       _createAuthRule.filterNot(_ => usesCypher5),
       _dropAuthRule.filterNot(_ => usesCypher5)
     )

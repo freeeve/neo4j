@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ShowAliases
+import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowPrivilegeCommands
@@ -63,6 +64,8 @@ case object ExpandShowWhere extends Step with DefaultPostCondition with Preparat
       s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
     case s @ ShowCurrentUser(Some(Right(where)), _) =>
       s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
+    case s @ ShowAuthRules(Some(Right(where)), _, _) =>
+      s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
     case s @ ShowAliases(_, Some(Right(where)), _) =>
       s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
     case s @ ShowServers(Some(Right(where)), _) =>
@@ -88,6 +91,9 @@ case object ExpandShowWhere extends Step with DefaultPostCondition with Preparat
       if yieldClause.returnItems.includeExisting || returnClause.exists(_.returnItems.includeExisting) =>
       s.copy(yieldOrWhere = addDefaultColumns(yieldClause, returnClause, s.defaultColumnNames))(s.position)
     case s @ ShowCurrentUser(Some(Left((yieldClause, returnClause))), _)
+      if yieldClause.returnItems.includeExisting || returnClause.exists(_.returnItems.includeExisting) =>
+      s.copy(yieldOrWhere = addDefaultColumns(yieldClause, returnClause, s.defaultColumnNames))(s.position)
+    case s @ ShowAuthRules(Some(Left((yieldClause, returnClause))), _, _)
       if yieldClause.returnItems.includeExisting || returnClause.exists(_.returnItems.includeExisting) =>
       s.copy(yieldOrWhere = addDefaultColumns(yieldClause, returnClause, s.defaultColumnNames))(s.position)
     case s @ ShowAliases(_, Some(Left((yieldClause, returnClause))), _)

@@ -125,6 +125,8 @@ import org.neo4j.cypher.internal.ast.SetUserStatusAction
 import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.ShowAliasAction
 import org.neo4j.cypher.internal.ast.ShowAliases
+import org.neo4j.cypher.internal.ast.ShowAuthRuleAction
+import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowPrivilegeAction
@@ -554,6 +556,15 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         Some(plans.LogSystemCommand(
           plans.DropRole(AssertRoleCanBeDropped(source, roleName), roleName),
           prettifier.asString(c)
+        ))
+
+      // SHOW AUTH RULES
+      case showAuthRules: ShowAuthRules => Some(plans.ShowAuthRules(
+          plans.AssertAllowedDbmsActions(ShowAuthRuleAction),
+          showAuthRules.asCommands,
+          showAuthRules.defaultColumnNames.map(varFor),
+          showAuthRules.yields,
+          showAuthRules.returns
         ))
 
       // CREATE [OR REPLACE] AUTH RULE foo [IF NOT EXISTS] SET CONDITION expr [SET ENABLED true|false]

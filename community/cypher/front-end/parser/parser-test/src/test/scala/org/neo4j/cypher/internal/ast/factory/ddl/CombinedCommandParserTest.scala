@@ -2890,7 +2890,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'BTREE': expected 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', 'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', " +
+          "Invalid input 'BTREE': expected 'ALIAS', 'ALIASES', 'ALL', 'AUTH', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', 'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', " +
             "'EXIST', 'EXISTENCE', 'FULLTEXT', 'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', 'PRIVILEGE', 'PRIVILEGES', " +
             "'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', 'ROLE', 'ROLES', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'SUPPORTED', 'TEXT', " +
             "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'USERS' or 'VECTOR'"

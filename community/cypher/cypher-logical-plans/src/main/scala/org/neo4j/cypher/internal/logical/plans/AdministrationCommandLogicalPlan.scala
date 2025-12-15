@@ -175,17 +175,25 @@ case class AssertMutablePrivilegesCanBeAssignedToRole(
   roleName: Either[String, Parameter]
 )(implicit idGen: IdGen) extends PrivilegePlan(Some(source))
 
+case class ShowAuthRules(
+  source: PrivilegePlan,
+  asCommands: Boolean,
+  override val returnColumns: List[LogicalVariable],
+  yields: Option[Yield],
+  returns: Option[Return]
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
 case class CreateAuthRule(
   source: SecurityAdministrationLogicalPlan,
   authRuleName: Either[String, Parameter],
   condition: Expression,
   enabled: Option[Boolean]
-)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(None)
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 
 case class DropAuthRule(
   source: SecurityAdministrationLogicalPlan,
   authRuleName: Either[String, Parameter]
-)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(None)
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 
 case class GrantRoleToUser(
   source: SecurityAdministrationLogicalPlan,

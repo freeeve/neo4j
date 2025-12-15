@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.ast.QueryWithLocalDefinitions
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ShowAliases
+import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowPrivilegeCommands
@@ -124,6 +125,10 @@ case class NormalizeWithAndReturnClauses(
         .withGraph(s.useGraph)
 
     case s @ ShowRoles(_, _, Some(Left((yields, returns))), _) =>
+      s.copy(yieldOrWhere = Some(Left((addAliasesToYield(yields), returns.map(addAliasesToReturn)))))(s.position)
+        .withGraph(s.useGraph)
+
+    case s @ ShowAuthRules(Some(Left((yields, returns))), _, _) =>
       s.copy(yieldOrWhere = Some(Left((addAliasesToYield(yields), returns.map(addAliasesToReturn)))))(s.position)
         .withGraph(s.useGraph)
 

@@ -193,6 +193,7 @@ import org.neo4j.cypher.internal.ast.SettingQualifier
 import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
+import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
@@ -662,6 +663,13 @@ case class Prettifier(
 
       case x @ RenameRole(fromRoleName, toRoleName, ifExists) =>
         Prettifier.prettifyRename(x.name, fromRoleName, toRoleName, ifExists)
+
+      // Auth rule commands
+
+      case x @ ShowAuthRules(yields, _, asCommands) =>
+        val (y: String, r: String) = showClausesAsString(yields)
+        val asCmd = if (asCommands) " AS COMMANDS" else ""
+        s"${x.name}$asCmd$y$r"
 
       case x @ CreateAuthRule(authRuleName, ifExistsDo, setClauses) =>
         val setClausesString = setClauses.map(clause =>

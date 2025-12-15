@@ -91,6 +91,7 @@ import org.neo4j.cypher.internal.ast.SetPropertyAction
 import org.neo4j.cypher.internal.ast.SetUserHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetUserStatusAction
 import org.neo4j.cypher.internal.ast.ShowAliasAction
+import org.neo4j.cypher.internal.ast.ShowAuthRuleAction
 import org.neo4j.cypher.internal.ast.ShowConstraintAction
 import org.neo4j.cypher.internal.ast.ShowIndexAction
 import org.neo4j.cypher.internal.ast.ShowPrivilegeAction
@@ -169,6 +170,7 @@ object ActionMapper {
     case RemoveRoleAction => security.PrivilegeAction.REMOVE_ROLE
 
     case AllAuthRuleActions   => security.PrivilegeAction.AUTH_RULE_MANAGEMENT
+    case ShowAuthRuleAction   => security.PrivilegeAction.SHOW_AUTH_RULE
     case CreateAuthRuleAction => security.PrivilegeAction.CREATE_AUTH_RULE
     case DropAuthRuleAction   => security.PrivilegeAction.DROP_AUTH_RULE
 

@@ -133,6 +133,7 @@ import org.neo4j.cypher.internal.logical.plans.RevokeRoleFromAuthRule
 import org.neo4j.cypher.internal.logical.plans.RevokeRoleFromUser
 import org.neo4j.cypher.internal.logical.plans.SetOwnPassword
 import org.neo4j.cypher.internal.logical.plans.ShowAliases
+import org.neo4j.cypher.internal.logical.plans.ShowAuthRules
 import org.neo4j.cypher.internal.logical.plans.ShowCurrentUser
 import org.neo4j.cypher.internal.logical.plans.ShowDatabase
 import org.neo4j.cypher.internal.logical.plans.ShowPrivilegeCommands
@@ -265,6 +266,11 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
   }
 
   test("Auth rule commands") {
+    assertGood(
+      attach(ShowAuthRules(privLhsLP, asCommands = false, List(), None, None), 1.0),
+      adminPlanDescription
+    )
+
     assertGood(
       attach(CreateAuthRule(privLhsLP, util.Left("authRule"), literalBoolean(true), Some(true)), 1.0),
       adminPlanDescription

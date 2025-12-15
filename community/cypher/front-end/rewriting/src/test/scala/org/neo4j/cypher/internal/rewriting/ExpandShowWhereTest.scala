@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.ReadAdministrationCommand
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -212,12 +213,26 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
     )
   }
 
+  test("SHOW AUTH RULES") {
+    assertRewrite(
+      "SHOW AUTH RULES WHERE name STARTS WITH 'g'",
+      "SHOW AUTH RULES YIELD * WHERE name STARTS WITH 'g'",
+      List("name", "condition", "enabled", "roles"),
+      Some(CypherVersion.Cypher25)
+    )
+  }
+
   private def assertRewrite(
     originalQuery: String,
     expectedQuery: String,
-    expectedDefaultColumns: List[String]
+    expectedDefaultColumns: List[String],
+    cypherVersion: Option[CypherVersion] = None
   ): Unit = {
-    val (expected, result) = getRewrite(originalQuery, expectedQuery)
+    val (expected, result) =
+      if (cypherVersion.nonEmpty)
+        getRewrite(cypherVersion.get, originalQuery, expectedQuery)
+      else
+        getRewrite(originalQuery, expectedQuery)
 
     val updatedYield = expected.asInstanceOf[ReadAdministrationCommand].yieldOrWhere.map {
       case Left((y, r)) if y.returnItems.defaultOrderOnColumns.isEmpty =>

@@ -2665,6 +2665,78 @@ class PrettifierIT extends AbstractPrettifierTest {
   )
 
   def authRuleTests(): Seq[Test] = Seq[Test](
+    // SHOW AUTH RULES
+    FailsInCypher5("Show Auth Rules", "SHOW AUTH RULES"),
+    FailsInCypher5(
+      "Show auth rules where name = 'rule'",
+      """SHOW AUTH RULES
+        |  WHERE name = "rule"""".stripMargin
+    ),
+    FailsInCypher5(
+      "Show Auth rules YIELD * where name = 'rule' Return *",
+      """SHOW AUTH RULES
+        |  YIELD *
+        |    WHERE name = "rule"
+        |  RETURN *""".stripMargin
+    ),
+    FailsInCypher5(
+      "Show Auth Rule YIELD * Return DISTINCT rule",
+      """SHOW AUTH RULES
+        |  YIELD *
+        |  RETURN DISTINCT rule""".stripMargin
+    ),
+    FailsInCypher5(
+      "show auth rules yield name order by name skip 1 limit 1 where name='rule'",
+      """SHOW AUTH RULES
+        |  YIELD name
+        |    ORDER BY name ASCENDING
+        |    SKIP 1
+        |    LIMIT 1
+        |    WHERE name = "rule"""".stripMargin
+    ),
+    FailsInCypher5("show auth rules as command", "SHOW AUTH RULES AS COMMANDS"),
+    FailsInCypher5("show auth rule as commands", "SHOW AUTH RULES AS COMMANDS"),
+    FailsInCypher5(
+      "SHOW AUTH RULES AS COMMANDS WHERE command = 'CREATE AUTH RULE region SET CONDITION abac.oidc.user_attribute(‘region’) = ‘region1’ SET ENABLED true'",
+      """SHOW AUTH RULES AS COMMANDS
+        |  WHERE command = "CREATE AUTH RULE region SET CONDITION abac.oidc.user_attribute(‘region’) = ‘region1’ SET ENABLED true"""".stripMargin
+    ),
+    FailsInCypher5(
+      """SHOW AUTH RULES AS COMMANDS WHERE command = "CREATE AUTH RULE region SET CONDITION abac.oidc.user_attribute('region') = 'region1' SET ENABLED true"""",
+      """SHOW AUTH RULES AS COMMANDS
+        |  WHERE command = "CREATE AUTH RULE region SET CONDITION abac.oidc.user_attribute('region') = 'region1' SET ENABLED true"""".stripMargin
+    ),
+    // CREATE AUTH RULE
+    FailsInCypher5("create auth rule abc set condition true", "CREATE AUTH RULE abc SET CONDITION true"),
+    FailsInCypher5("create auth rule $abc set condition true", "CREATE AUTH RULE $abc SET CONDITION true"),
+    FailsInCypher5(
+      "create auth rule abc if not exists set condition true",
+      "CREATE AUTH RULE abc IF NOT EXISTS SET CONDITION true"
+    ),
+    FailsInCypher5("create auth rule `ab%$c` set condition true", "CREATE AUTH RULE `ab%$c` SET CONDITION true"),
+    FailsInCypher5(
+      "create auth rule abc set condition true set enabled true",
+      "CREATE AUTH RULE abc SET CONDITION true SET ENABLED TRUE"
+    ),
+    FailsInCypher5(
+      "create auth rule $abc set condition true set enabled false",
+      "CREATE AUTH RULE $abc SET CONDITION true SET ENABLED FALSE"
+    ),
+    FailsInCypher5(
+      "create auth rule abc if not exists set condition true set enabled true",
+      "CREATE AUTH RULE abc IF NOT EXISTS SET CONDITION true SET ENABLED TRUE"
+    ),
+    // Weird semantically incorrect query from failing property based test.
+    IgnoreInCypher5(
+      "CREATE AUTH RULE rule IF NOT EXISTS SET CONDITION (-(7.374271256847047E233)).p SET ENABLED TRUE",
+      "CREATE AUTH RULE rule IF NOT EXISTS SET CONDITION (-(7.374271256847047E233)).p SET ENABLED TRUE"
+    ),
+    // DROP AUTH RULE
+    FailsInCypher5("drop auth rule abc", "DROP AUTH RULE abc"),
+    FailsInCypher5("drop auth rule $abc", "DROP AUTH RULE $abc"),
+    FailsInCypher5("drop auth rule abc if exists", "DROP AUTH RULE abc IF EXISTS"),
+    FailsInCypher5("drop auth rule `ab%$c`", "DROP AUTH RULE `ab%$c`"),
+    // GRANT ROLE TO AUTH RULE
     FailsInCypher5("grant role abc to auth rule xyz", "GRANT ROLE abc TO AUTH RULE xyz"),
     FailsInCypher5("grant roles abc to auth rule xyz", "GRANT ROLE abc TO AUTH RULE xyz"),
     FailsInCypher5("grant roles abc to auth rule xyz, qwe", "GRANT ROLE abc TO AUTH RULES xyz, qwe"),
@@ -2672,6 +2744,7 @@ class PrettifierIT extends AbstractPrettifierTest {
     FailsInCypher5("grant role `ab%$c` to auth rules `x%^yz`", "GRANT ROLE `ab%$c` TO AUTH RULE `x%^yz`"),
     FailsInCypher5("grant roles abc, def to auth rule xyz", "GRANT ROLES abc, def TO AUTH RULE xyz"),
     FailsInCypher5("grant roles abc, def to auth rule xyz, qwr", "GRANT ROLES abc, def TO AUTH RULES xyz, qwr"),
+    // REVOKE ROLE FROM AUTH RULE
     FailsInCypher5("revoke role abc from auth rule xyz", "REVOKE ROLE abc FROM AUTH RULE xyz"),
     FailsInCypher5("revoke roles abc from auth rule xyz", "REVOKE ROLE abc FROM AUTH RULE xyz"),
     FailsInCypher5("revoke role abc, def from auth rule xyz", "REVOKE ROLES abc, def FROM AUTH RULE xyz"),
@@ -3021,11 +3094,6 @@ class PrettifierIT extends AbstractPrettifierTest {
       "STOP DATABASE $foo",
     "stop database foO_Bar_42" ->
       "STOP DATABASE foO_Bar_42",
-    // Weird semantically incorrect query from failing property based test.
-    IgnoreInCypher5(
-      "CREATE AUTH RULE rule IF NOT EXISTS SET CONDITION (-(7.374271256847047E233)).p SET ENABLED TRUE",
-      "CREATE AUTH RULE rule IF NOT EXISTS SET CONDITION (-(7.374271256847047E233)).p SET ENABLED TRUE"
-    ),
     """return
       |  -1 as r0,
       |  -1.0 as r1,

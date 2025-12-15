@@ -60,6 +60,7 @@ import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ReturnPartOfShowCommand
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
+import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
@@ -486,6 +487,16 @@ trait DdlShowBuilder extends Cypher25ParserListener {
   ): Unit = {
     ctx.ast = ShowCurrentUser(
       astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield())
+    )(pos(ctx))
+  }
+
+  final override def exitShowAuthRules(
+    ctx: Cypher25Parser.ShowAuthRulesContext
+  ): Unit = {
+    val asCommand = ctx.AS() != null
+    ctx.ast = ShowAuthRules(
+      astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()),
+      asCommand
     )(pos(ctx))
   }
 

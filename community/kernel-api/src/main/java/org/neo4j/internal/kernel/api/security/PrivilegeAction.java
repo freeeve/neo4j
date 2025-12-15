@@ -104,6 +104,7 @@ public enum PrivilegeAction {
     ASSIGN_ROLE,
     REMOVE_ROLE,
 
+    SHOW_AUTH_RULE,
     CREATE_AUTH_RULE,
     DROP_AUTH_RULE,
 
@@ -274,8 +275,7 @@ public enum PrivilegeAction {
         @Override
         public boolean satisfies(PrivilegeAction action) {
             return switch (action) {
-                case CREATE_AUTH_RULE -> true;
-                case DROP_AUTH_RULE -> true;
+                case SHOW_AUTH_RULE, CREATE_AUTH_RULE, DROP_AUTH_RULE -> true;
                 default -> this == action;
             };
         }

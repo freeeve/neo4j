@@ -364,7 +364,7 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
             "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'CURRENT USER', 'USERS' or 'VECTOR'."
         )
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'GRAPH': expected 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', " +
+          "Invalid input 'GRAPH': expected 'ALIAS', 'ALIASES', 'ALL', 'AUTH', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', " +
             "'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', 'EXIST', 'EXISTENCE', 'FULLTEXT', " +
             "'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', " +
             "'PRIVILEGE', 'PRIVILEGES', 'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', " +
@@ -372,7 +372,7 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
             "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'USERS' or 'VECTOR' (",
           GqlStatusInfoCodes.STATUS_42I06,
           "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'GRAPH', expected: 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', " +
+            "Invalid input 'GRAPH', expected: 'ALIAS', 'ALIASES', 'ALL', 'AUTH', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', " +
             "'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', 'EXIST', 'EXISTENCE', 'FULLTEXT', " +
             "'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', " +
             "'PRIVILEGE', 'PRIVILEGES', 'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', " +
@@ -402,7 +402,7 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
             "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'CURRENT USER', 'USERS' or 'VECTOR'."
         )
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'GRAPH': expected 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', " +
+          "Invalid input 'GRAPH': expected 'ALIAS', 'ALIASES', 'ALL', 'AUTH', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', " +
             "'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', 'EXIST', 'EXISTENCE', 'FULLTEXT', " +
             "'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', " +
             "'PRIVILEGE', 'PRIVILEGES', 'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', " +
@@ -410,7 +410,7 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
             "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'USERS' or 'VECTOR' (",
           GqlStatusInfoCodes.STATUS_42I06,
           "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'GRAPH', expected: 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', " +
+            "Invalid input 'GRAPH', expected: 'ALIAS', 'ALIASES', 'ALL', 'AUTH', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', " +
             "'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', 'EXIST', 'EXISTENCE', 'FULLTEXT', " +
             "'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', " +
             "'PRIVILEGE', 'PRIVILEGES', 'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', " +
