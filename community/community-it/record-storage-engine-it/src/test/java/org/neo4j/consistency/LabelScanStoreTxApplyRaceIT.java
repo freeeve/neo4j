@@ -27,6 +27,7 @@ import static org.neo4j.configuration.Config.defaults;
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -80,6 +81,7 @@ class LabelScanStoreTxApplyRaceIT {
     @ExtensionCallback
     void configure(TestDatabaseManagementServiceBuilder builder) {
         builder.setConfig(GraphDatabaseSettings.db_format, PageAligned.LATEST_NAME);
+        builder.setConfig(GraphDatabaseSettings.keep_logical_logs, "2 files");
     }
 
     /**
@@ -89,12 +91,13 @@ class LabelScanStoreTxApplyRaceIT {
     @Test
     void shouldStressIt() throws Throwable {
         // given
-        Race race = new Race().withMaxDuration(5, TimeUnit.SECONDS);
+        AtomicLong numTxs = new AtomicLong();
+        Race race = new Race().withMaxDuration(5, TimeUnit.SECONDS).withEndCondition(() -> numTxs.get() > 2_000);
         AtomicReferenceArray<Node> nodeHeads = new AtomicReferenceArray<>(NUMBER_OF_CREATORS);
         for (int i = 0; i < NUMBER_OF_CREATORS; i++) {
-            race.addContestant(creator(nodeHeads, i));
+            race.addContestant(creator(nodeHeads, i, numTxs));
         }
-        race.addContestants(NUMBER_OF_DELETORS, deleter(nodeHeads));
+        race.addContestants(NUMBER_OF_DELETORS, deleter(nodeHeads, numTxs));
 
         // when
         race.go();
@@ -110,7 +113,7 @@ class LabelScanStoreTxApplyRaceIT {
                 .isSuccessful());
     }
 
-    private Runnable creator(AtomicReferenceArray<Node> nodeHeads, int guy) {
+    private Runnable creator(AtomicReferenceArray<Node> nodeHeads, int guy, AtomicLong numTxs) {
         return new Runnable() {
             private final ThreadLocalRandom random = ThreadLocalRandom.current();
 
@@ -128,14 +131,16 @@ class LabelScanStoreTxApplyRaceIT {
                                     .setProperty("name", randomUUID().toString());
                         }
                         tx.commit();
+                        numTxs.addAndGet(1);
                     }
                 } else {
                     // Many small create/delete transactions
                     Node node;
                     try (Transaction tx = db.beginTx()) {
                         node = tx.createNode(randomLabels());
-                        nodeHeads.set(guy, node);
                         tx.commit();
+                        nodeHeads.set(guy, node);
+                        numTxs.addAndGet(1);
                     }
                     if (random.nextFloat() < CHANCE_TO_DELETE_BY_SAME_THREAD) {
                         // Most of the time delete in this thread
@@ -143,6 +148,7 @@ class LabelScanStoreTxApplyRaceIT {
                             try (Transaction tx = db.beginTx()) {
                                 tx.getNodeById(node.getId()).delete();
                                 tx.commit();
+                                numTxs.addAndGet(1);
                             }
                         }
                         // Otherwise there will be other threads sitting there waiting for these nodes and deletes them
@@ -168,7 +174,7 @@ class LabelScanStoreTxApplyRaceIT {
         };
     }
 
-    private Runnable deleter(AtomicReferenceArray<Node> nodeHeads) {
+    private Runnable deleter(AtomicReferenceArray<Node> nodeHeads, AtomicLong numTxs) {
         return new Runnable() {
             final ThreadLocalRandom random = ThreadLocalRandom.current();
 
@@ -180,6 +186,7 @@ class LabelScanStoreTxApplyRaceIT {
                     try (Transaction tx = db.beginTx()) {
                         tx.getNodeById(node.getId()).delete();
                         tx.commit();
+                        numTxs.addAndGet(1);
                     } catch (NotFoundException e) {
                         // This is OK in this test
                     }

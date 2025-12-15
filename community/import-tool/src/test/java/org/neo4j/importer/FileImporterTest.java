@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import blue.strategic.parquet.ParquetWriter;
@@ -75,15 +76,11 @@ class FileImporterTest {
 
     @Test
     void writesReportToSpecifiedReportFile() throws Exception {
-
-        Path logDir = testDir.directory("logs");
         Path reportLocation = testDir.file("the_report");
-
         Path inputFile = testDir.file("foobar.csv");
         List<String> lines = Collections.singletonList("foo\\tbar\\tbaz");
         Files.write(inputFile, lines, Charset.defaultCharset());
-
-        Config config = Config.defaults(GraphDatabaseSettings.logs_directory, logDir.toAbsolutePath());
+        Config config = dbConfig();
         final var logFilePath = FileImporter.getLogFilePath(config);
         try (var logFile = new BufferedOutputStream(Files.newOutputStream(logFilePath));
                 var logProvider = FileImporter.getLog(logFile, true)) {
@@ -115,6 +112,7 @@ class FileImporterTest {
 
         var rawOut = new ByteArrayOutputStream();
         var rawErr = new ByteArrayOutputStream();
+        var dbConfig = dbConfig();
         try (var out = new PrintStream(rawOut);
                 var err = new PrintStream(rawErr)) {
             FileImporter.Builder csvImporterBuilder = importerBuilder()
@@ -122,6 +120,7 @@ class FileImporterTest {
                     .withCsvConfig(Configuration.TABS)
                     .withStdOut(new PrintStream(rawOut))
                     .withStdErr(new PrintStream(rawErr))
+                    .withDatabaseConfig(dbConfig)
                     .withReportFile(reportLocation.toAbsolutePath());
             assertThatThrownBy(() -> csvImporterBuilder.build().doImport(fullImport()))
                     .hasCauseInstanceOf(DirectoryNotEmptyException.class);
@@ -137,11 +136,9 @@ class FileImporterTest {
 
     @Test
     void tracePageCacheAccessOnCsvImport() throws IOException {
-        Path logDir = testDir.directory("logs");
         Path reportLocation = testDir.file("the_report");
         Path inputFile = writeFileWithLines("foobar.csv", "foo;bar;baz");
-
-        Config config = Config.defaults(GraphDatabaseSettings.logs_directory, logDir.toAbsolutePath());
+        Config config = dbConfig();
 
         var cacheTracer = new DefaultPageCacheTracer();
         FileImporter fileImporter = importerBuilder()
@@ -203,6 +200,13 @@ class FileImporterTest {
 
         var throwableAssert = assertThatThrownBy(() -> importer.doImport(fullImport()));
         context.assertException(throwableAssert);
+    }
+
+    private Config dbConfig() {
+        return Config.newBuilder()
+                .set(GraphDatabaseSettings.logs_directory, testDir.directory("logs"))
+                .set(GraphDatabaseSettings.logical_log_rotation_threshold, kibiBytes(256))
+                .build();
     }
 
     static Stream<Named<VectorDataContext>> shouldPreventImportIfVectorDataExists() {
