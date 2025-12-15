@@ -32,7 +32,6 @@ import static org.neo4j.configuration.GraphDatabaseSettings.check_point_interval
 import static org.neo4j.configuration.GraphDatabaseSettings.check_point_interval_tx;
 import static org.neo4j.configuration.GraphDatabaseSettings.keep_logical_logs;
 import static org.neo4j.configuration.GraphDatabaseSettings.logical_log_rotation_threshold;
-import static org.neo4j.io.ByteUnit.gibiBytes;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.logging.LogAssertions.greaterThan;
 
@@ -83,7 +82,6 @@ class CheckPointerIntegrationTest {
     void databaseShutdownDuringConstantCheckPointing() throws InterruptedException {
         DatabaseManagementService managementService = builder.setConfig(check_point_interval_time, ofMillis(0))
                 .setConfig(check_point_interval_tx, 1)
-                .setConfig(logical_log_rotation_threshold, gibiBytes(1))
                 .build();
         GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
         try (Transaction tx = db.beginTx()) {
@@ -115,7 +113,6 @@ class CheckPointerIntegrationTest {
         long millis = 200;
         DatabaseManagementService managementService = builder.setConfig(check_point_interval_time, ofMillis(millis))
                 .setConfig(check_point_interval_tx, 10000)
-                .setConfig(logical_log_rotation_threshold, gibiBytes(1))
                 .build();
         GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
@@ -152,7 +149,6 @@ class CheckPointerIntegrationTest {
         // given
         DatabaseManagementService managementService = builder.setConfig(check_point_interval_time, ofMillis(300))
                 .setConfig(check_point_interval_tx, 1)
-                .setConfig(logical_log_rotation_threshold, gibiBytes(1))
                 .build();
         int counter;
         try {
@@ -203,7 +199,6 @@ class CheckPointerIntegrationTest {
         DatabaseManagementService managementService = builder.setConfig(
                         check_point_interval_time, Duration.ofSeconds(1))
                 .setConfig(check_point_interval_tx, 10000)
-                .setConfig(logical_log_rotation_threshold, gibiBytes(1))
                 .build();
         GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
@@ -234,8 +229,7 @@ class CheckPointerIntegrationTest {
         // given
         TestDatabaseManagementServiceBuilder databaseManagementServiceBuilder = builder.setConfig(
                         check_point_interval_time, Duration.ofMinutes(300))
-                .setConfig(check_point_interval_tx, 10000)
-                .setConfig(logical_log_rotation_threshold, gibiBytes(1));
+                .setConfig(check_point_interval_tx, 10000);
 
         // when
         DatabaseManagementService managementService = databaseManagementServiceBuilder.build();
@@ -257,7 +251,6 @@ class CheckPointerIntegrationTest {
     void readTransactionInfoFromCheckpointRecord() throws IOException {
         var managementService = builder.setConfig(check_point_interval_time, ofMillis(0))
                 .setConfig(check_point_interval_tx, 1)
-                .setConfig(logical_log_rotation_threshold, gibiBytes(1))
                 .build();
         try {
             var databaseAPI = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
@@ -323,7 +316,6 @@ class CheckPointerIntegrationTest {
     void tracePageCacheAccessOnCheckpoint() throws Exception {
         var managementService = builder.setConfig(check_point_interval_time, ofMillis(0))
                 .setConfig(check_point_interval_tx, 1)
-                .setConfig(logical_log_rotation_threshold, gibiBytes(1))
                 .build();
         try {
             GraphDatabaseAPI databaseAPI = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
@@ -348,7 +340,6 @@ class CheckPointerIntegrationTest {
         AssertableLogProvider logProvider = new AssertableLogProvider();
         var managementService = builder.setConfig(check_point_interval_time, ofHours(7))
                 .setConfig(check_point_interval_tx, 10_000)
-                .setConfig(logical_log_rotation_threshold, gibiBytes(1))
                 .setInternalLogProvider(logProvider)
                 .build();
         try {
@@ -384,7 +375,6 @@ class CheckPointerIntegrationTest {
         AssertableLogProvider logProvider = new AssertableLogProvider();
         var managementService = builder.setConfig(check_point_interval_time, ofHours(7))
                 .setConfig(check_point_interval_tx, 10_000)
-                .setConfig(logical_log_rotation_threshold, gibiBytes(1))
                 .setInternalLogProvider(logProvider)
                 .build();
         try {
