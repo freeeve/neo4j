@@ -57,7 +57,7 @@ case class TestConf(
   /** Scenarios with these tags are not run. */
   val ignoreTags: Set[String] = tagContext.map(name => Tag.IgnorePrefix + name) + Tag.IgnoreAll
 
-  val isParallelRuntime: Boolean = preparserOptions.getOrElse("runtime", "") == "parallel"
+  def runtime: String = preparserOptions.getOrElse("runtime", "")
 }
 
 object TestConf {

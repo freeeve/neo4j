@@ -33,7 +33,7 @@ import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
-import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
+import org.neo4j.cypher.cucumber.steps.Result
 
 import java.net.URI
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -44,14 +44,12 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /** These steps are not safe to use with parallel execution. */
 final class ScenarioRecordingSteps @Inject() (
-  recorder: ScenarioRecorder,
-  expectations: Expectations,
-  conf: TestConf
+  recorder: ScenarioRecorder
 ) extends CypherCucumberSteps {
 
   private var steps: ArrayBuffer[RecordedStep] = _
 
-  Before { scenario: Scenario =>
+  Before { _: Scenario =>
     steps = new ArrayBuffer(8)
   }
 
@@ -73,14 +71,11 @@ final class ScenarioRecordingSteps @Inject() (
   override def executingQuery(cypher: String): Unit = add(Execute(cypher))
   override def executingControlQuery(cypher: String): Unit = add(ExecuteControl(cypher))
 
-  override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit = {
-    add(AssertResults(expected, in(new ResultAssertionBuilder(conf.isParallelRuntime))))
-  }
+  override def resultShouldBe(expected: DataTable, assert: Result.Assertions): Unit =
+    add(AssertResults(expected, assert))
 
-  override def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder)
-    : Unit = {
-    add(AssertResults(expected, in(new ResultAssertionBuilder(conf.isParallelRuntime))))
-  }
+  override def approximateResultShouldBe(expected: DataTable, rowCount: Int): Unit =
+    add(AssertApproxResults(expected, rowCount))
   override def sideEffectsShouldBe(expected: DataTable): Unit = add(SideEffects(expected))
   override def errorShouldBeRaised(expected: ExpectedGqlError): Unit = add(AssertGqlError(expected))
 
@@ -151,10 +146,12 @@ case class ExecuteInOpenTx(override val cypher: String) extends TestExecution
 sealed trait ControlExecution extends TestExecution
 case class ExecuteControl(override val cypher: String) extends ControlExecution
 case class ExecuteControlInOpenTx(override val cypher: String) extends ControlExecution
+sealed trait ExpectResults extends RecordedStep
 
-case class AssertResults(expected: DataTable, resultBuilder: ResultAssertionBuilder) extends RecordedStep {
+case class AssertResults(expected: DataTable, assertion: Result.Assertions) extends ExpectResults {
   def rowCount: Int = expected.height() - 1
 }
+case class AssertApproxResults(expected: DataTable, rowCount: Int) extends ExpectResults
 sealed trait ExpectError extends RecordedStep
 case class AssertGqlError(expected: ExpectedGqlError) extends ExpectError
 case class AssertGqlWarning(expected: ExpectedGqlNotification) extends ExpectError

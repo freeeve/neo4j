@@ -23,7 +23,6 @@ import com.google.inject.Inject
 import io.cucumber.datatable.DataTable
 import io.cucumber.scala.Scenario
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Assumptions.assumeFalse
 import org.neo4j.cypher.cucumber.glue.regular.DbAccessor
@@ -33,10 +32,6 @@ import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryExecution
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryFailure
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryResults
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Exact
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Within
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.describeConf
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.originalError
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.renderAsTable
@@ -44,7 +39,12 @@ import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.toApproxi
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.toResultRows
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.unexpectedFailure
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
-import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
+import org.neo4j.cypher.cucumber.steps.Result
+import org.neo4j.cypher.cucumber.steps.Result.Assertions
+import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Exact
+import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Within
+import org.neo4j.cypher.cucumber.steps.Result.Order.Ordered
+import org.neo4j.cypher.cucumber.steps.Result.Order.Unordered
 import org.neo4j.cypher.cucumber.user.function.SeededRandFunction
 import org.neo4j.cypher.cucumber.user.function.TestFailNTimesFunction
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser
@@ -130,7 +130,7 @@ final class RegularCypherSteps @Inject() (
         val state = new TestFailNTimesFunction.State
         db.registerComponent[TestFailNTimesFunction.State](
           classOf[TestFailNTimesFunction.State],
-          (t: Context) => state,
+          (_: Context) => state,
           safe = true
         )
         db.unregisterProcedures(Seq(TestFailNTimesFunction.name))
@@ -193,34 +193,15 @@ final class RegularCypherSteps @Inject() (
     if (explainSucceeds || !rollbackSucceeds) "runtime" else "compile"
   }
 
-  override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit =
-    lastResult match {
-      case failure: QueryFailure =>
-        unexpectedFailure(failure, conf)
-      case actual: QueryResults =>
-        val builder: RegularResultAssertionBuilder =
-          in(new RegularResultAssertionBuilder(
-            actual,
-            expected,
-            conf.isParallelRuntime
-          )).asInstanceOf[RegularResultAssertionBuilder]
-        builder.assert()
-    }
+  override def resultShouldBe(expected: DataTable, assertions: Assertions): Unit = lastResult match {
+    case failure: QueryFailure => unexpectedFailure(failure, conf)
+    case actual: QueryResults  => assertResult(actual, expected, assertions.configure(conf.runtime))
+  }
 
-  override def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder)
-    : Unit =
-    lastResult match {
-      case failure: QueryFailure =>
-        unexpectedFailure(failure, conf)
-      case actual: QueryResults =>
-        val builder: ApproximateResultAssertionBuilder =
-          in(new ApproximateResultAssertionBuilder(
-            actual,
-            expected,
-            conf.isParallelRuntime
-          )).asInstanceOf[ApproximateResultAssertionBuilder]
-        builder.assert()
-    }
+  override def approximateResultShouldBe(expected: DataTable, rowCount: Int): Unit = lastResult match {
+    case failure: QueryFailure => unexpectedFailure(failure, conf)
+    case actual: QueryResults  => assertApproxResult(actual, expected, rowCount)
+  }
 
   override def sideEffectsShouldBe(expectedTable: DataTable): Unit = {
     val actual = lastGraphState match {
@@ -337,71 +318,40 @@ final class RegularCypherSteps @Inject() (
 
   def getDbmsAccessor: DbAccessor = dbmsAccessor
 
-  class RegularResultAssertionBuilder(actual: QueryResults, expected: DataTable, isParallelRuntime: Boolean)
-      extends ResultAssertionBuilder(isParallelRuntime) {
-
-    def assert(): Unit = {
-      val rowsMapper: util.List[util.List[AnyRef]] => util.List[util.List[AnyRef]] =
-        (wouldOrderSublists(), doublePrecision) match {
-          case (InOrder, Exact) =>
-            identity[util.List[util.List[AnyRef]]]
-          case (InAnyOrder, Exact) =>
-            rowsWithUnorderedLists
-          case (InOrder, Within(epsilon)) =>
-            rowsWithCloseEnoughNumbers(epsilon)
-          case (InAnyOrder, Within(epsilon)) =>
-            rowsWithUnorderedLists _ andThen rowsWithCloseEnoughNumbers(epsilon)
-        }
-
-      val actualRows = rowsMapper(actual.results.rows)
-      val expectedRows = rowsMapper(toResultRows(expected))
-
-      wouldOrderResults() match {
-        case InOrder =>
-          assertThat(actualRows).as(describeResults(
-            actual,
-            expected,
-            this.toString()
-          )).containsExactlyElementsOf(expectedRows)
-        case InAnyOrder =>
-          assertThat(actualRows).as(describeResults(
-            actual,
-            expected,
-            this.toString()
-          )).containsExactlyInAnyOrderElementsOf(expectedRows)
-      }
-
-      assertEqualHeaders(actual, expected, approximate = false)
+  private def rowsMapper(conf: Result.Assertion)(rows: util.List[util.List[AnyRef]]): util.List[util.List[AnyRef]] = {
+    (conf.listOrder, conf.doublePrecision) match {
+      case (Ordered, Exact)             => rows
+      case (Unordered, Exact)           => rowsWithUnorderedLists(rows)
+      case (Ordered, Within(epsilon))   => rowsWithCloseEnoughNumbers(epsilon)(rows)
+      case (Unordered, Within(epsilon)) => rowsWithUnorderedLists(rowsWithCloseEnoughNumbers(epsilon)(rows))
     }
   }
 
-  class ApproximateResultAssertionBuilder(actual: QueryResults, expected: DataTable, isParallelRuntime: Boolean)
-      extends ResultAssertionBuilder(isParallelRuntime) {
-
-    def assert(): Unit = {
-      assertEqualHeaders(actual, expected, approximate = true)
-
-      val actualRows = actual.results.rows
-      val (mandatoryRows, allRows) = toApproximateResultRows(expected)
-
-      assertThat(actualRows).as(describeResults(
-        actual,
-        expected,
-        this.toString()
-      )).containsAll(mandatoryRows)
-
-      val expectedRows = allRows.stream().filter(x => actualRows.contains(x)).toList
-
-      assertThat(actualRows).as(describeResults(
-        actual,
-        expected,
-        this.toString
-      )).containsExactlyElementsOf(expectedRows)
-
-      if (nbrOfResults.isDefined) {
-        assertEquals(nbrOfResults.get, actualRows.size())
-      }
+  private def assertResult(actual: QueryResults, expected: DataTable, conf: Result.Assertion): Unit = {
+    val mapper = rowsMapper(conf)(_)
+    val actualRows = mapper(actual.results.rows)
+    val expectedRows = mapper(toResultRows(expected))
+    conf.rowOrder match {
+      case Ordered => assertThat(actualRows)
+          .as(describeResults(actual, expected, "in order"))
+          .containsExactlyElementsOf(expectedRows)
+      case Unordered => assertThat(actualRows)
+          .as(describeResults(actual, expected, "in any order"))
+          .containsExactlyInAnyOrderElementsOf(expectedRows)
     }
+    assertEqualHeaders(actual, expected, approximate = false)
+  }
+
+  private def assertApproxResult(actual: QueryResults, expected: DataTable, rowCount: Int): Unit = {
+    assertEqualHeaders(actual, expected, approximate = true)
+    val actualRows = actual.results.rows
+    val (mandatoryRows, allRows) = toApproximateResultRows(expected)
+
+    assertThat(actualRows)
+      .as(describeResults(actual, expected, "in order"))
+      .containsAll(mandatoryRows)
+      .containsExactlyElementsOf(allRows.stream().filter(x => actualRows.contains(x)).toList)
+      .hasSize(rowCount)
   }
 }
 
@@ -510,9 +460,6 @@ object RegularCypherSteps {
     case _                          => throwable
   }
 
-  private[steps] def describeFailure(failure: QueryFailure): Supplier[String] = () =>
-    "Query failure (you need to scroll past the stacktrace for actual assertion error).\n" + doDescribeFailure(failure)
-
   private[steps] def doDescribeFailure(failure: QueryFailure): String = {
     s"""
        |Phase: ${failure.phase}
@@ -521,19 +468,5 @@ object RegularCypherSteps {
        |
        |Cause: ${Exceptions.stringify(originalError(failure.cause))}
        |""".stripMargin
-  }
-
-  sealed trait ResultOrderOption
-
-  object ResultOrderOption {
-    case object InOrder extends ResultOrderOption
-    case object InAnyOrder extends ResultOrderOption
-  }
-
-  sealed trait ResultDoublePrecision
-
-  object ResultDoublePrecision {
-    case object Exact extends ResultDoublePrecision
-    case class Within(epsilon: Double) extends ResultDoublePrecision
   }
 }

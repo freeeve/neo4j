@@ -37,7 +37,7 @@ import org.neo4j.cypher.cucumber.glue.regular.SingletonInjector
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
-import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
+import org.neo4j.cypher.cucumber.steps.Result
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.PreParser
 import org.neo4j.cypher.internal.ast.Statement
@@ -190,10 +190,9 @@ final class ObfuscatorSteps @Inject() (
     taggedQueries = taggedQueries.removed(lastTag)
 
   // We don't check regular assertions here
-  override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit = {}
 
-  override def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder)
-    : Unit = {}
+  override def resultShouldBe(expected: DataTable, assert: Result.Assertions): Unit = {}
+  override def approximateResultShouldBe(expected: DataTable, rowCount: Int): Unit = {}
   override def sideEffectsShouldBe(expected: DataTable): Unit = {}
 }
 

@@ -25,16 +25,19 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.cucumber.glue.regular.DynamicExpectations
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Within
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
+import org.neo4j.cypher.cucumber.steps.Result
+import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Exact
+import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Within
+import org.neo4j.cypher.cucumber.steps.Result.Order.Ordered
+import org.neo4j.cypher.cucumber.steps.Result.Order.Unordered
 import org.neo4j.cypher.cucumber.synthesise.CucumberSalad
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.ScenarioFilter
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.excludeTags
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.isCompatible
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.isReadQuery
+import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertApproxResults
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlError
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlWarning
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertResults
@@ -239,18 +242,20 @@ trait ScenarioRenderer {
     case SetParams(params) =>
       render("And parameters are:", DataTable.create(params.toSeq.map(t => java.util.List.of(t._1, t._2)).asJava))
     case AssertResults(expected, _) if expected.isEmpty => "Then the result should be empty"
-    case AssertResults(expected, builder) =>
-      val orderString = (builder.getResultOrdering, builder.getSublistOrdering) match {
-        case (InOrder, InOrder)       => ", in order"
-        case (InAnyOrder, InOrder)    => ", in any order"
-        case (InOrder, InAnyOrder)    => ", in order (ignoring element order for lists)"
-        case (InAnyOrder, InAnyOrder) => " (ignoring element order for lists)"
+    case AssertResults(expected, Result.Single(a)) =>
+      val orderString = (a.rowOrder, a.listOrder) match {
+        case (Ordered, Ordered)     => ", in order"
+        case (Unordered, Ordered)   => ", in any order"
+        case (Ordered, Unordered)   => ", in order (ignoring element order for lists)"
+        case (Unordered, Unordered) => " (ignoring element order for lists)"
       }
-      val precisionString = builder.getPrecision match {
+      val precisionString = a.doublePrecision match {
         case Within(epsilon) => s", to within $epsilon"
-        case _               => ""
+        case Exact           => ""
       }
       render(s"Then the result should be$orderString$precisionString:", expected)
+    case AssertResults(_, Result.ParallelOverride(_, _)) => ??? // TODO
+    case AssertApproxResults(_, _)                       => ??? // TODO
     case error: ExpectError => error match {
         case AssertGqlError(ExpectedGqlError(table, _)) =>
           render(s"Then an error should be raised:", table)

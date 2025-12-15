@@ -23,14 +23,13 @@ import io.cucumber.datatable.DataTable
 import io.cucumber.scala.EN
 import io.cucumber.scala.ScalaDsl
 import org.apache.commons.io.IOUtils
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Exact
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultDoublePrecision.Within
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InAnyOrder
-import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.ResultOrderOption.InOrder
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
+import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Exact
+import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Within
+import org.neo4j.cypher.cucumber.steps.Result.Order.Ordered
+import org.neo4j.cypher.cucumber.steps.Result.Order.Unordered
+import org.neo4j.cypher.cucumber.steps.Result.Single
 
 import java.nio.charset.StandardCharsets
 
@@ -89,59 +88,60 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   // ====
 
   Then("the result should be, in order:") { (expected: DataTable) =>
-    resultShouldBe(expected)(_.withRowsInOrder())
+    resultShouldBe(expected, Result.InOrder)
   }
 
   Then("the approximate result should be {int} rows, in order:") { (nbrOfResults: Int, expected: DataTable) =>
-    approximateResultShouldBe(expected)(_.withRowsInOrder().withNumberOfResults(nbrOfResults))
+    approximateResultShouldBe(expected, nbrOfResults)
   }
 
   Then("the result should be, in order, to within {double}:") { (epsilon: Double, expected: DataTable) =>
-    resultShouldBe(expected)(_.withRowsInOrder().withPrecision(epsilon))
+    resultShouldBe(expected, Result.Assertion(Ordered, Ordered, Within(epsilon)))
   }
 
   Then("""the result should be, in order \(or any order if executed in parallel):""") { (expected: DataTable) =>
-    resultShouldBe(expected)(_.withRowsInOrder().withAnyResultOrderInParallelRuntime())
+    resultShouldBe(expected, Result.ParallelOverride(Result.InOrder, Result.InAnyOrder))
   }
 
   Then("""the result should be, in order \(or any order ignoring element order for lists if executed in parallel):""") {
     (expected: DataTable) =>
-      resultShouldBe(expected)(
-        _.withRowsInOrder().withAnyResultOrderInParallelRuntime().withAnySublistOrderInParallelRuntime()
-      )
+      resultShouldBe(expected, Result.ParallelOverride(Result.InAnyOrder, Result.InAnyOrderWithUnorderedLists))
   }
 
   Then(
     """the result should be, in order \(or any order if executed in parallel) \(ignoring element order for lists):"""
   ) { (expected: DataTable) =>
-    resultShouldBe(expected)(_.withRowsInOrder().withAnyResultOrderInParallelRuntime().withSublistsInAnyOrder())
+    resultShouldBe(
+      expected,
+      Result.ParallelOverride(Result.InOrderWithUnorderedLists, Result.InAnyOrderWithUnorderedLists)
+    )
   }
 
   Then(
     """the result should be, in any order \(and ignoring element order for lists if executed in parallel):"""
   ) {
     (expected: DataTable) =>
-      resultShouldBe(expected)(_.withRowsInAnyOrder().withAnySublistOrderInParallelRuntime())
+      resultShouldBe(expected, Result.ParallelOverride(Result.InAnyOrder, Result.InAnyOrderWithUnorderedLists))
   }
 
   Then("the result should be, in any order:") { (expected: DataTable) =>
-    resultShouldBe(expected)(_.withRowsInAnyOrder())
+    resultShouldBe(expected, Result.InAnyOrder)
   }
 
   Then("the result should be, in any order, to within {double}:") { (epsilon: Double, expected: DataTable) =>
-    resultShouldBe(expected)(_.withRowsInAnyOrder().withPrecision(epsilon))
+    resultShouldBe(expected, Result.InAnyOrder.copy(doublePrecision = Within(epsilon)))
   }
 
   Then("""the result should be, in order \(ignoring element order for lists):""") { (expected: DataTable) =>
-    resultShouldBe(expected)(_.withRowsInOrder().withSublistsInAnyOrder())
+    resultShouldBe(expected, Result.InOrderWithUnorderedLists)
   }
 
   Then("""the result should be \(ignoring element order for lists):""") { (expected: DataTable) =>
-    resultShouldBe(expected)(_.withRowsInAnyOrder().withSublistsInAnyOrder())
+    resultShouldBe(expected, Result.InAnyOrderWithUnorderedLists)
   }
 
   Then("the result should be empty") {
-    resultShouldBe(DataTable.emptyDataTable())(_.withRowsInOrder())
+    resultShouldBe(DataTable.emptyDataTable(), Result.InOrder)
   }
 
   Then("no side effects") {
@@ -179,14 +179,16 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   def havingExecuted(cypher: String): Unit
   def executingQuery(cypher: String): Unit
   def executingControlQuery(cypher: String): Unit
-  def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit
-  def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit
+  private def resultShouldBe(expected: DataTable, a: Result.Assertion): Unit = resultShouldBe(expected, Single(a))
+  def resultShouldBe(expected: DataTable, assert: Result.Assertions): Unit
+  def approximateResultShouldBe(expected: DataTable, rowCount: Int): Unit
   def sideEffectsShouldBe(expected: DataTable): Unit
   def errorShouldBeRaised(hierarchy: ExpectedGqlError): Unit
   def notificationsShouldBeRaised(expectedWarnings: ExpectedGqlNotification): Unit
 }
 
 object CypherCucumberSteps {
+
   case class ErrorDescription(code: Seq[String], classification: Seq[String], descriptionTemplate: String)
   case class ExpectedGqlError(table: DataTable, errors: Seq[ErrorDescription])
   case class NotificationDescription(code: String, descriptionTemplate: String, optional: Boolean)
@@ -268,96 +270,40 @@ trait InOpenTxCypherCucumberSteps extends ScalaDsl with EN {
   def commitOpenTx(): Unit
 }
 
-class ResultAssertionBuilder(isParallelRuntime: Boolean) {
-  protected var resultOrdering: ResultOrderOption = InOrder
-  protected var sublistOrdering: ResultOrderOption = InOrder
-  protected var parallelResultsOverride: Option[ResultOrderOption] = None
-  protected var parallelSublistsOverride: Option[ResultOrderOption] = None
-  protected var doublePrecision: ResultDoublePrecision = Exact
-  protected var nbrOfResults: Option[Int] = None
+object Result {
+  sealed trait Order
 
-  def getResultOrdering: ResultOrderOption = resultOrdering
-  def getSublistOrdering: ResultOrderOption = sublistOrdering
-  def getPrecision: ResultDoublePrecision = doublePrecision
-
-  def wouldOrderResults(): ResultOrderOption = parallelResultsOverride.getOrElse(resultOrdering)
-  def wouldOrderSublists(): ResultOrderOption = parallelSublistsOverride.getOrElse(sublistOrdering)
-
-  def withRowsInOrder(): ResultAssertionBuilder = {
-    this.resultOrdering = InOrder
-    this
+  object Order {
+    case object Ordered extends Order
+    case object Unordered extends Order
   }
 
-  def withRowsInAnyOrder(): ResultAssertionBuilder = {
-    this.resultOrdering = InAnyOrder
-    this
+  sealed trait DoublePrecision
+
+  object DoublePrecision {
+    case object Exact extends DoublePrecision
+    case class Within(epsilon: Double) extends DoublePrecision
   }
 
-  def withSublistsInOrder(): ResultAssertionBuilder = {
-    this.sublistOrdering = InOrder
-    this
+  case class Assertion(rowOrder: Order, listOrder: Order, doublePrecision: DoublePrecision)
+  val InOrder = Assertion(Ordered, Ordered, Exact)
+  val InOrderWithUnorderedLists = Assertion(Ordered, Unordered, Exact)
+  val InAnyOrder = Assertion(Unordered, Ordered, Exact)
+  val InAnyOrderWithUnorderedLists = Assertion(Unordered, Unordered, Exact)
+
+  sealed trait Assertions {
+    def configure(runtime: String): Assertion
   }
 
-  def withSublistsInAnyOrder(): ResultAssertionBuilder = {
-    this.sublistOrdering = InAnyOrder
-    this
+  case class Single(assertion: Assertion) extends Assertions {
+    final override def configure(runtime: String): Assertion = assertion
   }
 
-  def withPrecision(epsilon: Double): ResultAssertionBuilder = {
-    epsilon match {
-      case 0 => this.doublePrecision = Exact
-      case _ => this.doublePrecision = Within(Math.abs(epsilon))
+  case class ParallelOverride(default: Assertion, parallel: Assertion) extends Assertions {
+
+    final override def configure(runtime: String): Assertion = runtime match {
+      case "parallel" => parallel
+      case _          => default
     }
-    this
-  }
-
-  def withStrictResultOrderInParallelRuntime(): ResultAssertionBuilder = {
-    if (isParallelRuntime) {
-      parallelResultsOverride = Some(InOrder)
-    }
-    this
-  }
-
-  def withAnyResultOrderInParallelRuntime(): ResultAssertionBuilder = {
-    if (isParallelRuntime) {
-      parallelResultsOverride = Some(InAnyOrder)
-    }
-    this
-  }
-
-  def withStrictSublistOrderInParallelRuntime(): ResultAssertionBuilder = {
-    if (isParallelRuntime) {
-      parallelSublistsOverride = Some(InOrder)
-    }
-    this
-  }
-
-  def withAnySublistOrderInParallelRuntime(): ResultAssertionBuilder = {
-    if (isParallelRuntime) {
-      parallelSublistsOverride = Some(InAnyOrder)
-    }
-    this
-  }
-
-  def withNumberOfResults(i: Int): ResultAssertionBuilder = {
-    nbrOfResults = Some(i)
-    this
-  }
-
-  override def toString: String = {
-    val rowOrderInner: String = wouldOrderResults() match {
-      case InOrder    => "in order"
-      case InAnyOrder => "in any order"
-    }
-    val rowOrderOuter: String = wouldOrderSublists() match {
-      case InOrder    => rowOrderInner
-      case InAnyOrder => s"rows $rowOrderInner, ignoring element order of lists"
-    }
-    val precisionPreference: String = doublePrecision match {
-      case Exact           => ""
-      case Within(epsilon) => s", to within $epsilon"
-    }
-
-    s"$rowOrderOuter$precisionPreference"
   }
 }

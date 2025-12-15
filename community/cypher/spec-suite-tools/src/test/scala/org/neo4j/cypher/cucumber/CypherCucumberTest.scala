@@ -39,6 +39,7 @@ import org.neo4j.cypher.cucumber.glue.regular.InjectedTestConf
 import org.neo4j.cypher.cucumber.glue.regular.SingletonInjector
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
+import org.neo4j.cypher.cucumber.synthesise.read.ScenarioReader
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.LoneElement
 
@@ -293,6 +294,12 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       )
   }
 
+  test("scenario reader works") {
+    val allScenarios = new ScenarioReader().readAllScenarios("test.features")
+    allScenarios.size shouldBe 164
+    // TODO assert read/write round trip.
+  }
+
   test("object factories have correct names", Tags.NoSpdOverride) {
     val testConfs = ServiceLoader.load(classOf[ObjectFactory]).stream().toList.asScala.toSeq
       .map(_.get())
@@ -397,8 +404,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.registerUserFunction(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.registerProcedure(java.lang.String,io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.executingControlQuery(java.lang.String)",
-      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBe(io.cucumber.datatable.DataTable,scala.Function1)",
-      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.approximateResultShouldBe(io.cucumber.datatable.DataTable,scala.Function1)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.approximateResultShouldBe(io.cucumber.datatable.DataTable,int)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBe(io.cucumber.datatable.DataTable,org.neo4j.cypher.cucumber.steps.Result$Assertions)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.sideEffectsShouldBe(io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlError)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.notificationsShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlNotification)",
@@ -454,7 +461,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     assertThat(failure.throwable)
       .hasMessageContainingAll(
         "Incorrect query result.",
-        "Expected results (rows in order, ignoring element order of lists):",
+        "Expected results (in order):",
         "runtime=legacy",
         "+ProduceResults"
       )
@@ -465,7 +472,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     assertThat(failure.throwable)
       .hasMessageContainingAll(
         "Incorrect query result.",
-        "Expected results (rows in any order, ignoring element order of lists):",
+        "Expected results (in any order):",
         "CYPHER runtime=legacy",
         "+ProduceResults"
       )

@@ -35,7 +35,7 @@ import org.neo4j.cypher.cucumber.glue.regular.SingletonInjector
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
-import org.neo4j.cypher.cucumber.steps.ResultAssertionBuilder
+import org.neo4j.cypher.cucumber.steps.Result
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.PreParser
 import org.neo4j.cypher.internal.ast.Statement
@@ -134,10 +134,8 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
   override def registerProcedure(signature: String, results: DataTable): Unit = {}
   override def registerUserFunction(name: String): Unit = {}
   override def givenCsvFile(urlParam: String, content: DataTable): Unit = {}
-  override def resultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder): Unit = {}
-
-  override def approximateResultShouldBe(expected: DataTable)(in: ResultAssertionBuilder => ResultAssertionBuilder)
-    : Unit = {}
+  override def resultShouldBe(expected: DataTable, assertions: Result.Assertions): Unit = {}
+  override def approximateResultShouldBe(expected: DataTable, rowCount: Int): Unit = {}
   override def sideEffectsShouldBe(expected: DataTable): Unit = {}
   override def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {}
   override def notificationsShouldBeRaised(expectedGqlWarning: ExpectedGqlNotification): Unit = {}
@@ -161,5 +159,5 @@ object PrettifierSteps {
   final val FactoryName = "org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps$ObjectFactory"
   class ObjectFactory extends SingletonInjector(injector(new NoOpBeforeAndAfterAllModule()))
 
-  def expectFailure(scenario: Scenario): Boolean = scenario.getSourceTagNames.contains("@fails:prettifier")
+  private def expectFailure(scenario: Scenario): Boolean = scenario.getSourceTagNames.contains("@fails:prettifier")
 }
