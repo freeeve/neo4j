@@ -21,7 +21,7 @@ package org.neo4j.bolt.fsm;
 
 import static org.neo4j.bolt.testing.assertions.MapValueAssertions.assertThat;
 import static org.neo4j.bolt.testing.assertions.ResponseRecorderAssertions.assertThat;
-import static org.neo4j.bolt.testing.assertions.StateMachineAssertions.assertThat;
+import static org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions.assertThat;
 
 import java.util.Map;
 import org.neo4j.bolt.test.annotation.CommunityStateMachineTestExtension;
@@ -45,7 +45,7 @@ class ConnectedStateAuthenticationIT {
 
     @StateMachineTest(until = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 0))
     void shouldGiveCredentialsExpiredStatusOnExpiredCredentials(
-            StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
+            StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
         fsm.process(messages.hello("neo4j", "neo4j"), recorder);
         fsm.process(messages.run("CREATE ()"), recorder);
 
@@ -56,7 +56,7 @@ class ConnectedStateAuthenticationIT {
     }
 
     @StateMachineTest(until = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 0))
-    void shouldGiveKernelVersionOnInit(StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+    void shouldGiveKernelVersionOnInit(StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws Throwable {
         var version = "Neo4j/" + Version.getNeo4jVersion();
 
@@ -69,7 +69,7 @@ class ConnectedStateAuthenticationIT {
 
     @StateMachineTest(until = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 0))
     void shouldCloseConnectionAfterAuthenticationFailure(
-            StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
+            StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
         assertThat(fsm).shouldKillConnection(it -> it.process(messages.hello("neo4j", "j4oen"), recorder));
 
         assertThat(recorder).hasFailureResponse(Status.Security.Unauthorized);

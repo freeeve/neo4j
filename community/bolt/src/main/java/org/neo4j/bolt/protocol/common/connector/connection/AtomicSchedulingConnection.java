@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.neo4j.bolt.BoltServer;
-import org.neo4j.bolt.fsm.StateMachine;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.fsm.error.BoltException;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
@@ -327,7 +327,7 @@ public class AtomicSchedulingConnection extends AbstractConnection {
         }
     }
 
-    private void executeJob(StateMachine fsm, Job job) {
+    private void executeJob(StateMachineHandle fsm, Job job) {
         this.channel.write(StateSignal.BEGIN_JOB_PROCESSING);
 
         try {
@@ -628,7 +628,7 @@ public class AtomicSchedulingConnection extends AbstractConnection {
             AtomicSchedulingConnection conn, long queuedAt, RequestMessage message, AdmissionControlToken token)
             implements Job {
         @Override
-        public void perform(StateMachine machine, ResponseHandler responseHandler) throws StateMachineException {
+        public void perform(StateMachineHandle machine, ResponseHandler responseHandler) throws StateMachineException {
             var processingStartedAt = this.conn.clock.millis();
             var queuedForMillis = processingStartedAt - queuedAt;
             conn.notifyListeners(listener -> listener.onRequestBeginProcessing(message, queuedForMillis));

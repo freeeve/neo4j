@@ -64,7 +64,7 @@ final class ImmutableStateMachineConfiguration implements StateMachineConfigurat
     }
 
     @Override
-    public StateMachine createInstance(ConnectionHandle connection, LogService logService) {
+    public StateMachineHandle createInstance(ConnectionHandle connection, LogService logService) {
         return new StateMachineImpl(connection, this, logService, this.initialState);
     }
 }

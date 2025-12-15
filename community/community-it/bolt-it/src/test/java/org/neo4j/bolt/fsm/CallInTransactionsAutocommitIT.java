@@ -40,7 +40,7 @@ class CallInTransactionsAutocommitIT {
 
     @StateMachineTest
     void shouldSupportUsingCallInTransactionsInSession(
-            @Authenticated StateMachine fsm,
+            @Authenticated StateMachineHandle fsm,
             BoltMessages messages,
             ResponseRecorder recorder,
             TransactionIdProvider idProvider)

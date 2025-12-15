@@ -27,7 +27,7 @@ import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.test.annotation.CommunityStateMachineTestExtension;
 import org.neo4j.bolt.testing.annotation.fsm.StateMachineTest;
 import org.neo4j.bolt.testing.assertions.MapValueAssertions;
-import org.neo4j.bolt.testing.assertions.StateMachineAssertions;
+import org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions;
 import org.neo4j.bolt.testing.messages.BoltMessages;
 import org.neo4j.bolt.testing.response.ResponseRecorder;
 import org.neo4j.kernel.internal.Version;
@@ -37,7 +37,7 @@ public class NegotiationStateIT {
 
     @StateMachineTest(since = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 1))
     void shouldHandleHelloMessageAndMoveToAuthenticatedState(
-            StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
+            StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
         // When
         fsm.process(messages.hello(), recorder);
 
@@ -46,6 +46,6 @@ public class NegotiationStateIT {
                 .containsEntry("server", stringValue("Neo4j/" + Version.getNeo4jVersion()))
                 .containsEntry("connection_id", stringValue("bolt-test")));
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTHENTICATION);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.AUTHENTICATION);
     }
 }

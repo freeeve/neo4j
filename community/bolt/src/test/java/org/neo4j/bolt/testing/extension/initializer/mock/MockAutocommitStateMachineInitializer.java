@@ -23,12 +23,12 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.platform.commons.util.AnnotationUtils;
 import org.mockito.internal.util.MockUtil;
-import org.neo4j.bolt.fsm.StateMachine;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.testing.annotation.fsm.initializer.mock.MockAutocommit;
 import org.neo4j.bolt.testing.assertions.ResponseRecorderAssertions;
-import org.neo4j.bolt.testing.assertions.StateMachineAssertions;
+import org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions;
 import org.neo4j.bolt.testing.extension.dependency.StateMachineDependencyProvider;
 import org.neo4j.bolt.testing.extension.initializer.StateMachineInitializer;
 import org.neo4j.bolt.testing.fsm.StateMachineProvider;
@@ -47,7 +47,7 @@ public class MockAutocommitStateMachineInitializer implements StateMachineInitia
             ParameterContext parameterContext,
             StateMachineDependencyProvider dependencyProvider,
             StateMachineProvider provider,
-            StateMachine fsm)
+            StateMachineHandle fsm)
             throws StateMachineException {
         var recorder = new ResponseRecorder();
 
@@ -76,6 +76,6 @@ public class MockAutocommitStateMachineInitializer implements StateMachineInitia
         fsm.process(provider.messages().run("UNWIND RANGE(0, " + n + ") AS n RETURN n"), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTO_COMMIT);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.AUTO_COMMIT);
     }
 }

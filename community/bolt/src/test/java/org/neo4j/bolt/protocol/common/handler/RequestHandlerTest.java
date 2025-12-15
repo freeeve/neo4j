@@ -30,7 +30,7 @@ import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
-import org.neo4j.bolt.fsm.StateMachine;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.protocol.common.connection.Job;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.message.Error;
@@ -65,7 +65,7 @@ class RequestHandlerTest {
     @Test
     void shouldEnqueueErrors() throws BoltConnectionFatality {
         var responseHandler = mock(ResponseHandler.class);
-        var fsm = mock(StateMachine.class);
+        var fsm = mock(StateMachineHandle.class);
 
         var channel = new EmbeddedChannel();
 

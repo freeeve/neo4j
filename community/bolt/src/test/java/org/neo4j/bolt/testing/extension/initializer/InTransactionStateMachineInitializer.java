@@ -21,7 +21,7 @@ package org.neo4j.bolt.testing.extension.initializer;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
-import org.neo4j.bolt.fsm.StateMachine;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.testing.assertions.ConnectionHandleAssertions;
 import org.neo4j.bolt.testing.assertions.ResponseRecorderAssertions;
@@ -37,7 +37,7 @@ public class InTransactionStateMachineInitializer implements StateMachineInitial
             ParameterContext parameterContext,
             StateMachineDependencyProvider dependencyProvider,
             StateMachineProvider provider,
-            StateMachine fsm)
+            StateMachineHandle fsm)
             throws StateMachineException {
         var recorder = new ResponseRecorder();
 

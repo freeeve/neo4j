@@ -38,7 +38,7 @@ import org.neo4j.dbms.admissioncontrol.AdmissionControlToken;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.internal.LogService;
 
-final class StateMachineImpl implements StateMachine, Context {
+final class StateMachineImpl implements StateMachineHandle, Context {
     private final ConnectionHandle connection;
     private final StateMachineConfiguration configuration;
 

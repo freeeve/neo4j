@@ -21,7 +21,7 @@ package org.neo4j.bolt.fsm;
 
 import static org.neo4j.bolt.testing.assertions.MapValueAssertions.assertThat;
 import static org.neo4j.bolt.testing.assertions.ResponseRecorderAssertions.assertThat;
-import static org.neo4j.bolt.testing.assertions.StateMachineAssertions.assertThat;
+import static org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions.assertThat;
 import static org.neo4j.values.storable.BooleanValue.TRUE;
 import static org.neo4j.values.storable.Values.longValue;
 
@@ -44,7 +44,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldMoveFromAutoCommitToReadyOnPullWhenSingleResultIsReturned(
-            @Autocommit StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) throws Throwable {
+            @Autocommit StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) throws Throwable {
         fsm.process(messages.pull(1), recorder);
 
         assertThat(recorder).hasRecord().hasSuccessResponse(meta -> assertThat(meta)
@@ -62,7 +62,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldMoveFromAutoCommitToReadyOnPullWhenMultiplyResultsAreReturned(
-            @Autocommit("UNWIND [1, 2, 3] AS n RETURN n") StateMachine fsm,
+            @Autocommit("UNWIND [1, 2, 3] AS n RETURN n") StateMachineHandle fsm,
             ResponseRecorder recorder,
             BoltMessages messages)
             throws Throwable {
@@ -90,7 +90,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldMoveFromAutoCommitToReadyOnDiscardAllWhenSingleResultIsReturned(
-            @Autocommit StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) throws Throwable {
+            @Autocommit StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) throws Throwable {
         fsm.process(messages.discard(1), recorder);
 
         assertThat(recorder)
@@ -106,7 +106,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldMoveFromAutoCommitToReadyOnDiscardAllWhenMultipleResultsAreReturned(
-            @Autocommit("UNWIND [1, 2, 3] AS n RETURN n") StateMachine fsm,
+            @Autocommit("UNWIND [1, 2, 3] AS n RETURN n") StateMachineHandle fsm,
             ResponseRecorder recorder,
             BoltMessages messages)
             throws Throwable {
@@ -138,7 +138,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldMoveFromAutoCommitToInterruptedOnInterrupt(
-            @Autocommit StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @Autocommit StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.connection().interrupt();
 
@@ -157,7 +157,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldCloseConnectionInAutoCommitOnHello(
-            @Autocommit StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) {
+            @Autocommit StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) {
         this.shouldCloseConnectionInAutoCommitOnMessage(fsm, recorder, messages.hello());
     }
 
@@ -169,7 +169,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldCloseConnectionInAutoCommitOnRun(
-            @Autocommit StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) {
+            @Autocommit StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) {
         // explicitly send a valid cypher query so that we do not end up with another failure
         // message when this test is supposed to fail
         this.shouldCloseConnectionInAutoCommitOnMessage(fsm, recorder, messages.run("RETURN 1"));
@@ -183,7 +183,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldCloseConnectionInAutoCommitOnBegin(
-            @Autocommit StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) {
+            @Autocommit StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) {
         this.shouldCloseConnectionInAutoCommitOnMessage(fsm, recorder, messages.begin());
     }
 
@@ -195,7 +195,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldCloseConnectionInAutoCommitOnCommit(
-            @Autocommit StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) {
+            @Autocommit StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) {
         this.shouldCloseConnectionInAutoCommitOnMessage(fsm, recorder, messages.commit());
     }
 
@@ -207,7 +207,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldCloseConnectionInAutoCommitOnRollback(
-            @Autocommit StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) {
+            @Autocommit StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) {
         this.shouldCloseConnectionInAutoCommitOnMessage(fsm, recorder, messages.rollback());
     }
 
@@ -219,7 +219,7 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldCloseConnectionInAutoCommitOnReset(
-            @Autocommit StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) {
+            @Autocommit StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) {
         this.shouldCloseConnectionInAutoCommitOnMessage(fsm, recorder, messages.reset());
     }
 
@@ -231,12 +231,12 @@ class AutoCommitStateIT {
      */
     @StateMachineTest
     void shouldCloseConnectionInAutoCommitOnGoodbye(
-            @Autocommit StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) {
+            @Autocommit StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) {
         this.shouldCloseConnectionInAutoCommitOnMessage(fsm, recorder, messages.goodbye());
     }
 
     private void shouldCloseConnectionInAutoCommitOnMessage(
-            StateMachine fsm, ResponseRecorder recorder, RequestMessage message) {
+            StateMachineHandle fsm, ResponseRecorder recorder, RequestMessage message) {
         assertThat(fsm).shouldKillConnection(it -> it.process(message, recorder));
 
         assertThat(recorder).hasFailureResponse(Status.Request.Invalid);

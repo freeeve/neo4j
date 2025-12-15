@@ -20,7 +20,7 @@
 package org.neo4j.bolt.fsm;
 
 import static org.neo4j.bolt.testing.assertions.ResponseRecorderAssertions.assertThat;
-import static org.neo4j.bolt.testing.assertions.StateMachineAssertions.assertThat;
+import static org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions.assertThat;
 
 import java.util.List;
 import org.neo4j.bolt.fsm.error.StateMachineException;
@@ -35,7 +35,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 class FailedStateIT {
 
     @StateMachineTest
-    void shouldIgnoreMessages(@Failed StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+    void shouldIgnoreMessages(@Failed StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws Throwable {
         var candidates = List.of(
                 messages.discard(2L),
@@ -55,7 +55,8 @@ class FailedStateIT {
 
     @StateMachineTest
     void shouldMoveToInterruptedOnInterruptSignal(
-            @Failed StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
+            @Failed StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
+            throws StateMachineException {
         fsm.interrupt();
 
         fsm.process(messages.pull(), recorder);
@@ -65,7 +66,8 @@ class FailedStateIT {
     }
 
     @StateMachineTest
-    void shouldTerminateConnectionOnHello(@Failed StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) {
+    void shouldTerminateConnectionOnHello(
+            @Failed StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) {
         assertThat(fsm)
                 .shouldKillConnection(machine -> machine.process(messages.hello(), recorder))
                 .hasFailed();
@@ -74,7 +76,8 @@ class FailedStateIT {
     }
 
     @StateMachineTest
-    void shouldTerminateConnectionOnBegin(@Failed StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) {
+    void shouldTerminateConnectionOnBegin(
+            @Failed StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) {
         assertThat(fsm)
                 .shouldKillConnection(machine -> machine.process(messages.begin(), recorder))
                 .hasFailed();
@@ -84,7 +87,7 @@ class FailedStateIT {
 
     @StateMachineTest
     void shouldTerminateConnectionOnGoodbye(
-            @Failed StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) {
+            @Failed StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) {
         assertThat(fsm)
                 .shouldKillConnection(machine -> machine.process(messages.goodbye(), recorder))
                 .hasFailed();

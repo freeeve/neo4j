@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.protocol.common.connector.connection.authentication.AuthenticationFlag;
 import org.neo4j.bolt.protocol.common.connector.notification.NotificationManager;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
@@ -110,4 +111,7 @@ public interface ConnectionHandle extends Connection {
     void closeTransaction() throws TransactionException;
 
     NotificationManager notificationManager();
+
+    @Override
+    StateMachineHandle fsm();
 }

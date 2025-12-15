@@ -23,7 +23,7 @@ import java.lang.reflect.AnnotatedElement;
 import java.util.List;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
-import org.neo4j.bolt.fsm.StateMachine;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.testing.annotation.fsm.initializer.Initialize;
 import org.neo4j.bolt.testing.extension.dependency.StateMachineDependencyProvider;
@@ -37,7 +37,7 @@ public interface StateMachineInitializer {
             ParameterContext parameterContext,
             StateMachineDependencyProvider dependencyProvider,
             StateMachineProvider provider,
-            StateMachine fsm)
+            StateMachineHandle fsm)
             throws StateMachineException;
 
     static List<StateMachineInitializer> listProviders(AnnotatedElement element) {

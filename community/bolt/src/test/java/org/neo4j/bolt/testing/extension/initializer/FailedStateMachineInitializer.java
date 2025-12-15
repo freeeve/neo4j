@@ -21,10 +21,10 @@ package org.neo4j.bolt.testing.extension.initializer;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
-import org.neo4j.bolt.fsm.StateMachine;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.fsm.response.NoopResponseHandler;
-import org.neo4j.bolt.testing.assertions.StateMachineAssertions;
+import org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions;
 import org.neo4j.bolt.testing.extension.dependency.StateMachineDependencyProvider;
 import org.neo4j.bolt.testing.fsm.StateMachineProvider;
 
@@ -36,7 +36,7 @@ public class FailedStateMachineInitializer implements StateMachineInitializer {
             ParameterContext parameterContext,
             StateMachineDependencyProvider dependencyProvider,
             StateMachineProvider provider,
-            StateMachine fsm)
+            StateMachineHandle fsm)
             throws StateMachineException {
         try {
             fsm.process(
@@ -44,6 +44,6 @@ public class FailedStateMachineInitializer implements StateMachineInitializer {
         } catch (StateMachineException ignore) {
         }
 
-        StateMachineAssertions.assertThat(fsm).hasFailed();
+        StateMachineHandleAssertions.assertThat(fsm).hasFailed();
     }
 }

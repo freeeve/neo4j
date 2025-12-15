@@ -38,7 +38,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import org.neo4j.bolt.fsm.StateMachine;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.negotiation.message.ProtocolCapability;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.protocol.common.connector.Connector;
@@ -86,7 +86,7 @@ public abstract class AbstractConnection implements ConnectionHandle {
     protected final AtomicReference<Set<ProtocolCapability>> selectedCapabilities =
             new AtomicReference<>(EnumSet.noneOf(ProtocolCapability.class));
     private final AtomicReference<Set<Feature>> features = new AtomicReference<>(null);
-    protected volatile StateMachine fsm;
+    protected volatile StateMachineHandle fsm;
     // TODO: Switch to immutable writer pipeline implementation?
     protected volatile WriterPipeline writerPipeline;
     protected final AtomicReference<StructRegistry<Connection, Value>> structRegistry = new AtomicReference<>();
@@ -415,7 +415,7 @@ public abstract class AbstractConnection implements ConnectionHandle {
     }
 
     @Override
-    public StateMachine fsm() {
+    public StateMachineHandle fsm() {
         var fsm = this.fsm;
         if (fsm == null) {
             throw new IllegalStateException("Connection has yet to select a protocol version");

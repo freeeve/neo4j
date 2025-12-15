@@ -83,7 +83,7 @@ public interface StateMachineConfiguration {
      * @param connection a connection.
      * @return a state machine context.
      */
-    StateMachine createInstance(ConnectionHandle connection, LogService logService);
+    StateMachineHandle createInstance(ConnectionHandle connection, LogService logService);
 
     interface Factory {
 

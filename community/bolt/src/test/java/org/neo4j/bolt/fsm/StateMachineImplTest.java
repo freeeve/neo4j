@@ -43,7 +43,7 @@ import org.neo4j.bolt.protocol.common.message.Error;
 import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.bolt.security.error.AuthenticationException;
 import org.neo4j.bolt.testing.assertions.ErrorAssertions;
-import org.neo4j.bolt.testing.assertions.StateMachineAssertions;
+import org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
 import org.neo4j.bolt.testing.mock.StateMockFactory;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlResponse;
@@ -114,7 +114,7 @@ class StateMachineImplTest {
 
     @Test
     void shouldIndicateInitialStateAsCurrentState() {
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE);
+        StateMachineHandleAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE);
     }
 
     @Test
@@ -147,16 +147,16 @@ class StateMachineImplTest {
 
     @Test
     void shouldIndicateInitialStateAsDefaultState() {
-        StateMachineAssertions.assertThat(this.fsm).hasDefaultState(INITIAL_REFERENCE);
+        StateMachineHandleAssertions.assertThat(this.fsm).hasDefaultState(INITIAL_REFERENCE);
     }
 
     @Test
     void shouldHandleInterrupts() {
-        StateMachineAssertions.assertThat(this.fsm).isNotInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm).isNotInterrupted();
 
         this.fsm.interrupt();
 
-        StateMachineAssertions.assertThat(this.fsm).isInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm).isInterrupted();
     }
 
     @Test
@@ -167,15 +167,21 @@ class StateMachineImplTest {
 
         this.fsm.process(Mockito.mock(RequestMessage.class), Mockito.mock(ResponseHandler.class), null);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(TEST_REFERENCE).isNotInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(TEST_REFERENCE)
+                .isNotInterrupted();
 
         this.fsm.interrupt();
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(TEST_REFERENCE).isInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(TEST_REFERENCE)
+                .isInterrupted();
 
         this.fsm.reset();
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).isNotInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .isNotInterrupted();
     }
 
     @Test
@@ -191,18 +197,24 @@ class StateMachineImplTest {
         // advance to someState
         this.fsm.process(Mockito.mock(RequestMessage.class), Mockito.mock(ResponseHandler.class), null);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(TEST_REFERENCE).hasNotFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(TEST_REFERENCE)
+                .hasNotFailed();
 
         // trigger failure (exception does not bubble up as it is status bearing)
         this.fsm.process(Mockito.mock(RequestMessage.class), responseHandler, null);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(TEST_REFERENCE).hasFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(TEST_REFERENCE)
+                .hasFailed();
 
         Mockito.verify(responseHandler).onFailure(Mockito.notNull());
 
         this.fsm.reset();
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).hasNotFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .hasNotFailed();
     }
 
     @Test
@@ -217,7 +229,7 @@ class StateMachineImplTest {
                         .whenLegacyFallbackTo("No such state: default"))
                 .isSameAs(ex);
 
-        StateMachineAssertions.assertThat(this.fsm)
+        StateMachineHandleAssertions.assertThat(this.fsm)
                 .hasDefaultState(INITIAL_REFERENCE)
                 .hasNotFailed();
     }
@@ -229,23 +241,31 @@ class StateMachineImplTest {
 
         Mockito.doReturn(TEST_REFERENCE).when(this.initialState).process(Mockito.any(), Mockito.any(), Mockito.any());
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE);
+        StateMachineHandleAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE);
 
         this.fsm.defaultState(DEFAULT_REFERENCE);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).isNotInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .isNotInterrupted();
 
         this.fsm.process(Mockito.mock(RequestMessage.class), Mockito.mock(ResponseHandler.class), null);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(TEST_REFERENCE).isNotInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(TEST_REFERENCE)
+                .isNotInterrupted();
 
         this.fsm.interrupt();
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(TEST_REFERENCE).isInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(TEST_REFERENCE)
+                .isInterrupted();
 
         this.fsm.reset();
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(DEFAULT_REFERENCE).isNotInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(DEFAULT_REFERENCE)
+                .isNotInterrupted();
     }
 
     @Test
@@ -259,25 +279,33 @@ class StateMachineImplTest {
 
         Mockito.doReturn(TEST_REFERENCE).when(this.initialState).process(Mockito.any(), Mockito.any(), Mockito.any());
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).hasNotFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .hasNotFailed();
 
         this.fsm.defaultState(DEFAULT_REFERENCE);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).hasNotFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .hasNotFailed();
 
         this.fsm.process(Mockito.mock(RequestMessage.class), Mockito.mock(ResponseHandler.class), null);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(TEST_REFERENCE).hasNotFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(TEST_REFERENCE)
+                .hasNotFailed();
 
         this.fsm.process(Mockito.mock(RequestMessage.class), responseHandler, null);
 
         Mockito.verify(responseHandler).onFailure(Mockito.notNull());
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(TEST_REFERENCE).hasFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(TEST_REFERENCE)
+                .hasFailed();
 
         this.fsm.reset();
 
-        StateMachineAssertions.assertThat(this.fsm)
+        StateMachineHandleAssertions.assertThat(this.fsm)
                 .isInState(DEFAULT_REFERENCE)
                 .hasNotFailed()
                 .isNotInterrupted();
@@ -291,11 +319,15 @@ class StateMachineImplTest {
 
         Mockito.doReturn(true).when(request).isIgnoredWhenFailed();
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).isNotInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .isNotInterrupted();
 
         this.fsm.interrupt();
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).isInterrupted();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .isInterrupted();
 
         this.fsm.process(request, responseHandler, null);
 
@@ -323,11 +355,15 @@ class StateMachineImplTest {
 
         Mockito.doReturn(true).when(request).isIgnoredWhenFailed();
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).hasNotFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .hasNotFailed();
 
         this.fsm.process(request, responseHandler, null);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).hasFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .hasFailed();
 
         var inOrder = Mockito.inOrder(this.initialState, responseHandler);
 
@@ -337,7 +373,9 @@ class StateMachineImplTest {
 
         this.fsm.process(request, responseHandler, null);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).hasFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .hasFailed();
 
         inOrder.verify(responseHandler).onIgnored();
 
@@ -348,7 +386,9 @@ class StateMachineImplTest {
         this.fsm.reset();
         this.fsm.process(Mockito.mock(RequestMessage.class), responseHandler, null);
 
-        StateMachineAssertions.assertThat(this.fsm).isInState(INITIAL_REFERENCE).hasNotFailed();
+        StateMachineHandleAssertions.assertThat(this.fsm)
+                .isInState(INITIAL_REFERENCE)
+                .hasNotFailed();
 
         inOrder.verify(this.initialState).process(Mockito.notNull(), Mockito.notNull(), Mockito.same(responseHandler));
         inOrder.verify(responseHandler).onSuccess();

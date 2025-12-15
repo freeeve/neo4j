@@ -19,15 +19,9 @@
  */
 package org.neo4j.bolt.fsm;
 
-import org.neo4j.bolt.fsm.error.NoSuchStateException;
-import org.neo4j.bolt.fsm.error.StateMachineException;
-import org.neo4j.bolt.fsm.state.State;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
-import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
-import org.neo4j.dbms.admissioncontrol.AdmissionControlToken;
 
 /**
  * Represents a {@link Connection connection}-bound state machine instance which follows the state
@@ -50,15 +44,6 @@ public interface StateMachine {
      * @return a state reference.
      */
     StateReference defaultState();
-
-    /**
-     * Alters the default state to which this instance shall return when reset.
-     *
-     * @param state a state reference.
-     * @throws NoSuchStateException when no state with the given reference exists within the state
-     *                              machine configuration.
-     */
-    void defaultState(StateReference state) throws NoSuchStateException;
 
     /**
      * Identifies whether this state machine has failed in a recoverable fashion and will ignore all
@@ -90,46 +75,8 @@ public interface StateMachine {
     void interrupt();
 
     /**
-     * Mark this state machine as failed.
-     */
-    void fail();
-
-    /**
-     * Reverts this state machine back to its default state and clears any remaining errors.
-     */
-    void reset();
-
-    /**
      * Validates whether the state machine remains within a state in which it is capable of
      * performing operations.
      */
     boolean validate();
-
-    /**
-     * Processes a request within the scope of a state machine instance and advances its state
-     * accordingly.
-     *
-     * @param message a request message.
-     * @param handler a response handler.
-     * @throws StateMachineException when the state machine fails to transition and is incapable of
-     *                               recovering from this condition.
-     * @see State#process(Context, RequestMessage, ResponseHandler)
-     */
-    default void process(RequestMessage message, ResponseHandler handler) throws StateMachineException {
-        process(message, handler, null);
-    }
-
-    /**
-     * Processes a request within the scope of a state machine instance and advances its state
-     * accordingly.
-     *
-     * @param message a request message.
-     * @param handler a response handler.
-     * @param admissionControlToken a token to await handling message to ensure server health.
-     * @throws StateMachineException when the state machine fails to transition and is incapable of
-     *                               recovering from this condition.
-     * @see State#process(Context, RequestMessage, ResponseHandler)
-     */
-    void process(RequestMessage message, ResponseHandler handler, AdmissionControlToken admissionControlToken)
-            throws StateMachineException;
 }

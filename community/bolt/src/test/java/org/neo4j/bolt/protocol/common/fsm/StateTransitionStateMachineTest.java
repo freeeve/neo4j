@@ -22,6 +22,7 @@ package org.neo4j.bolt.protocol.common.fsm;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Timeout;
 import org.neo4j.bolt.fsm.StateMachine;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.message.request.connection.RouteMessage;
 import org.neo4j.bolt.protocol.common.message.request.streaming.DiscardMessage;
@@ -39,7 +40,7 @@ import org.neo4j.bolt.testing.annotation.fsm.initializer.Negotiated;
 import org.neo4j.bolt.testing.annotation.fsm.initializer.mock.MockAutocommit;
 import org.neo4j.bolt.testing.annotation.fsm.initializer.mock.MockStreaming;
 import org.neo4j.bolt.testing.assertions.ResponseRecorderAssertions;
-import org.neo4j.bolt.testing.assertions.StateMachineAssertions;
+import org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions;
 import org.neo4j.bolt.testing.messages.BoltMessages;
 import org.neo4j.bolt.testing.mock.StatementMockFactory;
 import org.neo4j.bolt.testing.mock.TransactionManagerMockFactory;
@@ -61,13 +62,17 @@ public class StateTransitionStateMachineTest {
      * {@link States#NEGOTIATION NEGOTIATION} state.
      */
     @StateMachineTest(since = @Version(major = 5, minor = 1))
-    void shouldBeInNegotiationStateWhenCreated(StateMachine fsm) {
-        StateMachineAssertions.assertThat(fsm).isInState(States.NEGOTIATION).hasDefaultState(States.NEGOTIATION);
+    void shouldBeInNegotiationStateWhenCreated(StateMachineHandle fsm) {
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.NEGOTIATION)
+                .hasDefaultState(States.NEGOTIATION);
     }
 
     @StateMachineTest(until = @Version(major = 5, minor = 0))
-    void shouldBeInAuthenticationStateWhenCreated(StateMachine fsm) {
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTHENTICATION).hasDefaultState(States.AUTHENTICATION);
+    void shouldBeInAuthenticationStateWhenCreated(StateMachineHandle fsm) {
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.AUTHENTICATION)
+                .hasDefaultState(States.AUTHENTICATION);
     }
 
     /**
@@ -81,12 +86,14 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest(since = @Version(major = 5, minor = 1))
     void shouldTransitionFromNegotiationToAuthenticationOnHello(
-            StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
+            StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
         fsm.process(messages.hello(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTHENTICATION).hasDefaultState(States.AUTHENTICATION);
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.AUTHENTICATION)
+                .hasDefaultState(States.AUTHENTICATION);
     }
 
     /**
@@ -99,13 +106,13 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest(since = @Version(major = 5, minor = 1))
     void shouldTransitionFromAuthenticationToReadyOnLogon(
-            @Negotiated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @Negotiated StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.logon(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
     }
 
     /**
@@ -119,13 +126,15 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest(since = @Version(major = 5, minor = 1))
     void shouldTransitionFromReadyToAuthenticationOnLogoff(
-            @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @Authenticated StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.logoff(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTHENTICATION).hasDefaultState(States.AUTHENTICATION);
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.AUTHENTICATION)
+                .hasDefaultState(States.AUTHENTICATION);
     }
 
     /**
@@ -138,12 +147,12 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest(until = @Version(major = 5, minor = 0))
     void shouldTransitionFromNegotiationToReadyOnHello(
-            StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
+            StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
         fsm.process(messages.hello(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
     }
 
     /**
@@ -153,7 +162,7 @@ public class StateTransitionStateMachineTest {
     @Timeout(value = 2, unit = TimeUnit.MINUTES)
     @StateMachineTest(since = @Version(major = 4, minor = 3))
     void shouldRemainInReadyOnRoute(
-            @Authenticated StateMachine fsm,
+            @Authenticated StateMachineHandle fsm,
             BoltMessages messages,
             ResponseRecorder recorder,
             TransactionManager transactionManager)
@@ -175,7 +184,7 @@ public class StateTransitionStateMachineTest {
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
     }
 
     /**
@@ -184,13 +193,15 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldTransitionFromReadyToAutocommitOnRun(
-            @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @Authenticated StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.run("RETURN 1"), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTO_COMMIT).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.AUTO_COMMIT)
+                .hasDefaultState(States.READY);
     }
 
     /**
@@ -200,13 +211,15 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldRemainInAutocommitOnPullWhenResultsRemain(
-            @MockAutocommit(results = 10) StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @MockAutocommit(results = 10) StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.pull(5), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasRecords(5).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTO_COMMIT).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.AUTO_COMMIT)
+                .hasDefaultState(States.READY);
     }
 
     /**
@@ -216,13 +229,13 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldTransitionFromAutocommitToReadyOnPullWhenNoResultsRemain(
-            @MockAutocommit StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @MockAutocommit StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.pull(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasRecord().hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
     }
 
     /**
@@ -232,13 +245,15 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldRemainInAutocommitOnDiscardWhenResultsRemain(
-            @MockAutocommit(results = 10) StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @MockAutocommit(results = 10) StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.discard(5), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTO_COMMIT).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.AUTO_COMMIT)
+                .hasDefaultState(States.READY);
     }
 
     /**
@@ -248,13 +263,13 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldTransitionFromAutocommitToReadyOnDiscardWhenNoResultsRemain(
-            @MockAutocommit StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @MockAutocommit StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.discard(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
     }
 
     /**
@@ -263,13 +278,15 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldTransitionFromReadyToInTransactionOnBegin(
-            @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @Authenticated StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.begin(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.IN_TRANSACTION).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.IN_TRANSACTION)
+                .hasDefaultState(States.READY);
     }
 
     /**
@@ -278,13 +295,15 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldRemainInInTransactionOnRun(
-            @InTransaction StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @InTransaction StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.run("RETURN 1"), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.IN_TRANSACTION).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.IN_TRANSACTION)
+                .hasDefaultState(States.READY);
     }
 
     /**
@@ -294,13 +313,15 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldRemainInInTransactionOnPullWhenResultsRemain(
-            @MockStreaming(results = 10) StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @MockStreaming(results = 10) StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.pull(5), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasRecords(5).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.IN_TRANSACTION).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.IN_TRANSACTION)
+                .hasDefaultState(States.READY);
     }
 
     /**
@@ -310,13 +331,15 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldRemainInInTransactionOnPullWhenNoResultsRemain(
-            @MockStreaming StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @MockStreaming StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.pull(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasRecords(1).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.IN_TRANSACTION).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm)
+                .isInState(States.IN_TRANSACTION)
+                .hasDefaultState(States.READY);
     }
 
     /**
@@ -326,13 +349,13 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldTransitionFromInTransactionToReadyOnCommitWhenNoResultsRemain(
-            @InTransaction StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @InTransaction StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.commit(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
     }
 
     /**
@@ -342,13 +365,13 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldTransitionFromInTransactionToReadyOnCommitWhenResultsRemain(
-            @MockStreaming StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @MockStreaming StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.commit(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
     }
 
     /**
@@ -358,13 +381,13 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldTransitionFromInTransactionToReadyOnRollbackWhenNoResultsRemain(
-            @InTransaction StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @InTransaction StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.rollback(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
     }
 
     /**
@@ -374,12 +397,12 @@ public class StateTransitionStateMachineTest {
      */
     @StateMachineTest
     void shouldTransitionFromInTransactionToReadyOnRollbackWhenResultsRemain(
-            @MockStreaming StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+            @MockStreaming StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         fsm.process(messages.rollback(), recorder, null);
 
         ResponseRecorderAssertions.assertThat(recorder).hasSuccessResponse();
 
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY).hasDefaultState(States.READY);
     }
 }

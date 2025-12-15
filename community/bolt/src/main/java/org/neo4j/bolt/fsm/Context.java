@@ -26,7 +26,7 @@ import org.neo4j.bolt.fsm.state.State;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 
-public interface Context extends StateMachine {
+public interface Context extends StateMachineHandle {
 
     /**
      * Retrieves the state machine which manages the states and transitions followed by this context.

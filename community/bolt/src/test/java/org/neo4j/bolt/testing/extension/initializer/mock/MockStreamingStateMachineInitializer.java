@@ -23,7 +23,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.platform.commons.util.AnnotationUtils;
 import org.mockito.internal.util.MockUtil;
-import org.neo4j.bolt.fsm.StateMachine;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.testing.annotation.fsm.initializer.mock.MockStreaming;
 import org.neo4j.bolt.testing.assertions.ConnectionHandleAssertions;
@@ -46,7 +46,7 @@ public class MockStreamingStateMachineInitializer implements StateMachineInitial
             ParameterContext parameterContext,
             StateMachineDependencyProvider dependencyProvider,
             StateMachineProvider provider,
-            StateMachine fsm)
+            StateMachineHandle fsm)
             throws StateMachineException {
         var recorder = new ResponseRecorder();
 

@@ -21,7 +21,7 @@ package org.neo4j.bolt.fsm;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.bolt.testing.assertions.ResponseRecorderAssertions.assertThat;
-import static org.neo4j.bolt.testing.assertions.StateMachineAssertions.assertThat;
+import static org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions.assertThat;
 import static org.neo4j.internal.helpers.Strings.joinAsLines;
 import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.storable.Values.stringValue;
@@ -53,7 +53,7 @@ import org.neo4j.values.virtual.MapValue;
 public class AutocommitIT {
 
     @StateMachineTest
-    void shouldExecuteStatement(@Authenticated StateMachine fsm, ResponseRecorder recorder, BoltMessages messages)
+    void shouldExecuteStatement(@Authenticated StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages)
             throws Throwable {
         fsm.process(messages.run("CREATE (n {k:'k'}) RETURN n.k"), recorder);
 
@@ -73,7 +73,7 @@ public class AutocommitIT {
 
     @StateMachineTest
     void shouldHandleImplicitCommitFailure(
-            @Authenticated StateMachine fsm, ResponseRecorder recorder, BoltMessages messages) throws Throwable {
+            @Authenticated StateMachineHandle fsm, ResponseRecorder recorder, BoltMessages messages) throws Throwable {
         fsm.process(messages.run("CREATE (n:Victim)-[:REL]->()"), NoopResponseHandler.getInstance());
         fsm.process(messages.discard(), NoopResponseHandler.getInstance());
 
@@ -85,8 +85,8 @@ public class AutocommitIT {
 
     @StateMachineTest
     void shouldBeAbleToCleanlyRunMultipleSessionsInSingleThread(
-            @Authenticated StateMachine fsm1,
-            @Authenticated StateMachine fsm2,
+            @Authenticated StateMachineHandle fsm1,
+            @Authenticated StateMachineHandle fsm2,
             BoltMessages messages,
             ResponseRecorder recorder)
             throws Throwable {
@@ -124,7 +124,7 @@ public class AutocommitIT {
 
     @StateMachineTest
     void shouldSupportUsingExplainCallInTransactionsInTransaction(
-            @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Exception {
+            @Authenticated StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) throws Exception {
         // Given
         var params = map("csvFileUrl", createLocalIrisData(fsm, messages));
 
@@ -153,7 +153,7 @@ public class AutocommitIT {
     }
 
     @StateMachineTest
-    void shouldCloseTransactionOnCommit(@Authenticated StateMachine fsm, BoltMessages messages) throws Exception {
+    void shouldCloseTransactionOnCommit(@Authenticated StateMachineHandle fsm, BoltMessages messages) throws Exception {
         fsm.process(messages.begin(), NoopResponseHandler.getInstance());
         runAndPull(fsm, messages);
         fsm.process(messages.commit(), NoopResponseHandler.getInstance());
@@ -162,7 +162,8 @@ public class AutocommitIT {
     }
 
     @StateMachineTest
-    void shouldCloseTransactionOnRollback(@Authenticated StateMachine fsm, BoltMessages messages) throws Exception {
+    void shouldCloseTransactionOnRollback(@Authenticated StateMachineHandle fsm, BoltMessages messages)
+            throws Exception {
         fsm.process(messages.begin(), NoopResponseHandler.getInstance());
         runAndPull(fsm, messages);
         fsm.process(messages.rollback(), NoopResponseHandler.getInstance());
@@ -170,7 +171,7 @@ public class AutocommitIT {
         ConnectionHandleAssertions.assertThat(fsm.connection()).hasNoTransaction();
     }
 
-    private void shouldTerminateConnectionOnMessage(StateMachine fsm, RequestMessage message) {
+    private void shouldTerminateConnectionOnMessage(StateMachineHandle fsm, RequestMessage message) {
         var recorder = new ResponseRecorder();
 
         assertThat(fsm).shouldKillConnection(it -> it.process(message, recorder));
@@ -179,41 +180,41 @@ public class AutocommitIT {
     }
 
     @StateMachineTest
-    void shouldTerminateConnectionOnHello(@Autocommit StateMachine fsm, BoltMessages messages) {
+    void shouldTerminateConnectionOnHello(@Autocommit StateMachineHandle fsm, BoltMessages messages) {
         shouldTerminateConnectionOnMessage(fsm, messages.hello());
     }
 
     @StateMachineTest
-    void shouldTerminateConnectionOnBegin(@Autocommit StateMachine fsm, BoltMessages messages) {
+    void shouldTerminateConnectionOnBegin(@Autocommit StateMachineHandle fsm, BoltMessages messages) {
         shouldTerminateConnectionOnMessage(fsm, messages.begin());
     }
 
     @StateMachineTest
-    void shouldTerminateConnectionOnRun(@Autocommit StateMachine fsm, BoltMessages messages) {
+    void shouldTerminateConnectionOnRun(@Autocommit StateMachineHandle fsm, BoltMessages messages) {
         shouldTerminateConnectionOnMessage(fsm, messages.run());
     }
 
     @StateMachineTest
-    void shouldTerminateConnectionOnCommit(@Autocommit StateMachine fsm, BoltMessages messages) {
+    void shouldTerminateConnectionOnCommit(@Autocommit StateMachineHandle fsm, BoltMessages messages) {
         shouldTerminateConnectionOnMessage(fsm, messages.commit());
     }
 
     @StateMachineTest
-    void shouldTerminateConnectionOnRollback(@Autocommit StateMachine fsm, BoltMessages messages) {
+    void shouldTerminateConnectionOnRollback(@Autocommit StateMachineHandle fsm, BoltMessages messages) {
         shouldTerminateConnectionOnMessage(fsm, messages.rollback());
     }
 
     @StateMachineTest
-    void shouldTerminateConnectionOnReset(@Autocommit StateMachine fsm, BoltMessages messages) {
+    void shouldTerminateConnectionOnReset(@Autocommit StateMachineHandle fsm, BoltMessages messages) {
         shouldTerminateConnectionOnMessage(fsm, messages.reset());
     }
 
     @StateMachineTest
-    void shouldTerminateConnectionOnGoodbye(@Autocommit StateMachine fsm, BoltMessages messages) {
+    void shouldTerminateConnectionOnGoodbye(@Autocommit StateMachineHandle fsm, BoltMessages messages) {
         shouldTerminateConnectionOnMessage(fsm, messages.goodbye());
     }
 
-    static String createLocalIrisData(StateMachine machine, BoltMessages messages)
+    static String createLocalIrisData(StateMachineHandle machine, BoltMessages messages)
             throws IOException, StateMachineException {
         for (String className : IRIS_CLASS_NAMES) {
             MapValue params = map("className", className);
@@ -228,11 +229,11 @@ public class AutocommitIT {
         return tempFile.toUri().toURL().toExternalForm();
     }
 
-    private static void runAndPull(StateMachine machine, BoltMessages messages) throws StateMachineException {
+    private static void runAndPull(StateMachineHandle machine, BoltMessages messages) throws StateMachineException {
         runAndPull(machine, messages, "RETURN 1", MapValue.EMPTY);
     }
 
-    private static void runAndPull(StateMachine fsm, BoltMessages messages, String statement, MapValue params)
+    private static void runAndPull(StateMachineHandle fsm, BoltMessages messages, String statement, MapValue params)
             throws StateMachineException {
         var recorder = new ResponseRecorder();
 

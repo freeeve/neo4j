@@ -39,8 +39,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
-import org.neo4j.bolt.fsm.StateMachine;
 import org.neo4j.bolt.fsm.StateMachineConfiguration;
+import org.neo4j.bolt.fsm.StateMachineHandle;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.negotiation.message.ProtocolCapability;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
@@ -106,7 +106,7 @@ class AtomicSchedulingConnectionTest {
 
     private BoltProtocol protocol;
     private StateMachineConfiguration fsm;
-    private StateMachine fsmInstance;
+    private StateMachineHandle fsmInstance;
     private AuthenticationResult authenticationResult;
     private LoginContext loginContext;
     private AuthSubject authSubject;
@@ -146,7 +146,7 @@ class AtomicSchedulingConnectionTest {
         Mockito.doReturn(this.defaultDatabaseResolver).when(this.connector).defaultDatabaseResolver();
 
         this.protocol = Mockito.mock(BoltProtocol.class, Mockito.RETURNS_MOCKS);
-        this.fsmInstance = Mockito.mock(StateMachine.class, Mockito.RETURNS_MOCKS);
+        this.fsmInstance = Mockito.mock(StateMachineHandle.class, Mockito.RETURNS_MOCKS);
         this.fsm = Mockito.mock(StateMachineConfiguration.class, Mockito.RETURNS_MOCKS);
 
         Mockito.doReturn(this.fsm).when(this.protocol).stateMachine();

@@ -30,7 +30,7 @@ import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.test.annotation.CommunityStateMachineTestExtension;
 import org.neo4j.bolt.testing.annotation.Version;
 import org.neo4j.bolt.testing.annotation.fsm.StateMachineTest;
-import org.neo4j.bolt.testing.assertions.StateMachineAssertions;
+import org.neo4j.bolt.testing.assertions.StateMachineHandleAssertions;
 import org.neo4j.bolt.testing.messages.BoltMessages;
 import org.neo4j.bolt.testing.response.ResponseRecorder;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
@@ -41,27 +41,27 @@ public class AuthenticationStateIT {
 
     @StateMachineTest(since = @Version(major = 5, minor = 1))
     public void shouldAcceptLogonMessageAndMoveToReadyState(
-            StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
+            StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
         // Given
         fsm.process(messages.hello(), recorder);
         assertThat(recorder).hasSuccessResponse();
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTHENTICATION);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.AUTHENTICATION);
 
         // When
         fsm.process(messages.logon(), recorder);
 
         // Then
         assertThat(recorder).hasSuccessResponse();
-        StateMachineAssertions.assertThat(fsm).isInState(States.READY);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.READY);
     }
 
     @StateMachineTest(since = @Version(major = 5, minor = 1), until = @Version(major = 5, minor = 6))
-    public void shouldNotAcceptBeginMessage5x1(StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+    public void shouldNotAcceptBeginMessage5x1(StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         // Given
         fsm.process(messages.hello(), recorder);
         assertThat(recorder).hasSuccessResponse();
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTHENTICATION);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.AUTHENTICATION);
 
         // Then
         var e = assertThrows(IllegalTransitionException.class, () -> fsm.process(messages.begin(), recorder));
@@ -74,11 +74,11 @@ public class AuthenticationStateIT {
 
     @StateMachineTest(since = @Version(major = 5, minor = 7))
     public void shouldNotAcceptBeginMessageWithGqlstatus(
-            StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
+            StateMachineHandle fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
         // Given
         fsm.process(messages.hello(), recorder);
         assertThat(recorder).hasSuccessResponse();
-        StateMachineAssertions.assertThat(fsm).isInState(States.AUTHENTICATION);
+        StateMachineHandleAssertions.assertThat(fsm).isInState(States.AUTHENTICATION);
 
         // Then
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> fsm.process(messages.begin(), recorder))
