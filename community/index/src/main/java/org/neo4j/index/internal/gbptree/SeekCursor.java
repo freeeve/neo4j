@@ -692,7 +692,9 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                 }
                 cache.fill(pos);
             } catch (Exception e) {
-                cursor.setCursorException(e.getMessage());
+                String message =
+                        e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                cursor.setCursorException(message);
             }
             retry = true;
         } while (cursor.shouldRetry());
