@@ -392,6 +392,7 @@ abstract class IndexPopulationStressTest {
                     new Random(seed),
                     RandomValues.newConfigurationBuilder()
                             .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                            .maxVectorDimensions(1024)
                             .build());
             nextEntityId = startEntityId;
         }

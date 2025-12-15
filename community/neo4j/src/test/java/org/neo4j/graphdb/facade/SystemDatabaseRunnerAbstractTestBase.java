@@ -89,6 +89,7 @@ public abstract class SystemDatabaseRunnerAbstractTestBase {
         var dbms = dbmsBuilder(neoLayout.homeDirectory())
                 .setConfig(BoltConnector.enabled, FALSE)
                 .setConfig(GraphDatabaseSettings.pagecache_memory, ByteUnit.mebiBytes(8))
+                .setConfig(GraphDatabaseSettings.logical_log_rotation_threshold, ByteUnit.kibiBytes(256))
                 .setConfig(baseConfig())
                 .build();
         dbms.shutdown();

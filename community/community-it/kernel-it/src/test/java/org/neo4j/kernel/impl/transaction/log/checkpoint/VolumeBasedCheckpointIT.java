@@ -87,7 +87,7 @@ class VolumeBasedCheckpointIT {
     void checkpointOnVolumeThresholdMultipleLogFiles() {
         Config volumeCheckpointConfig = Config.newBuilder()
                 .set(check_point_policy, VOLUME)
-                .set(check_point_interval_volume, mebiBytes(2))
+                .set(check_point_interval_volume, mebiBytes(1))
                 .set(GraphDatabaseSettings.logical_log_rotation_threshold, kibiBytes(128))
                 .build();
 
@@ -96,7 +96,7 @@ class VolumeBasedCheckpointIT {
         var checkPointer = database.getDependencyResolver().resolveDependency(CheckPointer.class);
         var lastCheckpointedTransactionId = checkPointer.latestCheckPointInfo().highestObservedClosedTransactionId();
 
-        for (int i = 0; i < 1024; i++) {
+        for (int i = 0; i < 128; i++) {
             try (var transaction = database.beginTx()) {
                 Node node = transaction.createNode();
                 node.setProperty("a", randomAscii((int) kibiBytes(128)));
