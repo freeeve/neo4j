@@ -80,16 +80,16 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
   ): Set[LogicalPlan] = {
     queryGraph.searchClause match {
       case Some(vectorSearchPredicate: VectorSearchClause)
-        if !skipIDs.contains(vectorSearchPredicate.bindingVariable) =>
+        if !skipIDs.contains(vectorSearchPredicate.resultVariable) =>
         val dependencies = vectorSearchPredicate.embedding.dependencies union vectorSearchPredicate.limit.dependencies
         val unresolvedDependencies = dependencies diff queryGraph.argumentIds
         // TODO: add support for vector search where the embedding refers to the binding variable
-        //  See PLAN-2843
+        //  See PLAN-3087
         assert(
           unresolvedDependencies.isEmpty,
           s"unexpected dependencies $unresolvedDependencies in vector search predicate $vectorSearchPredicate"
         )
-        if (queryGraph.patternNodes.contains(vectorSearchPredicate.bindingVariable)) {
+        if (queryGraph.patternNodes.contains(vectorSearchPredicate.resultVariable)) {
           context.staticComponents.planContext.nodeVectorIndexByName(vectorSearchPredicate.indexName) match {
             case Right(descriptor) =>
               val labelTokens =
@@ -103,7 +103,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
               )
               val (implicitlySolvedPredicates, otherPredicates) =
                 partitionNodePredicates(
-                  vectorSearchPredicate.bindingVariable,
+                  vectorSearchPredicate.resultVariable,
                   propertyKeyToken,
                   labelTokens,
                   queryGraph.selections.flatPredicatesSet
@@ -112,7 +112,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
               val indexedProperties = List(IndexedProperty(
                 propertyKeyToken,
                 getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
-                  vectorSearchPredicate.bindingVariable,
+                  vectorSearchPredicate.resultVariable,
                   propertyKeyToken.name,
                   otherPredicates,
                   context.plannerState.contextualPropertyAccess
@@ -121,7 +121,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
               ))
               val nodeVectorIndexSearch = context.staticComponents.logicalPlanProducer.planNodeVectorIndexSearch(
                 context = context,
-                variable = vectorSearchPredicate.bindingVariable,
+                resultVariable = vectorSearchPredicate.resultVariable,
                 labels = labelTokens,
                 indexedProperties = indexedProperties,
                 indexName = vectorSearchPredicate.indexName,
@@ -136,12 +136,12 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
             case Left(vectorIndexError) => handleErrors(
                 vectorIndexError,
                 vectorSearchPredicate.indexName,
-                vectorSearchPredicate.bindingVariable.name
+                vectorSearchPredicate.resultVariable.name
               )
           }
         } else {
           val patternRelationship =
-            queryGraph.patternRelationships.find(_.variable == vectorSearchPredicate.bindingVariable).getOrElse(
+            queryGraph.patternRelationships.find(_.variable == vectorSearchPredicate.resultVariable).getOrElse(
               throw InternalException.internalError(
                 "VectorSearchLeafPlanner",
                 "The binding variable of the vector search is not a node or relationship in the query graph"
@@ -162,7 +162,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
 
               val (implicitlySolvedPredicates, otherPredicates) =
                 partitionRelationshipPredicates(
-                  vectorSearchPredicate.bindingVariable,
+                  vectorSearchPredicate.resultVariable,
                   propertyKeyToken,
                   indexedTypes,
                   queryGraph.selections.flatPredicatesSet
@@ -171,7 +171,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
               val indexedProperties = List(IndexedProperty(
                 propertyKeyToken,
                 getValueFromIndex = context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehavior(
-                  vectorSearchPredicate.bindingVariable,
+                  vectorSearchPredicate.resultVariable,
                   propertyKeyToken.name,
                   otherPredicates,
                   context.plannerState.contextualPropertyAccess
@@ -197,7 +197,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
             case Left(vectorIndexError) => handleErrors(
                 vectorIndexError,
                 vectorSearchPredicate.indexName,
-                vectorSearchPredicate.bindingVariable.name
+                vectorSearchPredicate.resultVariable.name
               )
           }
         }

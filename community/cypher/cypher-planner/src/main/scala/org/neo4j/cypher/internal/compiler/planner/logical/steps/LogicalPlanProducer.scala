@@ -88,10 +88,12 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
+import org.neo4j.cypher.internal.expressions.UnPositionedVariable
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.expressions.functions.UnresolvedFunction
+import org.neo4j.cypher.internal.frontend.phases.Namespacer
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CSVFormat
@@ -2016,7 +2018,7 @@ case class LogicalPlanProducer(
 
   def planNodeVectorIndexSearch(
     context: LogicalPlanningContext,
-    variable: LogicalVariable,
+    resultVariable: LogicalVariable,
     labels: Set[LabelToken],
     indexedProperties: Seq[IndexedProperty],
     indexName: String,
@@ -2030,14 +2032,14 @@ case class LogicalPlanProducer(
     val solved = RegularSinglePlannerQuery(
       queryGraph =
         QueryGraph.empty
-          .addPatternNodes(variable)
+          .addPatternNodes(resultVariable)
           .addSearchClause(Some(VectorSearchClause(
-            variable,
+            resultVariable,
             indexName,
             embedding,
             limit,
             scoreVariable
-          )(InputPosition.NONE)))
+          )))
           .addPredicates(implicitlySolvedPredicates)
           .addArgumentIds(argumentIds),
       horizon = RegularQueryProjection(
@@ -2052,28 +2054,55 @@ case class LogicalPlanProducer(
     val newArguments = solver.newArguments
     val allArgumentIds = argumentIds.union(newArguments)
 
-    val nodeVectorIndexSearch = NodeVectorIndexSearch(
-      idName = variable,
-      labels = labels.toList,
-      properties = indexedProperties,
-      score = scoreVariable,
-      indexName = indexName,
-      vector = rewrittenEmbedding,
-      limit = rewrittenLimit,
-      maybeFilter = None,
-      argumentIds = allArgumentIds
-    )(idGen)
+    def createNodeVectorIndexSearchPlan(variable: LogicalVariable) = {
+      val nodeVectorIndexSearch = NodeVectorIndexSearch(
+        idName = variable,
+        labels = labels.toList,
+        properties = indexedProperties,
+        score = scoreVariable,
+        indexName = indexName,
+        vector = rewrittenEmbedding,
+        limit = rewrittenLimit,
+        maybeFilter = None,
+        argumentIds = allArgumentIds
+      )(idGen)
 
-    val annotatedPlan =
+      val annotatedVectorSearchPlan =
+        annotate(
+          nodeVectorIndexSearch,
+          solved,
+          ProvidedOrder.empty,
+          cachedPropertiesForIndexedProperties(context, variable, indexedProperties),
+          context
+        )
+
+      solver.rewriteLeafPlan(annotatedVectorSearchPlan)
+    }
+
+    // If the variable has already been previously solved, we need to add a selection to join
+    // on the vector search results
+    if (argumentIds.contains(resultVariable)) {
+      val renamedVariable =
+        UnPositionedVariable.varFor(Namespacer.genName(
+          context.staticComponents.anonymousVariableNameGenerator,
+          resultVariable.name
+        ))
+
+      val rewrittenAnnotatedPlan = createNodeVectorIndexSearchPlan(renamedVariable)
+
+      val finalPlan =
+        Selection(Seq(Equals(renamedVariable, resultVariable)(InputPosition.NONE)), rewrittenAnnotatedPlan)(idGen)
+
       annotate(
-        nodeVectorIndexSearch,
+        finalPlan,
         solved,
         ProvidedOrder.empty,
-        cachedPropertiesForIndexedProperties(context, variable, indexedProperties),
+        CachedProperties.empty,
         context
       )
-
-    solver.rewriteLeafPlan(annotatedPlan)
+    } else {
+      createNodeVectorIndexSearchPlan(resultVariable)
+    }
   }
 
   def planRelationshipVectorIndexSearch(
@@ -2098,7 +2127,7 @@ case class LogicalPlanProducer(
             embedding,
             limit,
             scoreVariable
-          )(InputPosition.NONE)))
+          )))
           .addPredicates(implicitlySolvedPredicates)
           .addArgumentIds(argumentIds),
       horizon = RegularQueryProjection(

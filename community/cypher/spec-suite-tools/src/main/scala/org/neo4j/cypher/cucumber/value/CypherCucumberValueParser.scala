@@ -63,6 +63,7 @@ object CypherCucumberValueParser {
   private def cypherValue[X: P](implicit asDriverParameter: Boolean): P[AnyRef] =
     string |
       float |
+      double |
       integer |
       boolean |
       nullValue |
@@ -75,13 +76,20 @@ object CypherCucumberValueParser {
       vector
 
   def escape[X: P] = P("\\" ~~ CharIn("'\\\\"))
+
   def stringChars[X: P] = P(CharsWhile(c => c != '\'' && c != '\\'))
 
   def string[X: P]: P[java.lang.String] = P("\'" ~~/ (stringChars | escape).repX.! ~~ "\'")
     .map(_.replace("\\'", "'").replace("\\\\", "\\"))
+
   private def integer[X: P]: P[java.lang.Long] = P("-".? ~~ digits).!.map(_.toLong)
-  private def float[X: P]: P[java.lang.Double] = P("-".? ~ "Infinity" | "NaN" | "-".? ~ floatRepr).!.map(_.toDouble)
+
+  private def double[X: P]: P[java.lang.Double] = P(floatPointRepr).!.map(_.toDouble)
+
+  private def float[X: P]: P[java.lang.Float] = P(floatPointRepr ~ IgnoreCase("F")).!.map(_.toFloat)
+
   private def boolean[X: P]: P[java.lang.Boolean] = P("true" | "false").!.map(_.toBoolean)
+
   private def nullValue[X: P]: P[AnyRef] = P("null").!.map(_ => null)
 
   private def list[X: P](implicit asDriverParameter: Boolean): P[java.util.List[AnyRef]] =
@@ -182,10 +190,13 @@ object CypherCucumberValueParser {
 
   private def digits[X: P]: P[Unit] = CharsWhileIn("0-9")
 
-  private def floatRepr[X: P]: P[Unit] =
+  private def floatPointRepr[X: P]: P[Unit] = "-".? ~ "Infinity" | "NaN" | "-".? ~ floatNumeric
+
+  private def floatNumeric[X: P]: P[Unit] =
     (digits ~~ "." ~~ digits ~~ exponent.?) |
       ("." ~~ digits ~~ exponent.?) |
       (digits ~~ exponent)
+
   private def exponent[X: P]: P[Unit] = IgnoreCase("e") ~~ CharsWhileIn("+\\-").? ~~ digits
 
   final object LimitedWhiteSpace extends Whitespace {

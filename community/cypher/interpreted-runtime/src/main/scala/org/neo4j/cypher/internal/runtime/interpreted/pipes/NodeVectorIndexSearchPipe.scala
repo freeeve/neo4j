@@ -84,7 +84,7 @@ abstract class BaseNodeVectorIndexSearchPipe(
         override protected[this] def closeMore(): Unit = cursor.close()
         override def next(): CypherRow = {
           if (hasNext) {
-            val r = newRow(incomingRow, cursor)
+            val r = newRow(state.newRowWithArgument(rowFactory), cursor)
             _hasNext = null
             r
           } else {

@@ -33,69 +33,117 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
     SemanticFeature.VectorSearch
   )
 
-  test(
-    "should convert query with Match-Search, converting the search clause into VectorSearch expression and moving it to Selections"
-  ) {
-    val q = """MATCH (m:Movie)
-              |MATCH (movie:Movie)
-              |  SEARCH movie IN (
-              |    VECTOR INDEX moviePlots
-              |    FOR m.embedding
-              |    LIMIT 5
-              |  )
-              |RETURN movie.title AS title """.stripMargin
-    val query = buildPlannerQuery(
-      CypherVersion.Cypher25,
-      q,
-      None,
-      None,
+  private def buildSinglePlannerQuery(query: String, version: CypherVersion) =
+    buildPlannerQuery(
+      version = version,
+      query = query,
+      procLookup = None,
+      fcnLookup = None,
       compareVersions = false,
-      Map.empty
-    )
+      additionalSettings = Map.empty
+    ).asSinglePlannerQuery
 
-    val vectorSearchExpression = VectorSearchClause(
-      bindingVariable = v"movie",
-      indexName = "moviePlots",
-      embedding = prop("m", "embedding"),
-      limit = SignedDecimalIntegerLiteral("5")(pos),
-      scoreVariable = None
-    )(pos)
-    val expectedExpressions = Seq(hasLabels("movie", "Movie"), hasLabels("m", "Movie"))
+  test("should split MATCH-SEARCH off from other clauses taking the search clause with it") {
+    versionsExcept5 { version =>
+      val query =
+        """MATCH (m:Movie)
+          |MATCH (movie:Movie)
+          |  SEARCH movie IN (
+          |    VECTOR INDEX moviePlots
+          |    FOR m.embedding
+          |    LIMIT 5
+          |  )
+          |RETURN movie.title AS title """.stripMargin
 
-    query.asSinglePlannerQuery.queryGraph.selections.flatPredicates shouldEqual expectedExpressions
-    query.asSinglePlannerQuery.queryGraph.searchClause shouldEqual Some(vectorSearchExpression)
+      val matchSearchQG = buildSinglePlannerQuery(query, version)
+        .allPlannerQueries
+        .map(_.queryGraph)
+        .find(_.patternNodes.contains(varFor("movie")))
+        .getOrElse(fail("Expected to find query graph with movie node"))
+
+      matchSearchQG.selections.flatPredicates shouldEqual
+        Seq(hasLabels("movie", "Movie"))
+
+      matchSearchQG.searchClause.get shouldEqual
+        VectorSearchClause(
+          resultVariable = v"movie",
+          indexName = "moviePlots",
+          embedding = prop("m", "embedding"),
+          limit = SignedDecimalIntegerLiteral("5")(pos),
+          scoreVariable = None
+        )
+    }
   }
 
-  test("Match Search should allow returning a Score.") {
-    val q = """MATCH (m:Movie)
-              |MATCH (movie:Movie)
-              |  SEARCH movie IN (
-              |    VECTOR INDEX moviePlots
-              |    FOR m.embedding
-              |    LIMIT 5
-              |  ) SCORE as score
-              |RETURN score, movie.title AS title """.stripMargin
+  test("score variable should be mapped to the search clause") {
+    versionsExcept5 { version =>
+      val query =
+        """MATCH (m:Movie)
+          |MATCH (movie:Movie)
+          |  SEARCH movie IN (
+          |    VECTOR INDEX moviePlots
+          |    FOR m.embedding
+          |    LIMIT 5
+          |  ) SCORE as score
+          |RETURN score, movie.title AS title """.stripMargin
 
-    val query = buildPlannerQuery(
-      CypherVersion.Cypher25,
-      q,
-      None,
-      None,
-      compareVersions = false,
-      Map.empty
-    )
+      val searchClause = buildSinglePlannerQuery(query, version)
+        .allPlannerQueries
+        .map(_.queryGraph)
+        .find(_.patternNodes.contains(varFor("movie")))
+        .flatMap(_.searchClause)
+        .getOrElse(fail("Expected search clause for MATCH-SEARCH clause"))
 
-    val vectorSearchExpression = VectorSearchClause(
-      bindingVariable = v"movie",
-      indexName = "moviePlots",
-      embedding = prop("m", "embedding"),
-      limit = SignedDecimalIntegerLiteral("5")(pos),
-      scoreVariable = Some(v"score")
-    )(pos)
-    val expectedExpressions = Seq(hasLabels("movie", "Movie"), hasLabels("m", "Movie"))
-
-    query.asSinglePlannerQuery.queryGraph.selections.flatPredicates shouldEqual expectedExpressions
-    query.asSinglePlannerQuery.queryGraph.searchClause shouldEqual Some(vectorSearchExpression)
+      searchClause shouldEqual
+        VectorSearchClause(
+          resultVariable = v"movie",
+          indexName = "moviePlots",
+          embedding = prop("m", "embedding"),
+          limit = SignedDecimalIntegerLiteral("5")(pos),
+          scoreVariable = Some(v"score")
+        )
+    }
   }
 
+  test("MATCH-SEARCH clauses should be in separate query graph to other clauses") {
+    versionsExcept5 { version =>
+      val query =
+        """
+          |MATCH (movie:Movie) WHERE movie.plot IS NOT NULL
+          |LET embedding = [0.1, 0.2, -0.3]
+          |MATCH (movie)
+          |  SEARCH movie IN (
+          |    VECTOR INDEX moviePlots
+          |    FOR embedding
+          |    LIMIT 10
+          |  ) SCORE AS similarity
+          |MATCH (movie)<-[:DIRECTED]-+(person:Person)
+          |WHERE similarity > 0.8
+          |RETURN person.name, movie.plot""".stripMargin
+
+      val queryGraphs =
+        buildSinglePlannerQuery(query, version)
+          .allPlannerQueries
+          .map(_.queryGraph)
+
+      queryGraphs.size shouldEqual 4
+
+      val queryGraphsWithSearchClause = queryGraphs.filter(_.searchClause.nonEmpty)
+
+      val searchClause =
+        queryGraphsWithSearchClause
+          .head
+          .searchClause
+          .getOrElse(fail("Expected search clause"))
+
+      searchClause shouldEqual
+        VectorSearchClause(
+          resultVariable = v"movie",
+          indexName = "moviePlots",
+          embedding = v"embedding",
+          limit = SignedDecimalIntegerLiteral("10")(pos),
+          scoreVariable = Some(v"similarity")
+        )
+    }
+  }
 }

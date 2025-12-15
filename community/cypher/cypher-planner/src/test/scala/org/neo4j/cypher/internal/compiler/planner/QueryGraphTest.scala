@@ -145,8 +145,7 @@ class QueryGraphTest extends CypherFunSuite with AstConstructionTestSupport {
           shortestRelationshipPatterns = Set(
             sp(v"arg1", v"arg2"),
             sp(v"arg2", v"arg3")
-          ),
-          searchPredicate = None
+          )
         ),
         hasNonArgumentDependencies = PredicatesAndLegacyShortestByDependencies.Bucket(
           predicates = Set(
@@ -159,8 +158,7 @@ class QueryGraphTest extends CypherFunSuite with AstConstructionTestSupport {
             sp(v"x", v"y"),
             sp(v"x", v"arg1"),
             sp(v"arg2", v"y")
-          ),
-          searchPredicate = None
+          )
         )
       )
   }

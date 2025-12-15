@@ -91,6 +91,8 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
     resultShouldBe(expected, Result.InOrder)
   }
 
+  //  TODO need to add a "to within {epsilon}" variant
+  //    See PLAN-3119
   Then("the approximate result should be {int} rows, in order:") { (nbrOfResults: Int, expected: DataTable) =>
     approximateResultShouldBe(expected, nbrOfResults)
   }

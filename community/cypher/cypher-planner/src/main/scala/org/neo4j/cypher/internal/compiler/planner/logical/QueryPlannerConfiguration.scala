@@ -158,6 +158,8 @@ object QueryPlannerConfiguration {
         outerHashJoin
       ),
       leafPlanners = PriorityLeafPlannerList(
+        // TODO We may want to permit other leaf plans.
+        //  See PLAN-3087
         LeafPlannerList(searchClauseLeafPlanner(LeafPlanRestrictions.NoRestrictions)),
         LeafPlannerList(allLeafPlanners(LeafPlanRestrictions.NoRestrictions))
       )

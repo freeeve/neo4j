@@ -96,7 +96,8 @@ object TestConf {
       cypherVersionTag ++
       Option.when(useSpd)("spd") ++
       Option.when(useBolt)("bolt") ++
-      preparserOptions.get("runtime").map(runtime => s"$runtime-runtime") +
+      preparserOptions.get("runtime").map(runtime => s"$runtime-runtime") ++
+      preparserOptions.get("operatorEngine").map(operatorEngine => s"$operatorEngine-operatorEngine") +
       s"db-format-${configWithOverrides.get(GraphDatabaseSettings.db_format)}"
 
     new TestConf(

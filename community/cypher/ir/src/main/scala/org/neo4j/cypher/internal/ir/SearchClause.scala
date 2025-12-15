@@ -23,39 +23,38 @@ import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewritable
 
 sealed trait SearchClause extends Rewritable {
-  def bindingVariable: LogicalVariable
+  def resultVariable: LogicalVariable
   def dependencies: Set[LogicalVariable]
 }
 
 case class VectorSearchClause(
-  bindingVariable: LogicalVariable,
+  resultVariable: LogicalVariable,
   indexName: String,
   embedding: Expression,
   limit: Expression,
   scoreVariable: Option[LogicalVariable]
-)(val position: InputPosition)
-    extends SearchClause {
-  override def dependencies: Set[LogicalVariable] = Set(bindingVariable) ++ embedding.dependencies
+) extends SearchClause {
+
+  override def dependencies: Set[LogicalVariable] = embedding.dependencies ++ limit.dependencies
 
   override def toString: String = {
     val scoreStr = scoreVariable.map(v => s", score: ${v.name}").getOrElse("")
-    s"VectorSearchPredicate(binding: ${bindingVariable.name}, index: $indexName, embedding: ${SearchClause.stringifier(
+    s"VectorSearchPredicate(binding: ${resultVariable.name}, index: $indexName, embedding: ${SearchClause.stringifier(
         embedding
-      )}, limit: ${SearchClause.stringifier(limit)}$scoreStr)(position = $position)"
+      )}, limit: ${SearchClause.stringifier(limit)}$scoreStr)"
   }
 
   def dup(children: Seq[AnyRef]): this.type =
     copy(
-      bindingVariable = children.head.asInstanceOf[LogicalVariable],
+      resultVariable = children.head.asInstanceOf[LogicalVariable],
       indexName = children(1).asInstanceOf[String],
       embedding = children(2).asInstanceOf[Expression],
       limit = children(3).asInstanceOf[Expression],
       scoreVariable = children(4).asInstanceOf[Option[LogicalVariable]]
-    )(position = position).asInstanceOf[this.type]
+    ).asInstanceOf[this.type]
 }
 
 object SearchClause {
@@ -80,12 +79,12 @@ object SearchClause {
         )
       case Left(indexName) =>
         VectorSearchClause(
-          bindingVariable = ast.bindingVariable,
+          resultVariable = ast.bindingVariable,
           indexName = indexName,
           embedding = ast.embedding,
           limit = ast.limit.expression,
           scoreVariable = ast.score
-        )(ast.position)
+        )
     }
   })
 }

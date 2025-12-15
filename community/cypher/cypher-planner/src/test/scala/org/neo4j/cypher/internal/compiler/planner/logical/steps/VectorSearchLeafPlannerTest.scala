@@ -49,12 +49,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "moviePlots",
         embedding = embedding,
         limit = limit,
         scoreVariable = None
-      )(pos)
+      )
       val qg = QueryGraph(
         patternNodes = Set(bindingVariable),
         searchClause = Some(vectorSearchClause),
@@ -80,12 +80,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "moviePlots",
         embedding = embedding,
         limit = limit,
         scoreVariable = None
-      )(pos)
+      )
       val qg = QueryGraph(
         patternNodes = Set(bindingVariable),
         searchClause = Some(vectorSearchClause),
@@ -118,12 +118,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       )
 
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "knowsEmbedding",
         embedding = embedding,
         limit = limit,
         scoreVariable = None
-      )(pos)
+      )
 
       val qg = QueryGraph(
         patternNodes = Set(from, to),
@@ -162,12 +162,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       )
 
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "knowsEmbedding",
         embedding = embedding,
         limit = limit,
         scoreVariable = None
-      )(pos)
+      )
 
       val qg = QueryGraph(
         patternNodes = Set(from, to),
@@ -193,12 +193,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       val embeddingWithDeps = listOf(v"x", literalInt(2), literalInt(3))
 
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "moviePlots",
         embedding = embeddingWithDeps,
         limit = limit,
         scoreVariable = None
-      )(pos)
+      )
 
       val qg = QueryGraph(
         patternNodes = Set(bindingVariable),
@@ -223,12 +223,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       val limitWithDeps = v"y"
 
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "moviePlots",
         embedding = embedding,
         limit = limitWithDeps,
         scoreVariable = None
-      )(pos)
+      )
 
       val qg = QueryGraph(
         patternNodes = Set(bindingVariable),
@@ -251,12 +251,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       nodeVectorIndexOn("moviePlots", Set("Movie"), "plot")
     } withLogicalPlanningContext { (_, context) =>
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "moviePlots",
         embedding = embedding,
         limit = limit,
         scoreVariable = None
-      )(pos)
+      )
 
       val qg = QueryGraph(
         patternNodes = Set.empty,
@@ -288,12 +288,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       relationshipVectorIndexOn("knowsEmbedding", Set("KNOWS"), "embedding")
     } withLogicalPlanningContext { (_, context) =>
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "knowsEmbedding",
         embedding = embedding,
         limit = limit,
         scoreVariable = None
-      )(pos)
+      )
 
       val qg = QueryGraph(
         patternNodes = Set(bindingVariable),
@@ -317,12 +317,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     } withLogicalPlanningContext { (_, context) =>
       val scoreVariable = v"similarity"
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "moviePlots",
         embedding = embedding,
         limit = limit,
         scoreVariable = Some(scoreVariable)
-      )(pos)
+      )
 
       val qg = QueryGraph(
         patternNodes = Set(bindingVariable),
@@ -352,12 +352,12 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       val embeddingWithDeps = v"embeddingParam"
 
       val vectorSearchClause = VectorSearchClause(
-        bindingVariable = bindingVariable,
+        resultVariable = bindingVariable,
         indexName = "moviePlots",
         embedding = embeddingWithDeps,
         limit = limit,
         scoreVariable = None
-      )(pos)
+      )
 
       val qg = QueryGraph(
         patternNodes = Set(bindingVariable),

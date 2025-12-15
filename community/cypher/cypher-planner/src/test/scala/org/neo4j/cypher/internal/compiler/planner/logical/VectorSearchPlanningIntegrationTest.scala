@@ -29,7 +29,6 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.colu
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.VectorIndexSearchException
 
 class VectorSearchPlanningIntegrationTest extends CypherFunSuite
@@ -41,11 +40,19 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       .addSemanticFeature(VectorSearch)
       .setAllNodesCardinality(120)
       .setLabelCardinality("Movie", 120)
+      .setLabelCardinality("Person", 10)
       .setRelationshipCardinality("()-[]->()", 100)
       .setRelationshipCardinality("()-[:ACTS_IN]->()", 50)
+      .setRelationshipCardinality("(:Person)-[:ACTS_IN]->(:Movie)", 50)
+      .setRelationshipCardinality("(:Person)-[:ACTS_IN]->()", 50)
+      .setRelationshipCardinality("()-[:ACTS_IN]->(:Movie)", 50)
       .setRelationshipCardinality("()-[:CONTRIBUTED]->()", 8)
       .setRelationshipCardinality("()-[:CONTRIBUTED]->(:Movie)", 7)
       .setRelationshipCardinality("(:Movie)-[]->()", 20)
+      .setRelationshipCardinality("()-[:DIRECTED]->()", 20)
+      .setRelationshipCardinality("(:Person)-[:DIRECTED]->()", 20)
+      .setRelationshipCardinality("()-[:DIRECTED]->(:Movie)", 20)
+      .setRelationshipCardinality("(:Person)-[:DIRECTED]->(:Movie)", 20)
       .addNodeVectorIndex("moviePlots", Set("Movie"), "plot")
       .addRelationshipVectorIndex("actsInScript", Set("ACTS_IN"), "script")
       .addRelationshipVectorIndex("contributed", Set("CONTRIBUTED"), "embedding")
@@ -114,7 +121,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           "movieOrDirectorInfo",
           vector = "$embedding",
           limit = "10",
-          score = "",
           argumentIds = Set(),
           getValueFromIndex = Map("info" -> GetValue)
         )
@@ -140,12 +146,12 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults(column("movie", "cacheN[movie.plot]"))
         .expandAll("(movie)-[]->()")
         .nodeVectorIndexSearch(
-          "movie",
-          Seq("Movie"),
-          Seq("plot"),
-          "moviePlots",
-          "$embedding",
-          "10",
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
           getValueFromIndex = Map("plot" -> GetValue)
         )
         .build()
@@ -204,12 +210,12 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults(column("movie", "cacheN[movie.plot]"))
         .apply()
         .|.nodeVectorIndexSearch(
-          "movie",
-          Seq("Movie"),
-          Seq("plot"),
-          "moviePlots",
-          "anon_0",
-          "10",
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "anon_0",
+          limit = "10",
           argumentIds = Set("anon_0"),
           getValueFromIndex = Map("plot" -> GetValue)
         )
@@ -282,7 +288,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
   }
 
   // TODO: see Example SQ2 in CIP-224
-  //  See PLAN-2843
+  //  See PLAN-3087
   ignore("plan node vector index search, where the embedding refers to the binding variable") {
     val planner = plannerBuilder().build()
 
@@ -339,12 +345,12 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .projection("cacheN[movie.p1] AS `movie.p1`")
         .filter("cacheNFromStore[movie.p1] IS NOT NULL")
         .nodeVectorIndexSearch(
-          "movie",
-          Seq("Movie"),
-          Seq("plot"),
-          "moviePlots",
-          "$embedding",
-          "10",
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
           getValueFromIndex = Map("plot" -> DoNotGetValue)
         )
         .build()
@@ -500,12 +506,12 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults("`r.plot`")
         .projection("r.plot AS `r.plot`")
         .relationshipVectorIndexSearch(
-          "()-[r]->()",
-          Seq("ACTS_IN"),
-          Seq("script"),
-          "actsInScript",
-          "$embedding",
-          "10"
+          pattern = "()-[r]->()",
+          typeNames = Seq("ACTS_IN"),
+          properties = Seq("script"),
+          indexName = "actsInScript",
+          vector = "$embedding",
+          limit = "10"
         )
         .build()
   }
@@ -557,15 +563,14 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults(column("r", "cacheR[r.script]"))
         .relationshipVectorIndexSearch(
-          "()-[r]->()",
-          Seq("ACTS_IN"),
-          Seq("script"),
-          "actsInScript",
-          "$embedding",
-          "10",
-          "",
-          Set(),
-          Map("script" -> GetValue)
+          pattern = "()-[r]->()",
+          typeNames = Seq("ACTS_IN"),
+          properties = Seq("script"),
+          indexName = "actsInScript",
+          vector = "$embedding",
+          limit = "10",
+          argumentIds = Set(),
+          getValueFromIndex = Map("script" -> GetValue)
         )
         .build()
   }
@@ -589,14 +594,13 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults(column("r", "cacheR[r.script]"))
         .relationshipVectorIndexSearch(
           "()-[r]-()",
-          Seq("ACTS_IN"),
-          Seq("script"),
-          "actsInScript",
-          "$embedding",
-          "10",
-          "",
-          Set(),
-          Map("script" -> GetValue)
+          typeNames = Seq("ACTS_IN"),
+          properties = Seq("script"),
+          indexName = "actsInScript",
+          vector = "$embedding",
+          limit = "10",
+          argumentIds = Set(),
+          getValueFromIndex = Map("script" -> GetValue)
         )
         .build()
   }
@@ -620,12 +624,12 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults("`r.plot`")
         .projection("r.plot AS `r.plot`")
         .relationshipVectorIndexSearch(
-          "()<-[r]-()",
-          Seq("ACTS_IN"),
-          Seq("script"),
-          "actsInScript",
-          "$embedding",
-          "10"
+          pattern = "()<-[r]-()",
+          typeNames = Seq("ACTS_IN"),
+          properties = Seq("script"),
+          indexName = "actsInScript",
+          vector = "$embedding",
+          limit = "10"
         )
         .build()
   }
@@ -649,12 +653,12 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults("`r.plot`")
         .projection("r.plot AS `r.plot`")
         .relationshipVectorIndexSearch(
-          "()-[r]-()",
-          Seq("ACTS_IN"),
-          Seq("script"),
-          "actsInScript",
-          "$embedding",
-          "10"
+          pattern = "()-[r]-()",
+          typeNames = Seq("ACTS_IN"),
+          properties = Seq("script"),
+          indexName = "actsInScript",
+          vector = "$embedding",
+          limit = "10"
         )
         .build()
   }
@@ -689,6 +693,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
+  // TODO Unignore after PLAN-3109
   ignore(
     "identify implicit type predicates within conjunctions and ensure plan filters on the non-implicit predicates"
   ) {
@@ -712,9 +717,8 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`r.plot`")
         .projection("r.plot AS `r.plot`")
-        .filter(
-          "r:CONTRIBUTED"
-        ) // TODO: PLAN-3109 will ensure that we filter by CONTRIBUTED here.
+        // TODO: PLAN-3109 will ensure that we filter by CONTRIBUTED here:
+        .filter("r:CONTRIBUTED")
         .relationshipVectorIndexSearch(
           "()-[r]-()",
           Seq("ACTS_IN"),
@@ -726,6 +730,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
+  // TODO Will be fixed by PLAN-3109
   ignore(
     "identify that there are no implicit type predicates within conjunctions on multi type vector indexes and ensure plan filters on the non-implicit predicates"
   ) {
@@ -789,14 +794,13 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .projection("c.description AS contributionDesc")
         .apply()
         .|.relationshipVectorIndexSearch(
-          "()-[c]->()",
-          Seq("CONTRIBUTED"),
-          Seq("embedding"),
-          "contributed",
-          "r.embedding",
-          "5",
-          "",
-          Set("r")
+          pattern = "()-[c]->()",
+          typeNames = Seq("CONTRIBUTED"),
+          properties = Seq("embedding"),
+          indexName = "contributed",
+          vector = "r.embedding",
+          limit = "5",
+          argumentIds = Set("r")
         )
         .skip(0)
         .expandAll("(anon_0)<-[r:CONTRIBUTED]-()")
@@ -818,32 +822,25 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         |  )
         |RETURN c.description AS contributionDesc""".stripMargin
 
-    // Currently this gives an assertion error in VerifyBestPlan
-    intercept[InternalException] {
-      planner.plan(CypherVersion.Cypher25, query)
-    }
+    val plan = planner.plan(CypherVersion.Cypher25, query)
 
-    // TODO: It should be something like the following, instead of the AssertionError
-//    val plan = planner.plan(CypherVersion.Cypher25, query)
-//
-//    plan shouldEqual
-//      planner.planBuilder()
-//        .produceResults("contributionDesc")
-//        .projection("c.description AS contributionDesc")
-//        .apply()
-//        .|.relationshipVectorIndexSearch(
-//          "()-[c]->()",
-//          Seq("CONTRIBUTED"),
-//          Seq("embedding"),
-//          "contributed",
-//          "r.embedding",
-//          "5",
-//          "",
-//          Set("r")
-//        )
-//        .expandAll("(anon_0)<-[r:CONTRIBUTED]-()")
-//        .nodeIndexOperator("anon_0:Movie(title = 'Matrix')", unique = true)
-//        .build()
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("contributionDesc")
+        .projection("c.description AS contributionDesc")
+        .apply()
+        .|.relationshipVectorIndexSearch(
+          pattern = "()-[c]->()",
+          typeNames = Seq("CONTRIBUTED"),
+          properties = Seq("embedding"),
+          indexName = "contributed",
+          vector = "r.embedding",
+          limit = "5",
+          argumentIds = Set("anon_0", "anon_1", "r")
+        )
+        .expandAll("(anon_0)<-[r:CONTRIBUTED]-(anon_1)")
+        .nodeIndexOperator("anon_0:Movie(title = 'Matrix')", unique = true)
+        .build()
   }
 
   test("plan relationship vector index search with predicates on relationship") {
@@ -866,17 +863,17 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .projection("r.plot AS `r.plot`")
         .filter("r.prop2 CONTAINS 'running'", "r.prop > 50")
         .relationshipVectorIndexSearch(
-          "()-[r]->()",
-          Seq("ACTS_IN"),
-          Seq("script"),
-          "actsInScript",
-          "$embedding",
-          "10"
+          pattern = "()-[r]->()",
+          typeNames = Seq("ACTS_IN"),
+          properties = Seq("script"),
+          indexName = "actsInScript",
+          vector = "$embedding",
+          limit = "10"
         )
         .build()
   }
 
-  ignore("plan vector index using another variable in the embedding") {
+  test("plan vector index using another variable in the embedding") {
     // Currently cartesian products do not allow vector search to be planned later
     val planner = plannerBuilder()
       .setLabelCardinality("Person", 120)
@@ -899,16 +896,16 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults(column("movie", "cacheN[movie.plot]"), column("person"))
         .apply()
         .|.nodeVectorIndexSearch(
-          "movie",
-          Seq("Movie"),
-          Seq("plot"),
-          "moviePlots",
-          "$embedding",
-          "person.limit",
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "person.embedding",
+          limit = "10",
           argumentIds = Set("person"),
           getValueFromIndex = Map("plot" -> GetValue)
         )
-        .allNodeScan("person")
+        .nodeByLabelScan("person", "Person")
         .build()
   }
 
@@ -941,7 +938,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           vector = "$embedding",
           limit = "10",
           score = "similarity",
-          argumentIds = Set(),
           getValueFromIndex = Map("plot" -> GetValue)
         )
         .build()
@@ -957,24 +953,24 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         |    FOR $embedding
         |    LIMIT 10
         |  ) SCORE AS similarity
-        |RETURN count(*)""".stripMargin
+        |RETURN count(*), similarity""".stripMargin
 
     val plan = planner.plan(CypherVersion.Cypher25, query)
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults("`count(*)`")
-        .aggregation(Seq(), Seq("count(*) AS `count(*)`"))
+        .produceResults("`count(*)`", "similarity")
+        .aggregation(Seq("similarity AS similarity"), Seq("count(*) AS `count(*)`"))
         .nodeVectorIndexSearch(
-          "movie",
-          Seq("Movie"),
-          Seq("plot"),
-          "moviePlots",
-          "$embedding",
-          "10",
-          "similarity",
-          Set(),
-          Map("plot" -> DoNotGetValue)
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          score = "similarity",
+          argumentIds = Set(),
+          getValueFromIndex = Map("plot" -> DoNotGetValue)
         )
         .build()
   }
@@ -999,16 +995,227 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults(column("movie", "cacheN[movie.plot]"))
         .filter(not(hasDegreeGreater("movie", OUTGOING, literalInt(0))))
         .nodeVectorIndexSearch(
-          "movie",
-          Seq("Movie"),
-          Seq("plot"),
-          "moviePlots",
-          "$embedding",
-          "10",
-          "",
-          Set(),
-          Map("plot" -> GetValue)
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          argumentIds = Set(),
+          getValueFromIndex = Map("plot" -> GetValue)
         )
+        .build()
+  }
+
+  // TODO update apply to join after PLAN-3088
+  test("plan node vector index search for previously bound nodes") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """
+        |MATCH (d:Person {name: "Pakula, Alan"})-[:DIRECTED]->(movie:Movie)
+        |MATCH (movie:Movie)
+        | SEARCH movie IN (
+        |   VECTOR INDEX moviePlots
+        |   FOR $embedding
+        |   LIMIT 5
+        | )
+        |RETURN movie.title AS title
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("title")
+        .projection("movie.title AS title")
+        .filter("movie = movie", assertIsNode("movie"))
+        .apply()
+        .|.nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "5",
+          argumentIds = Set("d", "movie", "anon_0")
+        )
+        .filter("movie:Movie")
+        .expandAll("(d)-[anon_0:DIRECTED]->(movie)")
+        .filter("d.name = 'Pakula, Alan'")
+        .nodeByLabelScan("d", "Person")
+        .build()
+  }
+
+  // TODO update apply to Cartesian product after PLAN-3088
+  test("plan multiple node vector index searches in different horizons") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie) WHERE movie.plot IS NOT NULL
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |MATCH (movie2:Movie) WHERE movie2.plot IS NOT NULL
+        |  SEARCH movie2 IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot, movie2.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`movie.plot`", "`movie2.plot`")
+        .projection("cacheN[movie.plot] AS `movie.plot`", "cacheN[movie2.plot] AS `movie2.plot`")
+        .apply()
+        .|.nodeVectorIndexSearch(
+          node = "movie2",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          argumentIds = Set("movie"),
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
+        .nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
+        .build()
+  }
+
+  // TODO update apply to Cartesian product after PLAN-3088
+  test("plan a MATCH-SEARCH with another MATCH with no overlapping entities") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (person:Person)
+        |MATCH (movie:Movie)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN person.name, movie.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`person.name`", "`movie.plot`")
+        .projection("cacheN[person.name] AS `person.name`", "cacheN[movie.plot] AS `movie.plot`")
+        .apply()
+        .|.nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          argumentIds = Set("person"),
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
+        .cacheProperties("cacheNFromStore[person.name]")
+        .nodeByLabelScan("person", "Person")
+        .build()
+  }
+
+  // TODO update apply to join after PLAN-3088
+  test("plan multiple node vector index searches where the first match supplies the embedding for the second") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie) WHERE movie.plot IS NOT NULL
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |MATCH (movie2:Movie) WHERE movie2.plot IS NOT NULL
+        |  SEARCH movie2 IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR movie.embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot, movie2.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`movie.plot`", "`movie2.plot`")
+        .projection("cacheN[movie.plot] AS `movie.plot`", "cacheN[movie2.plot] AS `movie2.plot`")
+        .apply()
+        .|.nodeVectorIndexSearch(
+          node = "movie2",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "movie.embedding",
+          limit = "10",
+          argumentIds = Set("movie"),
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
+        .nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          argumentIds = Set(),
+          getValueFromIndex = Map("plot" -> GetValue)
+        )
+        .build()
+  }
+
+  test("plan relationship vector index search with previously bound relationship") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """
+        |MATCH (d:Person {name: "Beatty, Warren"})-[a:ACTS_IN]->(movie:Movie)
+        |MATCH ()-[a:ACTS_IN]->()
+        |  SEARCH a IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  ) SCORE AS similarity
+        |RETURN a.p AS p, similarity
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("p", "similarity")
+        .projection("a.p AS p")
+        .apply()
+        .|.relationshipVectorIndexSearch(
+          pattern = "()-[a]->()",
+          typeNames = Seq("ACTS_IN"),
+          properties = Seq("script"),
+          indexName = "actsInScript",
+          vector = "$embedding",
+          limit = "10",
+          score = "similarity",
+          argumentIds = Set("d", "movie", "a")
+        )
+        .filter("movie:Movie")
+        .expandAll("(d)-[a:ACTS_IN]->(movie)")
+        .filter("d.name = 'Beatty, Warren'")
+        .nodeByLabelScan("d", "Person")
         .build()
   }
 }

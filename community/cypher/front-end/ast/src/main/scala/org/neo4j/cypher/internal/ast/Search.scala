@@ -41,7 +41,6 @@ import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTDate
 import org.neo4j.cypher.internal.util.symbols.CTDateTime
@@ -114,7 +113,7 @@ case class Search(
 
   private def checkScore(): SemanticCheck = {
     if (score.isDefined) {
-      declareVariable(score.get, CTAny)
+      declareVariable(score.get, CTFloat)
     } else {
       SemanticCheck.success
     }

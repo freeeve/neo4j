@@ -244,9 +244,9 @@ final case class QueryGraph private (
     copy(shortestRelationshipPatterns = shortestRelationshipPatterns -- toRemove)
   }
 
-  def removeSearchPredicate(toRemove: Option[SearchClause]): QueryGraph = toRemove match {
-    case Some(nonEmptyPredicate) => copy(searchClause = searchClause.filterNot(_ == nonEmptyPredicate))
-    case None                    => this
+  def removeSearchClause(toRemove: Option[SearchClause]): QueryGraph = toRemove match {
+    case Some(nonEmptySearchClause) => copy(searchClause = searchClause.filterNot(_ == nonEmptySearchClause))
+    case None                       => this
   }
 
   /**
@@ -571,22 +571,15 @@ final case class QueryGraph private (
     val (argumentOnlyPredicates, otherPredicates) = selections.predicates.partition(_.hasDependenciesMet(argumentIds))
     val (argumentOnlyShortest, otherShortest) =
       shortestRelationshipPatterns.partition(_.rel.boundaryNodesSet.forall(argumentIds.contains))
-    val (argumentOnlySearchPredicate, otherSearchPredicate) = searchClause match {
-      case Some(sp) if sp.dependencies.subsetOf(argumentIds) => (Some(sp), None)
-      case Some(sp)                                          => (None, Some(sp))
-      case None                                              => (None, None)
-    }
 
     PredicatesAndLegacyShortestByDependencies(
       dependOnArgumentsOnly = PredicatesAndLegacyShortestByDependencies.Bucket(
         predicates = argumentOnlyPredicates,
-        shortestRelationshipPatterns = argumentOnlyShortest,
-        searchPredicate = argumentOnlySearchPredicate
+        shortestRelationshipPatterns = argumentOnlyShortest
       ),
       hasNonArgumentDependencies = PredicatesAndLegacyShortestByDependencies.Bucket(
         predicates = otherPredicates,
-        shortestRelationshipPatterns = otherShortest,
-        searchPredicate = otherSearchPredicate
+        shortestRelationshipPatterns = otherShortest
       )
     )
   }
@@ -614,7 +607,9 @@ final case class QueryGraph private (
               predicatesAndLegacyShortestByDependencies.dependOnArgumentsOnly.predicates
             ).addShortestRelationships(
               predicatesAndLegacyShortestByDependencies.dependOnArgumentsOnly.shortestRelationshipPatterns
-            ).addSearchClause(predicatesAndLegacyShortestByDependencies.dependOnArgumentsOnly.searchPredicate)
+            ).addSearchClause(
+              searchClause
+            )
           }
         } pipe { qg =>
         val coveredIds = qg.idsWithoutOptionalMatchesOrUpdates
@@ -632,17 +627,6 @@ final case class QueryGraph private (
           predicatesAndLegacyShortestByDependencies.hasNonArgumentDependencies
             .predicates.filter(_.dependencies.subsetOf(coveredIds))
         qg.addPredicates(predicates)
-      } pipe { qg =>
-        if (predicatesAndLegacyShortestByDependencies.hasNonArgumentDependencies.searchPredicate.nonEmpty) {
-          // this stage needs to see ids introduced by shortestRelationshipPatterns and predicates above
-          val coveredIds = qg.idsWithoutOptionalMatchesOrUpdates
-          val searchPredicate =
-            predicatesAndLegacyShortestByDependencies.hasNonArgumentDependencies.searchPredicate.filter(
-              _.dependencies.subsetOf(coveredIds)
-            )
-          qg.addSearchClause(searchPredicate)
-        } else
-          qg
       }
     }
 
@@ -914,10 +898,9 @@ object QueryGraph {
 
     case class Bucket(
       predicates: Set[Predicate],
-      shortestRelationshipPatterns: Set[ShortestRelationshipPattern],
-      searchPredicate: Option[SearchClause]
+      shortestRelationshipPatterns: Set[ShortestRelationshipPattern]
     ) {
-      def isEmpty: Boolean = predicates.isEmpty && shortestRelationshipPatterns.isEmpty && searchPredicate.isEmpty
+      def isEmpty: Boolean = predicates.isEmpty && shortestRelationshipPatterns.isEmpty
     }
   }
 }
