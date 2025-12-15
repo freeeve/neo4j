@@ -86,6 +86,11 @@ class ImportNumericalFailureTest {
                 Exception.class,
                 () -> runImport(
                         databaseLayout.databaseDirectory().toAbsolutePath(),
+                        "--report-file",
+                        databaseLayout
+                                .file(Path.of("import.report"))
+                                .toAbsolutePath()
+                                .toString(),
                         "--quote",
                         "'",
                         "--nodes",
