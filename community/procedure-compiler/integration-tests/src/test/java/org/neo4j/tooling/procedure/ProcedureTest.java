@@ -21,32 +21,61 @@ package org.neo4j.tooling.procedure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.URI;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.TestInstance;
+import org.neo4j.configuration.connectors.BoltConnector;
+import org.neo4j.configuration.connectors.ConnectorPortRegister;
+import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.driver.Config;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Logging;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
-import org.neo4j.harness.Neo4j;
-import org.neo4j.harness.junit.extension.Neo4jExtension;
+import org.neo4j.kernel.api.procedure.GlobalProcedures;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.DbmsExtension;
+import org.neo4j.test.extension.ExtensionCallback;
+import org.neo4j.test.extension.Inject;
 import org.neo4j.tooling.procedure.procedures.valid.Procedures;
 
+@DbmsExtension(configurationCallback = "configure")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ProcedureTest {
     private static final Class<?> PROCEDURES_CLASS = Procedures.class;
-
-    @RegisterExtension
-    static Neo4jExtension graphDb =
-            Neo4jExtension.builder().withProcedure(PROCEDURES_CLASS).build();
-
     private static final String procedureNamespace =
             PROCEDURES_CLASS.getPackage().getName();
 
+    @Inject
+    GraphDatabaseAPI db;
+
+    @Inject
+    GlobalProcedures globalProcedures;
+
+    @Inject
+    ConnectorPortRegister connectorPortRegister;
+
+    private URI boltURI;
+
+    @ExtensionCallback
+    void configure(TestDatabaseManagementServiceBuilder builder) {
+        builder.setConfig(BoltConnector.enabled, true);
+    }
+
+    @BeforeAll
+    void setUp() throws Exception {
+        globalProcedures.registerProcedure(PROCEDURES_CLASS);
+        boltURI = URI.create("bolt://"
+                + connectorPortRegister.getLocalAddress(ConnectorType.BOLT).toString("localhost"));
+    }
+
     @Test
-    void callsSimplisticProcedure(Neo4j neo4j) {
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), configuration());
+    void callsSimplisticProcedure() {
+        try (Driver driver = GraphDatabase.driver(boltURI, configuration());
                 Session session = driver.session()) {
 
             Result result = session.run("CALL " + procedureNamespace + ".theAnswer()");
@@ -56,8 +85,8 @@ class ProcedureTest {
     }
 
     @Test
-    void callsProceduresWithSimpleInputTypeReturningVoid(Neo4j neo4j) {
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), configuration());
+    void callsProceduresWithSimpleInputTypeReturningVoid() {
+        try (Driver driver = GraphDatabase.driver(boltURI, configuration());
                 Session session = driver.session()) {
 
             session.run("CALL " + procedureNamespace + ".simpleInput00()");
@@ -75,8 +104,8 @@ class ProcedureTest {
     }
 
     @Test
-    void callsProceduresWithDifferentModesReturningVoid(Neo4j neo4j) {
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), configuration());
+    void callsProceduresWithDifferentModesReturningVoid() {
+        try (Driver driver = GraphDatabase.driver(boltURI, configuration());
                 Session session = driver.session()) {
             session.run("CALL " + procedureNamespace + ".defaultMode()");
             session.run("CALL " + procedureNamespace + ".readMode()");
@@ -87,8 +116,8 @@ class ProcedureTest {
     }
 
     @Test
-    void callsProceduresWithSimpleInputTypeReturningRecordWithPrimitiveFields(Neo4j neo4j) {
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), configuration());
+    void callsProceduresWithSimpleInputTypeReturningRecordWithPrimitiveFields() {
+        try (Driver driver = GraphDatabase.driver(boltURI, configuration());
                 Session session = driver.session()) {
             assertThat(session.run("CALL " + procedureNamespace
                                     + ".simpleInput11('string') YIELD field04 AS p RETURN p")
