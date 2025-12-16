@@ -89,7 +89,7 @@ class CentralJobSchedulerTest {
         life.start();
 
         var fabricWaitLatch = new CountDownLatch(1);
-        var indexWaitLatch = new CountDownLatch(1);
+        var collectorWaitLatch = new CountDownLatch(1);
 
         assertEquals(0, scheduler.virtualThreadCount());
         try {
@@ -108,9 +108,9 @@ class CentralJobSchedulerTest {
             });
 
             for (int i = 0; i < 5; i++) {
-                scheduler.schedule(Group.INDEX_SAMPLING, () -> {
+                scheduler.schedule(Group.DATA_COLLECTOR, () -> {
                     try {
-                        indexWaitLatch.await();
+                        collectorWaitLatch.await();
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
@@ -122,7 +122,7 @@ class CentralJobSchedulerTest {
             });
 
         } finally {
-            indexWaitLatch.countDown();
+            collectorWaitLatch.countDown();
             fabricWaitLatch.countDown();
         }
 
