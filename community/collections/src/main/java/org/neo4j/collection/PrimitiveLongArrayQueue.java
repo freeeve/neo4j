@@ -40,7 +40,7 @@ public class PrimitiveLongArrayQueue {
         this(DEFAULT_CAPACITY);
     }
 
-    PrimitiveLongArrayQueue(int capacity) {
+    public PrimitiveLongArrayQueue(int capacity) {
         if (capacity == 0 || (capacity & (capacity - 1)) != 0) {
             throw new IllegalArgumentException("Capacity should be power of 2. Requested capacity: " + capacity);
         }
@@ -80,6 +80,11 @@ public class PrimitiveLongArrayQueue {
         while (!otherQueue.isEmpty()) {
             enqueue(otherQueue.dequeue());
         }
+    }
+
+    public void clear() {
+        head = 0;
+        tail = 0;
     }
 
     private void initValues(int capacity) {

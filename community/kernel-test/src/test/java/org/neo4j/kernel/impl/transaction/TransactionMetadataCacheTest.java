@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -75,5 +76,21 @@ class TransactionMetadataCacheTest {
 
         // then
         assertNull(metadata);
+    }
+
+    @Test
+    void shouldEvictOldValues() {
+        var cache = new TransactionMetadataCache();
+        for (int i = 0; i < 10_002; i++) {
+            cache.cacheTransactionMetadata(i, new LogPosition(i, i));
+        }
+
+        assertThat(cache.getTransactionMetadata(0)).isNull();
+        assertThat(cache.getTransactionMetadata(1)).isNull();
+
+        for (int i = 2; i < 10_002; i++) {
+            assertThat(cache.getTransactionMetadata(i))
+                    .isEqualTo(new TransactionMetadataCache.TransactionMetadata(new LogPosition(i, i)));
+        }
     }
 }

@@ -19,31 +19,79 @@
  */
 package org.neo4j.kernel.impl.transaction.log;
 
-import org.neo4j.internal.helpers.collection.LfuCache;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.eclipse.collections.api.factory.primitive.LongObjectMaps;
+import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
+import org.neo4j.collection.PrimitiveLongArrayQueue;
 
+/**
+ * A simple cache that keeps the last {@value #DEFAULT_METADATA_CACHE_SIZE} added transaction metadata records.
+ * <p>
+ * It behaves like a cache with Least recent added eviction policy.
+ * <p>
+ * Notes about the concurrency:
+ * One of the design goal of this cache is low memory footprint, therefore it uses simple collections
+ * guarded by a read-write lock. Concurrent collections like ConcurrentHashMap could have been used for improved
+ * concurrency, but they would take more memory. The concurrent use of this cache should not be anywhere near
+ * a simple read-write lock vs. concurrent collections making any performance difference.
+ */
 public class TransactionMetadataCache {
     private static final int DEFAULT_METADATA_CACHE_SIZE = 10_000;
-    private final LfuCache<Long, TransactionMetadata> appendIndexMetadataCache;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final MutableLongObjectMap<LogPosition> cacheMap;
+    private final PrimitiveLongArrayQueue writeOrderQueue;
 
     public TransactionMetadataCache() {
-        this.appendIndexMetadataCache =
-                new LfuCache<>("Append index start position cache", DEFAULT_METADATA_CACHE_SIZE);
+        cacheMap = LongObjectMaps.mutable.ofInitialCapacity(DEFAULT_METADATA_CACHE_SIZE);
+        writeOrderQueue = new PrimitiveLongArrayQueue(queueCapacity());
+    }
+
+    // PrimitiveLongArrayQueue allows only capacity that is power of 2
+    private static int queueCapacity() {
+        return Integer.highestOneBit(DEFAULT_METADATA_CACHE_SIZE - 1) << 1;
     }
 
     public void clear() {
-        appendIndexMetadataCache.clear();
+        lock.writeLock().lock();
+        try {
+            cacheMap.clear();
+            writeOrderQueue.clear();
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     public TransactionMetadata getTransactionMetadata(long appendIndex) {
-        return appendIndexMetadataCache.get(appendIndex);
+        lock.readLock().lock();
+        try {
+            var logPosition = cacheMap.get(appendIndex);
+            if (logPosition == null) {
+                return null;
+            }
+
+            return new TransactionMetadata(logPosition);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public void cacheTransactionMetadata(long appendIndex, LogPosition position) {
         if (LogPosition.UNSPECIFIED == position) {
             throw new IllegalArgumentException("Metadata cache only supports specified log positions.");
         }
-        TransactionMetadata result = new TransactionMetadata(position);
-        appendIndexMetadataCache.put(appendIndex, result);
+
+        lock.writeLock().lock();
+        try {
+            if (cacheMap.size() == DEFAULT_METADATA_CACHE_SIZE) {
+                var victim = writeOrderQueue.dequeue();
+                cacheMap.remove(victim);
+            }
+            writeOrderQueue.enqueue(appendIndex);
+            cacheMap.put(appendIndex, position);
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     public record TransactionMetadata(LogPosition startPosition) {}
