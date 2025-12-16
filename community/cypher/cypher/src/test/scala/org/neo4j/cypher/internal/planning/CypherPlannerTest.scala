@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext
@@ -310,7 +311,16 @@ class CypherPlannerTest extends CypherFunSuite {
     val tc = mock[TransactionalContext](org.mockito.Mockito.RETURNS_DEEP_STUBS)
 
     val statement = planner
-      .parseAndPlan(preParserQuery, NO_TRACING, tc, MapValue.EMPTY, CommunityInterpretedRuntime, devNullLogger, null)
+      .parseAndPlan(
+        preParserQuery,
+        NO_TRACING,
+        tc,
+        MapValue.EMPTY,
+        CommunityInterpretedRuntime,
+        devNullLogger,
+        null,
+        cacheStrategy = CacheStrategy.defaultDefault
+      )
       .logicalPlanState
       .statement
 

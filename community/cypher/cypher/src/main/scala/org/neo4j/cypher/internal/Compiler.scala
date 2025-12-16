@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal
 
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.preparser.InputQuery
@@ -48,6 +49,7 @@ trait Compiler {
     transactionalContext: TransactionalContext,
     params: MapValue,
     notificationLogger: InternalNotificationLogger,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    cacheStrategy: CacheStrategy
   ): ExecutableQuery
 }

@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.cache.CacheSize
 import org.neo4j.cypher.internal.cache.CacheTracer
 import org.neo4j.cypher.internal.cache.CaffeineCacheFactory
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.PreParserCache
 import org.neo4j.cypher.internal.compiler.helpers.ParameterValueTypeHelper
 import org.neo4j.cypher.internal.compiler.phases.BaseContextImpl
@@ -92,9 +93,10 @@ case class FabricFrontEnd(
     def preParse(
       queryString: String,
       notificationLogger: InternalNotificationLogger,
-      defaultLanguage: CypherVersion
+      defaultLanguage: CypherVersion,
+      cacheStrategy: CacheStrategy
     ): PreParsedQuery = {
-      preParser.preParseQuery(queryString, notificationLogger, defaultLanguage)
+      preParser.preParseQuery(queryString, notificationLogger, defaultLanguage, cacheStrategy = cacheStrategy)
     }
 
   }

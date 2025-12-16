@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.AstCache
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.AstCache.AstCacheValue
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.LogicalPlanCache
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.LogicalPlanCache.CacheableLogicalPlan
 import org.neo4j.cypher.internal.compiler
@@ -266,12 +267,11 @@ case class CypherPlanner(
     tracer: CompilationPhaseTracer,
     cancellationChecker: CancellationChecker,
     sessionDatabase: DatabaseReference,
-    shadowedFunctions: Set[String]
+    shadowedFunctions: Set[String],
+    cacheStrategy: CacheStrategy
   ): BaseState = {
-    val key = AstCache.key(preParsedQuery, params, parsingConfig.useParameterSizeHint)
-    val maybeValue = caches.astCache.get(key)
-    val value = maybeValue.getOrElse {
-      val parsedQuery = planner.parseQuery(
+    def parseQuery(): BaseState = {
+      planner.parseQuery(
         preParsedQuery.statement,
         preParsedQuery.rawStatement,
         preParsedQuery.resolvedLanguage,
@@ -285,13 +285,26 @@ case class CypherPlanner(
         preParsedQuery.options.queryOptions.planMode.isScope,
         shadowedFunctions = shadowedFunctions
       )
-      val value = AstCache.AstCacheValue(parsedQuery, notificationLogger.notifications)
-      // We don't want to cache any query when a parameter has been solved
-      if (!plannerConfig.planSystemCommands && parsedQuery.maybeResolvedParams.isEmpty) caches.astCache.put(key, value)
-      value
     }
-    value.notifications.foreach(notificationLogger.log)
-    value.parsedQuery
+
+    if (!cacheStrategy.astShouldBeCached) {
+      val parsedQuery = parseQuery()
+      notificationLogger.notifications.foreach(notificationLogger.log)
+      parsedQuery
+    } else {
+      val key = AstCache.key(preParsedQuery, params, parsingConfig.useParameterSizeHint)
+      val maybeValue = caches.astCache.get(key)
+      val value = maybeValue.getOrElse {
+        val parsedQuery = parseQuery()
+        val value = AstCache.AstCacheValue(parsedQuery, notificationLogger.notifications)
+        // We don't want to cache any query when a parameter has been solved
+        if (!plannerConfig.planSystemCommands && parsedQuery.maybeResolvedParams.isEmpty)
+          caches.astCache.put(key, value)
+        value
+      }
+      value.notifications.foreach(notificationLogger.log)
+      value.parsedQuery
+    }
   }
 
   def insertIntoCache(
@@ -324,7 +337,8 @@ case class CypherPlanner(
     params: MapValue,
     runtime: CypherRuntime[_],
     notificationLogger: InternalNotificationLogger,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    cacheStrategy: CacheStrategy
   ): LogicalPlanResult = {
     val transactionalContextWrapper = if (transactionalContext.databaseMode() == SHARDED)
       TransactionalContextWrapper.cachedSchemaWrapper(transactionalContext)
@@ -341,8 +355,10 @@ case class CypherPlanner(
       tracer,
       transactionalContextWrapper.cancellationChecker,
       sessionDatabase = sessionDatabase,
-      shadowedFunctions
+      shadowedFunctions,
+      cacheStrategy
     )
+    val cacheStrategyAfterParsing = cacheStrategy.updateFromAst(syntacticQuery.statement)
 
     // The parser populates the notificationLogger as a side-effect of its work, therefore
     // in the case of a cached query the notificationLogger will not be properly filled
@@ -356,7 +372,8 @@ case class CypherPlanner(
       params,
       runtime,
       notificationLogger,
-      preParsedQuery.rawStatement
+      preParsedQuery.rawStatement,
+      cacheStrategyAfterParsing
     )
   }
 
@@ -376,9 +393,11 @@ case class CypherPlanner(
     transactionalContext: TransactionalContext,
     params: MapValue,
     runtime: CypherRuntime[_],
-    notificationLogger: InternalNotificationLogger
+    notificationLogger: InternalNotificationLogger,
+    cacheStrategy: CacheStrategy
   ): LogicalPlanResult = {
     val transactionalContextWrapper = TransactionalContextWrapper(transactionalContext)
+    val cacheStrategyAfterParsing = cacheStrategy.updateFromAst(fullyParsedQuery.state.statement())
     doPlan(
       fullyParsedQuery.state,
       fullyParsedQuery.options,
@@ -387,7 +406,8 @@ case class CypherPlanner(
       params,
       runtime,
       notificationLogger,
-      fullyParsedQuery.state.queryText
+      fullyParsedQuery.state.queryText,
+      cacheStrategyAfterParsing
     )
   }
 
@@ -399,7 +419,8 @@ case class CypherPlanner(
     params: MapValue,
     runtime: CypherRuntime[_],
     notificationLogger: InternalNotificationLogger,
-    rawQueryText: String
+    rawQueryText: String,
+    cacheStrategy: CacheStrategy
   ): LogicalPlanResult = {
     def getBatchSize: CypherPipelinedBatchSize = {
       CypherPipelinedBatchSizePresetOption.batchSizeConfigFrom(
@@ -539,9 +560,10 @@ case class CypherPlanner(
       ): Option[CacheableLogicalPlan] = None
     }
 
+    val canBeCached = options.queryOptions.debugOptions.isEmpty && (queryParamNames.isEmpty || enoughParametersSupplied)
     val cacheableLogicalPlan =
       // We don't want to cache any query without enough given parameters (although EXPLAIN queries will succeed)
-      if (options.queryOptions.debugOptions.isEmpty && (queryParamNames.isEmpty || enoughParametersSupplied)) {
+      if (cacheStrategy.logicalPlanShouldBeCached && canBeCached) {
         val cacheKey = LogicalPlanCache.key(
           syntacticQuery.statement(),
           options,
@@ -555,16 +577,19 @@ case class CypherPlanner(
           transactionalContextWrapper.kernelTransactionalContext,
           compilerWithExpressionCodeGenOption,
           options.queryOptions.replan,
-          transactionalContextWrapper.kernelExecutingQuery.id()
+          transactionalContextWrapper.kernelExecutingQuery.id(),
+          cacheStrategy
         )
       } else if (!enoughParametersSupplied) {
         createPlan(
-          shouldBeCached = false,
+          shouldBeCached = canBeCached,
           missingParameterNames = queryParamNames.filterNot(filteredParams.containsKey)
         )
       } else {
-        createPlan(shouldBeCached = false)
+        createPlan(shouldBeCached = canBeCached)
       }
+
+    val cacheStrategyAfterPlanning = cacheStrategy.updateFromLogicalPlan(cacheableLogicalPlan)
     LogicalPlanResult(
       cacheableLogicalPlan.logicalPlanState,
       queryParamNames,
@@ -572,7 +597,7 @@ case class CypherPlanner(
       cacheableLogicalPlan.reusability,
       plannerContext,
       (notificationLogger.notifications ++ cacheableLogicalPlan.notifications).toIndexedSeq,
-      cacheableLogicalPlan.shouldBeCached,
+      cacheStrategyAfterPlanning,
       obfuscator,
       TransactionBoundIndexComparatorFactory
     )
@@ -738,7 +763,7 @@ case class LogicalPlanResult(
   reusability: ReusabilityState,
   plannerContext: PlannerContext,
   notifications: IndexedSeq[InternalNotification],
-  shouldBeCached: Boolean,
+  cacheStrategy: CacheStrategy,
   queryObfuscator: QueryObfuscator,
   indexSelector: IndexComparatorFactory
 )

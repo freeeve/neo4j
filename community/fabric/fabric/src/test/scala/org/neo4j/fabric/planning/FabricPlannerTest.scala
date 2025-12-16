@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.SensitiveParameter
 import org.neo4j.cypher.internal.expressions.SensitiveStringLiteral
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
+import org.neo4j.cypher.internal.options.CypherCacheOption
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
 import org.neo4j.cypher.internal.options.CypherDebugOption
 import org.neo4j.cypher.internal.options.CypherDebugOptions
@@ -109,6 +110,7 @@ class FabricPlannerTest
   private val planner = FabricPlanner(config, cypherConfig, monitors, cacheFactory)
   private val fabricName = "fabric"
   private val sessionGraphName = "session"
+  private val hugeQuery = s"RETURN '${"0123456789".repeat(100)}' AS v"
 
   private val systemDefaultCypherVersion =
     QueryLanguageConverter.toInternal(GraphDatabaseSettings.default_language.defaultValue)
@@ -1113,6 +1115,86 @@ class FabricPlannerTest
       }
 
     }
+
+    "cache ignored on huge query" in {
+      val newPlanner = FabricPlanner(config, cypherConfigWithQuerySizeLimit, monitors, cacheFactory)
+
+      newPlanner.testInstance(
+        signatures,
+        hugeQuery,
+        params,
+        defaultRef,
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
+      newPlanner.testInstance(
+        signatures,
+        hugeQuery,
+        params,
+        defaultRef,
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
+
+      newPlanner.queryCache.getMisses.shouldEqual(0)
+      newPlanner.queryCache.getHits.shouldEqual(0)
+    }
+
+    "cache hit on huge query with cache=force" in {
+      val newPlanner = FabricPlanner(config, cypherConfigWithQuerySizeLimit, monitors, cacheFactory)
+
+      val query = "CYPHER cache=force " + hugeQuery
+
+      newPlanner.testInstance(
+        signatures,
+        query,
+        params,
+        defaultRef,
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
+      newPlanner.testInstance(
+        signatures,
+        query,
+        params,
+        defaultRef,
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
+
+      newPlanner.queryCache.getMisses.shouldEqual(1)
+      newPlanner.queryCache.getHits.shouldEqual(1)
+    }
+
+    "cache ignored on cache=skip" in {
+      val newPlanner = FabricPlanner(config, cypherConfig, monitors, cacheFactory)
+
+      val query =
+        """CYPHER cache=skip
+          |WITH 1 AS x
+          |RETURN x
+          |""".stripMargin
+
+      newPlanner.testInstance(
+        signatures,
+        query,
+        params,
+        defaultRef,
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
+      newPlanner.testInstance(
+        signatures,
+        query,
+        params,
+        defaultRef,
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
+
+      newPlanner.queryCache.getMisses.shouldEqual(0)
+      newPlanner.queryCache.getHits.shouldEqual(0)
+    }
   }
 
   "Options:" - {
@@ -1185,6 +1267,7 @@ class FabricPlannerTest
           |  operatorEngine=interpreted
           |  interpretedPipesFallback=disabled
           |  replan=force
+          |  cache=force
           |  connectComponentsPlanner=greedy
           |  debug=tostring
           |WITH 1 AS a
@@ -1215,6 +1298,7 @@ class FabricPlannerTest
         operatorEngine = CypherOperatorEngineOption.interpreted,
         interpretedPipesFallback = CypherInterpretedPipesFallbackOption.disabled,
         replan = CypherReplanOption.force,
+        cache = CypherCacheOption.force,
         connectComponentsPlanner = CypherConnectComponentsPlannerOption.greedy,
         debugOptions = CypherDebugOptions(Set(CypherDebugOption.tostring)),
         parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.all,

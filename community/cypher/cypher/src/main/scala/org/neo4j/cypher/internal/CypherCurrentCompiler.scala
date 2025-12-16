@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.CypherCurrentCompiler.CypherExecutableQuery
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.CachedExecutionPlan
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.ExecutionPlanCacheKey
 import org.neo4j.cypher.internal.compiler.phases.CachableLogicalPlanState
@@ -143,13 +144,14 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     transactionalContext: TransactionalContext,
     params: MapValue,
     notificationLogger: InternalNotificationLogger,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    cacheStrategy: CacheStrategy
   ): ExecutableQuery = {
 
     // we only pass in the runtime to be able to support checking against the correct CommandManagementRuntime
     val logicalPlanResult = query match {
       case fullyParsedQuery: FullyParsedQuery =>
-        planner.plan(fullyParsedQuery, tracer, transactionalContext, params, runtime, notificationLogger)
+        planner.plan(fullyParsedQuery, tracer, transactionalContext, params, runtime, notificationLogger, cacheStrategy)
       case preParsedQuery: PreParsedQuery =>
         planner.parseAndPlan(
           preParsedQuery,
@@ -158,7 +160,8 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
           params,
           runtime,
           notificationLogger,
-          sessionDatabase
+          sessionDatabase,
+          cacheStrategy
         )
     }
 
@@ -179,7 +182,7 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     val executionPlanCacheKeyHash = executionPlanCacheKey.hashCode()
     val cachedExecutionPlan =
       queryCaches.executionPlanCache.computeIfAbsent(
-        cacheWhen = logicalPlanResult.shouldBeCached,
+        cacheWhen = logicalPlanResult.cacheStrategy.executionPlanShouldBeCached,
         key = executionPlanCacheKey,
         compute =
           computeExecutionPlan(
@@ -214,7 +217,7 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       ),
       planState.plannerName,
       queryType,
-      logicalPlanResult.shouldBeCached,
+      logicalPlanResult.cacheStrategy.executionPlanShouldBeCached,
       contextManager.config.enableMonitors,
       logicalPlanResult.queryObfuscator,
       contextManager.config.renderPlanDescription,

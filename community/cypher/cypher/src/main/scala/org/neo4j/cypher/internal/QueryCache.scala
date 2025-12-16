@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.QueryCache.CacheKey
 import org.neo4j.cypher.internal.cache.CacheSize
 import org.neo4j.cypher.internal.cache.CacheTracer
 import org.neo4j.cypher.internal.cache.CaffeineCacheFactory
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.compiler.helpers.ParameterValueTypeHelper
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.notification.MissingLabelNotification
@@ -288,7 +289,8 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
     tc: TransactionalContext,
     compiler: CompilerWithExpressionCodeGenOption[EXECUTABLE_QUERY],
     replanStrategy: CypherReplanOption,
-    metaData: String = ""
+    metaData: String = "",
+    cacheStrategy: CacheStrategy = CacheStrategy.defaultDefault
   ): EXECUTABLE_QUERY = {
 
     def compile(hitCache: Boolean, beingComputed: Option[BeingComputed]): EXECUTABLE_QUERY =
@@ -369,8 +371,9 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
     }
 
     lazy val executingQuery = tc.executingQuery()
-    if (maximumSize.currentValue == 0) {
+    if (maximumSize.currentValue == 0 || !shouldBeCached(cacheStrategy)) {
       val result = compiler.compile()
+      // NOTE: We assume queryKey is unused by tracer.compute here, as we do not have a queryKey when cacheStrategy.executableQueryShouldBeCached = false
       tracer.compute(queryKey, result.codeGenByteCodeSize, metaData)
       result
     } else {
@@ -404,7 +407,7 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
                 case Some(returnValue) => returnValue
                 case None              =>
                   // Retry
-                  computeIfAbsentOrStale(queryKey, tc, compiler, replanStrategy, metaData)
+                  computeIfAbsentOrStale(queryKey, tc, compiler, replanStrategy, metaData, cacheStrategy)
               }
             case DoItYourself =>
               // We must perform the computation ourselves.
@@ -424,7 +427,7 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
             case Some(returnValue) => returnValue
             case None              =>
               // Retry
-              computeIfAbsentOrStale(queryKey, tc, compiler, replanStrategy, metaData)
+              computeIfAbsentOrStale(queryKey, tc, compiler, replanStrategy, metaData, cacheStrategy)
           }
       }
     }
@@ -618,6 +621,10 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
         }
         throw e
     }
+  }
+
+  protected def shouldBeCached(cacheStrategy: CacheStrategy): Boolean = {
+    cacheStrategy.unknownKindShouldBeCached
   }
 
   private def hit(

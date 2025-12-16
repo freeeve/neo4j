@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.QueryCache.CacheKey
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
 import org.neo4j.cypher.internal.frontend.phases.BaseState
@@ -147,6 +148,9 @@ abstract class ExecutionEngine(
     queryMonitor.startProcessing(context.executingQuery())
     val queryTracer = tracer.compileQuery(query.description)
     val notificationLogger = new RecordingNotificationLogger()
+    val cacheStrategy = CacheStrategy.default.withConfig(config)
+      .updateFromQueryOptions(query.options.queryOptions)
+      .updateFromAst(query.state.statement())
     closing(context, queryTracer) {
       doExecute(
         query,
@@ -158,7 +162,8 @@ abstract class ExecutionEngine(
         queryMonitor,
         queryTracer,
         subscriber,
-        notificationLogger
+        notificationLogger,
+        cacheStrategy
       )
     }
   }
@@ -193,6 +198,9 @@ abstract class ExecutionEngine(
       val notificationLogger = new RecordingNotificationLogger()
       val queryLangScope = context.kernelTransaction().defaultQueryLanguageScope()
 
+      // We have not parsed query options yet, so we start with the default strategy.
+      val initialCacheStrategy = CacheStrategy.default.withConfig(config).updateFromQueryText(query)
+
       val defaultLanguage =
         defaultLanguageLookup.dbDefaultQueryLanguage(queryLangScope, context.databaseId(), config.systemDefaultLanguage)
       val preParsedQuery = preParser.preParseQuery(
@@ -201,8 +209,10 @@ abstract class ExecutionEngine(
         defaultLanguage = defaultLanguage,
         profile = profile,
         couldContainSensitiveFields = couldContainSensitiveFields,
-        targetsComposite = DatabaseMode.COMPOSITE.equals(context.databaseMode())
+        targetsComposite = DatabaseMode.COMPOSITE.equals(context.databaseMode()),
+        initialCacheStrategy
       )
+      val cacheStrategy = initialCacheStrategy.updateFromQueryOptions(preParsedQuery.options.queryOptions)
       doExecute(
         preParsedQuery,
         params,
@@ -213,7 +223,8 @@ abstract class ExecutionEngine(
         monitor,
         queryTracer,
         subscriber,
-        notificationLogger
+        notificationLogger,
+        cacheStrategy
       )
     }
   }
@@ -243,12 +254,13 @@ abstract class ExecutionEngine(
     queryMonitor: QueryExecutionMonitor,
     tracer: QueryCompilationEvent,
     subscriber: QuerySubscriber,
-    notificationLogger: InternalNotificationLogger
+    notificationLogger: InternalNotificationLogger,
+    cacheStrategy: CacheStrategy
   ): QueryExecution = {
     context.executingQuery().onPreparseReady(query.resolvedLanguage)
     val executableQuery =
       try {
-        getOrCompile(context, query, tracer, params, notificationLogger)
+        getOrCompile(context, query, tracer, params, notificationLogger, cacheStrategy)
       } catch {
         case gqlException: ErrorGqlStatusObject =>
           if (isOutermostQuery) {
@@ -312,7 +324,8 @@ abstract class ExecutionEngine(
     transactionalContext: TransactionalContext,
     params: MapValue,
     notificationLogger: InternalNotificationLogger,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    cacheStrategy: CacheStrategy
   ): CompilerWithExpressionCodeGenOption[ExecutableQuery] = {
     val compiledExpressionCompiler =
       () =>
@@ -322,7 +335,8 @@ abstract class ExecutionEngine(
           transactionalContext,
           params,
           notificationLogger,
-          sessionDatabase
+          sessionDatabase,
+          cacheStrategy
         )
     val interpretedExpressionCompiler =
       () =>
@@ -332,7 +346,8 @@ abstract class ExecutionEngine(
           transactionalContext,
           params,
           notificationLogger,
-          sessionDatabase
+          sessionDatabase,
+          cacheStrategy
         )
 
     new CompilerWithExpressionCodeGenOption[ExecutableQuery] {
@@ -369,7 +384,8 @@ abstract class ExecutionEngine(
     initialInputQuery: InputQuery,
     tracer: QueryCompilationEvent,
     params: MapValue,
-    notificationLogger: InternalNotificationLogger
+    notificationLogger: InternalNotificationLogger,
+    cacheStrategy: CacheStrategy
   ): ExecutableQuery = {
 
     // create transaction and query context
@@ -378,12 +394,13 @@ abstract class ExecutionEngine(
     var forceReplan = false
     var inputQuery = initialInputQuery
 
-    val cacheKey = CacheKey(
+    val cacheKey = if (cacheStrategy.executableQueryShouldBeCached) CacheKey(
       inputQuery.cacheKey,
       QueryCache.extractParameterTypeMap(params, config.useParameterSizeHint),
       tc.kernelTransaction().dataRead().transactionStateHasChanges(),
       inputQuery.resolvedLanguage
     )
+    else null
 
     try {
       var n = 0
@@ -446,7 +463,8 @@ abstract class ExecutionEngine(
             override def catalogEntry(): NormalizedCatalogEntry = throw new NotImplementedError()
 
             override def isShard: Boolean = false
-          }
+          },
+          cacheStrategy
         )
 
         val executableQuery = queryCache.computeIfAbsentOrStale(
@@ -454,7 +472,8 @@ abstract class ExecutionEngine(
           tc,
           compiler,
           inputQuery.options.queryOptions.replan,
-          context.executingQuery().id()
+          context.executingQuery().id(),
+          cacheStrategy
         )
 
         val lockedEntities = schemaHelper.lockEntities(schemaToken, executableQuery, tc)

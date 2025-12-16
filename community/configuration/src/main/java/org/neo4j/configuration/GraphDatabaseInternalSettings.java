@@ -1675,6 +1675,44 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("The maximum size of a raw text query to be cached in the outer executable query cache, "
+            + "the preparser cache, and the AST cache, where the "
+            + "query text is used as the cache key. This limit is used to prevent huge query strings from occupying too "
+            + "much memory in the query cache, as such queries are often the result of programmatic generation and are unlikely "
+            + "to be reused before auto-parameterization is applied.")
+    public static final Setting<Long> query_cache_max_query_text_size = newBuilder(
+                    "internal.server.memory.query_cache.max_query_text_size", BYTES, kibiBytes(128))
+            .addConstraint(min(0L))
+            .dynamic()
+            .build();
+
+    @Internal
+    @Description(
+            "The maximum size of the AST (Abstract Syntax Tree) of the query for it to be cached in the logical plan cache "
+                    + "where the AST is used as the cache key. This limit is used to prevent huge queries from occupying too "
+                    + "much memory in the query cache, as such queries are often the result of programmatic generation and are unlikely "
+                    + "to be reused."
+                    + "WARNING: This value should not be expected to have a definitive and stable unit, and is subject to refinement over time.")
+    public static final Setting<Long> query_cache_max_ast_size = newBuilder(
+                    "internal.server.memory.query_cache.max_ast_size", LONG, -1L)
+            .addConstraint(min(-1L))
+            .dynamic()
+            .build();
+
+    @Internal
+    @Description(
+            "The maximum size of the Logical Plan of the query for it to be cached in the execution plan cache "
+                    + "where the logical plan is used as the cache key. This limit is used to prevent huge queries from occupying too "
+                    + "much memory in the query cache, as such queries are often the result of programmatic generation and are unlikely "
+                    + "to be reused."
+                    + "WARNING: This value should not be expected to have a definitive and stable unit, and is subject to refinement over time.")
+    public static final Setting<Long> query_cache_max_logical_plan_size = newBuilder(
+                    "internal.server.memory.query_cache.max_logical_plan_size", LONG, -1L)
+            .addConstraint(min(-1L))
+            .dynamic()
+            .build();
+
+    @Internal
     @Description("Time to wait before sending the first UDC ping.")
     public static final Setting<Long> udc_initial_delay_ms = newBuilder(
                     "internal.dbms.usage_report.initial_delay_ms", LONG, MINUTES.toMillis(10))

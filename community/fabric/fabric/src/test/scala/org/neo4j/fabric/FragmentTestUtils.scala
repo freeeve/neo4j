@@ -20,6 +20,7 @@
 package org.neo4j.fabric
 
 import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast
@@ -30,6 +31,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.cache.ExecutorBasedCaffeineCacheFactory
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
@@ -172,15 +174,25 @@ trait FragmentTestUtils {
       .set(GraphDatabaseSettings.log_queries_obfuscate_literals, java.lang.Boolean.TRUE)
       // Might need to be enabled when the next experimental version appear: .set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE)
       .build())
+
+  val hugeQuerySizeLimit: Long = 1000L
+
+  val cypherConfigWithQuerySizeLimit: CypherConfiguration =
+    CypherConfiguration.fromConfig(Config.newBuilder()
+      .set(GraphDatabaseInternalSettings.query_cache_max_query_text_size, java.lang.Long.valueOf(hugeQuerySizeLimit))
+      // Might need to be enabled when the next experimental version appear: .set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE)
+      .build())
+
   val monitors: Monitors = new Monitors
 
   val cacheFactory = new ExecutorBasedCaffeineCacheFactory(Executors.newWorkStealingPool)
   val frontend: FabricFrontEnd = FabricFrontEnd(cypherConfig, monitors, cacheFactory)
+  val cacheStrategy: CacheStrategy = CacheStrategy.default.withConfig(cypherConfig)
 
   def pipeline(query: String, defaultLanguage: CypherVersion): frontend.Pipeline =
     frontend.Pipeline(
       scopedSignatures,
-      frontend.preParsing.preParse(query, devNullLogger, defaultLanguage),
+      frontend.preParsing.preParse(query, devNullLogger, defaultLanguage, cacheStrategy),
       params,
       CancellationChecker.NeverCancelled,
       devNullLogger,
@@ -201,7 +213,7 @@ trait FragmentTestUtils {
     pipeline(query).parseAndPrepare.process().statement()
 
   def preParse(query: String, dbDefaultVersion: CypherVersion): PreParsedQuery =
-    frontend.preParsing.preParse(query, devNullLogger, dbDefaultVersion)
+    frontend.preParsing.preParse(query, devNullLogger, dbDefaultVersion, cacheStrategy)
   def preParse(query: String): PreParsedQuery = preParse(query, cypherConfig.systemDefaultLanguage)
 
   implicit class FragmentOps[F <: Fragment](fragment: F) {

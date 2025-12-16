@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal
 import org.antlr.v4.runtime.BailErrorStrategy
 import org.antlr.v4.runtime.CommonTokenStream
 import org.neo4j.cypher.internal.PreParser.queryOptions
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.notification.DeprecatedConnectComponentsPlannerPreParserOption
@@ -108,14 +109,37 @@ class CachingPreParser(
     defaultLanguage: CypherVersion,
     profile: Boolean = false,
     couldContainSensitiveFields: Boolean = false,
-    targetsComposite: Boolean = false
+    targetsComposite: Boolean = false,
+    cacheStrategy: CacheStrategy = CacheStrategy.defaultDefault
   ): PreParsedQuery = {
     val preParsedQuery =
-      if (couldContainSensitiveFields) { // This is potentially any outer query running on the system database
-        preParse(queryText, defaultLanguage)
+      if (couldContainSensitiveFields || !cacheStrategy.preParserShouldBeCached) { // This is potentially any outer query running on the system database
+        val ppq = preParse(queryText, defaultLanguage)
+        // Check again if the pre-parsed query options demand that we cache it
+        // NOTE: cache=force overrides couldContainSensitiveFields
+        if (cacheStrategy.updateFromQueryOptions(ppq.options.queryOptions).preParserShouldBeCached) {
+          preParserCache.put(ppq.preParserCacheKey, ppq)
+        }
+        ppq
       } else {
         val key = PreParsedQuery.CacheKey(queryText, defaultLanguage)
-        preParserCache.computeIfAbsent(key, preParse(queryText, defaultLanguage))
+        var ppq: PreParsedQuery = null
+        val cachedPpq = preParserCache.computeIfAbsent(
+          key, {
+            ppq = preParse(queryText, defaultLanguage)
+            if (cacheStrategy.updateFromQueryOptions(ppq.options.queryOptions).preParserShouldBeCached) {
+              ppq
+            } else {
+              // The pre-parsed query options demand that we do not cache this query
+              null
+            }
+          }
+        )
+        if (cachedPpq != null) {
+          cachedPpq
+        } else {
+          ppq // Always return the pre-parsed query even if we decided not to cache it
+        }
       }
     preParsedQuery.notifications.foreach(notificationLogger.log)
     if (profile) {

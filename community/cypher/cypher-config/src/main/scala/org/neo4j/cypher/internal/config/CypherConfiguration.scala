@@ -102,6 +102,9 @@ class CypherConfiguration private (val config: Config) {
 
   val queryCacheSoftSize: ObservableSetting[Integer] =
     new ObservableSetting(config, GraphDatabaseInternalSettings.query_cache_soft_size)
+  def queryCacheMaxQueryTextSize: Long = config.get(GraphDatabaseInternalSettings.query_cache_max_query_text_size)
+  def queryCacheMaxAstSize: Long = config.get(GraphDatabaseInternalSettings.query_cache_max_ast_size)
+  def queryCacheMaxLogicalPlanSize: Long = config.get(GraphDatabaseInternalSettings.query_cache_max_logical_plan_size)
   val executionPlanCacheSize: Int = config.get(GraphDatabaseInternalSettings.query_execution_plan_cache_size).toInt
   val statsDivergenceCalculator: StatsDivergenceCalculatorConfig = statsDivergenceFromConfig(config)
   val useErrorsOverWarnings: Boolean = config.get(GraphDatabaseSettings.cypher_hints_error)

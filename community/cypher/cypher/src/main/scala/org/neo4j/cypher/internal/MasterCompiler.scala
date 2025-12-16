@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal
 
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.notification.InternalNotification
@@ -67,7 +68,8 @@ trait MasterCompiler {
     transactionalContext: TransactionalContext,
     params: MapValue,
     notificationLogger: InternalNotificationLogger,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    cacheStrategy: CacheStrategy
   ): ExecutableQuery
 
   def supportsAdministrativeCommands(): Boolean
@@ -104,9 +106,10 @@ class SingleMasterCompiler(compiler: Compiler) extends MasterCompiler {
     transactionalContext: TransactionalContext,
     params: MapValue,
     notificationLogger: InternalNotificationLogger,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    cacheStrategy: CacheStrategy
   ): ExecutableQuery =
-    compiler.compile(query, tracer, transactionalContext, params, notificationLogger, sessionDatabase)
+    compiler.compile(query, tracer, transactionalContext, params, notificationLogger, sessionDatabase, cacheStrategy)
 
   def supportsAdministrativeCommands(): Boolean = false
 }
@@ -139,7 +142,8 @@ class LibraryMasterCompiler(compilerLibrary: CompilerLibrary) extends MasterComp
     transactionalContext: TransactionalContext,
     params: MapValue,
     notificationLogger: InternalNotificationLogger,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    cacheStrategy: CacheStrategy
   ): ExecutableQuery = {
 
     // Do the compilation
@@ -149,7 +153,7 @@ class LibraryMasterCompiler(compilerLibrary: CompilerLibrary) extends MasterComp
       query.options.materializedEntitiesMode
     )
 
-    compiler.compile(query, tracer, transactionalContext, params, notificationLogger, sessionDatabase)
+    compiler.compile(query, tracer, transactionalContext, params, notificationLogger, sessionDatabase, cacheStrategy)
   }
 
   def supportsAdministrativeCommands(): Boolean = compilerLibrary.supportsAdministrativeCommands()

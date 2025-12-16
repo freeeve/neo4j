@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.cache.CacheSize
 import org.neo4j.cypher.internal.cache.CaffeineCacheFactory
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
@@ -60,6 +61,7 @@ case class FabricPlanner(
   private[planning] val queryCache = new FabricQueryCache(cacheFactory, CacheSize.Dynamic(cypherConfig.queryCacheSize))
 
   private val frontend = FabricFrontEnd(cypherConfig, monitors, cacheFactory)
+  private val initialCacheStrategy = CacheStrategy.default.withConfig(cypherConfig)
 
   /**
    * Convenience method without cancellation checker or InternalSyntaxUsageStats. Should be used for tests only.
@@ -98,8 +100,10 @@ case class FabricPlanner(
   ): PlannerInstance = {
     val notificationLogger = new RecordingNotificationLogger()
 
-    val query = frontend.preParsing.preParse(queryString, notificationLogger, defaultLanguage)
-
+    val query = frontend.preParsing.preParse(queryString, notificationLogger, defaultLanguage, initialCacheStrategy)
+    val cacheStrategy = initialCacheStrategy
+      .updateFromQueryText(query.statement)
+      .updateFromQueryOptions(query.options.queryOptions)
     PlannerInstance(
       ScopedProcedureSignatureResolver.from(
         signatureResolver,
@@ -112,7 +116,8 @@ case class FabricPlanner(
       cancellationChecker,
       notificationLogger,
       internalSyntaxUsageStats,
-      shadowedFunctions
+      shadowedFunctions,
+      cacheStrategy
     )
   }
 
@@ -144,7 +149,8 @@ case class FabricPlanner(
     cancellationChecker: CancellationChecker,
     notificationLogger: InternalNotificationLogger,
     internalSyntaxUsageStats: InternalUsageStats,
-    shadowedFunctions: Set[String]
+    shadowedFunctions: Set[String],
+    cacheStrategy: CacheStrategy
   ) {
 
     private lazy val pipeline =
@@ -164,14 +170,20 @@ case class FabricPlanner(
     private val sessionDatabaseAlias: String = sessionDatabase.alias().name()
 
     lazy val plan: FabricPlan = {
-      val plan = queryCache.computeIfAbsent(
-        query.cacheKey,
-        queryParams,
-        sessionDatabaseAlias,
-        () => computePlan(),
-        shouldCache,
-        cypherConfig.useParameterSizeHint
-      )
+      val plan =
+        if (cacheStrategy.astShouldBeCached) {
+          queryCache.computeIfAbsent(
+            query.cacheKey,
+            queryParams,
+            sessionDatabaseAlias,
+            () => computePlan(),
+            shouldCache,
+            cypherConfig.useParameterSizeHint
+          )
+        } else {
+          computePlan()
+        }
+
       plan.copy(
         executionType = frontend.preParsing.executionType(query.options, plan.inCompositeContext),
         queryOptionsOffset = query.options.offset

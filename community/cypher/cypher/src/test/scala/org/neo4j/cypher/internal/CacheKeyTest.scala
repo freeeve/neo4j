@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal
 
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.options.CypherCacheOption
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
 import org.neo4j.cypher.internal.options.CypherDebugOption
 import org.neo4j.cypher.internal.options.CypherDebugOptions
@@ -73,6 +74,7 @@ class CacheKeyTest extends CypherFunSuite {
       operatorEngine = CypherOperatorEngineOption.interpreted,
       interpretedPipesFallback = CypherInterpretedPipesFallbackOption.allPossiblePlans,
       replan = CypherReplanOption.force,
+      cache = CypherCacheOption.force,
       connectComponentsPlanner = CypherConnectComponentsPlannerOption.idp,
       debugOptions = CypherDebugOptions(Set(CypherDebugOption.queryGraph, CypherDebugOption.tostring)),
       parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.disabled,
@@ -109,6 +111,7 @@ class CacheKeyTest extends CypherFunSuite {
       operatorEngine = CypherOperatorEngineOption.interpreted,
       interpretedPipesFallback = CypherInterpretedPipesFallbackOption.allPossiblePlans,
       replan = CypherReplanOption.force,
+      cache = CypherCacheOption.force,
       connectComponentsPlanner = CypherConnectComponentsPlannerOption.idp,
       debugOptions = CypherDebugOptions(Set(CypherDebugOption.queryGraph, CypherDebugOption.tostring)),
       parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.disabled,

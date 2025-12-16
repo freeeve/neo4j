@@ -51,6 +51,7 @@ case class CypherQueryOptions(
   operatorEngine: CypherOperatorEngineOption,
   interpretedPipesFallback: CypherInterpretedPipesFallbackOption,
   replan: CypherReplanOption,
+  cache: CypherCacheOption,
   connectComponentsPlanner: CypherConnectComponentsPlannerOption,
   debugOptions: CypherDebugOptions,
   parallelRuntimeSupportOption: CypherParallelRuntimeSupportOption,
@@ -653,6 +654,35 @@ case object CypherReplanOption extends CypherOptionCompanion[CypherReplanOption]
   implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherReplanOption] =
     OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
   implicit val reader: OptionReader[CypherReplanOption] = singleOptionReader()
+}
+
+sealed abstract class CypherCacheOption(strategy: String) extends CypherKeyValueOption(strategy) {
+  override def companion: CypherCacheOption.type = CypherCacheOption
+  override def cacheKey: String = ""
+
+  /**
+   * This option affects caching itself and it handled outside the cache.
+   */
+  override def relevantForLogicalPlanCacheKey: Boolean = false
+}
+
+case object CypherCacheOption extends CypherOptionCompanion[CypherCacheOption](
+      name = "cache"
+    ) {
+
+  case object default extends CypherCacheOption(CypherOption.DEFAULT)
+  case object force extends CypherCacheOption("force")
+  case object skip extends CypherCacheOption("skip")
+
+  def values: Set[CypherCacheOption] = Set(force, skip)
+
+  implicit val hasDefault: OptionDefault[CypherCacheOption] = OptionDefault.create(default)
+  implicit val renderer: OptionRenderer[CypherCacheOption] = OptionRenderer.create(_.render)
+  implicit val cacheKey: OptionCacheKey[CypherCacheOption] = OptionCacheKey.create(_.cacheKey)
+
+  implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherCacheOption] =
+    OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
+  implicit val reader: OptionReader[CypherCacheOption] = singleOptionReader()
 }
 
 sealed abstract class CypherConnectComponentsPlannerOption(planner: String) extends CypherKeyValueOption(planner) {

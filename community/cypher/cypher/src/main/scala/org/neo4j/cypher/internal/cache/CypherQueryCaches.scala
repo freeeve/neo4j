@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.ReusabilityState
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.AstCache
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheCommon
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy.updateDefaultValue
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.Config.ExecutionPlanCacheSize
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.Config.ExecutionPlanCacheSize.Default
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.Config.ExecutionPlanCacheSize.Disabled
@@ -49,6 +50,7 @@ import org.neo4j.cypher.internal.cache.CypherQueryCaches.Config.SoftCacheSize
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.ExecutableQueryCache
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.ExecutionPlanCache
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.LogicalPlanCache
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.LogicalPlanCache.CacheableLogicalPlan
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.PreParserCache
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.PredefinedCacheTracers
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.QueryCacheStaleLogger
@@ -57,20 +59,26 @@ import org.neo4j.cypher.internal.compiler.StatsDivergenceCalculator
 import org.neo4j.cypher.internal.compiler.phases.CachableLogicalPlanState
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.config.StatsDivergenceCalculatorConfig
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.options.CypherCacheOption
+import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributesCacheKey
 import org.neo4j.cypher.internal.preparser.InputQuery
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.preparser.QueryOptions
+import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.function.Observable
 import org.neo4j.kernel.api.query.ExecutingQuery
 import org.neo4j.kernel.impl.query.CacheMetrics
 import org.neo4j.kernel.impl.query.QueryCacheStatistics
 import org.neo4j.logging.InternalLogProvider
+import org.neo4j.memory.HeapEstimator
 import org.neo4j.monitoring.Monitors
+import org.neo4j.util.VisibleForTesting
 import org.neo4j.values.virtual.MapValue
 
 import java.io.Closeable
@@ -289,6 +297,10 @@ object CypherQueryCaches {
           LogicalPlanCacheQueryTracer
         ) with CacheCommon {
       def companion: CacheCompanion = LogicalPlanCache
+
+      override protected def shouldBeCached(cacheStrategy: CacheStrategy): Boolean = {
+        cacheStrategy.logicalPlanShouldBeCached
+      }
     }
 
     class SoftCache(
@@ -354,6 +366,10 @@ object CypherQueryCaches {
           ExecutableQueryCacheQueryTracer
         ) with CacheCommon {
       def companion: CacheCompanion = ExecutableQueryCache
+
+      override protected def shouldBeCached(cacheStrategy: CacheStrategy): Boolean = {
+        cacheStrategy.executableQueryShouldBeCached
+      }
     }
 
     class SoftCache(
@@ -416,6 +432,147 @@ object CypherQueryCaches {
         logicalPlan,
         executablePlan
       ).map(tracer => tracer.cacheKind -> tracer).toMap
+    }
+  }
+
+  case class CacheStrategy(
+    executableQueryCache: CypherCacheOption,
+    preParserCache: CypherCacheOption,
+    astCache: CypherCacheOption,
+    logicalPlanCache: CypherCacheOption,
+    executionPlanCache: CypherCacheOption
+  )(config: CypherConfiguration = null) {
+
+    def executableQueryShouldBeCached: Boolean = CacheStrategy.shouldBeCached(executableQueryCache)
+    def preParserShouldBeCached: Boolean = CacheStrategy.shouldBeCached(preParserCache)
+    def astShouldBeCached: Boolean = CacheStrategy.shouldBeCached(astCache)
+    def logicalPlanShouldBeCached: Boolean = CacheStrategy.shouldBeCached(logicalPlanCache)
+    def executionPlanShouldBeCached: Boolean = CacheStrategy.shouldBeCached(executionPlanCache)
+
+    // Used for testing and benchmarking
+    def unknownKindShouldBeCached: Boolean = CacheStrategy.shouldBeCached(executableQueryCache)
+
+    def withConfig(config: CypherConfiguration): CacheStrategy = this.copy()(config)
+
+    def updateFromQueryOptions(options: CypherQueryOptions): CacheStrategy = {
+      options.cache match {
+        case CypherCacheOption.force => CacheStrategy.forceAll
+        case CypherCacheOption.skip  => CacheStrategy.skipAll
+        case _                       => this
+      }
+    }
+
+    def updateFromQueryText(queryText: String): CacheStrategy = {
+      if (
+        (executableQueryCache eq CypherCacheOption.default) ||
+        (preParserCache eq CypherCacheOption.default) ||
+        (astCache eq CypherCacheOption.default)
+      ) {
+        // If any of these three are set to default, we need to check the size to see if it is below the threshold
+        val maxQueryTextSize = config.queryCacheMaxQueryTextSize
+        val shouldBeCached = maxQueryTextSize > 0 && {
+          val queryTextSize = HeapEstimator.sizeOf(queryText)
+          val isBelowTheLimit = queryTextSize <= maxQueryTextSize
+          isBelowTheLimit
+        }
+        this.copy(
+          executableQueryCache = updateDefaultValue(executableQueryCache, shouldBeCached),
+          preParserCache = updateDefaultValue(preParserCache, shouldBeCached),
+          astCache = updateDefaultValue(astCache, shouldBeCached)
+        )(config)
+      } else {
+        this.copy()(config)
+      }
+    }
+
+    def updateFromAst(ast: Statement): CacheStrategy = {
+      logicalPlanCache match {
+        case CypherCacheOption.default =>
+          val maxAstSize = config.queryCacheMaxAstSize
+          // NOTE: Negative value means unlimited
+          val shouldBeCached = maxAstSize < 0 || maxAstSize > 0 && {
+            val astSize = estimateAstSize(ast)
+            val isBelowTheLimit = astSize <= maxAstSize
+            isBelowTheLimit
+          }
+          this.copy(logicalPlanCache = updateDefaultValue(logicalPlanCache, shouldBeCached))(config)
+        case _ =>
+          this
+      }
+    }
+
+    def updateFromLogicalPlan(cacheableLogicalPlan: CacheableLogicalPlan): CacheStrategy = {
+      executionPlanCache match {
+        case CypherCacheOption.force | CypherCacheOption.default if !cacheableLogicalPlan.shouldBeCached =>
+          // Some conditions determined by the planner prevents caching and even overrides force
+          this.copy(executionPlanCache = CypherCacheOption.skip)(config)
+        case CypherCacheOption.default =>
+          val maxLogicalPlanSize = config.queryCacheMaxLogicalPlanSize
+          // NOTE: Negative value means unlimited
+          val shouldBeCached = maxLogicalPlanSize < 0 || maxLogicalPlanSize > 0 && {
+            val logicalPlanSize = estimateLogicalPlanSize(cacheableLogicalPlan.logicalPlanState.logicalPlan)
+            val isBelowTheLimit = logicalPlanSize <= maxLogicalPlanSize
+            isBelowTheLimit
+          }
+          this.copy(executionPlanCache = updateDefaultValue(executionPlanCache, shouldBeCached))(config)
+        case _ =>
+          this
+      }
+    }
+
+  }
+
+  object CacheStrategy {
+
+    private def shouldBeCached(option: CypherCacheOption): Boolean = option != CypherCacheOption.skip
+
+    private def updateDefaultValue(current: CypherCacheOption, shouldBeCached: Boolean): CypherCacheOption = {
+      current match {
+        case CypherCacheOption.default if shouldBeCached  => CypherCacheOption.force
+        case CypherCacheOption.default if !shouldBeCached => CypherCacheOption.skip
+        case _                                            => current
+      }
+    }
+
+    val default: CacheStrategy = CacheStrategy(
+      CypherCacheOption.default,
+      CypherCacheOption.default,
+      CypherCacheOption.default,
+      CypherCacheOption.default,
+      CypherCacheOption.default
+    )()
+
+    val skipAll: CacheStrategy = CacheStrategy(
+      CypherCacheOption.skip,
+      CypherCacheOption.skip,
+      CypherCacheOption.skip,
+      CypherCacheOption.skip,
+      CypherCacheOption.skip
+    )()
+
+    val forceAll: CacheStrategy = CacheStrategy(
+      CypherCacheOption.force,
+      CypherCacheOption.force,
+      CypherCacheOption.force,
+      CypherCacheOption.force,
+      CypherCacheOption.force
+    )()
+
+    @VisibleForTesting
+    val defaultDefault: CacheStrategy =
+      default.withConfig(CypherConfiguration.fromConfig(org.neo4j.configuration.Config.defaults()))
+  }
+
+  def estimateAstSize(ast: Statement): Long = {
+    ast.folder.treeCount {
+      case _: ASTNode => ()
+    }
+  }
+
+  def estimateLogicalPlanSize(logicalPlan: LogicalPlan): Long = {
+    logicalPlan.folder.treeCount {
+      case _: LogicalPlan => ()
+      case _: Expression  => ()
     }
   }
 }

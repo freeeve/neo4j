@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.LastCommittedTxIdProvider
 import org.neo4j.cypher.internal.MasterCompiler
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig
@@ -164,7 +165,8 @@ class LogicalPlanCacheAcceptanceTest extends CypherFunSuite with GraphDatabaseTe
         context,
         ValueUtils.asParameterMapValue(asJavaMapDeep(params)),
         devNullLogger,
-        null
+        null,
+        cacheStrategy = CacheStrategy.defaultDefault
       )
       val id = context.executingQuery().id()
       context.close()
