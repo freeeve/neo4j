@@ -58,6 +58,7 @@ import org.neo4j.cypher.internal.notification.FixedLengthRelationshipInShortestP
 import org.neo4j.cypher.internal.notification.GrantRoleCommandHasNoEffectNotification
 import org.neo4j.cypher.internal.notification.GrantRoleToAuthRuleCommandHasNoEffectNotification
 import org.neo4j.cypher.internal.notification.HomeDatabaseNotPresent
+import org.neo4j.cypher.internal.notification.IdentifierShadowsVariableNotification
 import org.neo4j.cypher.internal.notification.ImpossibleRevokeCommandWarning
 import org.neo4j.cypher.internal.notification.IndexHintUnfulfillableNotification
 import org.neo4j.cypher.internal.notification.IndexOrConstraintAlreadyExistsNotification
@@ -400,6 +401,9 @@ object NotificationWrapping {
         relName,
         pattern
       )
+
+    case IdentifierShadowsVariableNotification(position, identifier, clause) =>
+      NotificationCodeWithDescription.identifierShadowingVariable(position.asInputPosition, identifier, clause)
 
     case DeprecatedIdentifierWhitespaceUnicode(position, unicode, identifier) =>
       NotificationCodeWithDescription.deprecatedIdentifierWhitespaceUnicode(

@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
@@ -39,6 +40,7 @@ import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
+import org.neo4j.cypher.internal.notification.IdentifierShadowsVariableNotification
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
@@ -70,10 +72,10 @@ case class Search(
   def semanticCheck: SemanticCheck = {
     checkSearchFeatureFlag() ifOkChain
       checkBindingVariable() chain
+      checkScore() chain
       checkIndexName() chain
       checkEmbedding() chain
       checkLimit() chain
-      checkScore() chain
       checkWhere()
   }
 
@@ -92,12 +94,26 @@ case class Search(
     )
 
   private def checkIndexName(): SemanticCheck = {
-    // This is a restriction for the MVP which we intend to lift later
-    if (indexName.isRight) {
-      SemanticError.invalidIndexParameter(indexName.toOption.get.position)
-    } else {
-      SemanticCheck.success
+    indexName match {
+      case Left(name) =>
+        notifyIfIndexNameShadowsVariable(name)
+      case Right(parameter) =>
+        // This is a restriction for the MVP which we intend to lift later
+        SemanticError.invalidIndexParameter(parameter.position)
     }
+  }
+
+  private def notifyIfIndexNameShadowsVariable(name: String): SemanticState => Either[SemanticError, SemanticState] = {
+    (s: SemanticState) =>
+      s.symbol(name) match {
+        case None => Right(s)
+        case Some(symbol) =>
+          Right(s.addNotification(IdentifierShadowsVariableNotification(
+            symbol.definition.asVariable.position,
+            name,
+            "VECTOR INDEX"
+          )))
+      }
   }
 
   private def checkEmbedding(): SemanticCheck = {

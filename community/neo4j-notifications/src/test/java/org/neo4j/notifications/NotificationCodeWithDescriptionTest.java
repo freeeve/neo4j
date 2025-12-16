@@ -69,6 +69,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.eagerLoadC
 import static org.neo4j.notifications.NotificationCodeWithDescription.exhaustiveShortestPath;
 import static org.neo4j.notifications.NotificationCodeWithDescription.externalAuthNotEnabled;
 import static org.neo4j.notifications.NotificationCodeWithDescription.homeDatabaseNotPresent;
+import static org.neo4j.notifications.NotificationCodeWithDescription.identifierShadowingVariable;
 import static org.neo4j.notifications.NotificationCodeWithDescription.impossibleRevokeCommand;
 import static org.neo4j.notifications.NotificationCodeWithDescription.indexHintUnfulfillable;
 import static org.neo4j.notifications.NotificationCodeWithDescription.indexLookupForDynamicProperty;
@@ -2173,6 +2174,27 @@ class NotificationCodeWithDescriptionTest {
                 "info: server has caught up. Server `'serverName'` at address `'localhost:1234'` has caught up.");
     }
 
+    @Test
+    void shouldConstructNotificationsFor_IDENTIFIER_SHADOWING_VARIABLE() {
+        NotificationImplementation notification =
+                identifierShadowingVariable(InputPosition.empty, "indexName", "VECTOR INDEX");
+
+        verifyNotification(
+                notification,
+                "An identifier is shadowing a variable in scope.",
+                SeverityLevel.INFORMATION,
+                "Neo.ClientNotification.Statement.IdentifierShadowingVariable",
+                "The identifier `indexName` in the `VECTOR INDEX` clause has the same name as a variable in scope. "
+                        + "Regardless of what the variable evaluates to, it is the literal `indexName` that will be used.",
+                NotificationCategory.GENERIC,
+                NotificationClassification.GENERIC,
+                "03N63",
+                new DiagnosticRecord(info, NotificationClassification.GENERIC, -1, -1, -1).asMap(),
+                "info: identifier shadowing variable. "
+                        + "The identifier `indexName` in the VECTOR INDEX clause has the same name as a variable in scope. "
+                        + "Regardless of what the variable evaluates to, it is the literal `indexName` that will be used.");
+    }
+
     private void verifyNotification(
             NotificationImplementation notification,
             String title,
@@ -2282,8 +2304,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -119, -64, 26, 67, -54, -56, -23, -24, 99, -93, -78, -20, -59, 84, 39, 67, -34, -24, 109, -103, -127, -100,
-            113, 15, -54, 106, 101, 85, -106, -81, 103, 90
+            -61, -102, 57, -22, 61, 15, -76, -67, -128, 86, 31, 123, -109, -49, -41, -20, 122, -29, -27, -83, -33, 106,
+            120, 95, 87, 34, -60, -45, 52, -6, -94, -78
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

@@ -116,7 +116,8 @@ object InternalNotifications {
     "WaitServerCaughtUp",
     "DeprecatedFunctionNamespaceUsed",
     "DeprecatedProcedureNamespaceUsed",
-    "ShadowingInternalFunction"
+    "ShadowingInternalFunction",
+    "IdentifierShadowsVariableNotification"
   )
 
   def allNotificationsAsJavaIterable(): lang.Iterable[String] = allNotifications.asJava
@@ -318,3 +319,6 @@ case class CodeGenerationFailedNotification(
   fallbackRuntimeConf: String,
   msg: String
 ) extends InternalNotification
+
+case class IdentifierShadowsVariableNotification(position: InputPosition, identifier: String, clause: String)
+    extends InternalNotification

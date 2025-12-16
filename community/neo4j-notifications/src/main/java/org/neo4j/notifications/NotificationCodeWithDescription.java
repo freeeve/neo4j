@@ -425,7 +425,13 @@ public enum NotificationCodeWithDescription {
             Status.Request.UnsupportedType,
             GqlStatusInfoCodes.STATUS_01N83,
             "One or more values returned could not be handled by this version of the client "
-                    + "and were replaced with placeholder map values. Please upgrade your client.");
+                    + "and were replaced with placeholder map values. Please upgrade your client."),
+
+    IDENTIFIER_SHADOWING_VARIABLE(
+            Status.Statement.IdentifierShadowingVariable,
+            GqlStatusInfoCodes.STATUS_03N63,
+            "The identifier `%s` in the `%s` clause has the same name as a variable in scope. "
+                    + "Regardless of what the variable evaluates to, it is the literal `%s` that will be used.");
 
     private final Status status;
     private final GqlStatusInfoCodes gqlStatusInfo;
@@ -983,6 +989,12 @@ public enum NotificationCodeWithDescription {
     public static NotificationImplementation clientDoesNotSupportType(String type) {
         return UNSUPPORTED_TYPE.notificationWithParameters(
                 InputPosition.empty, new String[] {type}, new String[] {type});
+    }
+
+    public static NotificationImplementation identifierShadowingVariable(
+            InputPosition position, String identifier, String clause) {
+        return IDENTIFIER_SHADOWING_VARIABLE.notificationWithParameters(
+                position, new String[] {identifier, clause, identifier}, new String[] {identifier, clause, identifier});
     }
 
     public static NotificationImplementation waitServerCaughtUp(String serverName, String boltAddress) {

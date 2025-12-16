@@ -420,6 +420,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.INFORMATIONAL,
             "redundant optional subquery",
             NotificationClassification.GENERIC),
+    STATUS_03N63(
+            new GqlStatus("03N63"),
+            "The identifier { %s } in the { %s } clause has the same name as a variable in scope. Regardless of what the variable evaluates to, it is the literal { %s } that will be used.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.ident, GqlParams.StringParam.clause, GqlParams.StringParam.ident
+            },
+            emptyMap(),
+            Condition.INFORMATIONAL,
+            "identifier shadowing variable",
+            NotificationClassification.GENERIC),
     STATUS_03N85(
             new GqlStatus("03N85"),
             "Server `{ %s }` at address `{ %s }` has caught up.",

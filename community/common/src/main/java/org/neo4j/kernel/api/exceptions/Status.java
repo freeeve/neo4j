@@ -372,7 +372,12 @@ public interface Status {
                 ClientNotification,
                 "The query uses an insecure protocol. Please consider using 'https' instead.",
                 SeverityLevel.WARNING,
-                NotificationCategory.SECURITY);
+                NotificationCategory.SECURITY),
+        IdentifierShadowingVariable(
+                ClientNotification,
+                "An identifier is shadowing a variable in scope.",
+                SeverityLevel.INFORMATION,
+                NotificationCategory.GENERIC);
 
         private final Code code;
 
