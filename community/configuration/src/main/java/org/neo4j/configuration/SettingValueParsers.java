@@ -774,9 +774,9 @@ public final class SettingValueParsers {
 
         @Override
         public String getDescription() {
-            return "a valid database name pattern containing only alphabetic characters, numbers, dots, question marks, asterisk and dashes "
+            return "a valid database name pattern containing only alphabetic characters, numbers, dots, question marks, asterisks, and dashes "
                     + "with a length between " + 1 + " and "
-                    + DatabaseNameValidator.MAXIMUM_DATABASE_NAME_LENGTH + " characters.";
+                    + DatabaseNameValidator.MAXIMUM_DATABASE_NAME_LENGTH + " characters";
         }
 
         @Override
