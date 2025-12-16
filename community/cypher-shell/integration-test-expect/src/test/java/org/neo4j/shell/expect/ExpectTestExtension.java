@@ -22,7 +22,7 @@ package org.neo4j.shell.expect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.regex.Pattern.compile;
 import static org.apache.commons.io.IOUtils.resourceToString;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.shell.expect.ExpectTestExtension.CYPHER_SHELL_PATH;
 
 import java.io.FileNotFoundException;
@@ -39,10 +39,9 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.neo4j.util.VisibleForTesting;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Neo4jContainer;
-import org.testcontainers.containers.Neo4jLabsPlugin;
 import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.ImageFromDockerfile;
+import org.testcontainers.neo4j.Neo4jContainer;
 
 /**
  * Extension to run tests using expect. Will start docker containers with neo4j and expect. Use runTestCase to run expect scenarios.
@@ -51,7 +50,7 @@ public class ExpectTestExtension implements BeforeAllCallback, AfterAllCallback 
     private static final boolean DEBUG = false;
     static String CYPHER_SHELL_PATH = "/cypher-shell/bin/cypher-shell";
     private final String neo4jDockerTag;
-    private NeoContainer neo4jContainer;
+    private Neo4jContainer neo4jContainer;
     private GenericContainer<?> expectContainer;
 
     public ExpectTestExtension(String neo4jDockerTag) {
@@ -152,24 +151,18 @@ public class ExpectTestExtension implements BeforeAllCallback, AfterAllCallback 
                 .withEnv("CYPHER_SHELL_PATH", CYPHER_SHELL_PATH);
 
         // Create container that runs neo4j
-        final var neo4jContainer = new NeoContainer("neo4j:" + neo4jDockerTag)
+        final var neo4jContainer = new Neo4jContainer("neo4j:" + neo4jDockerTag)
                 .withAdminPassword(neo4jPassword)
                 .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
                 .withNetwork(network)
                 .withNetworkAliases(neo4jAddress)
-                .withLabsPlugins(Neo4jLabsPlugin.APOC);
+                .withPlugins("apoc");
 
         neo4jContainer.start();
         expectContainer.start();
 
         this.neo4jContainer = neo4jContainer;
         this.expectContainer = expectContainer;
-    }
-
-    private static class NeoContainer extends Neo4jContainer<NeoContainer> {
-        NeoContainer(String name) {
-            super(name);
-        }
     }
 }
 
