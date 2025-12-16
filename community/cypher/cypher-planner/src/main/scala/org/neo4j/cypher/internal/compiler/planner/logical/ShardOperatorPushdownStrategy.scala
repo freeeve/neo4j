@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Property
@@ -35,29 +36,36 @@ import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
-import org.neo4j.cypher.internal.ir.QueryProjection
+import org.neo4j.cypher.internal.ir.QueryPagination
+import org.neo4j.cypher.internal.ir.RegularQueryProjection
+import org.neo4j.cypher.internal.ir.ordering.ColumnOrder
+import org.neo4j.cypher.internal.ir.ordering.InterestingOrder.Satisfaction
 import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.PropertyKeyNameOrder
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates.RewrittenSubQueryPredicatesMap
+import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.IterableHelper.RichIterableOnce
+import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
+import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 
 sealed trait ShardOperatorPushdownStrategy {
 
   def isPushdownEnabled: Boolean
 
-  def skipAndLimit(
+  def skipLimitAndOrdering(
     input: LogicalPlan,
-    queryGraph: QueryGraph,
-    queryProjection: QueryProjection,
+    queryProjection: RegularQueryProjection,
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
   ): LogicalPlan
@@ -89,10 +97,9 @@ object ShardOperatorPushdownStrategy {
       predicatesToSolve: RewrittenSubQueryPredicatesMap
     ): Option[SelectionCandidate] = None
 
-    override def skipAndLimit(
+    override def skipLimitAndOrdering(
       input: LogicalPlan,
-      queryGraph: QueryGraph,
-      queryProjection: QueryProjection,
+      queryProjection: RegularQueryProjection,
       interestingOrderConfig: InterestingOrderConfig,
       context: LogicalPlanningContext
     ): LogicalPlan = input
@@ -187,10 +194,9 @@ object ShardOperatorPushdownStrategy {
       planWithPushedDownPredicates.orElse(planWithPrefetchedSelection)
     }
 
-    override def skipAndLimit(
+    override def skipLimitAndOrdering(
       input: LogicalPlan,
-      queryGraph: QueryGraph,
-      queryProjection: QueryProjection,
+      queryProjection: RegularQueryProjection,
       interestingOrderConfig: InterestingOrderConfig,
       context: LogicalPlanningContext
     ): LogicalPlan =
@@ -249,62 +255,207 @@ object ShardOperatorPushdownStrategy {
 
   case object PushdownOperators extends ShardOperatorPushdownStrategy {
 
-    override def skipAndLimit(
+    override def skipLimitAndOrdering(
       input: LogicalPlan,
-      queryGraph: QueryGraph,
-      queryProjection: QueryProjection,
+      queryProjection: RegularQueryProjection,
       interestingOrderConfig: InterestingOrderConfig,
       context: LogicalPlanningContext
-    ): LogicalPlan = {
-      val pushdownLimitOpt =
-        pushdownSkipAndLimit(
-          input,
-          queryProjection,
-          context
-        )
+    ): LogicalPlan =
+      rewritePlanWithPushdown(context, queryProjection, interestingOrderConfig, input)
+        .getOrElse(input)
 
-      pushdownLimitOpt.map(context.staticComponents.logicalPlanProducer.planProjectionsOnShards(
-        _,
+    private def rewritePlanWithPushdown(
+      context: LogicalPlanningContext,
+      queryProjection: RegularQueryProjection,
+      interestingOrderConfig: InterestingOrderConfig,
+      sourcePlan: LogicalPlan
+    ): Option[LogicalPlan] =
+      for {
+        // calculate the effective limit (skip + limit) based on the query pagination
+        limitExpression <- computeEffectiveLimit(queryProjection.queryPagination)
+        // try to push this logic down into the shards
+        pushdown <- mergeOrCreatePushdown(context, limitExpression, interestingOrderConfig, sourcePlan)
+      } yield context.staticComponents.logicalPlanProducer.planProjectionsOnShards(
+        pushdown,
         RewrittenSubQueryPredicates.empty,
         context
-      )).getOrElse(input)
-    }
+      )
 
-    private def previousPushdownOperator(
-      input: LogicalPlan
-    ): Option[RemoteBatchPropertiesWithPushdownOperators] = input match {
-      case pushdownOperator: RemoteBatchPropertiesWithPushdownOperators =>
-        Some(pushdownOperator)
-      case Apply(pushdownOperator: RemoteBatchPropertiesWithPushdownOperators, _: Argument) => Some(pushdownOperator)
-      case _                                                                                => None
-    }
+    private def computeEffectiveLimit(queryPagination: QueryPagination): Option[Expression] =
+      (queryPagination.skip, queryPagination.limit) match {
+        case (Some(skip), Some(limit)) => Some(Add(limit, skip)(limit.position))
+        case (None, Some(limit))       => Some(limit)
+        case _                         => None
+      }
 
-    private def pushdownSkipAndLimit(
-      inputPlan: LogicalPlan,
-      queryProjection: QueryProjection,
-      context: LogicalPlanningContext
+    private def mergeOrCreatePushdown(
+      context: LogicalPlanningContext,
+      limitExpression: Expression,
+      interestingOrderConfig: InterestingOrderConfig,
+      sourcePlan: LogicalPlan
+    ): Option[RemoteBatchPropertiesWithPushdownOperators] =
+      // If the source plan is already a RemoteBatchPropertiesWithPushdownOperators
+      extractExistingPushdown(sourcePlan) match {
+        // and if it doesn't already have an order or a limit
+        case Some(op) if op.orderBy.isEmpty && op.limit.isEmpty =>
+          // then we can try and piggy-back on it
+          augmentExistingOperator(context, limitExpression, interestingOrderConfig, sourcePlan, op)
+        case _ =>
+          // otherwise we need to plan a fresh RemoteBatchPropertiesWithPushdownOperators
+          planFreshPushdown(context, limitExpression, interestingOrderConfig, sourcePlan)
+      }
+
+    private def extractExistingPushdown(sourcePlan: LogicalPlan): Option[RemoteBatchPropertiesWithPushdownOperators] =
+      sourcePlan match {
+        case pushdownOperator: RemoteBatchPropertiesWithPushdownOperators =>
+          Some(pushdownOperator)
+        case Apply(pushdownOperator: RemoteBatchPropertiesWithPushdownOperators, _: Argument) =>
+          Some(pushdownOperator)
+        case _ =>
+          None
+      }
+
+    private def augmentExistingOperator(
+      context: LogicalPlanningContext,
+      limitExpression: Expression,
+      interestingOrderConfig: InterestingOrderConfig,
+      sourcePlan: LogicalPlan,
+      op: RemoteBatchPropertiesWithPushdownOperators
     ): Option[RemoteBatchPropertiesWithPushdownOperators] = {
-      if (queryProjection.queryPagination.nonEmpty) {
-        previousPushdownOperator(inputPlan)
-          .filter(op => op.limit.isEmpty)
-          .map { op =>
-            val maybeLimit = (queryProjection.queryPagination.skip, queryProjection.queryPagination.limit) match {
-              case (Some(skipExpr), Some(limitExpr)) => Some(Add(limitExpr, skipExpr)(limitExpr.position))
-              case (_, limit)                        => limit
+      val providedOrder = context.staticComponents.planningAttributes.providedOrders.get(op.source.id)
+      val pendingSortOrder = computePendingSortOrder(providedOrder, interestingOrderConfig)
+      pendingSortOrder match {
+        // if we're pushing down a limit and an order, i.e. if we're pushing down Top
+        case Some(columnOrderList) =>
+          // and we're ordering based on a single variable
+          resolveSortOrders(columnOrderList).flatMap { case (variable, sortAttributes) =>
+            // if the variable is the same as the one used in the existing RemoteBatchPropertiesWithPushdownOperators
+            if (variable == op.variable) {
+              // we can piggy-back on it and add and order and a limit
+              Some(RemoteBatchPropertiesWithPushdownOperators(
+                source = sourcePlan,
+                variable = op.variable,
+                entityType = op.entityType,
+                properties = op.properties,
+                orderBy = sortAttributes,
+                limit = Some(limitExpression)
+              )(context.staticComponents.idGen))
+            } else {
+              // otherwise we try and plan a fresh RemoteBatchPropertiesWithPushdownOperators
+              buildFreshRemoteBatchOperator(context, limitExpression, sourcePlan, variable, sortAttributes)
             }
-
-            RemoteBatchPropertiesWithPushdownOperators(
-              source =
-                inputPlan,
-              variable = op.variable,
-              entityType = op.entityType,
-              properties = op.properties,
-              limit = maybeLimit
-            )(
-              context.staticComponents.idGen
-            ) // if the previous pushdown operator has no skip and limit, we can use it as is.
           }
-      } else
+        // if no sorting is needed, we can safely push down the limit on its own
+        case None =>
+          Some(RemoteBatchPropertiesWithPushdownOperators(
+            source = sourcePlan,
+            variable = op.variable,
+            entityType = op.entityType,
+            properties = op.properties,
+            orderBy = Nil,
+            limit = Some(limitExpression)
+          )(context.staticComponents.idGen))
+      }
+    }
+
+    private def planFreshPushdown(
+      context: LogicalPlanningContext,
+      limitExpression: Expression,
+      interestingOrderConfig: InterestingOrderConfig,
+      sourcePlan: LogicalPlan
+    ): Option[RemoteBatchPropertiesWithPushdownOperators] = {
+      val providedOrder = context.staticComponents.planningAttributes.providedOrders.get(sourcePlan.id)
+      for {
+        // figure out what part of the interesting order is not yet satisfied
+        columnOrderList <- computePendingSortOrder(providedOrder, interestingOrderConfig)
+        // ensure the sort orders apply to a single variable and extract the attributes
+        (variable, sortAttributes) <- resolveSortOrders(columnOrderList)
+        // build the new operator
+        op <- buildFreshRemoteBatchOperator(context, limitExpression, sourcePlan, variable, sortAttributes)
+      } yield op
+    }
+
+    private def buildFreshRemoteBatchOperator(
+      context: LogicalPlanningContext,
+      limitExpression: Expression,
+      sourcePlan: LogicalPlan,
+      variable: LogicalVariable,
+      sortAttributes: Seq[PropertyKeyNameOrder]
+    ): Option[RemoteBatchPropertiesWithPushdownOperators] =
+      for {
+        entityType <- resolveEntityType(context, variable)
+        // collect all properties required by the query horizon/projection
+        accessedProperties = findPropertyAccessesForVariable(context, variable).map(_.propertyKeyName)
+        cachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(sourcePlan.id)
+        propertyKeys = sortAttributes.view.map(_.propertyKeyName).toSet.union(accessedProperties)
+        // determine which properties are not yet in the cache
+        propertiesToCache = cachedProperties.propertiesNotYetCached(variable, propertyKeys)
+        // ensure that there are properties that need caching
+        if propertiesToCache.nonEmpty
+      } yield RemoteBatchPropertiesWithPushdownOperators(
+        source = sourcePlan,
+        variable = variable,
+        entityType = entityType,
+        properties = propertiesToCache,
+        orderBy = sortAttributes,
+        limit = Some(limitExpression)
+      )(context.staticComponents.idGen)
+
+    private def computePendingSortOrder(
+      providedOrder: ProvidedOrder,
+      interestingOrderConfig: InterestingOrderConfig
+    ): Option[NonEmptyList[ColumnOrder]] =
+      providedOrder.satisfies(interestingOrderConfig.orderToSolve) match {
+        // only attempt to solve the required order as a whole, no partial sorting
+        case Satisfaction(Seq(), missingSuffix) if missingSuffix.nonEmpty =>
+          Some(NonEmptyList(missingSuffix.head, missingSuffix.tail: _*))
+        case _ =>
+          None
+      }
+
+    private def resolveSortOrders(
+      columnOrderList: NonEmptyList[ColumnOrder]
+    ): Option[(LogicalVariable, Seq[PropertyKeyNameOrder])] =
+      for {
+        // resolve the first sort key to determine the target variable
+        (variable, firstKey) <- resolveSortOrder(columnOrderList.head)
+        // verify that all subsequent sort keys apply to the same variable
+        otherKeys <- columnOrderList.tail.traverse { columnOrder =>
+          resolveSortOrder(columnOrder).collect {
+            case (resolvedVariable, propertyKeyNameOrder) if resolvedVariable == variable => propertyKeyNameOrder
+          }
+        }
+      } yield (variable, firstKey +: otherKeys)
+
+    private def resolveSortOrder(columnOrder: ColumnOrder): Option[(LogicalVariable, PropertyKeyNameOrder)] = {
+      val order = if (columnOrder.isAscending) PropertyKeyNameOrder.Ascending else PropertyKeyNameOrder.Descending
+
+      columnOrder.expression match {
+        case LogicalProperty(variable: LogicalVariable, propertyKeyName) =>
+          val propertyKeyNameOrder = PropertyKeyNameOrder(propertyKeyName, order)
+          columnOrder.projections.get(variable) match {
+            case Some(originalVariable: LogicalVariable) => Some((originalVariable, propertyKeyNameOrder))
+            case Some(_)                                 => None
+            case None                                    => Some((variable, propertyKeyNameOrder))
+          }
+
+        case variable: LogicalVariable => columnOrder.projections.get(variable).collect {
+            case LogicalProperty(originalVariable: LogicalVariable, propertyKeyName) =>
+              (originalVariable, PropertyKeyNameOrder(propertyKeyName, order))
+          }
+
+        case _ => None
+      }
+    }
+
+    private def resolveEntityType(context: LogicalPlanningContext, variable: LogicalVariable): Option[EntityType] = {
+      val variableType = context.semanticTable.typeFor(variable)
+
+      if (variableType.is(CTRelationship))
+        Some(RELATIONSHIP_TYPE)
+      else if (variableType.is(CTNode))
+        Some(NODE_TYPE)
+      else
         None
     }
 
@@ -520,18 +671,7 @@ object ShardOperatorPushdownStrategy {
       .flatPredicatesSet
 
     // We also want to find property accesses that have not yet been cached for the given variable
-    val propAccesses = (context.plannerState.contextualPropertyAccess.interestingOrder ++
-      context.plannerState.contextualPropertyAccess.horizon ++
-      context.plannerState.contextualPropertyAccess.propertyAccessInOtherComponents)
-      .collect {
-        case propAccess @ PropertyAccess(`variable`, _) => propAccess
-        case PropertyAccess(propVar, propertyName)
-          if context.plannerState.contextualPropertyAccess.entityAliases.isSameEntityAs(
-            original = variable,
-            renamed = propVar
-          ) =>
-          PropertyAccess(variable, propertyName)
-      }
+    val propAccesses = findPropertyAccessesForVariable(context, variable)
 
     // we compute not only the predicates that will be solved by this selection
     val propertiesFromUnsolvedPredicates =
@@ -556,6 +696,26 @@ object ShardOperatorPushdownStrategy {
     else
       propertiesToFetch
   }
+
+  /**
+   * Find property accesses that have not yet been cached for the given variable
+   */
+  private def findPropertyAccessesForVariable(
+    context: LogicalPlanningContext,
+    variable: LogicalVariable
+  ): Set[PropertyAccess] =
+    (context.plannerState.contextualPropertyAccess.interestingOrder ++
+      context.plannerState.contextualPropertyAccess.horizon ++
+      context.plannerState.contextualPropertyAccess.propertyAccessInOtherComponents)
+      .collect {
+        case propAccess @ PropertyAccess(`variable`, _) => propAccess
+        case PropertyAccess(propVar, propertyName)
+          if context.plannerState.contextualPropertyAccess.entityAliases.isSameEntityAs(
+            original = variable,
+            renamed = propVar
+          ) =>
+          PropertyAccess(variable, propertyName)
+      }
 
   /*
    * Identify the sequence of operations to perform for this selection. Depending on the predicates, the sequence will be something like this:

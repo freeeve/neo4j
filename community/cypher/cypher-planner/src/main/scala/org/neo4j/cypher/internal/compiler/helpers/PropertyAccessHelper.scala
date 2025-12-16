@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 import scala.annotation.tailrec
@@ -90,7 +91,9 @@ object EntityAliases {
 
 object PropertyAccessHelper {
 
-  case class PropertyAccess(variable: LogicalVariable, propertyName: String)
+  case class PropertyAccess(variable: LogicalVariable, propertyName: String) {
+    def propertyKeyName: PropertyKeyName = PropertyKeyName(propertyName)(InputPosition.NONE)
+  }
 
   case class ContextualPropertyAccess(
     queryGraph: Set[PropertyAccess],

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.logical.builder
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.GraphReference
+import org.neo4j.cypher.internal.ast.SortItem
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
@@ -120,6 +121,8 @@ trait Parser {
   }
 
   def parseGraphReference(text: String): GraphReference = astParser.useClause(s"USE $text").graphReference
+
+  def parseSortItem(text: String): SortItem = astParser.sortItem(text)
 }
 
 object Parser {
@@ -136,6 +139,7 @@ object Parser {
     def patternElement(cypher: String): PatternElement
     def callClause(cypher: String): ASTNode
     def useClause(cypher: String): UseGraph
+    def sortItem(cypher: String): SortItem
   }
 
   private object Cypher5 extends Parser {
@@ -145,6 +149,7 @@ object Parser {
       override def patternElement(cypher: String): PatternElement = parser(cypher).parse(_.patternElement())
       override def callClause(cypher: String): ASTNode = parser(cypher).parse(_.callClause())
       override def useClause(cypher: String): UseGraph = parser(cypher).parse(_.useClause())
+      override def sortItem(cypher: String): SortItem = parser(cypher).parse(_.orderItem())
 
       private def parser(cypher: String) =
         AstParserFactory(CypherVersion.Cypher5)(
@@ -164,6 +169,7 @@ object Parser {
       override def patternElement(cypher: String): PatternElement = parser(cypher).parse(_.patternElement())
       override def callClause(cypher: String): ASTNode = parser(cypher).parse(_.callClause())
       override def useClause(cypher: String): UseGraph = parser(cypher).parse(_.useClause())
+      override def sortItem(cypher: String): SortItem = parser(cypher).parse(_.orderItem())
 
       private def parser(cypher: String) =
         AstParserFactory(CypherVersion.Cypher25)(

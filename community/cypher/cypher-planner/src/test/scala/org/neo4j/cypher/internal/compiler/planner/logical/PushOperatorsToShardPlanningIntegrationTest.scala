@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.PushdownOperators
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
+import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
@@ -707,7 +708,8 @@ class PushOperatorsToShardPlanningIntegrationTest
       .projection("cacheN[person.creationDate] AS earlyAdopterSince")
       .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "person", properties = "creationDate", "lastName")(
         PushdownOperators()
-          .limit("10") // TODO: we will have to pushdown sort as well for this plan to be correct
+          .limit("10")
+          .orderBy("person.creationDate ASC")
           .filter("person.lastName IS NOT NULL", "person.creationDate < $max_creation_date")
       )
       .nodeByLabelScan("person", "Person")
@@ -1351,7 +1353,8 @@ class PushOperatorsToShardPlanningIntegrationTest
       .|.top(1, "`b.name` ASC")
       .|.projection("cacheN[b.name] AS `b.name`")
       .|.remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "b", properties = "name")(PushdownOperators()
-        .limit("1") // TODO: we will have to pushdown sort as well.
+        .limit("1")
+        .orderBy("b.name ASC")
         .filter("b.name = anon_0")
         .importedPerRowValues(Map("anon_0" -> "cacheN[a.firstName]")))
       .|.expandAll("(a)-[:KNOWS]->(b)")
@@ -2389,6 +2392,162 @@ class PushOperatorsToShardPlanningIntegrationTest
         .relationshipTypeScan("(n)-[:KNOWS]->(known)", IndexOrderNone)
         .build()
     )
+  }
+
+  test("should push down Top") {
+    val query =
+      """MATCH (person:Person {id: 42})-[knows:KNOWS]->(friend)
+        |RETURN friend.id ORDER BY friend.firstName LIMIT 10""".stripMargin
+
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("`friend.id`")
+      .projection("cacheN[friend.id] AS `friend.id`")
+      .top(10, "`friend.firstName` ASC")
+      .projection("cacheN[friend.firstName] AS `friend.firstName`")
+      .remoteBatchPropertiesWithPushdownOperatorsOnNode(
+        variable = "friend",
+        properties = "firstName",
+        "id"
+      )(PushdownOperators()
+        .limit("10")
+        .orderBy("friend.firstName ASC"))
+      .expandAll("(person)-[:KNOWS]->(friend)")
+      .nodeIndexOperator("person:Person(id = 42)", unique = true)
+      .build()
+  }
+
+  // Arguably we could sort partially by the first variable
+  test("should not push down Top when sorting by two variables") {
+    val query =
+      """MATCH (person:Person {id: 42})-[knows:KNOWS]->(friend)
+        |RETURN friend.id ORDER BY friend.firstName, knows.creationDate LIMIT 10""".stripMargin
+
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("`friend.id`")
+      .projection("cacheN[friend.id] AS `friend.id`")
+      .top(10, "`friend.firstName` ASC", "`knows.creationDate` ASC")
+      .projection(
+        "cacheN[friend.firstName] AS `friend.firstName`",
+        "cacheR[knows.creationDate] AS `knows.creationDate`"
+      )
+      .remoteBatchProperties(
+        "cacheNFromStore[friend.firstName]",
+        "cacheRFromStore[knows.creationDate]",
+        "cacheNFromStore[friend.id]"
+      )
+      .expandAll("(person)-[knows:KNOWS]->(friend)")
+      .nodeIndexOperator("person:Person(id = 42)", unique = true)
+      .build()
+  }
+
+  test("should push down Top for a required order coming from the following horizon") {
+    val query =
+      """MATCH (person:Person {id: 42})-[knows:KNOWS]->(friend)
+        |WITH *, friend.name AS friend_name SKIP 5 LIMIT 10
+        |RETURN friend.id, friend_name ORDER BY knows.creationDate LIMIT 1""".stripMargin
+
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("`friend.id`", "friend_name")
+      .projection("cacheN[friend.id] AS `friend.id`")
+      .remoteBatchProperties("cacheNFromStore[friend.id]")
+      .limit(1)
+      .projection("cacheN[friend.name] AS friend_name")
+      .remoteBatchProperties("cacheNFromStore[friend.name]")
+      .skip(5)
+      .top(Seq(Ascending(v"knows.creationDate")), add(literalInt(10), literalInt(5)))
+      .projection("cacheR[knows.creationDate] AS `knows.creationDate`")
+      .remoteBatchPropertiesWithPushdownOperatorsOnRelationship(
+        variable = "knows",
+        properties = "creationDate"
+      )(PushdownOperators()
+        .limit("10 + 5")
+        .orderBy("knows.creationDate ASC"))
+      .expandAll("(person)-[knows:KNOWS]->(friend)")
+      .nodeIndexOperator("person:Person(id = 42)", unique = true)
+      .build()
+  }
+
+  test("should push down Top, recycling a previously pushed down predicate") {
+    val query =
+      """MATCH (person:Person {id: 42})-[knows:KNOWS]->(friend)
+        |  WHERE friend.firstName <> 'Dave' // We don't care about Dave
+        |RETURN friend.id ORDER BY friend.firstName DESC, friend.lastName ASC LIMIT 10""".stripMargin
+
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("`friend.id`")
+      .projection("cacheN[friend.id] AS `friend.id`")
+      .top(10, "`friend.firstName` DESC", "`friend.lastName` ASC")
+      .projection("cacheN[friend.firstName] AS `friend.firstName`", "cacheN[friend.lastName] AS `friend.lastName`")
+      .remoteBatchPropertiesWithPushdownOperatorsOnNode(
+        variable = "friend",
+        properties = "firstName",
+        "lastName",
+        "id"
+      )(PushdownOperators()
+        .limit("10")
+        .orderBy("friend.firstName DESC", "friend.lastName ASC")
+        // This predicate gets pushed down first before the horizon, we piggy-back on it
+        .filter("NOT friend.firstName = 'Dave'"))
+      .expandAll("(person)-[:KNOWS]->(friend)")
+      .nodeIndexOperator("person:Person(id = 42)", unique = true)
+      .build()
+  }
+
+  test("should push down top when ordering by renamed variables") {
+    val query =
+      """MATCH (person:Person {id: 42})-[knows:KNOWS]->(friend)
+        |  WHERE friend.firstName <> 'Dave' // We don't care about Dave
+        |WITH friend AS notDave, friend.firstName AS name ORDER BY name DESC, notDave.id ASC LIMIT 10
+        |RETURN name, notDave.phoneNumber AS phoneNumber""".stripMargin
+
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("name", "phoneNumber")
+      .projection(Map(
+        "phoneNumber" -> cachedNodeProp("friend", "phoneNumber", "notDave")
+      ))
+      .top(10, "name DESC", "`notDave.id` ASC")
+      .projection(Map(
+        "notDave.id" -> cachedNodeProp("friend", "id", "notDave")
+      ))
+      .projection("cacheN[friend.firstName] AS name", "friend AS notDave")
+      .remoteBatchPropertiesWithPushdownOperatorsOnNode(
+        variable = "friend",
+        properties = "firstName",
+        "id",
+        "phoneNumber"
+      )(PushdownOperators()
+        .limit("10")
+        .orderBy("friend.firstName DESC", "friend.id ASC")
+        .filter("NOT friend.firstName = 'Dave'"))
+      .expandAll("(person)-[:KNOWS]->(friend)")
+      .nodeIndexOperator("person:Person(id = 42)", unique = true)
+      .build()
+  }
+
+  test("should stack a pushed down filter and a pushed down top on different variables") {
+    val query =
+      """MATCH (person:Person {id: 42})-[knows:KNOWS]->(friend)
+        |  WHERE knows.creationDate > $minDate
+        |RETURN friend.firstName ORDER BY friend.firstName LIMIT 10""".stripMargin
+
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("`friend.firstName`")
+      .top(10, "`friend.firstName` ASC")
+      .projection("cacheN[friend.firstName] AS `friend.firstName`")
+      .remoteBatchPropertiesWithPushdownOperatorsOnNode(
+        variable = "friend",
+        properties = "firstName"
+      )(PushdownOperators()
+        .limit("10")
+        .orderBy("friend.firstName ASC"))
+      .remoteBatchPropertiesWithPushdownOperatorsOnRelationship(
+        variable = "knows",
+        properties = "creationDate"
+      )(PushdownOperators()
+        .filter("knows.creationDate > $minDate"))
+      .expandAll("(person)-[knows:KNOWS]->(friend)")
+      .nodeIndexOperator("person:Person(id = 42)", unique = true)
+      .build()
   }
 
   def temporalRuntimeConstant(functionName: String, temporalType: CypherType, dateString: String): RuntimeConstant = {

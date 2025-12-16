@@ -1180,7 +1180,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       .produceResults("x")
       .remoteBatchPropertiesWithPushdownOperatorsOnRelationship("x", "prop1", "prop2")(PushdownOperators()
         .limit("10")
-        .orderBy("x.prop3")
+        .orderBy("x.prop3", "x.prop2 ASC", "x.prop1 DESC")
         .distinct("x")
         .filter("x.prop1=foo", "x.prop2=anon_0")
         .importedConstantValues("foo")

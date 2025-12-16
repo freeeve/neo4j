@@ -39,7 +39,6 @@ import org.neo4j.cypher.internal.ir.CommandProjection
 import org.neo4j.cypher.internal.ir.DistinctQueryProjection
 import org.neo4j.cypher.internal.ir.LoadCSVProjection
 import org.neo4j.cypher.internal.ir.PassthroughAllHorizon
-import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RunQueryAtProjection
 import org.neo4j.cypher.internal.ir.Selections
@@ -267,11 +266,10 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         (rewrittenExpressions, planWithProperties)
       }
 
-    def planShardOperators(queryProjection: QueryProjection) =
+    def planShardOperators(queryProjection: RegularQueryProjection) =
       step("planShardOperators")(
-        context.settings.shardOperatorPushdownStrategy.skipAndLimit(
+        context.settings.shardOperatorPushdownStrategy.skipLimitAndOrdering(
           _,
-          query.queryGraph,
           queryProjection,
           interestingOrderConfig,
           context
@@ -345,7 +343,6 @@ case object PlanEventHorizon extends EventHorizonPlanner {
                 orderToSolve = previousInterestingOrder.get
               )),
               planAggregation(rewrittenExpressions),
-              planShardOperators(aggregatingProjection),
               planSort(),
               planSkipAndLimit,
               planWhere(aggregatingProjection.selections)
@@ -356,7 +353,6 @@ case object PlanEventHorizon extends EventHorizonPlanner {
             combine(
               NonEmptyList(
                 planAggregation(rewrittenExpressions),
-                planShardOperators(aggregatingProjection),
                 planSort(),
                 planSkipAndLimit,
                 planWhere(aggregatingProjection.selections)
@@ -452,10 +448,9 @@ case object PlanEventHorizon extends EventHorizonPlanner {
 
         // for distinct, sort happens after the projection. The provided order of the distinct plan will include
         // renames of the projection, thus we need to rename this as well for the required order before considering planning a sort.
-        val planWithPushedDownOperators = planShardOperators(distinctProjection)(selectedPlan)
         val (rewrittenExprsAfterRemoteBatching, remoteBatchPropertiesPlan) = planRemoteBatchProperties(
           distinctProjection.groupingExpressions.values,
-          planWithPushedDownOperators
+          selectedPlan
         )
 
         val (rewrittenExpressions, rewrittenPlan) = solveSubqueryExpressions(

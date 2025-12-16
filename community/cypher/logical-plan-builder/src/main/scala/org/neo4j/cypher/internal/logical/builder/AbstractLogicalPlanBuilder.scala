@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal.logical.builder
 
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AscSortItem
+import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
@@ -229,6 +231,7 @@ import org.neo4j.cypher.internal.logical.plans.ProcedureCall
 import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.ProjectEndpoints
 import org.neo4j.cypher.internal.logical.plans.Projection
+import org.neo4j.cypher.internal.logical.plans.PropertyKeyNameOrder
 import org.neo4j.cypher.internal.logical.plans.PruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
@@ -2902,7 +2905,12 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     properties: Seq[String],
     pushdownOperators: PushdownOperators
   ): IMPL = {
-    appendAtCurrentIndent(UnaryOperator(source =>
+    appendAtCurrentIndent(UnaryOperator { source =>
+      val (unexpected, orderBy) = pushdownOperators.orderBy.partitionMap {
+        case (LogicalVariable(`variable`), order) => Right(order)
+        case (expression, _)                      => Left(expression)
+      }
+      assert(unexpected.isEmpty, s"Unexpected sorting keys, expected $variable, got $unexpected")
       RemoteBatchPropertiesWithPushdownOperators(
         source,
         variable = varFor(variable),
@@ -2910,12 +2918,12 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         properties = properties.map(PropertyKeyName(_)(pos)).toSet,
         predicates = pushdownOperators.filter,
         distinctBy = pushdownOperators.distinct,
-        orderBy = pushdownOperators.orderBy,
+        orderBy = orderBy,
         limit = pushdownOperators.limit,
         importedConstantValues = pushdownOperators.importedConstantValues,
         importedPerRowValues = pushdownOperators.importedPerRowValues
       )(_)
-    ))
+    })
   }
 
   def setProperty(entity: ToExpression, propertyKey: String, value: ToExpression): IMPL = {
@@ -4055,7 +4063,7 @@ object AbstractLogicalPlanBuilder {
   case class PushdownOperators private (
     filter: Seq[Expression] = Seq.empty,
     distinct: Option[Expression] = None,
-    orderBy: Seq[Expression] = Seq.empty,
+    orderBy: Seq[(Expression, PropertyKeyNameOrder)] = Seq.empty,
     limit: Option[Expression] = None,
     importedConstantValues: Set[Expression] = Set.empty,
     importedPerRowValues: Map[LogicalVariable, Expression] = Map.empty
@@ -4074,10 +4082,17 @@ object AbstractLogicalPlanBuilder {
       copy(distinct = Some(Parser.Latest.parseExpression(expr)))
     }
 
-    def orderBy(expr: String): PushdownOperators = {
-      val newOrderBy = Parser.Latest.parseExpression(expr)
-      copy(orderBy = orderBy :+ newOrderBy)
-    }
+    def orderBy(property: String, otherProperties: String*): PushdownOperators =
+      copy(orderBy = parsePropertyKeyNameOrder(property) +: otherProperties.map(parsePropertyKeyNameOrder))
+
+    private def parsePropertyKeyNameOrder(property: String): (Expression, PropertyKeyNameOrder) =
+      Parser.Latest.parseSortItem(property) match {
+        case AscSortItem(LogicalProperty(expression, propertyKeyName)) =>
+          expression -> PropertyKeyNameOrder(propertyKeyName, PropertyKeyNameOrder.Ascending)
+        case DescSortItem(LogicalProperty(expression, propertyKeyName)) =>
+          expression -> PropertyKeyNameOrder(propertyKeyName, PropertyKeyNameOrder.Descending)
+        case other => throw new IllegalArgumentException(s"Unexpected sort item: $other")
+      }
 
     def limit(expr: String): PushdownOperators = {
       copy(limit = Some(Parser.Latest.parseExpression(expr)))

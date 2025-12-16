@@ -1295,6 +1295,14 @@ case class RemoteBatchPropertiesWithFilter(
   override val distinctness: Distinctness = source.distinctness
 }
 
+case class PropertyKeyNameOrder(propertyKeyName: PropertyKeyName, order: PropertyKeyNameOrder.Order)
+
+object PropertyKeyNameOrder {
+  sealed trait Order
+  case object Ascending extends Order
+  case object Descending extends Order
+}
+
 /**
  * Similar to [[RemoteBatchProperties]] but with property operations applied on the server.
  */
@@ -1305,7 +1313,7 @@ case class RemoteBatchPropertiesWithPushdownOperators(
   properties: Set[PropertyKeyName],
   predicates: Seq[Expression] = Seq.empty,
   distinctBy: Option[Expression] = None,
-  orderBy: Seq[Expression] = Seq.empty,
+  orderBy: Seq[PropertyKeyNameOrder] = Seq.empty,
   limit: Option[Expression] = None,
   importedConstantValues: Set[Expression] = Set.empty,
   importedPerRowValues: Map[LogicalVariable, Expression] = Map.empty

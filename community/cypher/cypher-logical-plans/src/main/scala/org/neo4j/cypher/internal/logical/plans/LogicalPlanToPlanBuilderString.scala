@@ -2053,7 +2053,9 @@ object LogicalPlanToPlanBuilderString {
       )),
       conditional(remoteBatchPropertiesWithPushdownOperators.orderBy.nonEmpty)(call(
         "orderBy",
-        spread(remoteBatchPropertiesWithPushdownOperators.orderBy.map(_.quoted))
+        spread(remoteBatchPropertiesWithPushdownOperators.orderBy.map(order =>
+          propertyKeyNameOrderString(remoteBatchPropertiesWithPushdownOperators.variable, order)
+        ))
       )),
       conditional(remoteBatchPropertiesWithPushdownOperators.distinctBy.nonEmpty)(call(
         "distinct",
@@ -2075,6 +2077,17 @@ object LogicalPlanToPlanBuilderString {
       )
     )
   }
+
+  private def propertyKeyNameOrderString(variable: LogicalVariable, propertyKeyNameOrder: PropertyKeyNameOrder): Param =
+    Param(_
+      .append(escapeIdentifier(variable.name))
+      .append('.')
+      .append(escapeIdentifier(propertyKeyNameOrder.propertyKeyName.name))
+      .append(' ')
+      .append(propertyKeyNameOrder.order match {
+        case PropertyKeyNameOrder.Ascending  => "ASC"
+        case PropertyKeyNameOrder.Descending => "DESC"
+      })).quoted
 
   private def setPropertiesParam(items: Seq[(PropertyKeyName, Expression)]): Param =
     spread(
