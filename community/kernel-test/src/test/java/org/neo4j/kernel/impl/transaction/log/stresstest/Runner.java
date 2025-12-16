@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.stresstest;
 
+import static org.neo4j.io.ByteUnit.mebiBytes;
 import static org.neo4j.kernel.impl.transaction.log.TransactionAppenderFactory.createTransactionAppender;
 
 import java.io.IOException;
@@ -30,6 +31,7 @@ import java.util.concurrent.Future;
 import java.util.function.BooleanSupplier;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.DatabaseConfig;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -129,6 +131,7 @@ public class Runner implements Callable<Long> {
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
+                .withConfig(Config.defaults(GraphDatabaseSettings.logical_log_rotation_threshold, mebiBytes(8)))
                 .build();
     }
 }

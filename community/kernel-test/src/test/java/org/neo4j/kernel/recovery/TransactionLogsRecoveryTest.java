@@ -33,6 +33,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.io.fs.ChannelNativeAccessor.EMPTY_ACCESSOR;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
@@ -63,6 +64,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.database.DatabaseStartAbortedException;
 import org.neo4j.internal.helpers.collection.Visitor;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -946,6 +948,7 @@ class TransactionLogsRecoveryTest {
                 .withStoreId(storeId)
                 .withConfig(Config.newBuilder()
                         .set(GraphDatabaseInternalSettings.fail_on_corrupted_log_files, false)
+                        .set(GraphDatabaseSettings.logical_log_rotation_threshold, kibiBytes(256))
                         .build())
                 .build();
     }

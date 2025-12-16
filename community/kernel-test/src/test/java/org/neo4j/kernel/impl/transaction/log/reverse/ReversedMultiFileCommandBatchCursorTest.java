@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.neo4j.common.Subject.ANONYMOUS;
+import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.kernel.impl.transaction.log.GivenCommandBatchCursor.exhaust;
 import static org.neo4j.kernel.impl.transaction.log.TestLogEntryReader.logEntryReader;
 import static org.neo4j.kernel.impl.transaction.log.reverse.ReversedMultiFileCommandBatchCursor.fromLogFile;
@@ -43,6 +44,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.impl.api.TestCommand;
@@ -94,6 +97,7 @@ class ReversedMultiFileCommandBatchCursorTest {
         LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout, fs, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
+                .withConfig(Config.defaults(GraphDatabaseSettings.logical_log_rotation_threshold, kibiBytes(256)))
                 .withStoreId(storeId)
                 .build();
         life.add(logFiles);

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.checkpoint_logical_log_rotation_threshold;
+import static org.neo4j.configuration.GraphDatabaseSettings.logical_log_rotation_threshold;
 import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_log_buffer_size;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_logs_root_path;
@@ -39,7 +40,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -120,7 +120,7 @@ class LogFilesBuilderTest {
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
-                .withConfig(Config.defaults(GraphDatabaseSettings.logical_log_rotation_threshold, kibiBytes(128)));
+                .withConfig(Config.defaults(logical_log_rotation_threshold, kibiBytes(128)));
         TransactionLogFilesContext context = builder.buildContext();
         TransactionLogFilesOverrides overrides = builder.buildOverrides();
         TransactionLogFilesProviders providers =
@@ -256,6 +256,7 @@ class LogFilesBuilderTest {
         final var config = Config.newBuilder()
                 .set(neo4j_home, testDirectory.homePath())
                 .set(transaction_logs_root_path, logDirectory.toAbsolutePath())
+                .set(logical_log_rotation_threshold, kibiBytes(256))
                 .build();
 
         final var logFiles = writeableBuilder(
@@ -269,6 +270,7 @@ class LogFilesBuilderTest {
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
                 .withStoreId(new StoreId(1, 2, "engine-1", "format-1", 3, 4))
+                .withConfig(config)
                 .build();
         try {
             logFiles.init();
