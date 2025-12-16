@@ -23,6 +23,7 @@ import static java.util.Collections.emptyList;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 
 import java.io.IOException;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -56,11 +57,11 @@ public record ChunkedRollbackBatchRepresentation(
                         new MutableLong(UNKNOWN_CONSENSUS_INDEX),
                         new MutableLong(UNKNOWN_APPEND_INDEX),
                         timeWritten,
-                        -1,
+                        UNKNOWN_TX_ID,
                         timeWritten,
                         -1,
                         kernelVersion,
-                        Subject.ANONYMOUS));
+                        Subject.AUTH_DISABLED));
     }
 
     @Override

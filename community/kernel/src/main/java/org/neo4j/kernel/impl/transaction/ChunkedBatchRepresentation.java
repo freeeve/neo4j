@@ -19,9 +19,10 @@
  */
 package org.neo4j.kernel.impl.transaction;
 
+import static org.neo4j.kernel.impl.transaction.log.LogIndexEncoding.decodeLogIndex;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_CHUNK_ID;
-import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 
 import java.io.IOException;
 import java.util.List;
@@ -46,7 +47,7 @@ public record ChunkedBatchRepresentation(
         implements CommittedCommandBatchRepresentation {
 
     public static ChunkedBatchRepresentation createChunkRepresentation(
-            LogEntry start, List<StorageCommand> commands, LogEntry end, int previousChecksum) {
+            LogEntry start, List<StorageCommand> commands, LogEntry end, int previousChecksum, int leaseId) {
         LogEntryChunkStart logEntryChunkStart = createChunkStart(start);
         LogEntryChunkEnd logEntryChunkEnd = createChunkEnd(end, logEntryChunkStart);
         ChunkMetadata chunkMetadata = new ChunkMetadata(
@@ -55,12 +56,12 @@ public record ChunkedBatchRepresentation(
                 false,
                 logEntryChunkStart.getPreviousBatchAppendIndex(),
                 logEntryChunkStart.getChunkId(),
-                new MutableLong(UNKNOWN_CONSENSUS_INDEX),
+                new MutableLong(decodeLogIndex(logEntryChunkStart.getAdditionalHeader())),
                 new MutableLong(logEntryChunkStart.getAppendIndex()),
                 logEntryChunkStart.getTimeWritten(),
-                -1,
+                (start instanceof LogEntryStart es) ? es.getLastCommittedTxWhenTransactionStarted() : UNKNOWN_TX_ID,
                 logEntryChunkStart.getTimeWritten(),
-                -1,
+                leaseId,
                 logEntryChunkStart.kernelVersion(),
                 Subject.AUTH_DISABLED);
         return new ChunkedBatchRepresentation(

@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry;
 
+import static org.neo4j.kernel.impl.transaction.log.LogIndexEncoding.encodeLogIndex;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newChunkStartEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCommitEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newRollbackEntry;
@@ -149,6 +150,42 @@ public class LogEntryWriter<T extends WritableChannel> {
                 : "Command serialization KernelVersion %s does not match tx KernelVersion %s"
                         .formatted(command.kernelVersion(), kernelVersion);
         command.serialize(channel);
+    }
+
+    public void writeBatchStart(
+            KernelVersion kernelVersion,
+            CommandBatch batch,
+            long chunkId,
+            long appendIndex,
+            int previousChecksum,
+            long previousBatchAppendIndex)
+            throws IOException {
+        if (batch.isFirst()) {
+            writeStartEntry(
+                    kernelVersion,
+                    batch.getTimeStarted(),
+                    batch.getLatestCommittedTxWhenStarted(),
+                    appendIndex,
+                    previousChecksum,
+                    encodeLogIndex(batch.consensusIndex()));
+        } else {
+            writeChunkStartEntry(
+                    kernelVersion,
+                    batch.getTimeCommitted(),
+                    chunkId,
+                    appendIndex,
+                    previousBatchAppendIndex,
+                    encodeLogIndex(batch.consensusIndex()));
+        }
+    }
+
+    public int writeBatchEnd(KernelVersion kernelVersion, CommandBatch batch, long transactionId, long chunkId)
+            throws IOException {
+        if (batch.isLast()) {
+            return writeCommitEntry(kernelVersion, transactionId, batch.getTimeCommitted());
+        } else {
+            return writeChunkEndEntry(kernelVersion, transactionId, chunkId);
+        }
     }
 
     @VisibleForTesting

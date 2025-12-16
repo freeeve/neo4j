@@ -40,7 +40,7 @@ import java.util.Map;
 public enum DatabaseVersion {
     V0((byte) 0, (byte) -1, (byte) -1, (byte) -1),
     V1((byte) 1, KernelVersion.GLORIOUS_FUTURE.version(), 5, V11.getVersionByte()),
-    V2((byte) 2, KernelVersion.GLORIOUS_FUTURE.version(), 6, V11.getVersionByte());
+    V2((byte) 2, KernelVersion.GLORIOUS_FUTURE.version(), 7, V11.getVersionByte());
 
     // Maps for fast lookups given a version number, kernel version, or DBMS runtime version
     private static final Map<Byte, DatabaseVersion> BY_VERSION = new HashMap<>();

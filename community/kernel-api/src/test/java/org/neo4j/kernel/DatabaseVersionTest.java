@@ -61,7 +61,7 @@ class DatabaseVersionTest {
         return new Arguments[] {
             Arguments.argumentSet("V0", (byte) 0, (byte) -1, -1, (byte) -1),
             Arguments.argumentSet("V1", (byte) 1, (byte) 127, 5, (byte) 11),
-            Arguments.argumentSet("V2", (byte) 2, (byte) 127, 6, (byte) 11)
+            Arguments.argumentSet("V2", (byte) 2, (byte) 127, 7, (byte) 11)
         };
     }
 

@@ -108,7 +108,7 @@ public class CommittedCommandBatchCursor implements CommandBatchCursor {
                 current = new CompleteBatchRepresentation(entryStart, entries, commitEntry, previousChecksum);
             } else {
                 current = ChunkedBatchRepresentation.createChunkRepresentation(
-                        startEntry, entries, endEntry, previousChecksum);
+                        startEntry, entries, endEntry, previousChecksum, -1);
             }
         } else {
             throw new IllegalStateException("Was expecting transaction or chunk start but got: " + entry);

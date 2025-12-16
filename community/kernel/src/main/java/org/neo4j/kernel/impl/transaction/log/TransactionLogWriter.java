@@ -19,8 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.log;
 
-import static org.neo4j.kernel.impl.transaction.log.LogIndexEncoding.encodeLogIndex;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -112,32 +110,12 @@ public class TransactionLogWriter {
             return writer.writeRollbackEntry(kernelVersion, transactionId, appendIndex, batch.getTimeCommitted());
         }
 
-        if (batch.isFirst()) {
-            writer.writeStartEntry(
-                    kernelVersion,
-                    batch.getTimeStarted(),
-                    batch.getLatestCommittedTxWhenStarted(),
-                    appendIndex,
-                    previousChecksum,
-                    encodeLogIndex(batch.consensusIndex()));
-        } else {
-            writer.writeChunkStartEntry(
-                    kernelVersion,
-                    batch.getTimeCommitted(),
-                    chunkId,
-                    appendIndex,
-                    previousBatchAppendIndex,
-                    encodeLogIndex(batch.consensusIndex()));
-        }
+        writer.writeBatchStart(kernelVersion, batch, chunkId, appendIndex, previousChecksum, previousBatchAppendIndex);
 
         // Write all the commands to the log channel
         writer.serialize(batch, kernelVersion);
 
-        if (batch.isLast()) {
-            return writer.writeCommitEntry(kernelVersion, transactionId, batch.getTimeCommitted());
-        } else {
-            return writer.writeChunkEndEntry(kernelVersion, transactionId, chunkId);
-        }
+        return writer.writeBatchEnd(kernelVersion, batch, transactionId, chunkId);
     }
 
     public int append(CommittedCommandBatchRepresentation commandBatch) throws IOException {
