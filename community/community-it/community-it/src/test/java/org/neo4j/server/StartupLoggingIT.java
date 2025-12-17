@@ -46,6 +46,7 @@ import org.neo4j.configuration.connectors.HttpConnector;
 import org.neo4j.configuration.connectors.HttpsConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.log4j.LogConfig;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -83,7 +84,7 @@ class StartupLoggingIT extends ExclusiveWebContainerTestBase {
     }
 
     @Test
-    void shouldLogFailuresToSystemErr() throws InterruptedException {
+    void shouldLogFailuresToSystemErr() throws Exception {
         // A sister test for EnterpriseBootstrapper lives in com.neo4j.server.enterprise.EnterpriseBootstrapperIT
         // GIVEN
         CommunityBootstrapper bootstrapper = new CommunityBootstrapper();
@@ -109,7 +110,6 @@ class StartupLoggingIT extends ExclusiveWebContainerTestBase {
             // WHEN - We attempt to create the Neo4j webserver
             barrier.await();
             bootstrapper.start(testDirectory.homePath(), config, true);
-
             // THEN - Errors have been written to the correct System.err stream
             assertThat(suppressOutput.getErrorVoice().lines())
                     .satisfies(containsAtLeastTheseLines(
@@ -117,8 +117,7 @@ class StartupLoggingIT extends ExclusiveWebContainerTestBase {
                             // This exception can vary depending on environment. We only care that one is reported.
                             Pattern.compile(".*Exception: .*")));
         } finally {
-            barrier.release();
-            otherProcessThatHasPort.join();
+            IOUtils.closeAll(bootstrapper::stop, barrier::release, otherProcessThatHasPort::join);
         }
     }
 
