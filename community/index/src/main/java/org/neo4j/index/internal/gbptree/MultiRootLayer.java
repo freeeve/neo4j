@@ -474,8 +474,6 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
 
     private Seeker<ROOT_KEY, RootMappingValue> rootsSeek(
             CursorContext cursorContext, ROOT_KEY fromInclusiveKey, ROOT_KEY toExclusiveKey) throws IOException {
-        rootLayout.initializeAsLowest(fromInclusiveKey);
-        rootLayout.initializeAsHighest(toExclusiveKey);
         return support.initializeSeeker(
                 support.internalAllocateSeeker(rootLayout, cursorContext, rootLeafNode, rootInternalNode),
                 this,
