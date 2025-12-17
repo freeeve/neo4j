@@ -128,13 +128,14 @@ case class StatefulShortestToFindShortestRewriter(
   /**
    * This method checks if the VarLengthPattern is able to be used in a findShortestPaths.
    * - It can only contain one quantified relationship.
+   * - Lower bound of 0 or 1.
    */
   private def isVarlengthWithValidLength(patternRelationships: Seq[PatternRelationship])
     : Option[PatternRelationship] = {
     exactlyOne(patternRelationships).filter(patternRelationship =>
       patternRelationship.length match {
-        case VarPatternLength(_, _) => true
-        case _                      => false
+        case VarPatternLength(min, _) => min == 0 || min == 1
+        case _                        => false
       }
     )
   }

@@ -1057,32 +1057,41 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
       .build())(SymmetricalLogicalPlanEquality)
   }
 
-  test(
-    "SHORTEST with varLengthPattern with total bound set should be rewritten since inner nodes are not referenced with large NFA"
-  ) {
+  test("SHORTEST with varLengthPattern with lower bound > 1 should not be rewritten") {
     val query =
       s"""
-         |MATCH p = ANY SHORTEST (start:User {prop: 1})-[r*101]->(end:User {prop: 1})
-         |RETURN p
+         |MATCH ANY SHORTEST (start:User)-[r*4]->(end)
+         |RETURN start, end
          |""".stripMargin
-    val pathExpression = PathExpression(NodePathStep(
-      v"start",
-      MultiRelationshipPathStep(varFor("r"), OUTGOING, Some(varFor("end")), NilPathStep()(pos))(pos)
-    )(pos))(pos)
     val plan = planner.plan(query).stripProduceResults
-    plan should equal(planner.subPlanBuilder()
-      .projection(Map("p" -> pathExpression))
-      .shortestPath(
-        "(start)-[r*101]->(end)",
-        pathName = Some("anon_0"),
-        nodePredicates = Seq(),
-        relationshipPredicates = Seq(),
-        sameNodeMode = AllowSameNode
+    plan shouldEqual planner.subPlanBuilder()
+      .statefulShortestPath(
+        sourceNode = "start",
+        targetNode = "end",
+        solvedExpressionString = "SHORTEST 1 (start)-[r*4..4]->(end)",
+        nonInlinedPreFilters = None,
+        groupNodes = Set(),
+        groupRelationships = Set(),
+        singletonNodeVariables = Set(),
+        singletonRelationshipVariables = Set(),
+        selector = StatefulShortestPath.Selector.Shortest(CountInteger(1)),
+        nfa = new TestNFABuilder(0, "start")
+          .addTransition(0, 1, "(start) (anon_0)")
+          .addTransition(1, 2, "(anon_0)-[r]->(anon_1)")
+          .addTransition(2, 3, "(anon_1)-[r]->(anon_2)")
+          .addTransition(3, 4, "(anon_2)-[r]->(anon_3)")
+          .addTransition(4, 5, "(anon_3)-[r]->(anon_4)")
+          .addTransition(5, 6, "(anon_4) (end)")
+          .setFinalState(6)
+          .build(),
+        mode = ExpandInto,
+        minLength = 4,
+        maxLength = Some(4)
       )
       .cartesianProduct()
-      .|.nodeIndexOperator("end:User(prop = 1)")
-      .nodeIndexOperator("start:User(prop = 1)")
-      .build())(SymmetricalLogicalPlanEquality)
+      .|.allNodeScan("end")
+      .nodeByLabelScan("start", "User")
+      .build()
   }
 
   test(
@@ -1090,7 +1099,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
   ) {
     val query =
       s"""
-         |MATCH p = ANY SHORTEST (start:User {prop: 1})-[r*101..1001]->(end:User {prop: 1})
+         |MATCH p = ANY SHORTEST (start:User {prop: 1})-[r*1..1001]->(end:User {prop: 1})
          |RETURN p
          |""".stripMargin
     val pathExpression = PathExpression(NodePathStep(
@@ -1101,7 +1110,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
     plan should equal(planner.subPlanBuilder()
       .projection(Map("p" -> pathExpression))
       .shortestPath(
-        "(start)-[r*101..1001]->(end)",
+        "(start)-[r*1..1001]->(end)",
         pathName = Some("anon_0"),
         nodePredicates = Seq(),
         relationshipPredicates = Seq(),
@@ -1118,7 +1127,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
   ) {
     val query =
       s"""
-         |MATCH p = ANY SHORTEST (start:User {prop: 1})-[r*101..1001]->(end:User {prop: 1})
+         |MATCH p = ANY SHORTEST (start:User {prop: 1})-[r*1..]->(end:User {prop: 1})
          |RETURN p
          |""".stripMargin
     val pathExpression = PathExpression(NodePathStep(
@@ -1129,7 +1138,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
     plan should equal(planner.subPlanBuilder()
       .projection(Map("p" -> pathExpression))
       .shortestPath(
-        "(start)-[r*101..1001]->(end)",
+        "(start)-[r*1..]->(end)",
         pathName = Some("anon_0"),
         nodePredicates = Seq(),
         relationshipPredicates = Seq(),
