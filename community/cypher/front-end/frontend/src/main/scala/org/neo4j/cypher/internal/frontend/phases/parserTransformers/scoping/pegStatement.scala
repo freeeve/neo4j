@@ -152,7 +152,9 @@ object pegStatement {
           // Alternatively, we could simply forward a single child.
           incoming.resultScope(children.last.outgoing, children.last.result, children, referenced)
         }
-      case TopLevelBraces(query, _) => apply(query, incoming)
+      case TopLevelBraces(query, _) =>
+        val inner = apply(query, incoming)
+        incoming.resultScope(inner.outgoing, inner.result, Seq(inner))
 
       case command: AdministrationCommand => pegCommand(command, incoming)
       case command: SchemaCommand         => pegCommand(command, incoming)

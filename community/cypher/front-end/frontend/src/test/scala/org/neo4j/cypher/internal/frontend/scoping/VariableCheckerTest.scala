@@ -708,6 +708,42 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N59", "Variable `r` already declared.")
   }
 
+  test("""RETURN 7 AS x
+         |
+         |NEXT
+         |
+         |WHEN true THEN  {
+         |  {
+         |    RETURN 5 AS y
+         |
+         |    NEXT
+         |
+         |    RETURN x + y + 1 AS x
+         |  }
+         |  UNION
+         |  RETURN x + 2 AS x
+         |}""".stripMargin) {
+    passes()
+  }
+
+  test("""RETURN 7 AS x
+         |
+         |NEXT
+         |
+         |WHEN true THEN  {
+         |  RETURN x + 2 AS x
+         |  UNION
+         |  {
+         |    RETURN 5 AS y
+         |
+         |    NEXT
+         |
+         |    RETURN x + y + 1 AS x
+         |  }
+         |}""".stripMargin) {
+    passes()
+  }
+
   /**
    * Shadowing variable in outer scope
    */

@@ -963,30 +963,39 @@ class LocalCallablesScopeSurveyorTest extends VariableCheckingTestSuite {
           ), {
             val localCallables = Set(callableTwice, callableAdd)
             ExpectedWorkingScope(
-              Ast("""LET four = add(2, 2)
-                    |RETURN twice(four) AS eight""".stripMargin), // query level
+              Ast("""{
+                    |  LET four = add(2, 2)
+                    |  RETURN twice(four) AS eight
+                    |}""".stripMargin), // query level
               Incoming(localCallables = localCallables),
               Outgoing(variables = Set("eight")),
               ExpectedResult.TableResult("eight"),
               ExpectedWorkingScope(
-                Ast("""LET four = add(2, 2)""".stripMargin),
+                Ast("""LET four = add(2, 2)
+                      |RETURN twice(four) AS eight""".stripMargin), // query level
                 Incoming(localCallables = localCallables),
-                Declared(variables = Seq("four")),
-                Outgoing(variables = Set("four"), localCallables = localCallables),
-                ExpectedResult.NoResult,
-                ExpectedWorkingScope.constExp("add(2, 2)", incomingCallables = localCallables)
-              ),
-              ExpectedWorkingScope(
-                Ast("""RETURN twice(four) AS eight""".stripMargin),
-                Incoming(variables = Set("four"), localCallables = localCallables),
-                Referenced(Set("four")),
                 Outgoing(variables = Set("eight")),
                 ExpectedResult.TableResult("eight"),
                 ExpectedWorkingScope(
-                  Ast("""twice(four)""".stripMargin),
-                  Incoming(constants = Set("four"), localCallables = localCallables),
+                  Ast("""LET four = add(2, 2)""".stripMargin),
+                  Incoming(localCallables = localCallables),
+                  Declared(variables = Seq("four")),
+                  Outgoing(variables = Set("four"), localCallables = localCallables),
+                  ExpectedResult.NoResult,
+                  ExpectedWorkingScope.constExp("add(2, 2)", incomingCallables = localCallables)
+                ),
+                ExpectedWorkingScope(
+                  Ast("""RETURN twice(four) AS eight""".stripMargin),
+                  Incoming(variables = Set("four"), localCallables = localCallables),
                   Referenced(Set("four")),
-                  ExpectedWorkingScope.varExp("four", Set("four"), incomingCallables = localCallables)
+                  Outgoing(variables = Set("eight")),
+                  ExpectedResult.TableResult("eight"),
+                  ExpectedWorkingScope(
+                    Ast("""twice(four)""".stripMargin),
+                    Incoming(constants = Set("four"), localCallables = localCallables),
+                    Referenced(Set("four")),
+                    ExpectedWorkingScope.varExp("four", Set("four"), incomingCallables = localCallables)
+                  )
                 )
               )
             )
