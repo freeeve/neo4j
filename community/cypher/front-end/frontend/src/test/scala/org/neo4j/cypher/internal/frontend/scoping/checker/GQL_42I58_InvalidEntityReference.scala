@@ -234,4 +234,30 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
   }
 
+  test("""INSERT (n {prop: true IN [n IN [false] | n]})""") {
+    passes()
+  }
+
+  test("""INSERT (n {prop: reduce(n = 1, x in [1,2] | n + x)})""") {
+    passes()
+  }
+
+  test("""INSERT (n {prop: reduce(x = 1, n in [1,2] | n + x)})""") {
+    passes()
+  }
+
+  test("""INSERT (n {prop: true IN [x IN [false] | n]})""") {
+    error(
+      "42I58",
+      "error: syntax error or access rule violation - invalid entity reference. Entity, 'n', cannot be created and referenced in the same clause."
+    )
+  }
+
+  test("""CREATE (n {prop: EXISTS{ MATCH (n) RETURN n.prop}})""") {
+    error(
+      "42I58",
+      "error: syntax error or access rule violation - invalid entity reference. Entity, 'n', cannot be created and referenced in the same clause."
+    )
+  }
+
 }

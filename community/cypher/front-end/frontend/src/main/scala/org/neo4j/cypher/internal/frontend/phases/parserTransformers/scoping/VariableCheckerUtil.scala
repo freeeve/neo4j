@@ -47,25 +47,50 @@ trait VariableCheckerUtil {
 
   sealed trait ReturnContext
   private case object Unopinionated extends ReturnContext
-
-  sealed trait Opinionated extends ReturnContext {
-    val constants: Set[LogicalVariable]
-  }
+  sealed trait Opinionated extends ReturnContext { val constants: Set[LogicalVariable] }
   case class SubqueryExpression(override val constants: Set[LogicalVariable]) extends Opinionated
   case class NextStatement(override val constants: Set[LogicalVariable]) extends Opinionated
 
-  sealed trait VariableContext
+  sealed trait VariableContext {
+
+    def inMatch: VariableContext = this match {
+      case d: DeclaringContext => d.inMatchingPattern
+      case vc                  => vc
+    }
+  }
   case object Default extends VariableContext
 
-  protected case class UpdatingPattern(
-    topology: Set[LogicalVariable],
+  sealed trait DeclaringContext extends VariableContext {
+    def declared: Set[LogicalVariable]
+    def patternVariables: Set[LogicalVariable]
+    def ast: Clause
+    def inRelationship: Boolean
+
+    def inMatchingPattern: MatchingPattern = MatchingPattern(declared, patternVariables, ast, inRelationship)
+
+    def updateDeclared(remove: Set[LogicalVariable]): DeclaringContext = this match {
+      case up @ UpdatingPattern(d, _, _, _) => up.copy(declared = d.filterNot(remove))
+      case mp @ MatchingPattern(d, _, _, _) => mp.copy(declared = d.filterNot(remove))
+    }
+
+  }
+
+  protected case class MatchingPattern(
+    declared: Set[LogicalVariable],
     patternVariables: Set[LogicalVariable],
     ast: Clause,
     inRelationship: Boolean = false
-  ) extends VariableContext
+  ) extends DeclaringContext
+
+  protected case class UpdatingPattern(
+    declared: Set[LogicalVariable],
+    patternVariables: Set[LogicalVariable],
+    ast: Clause,
+    inRelationship: Boolean = false
+  ) extends DeclaringContext
 
   sealed trait ProjectionContext
-  case class Aggregating(clause: String) extends ProjectionContext
+  case class Aggregating(clause: String, incomingToClause: Set[LogicalVariable]) extends ProjectionContext
   case object NonAggregating extends ProjectionContext
 
   case class Acc(
@@ -78,13 +103,14 @@ trait VariableCheckerUtil {
     def apply(errors: SemanticError): Acc = copy(errors = this.errors :+ errors)
     def inReturnContext(context: ReturnContext): Acc = copy(scopeContext = context)
     def inVariableContext(context: VariableContext): Acc = copy(variableContext = context)
+    def inMatchingPattern: Acc = copy(variableContext = variableContext.inMatch)
     def inProjectionContext(context: ProjectionContext): Acc = copy(projectionContext = context)
 
     def withPatternVariables(vars: Set[LogicalVariable], inRelationship: Boolean = false): Acc =
       variableContext match {
         case u: UpdatingPattern =>
           copy(variableContext = u.copy(patternVariables = vars, inRelationship = inRelationship))
-        case Default => this
+        case _ => this
       }
 
     def hasPatternVariables: Boolean = variableContext match {
@@ -117,6 +143,9 @@ trait VariableCheckerUtil {
 
       def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable], Set[LogicalVariable], CreateOrInsert, Boolean)] =
         acc match {
+          case Acc(returnContext, MatchingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _) =>
+            val inScalarSubquery = returnContext.isInstanceOf[SubqueryExpression]
+            Some((acc, topo, patternVariables, c, inScalarSubquery))
           case Acc(returnContext, UpdatingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _) =>
             val inScalarSubquery = returnContext.isInstanceOf[SubqueryExpression]
             Some((acc, topo, patternVariables, c, inScalarSubquery))
@@ -127,6 +156,7 @@ trait VariableCheckerUtil {
     object MergePattern {
 
       def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable], Merge)] = acc match {
+        case Acc(_, MatchingPattern(topo, _, merge: Merge, _), _, _) => Some((acc, topo, merge))
         case Acc(_, UpdatingPattern(topo, _, merge: Merge, _), _, _) => Some((acc, topo, merge))
         case _                                                       => None
       }
@@ -134,9 +164,9 @@ trait VariableCheckerUtil {
 
     object Aggregation {
 
-      def unapply(acc: Acc): Option[(Acc, String)] = acc match {
-        case Acc(_, _, Aggregating(clause), _) => Some((acc, clause))
-        case _                                 => None
+      def unapply(acc: Acc): Option[(Acc, String, Set[LogicalVariable])] = acc match {
+        case Acc(_, _, Aggregating(clause, incomingToClause), _) => Some((acc, clause, incomingToClause))
+        case _                                                   => None
       }
     }
 
@@ -181,10 +211,10 @@ trait VariableCheckerUtil {
       object VariableAggregation {
 
         def unapply(scope: WorkingScope)
-          : Option[(LogicalVariable, Set[LogicalVariable], Set[LogicalVariable], Set[Expression])] =
+          : Option[(LogicalVariable, Set[LogicalVariable], Set[Expression])] =
           scope match {
-            case ExpressionScope(v: LogicalVariable, AggregatingExpressionContext(const, vars, _, keys, _), _, _, _) =>
-              Some((v, const, vars, keys))
+            case ExpressionScope(v: LogicalVariable, AggregatingExpressionContext(const, _, _, keys, _), _, _, _) =>
+              Some((v, const, keys))
             case _ => None
           }
 
@@ -239,17 +269,6 @@ trait VariableCheckerUtil {
           scope match {
             case StatementScope(Return.WithStar(r), in, _, _, _, _, _) =>
               Some((in, r.position))
-            case _ => None
-          }
-      }
-
-      object Updating {
-
-        def unapply(scope: WorkingScope)
-          : Option[(Set[LogicalVariable], Declarations, Seq[WorkingScope])] =
-          scope match {
-            case StatementScope(_: CreateOrInsert | _: Merge, _, referenced, declared, _, _, children) =>
-              Some((referenced, declared, children))
             case _ => None
           }
       }
@@ -361,7 +380,7 @@ trait VariableCheckerUtil {
   ): Seq[SemanticError] =
     items
       .filter(i => !i.isPassThrough && i.alias.isDefined && constants.contains(i.alias.get))
-      .map(i => SemanticError.variableAlreadyDeclaredInOuterScope(i.name, pos))
+      .map(i => SemanticError.variableShadowingOuterScope(i.name, pos))
 
   protected def findMultipleDeclarationsIn(names: Seq[LogicalVariable], pc: ProjectionClause): Seq[SemanticError] =
     names.groupMapReduce(identity)(_ => 1)(_ + _).filter(_._2 > 1).map {

@@ -229,7 +229,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
 
   private def messageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
 
-  private val testLog: Boolean = true
+  private val testLog: Boolean = false
   private var log: Writer = _
 
   private val logPPrint = pprint.PPrinter.BlackWhite.copy(

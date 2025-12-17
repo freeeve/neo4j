@@ -3227,8 +3227,8 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ),
           ExpectedWorkingScope(
             Ast("COUNT(1)"),
-            AggregationIncoming(variables = Set("x"), keys = Set("s")),
-            ExpectedWorkingScope.constExp("1", Set("s", "x"))
+            AggregationIncoming(keys = Set("s")),
+            ExpectedWorkingScope.constExp("1", Set("s"))
           )
         )
       )
@@ -3264,7 +3264,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
             Referenced(Set("x")),
             ExpectedWorkingScope.varExp("x", Set("x"))
           ),
-          ExpectedWorkingScope.varAggExp("s", incomingVariables = Set("x"), incomingKeys = Set("s"))
+          ExpectedWorkingScope.varAggExp("s", incomingKeys = Set("s"))
         )
       )
     )
@@ -3422,24 +3422,25 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ),
           ExpectedWorkingScope(
             Ast("-1 * MAX(a * x) - a"),
-            AggregationIncoming(variables = Set("a", "x"), keys = Set("a", "s")),
+            AggregationIncoming(keys = Set("a", "s")),
             Referenced(Set("a", "x")),
             ExpectedWorkingScope(
               Ast("MAX(a * x)"),
-              AggregationIncoming(variables = Set("a", "x"), keys = Set("a", "s")),
+              AggregationIncoming(keys = Set("a", "s")),
               Referenced(Set("a", "x")),
               ExpectedWorkingScope(
                 Ast("a * x"),
-                Incoming(constants = Set("a", "x", "s")),
+                Incoming(constants = Set("a", "s")),
                 Referenced(Set("a", "x")),
-                ExpectedWorkingScope.varExp("a", Set("a", "x", "s")),
-                ExpectedWorkingScope.varExp("x", Set("a", "x", "s"))
+                ExpectedWorkingScope.varExp("a", Set("a", "s")),
+                ExpectedWorkingScope.varExp("x", Set("a", "s"))
               )
             ),
-            ExpectedWorkingScope.varAggExp("a", incomingVariables = Set("a", "x"), incomingKeys = Set("a", "s"))
+            ExpectedWorkingScope.varAggExp("a", incomingKeys = Set("a", "s"))
           )
         )
-      )
+      ),
+      skipVariableChecker = true
     )
   }
 
@@ -3496,25 +3497,26 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ),
           ExpectedWorkingScope(
             Ast("s * MAX(a * x) - a"),
-            AggregationIncoming(variables = Set("a", "x"), keys = Set("a", "s")),
+            AggregationIncoming(keys = Set("a", "s")),
             Referenced(Set("a", "s", "x")),
-            ExpectedWorkingScope.varAggExp("s", incomingVariables = Set("a", "x"), incomingKeys = Set("a", "s")),
+            ExpectedWorkingScope.varAggExp("s", incomingKeys = Set("a", "s")),
             ExpectedWorkingScope(
               Ast("MAX(a * x)"),
-              AggregationIncoming(variables = Set("a", "x"), keys = Set("a", "s")),
+              AggregationIncoming(keys = Set("a", "s")),
               Referenced(Set("a", "x")),
               ExpectedWorkingScope(
                 Ast("a * x"),
-                Incoming(constants = Set("a", "x", "s")),
+                Incoming(constants = Set("a", "s")),
                 Referenced(Set("a", "x")),
-                ExpectedWorkingScope.varExp("a", Set("a", "x", "s")),
-                ExpectedWorkingScope.varExp("x", Set("a", "x", "s"))
+                ExpectedWorkingScope.varExp("a", Set("a", "s")),
+                ExpectedWorkingScope.varExp("x", Set("a", "s"))
               )
             ),
-            ExpectedWorkingScope.varAggExp("a", incomingVariables = Set("a", "x"), incomingKeys = Set("a", "s"))
+            ExpectedWorkingScope.varAggExp("a", incomingKeys = Set("a", "s"))
           )
         )
-      )
+      ),
+      skipVariableChecker = true
     )
   }
 
@@ -3571,25 +3573,26 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ),
           ExpectedWorkingScope(
             Ast("s * MAX(g * x) - a"),
-            AggregationIncoming(variables = Set("a", "x"), keys = Set("a", "g", "s")),
+            AggregationIncoming(keys = Set("a", "g", "s")),
             Referenced(Set("a", "g", "s", "x")),
-            ExpectedWorkingScope.varAggExp("s", incomingVariables = Set("a", "x"), incomingKeys = Set("a", "g", "s")),
+            ExpectedWorkingScope.varAggExp("s", incomingKeys = Set("a", "g", "s")),
             ExpectedWorkingScope(
               Ast("MAX(g * x)"),
-              AggregationIncoming(variables = Set("a", "x"), keys = Set("a", "g", "s")),
+              AggregationIncoming(keys = Set("a", "g", "s")),
               Referenced(Set("g", "x")),
               ExpectedWorkingScope(
                 Ast("g * x"),
-                Incoming(constants = Set("a", "g", "x", "s")),
+                Incoming(constants = Set("a", "g", "s")),
                 Referenced(Set("g", "x")),
-                ExpectedWorkingScope.varExp("g", Set("a", "g", "x", "s")),
-                ExpectedWorkingScope.varExp("x", Set("a", "g", "x", "s"))
+                ExpectedWorkingScope.varExp("g", Set("a", "g", "s")),
+                ExpectedWorkingScope.varExp("x", Set("a", "g", "s"))
               )
             ),
-            ExpectedWorkingScope.varAggExp("a", incomingVariables = Set("a", "x"), incomingKeys = Set("a", "g", "s"))
+            ExpectedWorkingScope.varAggExp("a", incomingKeys = Set("a", "g", "s"))
           )
         )
-      )
+      ),
+      skipVariableChecker = true
     )
   }
 

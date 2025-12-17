@@ -138,6 +138,18 @@ class GQL_42N44_InaccessibleVariable extends VariableCheckingTestSuite {
     )
   }
 
+  test(
+    """WITH 10 AS a
+      |UNWIND [1, 2, 3] AS x
+      |RETURN a, SUM(x / a) + a * 5 AS s
+      |  ORDER BY s * MAX(a * x) - a ASCENDING""".stripMargin
+  ) {
+    errorAllVersions(
+      "42N44",
+      "It is not possible to access the variable `x` declared before the RETURN clause when using `DISTINCT` or an aggregation."
+    )
+  }
+
   // Distinct
 
   test(
@@ -235,6 +247,18 @@ class GQL_42N44_InaccessibleVariable extends VariableCheckingTestSuite {
       "It is not possible to access the variable `m` declared before the WITH clause when using `DISTINCT` or an aggregation."
     )
   }
+
+  test("""MATCH (a:A)
+         |WITH a, a.num + a.num2 AS sum
+         |WITH a.num2 % 3 AS mod, min(sum) AS min
+         |  ORDER BY sum(sum)
+         |  LIMIT 2
+         |RETURN mod, min""".stripMargin) {
+    errorAllVersions(
+      "42N44",
+      "It is not possible to access the variable `sum` declared before the WITH clause when using `DISTINCT` or an aggregation."
+    )
+  }
   // Positive tests
 
   test("""MATCH (n)
@@ -310,8 +334,32 @@ class GQL_42N44_InaccessibleVariable extends VariableCheckingTestSuite {
     passes()
   }
 
+  test(
+    """UNWIND [1, 2, 3] AS x
+      |RETURN SUM(x) AS s ORDER BY SUM(x) ASCENDING""".stripMargin
+  ) {
+    passes()
+  }
+
+  test(
+    """UNWIND [1,2,3] AS b
+      |UNWIND [0,1] AS a
+      |FILTER a <> b
+      |WITH a, SUM(b) AS sumB WHERE 1 + SUM(b) > 5
+      |RETURN *""".stripMargin
+  ) {
+    passes()
+  }
+
   test("""MATCH (n)
          |RETURN n.name, SUM(n.age) ORDER BY n.name""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH p = ()-[r:R]->(n:L)
+         |WITH DISTINCT p
+         |  WHERE COUNT{ MATCH (n) WITH p AS a } >= 0
+         |RETURN p""".stripMargin) {
     passes()
   }
 

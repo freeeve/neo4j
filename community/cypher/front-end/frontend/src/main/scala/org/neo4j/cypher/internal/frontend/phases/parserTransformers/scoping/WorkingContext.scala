@@ -34,6 +34,7 @@ sealed trait WorkingContext {
 
 sealed trait RegularContext extends WorkingContext {
   val constants: Set[LogicalVariable]
+  def constantSymbols: Set[LogicalVariable] = constants
   val variables: Set[LogicalVariable]
   override val localCallables: Set[LocalCallableScopeSignature]
 
@@ -76,9 +77,14 @@ sealed trait RegularContext extends WorkingContext {
   @inline def replaceWith(replacement: Set[LogicalVariable]): RegularContext =
     RegularContext(constants, replacement, localCallables)
 
-  @inline def checkIfVariablesAreAlreadyDeclaredAsConstant(newVariables: Iterable[LogicalVariable])
+  @inline def checkIfVariablesAreAlreadyDeclaredAsConstant(newVariables: Iterable[LogicalVariable], inSubExpr: Boolean)
     : Seq[SemanticError] = {
-    checkIfVariablesAreAlreadyDeclaredIn(constants, newVariables, SemanticError.variableAlreadyDeclaredInOuterScope)
+    checkIfVariablesAreAlreadyDeclaredIn(
+      constants,
+      newVariables,
+      if (inSubExpr) SemanticError.variableShadowingOuterScope
+      else SemanticError.variableAlreadyDeclaredInOuterScope
+    )
   }
 
   @inline def checkIfVariablesAreAlreadyDeclaredAsVariable(
@@ -223,15 +229,18 @@ case class AggregatingExpressionContext(
   groupingKeys: Set[Expression],
   inSubclause: Boolean
 ) extends RegularContext {
+  private lazy val stringifier = ExpressionStringifier()
 
-  override def constantChildContext(): RegularContext = {
-    val stringifier = ExpressionStringifier()
-    val groupingVars = groupingKeys.map {
-      case v: LogicalVariable => v
-      case expr: Expression   => Variable(stringifier(expr))(expr.position, isIsolated = false)
-    }
-    RegularContext(constants union variables union groupingVars, unitVariables, localCallables)
+  private lazy val groupingVars = groupingKeys.map {
+    case v: LogicalVariable => v
+    case expr: Expression   => Variable(stringifier(expr))(expr.position, isIsolated = false)
   }
+
+  override lazy val constantSymbols: Set[LogicalVariable] = constants ++ groupingVars
+
+  override def constantChildContext(): RegularContext =
+    RegularContext(constants union variables union groupingVars, unitVariables, localCallables)
+
 }
 
 case class PatternIncomingContext(

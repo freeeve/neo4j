@@ -24,7 +24,9 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTList
 
-trait FilteringExpression extends Expression {
+trait IterableExpression extends Expression
+
+trait FilteringExpression extends IterableExpression {
   def name: String
   def variable: LogicalVariable
   def expression: Expression
@@ -234,7 +236,7 @@ object SingleIterablePredicate extends IterableExpressionWithInfo {
 }
 
 case class ReduceExpression(scope: ReduceScope, init: Expression, list: Expression)(val position: InputPosition)
-    extends Expression {
+    extends IterableExpression {
   def variable: LogicalVariable = scope.variable
   def accumulator: LogicalVariable = scope.accumulator
   def expression: Expression = scope.expression

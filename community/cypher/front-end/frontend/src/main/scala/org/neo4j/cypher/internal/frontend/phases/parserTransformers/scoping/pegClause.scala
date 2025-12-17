@@ -426,7 +426,9 @@ object pegClause {
 
     (
       incoming.amendedWithGroupingKeys(groupingKeysItems, inSubclause = false),
-      incoming.amendedWithGroupingKeys(groupingKeysItems union introducedVariables.toSet, inSubclause = true)
+      incoming
+        .replaceWith(Set.empty)
+        .amendedWithGroupingKeys(groupingKeysItems union introducedVariables.toSet, inSubclause = true)
     )
   }
 

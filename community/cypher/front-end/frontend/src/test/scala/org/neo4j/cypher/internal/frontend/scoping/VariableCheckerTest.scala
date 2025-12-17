@@ -1752,9 +1752,13 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
-  test("""MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
-         |WITH a.name AS a_name, collect(child.name) AS kids
-         |RETURN a_name, {foo: a_name='Andres', kids: kids}""".stripMargin) {
+  test("""MATCH (a:A)
+         |CALL (a) {
+         |  MATCH (a)-->(b:B)
+         |  FILTER a.x = b.x
+         |  RETURN COUNT(b) AS cntB
+         |}
+         |RETURN a, cntB""".stripMargin) {
     passes()
   }
 }
