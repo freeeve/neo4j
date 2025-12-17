@@ -393,6 +393,7 @@ public class SchemaRuleMapifier {
                         schema.asRelationshipEndpointLabelDescriptor(),
                         (int) getLong(PROP_SCHEMA_ENDPOINT_LABEL_ID, props),
                         getEndpointType(props));
+
             case NODE_LABEL_EXISTENCE ->
                 ConstraintDescriptorFactory.nodeLabelExistenceForSchema(
                         schema.asNodeLabelExistenceSchemaDescriptor(),
