@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.expressions.AllReducePredicate
+import org.neo4j.cypher.internal.expressions.AllReduceSingletonPredicate
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Expression
@@ -106,11 +108,20 @@ object ConvertToNFA {
   }
 
   /**
+   * AlLReduce cannot be inlined in the NFA.
+   */
+  private def isAllReduceExpression(expression: Expression): Boolean =
+    expression match {
+      case _: AllReducePredicate | _: AllReduceSingletonPredicate => true
+      case _                                                      => false
+    }
+
+  /**
    * Return True if the given expression
    * - does depend on at least one of the given entities
    */
   def canBeInlined(expression: Expression, entities: Set[LogicalVariable]): Boolean =
-    (expression.dependencies intersect entities).nonEmpty
+    (expression.dependencies intersect entities).nonEmpty && !isAllReduceExpression(expression)
 
   /**
    * Return True if the given expression
