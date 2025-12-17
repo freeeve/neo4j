@@ -21,8 +21,8 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.compiler.planner.logical.convertToInlinedPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates.RelationshipPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicates
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractShortestPathPredicates
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -80,7 +80,7 @@ import scala.collection.Set
 case class StatefulShortestToFindShortestRewriter(
   solveds: Solveds,
   anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-  isShardedDabase: Boolean = false
+  isShardedDatabase: Boolean = false
 ) extends Rewriter with TopDownMergeableRewriter {
 
   override val innerRewriter: Rewriter = Rewriter.lift {
@@ -207,7 +207,7 @@ case class StatefulShortestToFindShortestRewriter(
   }
 
   private def requiresPropertyAccessFromShards(predicates: Iterable[Expression]): Boolean = {
-    isShardedDabase && predicates.exists(requiresPropertyAccess)
+    isShardedDatabase && predicates.exists(requiresPropertyAccess)
   }
 
   private def requiresPropertyAccess(expr: Expression): Boolean =
@@ -228,7 +228,6 @@ case class StatefulShortestToFindShortestRewriter(
    * For a qpp to be viable to convert to a varLengthPattern
    * - It can only contain one quantified relationship
    * - The minimum repetition must be 0 or 1
-   * - The relationship must NOT be undirected when the minimum repetition is larger than 0.
    */
   private def isValidQpp(qpp: QuantifiedPathPattern): Boolean =
     qpp.patternRelationships.size == 1 && qpp.repetition.min < 2
@@ -249,13 +248,13 @@ case class StatefulShortestToFindShortestRewriter(
     spp: SelectivePathPattern,
     qpp: QuantifiedPathPattern
   ): Option[FindShortestPaths] = {
-    val (nodePredicates, relationshipPredicates) = extractedPredicatesFromQpp(statefulShortestPath, spp, qpp)
+    val extractedPredicates = extractedPredicatesFromQpp(statefulShortestPath, spp, qpp)
     if (
-      nodePredicates.size + relationshipPredicates.size == withoutUniqueness(
-        spp.selections.flatPredicates
-      ).size && qpp.relationshipVariableGroupings.size == 1
-      && !requiresPropertyAccessFromShards(nodePredicates ++ relationshipPredicates.map(_.predicate))
+      extractedPredicates.size != withoutUniqueness(spp.selections.flatPredicates).size ||
+      requiresPropertyAccessFromShards(extractedPredicates.allPredicates)
     ) {
+      None
+    } else {
       val innerRelationshipVariable = qpp.relationshipVariableGroupings.head.singleton
       convertToInlinedPredicates(
         outerStartNode = qpp.leftBinding.outer,
@@ -263,9 +262,7 @@ case class StatefulShortestToFindShortestRewriter(
         innerEndNode = qpp.rightBinding.inner,
         outerEndNode = qpp.rightBinding.outer,
         innerRelationship = innerRelationshipVariable,
-        predicatesToInline = nodePredicates ++ relationshipPredicates.map(rel =>
-          rel.predicate.replaceAllOccurrencesBy(rel.variable, innerRelationshipVariable)
-        ),
+        predicatesToInline = extractedPredicates.singletonPredicates.toVector,
         mode = convertToInlinedPredicates.Mode.Shortest(
           predicatesOutsideRepetition =
             solveds.get(statefulShortestPath.source.id).asSinglePlannerQuery.queryGraph.selections.flatPredicates
@@ -274,61 +271,64 @@ case class StatefulShortestToFindShortestRewriter(
         pathRepetition = qpp.repetition,
         anonymousVariableNameGenerator = anonymousVariableNameGenerator
       )
-        .flatMap(inlinedPredicates =>
-          Some(FindShortestPaths(
+        .map(inlinedPredicates =>
+          FindShortestPaths(
             statefulShortestPath.source,
             shortestRelationshipPattern(statefulShortestPath, qpp),
-            inlinedPredicates.nodePredicates,
-            inlinedPredicates.relationshipPredicates,
+            inlinedPredicates.nodePredicates ++ extractedPredicates.nodePredicates,
+            inlinedPredicates.relationshipPredicates ++ extractedPredicates.relationshipPredicates,
             Seq.empty,
             withFallBack = false,
             AllowSameNode,
             statefulShortestPath.pathMode
-          )(SameId(statefulShortestPath.id)))
+          )(SameId(statefulShortestPath.id))
         )
-    } else {
-      None
     }
-
   }
 
-  /**
-   * This method collects all predicates that can be inlined into a findShortestPaths plan splitting splitting them between
-   * - Node predicates priorly inlined on the QPP
-   * - Node predicates referencing the nodes in the Stateful Shortest Pattern
-   * - Relationship predicates
-   */
+  private case class QppPredicates(
+    nodePredicates: extractPredicates.NodePredicates,
+    relationshipPredicates: extractPredicates.RelationshipPredicates,
+    singletonPredicates: Set[Expression]
+  ) {
+
+    def allPredicates: Iterable[Expression] =
+      nodePredicates.view.map(_.predicate) ++
+        relationshipPredicates.view.map(_.predicate) ++
+        singletonPredicates.view
+
+    def size: Int = allPredicates.size
+  }
+
   private def extractedPredicatesFromQpp(
     statefulShortestPath: StatefulShortestPath,
     spp: SelectivePathPattern,
     qpp: QuantifiedPathPattern
-  ): (Seq[Expression], RelationshipPredicates) = {
-    val (innerFrom, innerTo) = (qpp.leftBinding.inner, qpp.rightBinding.inner)
-    val extractedPredicates = extractQppPredicates(
-      spp.selections.flatPredicates,
+  ): QppPredicates = {
+    val (forAllRepetitions, otherPredicates) =
+      spp.selections.flatPredicatesSet.partition(_.isInstanceOf[ForAllRepetitions])
+
+    // Gets QPP predicates expressed in terms of singleton variables.
+    // These will need to be converted into inlineable predicates later.
+    val singletonPredicates = extractQppPredicates(
+      forAllRepetitions.toVector,
       qpp.variableGroupings,
       statefulShortestPath.source.availableSymbols,
       insideRepeat = false
-    ).predicates
-    val symbols =
-      statefulShortestPath.source.availableSymbols + innerFrom + innerTo ++ qpp.relationshipVariableGroupings.headOption
-        .map(_.singleton)
+    ).predicates.map(_.extracted)
 
-    val nodePredicates = extractedPredicates
-      .map(_.extracted)
-      .filter(_.dependencies.forall(symbols.contains))
-      .filter(_.dependencies.exists(Set(innerFrom, innerTo).contains))
-
-    val (pathBasedNodePredicates, relationshipPredicates, _) = extractPredicates(
-      extractedPredicates.map(_.original),
-      qpp.relationships.head,
-      innerFrom,
-      innerTo,
-      targetNodeIsBound = true,
-      VarPatternLength(qpp.repetition.min.toInt, qpp.repetition.max.limit.map(_.toInt))
+    // The rest are iterable all(), none(), etc predicates, already in the inlineable form.
+    val (nodePredicates, relPredidcates, _) = extractShortestPathPredicates(
+      otherPredicates,
+      qpp.pathVariables.headOption.map(_.variable),
+      qpp.relationshipVariableGroupings.headOption.map(_.group)
     )
 
-    (nodePredicates ++ pathBasedNodePredicates.map(_.predicate), relationshipPredicates)
+    QppPredicates(
+      nodePredicates = nodePredicates,
+      relationshipPredicates = relPredidcates,
+      singletonPredicates = singletonPredicates.toSet
+    )
   }
 
   /**
