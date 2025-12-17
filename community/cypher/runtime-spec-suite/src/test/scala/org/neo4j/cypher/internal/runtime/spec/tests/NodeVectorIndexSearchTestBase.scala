@@ -2268,6 +2268,44 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("n").withRows(singleColumn(nodes))
   }
 
+  test("should work without issues on the RHS of apply", Tags.NoSpdOverride) {
+    // given
+    val nodes = ArrayBuffer.empty[Node]
+    val size = 10
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      nodeGraph(size, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, vectorToken, randomVector)
+          write.nodeSetProperty(n.getId, idToken, longValue(i))
+          nodes.append(n)
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("n")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "vector",
+        limit = s"10000000",
+        argumentIds = Set("vector")
+      )
+      .input(variables = Seq("vector"))
+      .build()
+
+    // then
+    val input = inputValues((1 to size).map(_ => Array[Any](randomVector)): _*)
+    val expected = nodes.flatMap(n => (1 to size).map(_ => Array(n)))
+    execute(logicalQuery, runtime, input) should beColumns("n").withRows(expected)
+  }
+
   test("should work without issues on the RHS of cartesian product", Tags.NoSpdOverride) {
     // given
     val nodes = ArrayBuffer.empty[Node]

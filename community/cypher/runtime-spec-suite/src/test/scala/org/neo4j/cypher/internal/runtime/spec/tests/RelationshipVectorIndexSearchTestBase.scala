@@ -3927,6 +3927,81 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("r").withRows(singleColumn(relationships.flatMap(r => Seq(r, r))))
   }
 
+  test("should work without issues on the RHS of apply", Tags.NoSpdOverride) {
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    val size = 10
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      relationshipGraph(size, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          write.relationshipSetProperty(r.getId, idToken, longValue(i))
+          relationships.append(r)
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .apply()
+      .|.relationshipVectorIndexSearch(
+        "()-[r]->()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "vector",
+        limit = s"10000000",
+        argumentIds = Set("vector")
+      )
+      .input(variables = Seq("vector"))
+      .build()
+
+    // then
+    val input = inputValues((1 to size).map(_ => Array[Any](randomVector)): _*)
+    val expected = relationships.flatMap(r => (1 to size).map(_ => Array(r)))
+    execute(logicalQuery, runtime, input) should beColumns("r").withRows(expected)
+  }
+
+  test("should work without issues on the RHS of cartesian product", Tags.NoSpdOverride) {
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    val size = 10
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      relationshipGraph(size, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          write.relationshipSetProperty(r.getId, idToken, longValue(i))
+          relationships.append(r)
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("i", "r")
+      .cartesianProduct()
+      .|.relationshipVectorIndexSearch(
+        "()-[r]->()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = vectorAsCypherList(randomVector),
+        limit = s"10000000"
+      )
+      .input(variables = Seq("i"))
+      .build()
+
+    // then
+    val input = inputValues((1 to size).map(i => Array[Any](i)): _*)
+    val expected = relationships.flatMap(n => (1 to size).map(i => Array(i, n)))
+    execute(logicalQuery, runtime, input) should beColumns("i", "r").withRows(expected)
+  }
+
   test("sort on top of vector search", Tags.NoSpdOverride) {
     // given
     val relationships = ArrayBuffer.empty[Relationship]
