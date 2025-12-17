@@ -614,6 +614,11 @@ trait GraphIcing {
       ).foreach(idx => idx.drop())
     })
 
+    def dropIndexByName(name: String): Unit = withTx(tx => {
+      val index = tx.schema().getIndexByName(name)
+      index.drop()
+    })
+
     // Wait for indexes
 
     def awaitIndexesOnline(): Unit = {
