@@ -102,6 +102,7 @@ public class SchemaMigrator {
                 EmptyMemoryTracker.INSTANCE,
                 logTail)) {
             TokenRead tokenRead = new ReadOnlyTokenRead(tokenHolders);
+            TokenHolders dstTokenHolders = schemaRuleMigrationAccess.tokenHolders();
 
             LongObjectHashMap<IndexToConnect> indexesToConnect = new LongObjectHashMap<>();
             LongObjectHashMap<ConstraintToConnect> constraintsToConnect = new LongObjectHashMap<>();
@@ -132,8 +133,8 @@ public class SchemaMigrator {
                             continue;
                         }
 
-                        SchemaDescriptor schema = translateToNewSchema(
-                                indexDescriptor.schema(), tokenRead, schemaRuleMigrationAccess.tokenHolders());
+                        SchemaDescriptor schema =
+                                translateToNewSchema(indexDescriptor.schema(), tokenRead, dstTokenHolders);
 
                         IndexPrototype newPrototype = indexDescriptor.isUnique()
                                 ? IndexPrototype.uniqueForSchema(schema)
@@ -171,8 +172,8 @@ public class SchemaMigrator {
                             skippedSchemaRules.add(constraintDescriptor);
                             continue;
                         }
-                        SchemaDescriptor schema = translateToNewSchema(
-                                constraintDescriptor.schema(), tokenRead, schemaRuleMigrationAccess.tokenHolders());
+                        SchemaDescriptor schema =
+                                translateToNewSchema(constraintDescriptor.schema(), tokenRead, dstTokenHolders);
                         ConstraintDescriptor descriptor =
                                 switch (constraintDescriptor.type()) {
                                     case UNIQUE -> {
@@ -181,16 +182,19 @@ public class SchemaMigrator {
                                         yield ConstraintDescriptorFactory.uniqueForSchema(
                                                 schema, indexBacked.indexType());
                                     }
+
                                     case EXISTS ->
                                         ConstraintDescriptorFactory.existsForSchema(
                                                 schema,
                                                 constraintDescriptor.graphTypeDependence()
                                                         == GraphTypeDependence.DEPENDENT);
+
                                     case UNIQUE_EXISTS -> {
                                         IndexBackedConstraintDescriptor indexBacked =
                                                 constraintDescriptor.asIndexBackedConstraint();
                                         yield ConstraintDescriptorFactory.keyForSchema(schema, indexBacked.indexType());
                                     }
+
                                     case PROPERTY_TYPE ->
                                         ConstraintDescriptorFactory.typeForSchema(
                                                 schema,
@@ -199,20 +203,29 @@ public class SchemaMigrator {
                                                         .propertyType(),
                                                 constraintDescriptor.graphTypeDependence()
                                                         == GraphTypeDependence.DEPENDENT);
+
                                     case RELATIONSHIP_ENDPOINT_LABEL -> {
                                         var relationshipEndpointLabelSchemaDescriptor =
                                                 constraintDescriptor.asRelationshipEndpointLabelConstraint();
+                                        int endpointLabelId = dstTokenHolders
+                                                .labelTokens()
+                                                .getOrCreateId(tokenRead.labelGetName(
+                                                        relationshipEndpointLabelSchemaDescriptor.endpointLabelId()));
                                         yield ConstraintDescriptorFactory.relationshipEndpointLabelForSchema(
                                                 schema.asRelationshipEndpointLabelDescriptor(),
-                                                relationshipEndpointLabelSchemaDescriptor.endpointLabelId(),
+                                                endpointLabelId,
                                                 relationshipEndpointLabelSchemaDescriptor.endpointType());
                                     }
+
                                     case NODE_LABEL_EXISTENCE -> {
                                         var nodeLabelExistenceSchemaDescriptor =
                                                 constraintDescriptor.asNodeLabelExistenceConstraint();
+                                        int requiredLabelId = dstTokenHolders
+                                                .labelTokens()
+                                                .getOrCreateId(tokenRead.labelGetName(
+                                                        nodeLabelExistenceSchemaDescriptor.requiredLabelId()));
                                         yield ConstraintDescriptorFactory.nodeLabelExistenceForSchema(
-                                                schema.asNodeLabelExistenceSchemaDescriptor(),
-                                                nodeLabelExistenceSchemaDescriptor.requiredLabelId());
+                                                schema.asNodeLabelExistenceSchemaDescriptor(), requiredLabelId);
                                     }
                                 };
                         descriptor = descriptor.withName(constraintDescriptor.getName());
@@ -431,6 +444,17 @@ public class SchemaMigrator {
                                 .getOrCreateId(tokenRead.relationshipTypeName(entityTokenIds[i]));
             }
             return SchemaDescriptors.forSemanticSearch(schema.entityType(), newEntityTokenIds, newPropertyIds);
+        }
+
+        if (schema.isRelationshipEndpointLabelDescriptor()) {
+            return SchemaDescriptors.forRelationshipEndpointLabel(dstTokenHolders
+                    .relationshipTypeTokens()
+                    .getOrCreateId(tokenRead.relationshipTypeName(schema.getRelTypeId())));
+        }
+
+        if (schema.isNodeLabelExistenceSchemaDescriptor()) {
+            return SchemaDescriptors.forNodeLabelExistence(
+                    dstTokenHolders.labelTokens().getOrCreateId(tokenRead.nodeLabelName(schema.getLabelId())));
         }
 
         if (forNodes) {

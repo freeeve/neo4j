@@ -59,6 +59,7 @@ import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreVersion;
+import org.neo4j.storageengine.migration.SchemaRuleMigrationAccessExtended;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
@@ -86,7 +87,7 @@ class AcrossEngineMigrationParticipantTest {
     private ArgumentCaptor<Monitor> monitorCaptor;
 
     @BeforeEach
-    void start() {
+    void start() throws IOException {
         scheduler = new ThreadPoolJobScheduler();
         fromLayout = Neo4jLayout.of(directory.directory("from")).databaseLayout(DEFAULT_DATABASE_NAME);
         toLayout = Neo4jLayout.of(directory.directory("to")).databaseLayout(DEFAULT_DATABASE_NAME);
@@ -124,6 +125,9 @@ class AcrossEngineMigrationParticipantTest {
         when(sourceSef.asBatchImporterInput(
                         any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any()))
                 .thenReturn(input);
+        var schemaRuleMigrationAccess = mock(SchemaRuleMigrationAccessExtended.class);
+        when(targetSef.schemaRuleMigrationAccess(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(schemaRuleMigrationAccess);
     }
 
     @AfterEach
