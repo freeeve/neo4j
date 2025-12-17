@@ -36,6 +36,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.KernelImpl;
+import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.api.MaximumTransactionLimitExceededException;
 import org.neo4j.kernel.impl.locking.LockAcquisitionTimeoutException;
@@ -146,6 +147,10 @@ class DatabaseUpgradeTransactionHandler {
                         return null;
                     }
                     if (multiversioned) {
+                        // this is not the last commit call so we do not do anything atm
+                        if (!data.isLast()) {
+                            return null;
+                        }
                         if (!multiVersionUpgradeGate.upgradeGate(tx)) {
                             return null;
                         }
@@ -268,6 +273,14 @@ class DatabaseUpgradeTransactionHandler {
 
                 while (!oldTransactionCompleted(transactionSequenceNumber)) {
                     LockSupport.parkNanos(100);
+                }
+
+                // we are the transaction that won upgrade lock race but we are multi chunked so we will let someone
+                // else to win
+                // the race and do the upgrade instead
+                if (((KernelTransactionImplementation) tx).txState().isMultiChunk()) {
+                    release();
+                    return false;
                 }
                 return true;
             }

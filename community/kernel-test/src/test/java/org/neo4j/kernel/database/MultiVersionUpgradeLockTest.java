@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.database;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -29,9 +30,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.Test;
-import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.database.DatabaseUpgradeTransactionHandler.DatabaseUpgradeListener.MultiVersionUpgradeGate;
+import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.KernelTransactions;
+import org.neo4j.kernel.impl.api.state.TxState;
 
 class MultiVersionUpgradeLockTest {
 
@@ -39,8 +41,9 @@ class MultiVersionUpgradeLockTest {
     void acquireUpgradePermit() {
         KernelTransactions transactions = mock(KernelTransactions.class);
         when(transactions.earliestTransactionSequenceNumber()).thenReturn(1L);
-        KernelTransaction kernelTransaction = mock(KernelTransaction.class);
+        KernelTransactionImplementation kernelTransaction = mock(KernelTransactionImplementation.class);
         when(kernelTransaction.getTransactionSequenceNumber()).thenReturn(1L);
+        when(kernelTransaction.txState()).thenReturn(mock(TxState.class));
 
         DatabaseUpgradeTransactionHandler.DatabaseUpgradeListener.MultiVersionUpgradeGate upgradeLock =
                 new DatabaseUpgradeTransactionHandler.DatabaseUpgradeListener.MultiVersionUpgradeGate(transactions);
@@ -48,15 +51,32 @@ class MultiVersionUpgradeLockTest {
     }
 
     @Test
+    void multiChunkTransactionFailToAcquireUpgradePermit() {
+        KernelTransactions transactions = mock(KernelTransactions.class);
+        when(transactions.earliestTransactionSequenceNumber()).thenReturn(1L);
+        KernelTransactionImplementation kernelTransaction = mock(KernelTransactionImplementation.class);
+        when(kernelTransaction.getTransactionSequenceNumber()).thenReturn(1L);
+        TxState txState = mock(TxState.class);
+        when(txState.isMultiChunk()).thenReturn(true);
+        when(kernelTransaction.txState()).thenReturn(txState);
+
+        DatabaseUpgradeTransactionHandler.DatabaseUpgradeListener.MultiVersionUpgradeGate upgradeLock =
+                new DatabaseUpgradeTransactionHandler.DatabaseUpgradeListener.MultiVersionUpgradeGate(transactions);
+        assertFalse(upgradeLock.upgradeGate(kernelTransaction));
+    }
+
+    @Test
     void transactionWithHigherSequenceNumberBlocked() {
         KernelTransactions transactions = mock(KernelTransactions.class);
         when(transactions.earliestTransactionSequenceNumber()).thenReturn(5L);
 
-        KernelTransaction kernelTransaction1 = mock(KernelTransaction.class);
+        KernelTransactionImplementation kernelTransaction1 = mock(KernelTransactionImplementation.class);
         when(kernelTransaction1.getTransactionSequenceNumber()).thenReturn(5L);
+        when(kernelTransaction1.txState()).thenReturn(mock(TxState.class));
 
-        KernelTransaction kernelTransaction2 = mock(KernelTransaction.class);
+        KernelTransactionImplementation kernelTransaction2 = mock(KernelTransactionImplementation.class);
         when(kernelTransaction2.getTransactionSequenceNumber()).thenReturn(10L);
+        when(kernelTransaction2.txState()).thenReturn(mock(TxState.class));
 
         DatabaseUpgradeTransactionHandler.DatabaseUpgradeListener.MultiVersionUpgradeGate upgradeLock =
                 new MultiVersionUpgradeGate(transactions);
