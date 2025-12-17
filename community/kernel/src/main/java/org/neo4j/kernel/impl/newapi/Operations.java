@@ -2434,7 +2434,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         constraintSemantics.assertKeyConstraintAllowed(constraint.schema(), token);
 
         // create constraint and enforce it after index population when we have the lock again
-        indexBackedConstraintCreate(constraint, prototype, this::enforceKeyConstraint);
+        constraint = indexBackedConstraintCreate(constraint, prototype, this::enforceKeyConstraint);
         return constraint;
     }
 
