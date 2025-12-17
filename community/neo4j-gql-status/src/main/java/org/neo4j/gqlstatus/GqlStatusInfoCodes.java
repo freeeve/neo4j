@@ -398,8 +398,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_03N60(
             new GqlStatus("03N60"),
-            "The variable { %s } in the subquery uses the same name as a variable from the outer query. Use 'WITH { %s }' in the subquery to import the one from the outer scope unless you want it to be a new variable.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable, GqlParams.StringParam.variable},
+            "The variable { %s } in the subquery uses the same name as a variable from the outer query. Use '{ %s } ({ %s })' to import the one from the outer scope unless you want it to be a new variable.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.variable, GqlParams.StringParam.clause, GqlParams.StringParam.variable
+            },
             emptyMap(),
             Condition.INFORMATIONAL,
             "subquery variable shadowing",

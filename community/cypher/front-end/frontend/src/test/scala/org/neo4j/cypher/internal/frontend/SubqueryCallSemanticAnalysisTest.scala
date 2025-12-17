@@ -154,7 +154,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(36, 3, 10), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(36, 3, 10), "CALL", "shadowed"))
   }
 
   test("Should warn about variable shadowing in a subquery") {
@@ -165,7 +165,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(33, 3, 10), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(33, 3, 10), "CALL", "shadowed"))
   }
 
   test("Should warn about variable shadowing in a scoped subquery when aliasing") {
@@ -178,7 +178,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(63, 4, 13), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(63, 4, 13), "CALL", "shadowed"))
   }
 
   test("Should warn about variable shadowing in a subquery when aliasing") {
@@ -191,7 +191,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(60, 4, 13), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(60, 4, 13), "CALL", "shadowed"))
   }
 
   test("Should warn about variable shadowing in a nested scoped subquery") {
@@ -206,7 +206,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(74, 5, 12), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(74, 5, 12), "CALL", "shadowed"))
   }
 
   test("Should warn about variable shadowing in a nested subquery") {
@@ -221,7 +221,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(68, 5, 12), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(68, 5, 12), "CALL", "shadowed"))
   }
 
   test("Should warn about variable shadowing from enclosing scoped subquery") {
@@ -236,7 +236,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(89, 5, 12), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(89, 5, 12), "CALL", "shadowed"))
   }
 
   test("Should warn about variable shadowing from enclosing subquery") {
@@ -252,7 +252,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(91, 6, 12), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(91, 6, 12), "CALL", "shadowed"))
   }
 
   test("Should warn about multiple shadowed variables in a scoped subquery") {
@@ -264,8 +264,8 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN *""".stripMargin
     run(query).hasNotifications(
-      SubqueryVariableShadowing(p(53, 3, 10), "shadowed"),
-      SubqueryVariableShadowing(p(66, 3, 23), "alsoShadowed")
+      SubqueryVariableShadowing(p(53, 3, 10), "CALL", "shadowed"),
+      SubqueryVariableShadowing(p(66, 3, 23), "CALL", "alsoShadowed")
     )
   }
 
@@ -278,8 +278,8 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN *""".stripMargin
     run(query).hasNotifications(
-      SubqueryVariableShadowing(p(50, 3, 10), "shadowed"),
-      SubqueryVariableShadowing(p(63, 3, 23), "alsoShadowed")
+      SubqueryVariableShadowing(p(50, 3, 10), "CALL", "shadowed"),
+      SubqueryVariableShadowing(p(63, 3, 23), "CALL", "alsoShadowed")
     )
   }
 
@@ -296,8 +296,8 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN *""".stripMargin
     run(query).hasNotifications(
-      SubqueryVariableShadowing(p(36, 3, 10), "shadowed"),
-      SubqueryVariableShadowing(p(97, 5, 12), "shadowed")
+      SubqueryVariableShadowing(p(36, 3, 10), "CALL", "shadowed"),
+      SubqueryVariableShadowing(p(97, 5, 12), "CALL", "shadowed")
     )
   }
 
@@ -314,8 +314,8 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN *""".stripMargin
     run(query).hasNotifications(
-      SubqueryVariableShadowing(p(33, 3, 10), "shadowed"),
-      SubqueryVariableShadowing(p(91, 5, 12), "shadowed")
+      SubqueryVariableShadowing(p(33, 3, 10), "CALL", "shadowed"),
+      SubqueryVariableShadowing(p(91, 5, 12), "CALL", "shadowed")
     )
   }
 
@@ -387,7 +387,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(64, 5, 10), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(64, 5, 10), "CALL", "shadowed"))
   }
 
   test("Should warn about variable shadowing in an union subquery") {
@@ -400,7 +400,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(61, 5, 10), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(61, 5, 10), "CALL", "shadowed"))
   }
 
   test("Should warn about variable shadowing in one of the union subquery branches") {
@@ -417,7 +417,7 @@ class SubqueryCallSemanticAnalysisTest
         |  MATCH (x) RETURN x AS m
         |}
         |RETURN *""".stripMargin
-    run(query).hasNotifications(SubqueryVariableShadowing(p(98, 7, 10), "shadowed"))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(98, 7, 10), "CALL", "shadowed"))
   }
 
   test("Subquery with only importing WITH") {

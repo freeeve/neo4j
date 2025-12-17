@@ -1081,7 +1081,7 @@ class NotificationCodeWithDescriptionTest {
     @Test
     void shouldConstructNotificationsFor_SUBQUERY_VARIABLE_SHADOWING() {
         NotificationImplementation notification =
-                subqueryVariableShadowing(InputPosition.empty, NotificationDetail.shadowingVariable("v"), "v");
+                subqueryVariableShadowing(InputPosition.empty, NotificationDetail.shadowingVariable("v"), "CALL", "v");
 
         verifyNotification(
                 notification,
@@ -1090,13 +1090,13 @@ class NotificationCodeWithDescriptionTest {
                 "Neo.ClientNotification.Statement.SubqueryVariableShadowing",
                 "Variable in subquery is shadowing a variable with the same name from the outer scope. "
                         + "If you want to use that variable instead, it must be imported into the subquery using "
-                        + "importing WITH clause. (the shadowing variable is: v)",
+                        + "a variable scope clause. (the shadowing variable is: v)",
                 NotificationCategory.GENERIC,
                 NotificationClassification.GENERIC,
                 "03N60",
                 new DiagnosticRecord(info, NotificationClassification.GENERIC, -1, -1, -1, Map.of("variable", "v"))
                         .asMap(),
-                "info: subquery variable shadowing. The variable `v` in the subquery uses the same name as a variable from the outer query. Use 'WITH `v`' in the subquery to import the one from the outer scope unless you want it to be a new variable.");
+                "info: subquery variable shadowing. The variable `v` in the subquery uses the same name as a variable from the outer query. Use 'CALL (`v`)' to import the one from the outer scope unless you want it to be a new variable.");
     }
 
     @Test
@@ -1136,7 +1136,8 @@ class NotificationCodeWithDescriptionTest {
 
     @Test
     void shouldConstructNotificationsFor_DEPRECATED_IMPORTING_WITH_IN_SUBQUERY_CALL() {
-        NotificationImplementation notification = deprecatedImportingWithInSubqueryCall(InputPosition.empty, "a");
+        NotificationImplementation notification =
+                deprecatedImportingWithInSubqueryCall(InputPosition.empty, "CALL", "a");
 
         String message = "CALL subquery without a variable scope clause is deprecated. Use CALL (a) { ... }";
         verifyNotification(
@@ -1144,7 +1145,7 @@ class NotificationCodeWithDescriptionTest {
                 "This feature is deprecated and will be removed in future versions.",
                 SeverityLevel.WARNING,
                 "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
-                "CALL subquery without a variable scope clause is now deprecated. Use CALL (a) { ... }",
+                "CALL subquery without a variable scope clause is deprecated. Use CALL (a) { ... }",
                 NotificationCategory.DEPRECATION,
                 NotificationClassification.DEPRECATION,
                 "01N00",
@@ -2278,8 +2279,7 @@ class NotificationCodeWithDescriptionTest {
     /**
      * If this test fails, you have added, changed or removed a notification.
      * To get it approved, follow the instructions on
-     * https://trello.com/c/9L3lbeSY/27-update-to-notification-name
-     * Or linear: https://linear.app/neo4j/team/SURF/new?template=fb219e16-d9e6-4105-86b1-7dffb7442292
+     * https://linear.app/neo4j/team/SURF/new?template=fb219e16-d9e6-4105-86b1-7dffb7442292
      * When your changes have been approved, please change the expected byte[] below.
      */
     @Test
@@ -2304,14 +2304,15 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -61, -102, 57, -22, 61, 15, -76, -67, -128, 86, 31, 123, -109, -49, -41, -20, 122, -29, -27, -83, -33, 106,
-            120, 95, 87, 34, -60, -45, 52, -6, -94, -78
+            122, -79, 66, 118, -20, 26, -106, 99, -26, 13, 29, 102, -112, 37, 54, -23, 45, -52, -59, -98, -53, -55, 1,
+            -5, 71, -15, -106, -73, -77, -24, -125, -101
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {
-            fail("Expected: " + Arrays.toString(expectedHash) + " \n Actual: " + Arrays.toString(notificationHash)
-                    + "\n If you have added, changed or removed a notification, "
-                    + "please follow the process on https://trello.com/c/9L3lbeSY/27-update-to-notification-name");
+            fail(
+                    "Expected: " + Arrays.toString(expectedHash) + " \n Actual: " + Arrays.toString(notificationHash)
+                            + "\n If you have added, changed or removed a notification, "
+                            + "please follow the process on https://linear.app/neo4j/team/SURF/new?template=fb219e16-d9e6-4105-86b1-7dffb7442292");
         }
     }
 }

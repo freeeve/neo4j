@@ -1511,8 +1511,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
     assertNotification(
       queries,
       shouldContainNotification = true,
-      "",
-      (pos, detail) => deprecatedImportingWithInSubqueryCall(pos, detail),
+      deprecatedImportingWithInSubqueryCall(_, "CALL", ""),
       List(
         TestGqlStatusObject(
           STATUS_01N00.getStatusString,
@@ -1532,8 +1531,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
     assertNotification(
       queries,
       shouldContainNotification = true,
-      "a",
-      (pos, detail) => deprecatedImportingWithInSubqueryCall(pos, detail),
+      deprecatedImportingWithInSubqueryCall(_, "CALL", "a"),
       List(
         TestGqlStatusObject(
           STATUS_01N00.getStatusString,

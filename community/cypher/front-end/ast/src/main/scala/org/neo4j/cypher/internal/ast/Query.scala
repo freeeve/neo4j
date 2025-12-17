@@ -79,9 +79,9 @@ sealed trait QueryUtils {
    * Semantic check for when this `Query` is in a subquery, and might import
    * variables from the `outer` scope
    */
-  def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck
+  def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState, optional: Boolean): SemanticCheck
 
-  def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck
+  def semanticCheckImportingWithSubQueryContext(outer: SemanticState, optional: Boolean): SemanticCheck
 
   /**
    * Exists and Count can omit the Return Statement
@@ -124,7 +124,7 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
   /**
    * Check this query part if it starts with an importing WITH
    */
-  def checkImportingWith: SemanticCheck
+  def checkImportingWith(optional: Boolean): SemanticCheck
 
   def invalidImportingWith: Seq[SemanticError]
 
@@ -319,7 +319,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   ): SemanticCheck =
     semanticCheckAbstract(clauses, checkClauses(_, None, context), canOmitReturnClause = canOmitReturn)
 
-  override def checkImportingWith: SemanticCheck = partitionedClauses.importingWith.foldSemanticCheck(_.semanticCheck)
+  override def checkImportingWith(optional: Boolean): SemanticCheck =
+    partitionedClauses.importingWith.foldSemanticCheck(_.semanticCheck)
 
   override def invalidImportingWith: Seq[SemanticError] = leadingNonImportingWith.map { wth =>
     def err(keyword: String): Seq[SemanticError] =
@@ -345,7 +346,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     } else Seq.empty[SemanticError]
   }.getOrElse(Seq.empty[SemanticError])
 
-  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck = {
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState, optional: Boolean): SemanticCheck = {
     def importVariables: SemanticCheck =
       partitionedClauses.importingWith.foldSemanticCheck(wth =>
         wth.semanticCheckContinuation(outer.currentScope.scope) chain
@@ -360,13 +361,17 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
         partitionedClauses.clausesExceptImportingWithAndInitialGraphSelection,
         importVariables chain checkClauses(_, Some(outer.currentScope.scope), ImportingWithSubqueryCall)
       ) chain
-      warnOnPotentiallyShadowVariables(outer) chain
+      warnOnPotentiallyShadowVariables(outer, optional) chain
       SemanticCheck.fromState(state =>
         SemanticCheck.setState(state.recordWorkingGraph(workingGraph))
       ) // resetWorkingGraph
   }
 
-  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck = {
+  override def semanticCheckInSubqueryContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck = {
     val workingGraph = outer.workingGraph
 
     checkInitialGraphSelection(outer) chain
@@ -375,7 +380,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
         checkClauses(_, Some(outer.currentScope.scope), ScopeClauseSubqueryCall)
       ) chain
       errorOnShadowedImportVariables(outer) chain
-      warnOnPotentiallyShadowVariables(current) chain
+      warnOnPotentiallyShadowVariables(current, optional) chain
       SemanticCheck.fromState(state =>
         SemanticCheck.setState(state.recordWorkingGraph(workingGraph))
       ) // resetWorkingGraph
@@ -694,7 +699,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     }
   }
 
-  private def warnOnPotentiallyShadowVariables(outer: SemanticState): SemanticCheck = {
+  private def warnOnPotentiallyShadowVariables(outer: SemanticState, optional: Boolean): SemanticCheck = {
     (inner: SemanticState) =>
       val outerScopeSymbols: Map[String, Symbol] = outer.currentScope.scope.symbolTable
       val innerScopeSymbols: Map[String, Set[Symbol]] = inner.currentScope.scope.allSymbols
@@ -711,7 +716,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       }
       val stateWithNotifications = shadowedSymbols.foldLeft(inner) {
         case (state, (varName, pos)) =>
-          state.addNotification(SubqueryVariableShadowing(pos, varName))
+          val clause = if (optional) "OPTIONAL CALL" else "CALL"
+          state.addNotification(SubqueryVariableShadowing(pos, clause, varName))
       }
 
       SemanticCheckResult.success(stateWithNotifications)
@@ -884,10 +890,14 @@ case class TopLevelBraces(
 
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck = semanticCheck
 
-  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
-    query.semanticCheckInSubqueryContext(outer, current) chain recordCurrentScope(this)
+  override def semanticCheckInSubqueryContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck =
+    query.semanticCheckInSubqueryContext(outer, current, optional) chain recordCurrentScope(this)
 
-  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState, optional: Boolean): SemanticCheck =
     SemanticCheck.error(SemanticError.invalidUseOfOldCall(TopLevelBraces.name, position))
 
   override def semanticCheckInSubqueryExpressionContext(
@@ -900,7 +910,7 @@ case class TopLevelBraces(
   override def semanticCheck: SemanticCheck =
     query.semanticCheckInContext(TopLevelBraces) chain recordCurrentScope(this)
 
-  override def checkImportingWith: SemanticCheck = query.checkImportingWith
+  override def checkImportingWith(optional: Boolean): SemanticCheck = query.checkImportingWith(optional)
   override def invalidImportingWith: Seq[SemanticError] = query.invalidImportingWith
   override def importColumns: Seq[LogicalVariable] = query.importColumns
 
@@ -1011,9 +1021,9 @@ sealed trait Union extends Query {
         _.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context)
     )
 
-  override def checkImportingWith: SemanticCheck =
-    SemanticCheck.nestedCheck(lhs.checkImportingWith) chain
-      rhs.checkImportingWith
+  override def checkImportingWith(optional: Boolean): SemanticCheck =
+    SemanticCheck.nestedCheck(lhs.checkImportingWith(optional)) chain
+      rhs.checkImportingWith(optional)
 
   override def invalidImportingWith: Seq[SemanticError] =
     lhs.invalidImportingWith ++ rhs.invalidImportingWith
@@ -1024,15 +1034,19 @@ sealed trait Union extends Query {
 
   override def endsWithFinish: Boolean = rhs.endsWithFinish || lhs.endsWithFinish
 
-  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck = {
+  override def semanticCheckInSubqueryContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck = {
     checkRecursively(innerQuery =>
       importValuesFromScope(outer.currentScope.scope) chain
-        innerQuery.semanticCheckInSubqueryContext(outer, current)
+        innerQuery.semanticCheckInSubqueryContext(outer, current, optional)
     )
   }
 
-  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
-    checkRecursively(_.semanticCheckImportingWithSubQueryContext(outer))
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState, optional: Boolean): SemanticCheck =
+    checkRecursively(_.semanticCheckImportingWithSubQueryContext(outer, optional))
 
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck = {
     context match {
@@ -1291,13 +1305,17 @@ case class ConditionalQueryBranch(predicate: Option[Expression], query: PartQuer
 
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck = semanticCheck
 
-  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck = {
+  override def semanticCheckInSubqueryContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck = {
     importValuesFromScope(outer.currentScope.scope) chain
-      semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))
+      semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current, optional))
   }
 
-  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckImportingWithSubQueryContext(outer))
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState, optional: Boolean): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckImportingWithSubQueryContext(outer, optional))
 
   override def semanticCheckInSubqueryExpressionContext(
     canOmitReturn: Boolean,
@@ -1369,10 +1387,14 @@ case class ConditionalQueryWhen(
     if (scope.children.size < 1) Scope.empty else scope.children.last
   }
 
-  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))
+  override def semanticCheckInSubqueryContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current, optional))
 
-  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState, optional: Boolean): SemanticCheck =
     SemanticCheck.error(SemanticError.invalidUseOfOldCall(msg, position))
 
   override def semanticCheckInSubqueryExpressionContext(
@@ -1442,8 +1464,8 @@ case class ConditionalQueryWhen(
     checkConformingBranches ifOkChain
       checkColumnNamesAgree
 
-  override def checkImportingWith: SemanticCheck =
-    allBranches.foldSemanticCheck(_.query.checkImportingWith)
+  override def checkImportingWith(optional: Boolean): SemanticCheck =
+    allBranches.foldSemanticCheck(_.query.checkImportingWith(optional))
 
   override def invalidImportingWith: Seq[SemanticError] = allBranches.flatMap(_.query.invalidImportingWith)
 
@@ -1486,7 +1508,8 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
 
   override def endsWithFinish: Boolean = lastQuery.endsWithFinish
 
-  override def checkImportingWith: SemanticCheck = queries.foldSemanticCheck(_.checkImportingWith)
+  override def checkImportingWith(optional: Boolean): SemanticCheck =
+    queries.foldSemanticCheck(_.checkImportingWith(optional))
 
   override def invalidImportingWith: Seq[SemanticError] = queries.flatMap(_.invalidImportingWith)
 
@@ -1581,10 +1604,14 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   override def semanticCheck: SemanticCheck =
     semanticCheckAbstract(_.semanticCheckInContext(NextStatement), None)
 
-  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current), Some(outer))
+  override def semanticCheckInSubqueryContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current, optional), Some(outer))
 
-  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState, optional: Boolean): SemanticCheck =
     SemanticCheck.error(SemanticError.invalidUseOfOldCall(NextStatement.name, position))
 
   override def semanticCheckInSubqueryExpressionContext(
@@ -1625,7 +1652,7 @@ case class QueryWithLocalDefinitions(
   /**
    * Check this query part if it starts with an importing WITH
    */
-  override def checkImportingWith: SemanticCheck = query.checkImportingWith
+  override def checkImportingWith(optional: Boolean): SemanticCheck = query.checkImportingWith(optional)
 
   /**
    * True if this query part starts with an importing WITH (has incoming arguments)
@@ -1706,10 +1733,14 @@ case class QueryWithLocalDefinitions(
    * Semantic check for when this `Query` is in a subquery, and might import
    * variables from the `outer` scope
    */
-  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))
+  override def semanticCheckInSubqueryContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current, optional))
 
-  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState, optional: Boolean): SemanticCheck =
     requireFeatureSupport(
       "The DEFINE keyword",
       SemanticFeature.LocalCallables,

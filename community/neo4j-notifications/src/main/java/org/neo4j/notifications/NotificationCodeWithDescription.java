@@ -214,7 +214,7 @@ public enum NotificationCodeWithDescription {
             Status.Statement.SubqueryVariableShadowing,
             GqlStatusInfoCodes.STATUS_03N60,
             "Variable in subquery is shadowing a variable with the same name from the outer scope. "
-                    + "If you want to use that variable instead, it must be imported into the subquery using importing WITH clause. (%s)"),
+                    + "If you want to use that variable instead, it must be imported into the subquery using a variable scope clause. (%s)"),
     REDUNDANT_OPTIONAL_PROCEDURE(
             Status.Statement.RedundantOptionalProcedure,
             GqlStatusInfoCodes.STATUS_03N61,
@@ -226,7 +226,7 @@ public enum NotificationCodeWithDescription {
     DEPRECATED_IMPORTING_WITH_IN_SUBQUERY_CALL(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
-            "CALL subquery without a variable scope clause is now deprecated. " + "Use CALL (%s) { ... }"),
+            "%s subquery without a variable scope clause is deprecated. " + "Use %s (%s) { ... }"),
     DEPRECATED_WHERE_VARIABLE_IN_NODE_PATTERN(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N01,
@@ -715,9 +715,9 @@ public enum NotificationCodeWithDescription {
     }
 
     public static NotificationImplementation subqueryVariableShadowing(
-            InputPosition position, String oldDetail, String variable) {
+            InputPosition position, String oldDetail, String subqueryType, String variable) {
         return SUBQUERY_VARIABLE_SHADOWING.notificationWithParameters(
-                position, new String[] {oldDetail}, new String[] {variable, variable});
+                position, new String[] {oldDetail}, new String[] {variable, subqueryType, variable});
     }
 
     public static NotificationImplementation redundantOptionalProcedure(InputPosition position, String proc) {
@@ -730,12 +730,12 @@ public enum NotificationCodeWithDescription {
     }
 
     public static NotificationImplementation deprecatedImportingWithInSubqueryCall(
-            InputPosition position, String variable) {
+            InputPosition position, String subqueryType, String variable) {
         return DEPRECATED_IMPORTING_WITH_IN_SUBQUERY_CALL.notificationWithParameters(
-                position, new String[] {variable}, new String[] {
+                position, new String[] {subqueryType, subqueryType, variable}, new String[] {
                     String.format(
-                            "CALL subquery without a variable scope clause is deprecated. Use CALL (%s) { ... }",
-                            variable)
+                            "%s subquery without a variable scope clause is deprecated. Use %s (%s) { ... }",
+                            subqueryType, subqueryType, variable)
                 });
     }
 

@@ -72,7 +72,7 @@ case class LocalProcedureDefinition(
       // Check body
       innerChecked <-
         noUseClauseInQueryBody(body) ifOkChain
-          body.semanticCheckInSubqueryContext(innerWithParameters.state, current.state)
+          body.semanticCheckInSubqueryContext(innerWithParameters.state, current.state, optional = false)
       //      _ <- recordCurrentScope(this)
       //      // merged
       //      afterDefinition <- SemanticCheck.fromFunction { innerState => {
@@ -119,7 +119,7 @@ case class LocalFunctionDefinition(
         case ExpressionBody(expression) => SemanticExpressionCheck.simple(expression)
         case QueryBody(query) =>
           noUseClauseInQueryBody(query) ifOkChain
-            query.semanticCheckInSubqueryContext(innerWithParameters.state, current.state)
+            query.semanticCheckInSubqueryContext(innerWithParameters.state, current.state, optional = false)
       }
       //      _ <- recordCurrentScope(this)
       //      // merged

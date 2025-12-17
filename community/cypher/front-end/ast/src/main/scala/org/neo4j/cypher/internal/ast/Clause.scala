@@ -2290,7 +2290,7 @@ sealed trait SubqueryCall extends HorizonClause with SemanticAnalysisTooling {
 
   final override def clauseSpecificSemanticCheck: SemanticCheck = {
     wrappedCallProcedureCheck chain
-      checkSubquery chain
+      checkSubquery(optional) chain
       inTransactionsParameters.foldSemanticCheck {
         _.semanticCheck chain
           checkNoNestedCallInTransactions
@@ -2304,7 +2304,7 @@ sealed trait SubqueryCall extends HorizonClause with SemanticAnalysisTooling {
 
   def isCorrelated: Boolean
 
-  def checkSubquery: SemanticCheck
+  def checkSubquery(optional: Boolean): SemanticCheck
 
   final protected def returnToOuterScope(outerScopeLocation: SemanticState.ScopeLocation): SemanticCheck =
     SemanticCheck.fromFunction { innerState =>
@@ -2386,13 +2386,13 @@ case class ImportingWithSubqueryCall(
     innerQuery.isCorrelated
   }
 
-  override def checkSubquery: SemanticCheck = {
+  override def checkSubquery(optional: Boolean): SemanticCheck = {
     for {
-      outerStateWithImports <- innerQuery.checkImportingWith
+      outerStateWithImports <- innerQuery.checkImportingWith(optional)
       // Create empty scope under root
       _ <- SemanticCheck.setState(outerStateWithImports.state.newBaseScope)
       // Check inner query. Allow it to import from outer scope
-      innerChecked <- innerQuery.semanticCheckImportingWithSubQueryContext(outerStateWithImports.state)
+      innerChecked <- innerQuery.semanticCheckImportingWithSubQueryContext(outerStateWithImports.state, optional)
       _ <- returnToOuterScope(outerStateWithImports.state.currentScope)
       // Declare variables that are in output from subquery
       merged <- declareOutputVariablesInOuterScope(innerChecked.state.currentScope.scope)
@@ -2430,14 +2430,14 @@ case class ScopeClauseSubqueryCall(
     isImportingAll || importedVariables.nonEmpty
   }
 
-  override def checkSubquery: SemanticCheck = {
+  override def checkSubquery(optional: Boolean): SemanticCheck = {
     for {
       // Get current state
       current <- SemanticCheck.getState
       // Checks for errors in imported variables and import into new baseScope
       innerWithImports <- importVariables
       // Check inner query
-      innerChecked <- innerQuery.semanticCheckInSubqueryContext(innerWithImports.state, current.state)
+      innerChecked <- innerQuery.semanticCheckInSubqueryContext(innerWithImports.state, current.state, optional)
       _ <- recordCurrentScope(this)
       // Declare output variables from inner query in outer scope
       merged <- declareOutputVariablesInOuterScope(current.state)

@@ -291,10 +291,11 @@ object NotificationWrapping {
         fallbackRuntimeConf,
         cause
       )
-    case SubqueryVariableShadowing(pos, varName) =>
+    case SubqueryVariableShadowing(pos, subqueryType, varName) =>
       NotificationCodeWithDescription.subqueryVariableShadowing(
         pos.withOffset(offset).asInputPosition,
         NotificationDetail.shadowingVariable(varName),
+        subqueryType,
         varName
       )
     case RedundantOptionalProcedure(pos, proc) =>
@@ -306,9 +307,10 @@ object NotificationWrapping {
       NotificationCodeWithDescription.redundantOptionalSubquery(
         pos.withOffset(offset).asInputPosition
       )
-    case DeprecatedImportingWithInSubqueryCall(pos, varName) =>
+    case DeprecatedImportingWithInSubqueryCall(pos, subqueryType, varName) =>
       NotificationCodeWithDescription.deprecatedImportingWithInSubqueryCall(
         pos.withOffset(offset).asInputPosition,
+        subqueryType,
         varName
       )
     case DeprecatedWhereVariableInNodePattern(pos, variableName, properties) =>

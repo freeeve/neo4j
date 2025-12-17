@@ -147,13 +147,15 @@ case class DeprecatedPropertyReferenceInCreate(position: InputPosition, varName:
 
 case class DeprecatedPropertyReferenceInMerge(position: InputPosition, varName: String) extends InternalNotification
 
-case class SubqueryVariableShadowing(position: InputPosition, varName: String) extends InternalNotification
+case class SubqueryVariableShadowing(position: InputPosition, subqueryType: String, varName: String)
+    extends InternalNotification
 
 case class RedundantOptionalProcedure(position: InputPosition, proc: String) extends InternalNotification
 
 case class RedundantOptionalSubquery(position: InputPosition) extends InternalNotification
 
-case class DeprecatedImportingWithInSubqueryCall(position: InputPosition, variable: String) extends InternalNotification
+case class DeprecatedImportingWithInSubqueryCall(position: InputPosition, subqueryType: String, variable: String)
+    extends InternalNotification
 
 case class DeprecatedWhereVariableInNodePattern(position: InputPosition, variableName: String, properties: String)
     extends InternalNotification

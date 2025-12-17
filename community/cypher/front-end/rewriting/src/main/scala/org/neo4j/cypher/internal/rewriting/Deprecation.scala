@@ -287,7 +287,7 @@ object Deprecations {
             ))
           ))
 
-        case c @ ImportingWithSubqueryCall(innerQuery, _, _) =>
+        case c @ ImportingWithSubqueryCall(innerQuery, _, optional) =>
           def includesExisting(q: Query): Boolean = {
             q match {
               case sq: SingleQuery => sq.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting)
@@ -306,13 +306,15 @@ object Deprecations {
             }
           }
 
+          val subqueryType = if (optional) "OPTIONAL CALL" else "CALL"
+
           val importing = if (innerQuery.isCorrelated) {
             if (includesExisting(innerQuery)) "*" else innerQuery.importColumns.map(_.name).distinct.mkString(", ")
           } else ""
 
           Some(Deprecation(
             None,
-            Some(DeprecatedImportingWithInSubqueryCall(c.position, importing))
+            Some(DeprecatedImportingWithInSubqueryCall(c.position, subqueryType, importing))
           ))
 
         case Create(pattern) if Create.SelfReferenceAcrossPatterns.deprecatedIn(version) =>
