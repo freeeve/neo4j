@@ -93,9 +93,14 @@ abstract class PipeWithSource(source: Pipe) extends Pipe {
       try {
         internalCreateResults(sourceResult, decoratedState)
       } catch {
-        case e: Throwable =>
-          decoratedState.decorator.afterCreateResults(this.id, decoratedState)
-          throw e
+        case createResultsError: Throwable =>
+          try {
+            decoratedState.decorator.afterCreateResults(this.id, decoratedState)
+          } catch {
+            case afterError: Throwable =>
+              createResultsError.addSuppressed(afterError)
+          }
+          throw createResultsError
       }
     decorateResult(sourceResult, decoratedState, internalResult)
   }
