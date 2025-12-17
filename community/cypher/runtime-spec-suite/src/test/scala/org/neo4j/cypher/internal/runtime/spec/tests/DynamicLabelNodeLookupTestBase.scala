@@ -730,14 +730,14 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should filter for multiple labels and multiple properties using any relevant index") {
-    val compoundIndex = "the_compound_index"
+    val compositeIndex = "the_composite_index"
     val ageIndex = "age_index"
     val nameIndex = "name_index"
 
     val expected = givenGraph {
       nodeIndex("A")(_.withName(ageIndex).on("age"))
       nodeIndex("A")(_.withName(nameIndex).on("name"))
-      nodeIndex("B")(_.withName(compoundIndex).on("age").on("name"))
+      nodeIndex("B")(_.withName(compositeIndex).on("age").on("name"))
 
       // not matched
       newNode("B", "age" -> 21, "name" -> "bob")
@@ -767,7 +767,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     val (res, prof) = executeAndProfile(logicalQuery, runtime)
 
     res should beColumns("x").withRows(singleColumn(expected))
-      .usingAnyIndexes(2, compoundIndex, ageIndex, nameIndex)
+      .usingAnyIndexes(2, compositeIndex, ageIndex, nameIndex)
 
     val profiledIndexes = prof.find("DynamicLabelNodeLookup")
       .head

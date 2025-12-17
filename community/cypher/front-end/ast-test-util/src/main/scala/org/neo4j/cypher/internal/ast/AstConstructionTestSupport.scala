@@ -247,6 +247,9 @@ trait AstConstructionTestSupport {
   def hasLabels(v: String, label: String): HasLabels =
     hasLabels(varFor(v), label)
 
+  def hasLabels(v: String, labels: String*): HasLabels =
+    hasLabels(varFor(v), labels: _*)
+
   def hasLabels(v: Expression, labels: LabelName): HasLabels =
     hasLabels(v, Seq(labels), HasLabels.isPostfixDefault)
 
