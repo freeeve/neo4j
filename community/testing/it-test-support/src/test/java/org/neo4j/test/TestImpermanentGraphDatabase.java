@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
+import java.io.IOException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.io.IOUtils;
 
 class TestImpermanentGraphDatabase {
     private GraphDatabaseService db;
@@ -47,8 +49,8 @@ class TestImpermanentGraphDatabase {
     }
 
     @AfterEach
-    void tearDown() {
-        managementService.shutdown();
+    void tearDown() throws IOException {
+        IOUtils.closeAll(managementService);
     }
 
     @Test
