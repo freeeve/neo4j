@@ -66,6 +66,15 @@ public abstract sealed class PropertySelection {
     public abstract boolean test(int key);
 
     /**
+     * Determines whether the keys in this selection are a subset of the keys in the {@code other} selection.
+     * If this cannot be determined, {@code false} is returned.
+     *
+     * @param other the other selection to compare against.
+     * @return {@code true} if all keys in this selection are also part of the {@code other} selection, otherwise {@code false}.
+     */
+    public abstract boolean keysAreGuaranteedSubsetOf(PropertySelection other);
+
+    /**
      * @param key the key ID to check whether its value should be read and included in the selection.
      * @return whether to include the value for the given key in this selection.
      */
@@ -206,6 +215,11 @@ public abstract sealed class PropertySelection {
         }
 
         @Override
+        public boolean keysAreGuaranteedSubsetOf(PropertySelection other) {
+            return other.test(key);
+        }
+
+        @Override
         public int lowestKey() {
             return key;
         }
@@ -249,6 +263,7 @@ public abstract sealed class PropertySelection {
         private MultipleKeys(boolean fallbackKeysOnly, IntPredicate valueSelection, int[] keys) {
             super(fallbackKeysOnly, valueSelection);
             this.keys = cloneAndCleanUp(keys);
+            assert keys.length > 1 : "Use SingleKey selection for single key selections";
         }
 
         @Override
@@ -275,6 +290,16 @@ public abstract sealed class PropertySelection {
                 }
             }
             return false;
+        }
+
+        @Override
+        public boolean keysAreGuaranteedSubsetOf(PropertySelection other) {
+            for (int k : keys) {
+                if (!other.test(k)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         @Override
@@ -359,6 +384,22 @@ public abstract sealed class PropertySelection {
         }
 
         @Override
+        public boolean keysAreGuaranteedSubsetOf(PropertySelection other) {
+            return switch (other) {
+                case AllPropertiesSelection ignored -> true;
+                case AllExcept allExceptOther -> {
+                    for (int k : allExceptOther.excluded) {
+                        if (test(k)) {
+                            yield false;
+                        }
+                    }
+                    yield true;
+                }
+                default -> false;
+            };
+        }
+
+        @Override
         public int lowestKey() {
             return 0;
         }
@@ -426,6 +467,11 @@ public abstract sealed class PropertySelection {
         }
 
         @Override
+        public boolean keysAreGuaranteedSubsetOf(PropertySelection other) {
+            return true;
+        }
+
+        @Override
         public int lowestKey() {
             return -1;
         }
@@ -464,6 +510,11 @@ public abstract sealed class PropertySelection {
         @Override
         public boolean test(int key) {
             return true;
+        }
+
+        @Override
+        public boolean keysAreGuaranteedSubsetOf(PropertySelection other) {
+            return other instanceof AllPropertiesSelection;
         }
 
         @Override

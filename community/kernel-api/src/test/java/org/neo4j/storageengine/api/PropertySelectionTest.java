@@ -156,6 +156,69 @@ class PropertySelectionTest {
         }
     }
 
+    @Test
+    void testKeysAreGuaranteedSubsetOf() {
+        var none = PropertySelection.NO_PROPERTIES;
+
+        var single = PropertySelection.selection(1);
+
+        var multiple = PropertySelection.selection(1, 2, 3);
+        var multiple2 = PropertySelection.selection(1, 2, 3, 4);
+        var multiple3 = PropertySelection.selection(3, 4);
+
+        var allExcept2 = PropertySelection.ALL_PROPERTIES.excluding(2);
+        var allExcept3 = PropertySelection.ALL_PROPERTIES.excluding(3);
+        var allExcept2_3 = PropertySelection.ALL_PROPERTIES.excluding(2, 3);
+
+        var allProps = PropertySelection.ALL_PROPERTIES;
+
+        assertThat(none.keysAreGuaranteedSubsetOf(none)).isTrue();
+        assertThat(none.keysAreGuaranteedSubsetOf(single)).isTrue();
+        assertThat(none.keysAreGuaranteedSubsetOf(multiple)).isTrue();
+        assertThat(none.keysAreGuaranteedSubsetOf(allProps)).isTrue();
+        assertThat(none.keysAreGuaranteedSubsetOf(allExcept2)).isTrue();
+
+        assertThat(single.keysAreGuaranteedSubsetOf(none)).isFalse();
+        assertThat(single.keysAreGuaranteedSubsetOf(single)).isTrue();
+        assertThat(single.keysAreGuaranteedSubsetOf(multiple)).isTrue();
+        assertThat(single.keysAreGuaranteedSubsetOf(multiple2)).isTrue();
+        assertThat(single.keysAreGuaranteedSubsetOf(multiple3)).isFalse();
+        assertThat(single.keysAreGuaranteedSubsetOf(allExcept2)).isTrue();
+        assertThat(single.keysAreGuaranteedSubsetOf(allProps)).isTrue();
+
+        assertThat(multiple.keysAreGuaranteedSubsetOf(none)).isFalse();
+        assertThat(multiple.keysAreGuaranteedSubsetOf(single)).isFalse();
+        assertThat(multiple.keysAreGuaranteedSubsetOf(multiple)).isTrue();
+        assertThat(multiple.keysAreGuaranteedSubsetOf(multiple2)).isTrue();
+        assertThat(multiple.keysAreGuaranteedSubsetOf(multiple3)).isFalse();
+        assertThat(multiple.keysAreGuaranteedSubsetOf(allExcept2)).isFalse();
+        assertThat(multiple.keysAreGuaranteedSubsetOf(allProps)).isTrue();
+
+        assertThat(multiple3.keysAreGuaranteedSubsetOf(allExcept2)).isTrue();
+
+        assertThat(allExcept2.keysAreGuaranteedSubsetOf(none)).isFalse();
+        assertThat(allExcept2.keysAreGuaranteedSubsetOf(single)).isFalse();
+        assertThat(allExcept2.keysAreGuaranteedSubsetOf(multiple)).isFalse();
+        assertThat(allExcept2.keysAreGuaranteedSubsetOf(allExcept2)).isTrue();
+        assertThat(allExcept2.keysAreGuaranteedSubsetOf(allExcept3)).isFalse();
+        assertThat(allExcept2.keysAreGuaranteedSubsetOf(allExcept2_3)).isFalse();
+        assertThat(allExcept2.keysAreGuaranteedSubsetOf(allProps)).isTrue();
+
+        assertThat(allExcept3.keysAreGuaranteedSubsetOf(allExcept2)).isFalse();
+        assertThat(allExcept3.keysAreGuaranteedSubsetOf(allExcept3)).isTrue();
+        assertThat(allExcept3.keysAreGuaranteedSubsetOf(allExcept2_3)).isFalse();
+
+        assertThat(allExcept2_3.keysAreGuaranteedSubsetOf(allExcept2)).isTrue();
+        assertThat(allExcept2_3.keysAreGuaranteedSubsetOf(allExcept3)).isTrue();
+        assertThat(allExcept2_3.keysAreGuaranteedSubsetOf(allExcept2_3)).isTrue();
+
+        assertThat(allProps.keysAreGuaranteedSubsetOf(none)).isFalse();
+        assertThat(allProps.keysAreGuaranteedSubsetOf(single)).isFalse();
+        assertThat(allProps.keysAreGuaranteedSubsetOf(multiple)).isFalse();
+        assertThat(allProps.keysAreGuaranteedSubsetOf(allExcept2)).isFalse();
+        assertThat(allProps.keysAreGuaranteedSubsetOf(allProps)).isTrue();
+    }
+
     private int[] sprinkleWithNullTokens(int[] keys) {
         var result = IntLists.mutable.empty();
         for (int key : keys) {
