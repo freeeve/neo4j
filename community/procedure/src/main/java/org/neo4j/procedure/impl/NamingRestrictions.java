@@ -176,7 +176,6 @@ public interface NamingRestrictions {
                 List.of(
                         // Deprecated namespaces
                         "abac.*",
-                        "aura.*",
                         "builtin.*",
                         "coll.*",
                         "math.*",
@@ -196,7 +195,6 @@ public interface NamingRestrictions {
                 List.of(
                         // Deprecated namespaces
                         "abac.*",
-                        "aura.*",
                         "builtin.*",
                         "cdc.*",
                         "coll.*",
