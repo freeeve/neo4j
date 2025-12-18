@@ -276,11 +276,24 @@ case class RepeatPipe(
         val innerNodesArray = acyclicState.constraint.innerNodes
 
         var allNodesUnique = true
-        var i = 1 // skip the first node because it should already be in the seen set
-        while (allNodesUnique && i < innerNodesArray.length) {
-          val n = innerNodesArray(i)
-          allNodesUnique = newNodes.add(castOrFail[VirtualNodeValue](row.getByName(n)).id())
-          i += 1
+        if (reverseGroupVariableProjections) {
+          var i = innerNodesArray.length - 1;
+          while (allNodesUnique && i >= 0) {
+            val n = innerNodesArray(i)
+            allNodesUnique = newNodes.add(
+              castOrFail[VirtualNodeValue](row.getByName(n)).id()
+            ) || i == innerNodesArray.length - 1 // allow start node to already be seen
+            i -= 1
+          }
+        } else {
+          var i = 0
+          while (allNodesUnique && i < innerNodesArray.length) {
+            val n = innerNodesArray(i)
+            allNodesUnique = newNodes.add(
+              castOrFail[VirtualNodeValue](row.getByName(n)).id()
+            ) || i == 0 // allow start node to already be seen
+            i += 1
+          }
         }
 
         val newRelationships = HeapTrackingCollections.newLongSet(
@@ -290,7 +303,7 @@ case class RepeatPipe(
         val innerRelationshipsArray = acyclicState.constraint.innerRelationships
 
         var allRelationshipsUnique = true
-        i = 0
+        var i = 0
         while (i < innerRelationshipsArray.length) {
           val r = innerRelationshipsArray(i)
           allRelationshipsUnique = newRelationships.add(castOrFail[VirtualRelationshipValue](row.getByName(r)).id())
@@ -339,14 +352,18 @@ case class RepeatPipe(
         }
         val innerNodesArray = acyclicState.constraint.innerNodes
         var nodesAreUnique = true
-        i = 1
+        i = 0
         val innerNodesSeen = collection.mutable.Set[Long]()
         while (nodesAreUnique && i < innerNodesArray.length) {
           val n = innerNodesArray(i)
           val node = castOrFail[VirtualNodeValue](row.getByName(n)).id()
-          nodesAreUnique = (!acyclicState.nodesSeen.contains(node)) && innerNodesSeen.add(
+          val uniqueInnerNode = innerNodesSeen.add(
             node
           )
+          nodesAreUnique =
+            (!acyclicState.nodesSeen.contains(
+              node
+            )) && uniqueInnerNode || node == acyclicState.endNode && uniqueInnerNode // previous endNode is now startNode
           i += 1
         }
         relationshipsAreUnique && nodesAreUnique

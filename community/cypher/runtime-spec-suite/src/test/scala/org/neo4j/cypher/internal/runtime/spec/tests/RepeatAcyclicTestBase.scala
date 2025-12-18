@@ -766,10 +766,9 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "e", "b", "f", "c")
       .repeatAcyclic(`(anon_start) (()-[f]->(c){1,*} (anon_end)`)
-      .|.filter("NOT c_inner = a") // TODO: currently needed for legacy - fix!
       .|.filter("NOT anon_inner = c_inner", isRepeatAcyclic("c_inner"))
       .|.expandAll("(anon_inner)-[f_inner]->(c_inner)")
-      .|.argument("anon_inner", "a") // TODO: remove a when legacy is fixed.
+      .|.argument("anon_inner")
       .filter("a:START")
       .allRelationshipsScan("(a)-[e]->(b)")
       .build()
@@ -1548,7 +1547,7 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
       .produceResults("me", "you", "a", "b", "r")
       .filter("me:START")
       .repeatAcyclic(`(you) [(b)<-[r]-(a)]{0, *} (me)`)
-      .|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
+      .|.filter("NOT a_inner = b_inner", isRepeatAcyclic("a_inner"))
       .|.expandAll("(b_inner)<-[r_inner]-(a_inner)")
       .|.argument("you", "b_inner")
       .allNodeScan("you")
@@ -1619,8 +1618,8 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
         "not rrr_inner = rr_inner",
         isRepeatAcyclic("rrr_inner")
       )
+      .|.filter("not rr_inner = r_inner", "NOT c_inner = b_inner", isRepeatAcyclic("d_inner"))
       .|.expandAll("(c_inner)<-[rrr_inner]-(d_inner)")
-      .|.filter("not rr_inner = r_inner", "NOT c_inner = b_inner", isRepeatAcyclic("c_inner"))
       .|.expandAll("(b_inner)-[rr_inner]->(c_inner)")
       .|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
@@ -3726,7 +3725,6 @@ trait OrderedAcyclicTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "e", "b", "f", "c")
       .repeatAcyclic(`(anon_start) [()-[f]->(c)]{1,*} (anon_end)`).withLeveragedOrder()
-      .|.filter("NOT c_inner = a") // TODO: required for legacy?
       .|.filter("NOT anon_inner = c_inner", isRepeatAcyclic("c_inner"), isRepeatTrailUnique("f_inner"))
       .|.expandAll("(anon_inner)-[f_inner]->(c_inner)")
       .|.argument("a", "anon_inner")
