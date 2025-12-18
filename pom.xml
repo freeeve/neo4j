@@ -1232,6 +1232,16 @@
         <test.vm.netty.leakDetection.level>DISABLED</test.vm.netty.leakDetection.level>
         <excludedTestGroups>exclude-spd-override</excludedTestGroups>
       </properties>
+
+      <dependencies>
+        <dependency>
+          <!-- Adding junit dependency here to not fail builds using surefire groups/excludedGroups -->
+          <groupId>org.junit.jupiter</groupId>
+          <artifactId>junit-jupiter</artifactId>
+          <version>${junit.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
     </profile>
     <profile>
       <id>zinc</id>
