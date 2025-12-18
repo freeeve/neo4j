@@ -1757,7 +1757,9 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         ktx.assertOpen();
         ensureCursors();
         singleNode(node);
-        Value existingValue = readNodeProperty(propertyKey);
+        LoadResult loadResult =
+                loadSortedNodePropertyKeyListAndSingleValue(localNodeCursor, localPropertyCursor, propertyKey);
+        Value existingValue = loadResult.propertyValue();
 
         if (existingValue != NO_VALUE) {
             int[] labels = acquireSharedNodeLabelLocks();
@@ -1771,7 +1773,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         localPropertyCursor,
                         labels,
                         propertyKey,
-                        loadSortedNodePropertyKeyList(localNodeCursor, localPropertyCursor),
+                        loadResult.propertyKeyIds(),
                         existingValue);
             }
         }
@@ -1829,7 +1831,9 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         ktx.assertOpen();
         ensureCursors();
         singleRelationship(relationship);
-        Value existingValue = readRelationshipProperty(propertyKey);
+        LoadResult loadResult = loadSortedRelationshipPropertyKeyListAndSingleValue(
+                localRelationshipCursor, localPropertyCursor, propertyKey);
+        Value existingValue = loadResult.propertyValue();
 
         if (existingValue != NO_VALUE) {
             int type = acquireSharedRelationshipTypeLock();
@@ -1849,7 +1853,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         localPropertyCursor,
                         type,
                         propertyKey,
-                        loadSortedRelationshipPropertyKeyList(localRelationshipCursor, localPropertyCursor),
+                        loadResult.propertyKeyIds(),
                         existingValue);
             }
         }

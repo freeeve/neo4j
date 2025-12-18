@@ -48,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -56,11 +55,12 @@ import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.UnmodifiableMap;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
-import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
+import org.eclipse.collections.impl.set.mutable.primitive.UnmodifiableLongSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
@@ -70,9 +70,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.collection.diffset.DiffSets;
-import org.neo4j.collection.diffset.LongDiffSets;
 import org.neo4j.collection.diffset.MutableLongDiffSets;
-import org.neo4j.collection.diffset.MutableLongDiffSetsImpl;
 import org.neo4j.collection.factory.CollectionsFactory;
 import org.neo4j.collection.factory.OnHeapCollectionsFactory;
 import org.neo4j.common.EntityType;
@@ -301,19 +299,28 @@ class TxStateTest {
     @Test
     void shouldComputeIndexUpdatesOnUninitializedTxState() {
         // WHEN
-        UnmodifiableMap<ValueTuple, ? extends LongDiffSets> diffSets = state.getIndexUpdates(indexOn_1_1);
+        UnmodifiableMap<ValueTuple, MutableLongSet> added = state.getAddedIndexUpdates(indexOn_1_1);
 
         // THEN
-        assertNull(diffSets);
+        assertNull(added);
     }
 
     @Test
     void shouldComputeSortedIndexUpdatesOnUninitializedTxState() {
         // WHEN
-        NavigableMap<ValueTuple, ? extends LongDiffSets> diffSets = state.getSortedIndexUpdates(indexOn_1_1);
+        NavigableMap<ValueTuple, MutableLongSet> added = state.getSortedAddedIndexUpdates(indexOn_1_1);
 
         // THEN
-        assertNull(diffSets);
+        assertNull(added);
+    }
+
+    @Test
+    void shouldComputeIndexRemovedIdsOnUninitializedTxState() {
+        // WHEN
+        UnmodifiableLongSet removed = state.getRemovedIndexEntityIds(indexOn_1_1);
+
+        // THEN
+        assertNull(removed);
     }
 
     @Test
@@ -322,10 +329,10 @@ class TxStateTest {
         addNodesToIndex(indexOn_2_1).withDefaultStringProperties(42L);
 
         // WHEN
-        UnmodifiableMap<ValueTuple, ? extends LongDiffSets> diffSets = state.getIndexUpdates(indexOn_1_1);
+        UnmodifiableMap<ValueTuple, MutableLongSet> added = state.getAddedIndexUpdates(indexOn_1_1);
 
         // THEN
-        assertNull(diffSets);
+        assertNull(added);
     }
 
     @Test
@@ -334,10 +341,22 @@ class TxStateTest {
         addNodesToIndex(indexOn_2_1).withDefaultStringProperties(42L);
 
         // WHEN
-        NavigableMap<ValueTuple, ? extends LongDiffSets> diffSets = state.getSortedIndexUpdates(indexOn_1_1);
+        NavigableMap<ValueTuple, MutableLongSet> added = state.getSortedAddedIndexUpdates(indexOn_1_1);
 
         // THEN
-        assertNull(diffSets);
+        assertNull(added);
+    }
+
+    @Test
+    void shouldComputeIndexRemovedIdsOnEmptyTxState() {
+        // GIVEN
+        addNodesToIndex(indexOn_2_1).withDefaultStringProperties(42L);
+
+        // WHEN
+        UnmodifiableLongSet removed = state.getRemovedIndexEntityIds(indexOn_1_1);
+
+        // THEN
+        assertNull(removed);
     }
 
     @Test
@@ -348,13 +367,23 @@ class TxStateTest {
         addNodesToIndex(indexOn_1_1).withDefaultStringProperties(41L);
 
         // WHEN
-        UnmodifiableMap<ValueTuple, ? extends LongDiffSets> diffSets = state.getIndexUpdates(indexOn_1_1);
+        UnmodifiableMap<ValueTuple, MutableLongSet> added = state.getAddedIndexUpdates(indexOn_1_1);
+        UnmodifiableLongSet removedIds = state.getRemovedIndexEntityIds(indexOn_1_1);
 
         // THEN
-        assertNotNull(diffSets);
-        assertEqualDiffSets(addedNodes(42L), diffSets.get(ValueTuple.of(stringValue("value42"))));
-        assertEqualDiffSets(addedNodes(43L), diffSets.get(ValueTuple.of(stringValue("value43"))));
-        assertEqualDiffSets(addedNodes(41L), diffSets.get(ValueTuple.of(stringValue("value41"))));
+        assertNotNull(added);
+        assertThat(added.size()).isEqualTo(3);
+        assertThat(added.keySet())
+                .containsExactlyInAnyOrder(
+                        ValueTuple.of(stringValue("value41")),
+                        ValueTuple.of(stringValue("value43")),
+                        ValueTuple.of(stringValue("value42")));
+        assertThat(added.get(ValueTuple.of(stringValue("value41"))).toArray()).containsExactly(41L);
+        assertThat(added.get(ValueTuple.of(stringValue("value42"))).toArray()).containsExactly(42L);
+        assertThat(added.get(ValueTuple.of(stringValue("value43"))).toArray()).containsExactly(43L);
+
+        assertNotNull(removedIds);
+        assertThat(removedIds.toArray()).isEmpty();
     }
 
     @Test
@@ -365,15 +394,43 @@ class TxStateTest {
         addNodesToIndex(indexOn_1_1).withDefaultStringProperties(41L);
 
         // WHEN
-        NavigableMap<ValueTuple, ? extends LongDiffSets> diffSets = state.getSortedIndexUpdates(indexOn_1_1);
-
-        TreeMap<ValueTuple, LongDiffSets> expected = sortedAddedNodesDiffSets(42, 41, 43);
+        NavigableMap<ValueTuple, MutableLongSet> added = state.getSortedAddedIndexUpdates(indexOn_1_1);
         // THEN
-        assertNotNull(diffSets);
-        assertEquals(expected.keySet(), diffSets.keySet());
-        for (final ValueTuple key : expected.keySet()) {
-            assertEqualDiffSets(expected.get(key), diffSets.get(key));
-        }
+        assertNotNull(added);
+        assertThat(added.keySet())
+                .containsExactly(
+                        ValueTuple.of(stringValue("value41")),
+                        ValueTuple.of(stringValue("value42")),
+                        ValueTuple.of(stringValue("value43")));
+        assertThat(added.get(ValueTuple.of(stringValue("value41"))).toArray()).containsExactly(41L);
+        assertThat(added.get(ValueTuple.of(stringValue("value42"))).toArray()).containsExactly(42L);
+        assertThat(added.get(ValueTuple.of(stringValue("value43"))).toArray()).containsExactly(43L);
+    }
+
+    @Test
+    void shouldComputeIndexUpdatesOnTxStateWithAddedAndRemovedNodes() {
+        // GIVEN
+        addNodesToIndex(indexOn_1_1).withDefaultStringProperties(42L);
+        addNodesToIndex(indexOn_1_1).withDefaultStringProperties(43L);
+
+        state.indexDoUpdateEntry(indexOn_1_1, 40L, ValueTuple.of(stringValue("value40")), null);
+        state.indexDoUpdateEntry(indexOn_1_1, 41L, ValueTuple.of(stringValue("value41")), null);
+
+        // WHEN
+        UnmodifiableMap<ValueTuple, MutableLongSet> added = state.getAddedIndexUpdates(indexOn_1_1);
+        UnmodifiableLongSet removedIds = state.getRemovedIndexEntityIds(indexOn_1_1);
+
+        // THEN
+        assertNotNull(added);
+        assertThat(added.size()).isEqualTo(2);
+        assertThat(added.keySet())
+                .containsExactlyInAnyOrder(
+                        ValueTuple.of(stringValue("value43")), ValueTuple.of(stringValue("value42")));
+        assertThat(added.get(ValueTuple.of(stringValue("value42"))).toArray()).containsExactly(42L);
+        assertThat(added.get(ValueTuple.of(stringValue("value43"))).toArray()).containsExactly(43L);
+
+        assertNotNull(removedIds);
+        assertThat(removedIds.toArray()).containsExactlyInAnyOrder(40L, 41L);
     }
 
     @Test
@@ -1059,17 +1116,10 @@ class TxStateTest {
     }
 
     @Test
-    void getOrCreateIndexUpdatesForSeek_useCollectionsFactory() {
-        final MutableLongDiffSets diffSets =
-                state.getOrCreateIndexUpdatesForSeek(new HashMap<>(), ValueTuple.of(stringValue("test")));
+    void creatingIndexUpdateShouldBeMemoryTacked() {
         long memoryBefore = usedMemory();
-
-        diffSets.add(1);
-        diffSets.remove(2);
-
-        verify(collectionsFactory, times(2)).newLongSet(any());
+        state.indexDoUpdateEntry(indexOn_1_1, 0, ValueTuple.of(Values.intValue(1)), ValueTuple.of(Values.intValue(2)));
         assertThat(usedMemory()).isGreaterThan(memoryBefore);
-        verifyNoMoreInteractions(collectionsFactory);
     }
 
     @Test
@@ -1475,20 +1525,6 @@ class TxStateTest {
                 .isTrue();
     }
 
-    private LongDiffSets addedNodes(long... added) {
-        return new MutableLongDiffSetsImpl(
-                LongSets.mutable.of(added), LongSets.mutable.empty(), collectionsFactory, memoryTracker);
-    }
-
-    private TreeMap<ValueTuple, LongDiffSets> sortedAddedNodesDiffSets(long... added) {
-        TreeMap<ValueTuple, LongDiffSets> map = new TreeMap<>(ValueTuple.COMPARATOR);
-        for (long node : added) {
-
-            map.put(ValueTuple.of(stringValue("value" + node)), addedNodes(node));
-        }
-        return map;
-    }
-
     abstract class VisitationOrder extends TxStateVisitor.Adapter {
         private final Set<String> visitMethods = new HashSet<>();
 
@@ -1568,11 +1604,6 @@ class TxStateTest {
                 }
             }
         };
-    }
-
-    private static void assertEqualDiffSets(LongDiffSets expected, LongDiffSets actual) {
-        assertEquals(expected.getRemoved(), actual.getRemoved());
-        assertEquals(expected.getAdded(), actual.getAdded());
     }
 
     @FunctionalInterface

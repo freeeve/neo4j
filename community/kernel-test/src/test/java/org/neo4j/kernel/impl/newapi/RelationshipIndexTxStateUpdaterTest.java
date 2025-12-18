@@ -145,8 +145,8 @@ public class RelationshipIndexTxStateUpdaterTest extends IndexTxStateUpdaterTest
         indexTxUpdater.onPropertyRemove(relationship, propertyCursor, TYPE_ID, PROP_ID_2, PROPS, Values.of("hi2"));
 
         // THEN
-        verifyIndexUpdate(indexOn_2, REL_ID, values("hi2"), null);
-        verifyIndexUpdate(indexOn_2_3, REL_ID, values("hi2", "hi3"), null);
+        verifyIndexUpdate(indexOn_2, REL_ID, ValueTuple.of(Values.NO_VALUE), null);
+        verifyIndexUpdate(indexOn_2_3, REL_ID, ValueTuple.of(Values.NO_VALUE), null);
         verify(txState, times(2)).indexDoUpdateEntry(any(), anyLong(), any(), isNull());
     }
 

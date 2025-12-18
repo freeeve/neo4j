@@ -874,7 +874,7 @@ public class PlainOperationsTest extends OperationsTest {
         TokenSet labels = mock(TokenSet.class);
         when(labels.all()).thenReturn(new int[] {labelId1, labelId2});
         when(nodeCursor.labels()).thenReturn(labels);
-        when(propertyCursor.next()).thenReturn(true);
+        when(propertyCursor.next()).thenReturn(true, false);
         when(propertyCursor.propertyKey()).thenReturn(propertyKeyId);
         when(propertyCursor.propertyValue()).thenReturn(Values.of("abc"));
 

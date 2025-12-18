@@ -22,7 +22,9 @@ package org.neo4j.storageengine.api.txstate;
 import java.util.Iterator;
 import java.util.NavigableMap;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.UnmodifiableMap;
+import org.eclipse.collections.impl.set.mutable.primitive.UnmodifiableLongSet;
 import org.neo4j.collection.diffset.DiffSets;
 import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.collection.diffset.LongDiffSets;
@@ -123,19 +125,30 @@ public interface ReadableTransactionState extends VisitableTransactionState {
     // INDEX UPDATES
 
     /**
-     * A readonly view of all index updates for the provided schema. Returns {@code null}, if the index
-     * updates for this schema have not been initialized.
+     * @return {@code true} if there are updates for the provided schema.
      */
-    UnmodifiableMap<ValueTuple, ? extends LongDiffSets> getIndexUpdates(IndexDescriptor descriptor);
+    boolean hasIndexUpdates(IndexDescriptor descriptor);
 
     /**
-     * A readonly view of all index updates for the provided schema, in sorted order. The returned
+     * A readonly view of all index additions for the provided schema. Returns {@code null}, if the index
+     * updates for this schema have not been initialized.
+     */
+    UnmodifiableMap<ValueTuple, MutableLongSet> getAddedIndexUpdates(IndexDescriptor descriptor);
+
+    /**
+     * A readonly view of all index additions for the provided schema, in sorted order. The returned
      * Map is unmodifiable. Returns {@code null}, if the index updates for this schema have not been initialized.
      * <p>
-     * Ensure sorted index updates for a given index. This is needed for range query support and
-     * ay involve converting the existing hash map first.
+     * Ensure sorted index additions for a given index. This is needed for range query support and
+     * may involve converting the existing hash map first.
      */
-    NavigableMap<ValueTuple, ? extends LongDiffSets> getSortedIndexUpdates(IndexDescriptor descriptor);
+    NavigableMap<ValueTuple, MutableLongSet> getSortedAddedIndexUpdates(IndexDescriptor descriptor);
+
+    /**
+     * A readonly view of all entity ids with removals for the provided schema. Returns {@code null}, if the index
+     * updates for this schema have not been initialized.
+     */
+    UnmodifiableLongSet getRemovedIndexEntityIds(IndexDescriptor descriptor);
 
     // OTHER
 

@@ -111,17 +111,21 @@ public class IndexTxStateUpdater {
                     && isMultiTokenIndexStillCovered(node, removedLabelId, index)) {
                 continue;
             }
-            int[] indexPropertyIds = index.schema().getPropertyIds();
-            Value[] values = getValueTuple(
-                    node,
-                    propertyCursor,
-                    NO_SUCH_PROPERTY_KEY,
-                    NO_VALUE,
-                    indexPropertyIds,
-                    materializedProperties,
-                    memoryTracker);
-            ValueTuple valueTuple = ValueTuple.of(values);
-            memoryTracker.allocateHeap(valueTuple.getShallowSize());
+            Value[] values = null;
+            ValueTuple valueTuple = ValueTuple.of(NO_VALUE);
+            if (changeType == LabelChangeType.ADDED_LABEL || stateBehaviour.useIndexCommands()) {
+                int[] indexPropertyIds = index.schema().getPropertyIds();
+                values = getValueTuple(
+                        node,
+                        propertyCursor,
+                        NO_SUCH_PROPERTY_KEY,
+                        NO_VALUE,
+                        indexPropertyIds,
+                        materializedProperties,
+                        memoryTracker);
+                valueTuple = ValueTuple.of(values);
+                memoryTracker.allocateHeap(valueTuple.getShallowSize());
+            }
             switch (changeType) {
                 case ADDED_LABEL -> {
                     indexingService.validateBeforeCommit(index, values, node.nodeReference());
@@ -266,18 +270,21 @@ public class IndexTxStateUpdater {
             int[] propertyKeyIds) {
         MutableIntObjectMap<Value> materializedProperties = IntObjectMaps.mutable.empty();
         SchemaMatcher.onMatchingSchema(indexes.iterator(), propertyKeyId, propertyKeyIds, stateBehaviour, index -> {
-            MemoryTracker memoryTracker = txStateHolder.txState().memoryTracker();
-            SchemaDescriptor schema = index.schema();
-            Value[] values = getValueTuple(
-                    entity,
-                    propertyCursor,
-                    propertyKeyId,
-                    changedValue,
-                    schema.getPropertyIds(),
-                    materializedProperties,
-                    memoryTracker);
-            ValueTuple valueTuple = ValueTuple.of(values);
-            memoryTracker.allocateHeap(valueTuple.getShallowSize());
+            ValueTuple valueTuple = ValueTuple.of(NO_VALUE);
+            if (stateBehaviour.useIndexCommands()) {
+                MemoryTracker memoryTracker = txStateHolder.txState().memoryTracker();
+                SchemaDescriptor schema = index.schema();
+                Value[] values = getValueTuple(
+                        entity,
+                        propertyCursor,
+                        propertyKeyId,
+                        changedValue,
+                        schema.getPropertyIds(),
+                        materializedProperties,
+                        memoryTracker);
+                valueTuple = ValueTuple.of(values);
+                memoryTracker.allocateHeap(valueTuple.getShallowSize());
+            }
             txStateHolder.txState().indexDoUpdateEntry(index, entity.reference(), valueTuple, null);
         });
     }

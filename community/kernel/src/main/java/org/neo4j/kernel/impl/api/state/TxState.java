@@ -40,14 +40,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.TreeMap;
 import java.util.function.IntPredicate;
 import org.eclipse.collections.api.map.MutableMap;
 import org.eclipse.collections.api.map.primitive.LongObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.UnmodifiableMap;
+import org.eclipse.collections.impl.set.mutable.primitive.UnmodifiableLongSet;
 import org.neo4j.collection.diffset.ChangeCountingDiffSet;
 import org.neo4j.collection.diffset.DiffSets;
 import org.neo4j.collection.diffset.IntDiffSets;
@@ -130,7 +131,7 @@ public class TxState implements TransactionState {
 
     private MutableMap<IndexBackedConstraintDescriptor, IndexDescriptor> createdConstraintIndexesByConstraint;
 
-    private MutableMap<IndexDescriptor, Map<ValueTuple, MutableLongDiffSets>> indexUpdates;
+    private MutableMap<IndexDescriptor, IndexUpdate> indexUpdates;
     private Upgrade.KernelUpgrade upgrade;
     private TxStateVisitor.VectorStoreIdType vectorStoreToCreate;
 
@@ -255,14 +256,16 @@ public class TxState implements TransactionState {
         }
 
         if (behaviour.useIndexCommands() && indexUpdates != null) {
-            indexUpdates.forEachKeyValue((indexDescriptor, changes) -> changes.forEach((values, entityChanges) -> {
-                entityChanges
-                        .getAdded()
-                        .forEach(entityId -> visitor.visitValueIndexUpdate(indexDescriptor, entityId, values, ADDED));
-                entityChanges
-                        .getRemoved()
-                        .forEach(entityId -> visitor.visitValueIndexUpdate(indexDescriptor, entityId, values, REMOVED));
-            }));
+            indexUpdates.forEachKeyValue((indexDescriptor, indexUpdate) -> {
+                indexUpdate
+                        .getAddedValueEntries()
+                        .forEach((values, entityIds) -> entityIds.forEach(
+                                entityId -> visitor.visitValueIndexUpdate(indexDescriptor, entityId, values, ADDED)));
+                indexUpdate
+                        .getRemovedValueEntries()
+                        .forEachKeyValue((entityId, values) ->
+                                visitor.visitValueIndexUpdate(indexDescriptor, entityId, values, REMOVED));
+            });
         }
 
         if (vectorStoreToCreate != null) {
@@ -883,49 +886,44 @@ public class TxState implements TransactionState {
     }
 
     @Override
-    public UnmodifiableMap<ValueTuple, ? extends LongDiffSets> getIndexUpdates(IndexDescriptor indexDescriptor) {
-        if (indexUpdates == null) {
-            return null;
-        }
-        Map<ValueTuple, MutableLongDiffSets> updates = indexUpdates.get(indexDescriptor);
-        if (updates == null) {
-            return null;
-        }
-
-        return new UnmodifiableMap<>(updates);
+    public boolean hasIndexUpdates(IndexDescriptor descriptor) {
+        return getIndexUpdate(descriptor) != null;
     }
 
     @Override
-    public NavigableMap<ValueTuple, ? extends LongDiffSets> getSortedIndexUpdates(IndexDescriptor descriptor) {
+    public UnmodifiableMap<ValueTuple, MutableLongSet> getAddedIndexUpdates(IndexDescriptor descriptor) {
+        IndexUpdate updates = getIndexUpdate(descriptor);
+        return updates == null ? null : new UnmodifiableMap<>(updates.getAddedValueEntries());
+    }
+
+    @Override
+    public NavigableMap<ValueTuple, MutableLongSet> getSortedAddedIndexUpdates(IndexDescriptor descriptor) {
+        IndexUpdate updates = getIndexUpdate(descriptor);
+        return updates == null ? null : Collections.unmodifiableNavigableMap(updates.getSortedAddedValueEntries());
+    }
+
+    @Override
+    public UnmodifiableLongSet getRemovedIndexEntityIds(IndexDescriptor indexDescriptor) {
+        IndexUpdate updates = getIndexUpdate(indexDescriptor);
+        return updates == null ? null : new UnmodifiableLongSet(updates.getRemovedEntityIds());
+    }
+
+    private IndexUpdate getIndexUpdate(IndexDescriptor descriptor) {
         if (indexUpdates == null) {
             return null;
         }
-        Map<ValueTuple, MutableLongDiffSets> updates = indexUpdates.get(descriptor);
-        if (updates == null) {
-            return null;
-        }
-        TreeMap<ValueTuple, MutableLongDiffSets> sortedUpdates;
-        if (updates instanceof TreeMap) {
-            sortedUpdates = (TreeMap<ValueTuple, MutableLongDiffSets>) updates;
-        } else {
-            sortedUpdates = new TreeMap<>(ValueTuple.COMPARATOR);
-            sortedUpdates.putAll(updates);
-            indexUpdates.put(descriptor, sortedUpdates);
-        }
-        return Collections.unmodifiableNavigableMap(sortedUpdates);
+        return indexUpdates.get(descriptor);
     }
 
     @Override
     public void indexDoUpdateEntry(
             IndexDescriptor descriptor, long entityIdId, ValueTuple propertiesBefore, ValueTuple propertiesAfter) {
-        Map<ValueTuple, MutableLongDiffSets> updates = getOrCreateIndexUpdatesByDescriptor(descriptor);
+        IndexUpdate updates = getOrCreateIndexUpdatesByDescriptor(descriptor);
         if (propertiesBefore != null) {
-            MutableLongDiffSets before = getOrCreateIndexUpdatesForSeek(updates, propertiesBefore);
-            before.remove(entityIdId);
+            updates.removeEntry(propertiesBefore, entityIdId);
         }
         if (propertiesAfter != null) {
-            MutableLongDiffSets after = getOrCreateIndexUpdatesForSeek(updates, propertiesAfter);
-            after.add(entityIdId);
+            updates.addEntry(propertiesAfter, entityIdId);
         }
     }
 
@@ -948,17 +946,12 @@ public class TxState implements TransactionState {
         return stateMemoryTracker;
     }
 
-    @VisibleForTesting
-    MutableLongDiffSets getOrCreateIndexUpdatesForSeek(
-            Map<ValueTuple, MutableLongDiffSets> updates, ValueTuple values) {
-        return updates.computeIfAbsent(values, value -> newMutableLongDiffSets(collectionsFactory, stateMemoryTracker));
-    }
-
-    private Map<ValueTuple, MutableLongDiffSets> getOrCreateIndexUpdatesByDescriptor(IndexDescriptor indexDescriptor) {
+    private IndexUpdate getOrCreateIndexUpdatesByDescriptor(IndexDescriptor indexDescriptor) {
         if (indexUpdates == null) {
             indexUpdates = newMap(stateMemoryTracker);
         }
-        return indexUpdates.getIfAbsentPut(indexDescriptor, () -> newMap(stateMemoryTracker));
+        return indexUpdates.getIfAbsentPut(
+                indexDescriptor, () -> IndexUpdate.createIndexUpdate(behaviour, stateMemoryTracker));
     }
 
     private Map<IndexBackedConstraintDescriptor, IndexDescriptor> createdConstraintIndexesByConstraint() {

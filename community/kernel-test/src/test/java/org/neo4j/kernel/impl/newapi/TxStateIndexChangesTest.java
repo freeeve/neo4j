@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
-import static org.neo4j.collection.diffset.TrackableDiffSets.newMutableLongDiffSets;
 import static org.neo4j.kernel.impl.newapi.TxStateIndexChanges.indexUpdatesForBoundingBoxSeek;
 import static org.neo4j.kernel.impl.newapi.TxStateIndexChanges.indexUpdatesForRangeSeek;
 import static org.neo4j.kernel.impl.newapi.TxStateIndexChanges.indexUpdatesForRangeSeekByPrefix;
@@ -58,14 +57,15 @@ import java.util.Map;
 import java.util.TreeMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.LongIterable;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.UnmodifiableMap;
+import org.eclipse.collections.impl.set.mutable.primitive.UnmodifiableLongSet;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.mockito.Mockito;
-import org.neo4j.collection.diffset.MutableLongDiffSets;
-import org.neo4j.collection.factory.OnHeapCollectionsFactory;
+import org.neo4j.collection.trackable.HeapTrackingCollections;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
@@ -86,7 +86,7 @@ class TxStateIndexChangesTest {
     @Test
     void shouldComputeIndexUpdatesForScanOnAnEmptyTxState() {
         final ReadableTransactionState state = Mockito.mock(ReadableTransactionState.class);
-
+        doReturn(null).when(state).getAddedIndexUpdates(any(IndexDescriptor.class));
         // WHEN
         AddedAndRemoved changes = indexUpdatesForScan(state, index, IndexOrder.NONE);
         AddedWithValuesAndRemoved changesWithValues = indexUpdatesWithValuesForScan(state, index, IndexOrder.NONE);
@@ -819,6 +819,7 @@ class TxStateIndexChangesTest {
         void shouldSeekOnAnEmptyTxState() {
             // GIVEN
             final ReadableTransactionState state = Mockito.mock(ReadableTransactionState.class);
+            doReturn(null).when(state).getAddedIndexUpdates(any(IndexDescriptor.class));
 
             // WHEN
             AddedAndRemoved changes = indexUpdatesForSeek(state, compositeIndex, ValueTuple.of("43value1", "43value2"));
@@ -906,8 +907,8 @@ class TxStateIndexChangesTest {
             // THEN
             assertContains(changes.added(), 42L);
             assertContains(changesWithValues.added(), entityWithPropertyValues(42L, "42value1", "42value2"));
-            assertContains(changes.removed(), 44L);
-            assertContains(changesWithValues.removed(), 44L);
+            assertContains(changes.removed(), 43L, 44L);
+            assertContains(changesWithValues.removed(), 43L, 44L);
         }
 
         @Test
@@ -937,16 +938,18 @@ class TxStateIndexChangesTest {
 
             // THEN
             assertContains(changes42.added(), 42L);
-            assertTrue(changes42.removed().isEmpty());
-            assertTrue(changes43.isEmpty());
+            assertContains(changes42.removed(), 43L, 44L);
+            assertTrue(changes43.added().isEmpty());
+            assertContains(changes43.removed(), 43L, 44L);
             assertTrue(changes44.added().isEmpty());
-            assertContains(changes44.removed(), 44L);
+            assertContains(changes44.removed(), 43L, 44L);
 
             assertContains(changesWithValues42.added(), entityWithPropertyValues(42L, "42value1", "42value2"));
-            assertTrue(changesWithValues42.removed().isEmpty());
-            assertTrue(changesWithValues43.isEmpty());
+            assertContains(changes42.removed(), 43L, 44L);
+            assertFalse(changesWithValues43.added().iterator().hasNext());
+            assertContains(changesWithValues44.removed(), 43L, 44L);
             assertFalse(changesWithValues44.added().iterator().hasNext());
-            assertContains(changesWithValues44.removed(), 44L);
+            assertContains(changesWithValues44.removed(), 43L, 44L);
         }
 
         @Test
@@ -1187,32 +1190,35 @@ class TxStateIndexChangesTest {
     }
 
     private static class TxStateBuilder {
-        Map<ValueTuple, MutableLongDiffSets> updates = new HashMap<>();
+        Map<ValueTuple, MutableLongSet> additions = new HashMap<>();
+        MutableLongSet removals = HeapTrackingCollections.newLongSet(EmptyMemoryTracker.INSTANCE);
 
         TxStateBuilder withAdded(long id, Object... value) {
             final ValueTuple valueTuple = ValueTuple.of(value);
-            final MutableLongDiffSets changes = updates.computeIfAbsent(
-                    valueTuple,
-                    ignore -> newMutableLongDiffSets(OnHeapCollectionsFactory.INSTANCE, EmptyMemoryTracker.INSTANCE));
+            final MutableLongSet changes = additions.computeIfAbsent(
+                    valueTuple, ignore -> HeapTrackingCollections.newLongSet(EmptyMemoryTracker.INSTANCE));
             changes.add(id);
             return this;
         }
 
         TxStateBuilder withRemoved(long id, Object... value) {
             final ValueTuple valueTuple = ValueTuple.of(value);
-            final MutableLongDiffSets changes = updates.computeIfAbsent(
-                    valueTuple,
-                    ignore -> newMutableLongDiffSets(OnHeapCollectionsFactory.INSTANCE, EmptyMemoryTracker.INSTANCE));
-            changes.remove(id);
+            var list = additions.get(valueTuple);
+            if (list != null) {
+                list.remove(id);
+            }
+            removals.add(id);
             return this;
         }
 
         ReadableTransactionState build() {
             final ReadableTransactionState mock = Mockito.mock(ReadableTransactionState.class);
-            doReturn(new UnmodifiableMap<>(updates)).when(mock).getIndexUpdates(any(IndexDescriptor.class));
-            final TreeMap<ValueTuple, MutableLongDiffSets> sortedMap = new TreeMap<>(ValueTuple.COMPARATOR);
-            sortedMap.putAll(updates);
-            doReturn(sortedMap).when(mock).getSortedIndexUpdates(any(IndexDescriptor.class));
+            doReturn(new UnmodifiableMap<>(additions)).when(mock).getAddedIndexUpdates(any(IndexDescriptor.class));
+            final TreeMap<ValueTuple, MutableLongSet> sortedMap = new TreeMap<>(ValueTuple.COMPARATOR);
+            sortedMap.putAll(additions);
+            doReturn(sortedMap).when(mock).getSortedAddedIndexUpdates(any(IndexDescriptor.class));
+            doReturn(new UnmodifiableLongSet(removals)).when(mock).getRemovedIndexEntityIds(any(IndexDescriptor.class));
+            doReturn(additions != null || removals != null).when(mock).hasIndexUpdates(any(IndexDescriptor.class));
             return mock;
         }
     }
