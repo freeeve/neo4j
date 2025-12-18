@@ -70,6 +70,7 @@ import org.neo4j.kernel.impl.index.schema.CollectingIndexUpdater;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.LazyValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -112,7 +113,15 @@ class IndexCRUDIT {
             IndexDescriptor indexDescriptor =
                     ktx.schemaRead().indexesGetForLabel(label).next();
             assertThat(writer.updatesCommitted)
-                    .isEqualTo(asSet(EagerValueIndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value1))));
+                    .satisfiesAnyOf(
+                            w -> assertThat(w)
+                                    .isEqualTo(asSet(EagerValueIndexEntryUpdate.add(
+                                            node.getId(), indexDescriptor, Values.of(value1)))),
+                            w -> assertThat(w)
+                                    .isEqualTo(asSet(LazyValueIndexEntryUpdate.add(
+                                            node.getId(),
+                                            indexDescriptor,
+                                            LazyValueIndexEntryUpdate.ValueSupplier.constant(Values.of(value1))))));
             tx.commit();
         }
         // We get two updates because we both add a label and a property to be indexed
@@ -131,14 +140,15 @@ class IndexCRUDIT {
         String otherProperty = "otherProperty";
         int value = 12;
         int otherValue = 17;
-        Node node = createNode(map(indexProperty, value, otherProperty, otherValue));
+        long nodeId =
+                createNode(map(indexProperty, value, otherProperty, otherValue)).getId();
 
         // THEN
         assertThat(writer.updatesCommitted).hasSize(0);
 
         // AND WHEN
         try (Transaction tx = db.beginTx()) {
-            node = tx.getNodeById(node.getId());
+            Node node = tx.getNodeById(nodeId);
             node.addLabel(myLabel);
             tx.commit();
         }
@@ -151,7 +161,15 @@ class IndexCRUDIT {
             IndexDescriptor indexDescriptor =
                     ktx.schemaRead().indexesGetForLabel(label).next();
             assertThat(writer.updatesCommitted)
-                    .isEqualTo(asSet(EagerValueIndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value))));
+                    .satisfiesAnyOf(
+                            w -> assertThat(w)
+                                    .isEqualTo(asSet(
+                                            EagerValueIndexEntryUpdate.add(nodeId, indexDescriptor, Values.of(value)))),
+                            w -> assertThat(w)
+                                    .isEqualTo(asSet(LazyValueIndexEntryUpdate.add(
+                                            nodeId,
+                                            indexDescriptor,
+                                            LazyValueIndexEntryUpdate.ValueSupplier.constant(Values.of(value))))));
             tx.commit();
         }
     }

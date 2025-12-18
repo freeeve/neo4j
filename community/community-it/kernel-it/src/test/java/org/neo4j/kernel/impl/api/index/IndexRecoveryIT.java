@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.api.index;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doReturn;
@@ -91,6 +90,7 @@ import org.neo4j.kernel.recovery.RecoveryMonitor;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.LazyValueIndexEntryUpdate;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
@@ -355,7 +355,7 @@ class IndexRecoveryIT {
         // rotate logs
         rotateLogsAndCheckPoint();
         // make updates
-        Set<IndexEntryUpdate> expectedUpdates = createSomeBananas(myLabel, index);
+        EL expectedUpdates = createSomeBananas(myLabel, index);
 
         // And Given
         killDb();
@@ -400,7 +400,9 @@ class IndexRecoveryIT {
                         any(ElementIdMapper.class),
                         any(),
                         any());
-        assertEquals(expectedUpdates, writer.batchedUpdates);
+        assertThat(writer.batchedUpdates)
+                .satisfiesAnyOf(w -> assertThat(w).isEqualTo(expectedUpdates.eager()), w -> assertThat(w)
+                        .isEqualTo(expectedUpdates.lazy()));
     }
 
     @Test
@@ -554,16 +556,21 @@ class IndexRecoveryIT {
         }
     }
 
-    private Set<IndexEntryUpdate> createSomeBananas(Label label, IndexDescriptor index) {
-        Set<IndexEntryUpdate> updates = new HashSet<>();
+    private record EL(Set<EagerValueIndexEntryUpdate> eager, Set<LazyValueIndexEntryUpdate> lazy) {}
+
+    private EL createSomeBananas(Label label, IndexDescriptor index) {
+        Set<EagerValueIndexEntryUpdate> eagerUpdates = new HashSet<>();
+        Set<LazyValueIndexEntryUpdate> lazyUpdates = new HashSet<>();
         try (Transaction tx = db.beginTx()) {
             for (int number : new int[] {4, 10}) {
                 Node node = tx.createNode(label);
                 node.setProperty(key, number);
-                updates.add(EagerValueIndexEntryUpdate.add(node.getId(), index, Values.of(number)));
+                eagerUpdates.add(EagerValueIndexEntryUpdate.add(node.getId(), index, Values.of(number)));
+                lazyUpdates.add(LazyValueIndexEntryUpdate.add(
+                        node.getId(), index, LazyValueIndexEntryUpdate.ValueSupplier.constant(Values.of(number))));
             }
             tx.commit();
-            return updates;
+            return new EL(eagerUpdates, lazyUpdates);
         }
     }
 
