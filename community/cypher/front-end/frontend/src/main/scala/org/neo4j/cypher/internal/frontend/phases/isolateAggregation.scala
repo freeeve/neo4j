@@ -182,7 +182,7 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
     Namespacer.completed
   )
 
-  override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(AggregationsAreIsolated))
+  override def postConditions: Set[StepSequencer.Condition] = Set(AggregationsAreIsolated)
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set(
     // Can introduces new ambiguous variable names itself.

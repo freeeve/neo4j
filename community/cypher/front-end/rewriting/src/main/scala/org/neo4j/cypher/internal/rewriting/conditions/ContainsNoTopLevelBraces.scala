@@ -17,15 +17,11 @@
 package org.neo4j.cypher.internal.rewriting.conditions
 
 import org.neo4j.cypher.internal.ast.TopLevelBraces
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
-import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.ASTNode
 
-case object ContainsNoTopLevelBraces extends ValidatingCondition {
+case object ContainsNoTopLevelBraces extends ContainsNoMatchingStatementNodes {
 
-  private val matcher = ContainsNoMatchingNodes({ case _: TopLevelBraces => "TopLevelBraces(...)" })
+  override val matcher: PartialFunction[ASTNode, String] = { case _: TopLevelBraces => "TopLevelBraces(...)" }
 
-  override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] =
-    matcher.check(that)(cancellationChecker)
-
-  override def name: String = productPrefix
+  override val name: String = "NoTopLevelBraces"
 }

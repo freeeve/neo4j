@@ -21,16 +21,18 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager
 
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
+import org.neo4j.cypher.internal.rewriting.LogicalPlanValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 
 /**
  * Checks that [[EagernessReason.Conflict]]s reference only valid plan IDs.
  */
-case object ConflictsReferenceValidIds extends ValidatingCondition {
+case object ConflictsReferenceValidIds extends LogicalPlanValidatingCondition[LogicalPlan] {
 
-  override def apply(a: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
+  override def targetClass: Class[LogicalPlan] = classOf[LogicalPlan]
+
+  override def check(a: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
     // Using flatten instead of treeCollect to explicitly exclude IDs in nested plan expressions and such.
     val ids = (a match {
       case lp: LogicalPlan => lp.flatten(cancellationChecker).map(_.id)

@@ -16,11 +16,11 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
-import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.Step
@@ -66,29 +66,42 @@ object RewriterStep {
   }
 }
 
-trait ValidatingCondition extends StepSequencer.Condition {
+// The base state contains a lot of information that the validating conditions don't need to check.
+// Use this limited validating condition to only check the relevant parts of the state.
+sealed trait ValidatingCondition extends StepSequencer.Condition {
   def apply(a: Any)(cancellationChecker: CancellationChecker): Seq[String]
   def name: String
   override def toString(): String = name
 }
 
-trait LimitedValidatingCondition extends ValidatingCondition {
+// Equivalent to old validating condition - refrain from using as it traverses the whole state
+trait StateValidatingCondition extends ValidatingCondition
 
-  // The base state contains a lot of information that the validating conditions don't need to check.
-  // Use this limited validating condition to only check the relevant parts of the state.
+trait StatementValidatingCondition extends ValidatingCondition {
+
   override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
     that.folder(cancellationChecker).treeFold(Seq.empty[String]) {
-      case state: SimpleState => acc =>
-          val statement = check(state.maybeStatement)(cancellationChecker)
-          val semantics = check(state.maybeSemantics)(cancellationChecker)
-          SkipChildren(acc ++ statement ++ semantics)
-      case x => acc =>
-          val checked = check(x)(cancellationChecker)
-          if (checked.nonEmpty) SkipChildren(checked)
-          else TraverseChildren(acc)
+      case state: SimpleBaseState => acc =>
+          SkipChildren(acc ++ check(state.maybeStatement)(cancellationChecker))
+      case ast: ASTNode => acc => SkipChildren(acc ++ check(ast)(cancellationChecker))
     }
   }
 
   def check(a: Any)(cancellationChecker: CancellationChecker): Seq[String]
+}
 
+trait LogicalPlanValidatingCondition[T] extends ValidatingCondition {
+  def targetClass: Class[T]
+
+  override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
+    that.folder(cancellationChecker).treeFold(Seq.empty[String]) {
+      case state: SimplePlanState => acc =>
+          SkipChildren(acc ++ check(state.maybeLogicalPlan.get)(cancellationChecker))
+      case target if targetClass.isInstance(target) =>
+        acc =>
+          SkipChildren(acc ++ check(target)(cancellationChecker))
+    }
+  }
+
+  def check(a: Any)(cancellationChecker: CancellationChecker): Seq[String]
 }

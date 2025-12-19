@@ -32,5 +32,5 @@ case object ExpandStarRewriter extends Phase[BaseContext, BaseState, BaseState] 
     from.withStatement(from.statement().endoRewrite(ExpandStar(from.semantics())))
 
   override def postConditions: Set[StepSequencer.Condition] =
-    Set(StatementCondition(ContainsNoReturnAll))
+    Set(ContainsNoReturnAll)
 }

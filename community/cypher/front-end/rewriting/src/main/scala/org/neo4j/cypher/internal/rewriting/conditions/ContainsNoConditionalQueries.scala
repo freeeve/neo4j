@@ -18,18 +18,14 @@ package org.neo4j.cypher.internal.rewriting.conditions
 
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
-import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.ASTNode
 
-case object ContainsNoConditionalQueries extends ValidatingCondition {
+case object ContainsNoConditionalQueries extends ContainsNoMatchingStatementNodes {
 
-  private val matcher = ContainsNoMatchingNodes({
+  override val matcher: PartialFunction[ASTNode, String] = {
     case _: ConditionalQueryWhen   => "ConditionalQueryWhen(...)"
     case _: ConditionalQueryBranch => "ConditionalQueryBranch(...)"
-  })
+  }
 
-  override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] =
-    matcher.check(that)(cancellationChecker)
-
-  override def name: String = productPrefix
+  override val name: String = "NoConditionalQueries"
 }

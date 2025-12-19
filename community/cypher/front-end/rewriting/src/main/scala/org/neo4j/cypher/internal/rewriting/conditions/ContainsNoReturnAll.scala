@@ -18,18 +18,14 @@ package org.neo4j.cypher.internal.rewriting.conditions
 
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
-import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.ASTNode
 
-case object ContainsNoReturnAll extends ValidatingCondition {
+case object ContainsNoReturnAll extends ContainsNoMatchingStatementNodes {
 
-  private val matcher = ContainsNoMatchingNodes({
+  override val matcher: PartialFunction[ASTNode, String] = {
     case ri: ReturnItems if ri.includeExisting            => "ReturnItems(includeExisting = true, ...)"
     case sq: ScopeClauseSubqueryCall if sq.isImportingAll => "ScopeClauseSubqueryCall(isImportingAll = true, ...)"
-  })
+  }
 
-  override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] =
-    matcher.check(that)(cancellationChecker)
-
-  override def name: String = productPrefix
+  override val name: String = "NoReturnAll"
 }

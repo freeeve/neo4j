@@ -23,12 +23,10 @@ import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
 import org.neo4j.cypher.internal.frontend.phases.Phase
-import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.RewriterStep
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandShowWhere
@@ -86,10 +84,7 @@ case object PreparatoryRewriting extends Phase[BaseContext, BaseState, BaseState
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set(UpToDateScopes)
 
-  override def postConditions: Set[StepSequencer.Condition] = _postConditions.map {
-    case v: ValidatingCondition => StatementCondition(v)
-    case c                      => c
-  } + SemanticAnalysisPossible
+  override def postConditions: Set[StepSequencer.Condition] = _postConditions + SemanticAnalysisPossible
 
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,

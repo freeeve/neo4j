@@ -26,11 +26,18 @@ import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
+case object TestCondition extends ContainsNoMatchingStatementNodes {
+
+  override val matcher: PartialFunction[ASTNode, String] = {
+    case ri: ReturnItems if ri.includeExisting => "ReturnItems(includeExisting = true, ...)"
+  }
+
+  override val name: String = "NoMatchingNodesTest"
+}
+
 class ContainsNoMatchingNodesTest extends CypherFunSuite with AstConstructionTestSupport {
 
-  val condition: Any => Seq[String] = ContainsNoMatchingNodes({
-    case ri: ReturnItems if ri.includeExisting => "ReturnItems(includeExisting = true, ...)"
-  })(_)(CancellationChecker.NeverCancelled)
+  val condition: Any => Seq[String] = TestCondition(_)(CancellationChecker.NeverCancelled)
 
   test("Happy when not finding ReturnItems(includeExisting = true, ...)") {
     val ast: ASTNode = Return(

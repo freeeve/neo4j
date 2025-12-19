@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
-import org.neo4j.cypher.internal.rewriting.LimitedValidatingCondition
+import org.neo4j.cypher.internal.rewriting.StatementValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -38,7 +38,7 @@ import scala.collection.mutable.ListBuffer
  * Validates that the parser has used relevant symbolic names in all the label expressions, based on their context.
  * For example, a node pattern should only contain label names and no relationship type names.
  */
-object ValidSymbolicNamesInLabelExpressions extends LimitedValidatingCondition {
+case object ValidSymbolicNamesInLabelExpressions extends StatementValidatingCondition {
   override def name: String = "Valid symbolic names in label expressions"
 
   override def check(ast: Any)(cancellationChecker: CancellationChecker): Seq[String] =

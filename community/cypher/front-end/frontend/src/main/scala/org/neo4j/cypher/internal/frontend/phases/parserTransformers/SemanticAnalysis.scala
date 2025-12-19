@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.SEMANTIC_CHECK
 import org.neo4j.cypher.internal.frontend.phases.If
 import org.neo4j.cypher.internal.frontend.phases.Phase
-import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
@@ -125,7 +124,7 @@ case object SemanticAnalysis extends StepSequencer.Step with ParsePipelineTransf
 
   override def postConditions: Set[StepSequencer.Condition] = Set(
     BaseContains[SemanticState](),
-    StatementCondition(ContainsNoNodesOfType[UnaliasedReturnItem]()),
+    ContainsNoNodesOfType[UnaliasedReturnItem](),
     BaseContains[SemanticTable](),
     ExpressionsHaveComputedDependencies
   ) ++ SemanticInfoAvailable

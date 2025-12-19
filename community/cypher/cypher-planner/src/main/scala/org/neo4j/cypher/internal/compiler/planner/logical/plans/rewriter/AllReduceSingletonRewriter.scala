@@ -34,10 +34,9 @@ import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
-import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoMatchingNodes
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoMatchingPlanNodes
+import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.IdGen
 import org.neo4j.cypher.internal.util.attribution.SameId
@@ -164,14 +163,11 @@ case class AllReduceSingletonRewriter(
   override def apply(input: AnyRef): AnyRef = innerRewriter(input)
 }
 
-case object NoAllReducePredicatesLeft extends ValidatingCondition {
+case object NoAllReducePredicatesLeft extends ContainsNoMatchingPlanNodes {
 
-  private val matcher = ContainsNoMatchingNodes({
+  override val matcher: PartialFunction[ASTNode, String] = {
     case _: AllReduceSingletonPredicate => "AllReduceSingletonPredicate(...)"
-  })
+  }
+  override val name: String = "NoAllReducePredicatesLeft"
 
-  override def apply(a: Any)(cancellationChecker: CancellationChecker): Seq[String] =
-    matcher(a)(cancellationChecker)
-
-  override def name: String = "NoAllReducePredicatesLeft"
 }

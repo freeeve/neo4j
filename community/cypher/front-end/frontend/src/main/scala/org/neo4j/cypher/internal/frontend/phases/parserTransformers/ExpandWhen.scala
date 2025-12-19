@@ -44,7 +44,6 @@ import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
@@ -98,9 +97,9 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
     getRewriter(from.semantics(), from.anonymousVariableNameGenerator)
 
   override def preConditions: Set[Condition] =
-    Set(ProjectionClausesHaveSemanticInfo, StatementCondition(ContainsNoNextStatements))
+    Set(ProjectionClausesHaveSemanticInfo, ContainsNoNextStatements)
 
-  override def postConditions: Set[Condition] = Set(StatementCondition(ContainsNoConditionalQueries))
+  override def postConditions: Set[Condition] = Set(ContainsNoConditionalQueries)
 
   override def invalidatedConditions: Set[Condition] =
     Set(ProjectionClausesHaveSemanticInfo, ContainsNoReturnAll, UpToDateScopes)

@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
 import org.neo4j.cypher.internal.frontend.phases.Phase
-import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
@@ -69,8 +68,7 @@ case object AstRewriting extends StepSequencer.Step with ParsePipelineTransforme
   // noReferenceEqualityAmongVariables is broken by later phases, e.g. Namespacer.
   // This can be fixed in a subsequent investigation.
   override def postConditions: Set[StepSequencer.Condition] =
-    (ASTRewriter.postConditions - NoReferenceEqualityAmongVariables)
-      .map(StatementCondition.wrap)
+    ASTRewriter.postConditions - NoReferenceEqualityAmongVariables
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable + UpToDateScopes
 

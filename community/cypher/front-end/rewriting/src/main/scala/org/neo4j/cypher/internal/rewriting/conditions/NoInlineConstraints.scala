@@ -19,10 +19,10 @@ package org.neo4j.cypher.internal.rewriting.conditions
 import org.neo4j.cypher.internal.ast.EdgeType
 import org.neo4j.cypher.internal.ast.GraphTypeEntry
 import org.neo4j.cypher.internal.ast.NodeType
-import org.neo4j.cypher.internal.rewriting.LimitedValidatingCondition
+import org.neo4j.cypher.internal.rewriting.StatementValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 
-case object NoInlineConstraints extends LimitedValidatingCondition {
+case object NoInlineConstraints extends StatementValidatingCondition {
 
   override def check(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
     val graphTypeElements = CollectNodesOfType[GraphTypeEntry]().apply(that)(cancellationChecker)

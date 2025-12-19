@@ -55,7 +55,6 @@ import org.neo4j.cypher.internal.expressions.functions.Count
 import org.neo4j.cypher.internal.expressions.functions.Range
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
@@ -122,10 +121,10 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
   override def preConditions: Set[Condition] =
     Set(ProjectionClausesHaveSemanticInfo, SubqueriesInMutatingPatternsIsolated)
 
-  override def postConditions: Set[Condition] = Set(StatementCondition(ContainsNoNextStatements))
+  override def postConditions: Set[Condition] = Set(ContainsNoNextStatements)
 
   override def invalidatedConditions: Set[Condition] =
-    Set(ProjectionClausesHaveSemanticInfo, StatementCondition(ContainsNoReturnAll), UpToDateScopes)
+    Set(ProjectionClausesHaveSemanticInfo, ContainsNoReturnAll, UpToDateScopes)
 
   def getRewriter(
     state: SemanticState,

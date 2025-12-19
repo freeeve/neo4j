@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.LOGICAL_PLANNING
 import org.neo4j.cypher.internal.frontend.phases.Namespacer
 import org.neo4j.cypher.internal.frontend.phases.Phase
-import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
@@ -89,13 +88,13 @@ case object CreatePlannerQuery extends StepSequencer.Step with PlanPipelineTrans
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     // We would get MatchErrors if the first 3 conditions would not be met.
-    StatementCondition(ContainsNamedPathOnlyForShortestPath),
-    StatementCondition(ContainsNoNodesOfType[UnionAll]()),
-    StatementCondition(ContainsNoNodesOfType[UnionDistinct]()),
+    ContainsNamedPathOnlyForShortestPath,
+    ContainsNoNodesOfType[UnionAll](),
+    ContainsNoNodesOfType[UnionDistinct](),
     // The PlannerQuery we create should already contain disambiguated names
     Namespacer.completed,
     // and we want to take advantage of isolated aggregations in the planner
-    StatementCondition(AggregationsAreIsolated),
+    AggregationsAreIsolated,
     collapseMultipleInPredicates.completed
   ) ++
     // The PlannerQuery should be created based on normalised predicates

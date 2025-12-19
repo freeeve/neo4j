@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
 import org.neo4j.cypher.internal.frontend.phases.Phase
-import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
@@ -69,7 +68,7 @@ case object ReplacePatternComprehensionWithCollectSubqueryRewriter extends Phase
   ) ++ SemanticInfoAvailable
 
   override def postConditions: Set[StepSequencer.Condition] =
-    Set(StatementCondition(ContainsNoNodesOfType[PatternComprehension]()))
+    Set(ContainsNoNodesOfType[PatternComprehension]())
 
   override def invalidatedConditions: Set[StepSequencer.Condition] =
     Set(

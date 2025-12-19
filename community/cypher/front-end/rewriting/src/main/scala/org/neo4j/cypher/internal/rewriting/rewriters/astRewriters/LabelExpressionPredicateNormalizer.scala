@@ -19,11 +19,11 @@ package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
-import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoMatchingNodes
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoMatchingStatementNodes
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LabelExpressionNormalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactory
+import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Rewriter
@@ -31,16 +31,13 @@ import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 import org.neo4j.cypher.internal.util.topDown
 
-case object containsNoLabelExpressionPredicates extends ValidatingCondition {
+case object containsNoLabelExpressionPredicates extends ContainsNoMatchingStatementNodes {
 
-  private val matcher = ContainsNoMatchingNodes({
+  override val matcher: PartialFunction[ASTNode, String] = {
     case pattern: LabelExpressionPredicate => pattern.asCanonicalStringVal
-  })
+  }
 
-  override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] =
-    matcher.check(that)(cancellationChecker)
-
-  override def name: String = productPrefix
+  override val name: String = "NoLabelExpressionPredicates"
 }
 
 case object LabelExpressionPredicateNormalizer extends StepSequencer.Step with ASTRewriterFactory {

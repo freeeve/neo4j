@@ -20,12 +20,12 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
+import org.neo4j.cypher.internal.rewriting.StateValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 
 import scala.reflect.ClassTag
 
-case class BaseContains[T]()(implicit val tag: ClassTag[T]) extends ValidatingCondition {
+case class BaseContains[T]()(implicit val tag: ClassTag[T]) extends StateValidatingCondition {
 
   private val acceptableTypes: Set[Class[_]] = Set(
     classOf[Statement],

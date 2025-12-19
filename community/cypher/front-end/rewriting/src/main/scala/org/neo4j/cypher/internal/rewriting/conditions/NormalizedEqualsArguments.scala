@@ -21,10 +21,10 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.functions.Function.isIdFunction
-import org.neo4j.cypher.internal.rewriting.LimitedValidatingCondition
+import org.neo4j.cypher.internal.rewriting.StatementValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 
-case object NormalizedEqualsArguments extends LimitedValidatingCondition {
+case object NormalizedEqualsArguments extends StatementValidatingCondition {
 
   override def check(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
     val equals = CollectNodesOfType[Equals]().apply(that)(cancellationChecker)

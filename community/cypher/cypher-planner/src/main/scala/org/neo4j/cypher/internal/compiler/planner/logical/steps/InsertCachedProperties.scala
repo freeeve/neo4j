@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.phases.CompilationContains
-import org.neo4j.cypher.internal.compiler.phases.LogicalPlanCondition
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.AndedPropertyInequalitiesRemoved
@@ -496,7 +495,7 @@ case object InsertCachedProperties extends StepSequencer.Step with DefaultPostCo
   )
 
   override def postConditions: Set[StepSequencer.Condition] =
-    super.postConditions ++ Seq(LogicalPlanCondition(OrderedIndexPlansUseCachedProperties), CachedPropertiesInserted)
+    super.postConditions ++ Seq(OrderedIndexPlansUseCachedProperties, CachedPropertiesInserted)
 
   override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig)
     : Transformer[PlannerContext, LogicalPlanState, LogicalPlanState] =

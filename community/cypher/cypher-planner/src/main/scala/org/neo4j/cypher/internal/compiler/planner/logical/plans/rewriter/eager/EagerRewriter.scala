@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.defaultUpdateStrategy
 import org.neo4j.cypher.internal.compiler.eagerUpdateStrategy
 import org.neo4j.cypher.internal.compiler.phases.CompilationContains
-import org.neo4j.cypher.internal.compiler.phases.LogicalPlanCondition
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CompressPlanIDs
@@ -139,7 +138,7 @@ case object EagerRewriter extends Phase[PlannerContext, LogicalPlanState, Logica
   override def postConditions: Set[StepSequencer.Condition] = Set(
     LogicalPlanContainsEagerIfNeeded,
     LogicalPlanContainsIDReferences,
-    LogicalPlanCondition(ConflictsReferenceValidIds)
+    ConflictsReferenceValidIds
   )
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set(

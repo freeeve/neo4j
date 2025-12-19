@@ -40,7 +40,6 @@ import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.ParsingConfig
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.parsing
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.planPipeLine
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.prepareForCaching
-import org.neo4j.cypher.internal.compiler.phases.LogicalPlanCondition
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2.QueryGraphSolverWithIDPConnectComponents
@@ -201,7 +200,7 @@ object LogicalPlanningTestSupport2 extends MockitoSugar {
 
     override def invalidatedConditions: Set[StepSequencer.Condition] = Set(
       // When different variables share the same name, OrderedIndexPlansUseCachedProperties can report false positives.
-      LogicalPlanCondition(OrderedIndexPlansUseCachedProperties)
+      OrderedIndexPlansUseCachedProperties
     )
   }
 

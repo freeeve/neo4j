@@ -19,14 +19,14 @@ package org.neo4j.cypher.internal.rewriting.conditions
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.ShortestPathExpression
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
+import org.neo4j.cypher.internal.rewriting.StatementValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 
-case object NoUnnamedNodesAndRelationships extends ValidatingCondition {
+case object NoUnnamedNodesAndRelationships extends StatementValidatingCondition {
 
-  override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
+  override def check(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
     that.folder(cancellationChecker).treeFold(Seq.empty[String]) {
       // We do not name nodes in relationships in shortest path expression
       case _: ShortestPathExpression => acc => SkipChildren(acc)

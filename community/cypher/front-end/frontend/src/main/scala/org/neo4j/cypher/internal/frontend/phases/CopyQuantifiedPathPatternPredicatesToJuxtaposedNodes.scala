@@ -32,7 +32,7 @@ case object CopyQuantifiedPathPatternPredicatesToJuxtaposedNodes
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     ExpressionsHaveComputedDependencies,
-    StatementCondition.wrap(NoUnnamedNodesAndRelationships),
+    NoUnnamedNodesAndRelationships,
     QuantifiedPathPatternNodeInsertRewriter.completed,
     NormalizePredicates.completed,
     AndRewrittenToAnds,

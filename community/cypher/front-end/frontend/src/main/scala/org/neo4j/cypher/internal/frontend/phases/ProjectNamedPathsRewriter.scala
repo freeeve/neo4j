@@ -37,15 +37,15 @@ case object ProjectNamedPathsRewriter extends Phase[BaseContext, BaseState, Base
     from.withStatement(from.statement().endoRewrite(ProjectNamedPaths))
 
   override def preConditions: Set[StepSequencer.Condition] =
-    ProjectNamedPaths.preConditions.map(StatementCondition.wrap) ++ Set(
+    ProjectNamedPaths.preConditions ++ Set(
       Namespacer.completed,
       // Pattern comprehensions must have been rewritten to COLLECT,
       // since this rewriter does not match on named paths in pattern comprehensions.
-      StatementCondition(ContainsNoNodesOfType[PatternComprehension]())
+      ContainsNoNodesOfType[PatternComprehension]()
     )
 
   override def postConditions: Set[StepSequencer.Condition] =
-    ProjectNamedPaths.postConditions.map(StatementCondition.wrap)
+    ProjectNamedPaths.postConditions
 
   override def invalidatedConditions: Set[StepSequencer.Condition] =
     SemanticInfoAvailable +

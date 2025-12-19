@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
@@ -96,10 +95,10 @@ case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTra
   override def preConditions: Set[StepSequencer.Condition] =
     Set(
       BaseContains[SemanticTable](),
-      StatementCondition(ContainsNoNextStatements)
+      ContainsNoNextStatements
     )
 
-  override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(ContainsNoTopLevelBraces))
+  override def postConditions: Set[StepSequencer.Condition] = Set(ContainsNoTopLevelBraces)
 
   override def invalidatedConditions: Set[StepSequencer.Condition] =
     Set(ContainsNoReturnAll, ProjectionClausesHaveSemanticInfo, UpToDateScopes)

@@ -17,9 +17,11 @@
 package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.semantics.SemanticState
 
-trait SimpleState {
+trait SimpleBaseState {
   def maybeStatement: Option[Statement]
-  def maybeSemantics: Option[SemanticState]
+}
+
+trait SimplePlanState {
+  def maybeLogicalPlan: Option[Any]
 }

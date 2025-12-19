@@ -16,14 +16,14 @@
  */
 package org.neo4j.cypher.internal.rewriting.conditions
 
-import org.neo4j.cypher.internal.rewriting.LimitedValidatingCondition
+import org.neo4j.cypher.internal.rewriting.StatementValidatingCondition
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 
 import scala.reflect.ClassTag
 
-case class ContainsNoNodesOfType[T <: ASTNode]()(implicit val tag: ClassTag[T]) extends LimitedValidatingCondition {
+case class ContainsNoNodesOfType[T <: ASTNode]()(implicit val tag: ClassTag[T]) extends StatementValidatingCondition {
 
   override def check(that: Any)(cancellationChecker: CancellationChecker): Seq[String] =
     that

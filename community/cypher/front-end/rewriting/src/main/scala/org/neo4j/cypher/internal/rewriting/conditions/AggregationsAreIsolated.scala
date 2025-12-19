@@ -19,12 +19,12 @@ package org.neo4j.cypher.internal.rewriting.conditions
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IsAggregate
-import org.neo4j.cypher.internal.rewriting.LimitedValidatingCondition
+import org.neo4j.cypher.internal.rewriting.StatementValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 
-case object AggregationsAreIsolated extends LimitedValidatingCondition {
+case object AggregationsAreIsolated extends StatementValidatingCondition {
 
   override def check(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
     that.folder(cancellationChecker).treeFold(Seq.empty[String]) {

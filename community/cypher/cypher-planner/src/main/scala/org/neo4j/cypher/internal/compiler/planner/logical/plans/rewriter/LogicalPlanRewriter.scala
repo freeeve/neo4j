@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.compiler.phases.CompilationContains
-import org.neo4j.cypher.internal.compiler.phases.LogicalPlanCondition
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.phases.ValidateAvailableSymbols
@@ -211,7 +210,7 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
     LogicalPlanRewritten,
     // This belongs to simplifyPredicates
     AndedPropertyInequalitiesRemoved,
-    LogicalPlanCondition.wrap(ValidateAvailableSymbols),
+    ValidateAvailableSymbols,
     NoAllReducePredicatesLeft
   )
 

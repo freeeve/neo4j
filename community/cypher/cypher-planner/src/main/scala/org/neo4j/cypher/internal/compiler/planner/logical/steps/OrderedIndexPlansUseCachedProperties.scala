@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.UpdatingPlan
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
+import org.neo4j.cypher.internal.rewriting.LogicalPlanValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -52,7 +52,9 @@ import org.neo4j.cypher.internal.util.InputPosition
  * This analysis won't detect all edge cases, as it would otherwise reimplement large parts of the
  * InsertCachedProperties logic. E.g. it does not recognize the `properties` function, or renamings of variables.
  */
-case object OrderedIndexPlansUseCachedProperties extends ValidatingCondition {
+case object OrderedIndexPlansUseCachedProperties extends LogicalPlanValidatingCondition[LogicalPlan] {
+
+  override def targetClass: Class[LogicalPlan] = classOf[LogicalPlan]
 
   private val expressionStringifier = ExpressionStringifier()
 
@@ -62,7 +64,7 @@ case object OrderedIndexPlansUseCachedProperties extends ValidatingCondition {
     Property(idName, PropertyKeyName(indexedProperty.propertyKeyToken.name)(InputPosition.NONE))(InputPosition.NONE)
   }
 
-  override def apply(a: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
+  override def check(a: Any)(cancellationChecker: CancellationChecker): Seq[String] = {
     val returnedEntities = a match {
       case produceResult: ProduceResult => produceResult.columns.toSet
       case _: LogicalPlan               =>

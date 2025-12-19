@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardina
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LeveragedOrders
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
-import org.neo4j.cypher.internal.rewriting.ValidatingCondition
+import org.neo4j.cypher.internal.rewriting.StateValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.attribution.Attribute
@@ -34,7 +34,7 @@ import org.neo4j.cypher.internal.util.attribution.Attribute
 import scala.reflect.ClassTag
 
 case class AttributeFullyAssigned[T <: Attribute[LogicalPlan, _]]()(implicit val tag: ClassTag[T])
-    extends ValidatingCondition {
+    extends StateValidatingCondition {
 
   override def apply(in: Any)(cancellationChecker: CancellationChecker): Seq[String] = in match {
     case state: LogicalPlanState =>
