@@ -171,6 +171,16 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
     notificationsShouldBeRaised(ExpectedGqlNotification(table))
   }
 
+  // Supports JsonUnit syntax. For example:
+  // {
+  //   "a": "${json-unit.regex}[A-Z]+}",
+  //   "b": "${json-unit.any-string}"
+  // }
+  // See https://github.com/lukas-krecan/JsonUnit
+  Then("query log should contain:") { log: String =>
+    queryLogShouldContain(log)
+  }
+
   private def readNamedGraphCypher(name: String): String = {
     IOUtils.resourceToString(s"graphs/$name/$name.cypher", StandardCharsets.UTF_8, getClass.getClassLoader)
   }
@@ -187,6 +197,7 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   def sideEffectsShouldBe(expected: DataTable): Unit
   def errorShouldBeRaised(hierarchy: ExpectedGqlError): Unit
   def notificationsShouldBeRaised(expectedWarnings: ExpectedGqlNotification): Unit
+  def queryLogShouldContain(expectedJsonLog: String): Unit
 }
 
 object CypherCucumberSteps {

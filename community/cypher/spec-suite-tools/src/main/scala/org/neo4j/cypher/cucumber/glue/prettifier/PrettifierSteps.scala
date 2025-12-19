@@ -141,6 +141,7 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
   override def notificationsShouldBeRaised(expectedGqlWarning: ExpectedGqlNotification): Unit = {}
   override def openTransaction(): Unit = {}
   override def commitOpenTx(): Unit = {}
+  override def queryLogShouldContain(expectedJsonLog: String): Unit = {}
 }
 
 object PrettifierSteps {

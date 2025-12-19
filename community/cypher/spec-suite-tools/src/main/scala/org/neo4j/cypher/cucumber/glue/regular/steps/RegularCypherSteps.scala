@@ -353,6 +353,8 @@ final class RegularCypherSteps @Inject() (
       .containsExactlyElementsOf(allRows.stream().filter(x => actualRows.contains(x)).toList)
       .hasSize(rowCount)
   }
+
+  override def queryLogShouldContain(expectedJsonLog: String): Unit = {}
 }
 
 object RegularCypherSteps {

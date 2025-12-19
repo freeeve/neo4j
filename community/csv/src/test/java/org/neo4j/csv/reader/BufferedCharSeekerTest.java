@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.csv.reader.CharSeekers.charSeeker;
 import static org.neo4j.csv.reader.Readables.wrap;
+import static org.neo4j.function.Predicates.alwaysFalse;
 import static org.neo4j.internal.helpers.collection.Iterators.array;
 
 import java.io.IOException;
@@ -544,6 +545,34 @@ class BufferedCharSeekerTest {
         DataAfterQuoteException quoteException =
                 assertThrows(DataAfterQuoteException.class, () -> seeker.seek(mark, COMMA));
         assertEquals(TEST_SOURCE, quoteException.source().sourceDescription());
+    }
+
+    @ParameterizedTest(name = "thread-ahead: {0}")
+    @ValueSource(booleans = {false, true})
+    void shouldFailOnIllegalMultilineException(boolean threadAhead) throws Exception {
+        String data = "\"abc\",\"j\nkl\"";
+        // We need to disable multiline rows to trigger this exception
+        seeker = seeker(
+                data,
+                Configuration.newBuilder().withMultilineDocuments(alwaysFalse()).build(),
+                threadAhead);
+
+        assertNextValue(seeker, mark, COMMA, "abc");
+        IllegalMultilineFieldException multilineFieldException =
+                assertThrows(IllegalMultilineFieldException.class, () -> seeker.seek(mark, COMMA));
+        assertEquals(TEST_SOURCE, multilineFieldException.source().sourceDescription());
+    }
+
+    @ParameterizedTest(name = "thread-ahead: {0}")
+    @ValueSource(booleans = {false, true})
+    void shouldFailOnMissingEndQouteException(boolean threadAhead) throws Exception {
+        String data = "\"abc\",\"jkl";
+        seeker = seeker(data, threadAhead);
+
+        assertNextValue(seeker, mark, COMMA, "abc");
+        MissingEndQuoteException missingEndQuoteException =
+                assertThrows(MissingEndQuoteException.class, () -> seeker.seek(mark, COMMA));
+        assertEquals(TEST_SOURCE, missingEndQuoteException.source().sourceDescription());
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")

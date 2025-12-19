@@ -158,7 +158,7 @@ public class BufferedCharSeeker implements CharSeeker {
                     }
                 } else if (eof) {
                     // We have an open quote but have reached the end of the file, this is a formatting error
-                    throw new MissingEndQuoteException(this, quoteStartLine, quoteChar);
+                    throw new MissingEndQuoteException(this);
                 }
             }
         }

@@ -1473,6 +1473,28 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject get22NAC(String input, Long position, String value) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NAC)
+                .withParam(GqlParams.StringParam.input, input)
+                .withParam(GqlParams.NumberParam.pos, position)
+                .withParam(GqlParams.StringParam.variable, value)
+                .build();
+    }
+
+    public static ErrorGqlStatusObject get22NAD(String input, Long position) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NAD)
+                .withParam(GqlParams.NumberParam.pos, position)
+                .withParam(GqlParams.StringParam.input, input)
+                .build();
+    }
+
+    public static ErrorGqlStatusObject get22NAE(String input, Long position) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NAE)
+                .withParam(GqlParams.StringParam.input, input)
+                .withParam(GqlParams.NumberParam.pos, position)
+                .build();
+    }
+
     public static ErrorGqlStatusObject getDefaultObject() {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
                 .build();

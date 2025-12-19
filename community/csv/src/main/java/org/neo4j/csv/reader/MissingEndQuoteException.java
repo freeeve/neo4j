@@ -19,8 +19,57 @@
  */
 package org.neo4j.csv.reader;
 
-public class MissingEndQuoteException extends FormatException {
-    public MissingEndQuoteException(SourceTraceability source, int startingLine, char quoteChar) {
-        super(source, "Missing end for quote (" + quoteChar + ") which started on line " + startingLine);
+import org.neo4j.exceptions.ObfuscatableException;
+import org.neo4j.gqlstatus.Condition;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.gqlstatus.GqlRuntimeException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.gqlstatus.ObfuscatableErrorGqlStatusObject;
+
+public class MissingEndQuoteException extends GqlRuntimeException
+        implements ObfuscatableException, ObfuscatableErrorGqlStatusObject {
+    private static final String messageTemplate = "Missing end quote at position %s in '%s'.";
+    private static SourceTraceability source;
+    private static String sourceDescription;
+    private static long position;
+
+    public MissingEndQuoteException(SourceTraceability source) {
+        super(
+                GqlHelper.get22NAD(source.sourceDescription(), source.position()),
+                messageTemplate.formatted(source.position(), source.sourceDescription()),
+                null);
+        this.source = source;
+        this.sourceDescription = source.sourceDescription();
+        this.position = source.position();
+    }
+
+    public SourceTraceability source() {
+        return source;
+    }
+
+    @Override
+    public ErrorGqlStatusObject gqlStatusObject() {
+        return super.gqlStatusObject();
+    }
+
+    @Override
+    public String getMessage() {
+        return messageTemplate.formatted(position, sourceDescription);
+    }
+
+    @Override
+    public String obfuscatedMessage(String obfuscatedValue) {
+        return messageTemplate.formatted(position, obfuscatedValue);
+    }
+
+    @Override
+    public String obfuscatedStatusDescription() {
+        return String.format(
+                "%s. %s",
+                Condition.createStandardDescription(
+                        GqlStatusInfoCodes.STATUS_22NAC.getCondition(),
+                        GqlStatusInfoCodes.STATUS_22NAC.getSubCondition()),
+                obfuscatedMessage("******"));
     }
 }

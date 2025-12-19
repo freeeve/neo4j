@@ -26,6 +26,7 @@ import org.mockito.Mockito.when
 import org.mockito.invocation.InvocationOnMock
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.csv.reader.DataAfterQuoteException
 import org.neo4j.csv.reader.Readables
 import org.neo4j.cypher.internal.runtime.CreateTempFileTestSupport
 import org.neo4j.cypher.internal.runtime.QueryContext
@@ -280,7 +281,7 @@ class CSVResourcesTest extends CypherFunSuite with CreateTempFileTestSupport {
     )
 
     // when
-    val e = intercept[IllegalStateException](resources.getCsvIterator(
+    val e = intercept[DataAfterQuoteException](resources.getCsvIterator(
       url,
       state,
       None,

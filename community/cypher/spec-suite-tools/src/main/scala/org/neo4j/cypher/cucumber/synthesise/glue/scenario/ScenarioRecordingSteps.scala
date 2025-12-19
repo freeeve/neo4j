@@ -89,6 +89,8 @@ final class ScenarioRecordingSteps @Inject() (
 
   override def registerProcedure(signature: String, results: DataTable): Unit =
     add(RegisterProcedure(signature, results))
+
+  override def queryLogShouldContain(expectedJsonLog: String): Unit = {}
 }
 
 object ScenarioRecordingSteps {

@@ -1918,6 +1918,32 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "mixed type list for property-based access control rule",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NAC(
+            new GqlStatus("22NAC"),
+            "Characters after an ending quote in a CSV field are not supported. See { %s } at position { %s }. This is read as { %s }.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.input, GqlParams.NumberParam.pos, GqlParams.StringParam.variable
+            },
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "characters after quote in CSV field",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_22NAD(
+            new GqlStatus("22NAD"),
+            "Missing end quote at position { %s } in { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.NumberParam.pos, GqlParams.StringParam.input},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "missing end quote in CSV field",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_22NAE(
+            new GqlStatus("22NAE"),
+            "Multi-line fields are illegal in this context. Verify that there is not a missing end quote in { %s } at position { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.NumberParam.pos},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "multi-line field in illegal CSV context",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22NB0(
             new GqlStatus("22NB0"),
             "The property value access rule pattern { %s } always evaluates to 'NULL'. Use `WHERE` syntax in combination with `IS NULL` instead.",

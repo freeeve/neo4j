@@ -17,20 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.csv.reader;
+package org.neo4j.exceptions;
 
-/**
- * Super class for exceptions stemming from invalid format of a data source that is read.
- */
-public abstract class FormatException extends IllegalStateException {
-    private final SourceTraceability source;
-
-    protected FormatException(SourceTraceability source, String description) {
-        super("At " + source.sourceDescription() + " @ position " + source.position() + " - " + description);
-        this.source = source;
-    }
-
-    public SourceTraceability source() {
-        return this.source;
-    }
+public interface ObfuscatableException {
+    public String obfuscatedMessage(String obfuscatedValue);
 }

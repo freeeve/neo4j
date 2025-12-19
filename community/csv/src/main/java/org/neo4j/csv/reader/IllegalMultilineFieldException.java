@@ -19,15 +19,57 @@
  */
 package org.neo4j.csv.reader;
 
-import static java.lang.String.format;
+import org.neo4j.exceptions.ObfuscatableException;
+import org.neo4j.gqlstatus.Condition;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.gqlstatus.GqlRuntimeException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.gqlstatus.ObfuscatableErrorGqlStatusObject;
 
-public class IllegalMultilineFieldException extends FormatException {
+public class IllegalMultilineFieldException extends GqlRuntimeException
+        implements ObfuscatableException, ObfuscatableErrorGqlStatusObject {
+    private static final String messageTemplate =
+            "Multi-line fields are illegal in this context. Verify that there is not a missing end quote in '%s' at position %s.";
+    private static SourceTraceability source;
+    private static String sourceDescription;
+    private static long position;
+
     public IllegalMultilineFieldException(SourceTraceability source) {
         super(
-                source,
-                format(
-                        "Multi-line fields are illegal in this context and so this might suggest that "
-                                + "there's a field with a start quote, but a missing end quote. See %s @ position %d.",
-                        source.sourceDescription(), source.position()));
+                GqlHelper.get22NAE(source.sourceDescription(), source.position()),
+                messageTemplate.formatted(source.sourceDescription(), source.position()));
+        this.source = source;
+        this.sourceDescription = source.sourceDescription();
+        this.position = source.position();
+    }
+
+    public SourceTraceability source() {
+        return source;
+    }
+
+    @Override
+    public ErrorGqlStatusObject gqlStatusObject() {
+        return super.gqlStatusObject();
+    }
+
+    @Override
+    public String getMessage() {
+        return messageTemplate.formatted(sourceDescription, position);
+    }
+
+    @Override
+    public String obfuscatedMessage(String obfuscatedValue) {
+        return messageTemplate.formatted(obfuscatedValue, position);
+    }
+
+    @Override
+    public String obfuscatedStatusDescription() {
+        return String.format(
+                "%s. %s",
+                Condition.createStandardDescription(
+                        GqlStatusInfoCodes.STATUS_22NAE.getCondition(),
+                        GqlStatusInfoCodes.STATUS_22NAE.getSubCondition()),
+                obfuscatedMessage("******"));
     }
 }

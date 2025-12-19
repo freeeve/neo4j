@@ -19,13 +19,59 @@
  */
 package org.neo4j.csv.reader;
 
-public class DataAfterQuoteException extends FormatException {
+import org.neo4j.exceptions.ObfuscatableException;
+import org.neo4j.gqlstatus.Condition;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.gqlstatus.GqlRuntimeException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.gqlstatus.ObfuscatableErrorGqlStatusObject;
+
+public class DataAfterQuoteException extends GqlRuntimeException
+        implements ObfuscatableException, ObfuscatableErrorGqlStatusObject {
+    private static final String messageTemplate =
+            "Characters after an ending quote in a CSV field are not supported. See '%s' at position %s. This is read as `%s`.";
+    private static SourceTraceability source;
+    private static String sourceDescription;
+    private static long position;
+    private static String readValue;
+
     public DataAfterQuoteException(SourceTraceability source, String readValue) {
         super(
-                source,
-                " there's a field starting with a quote and whereas it ends that quote there seems"
-                        + " to be characters in that field after that ending quote. That isn't supported."
-                        + " This is what I read: '"
-                        + readValue + "'");
+                GqlHelper.get22NAC(source.sourceDescription(), source.position(), readValue),
+                messageTemplate.formatted(source.sourceDescription(), source.position(), readValue));
+        this.source = source;
+        this.sourceDescription = source.sourceDescription();
+        this.position = source.position();
+        this.readValue = readValue;
+    }
+
+    public SourceTraceability source() {
+        return source;
+    }
+
+    @Override
+    public ErrorGqlStatusObject gqlStatusObject() {
+        return super.gqlStatusObject();
+    }
+
+    @Override
+    public String getMessage() {
+        return messageTemplate.formatted(sourceDescription, position, readValue);
+    }
+
+    @Override
+    public String obfuscatedMessage(String obfuscatedValue) {
+        return messageTemplate.formatted(obfuscatedValue, position, obfuscatedValue);
+    }
+
+    @Override
+    public String obfuscatedStatusDescription() {
+        return String.format(
+                "%s. %s",
+                Condition.createStandardDescription(
+                        GqlStatusInfoCodes.STATUS_22NAD.getCondition(),
+                        GqlStatusInfoCodes.STATUS_22NAD.getSubCondition()),
+                obfuscatedMessage("******"));
     }
 }

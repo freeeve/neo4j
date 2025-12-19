@@ -409,6 +409,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.sideEffectsShouldBe(io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlError)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.notificationsShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlNotification)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.queryLogShouldContain(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.commitOpenTx()",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.executingControlQueryInOpenTx(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.openTransaction()",

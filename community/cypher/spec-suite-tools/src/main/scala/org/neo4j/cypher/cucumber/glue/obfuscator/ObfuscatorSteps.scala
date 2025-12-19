@@ -23,7 +23,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.inject.Inject
 import io.cucumber.datatable.DataTable
 import io.cucumber.scala.Scenario
+import net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson
+import net.javacrumbs.jsonunit.core.Option.IGNORING_EXTRA_FIELDS
 import org.apache.commons.io.input.ReversedLinesFileReader
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Assumptions.assumeFalse
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -51,7 +54,9 @@ import java.nio.file.Path
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import java.util.function.Consumer
 
+import scala.jdk.CollectionConverters.IterableHasAsJava
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
 import scala.util.Success
@@ -66,6 +71,7 @@ final class ObfuscatorSteps @Inject() (
 
   private[this] val inner = new RegularCypherSteps(conf, executors, expectations)
   private[this] var taggedQueries = Map.empty[String, String]
+  private[this] var expectedLogs = Map.empty[String, String]
   private[this] var lastTag: String = ""
   private[this] var scenarioTag: String = _
   private[this] var start: Instant = _
@@ -113,6 +119,20 @@ final class ObfuscatorSteps @Inject() (
         }
       }
     }
+    expectedLogs.foreach { case (tag, expectedLog) =>
+      val actualLog = logItemsByTag.getOrElse(tag, Seq.empty)
+      if (actualLog.size < 2) {
+        fail(describe(s"Unexpected log line size, found ${actualLog.size}", expectedLog, actualLog))
+      }
+
+      def jsonMatches(expected: String): Consumer[LoggedQuery] = actual =>
+        assertThatJson(actual.rawLog)
+          .when(IGNORING_EXTRA_FIELDS)
+          .isEqualTo(expected)
+
+      assertThat(actualLog.asJava).anySatisfy(jsonMatches(expectedLog))
+
+    }
   }
 
   After(1) { inner.after() }
@@ -127,7 +147,7 @@ final class ObfuscatorSteps @Inject() (
         if (line.contains(scenarioTag)) {
           val loggedQuery = logLine.path("query").asText()
           val loggedTag = loggedQuery.substring(loggedQuery.indexOf(scenarioTag))
-          val logItem = LoggedQuery(line, loggedQuery, loggedTag, logLine.path("event").asText())
+          val logItem = LoggedQuery(line, loggedQuery, loggedTag, logLine.path("event").asText(), line)
           result = result.appended(logItem)
         }
 
@@ -189,6 +209,11 @@ final class ObfuscatorSteps @Inject() (
   override def notificationsShouldBeRaised(expectedWarnings: CypherCucumberSteps.ExpectedGqlNotification): Unit =
     taggedQueries = taggedQueries.removed(lastTag)
 
+  // For log assertions we compare the entire log to given partial json log
+  override def queryLogShouldContain(expectedJsonLog: String): Unit = {
+    expectedLogs += (lastTag -> expectedJsonLog)
+  }
+
   // We don't check regular assertions here
 
   override def resultShouldBe(expected: DataTable, assert: Result.Assertions): Unit = {}
@@ -213,7 +238,7 @@ object ObfuscatorSteps {
       .singleStatement()
   }
 
-  case class LoggedQuery(logLine: String, query: String, tag: String, event: String)
+  case class LoggedQuery(logLine: String, query: String, tag: String, event: String, rawLog: String)
 
   object Conf extends InjectedTestConf {
     final val FactoryName = "org.neo4j.cypher.cucumber.glue.obfuscator.ObfuscatorSteps$Conf$ObjectFactory"
