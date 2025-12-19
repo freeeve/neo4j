@@ -40,7 +40,13 @@ case class DirectedUnionRelationshipTypesScanSlottedPipe(
   private val relationshipWriter = Relationships.compileRelationshipWriter(relOffset, fromOffset, toOffset)
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
-    val relIterator = unionTypeIterator(state, types, indexOrder, state.relTypeTokenReadSession.get)
+    val relIterator = unionTypeIterator(
+      state,
+      types,
+      indexOrder,
+      state.relTypeTokenReadSession.get,
+      callReadFromStore = fromOffset.nonEmpty || types.nonEmpty
+    )
     PrimitiveLongHelper.map(
       relIterator,
       { relId =>

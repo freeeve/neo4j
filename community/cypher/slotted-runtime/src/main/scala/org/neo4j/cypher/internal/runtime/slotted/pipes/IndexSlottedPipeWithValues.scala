@@ -65,24 +65,19 @@ trait IndexSlottedPipeWithValues extends Pipe {
     private val relationshipWriter = Relationships.compileRelationshipWriter(offset, startOffset, endOffset)
 
     override protected def fetchNext(): CypherRow = {
-      while (cursor.next()) {
-        // NOTE: sourceNodeReference and targetNodeReference is not implemented yet on the cursor
-        if (cursor.readFromStore()) {
-          val slottedContext = state.newRowWithArgument(rowFactory)
-          relationshipWriter.writeRow(
-            slottedContext,
-            cursor.relationshipReference(),
-            cursor.sourceNodeReference(),
-            cursor.targetNodeReference()
-          )
-          var i = 0
-          while (i < indexPropertyIndices.length) {
-            val value = cursor.propertyValue(indexPropertyIndices(i))
-            slottedContext.setCachedPropertyAt(indexPropertySlotOffsets(i), value)
-            i += 1
-          }
-          return slottedContext
+      while (cursor.next() && relationshipWriter.readFromStore(cursor)) {
+        val slottedContext = state.newRowWithArgument(rowFactory)
+        relationshipWriter.writeRow(
+          slottedContext,
+          cursor
+        )
+        var i = 0
+        while (i < indexPropertyIndices.length) {
+          val value = cursor.propertyValue(indexPropertyIndices(i))
+          slottedContext.setCachedPropertyAt(indexPropertySlotOffsets(i), value)
+          i += 1
         }
+        return slottedContext
       }
       null
     }

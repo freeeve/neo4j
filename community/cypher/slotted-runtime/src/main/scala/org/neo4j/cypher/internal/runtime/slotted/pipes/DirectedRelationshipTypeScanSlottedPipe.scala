@@ -49,7 +49,7 @@ case class DirectedRelationshipTypeScanSlottedPipe(
         relIterator,
         { relId =>
           val context = state.newRowWithArgument(rowFactory)
-          relationshipWriter.writeRow(context, relId, relIterator.startNodeId(), relIterator.endNodeId())
+          relationshipWriter.writeRow(context, relId, relIterator)
           context
         }
       )

@@ -38,7 +38,13 @@ case class UndirectedUnionRelationshipTypesScanSlottedPipe(
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     new UndirectedRelationshipTypeScanSlottedPipe.UndirectedIterator(
-      unionTypeIterator(state, types, indexOrder, state.relTypeTokenReadSession.get),
+      unionTypeIterator(
+        state,
+        types,
+        indexOrder,
+        state.relTypeTokenReadSession.get,
+        callReadFromStore = fromOffset.nonEmpty || toOffset.nonEmpty
+      ),
       relOffset,
       fromOffset,
       toOffset,

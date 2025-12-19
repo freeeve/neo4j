@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeVectorIndexSearchPipe.predicate
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RelationshipVectorIndexSearchPipe.vectorSearchCursor
@@ -34,10 +35,10 @@ import org.neo4j.cypher.operations.CypherCoercions.validateAndConvertVectorIndex
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor
+import org.neo4j.storageengine.api.RelationshipVisitor
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.NO_VALUE
-import org.neo4j.values.virtual.VirtualValues
 
 abstract class RelationshipVectorIndexSearchPipe(
   properties: Array[Int],
@@ -49,11 +50,7 @@ abstract class RelationshipVectorIndexSearchPipe(
 
   protected def newRow(
     row: CypherRow,
-    relationship: Long,
-    source: Long,
-    target: Long,
-    typ: Int,
-    score: Float
+    iterator: RelationshipVectorSearchIterator
   ): CypherRow
 
   protected def iteratorFrom(cursor: RelationshipValueIndexCursor): RelationshipVectorSearchIterator
@@ -81,32 +78,25 @@ abstract class RelationshipVectorIndexSearchPipe(
       val iterator = iteratorFrom(cursor)
       PrimitiveLongHelper.map(
         iterator,
-        _ =>
-          newRow(
-            state.newRowWithArgument(rowFactory),
-            iterator.reference,
-            iterator.source,
-            iterator.target,
-            iterator.typ,
-            iterator.score
-          )
+        _ => newRow(incomingRow, iterator)
       )
     }
   }
 
-  class RelationshipVectorSearchIterator(cursor: RelationshipValueIndexCursor) extends ClosingLongIterator {
+  class RelationshipVectorSearchIterator(cursor: RelationshipValueIndexCursor) extends ClosingLongIterator
+      with RelationshipIterator {
     private[this] var hasFetchedNext = false
     private[this] var exhausted = false
 
-    def typ: Int = cursor.`type`()
+    override def typeId: Int = cursor.`type`()
 
     def score: Float = cursor.score()
 
     def reference: Long = cursor.reference()
 
-    def source: Long = cursor.sourceNodeReference()
+    override def startNodeId(): Long = cursor.sourceNodeReference()
 
-    def target: Long = cursor.targetNodeReference()
+    override def endNodeId(): Long = cursor.targetNodeReference()
 
     override protected[this] def innerHasNext: Boolean = {
       if (!hasFetchedNext) {
@@ -137,13 +127,26 @@ abstract class RelationshipVectorIndexSearchPipe(
       }
       false
     }
+
+    override def relationshipVisit[EXCEPTION <: Exception](
+      relationshipId: Long,
+      visitor: RelationshipVisitor[EXCEPTION]
+    ): Boolean = {
+      visitor.visit(reference, typeId, startNodeId(), endNodeId())
+      true
+    }
+  }
+
+  class NonStoreAccessingVectorSearchIterator(cursor: RelationshipValueIndexCursor)
+      extends RelationshipVectorSearchIterator(cursor) {
+    final override protected[this] def fetchNext(): Boolean = cursor.next()
   }
 
   class UndirectedRelationshipVectorSearchIterator(cursor: RelationshipValueIndexCursor)
       extends RelationshipVectorSearchIterator(cursor) {
     private[this] var emitSibling: Boolean = false
 
-    override protected[this] def fetchNext(): Boolean = {
+    final override protected[this] def fetchNext(): Boolean = {
       if (emitSibling) {
         emitSibling = false
         true
@@ -156,7 +159,7 @@ abstract class RelationshipVectorIndexSearchPipe(
       }
     }
 
-    override def source: Long = {
+    override def startNodeId(): Long = {
       if (emitSibling) {
         cursor.sourceNodeReference()
       } else {
@@ -164,7 +167,7 @@ abstract class RelationshipVectorIndexSearchPipe(
       }
     }
 
-    override def target: Long = {
+    override def endNodeId(): Long = {
       if (emitSibling) {
         cursor.targetNodeReference()
       } else {
@@ -195,38 +198,32 @@ abstract class BaseRelationshipVectorIndexSearchPipe(
   private val relationshipWriter: Relationships.RelationshipWriter =
     Relationships.compileRelationshipWriter(ident, fromNode, toNode)
 
-  private[this] val _newRow: (CypherRow, Long, Long, Long, Int, Float) => CypherRow = {
+  private[this] val _newRow: (CypherRow, RelationshipVectorSearchIterator) => CypherRow = {
     score match {
       case Some(value) =>
-        (incomingRow: CypherRow, relationship: Long, source: Long, target: Long, typ: Int, score: Float) =>
+        (incomingRow: CypherRow, iterator: RelationshipVectorSearchIterator) =>
           val row = relationshipWriter.writeRow(
             rowFactory,
             incomingRow,
-            VirtualValues.relationship(relationship, source, target, typ),
-            VirtualValues.node(source),
-            VirtualValues.node(target)
+            iterator.reference,
+            iterator
           )
-          row.set(value, Values.floatValue(score))
+          row.set(value, Values.floatValue(iterator.score))
           row
-      case None => (incomingRow: CypherRow, relationship: Long, source: Long, target: Long, typ: Int, _: Float) =>
+      case None => (incomingRow: CypherRow, iterator: RelationshipVectorSearchIterator) =>
           relationshipWriter.writeRow(
             rowFactory,
             incomingRow,
-            VirtualValues.relationship(relationship, source, target, typ),
-            VirtualValues.node(source),
-            VirtualValues.node(target)
+            iterator.reference,
+            iterator
           )
     }
   }
 
   override protected def newRow(
     row: CypherRow,
-    relationship: Long,
-    source: Long,
-    target: Long,
-    typ: Int,
-    score: Float
-  ): CypherRow = _newRow(row, relationship, source, target, typ, score)
+    iterator: RelationshipVectorSearchIterator
+  ): CypherRow = _newRow(row, iterator)
 }
 
 case class DirectedRelationshipVectorIndexSearchPipe(
@@ -252,8 +249,13 @@ case class DirectedRelationshipVectorIndexSearchPipe(
       filterExpression
     ) {
 
-  override protected def iteratorFrom(cursor: RelationshipValueIndexCursor): RelationshipVectorSearchIterator =
-    new RelationshipVectorSearchIterator(cursor)
+  override protected def iteratorFrom(cursor: RelationshipValueIndexCursor): RelationshipVectorSearchIterator = {
+    if (fromNode.nonEmpty || toNode.nonEmpty) {
+      new RelationshipVectorSearchIterator(cursor)
+    } else {
+      new NonStoreAccessingVectorSearchIterator(cursor)
+    }
+  }
 }
 
 case class UndirectedRelationshipVectorIndexSearchPipe(

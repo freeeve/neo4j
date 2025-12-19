@@ -99,7 +99,8 @@ class DynamicRelationshipTypeLookupIterator(
       state,
       relTypes,
       IndexOrderNone,
-      state.relTypeTokenReadSession.get
+      state.relTypeTokenReadSession.get,
+      callReadFromStore = true
     )
   }
 

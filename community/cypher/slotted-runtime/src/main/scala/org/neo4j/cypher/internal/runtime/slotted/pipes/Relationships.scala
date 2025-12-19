@@ -20,17 +20,39 @@
 package org.neo4j.cypher.internal.runtime.slotted.pipes
 
 import org.neo4j.cypher.internal.runtime.CypherRow
+import org.neo4j.cypher.internal.runtime.RelationshipIterator
+import org.neo4j.internal.kernel.api.RelationshipCursor
+import org.neo4j.internal.kernel.api.RelationshipIndexCursor
 
 object Relationships {
 
   sealed trait RelationshipWriter {
     def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit
+
+    def writeRow(
+      row: CypherRow,
+      relationship: Long,
+      relationshipIterator: RelationshipIterator
+    ): Unit
+
+    def writeRow(
+      row: CypherRow,
+      cursor: RelationshipCursor
+    ): Unit
+
+    def readFromStore(cursor: RelationshipIndexCursor): Boolean
   }
 
   private object RelationshipWriter {
 
     case object DoNothing extends RelationshipWriter {
       override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {}
+
+      override def writeRow(row: CypherRow, relationship: Long, relationshipIterator: RelationshipIterator): Unit = {}
+
+      override def writeRow(row: CypherRow, cursor: RelationshipCursor): Unit = {}
+
+      override def readFromStore(cursor: RelationshipIndexCursor): Boolean = true
     }
   }
 
@@ -46,6 +68,20 @@ object Relationships {
           row.setLongAt(startOffset, startNode)
           row.setLongAt(endOffset, endNode)
         }
+
+        override def writeRow(row: CypherRow, relationship: Long, relationshipIterator: RelationshipIterator): Unit = {
+          row.setLongAt(relOffset, relationship)
+          row.setLongAt(startOffset, relationshipIterator.startNodeId())
+          row.setLongAt(endOffset, relationshipIterator.endNodeId())
+        }
+
+        override def writeRow(row: CypherRow, cursor: RelationshipCursor): Unit = {
+          row.setLongAt(relOffset, cursor.relationshipReference())
+          row.setLongAt(startOffset, cursor.sourceNodeReference())
+          row.setLongAt(endOffset, cursor.targetNodeReference())
+        }
+
+        override def readFromStore(cursor: RelationshipIndexCursor): Boolean = cursor.readFromStore()
       }
     case (Some(relOffset), None, Some(endOffset)) =>
       new RelationshipWriter {
@@ -53,6 +89,18 @@ object Relationships {
           row.setLongAt(relOffset, rel)
           row.setLongAt(endOffset, endNode)
         }
+
+        override def writeRow(row: CypherRow, relationship: Long, relationshipIterator: RelationshipIterator): Unit = {
+          row.setLongAt(relOffset, relationship)
+          row.setLongAt(endOffset, relationshipIterator.endNodeId())
+        }
+
+        override def writeRow(row: CypherRow, cursor: RelationshipCursor): Unit = {
+          row.setLongAt(relOffset, cursor.relationshipReference())
+          row.setLongAt(endOffset, cursor.targetNodeReference())
+        }
+
+        override def readFromStore(cursor: RelationshipIndexCursor): Boolean = cursor.readFromStore()
       }
     case (Some(relOffset), Some(startOffset), None) =>
       new RelationshipWriter {
@@ -60,12 +108,34 @@ object Relationships {
           row.setLongAt(relOffset, rel)
           row.setLongAt(startOffset, startNode)
         }
+
+        override def writeRow(row: CypherRow, relationship: Long, relationshipIterator: RelationshipIterator): Unit = {
+          row.setLongAt(relOffset, relationship)
+          row.setLongAt(startOffset, relationshipIterator.startNodeId())
+        }
+
+        override def writeRow(row: CypherRow, cursor: RelationshipCursor): Unit = {
+          row.setLongAt(relOffset, cursor.relationshipReference())
+          row.setLongAt(startOffset, cursor.sourceNodeReference())
+        }
+
+        override def readFromStore(cursor: RelationshipIndexCursor): Boolean = cursor.readFromStore()
       }
     case (Some(relOffset), None, None) =>
       new RelationshipWriter {
         override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
           row.setLongAt(relOffset, rel)
         }
+
+        override def writeRow(row: CypherRow, relationship: Long, relationshipIterator: RelationshipIterator): Unit = {
+          row.setLongAt(relOffset, relationship)
+        }
+
+        override def writeRow(row: CypherRow, cursor: RelationshipCursor): Unit = {
+          row.setLongAt(relOffset, cursor.relationshipReference())
+        }
+
+        override def readFromStore(cursor: RelationshipIndexCursor): Boolean = true
       }
     case (None, Some(startOffset), Some(endOffset)) =>
       new RelationshipWriter {
@@ -73,18 +143,50 @@ object Relationships {
           row.setLongAt(startOffset, startNode)
           row.setLongAt(endOffset, endNode)
         }
+
+        override def writeRow(row: CypherRow, relationship: Long, relationshipIterator: RelationshipIterator): Unit = {
+          row.setLongAt(startOffset, relationshipIterator.startNodeId())
+          row.setLongAt(endOffset, relationshipIterator.endNodeId())
+        }
+
+        override def writeRow(row: CypherRow, cursor: RelationshipCursor): Unit = {
+          row.setLongAt(startOffset, cursor.sourceNodeReference())
+          row.setLongAt(endOffset, cursor.targetNodeReference())
+        }
+
+        override def readFromStore(cursor: RelationshipIndexCursor): Boolean = cursor.readFromStore()
       }
     case (None, None, Some(endOffset)) =>
       new RelationshipWriter {
         override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
           row.setLongAt(endOffset, endNode)
         }
+
+        override def writeRow(row: CypherRow, relationship: Long, relationshipIterator: RelationshipIterator): Unit = {
+          row.setLongAt(endOffset, relationshipIterator.endNodeId())
+        }
+
+        override def writeRow(row: CypherRow, cursor: RelationshipCursor): Unit = {
+          row.setLongAt(endOffset, cursor.targetNodeReference())
+        }
+
+        override def readFromStore(cursor: RelationshipIndexCursor): Boolean = cursor.readFromStore()
       }
     case (None, Some(startOffset), None) =>
       new RelationshipWriter {
         override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
           row.setLongAt(startOffset, startNode)
         }
+
+        override def writeRow(row: CypherRow, relationship: Long, relationshipIterator: RelationshipIterator): Unit = {
+          row.setLongAt(startOffset, relationshipIterator.startNodeId())
+        }
+
+        override def writeRow(row: CypherRow, cursor: RelationshipCursor): Unit = {
+          row.setLongAt(startOffset, cursor.sourceNodeReference())
+        }
+
+        override def readFromStore(cursor: RelationshipIndexCursor): Boolean = cursor.readFromStore()
       }
     case (None, None, None) => RelationshipWriter.DoNothing
   }

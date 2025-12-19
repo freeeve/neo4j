@@ -20,8 +20,11 @@
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.CypherRow
+import org.neo4j.cypher.internal.runtime.RelationshipIterator
+import org.neo4j.internal.kernel.api.RelationshipCursor
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
+import org.neo4j.values.virtual.VirtualValues
 
 object Relationships {
 
@@ -33,6 +36,19 @@ object Relationships {
       rel: VirtualRelationshipValue,
       startNode: VirtualNodeValue,
       endNode: VirtualNodeValue
+    ): CypherRow
+
+    def writeRow(
+      rowFactory: CypherRowFactory,
+      row: CypherRow,
+      relationship: Long,
+      relationshipIterator: RelationshipIterator
+    ): CypherRow
+
+    def writeRow(
+      rowFactory: CypherRowFactory,
+      row: CypherRow,
+      cursor: RelationshipCursor
     ): CypherRow
   }
 
@@ -59,7 +75,41 @@ object Relationships {
             endName,
             endNode
           )
+
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          relationship: Long,
+          relationshipIterator: RelationshipIterator
+        ): CypherRow = {
+          val startNode = relationshipIterator.startNodeId()
+          val endNode = relationshipIterator.endNodeId()
+          rowFactory.copyWith(
+            row,
+            relName,
+            VirtualValues.relationship(relationship, startNode, endNode, relationshipIterator.typeId()),
+            startName,
+            VirtualValues.node(startNode),
+            endName,
+            VirtualValues.node(endNode)
+          )
+        }
+
+        override def writeRow(rowFactory: CypherRowFactory, row: CypherRow, cursor: RelationshipCursor): CypherRow = {
+          val startNode = cursor.sourceNodeReference()
+          val endNode = cursor.targetNodeReference()
+          rowFactory.copyWith(
+            row,
+            relName,
+            VirtualValues.relationship(cursor.reference(), startNode, endNode, cursor.`type`()),
+            startName,
+            VirtualValues.node(startNode),
+            endName,
+            VirtualValues.node(endNode)
+          )
+        }
       }
+
     case (Some(relName), None, Some(endName)) =>
       new RelationshipWriter {
         override def writeRow(
@@ -76,6 +126,31 @@ object Relationships {
             endName,
             endNode
           )
+
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          relationship: Long,
+          relationshipIterator: RelationshipIterator
+        ): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            relName,
+            VirtualValues.relationship(relationship),
+            endName,
+            VirtualValues.node(relationshipIterator.endNodeId())
+          )
+        }
+
+        override def writeRow(rowFactory: CypherRowFactory, row: CypherRow, cursor: RelationshipCursor): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            relName,
+            VirtualValues.relationship(cursor.reference()),
+            endName,
+            VirtualValues.node(cursor.targetNodeReference())
+          )
+        }
       }
     case (Some(relName), Some(startName), None) =>
       new RelationshipWriter {
@@ -93,6 +168,31 @@ object Relationships {
             startName,
             startNode
           )
+
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          relationship: Long,
+          relationshipIterator: RelationshipIterator
+        ): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            relName,
+            VirtualValues.relationship(relationship),
+            startName,
+            VirtualValues.node(relationshipIterator.startNodeId())
+          )
+        }
+
+        override def writeRow(rowFactory: CypherRowFactory, row: CypherRow, cursor: RelationshipCursor): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            relName,
+            VirtualValues.relationship(cursor.reference()),
+            startName,
+            VirtualValues.node(cursor.sourceNodeReference())
+          )
+        }
       }
     case (Some(relName), None, None) =>
       new RelationshipWriter {
@@ -108,6 +208,27 @@ object Relationships {
             relName,
             rel
           )
+
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          relationship: Long,
+          relationshipIterator: RelationshipIterator
+        ): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            relName,
+            VirtualValues.relationship(relationship)
+          )
+        }
+
+        override def writeRow(rowFactory: CypherRowFactory, row: CypherRow, cursor: RelationshipCursor): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            relName,
+            VirtualValues.relationship(cursor.reference())
+          )
+        }
       }
 
     case (None, Some(startName), Some(endName)) =>
@@ -126,6 +247,30 @@ object Relationships {
             endName,
             endNode
           )
+
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          relationship: Long,
+          relationshipIterator: RelationshipIterator
+        ): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            startName,
+            VirtualValues.node(relationshipIterator.startNodeId()),
+            endName,
+            VirtualValues.node(relationshipIterator.endNodeId())
+          )
+        }
+        override def writeRow(rowFactory: CypherRowFactory, row: CypherRow, cursor: RelationshipCursor): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            startName,
+            VirtualValues.node(cursor.sourceNodeReference()),
+            endName,
+            VirtualValues.node(cursor.targetNodeReference())
+          )
+        }
       }
     case (None, None, Some(endName)) =>
       new RelationshipWriter {
@@ -141,7 +286,29 @@ object Relationships {
             endName,
             endNode
           )
+
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          relationship: Long,
+          relationshipIterator: RelationshipIterator
+        ): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            endName,
+            VirtualValues.node(relationshipIterator.endNodeId())
+          )
+        }
+
+        override def writeRow(rowFactory: CypherRowFactory, row: CypherRow, cursor: RelationshipCursor): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            endName,
+            VirtualValues.node(cursor.targetNodeReference())
+          )
+        }
       }
+
     case (None, Some(startName), None) =>
       new RelationshipWriter {
         override def writeRow(
@@ -156,6 +323,27 @@ object Relationships {
             startName,
             startNode
           )
+
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          relationship: Long,
+          relationshipIterator: RelationshipIterator
+        ): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            startName,
+            VirtualValues.node(relationshipIterator.startNodeId())
+          )
+        }
+
+        override def writeRow(rowFactory: CypherRowFactory, row: CypherRow, cursor: RelationshipCursor): CypherRow = {
+          rowFactory.copyWith(
+            row,
+            startName,
+            VirtualValues.node(cursor.sourceNodeReference())
+          )
+        }
       }
     case (None, None, None) => new RelationshipWriter {
 
@@ -166,6 +354,16 @@ object Relationships {
           startNode: VirtualNodeValue,
           endNode: VirtualNodeValue
         ): CypherRow = row
+
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          relationship: Long,
+          relationshipIterator: RelationshipIterator
+        ): CypherRow = row
+
+        override def writeRow(rowFactory: CypherRowFactory, row: CypherRow, cursor: RelationshipCursor): CypherRow = row
+
       }
   }
 }

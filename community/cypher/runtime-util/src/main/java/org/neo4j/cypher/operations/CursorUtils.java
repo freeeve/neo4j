@@ -40,6 +40,7 @@ import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipCursor;
+import org.neo4j.internal.kernel.api.RelationshipIndexCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.exceptions.PropertyKeyIdNotFoundKernelException;
@@ -388,7 +389,39 @@ public final class CursorUtils {
     }
 
     @CalledFromGeneratedCode
-    public static boolean relationshipHasTypes(RelationshipScanCursor relationshipCursor, int[] types) {
+    public static int relationshipGetType(RelationshipIndexCursor relationshipCursor) {
+        if (relationshipCursor.readFromStore()) {
+            return relationshipCursor.type();
+        } else {
+            return StatementConstants.NO_SUCH_RELATIONSHIP_TYPE;
+        }
+    }
+
+    @CalledFromGeneratedCode
+    public static boolean relationshipHasType(RelationshipIndexCursor relationshipCursor, int type) {
+        if (relationshipCursor.readFromStore()) {
+            return relationshipCursor.type() == type;
+        } else {
+            return false;
+        }
+    }
+
+    @CalledFromGeneratedCode
+    public static boolean relationshipHasType(RelationshipCursor relationshipCursor, int type) {
+        return relationshipCursor.type() == type;
+    }
+
+    @CalledFromGeneratedCode
+    public static boolean relationshipHasTypes(RelationshipIndexCursor relationshipCursor, int[] types) {
+        if (relationshipCursor.readFromStore()) {
+            return relationshipHasTypes((RelationshipScanCursor) relationshipCursor, types);
+        } else {
+            return false;
+        }
+    }
+
+    @CalledFromGeneratedCode
+    public static boolean relationshipHasTypes(RelationshipCursor relationshipCursor, int[] types) {
         assert types.length > 0;
         int typeToLookFor = types[0];
         for (int i = 1; i < types.length; i++) {
@@ -505,6 +538,27 @@ public final class CursorUtils {
      * @return the value of the property, otherwise {@link Values#NO_VALUE} if not found.
      */
     public static Value relationshipGetProperty(
+            RelationshipIndexCursor relationshipCursor, PropertyCursor propertyCursor, int prop) {
+        if (prop == NO_SUCH_PROPERTY_KEY) {
+            return NO_VALUE;
+        }
+        if (relationshipCursor.readFromStore()) {
+            relationshipCursor.properties(propertyCursor, PropertySelection.selection(prop));
+            return propertyCursor.next() ? propertyCursor.propertyValue() : NO_VALUE;
+        } else {
+            return NO_VALUE;
+        }
+    }
+
+    /**
+     * Fetches a given property from a relationship, where the relationship has already been loaded.
+     *
+     * @param relationshipCursor relationship cursor which currently points to the relationship to get the property from.
+     * @param propertyCursor the property cursor to use to read the property.
+     * @param prop property key id
+     * @return the value of the property, otherwise {@link Values#NO_VALUE} if not found.
+     */
+    public static Value relationshipGetProperty(
             RelationshipCursor relationshipCursor, PropertyCursor propertyCursor, int prop) {
         if (prop == NO_SUCH_PROPERTY_KEY) {
             return NO_VALUE;
@@ -571,6 +625,28 @@ public final class CursorUtils {
         }
         relationshipCursor.properties(propertyCursor, PropertySelection.onlyKeysSelection(prop));
         return propertyCursor.next();
+    }
+
+    /**
+     * Checks if a given relationship has the given property, where the relationship has already been loaded.
+     *
+     * @param relationshipCursor The relationship cursor which currently points to the relationship to check property existence for.
+     * @param propertyCursor The property cursor to use
+     * @param prop The id of the property to find
+     * @return {@code true} if relationship has property otherwise {@code false}.
+     */
+    @CalledFromGeneratedCode
+    public static boolean relationshipHasProperty(
+            RelationshipIndexCursor relationshipCursor, PropertyCursor propertyCursor, int prop) {
+        if (prop == NO_SUCH_PROPERTY_KEY) {
+            return false;
+        }
+        if (relationshipCursor.readFromStore()) {
+            relationshipCursor.properties(propertyCursor, PropertySelection.onlyKeysSelection(prop));
+            return propertyCursor.next();
+        } else {
+            return false;
+        }
     }
 
     @CalledFromGeneratedCode

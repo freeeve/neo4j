@@ -81,28 +81,69 @@ trait IndexPipeWithValues extends Pipe {
     private val relationshipWriter = Relationships.compileRelationshipWriter(ident, startNode, endNode)
 
     override protected def fetchNext(): CypherRow = {
-      while (cursor.next()) {
-        if (cursor.readFromStore()) {
-          val newContext =
-            relationshipWriter.writeRow(
-              rowFactory,
-              baseContext,
-              ValueUtils.fromRelationshipCursor(cursor),
-              VirtualValues.node(cursor.sourceNodeReference()),
-              VirtualValues.node(cursor.targetNodeReference())
-            )
-          var i = 0
-          while (i < indexPropertyIndices.length) {
-            newContext.setCachedProperty(
-              indexCachedProperties(i).runtimeKey,
-              cursor.propertyValue(indexPropertyIndices(i))
-            )
-            i += 1
-          }
-          return newContext
+      while (cursor.next() && cursor.readFromStore()) {
+        val newContext =
+          relationshipWriter.writeRow(
+            rowFactory,
+            baseContext,
+            cursor
+          )
+        var i = 0
+        while (i < indexPropertyIndices.length) {
+          newContext.setCachedProperty(
+            indexCachedProperties(i).runtimeKey,
+            cursor.propertyValue(indexPropertyIndices(i))
+          )
+          i += 1
         }
+        return newContext
       }
       null
+    }
+  }
+
+  private class NonStoreAccessingRelIndexIterator(
+    baseContext: CypherRow,
+    cursor: RelationshipValueIndexCursor
+  ) extends IndexIteratorBase[CypherRow](cursor) {
+    private val relationshipWriter = Relationships.compileRelationshipWriter(ident, None, None)
+
+    override protected def fetchNext(): CypherRow = {
+      if (cursor.next()) {
+        val newContext =
+          relationshipWriter.writeRow(
+            rowFactory,
+            baseContext,
+            cursor
+          )
+        var i = 0
+        while (i < indexPropertyIndices.length) {
+          newContext.setCachedProperty(
+            indexCachedProperties(i).runtimeKey,
+            cursor.propertyValue(indexPropertyIndices(i))
+          )
+          i += 1
+        }
+        newContext
+      } else {
+        null
+      }
+    }
+  }
+
+  object RelIndexIterator {
+
+    def apply(
+      startNode: Option[String],
+      endNode: Option[String],
+      baseContext: CypherRow,
+      cursor: RelationshipValueIndexCursor
+    ): IndexIteratorBase[CypherRow] = {
+      if (startNode.isEmpty && endNode.isEmpty) {
+        new NonStoreAccessingRelIndexIterator(baseContext, cursor)
+      } else {
+        new RelIndexIterator(startNode, endNode, baseContext, cursor)
+      }
     }
   }
 

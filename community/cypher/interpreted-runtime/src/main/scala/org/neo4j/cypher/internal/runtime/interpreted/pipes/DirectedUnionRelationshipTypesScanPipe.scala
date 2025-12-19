@@ -31,11 +31,13 @@ import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedUnionRelationshipTypesScanPipe.unionTypeIterator
 import org.neo4j.cypher.internal.runtime.iterators.BaseRelationshipCursorIterator
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.internal.kernel.api.RelationshipTypeIndexCursor
 import org.neo4j.internal.kernel.api.TokenReadSession
+import org.neo4j.internal.kernel.api.helpers.UnionRelationshipTypeIndexCursor
 import org.neo4j.internal.kernel.api.helpers.UnionRelationshipTypeIndexCursor.ascendingUnionRelationshipTypeIndexCursor
 import org.neo4j.internal.kernel.api.helpers.UnionRelationshipTypeIndexCursor.descendingUnionRelationshipTypeIndexCursor
 import org.neo4j.io.IOUtils
-import org.neo4j.values.virtual.VirtualValues
+import org.neo4j.kernel.api.StatementConstants
 
 case class DirectedUnionRelationshipTypesScanPipe(
   ident: Option[String],
@@ -48,11 +50,16 @@ case class DirectedUnionRelationshipTypesScanPipe(
     Id.INVALID_ID
 ) extends Pipe {
 
-  private val relationshipWriter =
-    Relationships.compileRelationshipWriter(ident, fromNode, toNode)
+  private val relationshipWriter = Relationships.compileRelationshipWriter(ident, fromNode, toNode)
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
-    val relIterator = unionTypeIterator(state, types, indexOrder, state.relTypeTokenReadSession.get)
+    val relIterator = unionTypeIterator(
+      state,
+      types,
+      indexOrder,
+      state.relTypeTokenReadSession.get,
+      callReadFromStore = fromNode.nonEmpty || toNode.nonEmpty
+    )
     val ctx = state.newRowWithArgument(rowFactory)
     PrimitiveLongHelper.map(
       relIterator,
@@ -60,9 +67,8 @@ case class DirectedUnionRelationshipTypesScanPipe(
         relationshipWriter.writeRow(
           rowFactory,
           ctx,
-          VirtualValues.relationship(relationshipId),
-          VirtualValues.node(relIterator.startNodeId()),
-          VirtualValues.node(relIterator.endNodeId())
+          relationshipId,
+          relIterator
         )
       }
     )
@@ -75,13 +81,14 @@ object DirectedUnionRelationshipTypesScanPipe {
     state: QueryState,
     types: Seq[LazyTypeStatic],
     indexOrder: IndexOrder,
-    tokenReadSession: TokenReadSession
+    tokenReadSession: TokenReadSession,
+    callReadFromStore: Boolean
   ): ClosingRelationshipIterator = {
     val ids = types.map(_.getId(state.query)).filter(_ != LazyType.UNKNOWN).toArray
     if (ids.isEmpty) {
       ClosingLongIterator.emptyClosingRelationshipIterator
     } else {
-      unionTypeIterator(state, ids, indexOrder, tokenReadSession)
+      unionTypeIterator(state, ids, indexOrder, tokenReadSession, callReadFromStore)
     }
   }
 
@@ -89,7 +96,8 @@ object DirectedUnionRelationshipTypesScanPipe {
     state: QueryState,
     types: Array[Int],
     indexOrder: IndexOrder,
-    tokenReadSession: TokenReadSession
+    tokenReadSession: TokenReadSession,
+    callReadFromStore: Boolean
   ): ClosingRelationshipIterator = {
     val query = state.query
     val cursors = types.map(_ => {
@@ -116,28 +124,63 @@ object DirectedUnionRelationshipTypesScanPipe {
         )
     }
 
-    new BaseRelationshipCursorIterator {
+    if (callReadFromStore) {
+      storeAccessingIterator(cursor, cursors)
+    } else {
+      nonStoreAccessingIterator(cursor, cursors)
+    }
+  }
+
+  private def storeAccessingIterator(
+    cursor: UnionRelationshipTypeIndexCursor,
+    cursors: Array[RelationshipTypeIndexCursor]
+  ): ClosingRelationshipIterator = {
+    new BaseUnionTypeIterator(cursors) {
 
       override protected def fetchNext(): Long = {
-        while (cursor.next()) {
-          if (cursor.readFromStore()) {
-            return cursor.reference()
-          }
+        while (cursor.next() && cursor.readFromStore()) {
+          return cursor.reference()
         }
-        -1L
+        StatementConstants.NO_SUCH_RELATIONSHIP
       }
-
-      override def close(): Unit = IOUtils.closeAll(cursors: _*)
 
       /**
        * Store the current state in case the underlying cursor is closed when calling next.
        */
-      override protected def storeState(): Unit = {
+      final override protected def storeState(): Unit = {
         relTypeId = cursor.`type`()
         source = cursor.sourceNodeReference()
         target = cursor.targetNodeReference()
       }
     }
+  }
 
+  private def nonStoreAccessingIterator(
+    cursor: UnionRelationshipTypeIndexCursor,
+    cursors: Array[RelationshipTypeIndexCursor]
+  ): ClosingRelationshipIterator = {
+    new BaseUnionTypeIterator(cursors) {
+
+      /**
+       * Store the current state in case the underlying cursor is closed when calling next.
+       */
+      final override protected def storeState(): Unit = {
+        relTypeId = cursor.`type`()
+      }
+      override protected def fetchNext(): Long = {
+        if (cursor.next()) {
+          cursor.reference()
+        } else {
+          StatementConstants.NO_SUCH_RELATIONSHIP
+        }
+      }
+    }
+  }
+
+  abstract private class BaseUnionTypeIterator(
+    cursors: Array[RelationshipTypeIndexCursor]
+  ) extends BaseRelationshipCursorIterator {
+
+    final override def close(): Unit = IOUtils.closeAll(cursors: _*)
   }
 }

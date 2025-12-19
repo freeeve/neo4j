@@ -47,27 +47,23 @@ abstract class BaseRelationshipVectorIndexSearchSlottedPipe(
 
   private val relationshipWriter = Relationships.compileRelationshipWriter(relOffset, fromOffset, toOffset)
 
-  private[this] val _newRow: (CypherRow, Long, Long, Long, Int, Float) => CypherRow = {
+  private[this] val _newRow: (CypherRow, RelationshipVectorSearchIterator) => CypherRow = {
     score match {
       case Some(value) =>
-        (incomingRow: CypherRow, relationship: Long, source: Long, target: Long, typ: Int, score: Float) =>
-          relationshipWriter.writeRow(incomingRow, relationship, source, target)
-          incomingRow.setRefAt(value, Values.floatValue(score))
+        (incomingRow: CypherRow, iterator: RelationshipVectorSearchIterator) =>
+          relationshipWriter.writeRow(incomingRow, iterator.reference, iterator)
+          incomingRow.setRefAt(value, Values.floatValue(iterator.score))
           incomingRow
-      case None => (incomingRow: CypherRow, relationship: Long, source: Long, target: Long, typ: Int, _: Float) =>
-          relationshipWriter.writeRow(incomingRow, relationship, source, target)
+      case None => (incomingRow: CypherRow, iterator: RelationshipVectorSearchIterator) =>
+          relationshipWriter.writeRow(incomingRow, iterator.reference, iterator)
           incomingRow
     }
   }
 
   override protected def newRow(
     row: CypherRow,
-    relationship: Long,
-    source: Long,
-    target: Long,
-    typ: Int,
-    score: Float
-  ): CypherRow = _newRow(row, relationship, source, target, typ, score)
+    iterator: RelationshipVectorSearchIterator
+  ): CypherRow = _newRow(row, iterator)
 }
 
 case class DirectedRelationshipVectorIndexSearchSlottedPipe(
@@ -92,8 +88,13 @@ case class DirectedRelationshipVectorIndexSearchSlottedPipe(
       filterExpression
     ) {
 
-  override protected def iteratorFrom(cursor: RelationshipValueIndexCursor): RelationshipVectorSearchIterator =
-    new RelationshipVectorSearchIterator(cursor)
+  override protected def iteratorFrom(cursor: RelationshipValueIndexCursor): RelationshipVectorSearchIterator = {
+    if (fromOffset.nonEmpty || toOffset.nonEmpty) {
+      new RelationshipVectorSearchIterator(cursor)
+    } else {
+      new NonStoreAccessingVectorSearchIterator(cursor)
+    }
+  }
 }
 
 case class UndirectedRelationshipVectorIndexSearchSlottedPipe(
