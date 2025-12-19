@@ -50,7 +50,7 @@ public class DefaultPooledCursors extends DefaultCursors implements CursorFactor
     private DefaultRelationshipScanCursor fullAccessRelationshipScanCursor;
     private DefaultRelationshipTraversalCursor relationshipTraversalCursor;
     private DefaultRelationshipTraversalCursor fullAccessRelationshipTraversalCursor;
-    private DefaultPropertyCursor propertyCursor;
+    private TraceablePropertyCursor propertyCursor;
     private PropertyCursor fullAccessPropertyCursor;
     private DefaultNodeValueIndexCursor nodeValueIndexCursor;
     private DefaultNodeLabelIndexCursor nodeLabelIndexCursor;
@@ -259,7 +259,7 @@ public class DefaultPooledCursors extends DefaultCursors implements CursorFactor
         }
     }
 
-    private void accept(DefaultPropertyCursor cursor) {
+    private void accept(TraceablePropertyCursor cursor) {
         if (propertyCursor != null) {
             propertyCursor.release();
         }

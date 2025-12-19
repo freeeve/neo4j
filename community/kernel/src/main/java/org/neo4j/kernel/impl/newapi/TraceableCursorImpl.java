@@ -29,7 +29,7 @@ public abstract class TraceableCursorImpl<CURSOR> extends DefaultCloseListenable
     protected KernelReadTracer tracer;
     private boolean returnedToPool;
 
-    TraceableCursorImpl(CursorPool<CURSOR> pool) {
+    public TraceableCursorImpl(CursorPool<CURSOR> pool) {
         this.pool = pool;
     }
 

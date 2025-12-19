@@ -36,7 +36,7 @@ import org.neo4j.storageengine.api.txstate.EntityState;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
-public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCursor>
+public class DefaultPropertyCursor extends TraceableCursorImpl<TraceablePropertyCursor>
         implements TraceablePropertyCursor {
     final StoragePropertyCursor storeCursor;
     private final InternalCursorFactory internalCursors;
@@ -54,7 +54,7 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
     private BiConsumer<StoragePropertyCursor, PropertySelection> securityPropertyInitializer;
 
     DefaultPropertyCursor(
-            CursorPool<DefaultPropertyCursor> pool,
+            CursorPool<TraceablePropertyCursor> pool,
             StoragePropertyCursor storeCursor,
             InternalCursorFactory internalCursors,
             boolean applyAccessModeToTxState) {

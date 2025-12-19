@@ -60,12 +60,13 @@ public interface DefaultCursorFactory {
             CursorPool<DefaultRelationshipTraversalCursor> pool, StorageRelationshipTraversalCursor storeCursor);
 
     PropertyCursor propertyCursor(
-            CursorPool<DefaultPropertyCursor> pool,
+            CursorPool<TraceablePropertyCursor> pool,
             StoragePropertyCursor storeCursor,
             InternalCursorFactory internalCursors,
             boolean applyAccessModeToTxState);
 
-    PropertyCursor fullAccessPropertyCursor(CursorPool<DefaultPropertyCursor> pool, StoragePropertyCursor storeCursor);
+    PropertyCursor fullAccessPropertyCursor(
+            CursorPool<TraceablePropertyCursor> pool, StoragePropertyCursor storeCursor);
 
     NodeValueIndexCursor nodeValueIndexCursor(
             CursorPool<DefaultNodeValueIndexCursor> pool,
@@ -160,7 +161,7 @@ public interface DefaultCursorFactory {
 
         @Override
         public DefaultPropertyCursor propertyCursor(
-                CursorPool<DefaultPropertyCursor> pool,
+                CursorPool<TraceablePropertyCursor> pool,
                 StoragePropertyCursor storeCursor,
                 InternalCursorFactory internalCursors,
                 boolean applyAccessModeToTxState) {
@@ -169,7 +170,7 @@ public interface DefaultCursorFactory {
 
         @Override
         public FullAccessPropertyCursor fullAccessPropertyCursor(
-                CursorPool<DefaultPropertyCursor> pool, StoragePropertyCursor storeCursor) {
+                CursorPool<TraceablePropertyCursor> pool, StoragePropertyCursor storeCursor) {
             return new FullAccessPropertyCursor(pool, storeCursor);
         }
 
