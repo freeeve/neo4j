@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyType
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherFunctions.asIntExact
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.booleanValue
 
@@ -64,9 +65,9 @@ abstract class CheckDegreeWithTypePrimitive(
 
   override def apply(row: ReadableRow, state: QueryState): AnyValue = {
     maxDegree.apply(row, state) match {
-      case x if x eq Values.NO_VALUE => Values.NO_VALUE
-      case e =>
+      case e: NumberValue =>
         booleanValue(computePredicate(state, row.getLongAt(offset), typeId, direction, asIntExact(e)))
+      case _ => Values.NO_VALUE
     }
   }
 

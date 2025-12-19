@@ -29,6 +29,7 @@ import org.neo4j.cypher.operations.CypherFunctions.asIntExact
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.NO_VALUE
@@ -52,11 +53,11 @@ abstract class CheckDegree(node: Expression, typ: Option[KeyToken], direction: S
 
   override def apply(row: ReadableRow, state: QueryState): AnyValue = {
     maxDegree.apply(row, state) match {
-      case x if x eq NO_VALUE => NO_VALUE
-      case e =>
+      case e: NumberValue =>
         val nodeValue = node(row, state)
         val nodeId = nodeIdOrDefaultId(nodeValue)
         booleanValue(computePredicate(state, nodeId, asIntExact(e)))
+      case _ => NO_VALUE
     }
   }
 
