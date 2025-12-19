@@ -34,4 +34,8 @@ public abstract class VectorDocumentStructure {
     public abstract String textValueKeyFor(int propertyIndex);
 
     public abstract String temporalValueKeyFor(int propertyIndex, ValueGroup group);
+
+    public abstract String zoneOffsetValueKeyFor(int propertyIndex, ValueGroup group);
+
+    public abstract String zoneIdValueKeyFor(int propertyIndex, ValueGroup group);
 }

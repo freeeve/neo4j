@@ -63,6 +63,16 @@ class VectorDocumentStructures {
         public String temporalValueKeyFor(int propertyIndex, ValueGroup group) {
             throw new UnsupportedOperationException("V1 does not support single stage filtering");
         }
+
+        @Override
+        public String zoneOffsetValueKeyFor(int propertyIndex, ValueGroup group) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
+
+        @Override
+        public String zoneIdValueKeyFor(int propertyIndex, ValueGroup group) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
     };
 
     private static final VectorDocumentStructure V2 = new VectorDocumentStructure() {
@@ -95,6 +105,16 @@ class VectorDocumentStructures {
 
         @Override
         public String temporalValueKeyFor(int propertyIndex, ValueGroup group) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String zoneOffsetValueKeyFor(int propertyIndex, ValueGroup group) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String zoneIdValueKeyFor(int propertyIndex, ValueGroup group) {
             throw new UnsupportedOperationException("V2 does not support single stage filtering");
         }
     };
@@ -131,6 +151,16 @@ class VectorDocumentStructures {
         public String temporalValueKeyFor(int propertyIndex, ValueGroup group) {
 
             return "temporal-" + group.name() + "-" + propertyIndex;
+        }
+
+        @Override
+        public String zoneOffsetValueKeyFor(int propertyIndex, ValueGroup group) {
+            return "zoneoffset-" + group.name() + "-" + propertyIndex;
+        }
+
+        @Override
+        public String zoneIdValueKeyFor(int propertyIndex, ValueGroup group) {
+            return "zoneid-" + group.name() + "-" + propertyIndex;
         }
     };
 }

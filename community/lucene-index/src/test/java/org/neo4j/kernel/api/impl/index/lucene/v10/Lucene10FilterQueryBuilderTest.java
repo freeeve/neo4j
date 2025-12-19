@@ -28,7 +28,9 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetTime;
 import java.time.Period;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
@@ -36,9 +38,12 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalField;
 import java.time.temporal.TemporalUnit;
+import java.time.zone.ZoneRulesProvider;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Field.Store;
@@ -48,12 +53,19 @@ import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.util.BytesRef;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.kernel.api.StatementConstants;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
+import org.neo4j.values.storable.LocalTimeValue;
+import org.neo4j.values.storable.TemporalValue;
+import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.Values;
@@ -84,10 +96,8 @@ public class Lucene10FilterQueryBuilderTest {
                 Store.NO);
         index.addField(exists, analyzer);
 
-        var field = Lucene10DocumentsFactory.indexableField(documentStructure, fieldPosition, value);
-        if (field != null) {
-            index.addField(field, analyzer);
-        }
+        Lucene10DocumentsFactory.addIndexableFields(
+                documentStructure, fieldPosition, value, field -> index.addField(field, analyzer));
     }
 
     private float scoreForQuery(int position, PropertyIndexQuery... queries) {
@@ -125,7 +135,7 @@ public class Lucene10FilterQueryBuilderTest {
     public void testString() {
 
         int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of("bravo"));
+        addField(keyIndex, asValue("bravo"));
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, "bravo")))
                 .isEqualTo(1.0f);
         assertThat(scoreForQuery(keyIndex + 1, PropertyIndexQuery.exact(1, "bravo")))
@@ -139,7 +149,7 @@ public class Lucene10FilterQueryBuilderTest {
     @Test
     public void testAllMatchesString() {
         int keyIndex1 = 4;
-        addField(keyIndex1, Values.of("bravo"));
+        addField(keyIndex1, asValue("bravo"));
         assertThat(scoreForQuery(keyIndex1, PropertyIndexQuery.all(1))).isEqualTo(1.0f);
     }
 
@@ -147,7 +157,7 @@ public class Lucene10FilterQueryBuilderTest {
     public void testInteger() {
 
         int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(42));
+        addField(keyIndex, asValue(42));
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, 42))).isEqualTo(1.0f);
         assertThat(scoreForQuery(keyIndex + 1, PropertyIndexQuery.exact(1, 42))).isEqualTo(0.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, 43))).isEqualTo(0.0f);
@@ -158,12 +168,12 @@ public class Lucene10FilterQueryBuilderTest {
     @Test
     public void testFloat() {
         int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(42.5));
+        addField(keyIndex, asValue(42.5));
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, 42.5))).isEqualTo(1.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, 42))).isEqualTo(0.0f);
 
         keyIndex++;
-        addField(keyIndex, Values.of(42.0));
+        addField(keyIndex, asValue(42.0));
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, 42.0))).isEqualTo(1.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, 42))).isEqualTo(1.0f);
     }
@@ -180,7 +190,7 @@ public class Lucene10FilterQueryBuilderTest {
     @Test
     public void testBooleanTrue() {
         int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(true));
+        addField(keyIndex, asValue(true));
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, true))).isEqualTo(1.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, false))).isEqualTo(0.0f);
     }
@@ -188,7 +198,7 @@ public class Lucene10FilterQueryBuilderTest {
     @Test
     public void testBooleanFalse() {
         int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(false));
+        addField(keyIndex, asValue(false));
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, true))).isEqualTo(0.0f);
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, false))).isEqualTo(1.0f);
     }
@@ -196,9 +206,9 @@ public class Lucene10FilterQueryBuilderTest {
     @Test
     public void testConjunction() {
         int keyIndex = KEY_INDEX;
-        addField(keyIndex++, Values.of("alpha"));
-        addField(keyIndex++, Values.of(25.4));
-        addField(keyIndex, Values.of(true));
+        addField(keyIndex++, asValue("alpha"));
+        addField(keyIndex++, asValue(25.4));
+        addField(keyIndex, asValue(true));
         assertThat(scoreForQuery(
                         KEY_INDEX,
                         PropertyIndexQuery.exact(1, "alpha"),
@@ -234,17 +244,17 @@ public class Lucene10FilterQueryBuilderTest {
     @Test
     public void testBadExactQueryType() {
         int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(42));
+        addField(keyIndex, asValue(42));
 
         assertThatThrownBy(
                         () -> scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, Values.pointValue(CARTESIAN, 2, 2))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unexpected value type in filter predicate");
-        assertThatThrownBy(() -> scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, Values.of(Period.of(10, 2, 12)))))
+        assertThatThrownBy(() -> scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, asValue(Period.of(10, 2, 12)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unexpected value type in filter predicate");
         assertThatThrownBy(() -> scoreForQuery(
-                        keyIndex, PropertyIndexQuery.exact(1, Values.of(Duration.of(10, ChronoUnit.SECONDS)))))
+                        keyIndex, PropertyIndexQuery.exact(1, asValue(Duration.of(10, ChronoUnit.SECONDS)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unexpected value type in filter predicate");
     }
@@ -252,33 +262,33 @@ public class Lucene10FilterQueryBuilderTest {
     @Test
     public void testAllMatchesInteger() {
         int keyIndex = 4;
-        addField(keyIndex, Values.of(4));
+        addField(keyIndex, asValue(4));
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.all(1))).isEqualTo(1.0f);
     }
 
     @Test
     public void testAllMatchesFloat() {
         int keyIndex = 4;
-        addField(keyIndex, Values.of(7.5f));
+        addField(keyIndex, asValue(7.5f));
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.all(1))).isEqualTo(1.0f);
     }
 
     @Test
     public void testAllMatchesBoolean() {
         int keyIndex = 4;
-        addField(keyIndex, Values.of(true));
+        addField(keyIndex, asValue(true));
         assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.all(1))).isEqualTo(1.0f);
     }
 
     @Test
     public void testTemporalQueryTypes() {
-        var APOLLO_UTC = ZonedDateTime.of(1969, 07, 20, 20, 17, 0, 0, ZoneOffset.UTC);
+        var APOLLO_UTC = ZonedDateTime.of(1969, 7, 20, 20, 17, 0, 0, ZoneOffset.UTC);
         addAndCheckFieldsAreIndependent(allTemporalValues(APOLLO_UTC));
     }
 
     @Test
     public void testTemporalQueryTypeRanges() {
-        var APOLLO_UTC = ZonedDateTime.of(1969, 07, 20, 20, 17, 0, 0, ZoneOffset.UTC);
+        var APOLLO_UTC = ZonedDateTime.of(1969, 7, 20, 20, 17, 0, 0, ZoneOffset.UTC);
         addAndCheckFieldsAreIndependent(allTemporalValues(APOLLO_UTC));
 
         var temporals = allTemporalValues(APOLLO_UTC);
@@ -296,182 +306,114 @@ public class Lucene10FilterQueryBuilderTest {
     @Test
     public void testStringRange() {
 
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of("bravo"));
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, "alpha", true, "charlie", false)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, "bravo", true, "charlie", false)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, "bravo", false, "charlie", false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, "alpha", false, "bravo", true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, "alpha", false, "bravo", false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.charValue('a'), true, Values.charValue('b'), true)))
-                .isEqualTo(0.0f);
+        addField(KEY_INDEX, asValue("bravo"));
+        assertInRangeTF("alpha", "charlie");
+        assertInRangeTF("bravo", "charlie");
+        assertOutRangeFF("bravo", "charlie");
+        assertInRangeFT("alpha", "bravo");
+        assertOutRangeFF("alpha", "bravo");
+        assertOutRangeTT('a', 'b');
     }
 
     @Test
     public void testCharRange() {
 
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of('b'));
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of('a'), true, Values.of('c'), false)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of('b'), true, Values.of('c'), false)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of('b'), false, Values.of('c'), false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of('a'), false, Values.of('b'), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of('a'), false, Values.of('b'), false)))
-                .isEqualTo(0.0f);
+        addField(KEY_INDEX, asValue('b'));
+        assertInRangeTF('a', 'c');
+        assertInRangeTF('b', 'c');
+        assertOutRangeFF('b', 'c');
+        assertInRangeFT('a', 'b');
+        assertOutRangeFF('a', 'b');
     }
 
     @Test
     public void testIntegerRange() {
 
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(42));
+        addField(KEY_INDEX, asValue(42));
 
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 41, true, 43, true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42, true, 43, true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42, false, 43, true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 38, false, 42, true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 38, false, 42, false)))
-                .isEqualTo(0.0f);
+        assertInRangeTT(41, 43);
+        assertInRangeTT(42, 43);
+        assertOutRangeFT(42, 43);
+        assertInRangeFT(38, 42);
+        assertOutRangeFF(38, 42);
 
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42, false, 42.5, true)))
-                .isEqualTo(0.0f);
-
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 41.9f, true, 42.1f, true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.0f, true, 42.1f, false)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.0f, false, 43.0f, true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 38.0f, false, 42.0, true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 38.0f, false, 42.0, false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.3f, false, 42.5, false)))
-                .isEqualTo(0.0f);
+        assertOutRangeFT(42, 42.5);
+        assertInRangeFF(41.9f, 42.1f);
+        assertInRangeTF(42.0f, 42.1f);
+        assertOutRangeFT(42.0f, 43.0f);
+        assertInRangeFT(38.0f, 42.0);
+        assertOutRangeFF(38.0f, 42.0);
+        assertOutRangeFF(42.3f, 42.5);
 
         // empty ranges
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5f, false, 42.3, false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 44, false, 43, false)))
-                .isEqualTo(0.0f);
+        assertOutRangeFF(42.5, 42.3f);
+        assertOutRangeFF(44, 43);
     }
 
     @Test
     public void testFloatRange() {
 
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(42.5));
+        addField(KEY_INDEX, asValue(42.5));
 
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 41, true, 43, true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42, true, 43, true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42, false, 43, true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 38, false, 42, true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 38, false, 42.5, false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 38, false, 42.5, false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.4, false, 42.6, false)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.49, false, 42.51, false)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5, true, 42.5, true)))
-                .isEqualTo(1.0f);
+        assertInRangeTT(41, 43);
+        assertInRangeTT(42, 43);
+        assertInRangeFT(42, 43);
+        assertOutRangeFT(38, 42);
+        assertOutRangeFF(38, 42.5);
+        assertInRangeFF(42.4, 42.6);
+        assertInRangeFF(42.49, 42.51);
+        assertInRangeTT(42.5, 42.5);
         // check empty range queries
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5, true, 42.5, false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, 42.5, false, 42.5, true)))
-                .isEqualTo(0.0f);
+        assertOutRangeTF(42.5, 42.5);
+        assertOutRangeFT(42.5, 42.5);
     }
 
     @Test
     public void testBigFloatRange() {
 
-        int keyIndex = KEY_INDEX;
         var bigFloat = 9.23e18; // large than Long.MAX_VALUE
-        addField(keyIndex, Values.of(bigFloat));
+        addField(KEY_INDEX, asValue(bigFloat));
 
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Long.MIN_VALUE, true, Long.MAX_VALUE, true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Long.MIN_VALUE, true, 10e18, true)))
-                .isEqualTo(1.0f);
+        assertOutRangeTT(Long.MIN_VALUE, Long.MAX_VALUE);
+        assertInRangeTT(Long.MIN_VALUE, 10e18);
     }
 
     @Test
     public void testFiniteFloatRange() {
-        assertThat(scoreForQuery(4, PropertyIndexQuery.range(1, Double.NaN, true, 42, true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(4, PropertyIndexQuery.range(1, 42, true, Double.NaN, true)))
-                .isEqualTo(0.0f);
+        assertOutRangeTT(Double.NaN, 42);
+        assertOutRangeTT(42, Double.NaN);
     }
 
     @Test
     public void testBooleanRangeTrue() {
 
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(true));
+        addField(KEY_INDEX, asValue(true));
 
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(false), true, Values.of(true), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(false), true, Values.of(true), false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(false), true, Values.of(false), true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(false), false, Values.of(true), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(true), true)))
-                .isEqualTo(1.0f);
+        assertInRangeTT(false, true);
+        assertOutRangeTF(false, true);
+        assertOutRangeTT(false, false);
+        assertInRangeFT(false, true);
+        assertInRangeTT(true, true);
         // empty ranges
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(true), true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(
-                        keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(false), false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(false), true)))
-                .isEqualTo(0.0f);
+        assertOutRangeFT(true, true);
+        assertOutRangeFF(true, false);
+        assertOutRangeFT(true, false);
     }
 
     @Test
     public void testBooleanRangeFalse() {
 
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(false));
+        addField(KEY_INDEX, asValue(false));
 
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(false), true, Values.of(true), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(false), true, Values.of(true), false)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(false), true, Values.of(false), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(false), false, Values.of(true), true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(true), true)))
-                .isEqualTo(0.0f);
+        assertInRangeTT(false, true);
+        assertInRangeTF(false, true);
+        assertInRangeTT(false, false);
+        assertOutRangeFT(false, true);
+        assertOutRangeTT(true, true);
         // empty ranges
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), false, Values.of(true), true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(false), false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, Values.of(true), true, Values.of(false), true)))
-                .isEqualTo(0.0f);
+        assertOutRangeFT(true, true);
+        assertOutRangeTF(true, false);
+        assertOutRangeTT(true, false);
     }
 
     @Test
@@ -481,59 +423,35 @@ public class Lucene10FilterQueryBuilderTest {
         var APOLLO_12_LOCALTIME = LocalDateTime.of(1969, 11, 24, 20, 58, 24);
         var APOLLO_12_UTC = ZonedDateTime.of(APOLLO_12_LOCALTIME, ZoneOffset.UTC);
 
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(APOLLO_11_UTC));
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_11_UTC), true, Values.of(APOLLO_11_UTC), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_12_UTC), true, Values.of(APOLLO_12_UTC), true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_11_UTC), false, Values.of(APOLLO_11_UTC), true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_11_UTC), true, Values.of(APOLLO_11_UTC), false)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_11_UTC), false, Values.of(APOLLO_11_UTC), false)))
-                .isEqualTo(0.0f);
+        addField(KEY_INDEX, asValue(APOLLO_11_UTC));
+        assertInRangeTT(APOLLO_11_UTC, APOLLO_11_UTC);
+        assertOutRangeTT(APOLLO_12_UTC, APOLLO_12_UTC);
+        assertOutRangeFT(APOLLO_11_UTC, APOLLO_11_UTC);
+        assertOutRangeTF(APOLLO_11_UTC, APOLLO_11_UTC);
+        assertOutRangeFF(APOLLO_11_UTC, APOLLO_11_UTC);
     }
 
     @Test
     public void testTemporalRangeInfinityMax() {
 
-        addField(KEY_INDEX, Values.of(DateTimeValue.MAX_VALUE));
-        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.exact(1, Values.of(DateTimeValue.MAX_VALUE))))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        KEY_INDEX,
-                        PropertyIndexQuery.range(1, Values.of(DateTimeValue.MAX_VALUE), true, NO_VALUE, true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        KEY_INDEX,
-                        PropertyIndexQuery.range(1, Values.of(DateTimeValue.MAX_VALUE), false, NO_VALUE, true)))
-                .isEqualTo(0.0f);
+        addField(KEY_INDEX, asValue(DateTimeValue.MAX_VALUE));
+        assertExactHit(DateTimeValue.MAX_VALUE);
+        assertInRangeTT(DateTimeValue.MAX_VALUE, NO_VALUE);
+        assertOutRangeFT(DateTimeValue.MAX_VALUE, NO_VALUE);
     }
 
     @Test
     public void testTemporalRangeInfinityMin() {
 
-        addField(KEY_INDEX, Values.of(DateTimeValue.MIN_VALUE));
-        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.exact(1, Values.of(DateTimeValue.MIN_VALUE))))
+        addField(KEY_INDEX, asValue(DateTimeValue.MIN_VALUE));
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.exact(1, asValue(DateTimeValue.MIN_VALUE))))
+                .isEqualTo(1.0f);
+        assertThat(scoreForQuery(
+                        KEY_INDEX, PropertyIndexQuery.range(1, NO_VALUE, true, asValue(DateTimeValue.MIN_VALUE), true)))
                 .isEqualTo(1.0f);
         assertThat(scoreForQuery(
                         KEY_INDEX,
-                        PropertyIndexQuery.range(1, NO_VALUE, true, Values.of(DateTimeValue.MIN_VALUE), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        KEY_INDEX,
-                        PropertyIndexQuery.range(1, NO_VALUE, true, Values.of(DateTimeValue.MIN_VALUE), false)))
+                        PropertyIndexQuery.range(1, NO_VALUE, true, asValue(DateTimeValue.MIN_VALUE), false)))
                 .isEqualTo(0.0f);
     }
 
@@ -541,127 +459,59 @@ public class Lucene10FilterQueryBuilderTest {
     public void testTemporalRangeWider() {
         var APOLLO_12_LOCALTIME = LocalDateTime.of(1969, 11, 24, 20, 58, 24);
         var APOLLO_12_UTC = ZonedDateTime.of(APOLLO_12_LOCALTIME, ZoneOffset.UTC);
-        var APOLLO_14_LOCALTIME = LocalDateTime.of(1971, 2, 9, 21, 05, 0);
+        var APOLLO_14_LOCALTIME = LocalDateTime.of(1971, 2, 9, 21, 5, 0);
         var APOLLO_14_UTC = ZonedDateTime.of(APOLLO_14_LOCALTIME, ZoneOffset.UTC);
-        var APOLLO_16_LOCALTIME = LocalDateTime.of(1972, 4, 25, 05, 47, 0);
+        var APOLLO_16_LOCALTIME = LocalDateTime.of(1972, 4, 25, 5, 47, 0);
         var APOLLO_16_UTC = ZonedDateTime.of(APOLLO_16_LOCALTIME, ZoneOffset.UTC);
 
-        int keyIndex = KEY_INDEX;
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_12_UTC), true, Values.of(APOLLO_16_UTC), true)))
-                .isEqualTo(0.0f);
+        assertOutRangeTT(APOLLO_12_UTC, APOLLO_16_UTC);
 
-        addField(keyIndex, Values.of(APOLLO_14_UTC));
+        addField(KEY_INDEX, asValue(APOLLO_14_UTC));
 
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_14_UTC), true, Values.of(APOLLO_14_UTC), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_14_UTC), true, Values.of(APOLLO_16_UTC), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_12_UTC), true, Values.of(APOLLO_14_UTC), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_12_UTC), true, Values.of(APOLLO_16_UTC), true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(
-                                1,
-                                Values.of(APOLLO_14_UTC.plusSeconds(1)),
-                                true,
-                                Values.of(APOLLO_14_UTC.plusSeconds(2)),
-                                true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(
-                                1,
-                                Values.of(APOLLO_14_UTC.minusSeconds(1)),
-                                true,
-                                Values.of(APOLLO_14_UTC.plusSeconds(2)),
-                                true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(
-                                1,
-                                Values.of(APOLLO_14_UTC.minusSeconds(1).plusNanos(1000)),
-                                true,
-                                Values.of(APOLLO_14_UTC.plusSeconds(1).minusNanos(1000)),
-                                true)))
-                .isEqualTo(1.0f);
+        assertInRangeTT(APOLLO_14_UTC, APOLLO_14_UTC);
+        assertInRangeTT(APOLLO_14_UTC, APOLLO_16_UTC);
+        assertInRangeTT(APOLLO_12_UTC, APOLLO_14_UTC);
+        assertInRangeTT(APOLLO_12_UTC, APOLLO_16_UTC);
+        assertOutRangeTT(APOLLO_14_UTC.plusSeconds(1), APOLLO_14_UTC.plusSeconds(2));
+        assertInRangeTT(APOLLO_14_UTC.minusSeconds(1), APOLLO_14_UTC.plusSeconds(2));
+        assertInRangeTT(APOLLO_14_UTC.minusSeconds(1), APOLLO_14_UTC.plusSeconds(2));
     }
 
     @Test
     public void testTemporalRangeImplementationArtifacts() {
 
-        var APOLLO_16_LOCALTIME = LocalDateTime.of(1972, 4, 25, 05, 47, 0);
+        var APOLLO_16_LOCALTIME = LocalDateTime.of(1972, 4, 25, 5, 47, 0);
         var APOLLO_16_UTC = ZonedDateTime.of(APOLLO_16_LOCALTIME, ZoneOffset.UTC);
 
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(APOLLO_16_UTC.plusNanos(10_000_000)));
+        addField(KEY_INDEX, asValue(APOLLO_16_UTC.plusNanos(10_000_000)));
 
         // This is now correct because temporal range querying builds a compound query
         // to take care of the nanosecond ranges within the endpoint seconds of the time range.
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(
-                                1,
-                                Values.of(APOLLO_16_UTC.minusNanos(10_000_000)),
-                                true,
-                                Values.of(APOLLO_16_UTC),
-                                true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(
-                                1,
-                                Values.of(APOLLO_16_UTC.minusSeconds(2).plusNanos(20_000_000)),
-                                true,
-                                Values.of(APOLLO_16_UTC),
-                                true)))
-                .isEqualTo(0.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(
-                                1,
-                                Values.of(APOLLO_16_UTC.minusSeconds(2).plusNanos(20_000_000)),
-                                true,
-                                Values.of(APOLLO_16_UTC.plusNanos(15_000_000)),
-                                true)))
-                .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(
-                                1,
-                                Values.of(APOLLO_16_UTC.minusSeconds(2).plusNanos(20_000_000)),
-                                true,
-                                Values.of(APOLLO_16_UTC.plusSeconds(1).plusNanos(5_000_000)),
-                                true)))
-                .isEqualTo(1.0f);
+        assertOutRangeTT(APOLLO_16_UTC.minusNanos(10_000_000), APOLLO_16_UTC);
+        assertOutRangeTT(APOLLO_16_UTC.plusNanos(20_000_000), APOLLO_16_UTC);
+        assertInRangeTT(APOLLO_16_UTC.minusSeconds(2).plusNanos(20_000_000), APOLLO_16_UTC.plusNanos(15_000_000));
+        assertInRangeTT(
+                APOLLO_16_UTC.minusSeconds(2).plusNanos(20_000_000),
+                APOLLO_16_UTC.plusSeconds(1).plusNanos(5_000_000));
     }
+
+    @Test
+    public void testTemporalCypherTimezoneCompatibility() {}
 
     @Test
     public void testBadRangeQueryType() {
         int keyIndex = KEY_INDEX;
-        addField(keyIndex, Values.of(42));
+        addField(keyIndex, asValue(42));
 
         assertThatThrownBy(() -> scoreForQuery(
-                        keyIndex, PropertyIndexQuery.range(1, Values.of(41), true, Values.charValue('b'), true)))
+                        keyIndex, PropertyIndexQuery.range(1, asValue(41), true, Values.charValue('b'), true)))
                 .isInstanceOf(ClassCastException.class)
                 .hasMessageContaining(
                         "class org.neo4j.values.storable.CharValue cannot be cast to class org.neo4j.values.storable.NumberValue");
 
         assertThatThrownBy(() -> scoreForQuery(
                         keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(LocalTime.of(10, 30, 45)), true, Values.of('b'), true)))
+                        PropertyIndexQuery.range(1, asValue(LocalTime.of(10, 30, 45)), true, asValue('b'), true)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unexpected value type in filter predicate");
 
@@ -670,67 +520,301 @@ public class Lucene10FilterQueryBuilderTest {
                         keyIndex,
                         PropertyIndexQuery.range(
                                 1,
-                                Values.of(Duration.of(10, ChronoUnit.MINUTES)),
+                                asValue(Duration.of(10, ChronoUnit.MINUTES)),
                                 true,
-                                Values.of(Duration.of(20, ChronoUnit.MINUTES)),
+                                asValue(Duration.of(20, ChronoUnit.MINUTES)),
                                 true)))
                 .isEqualTo(0.0f);
     }
 
     @Test
-    public void temporalDate() {
+    public void temporalDateTypesDontClash() {
         var APOLLO_11_LOCALTIME = LocalDateTime.of(1969, 7, 20, 20, 17, 0);
         var APOLLO_11_UTC = ZonedDateTime.of(APOLLO_11_LOCALTIME, ZoneOffset.UTC);
         var APOLLO_11_DATE = DateValue.date(LocalDate.from(APOLLO_11_LOCALTIME));
 
-        int keyIndex = KEY_INDEX;
-        addField(keyIndex, APOLLO_11_DATE);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(1, Values.of(APOLLO_11_DATE), true, Values.of(APOLLO_11_DATE), true)))
+        addField(KEY_INDEX, APOLLO_11_DATE);
+        assertInRangeTT(APOLLO_11_DATE, APOLLO_11_DATE);
+        // Different types:
+        assertOutRangeTT(APOLLO_11_UTC.minusDays(1), APOLLO_11_UTC.plusDays(1));
+    }
+
+    @Test
+    public void temporalDateConfirmIdAsOffsetBeforeIdAsRegion() {
+        var VOYAGER_2_OFFSET = DateTimeValue.parse("1977-02-20T19:29:44Z", ZoneOffset::systemDefault);
+        var VOYAGER_2_REGION = DateTimeValue.parse("1977-02-20T19:29:44[Europe/Dublin]", ZoneOffset::systemDefault);
+        assertThat(Values.COMPARATOR.compare(VOYAGER_2_OFFSET, VOYAGER_2_REGION))
+                .isNegative();
+        addField(KEY_INDEX, VOYAGER_2_REGION);
+        assertInRangeTT(VOYAGER_2_OFFSET, VOYAGER_2_OFFSET.plus(Duration.ofDays(10)));
+        assertInRangeFT(VOYAGER_2_OFFSET, VOYAGER_2_OFFSET.plus(Duration.ofDays(10)));
+        assertInRangeTT(VOYAGER_2_REGION, VOYAGER_2_OFFSET.plus(Duration.ofDays(10)));
+        assertOutRangeFT(VOYAGER_2_REGION, VOYAGER_2_OFFSET.plus(Duration.ofDays(10)));
+    }
+
+    /// An initial implementation of String for zone offsets was broken.
+    /// GMT < GMT0 but "\[GMT0\]" < "\[GMT\]".
+    @Test
+    public void versionsOfGMT() {
+        var before = DateTimeValue.parse("2019-06-03T05:00:00.000[Brazil/DeNoronha]", ZoneOffset::systemDefault);
+        var mid = DateTimeValue.parse("2019-06-03T07:00:00.000[GMT]", ZoneOffset::systemDefault);
+        var after = DateTimeValue.parse("2019-06-03T07:00:00.000[GMT0]", ZoneOffset::systemDefault);
+        addField(KEY_INDEX, mid);
+        assertInRangeTT(before, mid);
+        assertInRangeTT(before, after);
+    }
+
+    private void checkRangeUpperExists(TemporalValue<?, ?> lower, TemporalValue<?, ?> upper) {
+        assertThat(Values.COMPARATOR.compare(lower, upper)).isNegative();
+        addField(KEY_INDEX, upper);
+
+        assertOutRangeTF(NO_VALUE, lower);
+        assertOutRangeTT(NO_VALUE, lower);
+        assertOutRangeTF(NO_VALUE, upper);
+        assertInRangeTT(NO_VALUE, upper);
+
+        assertInRangeTT(lower, NO_VALUE);
+        assertInRangeFT(lower, NO_VALUE);
+        assertInRangeTT(upper, NO_VALUE);
+        assertOutRangeFT(upper, NO_VALUE);
+    }
+
+    private void checkRangeLowerExists(TemporalValue<?, ?> lower, TemporalValue<?, ?> upper) {
+        assertThat(Values.COMPARATOR.compare(lower, upper)).isNegative();
+        addField(KEY_INDEX, lower);
+
+        assertOutRangeTF(NO_VALUE, lower);
+        assertInRangeTT(NO_VALUE, lower);
+        assertInRangeTF(NO_VALUE, upper);
+        assertInRangeTT(NO_VALUE, upper);
+
+        assertInRangeTT(lower, NO_VALUE);
+        assertOutRangeFT(lower, NO_VALUE);
+        assertOutRangeTT(upper, NO_VALUE);
+        assertOutRangeFT(upper, NO_VALUE);
+    }
+
+    @Test
+    public void rangeWithOpenEndSameZoneOffsetLowerExists() {
+        var lower = DateTimeValue.parse("2019-06-03T05:00:00.000-0200", ZoneOffset::systemDefault);
+        var upper = DateTimeValue.parse("2019-06-03T05:00:00.000[Brazil/DeNoronha]", ZoneOffset::systemDefault);
+        checkRangeLowerExists(lower, upper);
+    }
+
+    @Test
+    public void rangeWithOpenEndSameZoneOffsetUpperExists() {
+        var lower = DateTimeValue.parse("2019-06-03T05:00:00.000-0200", ZoneOffset::systemDefault);
+        var upper = DateTimeValue.parse("2019-06-03T05:00:00.000[Brazil/DeNoronha]", ZoneOffset::systemDefault);
+        checkRangeUpperExists(lower, upper);
+    }
+
+    @Test
+    public void rangeWithOpenEndSameInstantLowerExists() {
+        var lower = DateTimeValue.parse("2019-06-03T05:00:00.000[Brazil/DeNoronha]", ZoneOffset::systemDefault);
+        var upper = DateTimeValue.parse("2019-06-03T07:00:00.000[GMT]", ZoneOffset::systemDefault);
+        checkRangeLowerExists(lower, upper);
+    }
+
+    @Test
+    public void rangeWithOpenEndSameInstantUpperExists() {
+        var lower = DateTimeValue.parse("2019-06-03T05:00:00.000[Brazil/DeNoronha]", ZoneOffset::systemDefault);
+        var upper = DateTimeValue.parse("2019-06-03T07:00:00.000[GMT]", ZoneOffset::systemDefault);
+        checkRangeUpperExists(lower, upper);
+    }
+
+    @Test
+    public void rangeWithOpenEndLowerExists() {
+        var lower = DateTimeValue.parse("2019-06-03T07:00:00.000[GMT]", ZoneOffset::systemDefault);
+        var upper = DateTimeValue.parse("2019-06-03T06:00:00.000[Brazil/DeNoronha]", ZoneOffset::systemDefault);
+        checkRangeLowerExists(lower, upper);
+    }
+
+    @Test
+    public void rangeWithOpenEndUpperExists() {
+        var lower = DateTimeValue.parse("2019-06-03T07:00:00.000[GMT]", ZoneOffset::systemDefault);
+        var upper = DateTimeValue.parse("2019-06-03T06:00:00.000[Brazil/DeNoronha]", ZoneOffset::systemDefault);
+        checkRangeUpperExists(lower, upper);
+    }
+
+    @Test
+    public void temporalTime() {
+        var APOLLO_11_LOCALTIME = LocalDateTime.of(1969, 7, 20, 20, 17, 0);
+        var tZ4 = OffsetTime.ofInstant(APOLLO_11_LOCALTIME.toInstant(ZoneOffset.ofHours(0)), ZoneOffset.ofHours(4));
+        var tZ5 = OffsetTime.ofInstant(APOLLO_11_LOCALTIME.toInstant(ZoneOffset.ofHours(0)), ZoneOffset.ofHours(5));
+        var offsetTime =
+                OffsetTime.ofInstant(APOLLO_11_LOCALTIME.toInstant(ZoneOffset.ofHours(0)), ZoneOffset.ofHours(6));
+        var tZ7 = OffsetTime.ofInstant(APOLLO_11_LOCALTIME.toInstant(ZoneOffset.ofHours(0)), ZoneOffset.ofHours(7));
+        var tZ8 = OffsetTime.ofInstant(APOLLO_11_LOCALTIME.toInstant(ZoneOffset.ofHours(0)), ZoneOffset.ofHours(8));
+        addField(KEY_INDEX, TimeValue.time(offsetTime));
+        assertInRangeTT(offsetTime, offsetTime);
+        assertOutRangeFT(offsetTime, offsetTime);
+        assertOutRangeTF(offsetTime, offsetTime);
+        assertInRangeTT(tZ4, tZ8);
+        assertInRangeFF(tZ5, tZ7);
+    }
+
+    @Test
+    public void temporalLocalTime() {
+        var storedTime = LocalTime.of(14, 35, 15, 63000);
+        addField(KEY_INDEX, LocalTimeValue.localTime(storedTime));
+        assertInRangeTT(LocalTime.of(13, 55), LocalTime.of(15, 3));
+        assertOutRangeTT(LocalTime.of(14, 36), LocalTime.of(15, 3));
+        assertOutRangeTT(LocalTime.of(14, 36), LocalTime.of(15, 3));
+        assertExactMiss(LocalTime.of(14, 35));
+        assertExactMiss(LocalTime.of(14, 36));
+        assertExactMiss(LocalTime.of(14, 35, 15));
+        assertExactHit(LocalTime.of(14, 35, 15, 63000));
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = ChronoUnit.class,
+            names = {"NANOS", "MILLIS", "MICROS", "SECONDS", "HOURS", "DAYS", "WEEKS", "YEARS"}) //
+    public void temporalWithOffsetExact(ChronoUnit chronoUnit) {
+        var VOYAGER_2 = ZonedDateTime.ofInstant(
+                LocalDateTime.of(1977, 8, 20, 14, 29, 44),
+                ZoneOffset.ofHoursMinutes(-6, 0),
+                ZoneId.of("America/Chicago"));
+        addField(KEY_INDEX, asValue(VOYAGER_2));
+        assertExactHit(VOYAGER_2);
+        assertExactMiss(VOYAGER_2.minus(1, chronoUnit));
+        assertExactMiss(VOYAGER_2.plus(1, chronoUnit));
+        var paris = VOYAGER_2.withZoneSameInstant(ZoneId.of("Europe/Paris"));
+        assertExactMiss(paris);
+    }
+
+    @Test
+    public void temporalWithOffsetRange() {
+        var VOYAGER_2 = ZonedDateTime.ofInstant(
+                LocalDateTime.of(1977, 8, 20, 14, 29, 44),
+                ZoneOffset.ofHoursMinutes(-6, 0),
+                ZoneId.of("America/Chicago"));
+        addField(KEY_INDEX, asValue(VOYAGER_2));
+        var anchorage = VOYAGER_2.withZoneSameInstant(ZoneId.of("America/Anchorage"));
+        var paris = VOYAGER_2.withZoneSameInstant(ZoneId.of("Europe/Paris"));
+        assertInRangeFF(anchorage, paris);
+        assertOutRangeFF(paris, anchorage);
+
+        assertInRangeFF(
+                VOYAGER_2.plusHours(6).minusDays(1), VOYAGER_2.minusHours(6).plusDays(1));
+        assertInRangeFF(
+                VOYAGER_2.plusHours(6).minusDays(2), VOYAGER_2.minusHours(6).plusDays(1));
+        assertInRangeFF(
+                VOYAGER_2.plusHours(6).minusDays(1), VOYAGER_2.minusHours(6).plusDays(2));
+        assertInRangeFF(
+                VOYAGER_2.plusHours(6).minusDays(2), VOYAGER_2.minusHours(6).plusDays(2));
+        assertOutRangeFF(VOYAGER_2.plusHours(6), VOYAGER_2.minusHours(6).plusDays(2));
+        assertOutRangeFF(VOYAGER_2.plusHours(6), VOYAGER_2.plusHours(8));
+        assertOutRangeFF(VOYAGER_2.minusHours(6), VOYAGER_2.minusHours(8));
+        assertOutRangeFF(VOYAGER_2.minusHours(8), VOYAGER_2.minusHours(6));
+        assertInRangeFF(VOYAGER_2.minusHours(6), VOYAGER_2.plusDays(1).minusHours(8));
+        assertInRangeFF(VOYAGER_2.minusHours(8), VOYAGER_2.plusDays(1).minusHours(6));
+    }
+
+    private Value asValue(Object v) {
+        if (v instanceof Value value) {
+            return value;
+        }
+        return Values.of(v);
+    }
+
+    private void assertInRangeFF(Object from, Object to) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.range(1, asValue(from), false, asValue(to), false)))
                 .isEqualTo(1.0f);
-        assertThat(scoreForQuery(
-                        keyIndex,
-                        PropertyIndexQuery.range(
-                                1,
-                                Values.of(APOLLO_11_UTC.minusDays(1)),
-                                true,
-                                Values.of(APOLLO_11_UTC.plusDays(1)),
-                                true)))
+    }
+
+    private void assertInRangeFT(Object from, Object to) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.range(1, asValue(from), false, asValue(to), true)))
+                .isEqualTo(1.0f);
+    }
+
+    private void assertInRangeTF(Object from, Object to) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.range(1, asValue(from), true, asValue(to), false)))
+                .isEqualTo(1.0f);
+    }
+
+    private void assertInRangeTT(Object from, Object to) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.range(1, asValue(from), true, asValue(to), true)))
+                .isEqualTo(1.0f);
+    }
+
+    private void assertOutRangeFF(Object from, Object to) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.range(1, asValue(from), false, asValue(to), false)))
                 .isEqualTo(0.0f);
+    }
+
+    private void assertOutRangeFT(Object from, Object to) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.range(1, asValue(from), false, asValue(to), true)))
+                .isEqualTo(0.0f);
+    }
+
+    private void assertOutRangeTF(Object from, Object to) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.range(1, asValue(from), true, asValue(to), false)))
+                .isEqualTo(0.0f);
+    }
+
+    private void assertOutRangeTT(Object from, Object to) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.range(1, asValue(from), true, asValue(to), true)))
+                .isEqualTo(0.0f);
+    }
+
+    private void assertExactHit(Object from) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.exact(1, asValue(from))))
+                .isEqualTo(1.0f);
+    }
+
+    private void assertExactMiss(Object from) {
+        assertThat(scoreForQuery(KEY_INDEX, PropertyIndexQuery.exact(1, asValue(from))))
+                .isEqualTo(0.0f);
+    }
+
+    private static List<String> sortedZoneIdsWithOffset(ZonedDateTime reference, ZoneOffset offset) {
+        List<String> zoneIds = new ArrayList<>();
+        for (var zone : ZoneRulesProvider.getAvailableZoneIds()) {
+            var referenceInZone = reference.withZoneSameInstant(ZoneId.of(zone));
+            if (offset.equals(referenceInZone.getOffset())) {
+                zoneIds.add(zone);
+            }
+        }
+        Collections.sort(zoneIds);
+        return zoneIds;
+    }
+
+    static final ZonedDateTime VOYAGER_2 = ZonedDateTime.ofInstant(
+            LocalDateTime.of(1977, 8, 20, 14, 29, 44), ZoneOffset.ofHours(-6), ZoneId.of("America/Chicago"));
+
+    private static Stream<Arguments> provideSortedZoneIdsWithOffset() {
+        return sortedZoneIdsWithOffset(VOYAGER_2, ZoneOffset.ofHours(-6)).stream()
+                .map(Arguments::of);
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideSortedZoneIdsWithOffset")
+    public void temporalWithOffsetZoneIdRange(String zoneId) {
+        var entry = VOYAGER_2.withZoneSameInstant(ZoneId.of(zoneId));
+        addField(KEY_INDEX, asValue(entry));
+        var zoneIdsWithSameOffset = sortedZoneIdsWithOffset(VOYAGER_2, ZoneOffset.ofHours(-6));
+        for (String before : zoneIdsWithSameOffset) {
+            for (String after : zoneIdsWithSameOffset) {
+                if (before.compareTo(zoneId) < 0 && zoneId.compareTo(after) < 0) {
+                    assertInRangeFF(
+                            VOYAGER_2.withZoneSameInstant(ZoneId.of(before)),
+                            VOYAGER_2.withZoneSameInstant(ZoneId.of(after)));
+                } else {
+                    assertOutRangeFF(
+                            VOYAGER_2.withZoneSameInstant(ZoneId.of(before)),
+                            VOYAGER_2.withZoneSameInstant(ZoneId.of(after)));
+                }
+            }
+        }
     }
 
     private void checkTemporalRange(Temporal temporal, TemporalField field, TemporalUnit unit) {
         if (temporal.isSupported(field)) {
-            assertThat(scoreForQuery(
-                            KEY_INDEX,
-                            PropertyIndexQuery.range(
-                                    1,
-                                    Values.of(temporal.minus(1, unit)),
-                                    false,
-                                    Values.of(temporal.plus(1, unit)),
-                                    false)))
-                    .isEqualTo(1.0f);
-            assertThat(scoreForQuery(
-                            KEY_INDEX,
-                            PropertyIndexQuery.range(
-                                    1, Values.of(temporal), false, Values.of(temporal.plus(1, unit)), true)))
-                    .isEqualTo(0.0f);
-            assertThat(scoreForQuery(
-                            KEY_INDEX,
-                            PropertyIndexQuery.range(
-                                    1, Values.of(temporal), true, Values.of(temporal.plus(1, unit)), false)))
-                    .isEqualTo(1.0f);
-            assertThat(scoreForQuery(
-                            KEY_INDEX,
-                            PropertyIndexQuery.range(
-                                    1, Values.of(temporal.minus(1, unit)), false, Values.of(temporal), true)))
-                    .isEqualTo(1.0f);
-            assertThat(scoreForQuery(
-                            KEY_INDEX,
-                            PropertyIndexQuery.range(
-                                    1, Values.of(temporal.minus(1, unit)), false, Values.of(temporal), false)))
-                    .isEqualTo(0.0f);
+            assertInRangeFF(temporal.minus(1, unit), temporal.plus(1, unit));
+            assertInRangeTF(temporal, temporal.plus(1, unit));
+            assertInRangeFT(temporal.minus(1, unit), temporal);
+            assertOutRangeFF(temporal.minus(1, unit), temporal);
         }
     }
 
@@ -754,16 +838,16 @@ public class Lucene10FilterQueryBuilderTest {
         while (!unwritten.isEmpty()) {
             var time = unwritten.getFirst();
             for (var tQuery : unwritten) {
-                assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, Values.of(tQuery))))
+                assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, asValue(tQuery))))
                         .isEqualTo(0.0f);
             }
 
-            addField(keyIndex, Values.of(time));
+            addField(keyIndex, asValue(time));
             unwritten.removeFirst();
             written.add(time);
 
             for (var tQuery : written) {
-                assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, Values.of(tQuery))))
+                assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, asValue(tQuery))))
                         .as("Expected to find " + tQuery + " in the index. Written list "
                                 + Arrays.toString(written.toArray()))
                         .isEqualTo(1.0f);
@@ -800,6 +884,16 @@ public class Lucene10FilterQueryBuilderTest {
         @Override
         public String temporalValueKeyFor(int propertyIndex, ValueGroup group) {
             return "temporalValueKeyFor" + propertyIndex + "Group" + group.name();
+        }
+
+        @Override
+        public String zoneOffsetValueKeyFor(int propertyIndex, ValueGroup group) {
+            return "zoneOffsetValueKeyFor" + propertyIndex + "Group" + group.name();
+        }
+
+        @Override
+        public String zoneIdValueKeyFor(int propertyIndex, ValueGroup group) {
+            return "zoneIdValueKeyFor" + propertyIndex + "Group" + group.name();
         }
     }
 }

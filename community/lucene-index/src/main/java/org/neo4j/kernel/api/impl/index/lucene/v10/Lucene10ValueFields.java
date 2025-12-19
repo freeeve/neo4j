@@ -19,19 +19,20 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
-import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.OffsetTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.time.temporal.Temporal;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
+import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
@@ -43,6 +44,8 @@ import org.neo4j.values.storable.LocalDateTimeValue;
 import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.TemporalValue;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.TimeZones;
+import org.neo4j.values.storable.Values;
 
 final class Lucene10ValueFields {
     private Lucene10ValueFields() {}
@@ -136,7 +139,7 @@ final class Lucene10ValueFields {
                     field, longToBytes(lowerValueInclusive), longToBytes(upperValueInclusive), 1);
         }
 
-        private static final class LongPointRangeQuery extends org.apache.lucene.search.PointRangeQuery {
+        private static final class LongPointRangeQuery extends PointRangeQuery {
 
             private LongPointRangeQuery(String field, byte[] lowerPoint, byte[] upperPoint, int numDims) {
                 super(field, lowerPoint, upperPoint, numDims);
@@ -145,6 +148,59 @@ final class Lucene10ValueFields {
             @Override
             protected String toString(int dimension, byte[] value) {
                 return Long.toString(NumericUtils.sortableBytesToLong(value, 0));
+            }
+        }
+    }
+
+    static final class SingleIntegerField extends Field {
+        private static final FieldType TYPE;
+
+        static {
+            FieldType type = new FieldType();
+            type.setDimensions(1, Integer.BYTES);
+            type.freeze();
+            TYPE = type;
+        }
+
+        SingleIntegerField(String name, int value) {
+            super(name, TYPE);
+            fieldsData = value;
+        }
+
+        @Override
+        public BytesRef binaryValue() {
+            return new BytesRef(intToBytes((Integer) fieldsData));
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " <" + name + ':' + fieldsData + '>';
+        }
+
+        static Query newExactQuery(String field, int value) {
+            Preconditions.requireNonNull(field, "Field cannot be null");
+            byte[] encodedValue = intToBytes(value);
+            return new IntegerPointRangeQuery(field, encodedValue, encodedValue, 1);
+        }
+
+        static Query newRangeQuery(String field, int lowerValueInclusive, int upperValueInclusive) {
+            Preconditions.requireNonNull(field, "Field cannot be null");
+            if (upperValueInclusive < lowerValueInclusive) {
+                return new MatchNoDocsQuery();
+            }
+            return new IntegerPointRangeQuery(
+                    field, intToBytes(lowerValueInclusive), intToBytes(upperValueInclusive), 1);
+        }
+
+        private static final class IntegerPointRangeQuery extends PointRangeQuery {
+
+            private IntegerPointRangeQuery(String field, byte[] lowerPoint, byte[] upperPoint, int numDims) {
+                super(field, lowerPoint, upperPoint, numDims);
+            }
+
+            @Override
+            protected String toString(int dimension, byte[] value) {
+                return Integer.toString(NumericUtils.sortableBytesToInt(value, 0));
             }
         }
     }
@@ -189,7 +245,7 @@ final class Lucene10ValueFields {
                     field, instantToBytes(lowerValueInclusive), instantToBytes(upperValueInclusive), 1);
         }
 
-        private static final class InstantPointRangeQuery extends org.apache.lucene.search.PointRangeQuery {
+        private static final class InstantPointRangeQuery extends PointRangeQuery {
 
             private InstantPointRangeQuery(String field, byte[] lowerPoint, byte[] upperPoint, int numDims) {
                 super(field, lowerPoint, upperPoint, numDims);
@@ -260,7 +316,7 @@ final class Lucene10ValueFields {
             return longToBytes(NumericUtils.doubleToSortableLong(value));
         }
 
-        private static final class DoublePointRangeQuery extends org.apache.lucene.search.PointRangeQuery {
+        private static final class DoublePointRangeQuery extends PointRangeQuery {
 
             private DoublePointRangeQuery(String field, byte[] lowerPoint, byte[] upperPoint, int numDims) {
                 super(field, lowerPoint, upperPoint, numDims);
@@ -273,46 +329,9 @@ final class Lucene10ValueFields {
         }
     }
 
-    private static Instant instantOf(ZonedDateTime zdt) {
-        return Instant.ofEpochSecond(zdt.toEpochSecond(), zdt.getNano());
-    }
-
-    /// Express a temporal value in terms of an Instant
-    /// Two instants from 2 different temporal values of the same type
-    /// are comparable in the natural way as (epoch seconds, nano within second)
-    ///
-    /// Instant values returned are only comparable for the same subtypes of temporal values
-    /// This is fine because different types are stored in different namespaces,
-    /// so they are never actually compared.
-    ///
-    /// Some of these values could be 8 bytes
-    /// Whereas an instant in general requires 12 bytes
-    ///
-    static Instant instantFromTemporal(TemporalValue<?, ?> tv) {
-
-        try {
-            return switch (tv) {
-                case DateTimeValue dateTimeValue -> instantOf(dateTimeValue.asObjectCopy());
-                case LocalDateTimeValue localDateTimeValue ->
-                    instantOf(ZonedDateTime.of(localDateTimeValue.asObjectCopy(), ZoneOffset.UTC));
-                case LocalTimeValue localTimeValue -> {
-                    var offset = Duration.between(LocalTime.MIN, localTimeValue.asObjectCopy());
-                    yield Instant.ofEpochSecond(offset.getSeconds(), offset.getNano());
-                }
-                case DateValue dateValue ->
-                    // 00:00:00 UTC on the date in question
-                    instantOf(ZonedDateTime.of(dateValue.asObjectCopy(), LocalTime.ofSecondOfDay(0), ZoneOffset.UTC));
-                case TimeValue timeValue -> {
-                    // a fake instant calculated as duration from the earliest possible offset time
-                    var offset = Duration.between(OffsetTime.MIN, timeValue.asObjectCopy());
-                    yield Instant.ofEpochSecond(offset.getSeconds(), offset.getNano());
-                }
-                default -> null;
-            };
-        } catch (DateTimeException e) {
-            throw new IllegalArgumentException(
-                    String.format("Temporal value must represent a valid date/time %s", tv), e);
-        }
+    public static <T extends Temporal, V extends TemporalValue<T, V>> TemporalWithZone<T, V> storedFromTemporal(
+            TemporalValue<T, V> tv) {
+        return new TemporalWithZone<>(tv);
     }
 
     static byte[] intToBytes(int value) {
@@ -340,5 +359,125 @@ final class Lucene10ValueFields {
         long seconds = NumericUtils.sortableBytesToLong(data, 0);
         int nanos = NumericUtils.sortableBytesToInt(data, Long.BYTES);
         return Instant.ofEpochSecond(seconds, nanos);
+    }
+
+    record TemporalOffsetWithId(ZoneOffset zoneOffset, ZoneId zoneId) {
+
+        boolean hasZoneOffset() {
+            return zoneOffset != null;
+        }
+
+        boolean hasZoneId() {
+            return zoneId != null;
+        }
+
+        static ZoneOffset zoneOffsetOf(TemporalOffsetWithId temporalOffsetWithId, ZoneOffset orElse) {
+            if (temporalOffsetWithId != null && temporalOffsetWithId.hasZoneOffset()) {
+                return temporalOffsetWithId.zoneOffset;
+            } else {
+                return orElse;
+            }
+        }
+
+        static boolean hasZoneId(TemporalOffsetWithId temporalOffsetWithId) {
+            return temporalOffsetWithId != null && temporalOffsetWithId.hasZoneId();
+        }
+
+        static boolean hasZoneOffset(TemporalOffsetWithId temporalOffsetWithId) {
+            return temporalOffsetWithId != null && temporalOffsetWithId.hasZoneOffset();
+        }
+    }
+
+    /// All the fields necessary to store a temporal value, with offsets if they exist
+    /// zoneOffset can be null. In that case, zoneId is always null.
+    /// zoneOffset can exist without zoneId.
+    /// This is required to support compatibility with the esoteric Cypher temporal ordering rules.
+    /// Order is by instant (seconds, nanos).
+    /// The zone offset is a tie-breaker for equal instants. -ve offset is earlier.
+    /// The zone id is a tie-breaker for equal zone offsets.
+    record TemporalWithZone<T extends Temporal, V extends TemporalValue<T, V>>(TemporalValue<T, V> value)
+            implements Comparable<TemporalWithZone<T, V>> {
+
+        /// Instant values returned are only comparable for the same subtypes of temporal values
+        /// This is fine because different types are stored in different namespaces,
+        /// so they are never actually compared.
+        Instant instant() {
+            return switch (value) {
+                case DateTimeValue dateTimeValue -> dateTimeValue.asObjectCopy().toInstant();
+
+                case LocalDateTimeValue localDateTimeValue -> {
+                    var dateTime = localDateTimeValue.asObjectCopy();
+                    yield Instant.ofEpochSecond(dateTime.toEpochSecond(ZoneOffset.UTC), dateTime.getNano());
+                }
+
+                case LocalTimeValue localTimeValue -> {
+                    var offset = Duration.between(LocalTime.MIN, localTimeValue.asObjectCopy());
+                    yield Instant.ofEpochSecond(offset.getSeconds(), offset.getNano());
+                }
+
+                case DateValue dateValue ->
+                // 00:00:00 UTC on the date in question
+                {
+                    var localDate = dateValue.asObjectCopy();
+                    yield Instant.ofEpochSecond(localDate.toEpochSecond(LocalTime.ofSecondOfDay(0), ZoneOffset.UTC), 0);
+                }
+
+                case TimeValue timeValue -> {
+                    var time = timeValue.asObjectCopy();
+                    // a fake instant calculated as duration from the earliest possible offset time
+                    var offset = Duration.between(OffsetTime.MIN, timeValue.asObjectCopy());
+                    yield Instant.ofEpochSecond(offset.getSeconds(), offset.getNano());
+                }
+                // would be nice to make Temporal sealed, and remove this default branch
+                default -> null;
+            };
+        }
+
+        ZoneOffset zoneOffset() {
+            return switch (value) {
+                case DateTimeValue dateTimeValue -> dateTimeValue.asObjectCopy().getOffset();
+                case TimeValue timeValue -> timeValue.asObjectCopy().getOffset();
+                default -> null;
+            };
+        }
+
+        boolean hasZoneOffset() {
+            return zoneOffset() != null;
+        }
+
+        ZoneId zoneId() {
+            if (value instanceof DateTimeValue dateTimeValue) {
+                return dateTimeValue.asObjectCopy().getZone();
+            } else {
+                return null;
+            }
+        }
+
+        boolean hasZoneId() {
+            return zoneId() != null;
+        }
+
+        TemporalOffsetWithId temporalOffsetWithId() {
+            return new TemporalOffsetWithId(zoneOffset(), zoneId());
+        }
+
+        @Override
+        public int compareTo(TemporalWithZone<T, V> o) {
+            return compare(this, o);
+        }
+
+        public static int compare(TemporalWithZone<?, ?> twzFrom, TemporalWithZone<?, ?> twzTo) {
+            return Values.COMPARATOR.compare(twzFrom.value, twzTo.value);
+        }
+
+        /// Respect the DateTimeValue ordering of zone ids
+        /// which is offset always precedes region.
+        static String zoneIdString(ZoneId zoneId) {
+            if (zoneId instanceof ZoneOffset) {
+                return "Offset::" + zoneId.getId();
+            } else {
+                return "Region::" + TimeZones.map(TimeZones.map(zoneId.getId()));
+            }
+        }
     }
 }

@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
-import java.time.Instant;
+import java.util.function.Consumer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Store;
@@ -33,17 +33,15 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.BooleanField;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleDoubleField;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleInstantField;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleIntegerField;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleLongField;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.TemporalWithZone;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.BooleanValue;
-import org.neo4j.values.storable.ByteValue;
-import org.neo4j.values.storable.DoubleValue;
-import org.neo4j.values.storable.FloatValue;
-import org.neo4j.values.storable.IntValue;
-import org.neo4j.values.storable.LongValue;
-import org.neo4j.values.storable.ShortValue;
+import org.neo4j.values.storable.FloatingPointValue;
+import org.neo4j.values.storable.IntegralValue;
 import org.neo4j.values.storable.TemporalValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
@@ -108,12 +106,7 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
                 continue;
             }
             document.addStringField(EXISTS_KEY, new BytesRef(Lucene10ValueFields.intToBytes(i)), false);
-            IndexableField field = indexableField(vectorDocumentStructure, i, value);
-            if (field == null) {
-                // value type not supported for metadata filter
-                continue;
-            }
-            document.document.add(field);
+            addIndexableFields(vectorDocumentStructure, i, value, document.document::add);
         }
 
         return document;
@@ -135,26 +128,57 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
         }
     }
 
-    static IndexableField indexableField(VectorDocumentStructure vectorDocumentStructure, int index, Value value) {
-        return switch (value) {
+    /**
+     * Create the Lucene field(s) which represent the value in the vector index
+     * "add" these fields using the supplied consumer.
+     *
+     * Most types of value straightforwardly are represented with a single field (numeric or text values)
+     * Some types of value (e.g. temporal) result in the creation of multiple fields.
+     *
+     * Receiving a null or not being able to index able specific value, is not a failure.
+     * If a value cannot be indexed, it is simply skipped;
+     * this is how it other type-restrictive indexes are handled.
+     *
+     * @param vectorDocumentStructure tells us how to name fields
+     * @param index tells us the index of the property which the value represents
+     * @param value the value to be written to the field - guaranteed not to be null here
+     * @param addField is called with every created field, and may directly add the field to a document,
+     * or perform some kind of test action.
+     */
+    static void addIndexableFields(
+            VectorDocumentStructure vectorDocumentStructure,
+            int index,
+            Value value,
+            Consumer<IndexableField> addField) {
+        switch (value) {
             case BooleanValue bv ->
-                new BooleanField(vectorDocumentStructure.booleanValueKeyFor(index), bv.booleanValue());
-            case ByteValue bv -> new SingleLongField(vectorDocumentStructure.integralValueKeyFor(index), bv.intValue());
-            case ShortValue sv ->
-                new SingleLongField(vectorDocumentStructure.integralValueKeyFor(index), sv.intValue());
-            case IntValue iv -> new SingleLongField(vectorDocumentStructure.integralValueKeyFor(index), iv.value());
-            case LongValue lv -> new SingleLongField(vectorDocumentStructure.integralValueKeyFor(index), lv.value());
-            case FloatValue fv -> new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(index), fv.value());
-            case DoubleValue dv ->
-                new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(index), dv.value());
+                addField.accept(new BooleanField(vectorDocumentStructure.booleanValueKeyFor(index), bv.booleanValue()));
+            case IntegralValue iv ->
+                addField.accept(
+                        new SingleLongField(vectorDocumentStructure.integralValueKeyFor(index), iv.longValue()));
+            case FloatingPointValue fv ->
+                addField.accept(
+                        new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(index), fv.doubleValue()));
             case TextValue tv ->
-                new StringField(vectorDocumentStructure.textValueKeyFor(index), tv.stringValue(), Store.NO);
+                addField.accept(
+                        new StringField(vectorDocumentStructure.textValueKeyFor(index), tv.stringValue(), Store.NO));
             case TemporalValue<?, ?> tv -> {
-                Instant instant = Lucene10ValueFields.instantFromTemporal(tv);
-                yield new SingleInstantField(
-                        vectorDocumentStructure.temporalValueKeyFor(index, tv.valueGroup()), instant);
+                TemporalWithZone<?, ?> twz = Lucene10ValueFields.storedFromTemporal(tv);
+                addField.accept(new SingleInstantField(
+                        vectorDocumentStructure.temporalValueKeyFor(index, tv.valueGroup()), twz.instant()));
+                if (twz.hasZoneOffset()) {
+                    addField.accept(new SingleIntegerField(
+                            vectorDocumentStructure.zoneOffsetValueKeyFor(index, tv.valueGroup()),
+                            twz.zoneOffset().getTotalSeconds()));
+                    if (twz.hasZoneId()) {
+                        addField.accept(new StringField(
+                                vectorDocumentStructure.zoneIdValueKeyFor(index, tv.valueGroup()),
+                                TemporalWithZone.zoneIdString(twz.zoneId()),
+                                Store.NO));
+                    }
+                }
             }
-            case null, default -> null;
-        };
+            case null, default -> {}
+        }
     }
 }
