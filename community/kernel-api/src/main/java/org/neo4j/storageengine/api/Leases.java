@@ -52,5 +52,10 @@ public interface Leases extends Iterable<Leases.Lease> {
         public Lease get(DatabaseId databaseId) {
             return null;
         }
+
+        @Override
+        public String toString() {
+            return "{}";
+        }
     };
 }
