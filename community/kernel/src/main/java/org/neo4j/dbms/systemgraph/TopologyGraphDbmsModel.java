@@ -187,6 +187,7 @@ public interface TopologyGraphDbmsModel {
 
     String DATABASE_SEEDING_SERVERS_PROPERTY = "seeding_servers";
     String DATABASE_STORE_FORMAT_NEW_DB_PROPERTY = "creation_store_format";
+    String DATABASE_STORE_MANIPULATION_PROPERTY = "store_manipulation";
     String DATABASE_PRIMARIES_PROPERTY = "primaries";
     String DATABASE_SECONDARIES_PROPERTY = "secondaries";
     String DATABASE_SEED_URI_PROPERTY = "seedURI";
