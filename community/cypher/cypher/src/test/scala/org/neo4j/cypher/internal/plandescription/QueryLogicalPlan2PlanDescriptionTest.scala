@@ -982,15 +982,18 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
             LabelToken("Label1", LabelId(0)),
             LabelToken("Label2", LabelId(1))
           ),
-          Seq(
-            IndexedProperty(PropertyKeyToken("prop1", PropertyKeyId(0)), DoNotGetValue, NODE_TYPE),
-            IndexedProperty(PropertyKeyToken("prop2", PropertyKeyId(1)), DoNotGetValue, NODE_TYPE)
+          properties = Seq(
+            // the vector property
+            IndexedProperty(PropertyKeyToken("prop0", PropertyKeyId(0)), DoNotGetValue, NODE_TYPE),
+            // additional properties
+            IndexedProperty(PropertyKeyToken("prop1", PropertyKeyId(1)), DoNotGetValue, NODE_TYPE),
+            IndexedProperty(PropertyKeyToken("prop2", PropertyKeyId(2)), DoNotGetValue, NODE_TYPE)
           ),
-          None,
-          "vectorIndex",
-          listOf(literalInt(1), literalInt(2)),
-          literalInt(5),
-          Some(CompositeQueryExpression(
+          score = None,
+          indexName = "vectorIndex",
+          vector = listOf(literalInt(1), literalInt(2)),
+          limit = literalInt(5),
+          maybeFilter = Some(CompositeQueryExpression(
             Seq(
               SingleQueryExpression(literalInt(42)),
               RangeQueryExpression(
@@ -998,7 +1001,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
               )
             )
           )),
-          Set.empty
+          argumentIds = Set.empty
         ),
         23.0
       ),

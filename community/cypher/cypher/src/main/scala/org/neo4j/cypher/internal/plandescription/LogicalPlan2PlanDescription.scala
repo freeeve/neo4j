@@ -3776,7 +3776,7 @@ case class LogicalPlan2PlanDescription(
 
     case e: CompositeQueryExpression[expressions.Expression] =>
       val predicates = e.inner.zipWithIndex.map {
-        case (exp, i) => indexPredicateString(Seq(propertyKeys(i)), exp)
+        case (exp, i) => indexPredicateString(Seq(propertyKeys(i + 1)), exp)
       }
       predicates.mkPrettyString(" AND ")
   }
