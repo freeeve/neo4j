@@ -2684,13 +2684,17 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             EndpointType endpointType)
             throws KernelException {
         ensureCursors();
-        if (!relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled) {
-            // To be able to test rolling upgrades we allow relationship endpoint label constraint even when the flag is
-            // off
-            // But the supported version is glorious future which effectively blocks the creation except for in tests
+        if (relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled) {
             assertSupportedInVersion(
                     KernelVersion.VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED,
                     "Creating a relationship endpoint constraint");
+        } else {
+            throw InvalidArgumentException.unsupportedWithoutSetting(
+                    "A relationship endpoint constraint",
+                    "DBMS",
+                    GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints
+                            .name(),
+                    Boolean.toString(true));
         }
 
         RelationshipEndpointLabelConstraintDescriptor constraint =
@@ -2775,12 +2779,17 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     public ConstraintDescriptor nodeLabelExistenceConstraintCreate(
             NodeLabelExistenceSchemaDescriptor schema, String name, int requiredLabelId) throws KernelException {
         ensureCursors();
-        if (!relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled) {
-            // To be able to test rolling upgrades we allow node label existence constraint even when the flag is off
-            // But the supported version is glorious future which effectively blocks the creation except for in tests
+        if (relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled) {
             assertSupportedInVersion(
                     KernelVersion.VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED,
                     "Creating a label existence constraint");
+        } else {
+            throw InvalidArgumentException.unsupportedWithoutSetting(
+                    "A label existence constraint",
+                    "DBMS",
+                    GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints
+                            .name(),
+                    Boolean.toString(true));
         }
 
         NodeLabelExistenceConstraintDescriptor constraint =

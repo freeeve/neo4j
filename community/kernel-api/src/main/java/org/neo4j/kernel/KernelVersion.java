@@ -20,11 +20,10 @@
 package org.neo4j.kernel;
 
 import java.util.List;
-import org.eclipse.collections.api.map.primitive.ImmutableByteObjectMap;
-import org.eclipse.collections.impl.factory.primitive.ByteObjectMaps;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.graphdb.config.Configuration;
+import org.neo4j.internal.helpers.collection.ByteToEnum;
 import org.neo4j.util.Preconditions;
 
 /**
@@ -73,6 +72,7 @@ public enum KernelVersion {
     V2025_09((byte) 25), // 2025_09. Introduced Lucene 10 and bumped the lucene index providers
     V2025_10((byte) 26), // 2025_10. Introduce vector types, distributed database creation
     V2025_11((byte) 27), // 2025_11. Before state serialization for block commands
+    V2026_01((byte) 28), // 2026_01. Introduce label existence and endpoint constraints
 
     // An unreleased future version.
     // This version is meant to be used when developing a new feature
@@ -82,7 +82,7 @@ public enum KernelVersion {
     public static final KernelVersion EARLIEST = V4_2;
     // The latest version should be kept private to be able to override it from tests.
     // getLatestVersion should be used when the latest version is required.
-    private static final KernelVersion LATEST = V2025_11;
+    private static final KernelVersion LATEST = V2026_01;
     public static final KernelVersion VERSION_IN_WHICH_TOKEN_INDEXES_ARE_INTRODUCED = V4_3_D4;
     public static final KernelVersion VERSION_RANGE_POINT_TEXT_INDEXES_ARE_INTRODUCED = V4_4;
     public static final KernelVersion VERSION_LITTLE_ENDIAN_TX_LOG_INTRODUCED = V5_0;
@@ -92,8 +92,6 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_CDC_INTRODUCED = V5_8;
     public static final KernelVersion VERSION_TYPE_CONSTRAINTS_INTRODUCED = V5_9;
     public static final KernelVersion VERSION_AUTOMATIC_SYSTEM_DB_UPGRADE_INTRODUCED = V5_9;
-    public static final KernelVersion VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED =
-            GLORIOUS_FUTURE;
     public static final KernelVersion VERSION_BLOCKFORMAT_INTRODUCED = V5_14;
     public static final KernelVersion VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED = V5_10;
     public static final KernelVersion VERSION_NODE_VECTOR_INDEX_INTRODUCED = V5_11;
@@ -118,17 +116,20 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_LUCENE_10_INTRODUCED = V2025_09;
     public static final KernelVersion VERSION_VECTOR_TYPE_INTRODUCED = V2025_10;
     public static final KernelVersion VERSION_DISTRIBUTED_CREATE_DATABASE_INTRODUCED = V2025_10;
+    public static final KernelVersion VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED =
+            V2026_01;
     public static final KernelVersion VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING = GLORIOUS_FUTURE;
     // Keep updated each time there is an new schema rule added
     // related to IntegrityValidator
-    public static final KernelVersion LATEST_SCHEMA_CHANGE = VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS;
+    public static final KernelVersion LATEST_SCHEMA_CHANGE =
+            VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED;
 
     // All neo4j 5.0-5.6 members defaulted to this version when bootstrapping a rafted database
     public static final KernelVersion DEFAULT_BOOTSTRAP_VERSION = V5_0;
 
     public static final List<KernelVersion> VERSIONS = List.of(values());
-    private static final ImmutableByteObjectMap<KernelVersion> VERSION_MAP =
-            ByteObjectMaps.immutable.from(VERSIONS, KernelVersion::version, v -> v);
+    private static final ByteToEnum<KernelVersion> VERSION_MAP =
+            new ByteToEnum<>(KernelVersion.class, KernelVersion::version);
 
     private final byte version;
 

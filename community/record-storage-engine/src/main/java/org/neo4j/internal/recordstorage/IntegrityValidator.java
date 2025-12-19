@@ -120,10 +120,7 @@ class IntegrityValidator {
                 }
             }
 
-            // TODO turn check on at a later time,
-            //  leaving like this for now so we don't have to do excessive hacking in tests
-            if (false && constraint.isRelationshipEndpointLabelConstraint()
-                    || constraint.isNodeLabelExistenceConstraint()) {
+            if (constraint.isRelationshipEndpointLabelConstraint() || constraint.isNodeLabelExistenceConstraint()) {
                 if (kernelVersion.isLessThan(
                         VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED)) {
                     throw upgradeNeededForSchemaRule(
