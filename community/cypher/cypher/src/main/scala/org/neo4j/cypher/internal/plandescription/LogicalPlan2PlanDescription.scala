@@ -695,8 +695,9 @@ case class LogicalPlan2PlanDescription(
           _
         ) =>
         val predicate = maybeFilter match {
-          case Some(valueExpr) => pretty" WHERE ${indexPredicateString(properties.map(_.propertyKeyToken), valueExpr)}"
-          case None            => pretty""
+          case Some(valueExpr) =>
+            pretty" WHERE ${indexPredicateString(properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
+          case None => pretty""
         }
         val prettyDetails =
           pretty"SEARCH ${asPrettyString(idName)} IN VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)}$predicate LIMIT ${asPrettyString(limit)}"
@@ -726,8 +727,9 @@ case class LogicalPlan2PlanDescription(
         ) =>
 
         val predicate = maybeFilter match {
-          case Some(valueExpr) => pretty" WHERE ${indexPredicateString(properties.map(_.propertyKeyToken), valueExpr)}"
-          case None            => pretty""
+          case Some(valueExpr) =>
+            pretty" WHERE ${indexPredicateString(properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
+          case None => pretty""
         }
         val prettyDetails =
           pretty"SEARCH ${relationshipPattern(start, idName, typeTokens.map(t => RelTypeName(t.name)(InputPosition.NONE)), end, OUTGOING)} IN VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)}$predicate LIMIT ${asPrettyString(limit)}"
