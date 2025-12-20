@@ -511,6 +511,12 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         return authenticatedUsername;
     }
 
+    public Optional<String> obfuscatedQueryText() {
+        return obfuscatedQueryData != null
+                ? Optional.ofNullable(obfuscatedQueryData.obfuscatedQueryText)
+                : Optional.empty();
+    }
+
     public String rawQueryText() {
         return rawQueryText;
     }
