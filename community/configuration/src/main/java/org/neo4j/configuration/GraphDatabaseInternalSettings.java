@@ -889,6 +889,26 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Error codes that are considered unexpected during query execution.")
+    public static final Setting<Set<String>> log_queries_unexpected_codes = newBuilder(
+                    "internal.dbms.logs.query.unexpected.codes", setOf(STRING), Set.of("50N00"))
+            .dynamic()
+            .build();
+
+    @Internal
+    @Description("A set of classes that are excluded from unexpected errors.")
+    public static final Setting<Set<String>> log_queries_unexpected_ignored_classes = newBuilder(
+                    "internal.dbms.logs.query.unexpected.ignored_classes",
+                    setOf(STRING),
+                    Set.of(
+                            // These exceptions have code 50N00, but are not unexpected (in this context at least).
+                            "org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException",
+                            "org.neo4j.graphdb.TransactionFailureException",
+                            "com.neo4j.aura.AuraTransactionListener$ExceedLimitException"))
+            .dynamic()
+            .build();
+
+    @Internal
     @Description("Specifies number of operations that batch inserter will try to group into one batch before "
             + "flushing data into underlying storage.")
     public static final Setting<Integer> batch_inserter_batch_size =

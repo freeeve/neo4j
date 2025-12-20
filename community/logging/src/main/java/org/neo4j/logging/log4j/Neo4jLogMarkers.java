@@ -26,4 +26,6 @@ public class Neo4jLogMarkers {
     private static final Marker INTERNAL_ERROR_PARENT_MARKER = MarkerManager.getMarker("INTERNAL_ERROR");
     public static final Neo4jLogMarker KERNEL =
             new Neo4jLogMarker(MarkerManager.getMarker("KERNEL").setParents(INTERNAL_ERROR_PARENT_MARKER));
+    public static final Neo4jLogMarker CYPHER =
+            new Neo4jLogMarker(MarkerManager.getMarker("CYPHER").setParents(INTERNAL_ERROR_PARENT_MARKER));
 }
