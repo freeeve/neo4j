@@ -78,7 +78,7 @@ abstract class RelationshipVectorIndexSearchPipe(
       val iterator = iteratorFrom(cursor)
       PrimitiveLongHelper.map(
         iterator,
-        _ => newRow(incomingRow, iterator)
+        _ => newRow(state.newRowWithArgument(rowFactory), iterator)
       )
     }
   }
