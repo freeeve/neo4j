@@ -49,12 +49,8 @@ public class ArrayBasedRange implements PageIdRange {
         if (cursor + numberOfIds > ids.length) {
             return NO_ID;
         }
-        long prev = ids[cursor];
-        for (int i = cursor + 1; i < cursor + numberOfIds; i++) {
-            if (ids[i] != prev + 1) {
-                return NO_ID;
-            }
-            prev = ids[i];
+        if (ids[cursor + numberOfIds - 1] != (ids[cursor] + numberOfIds - 1)) {
+            return NO_ID;
         }
         long result = ids[cursor];
         cursor += numberOfIds;

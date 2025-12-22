@@ -21,9 +21,9 @@ package org.neo4j.internal.id.range;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.neo4j.internal.id.IdGenerator.NO_ID;
 
 import org.junit.jupiter.api.Test;
-import org.neo4j.internal.id.IdGenerator;
 
 class PageIdRangeTest {
 
@@ -88,6 +88,7 @@ class PageIdRangeTest {
         var arrayIdRange = new ArrayBasedRange(new long[] {1, 2, 4, 5, 10}, 120);
         assertThat(arrayIdRange.consecutiveIds(2)).isEqualTo(1L);
         assertThat(arrayIdRange.consecutiveIds(2)).isEqualTo(4L);
+        assertThat(arrayIdRange.consecutiveIds(2)).isEqualTo(NO_ID);
         assertThat(arrayIdRange.nextId()).isEqualTo(10L);
     }
 
@@ -96,7 +97,7 @@ class PageIdRangeTest {
         // When not enough consecutive IDs are found
         var arrayIdRange = new ArrayBasedRange(new long[] {1, 2, 3, 4}, 120);
         // Then get NO_ID back
-        assertThat(arrayIdRange.consecutiveIds(5)).isEqualTo(IdGenerator.NO_ID);
+        assertThat(arrayIdRange.consecutiveIds(5)).isEqualTo(NO_ID);
         // When asking for something that IS available
         assertThat(arrayIdRange.consecutiveIds(4)).isEqualTo(1L);
     }
@@ -127,7 +128,7 @@ class PageIdRangeTest {
         // When not enough consecutive IDs are found
         var continuousIdRange = new ContinuousIdRange(1, 4, 120);
         // Then get NO_ID back
-        assertThat(continuousIdRange.consecutiveIds(5)).isEqualTo(IdGenerator.NO_ID);
+        assertThat(continuousIdRange.consecutiveIds(5)).isEqualTo(NO_ID);
         // When asking for something that IS available
         assertThat(continuousIdRange.consecutiveIds(4)).isEqualTo(1L);
     }
