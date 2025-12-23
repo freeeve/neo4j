@@ -74,10 +74,12 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
 
     /**
      * Reserves range of ids that cover whole page of the store and has no other ids already allocated inside that page
+     *
      * @param idsPerPage    - number of ids per page in store that this generator is responsible for
+     * @param cursorContext
      * @return range of reserved ids from empty page
      */
-    PageIdRange nextContinuousPageRange(int idsPerPage);
+    PageIdRange nextContinuousPageRange(int idsPerPage, CursorContext cursorContext);
 
     /**
      * Release back id leftovers from previously reserved range.
@@ -90,7 +92,7 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
     /**
      * Release back set of pages ids that were used by transaction to allow other transactions to allocate from those ranges.
      */
-    void releasePageRangesLocks(LongSet pageIds);
+    void releasePageRangesLocks(LongSet pageIds, CursorContext cursorContext);
 
     /**
      * @param id the highest in use + 1
@@ -369,8 +371,8 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         }
 
         @Override
-        public PageIdRange nextContinuousPageRange(int idsPerPage) {
-            return delegate.nextContinuousPageRange(idsPerPage);
+        public PageIdRange nextContinuousPageRange(int idsPerPage, CursorContext cursorContext) {
+            return delegate.nextContinuousPageRange(idsPerPage, cursorContext);
         }
 
         @Override
@@ -379,8 +381,8 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         }
 
         @Override
-        public void releasePageRangesLocks(LongSet pageIds) {
-            delegate.releasePageRangesLocks(pageIds);
+        public void releasePageRangesLocks(LongSet pageIds, CursorContext cursorContext) {
+            delegate.releasePageRangesLocks(pageIds, cursorContext);
         }
 
         @Override

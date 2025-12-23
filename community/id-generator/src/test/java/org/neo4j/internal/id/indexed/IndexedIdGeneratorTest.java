@@ -1479,8 +1479,8 @@ class IndexedIdGeneratorTest {
         }
 
         @Override
-        public PageIdRange nextContinuousPageRange(int idsPerPage) {
-            return withReadLock(() -> leader().nextContinuousPageRange(idsPerPage));
+        public PageIdRange nextContinuousPageRange(int idsPerPage, CursorContext cursorContext) {
+            return withReadLock(() -> leader().nextContinuousPageRange(idsPerPage, cursorContext));
         }
 
         @Override
@@ -1489,8 +1489,8 @@ class IndexedIdGeneratorTest {
         }
 
         @Override
-        public void releasePageRangesLocks(LongSet pageIds) {
-            withReadLockNoResult(() -> leader().releasePageRangesLocks(pageIds));
+        public void releasePageRangesLocks(LongSet pageIds, CursorContext cursorContext) {
+            withReadLockNoResult(() -> leader().releasePageRangesLocks(pageIds, cursorContext));
         }
 
         @Override

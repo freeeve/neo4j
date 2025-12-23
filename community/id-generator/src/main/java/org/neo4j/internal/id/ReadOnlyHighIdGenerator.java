@@ -144,7 +144,7 @@ class ReadOnlyHighIdGenerator implements IdGenerator {
     }
 
     @Override
-    public PageIdRange nextContinuousPageRange(int idsPerPage) {
+    public PageIdRange nextContinuousPageRange(int idsPerPage, CursorContext cursorContext) {
         throw new UnsupportedOperationException("Should not be required");
     }
 
@@ -154,7 +154,7 @@ class ReadOnlyHighIdGenerator implements IdGenerator {
     }
 
     @Override
-    public void releasePageRangesLocks(LongSet pageIds) {
+    public void releasePageRangesLocks(LongSet pageIds, CursorContext cursorContext) {
         throw new UnsupportedOperationException("Should not be required");
     }
 

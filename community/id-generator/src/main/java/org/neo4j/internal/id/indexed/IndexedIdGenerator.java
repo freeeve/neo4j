@@ -26,7 +26,7 @@ import static org.neo4j.index.internal.gbptree.GBPTree.NO_HEADER_READER;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.index.internal.gbptree.StructureWriteLog.structureWriteLog;
 import static org.neo4j.internal.id.IdValidator.assertIdWithinMaxCapacity;
-import static org.neo4j.internal.id.indexed.EmptyPageSet.EMPTY_PAGE_SET;
+import static org.neo4j.internal.id.indexed.LockedPages.EMPTY_LOCKED_PAGES;
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
 import static org.neo4j.io.pagecache.PageCacheOpenOptions.MULTI_VERSIONED;
 
@@ -38,8 +38,6 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -320,7 +318,7 @@ public class IndexedIdGenerator implements IdGenerator {
     private final boolean strictlyPrioritizeFreelist;
     private final int biggestSlotSize;
 
-    private final Set<Long> lockedPageRanges;
+    private final LockedPages lockedPageRanges;
     private final boolean respectsReservedIds;
 
     public IndexedIdGenerator(
@@ -359,7 +357,7 @@ public class IndexedIdGenerator implements IdGenerator {
                 .orElseThrow();
         this.maxId = maxId;
         this.monitor = monitor;
-        this.lockedPageRanges = isMultiVersioned(openOptions) ? ConcurrentHashMap.newKeySet() : EMPTY_PAGE_SET;
+        this.lockedPageRanges = isMultiVersioned(openOptions) ? new LockedPages() : EMPTY_LOCKED_PAGES;
 
         this.idsPerEntry = slotDistribution.idsPerEntry();
         this.layout = new IdRangeLayout(idsPerEntry);
@@ -509,7 +507,7 @@ public class IndexedIdGenerator implements IdGenerator {
         }
 
         // There was no usable range from cache, so we take an empty one
-        return nextContinuousPageRange(idsPerPage);
+        return nextContinuousPageRange(idsPerPage, cursorContext);
     }
 
     private PageIdRange getPageIdRangeFromCache(CursorContext cursorContext, int idsPerPage) {
@@ -525,7 +523,7 @@ public class IndexedIdGenerator implements IdGenerator {
             // fallback to new range
             Arrays.sort(reusedIds);
             var range = PageIdRange.wrap(reusedIds, idsPerPage);
-            if (lockedPageRanges.add(range.pageId())) {
+            if (lockedPageRanges.add(range.pageId(), cursorContext)) {
                 return range;
             }
             // we mark optimistically allocated range as unallocated and fallback to new ids
@@ -540,7 +538,7 @@ public class IndexedIdGenerator implements IdGenerator {
     }
 
     @Override
-    public PageIdRange nextContinuousPageRange(int idsPerPage) {
+    public PageIdRange nextContinuousPageRange(int idsPerPage, CursorContext cursorContext) {
         long currentHighId;
         long requestSize;
         do {
@@ -550,7 +548,7 @@ public class IndexedIdGenerator implements IdGenerator {
         assertIdWithinMaxCapacity(idType, currentHighId + idsPerPage, maxId);
         monitor.allocatedFromHigh(currentHighId, (int) requestSize);
         var pageIdRange = new ContinuousIdRange(currentHighId, (int) requestSize, idsPerPage);
-        lockedPageRanges.add(pageIdRange.pageId());
+        lockedPageRanges.add(pageIdRange.pageId(), cursorContext);
         return pageIdRange;
     }
 
@@ -561,12 +559,12 @@ public class IndexedIdGenerator implements IdGenerator {
                 range.unallocate(marker);
             }
         }
-        lockedPageRanges.remove(range.pageId());
+        lockedPageRanges.remove(range.pageId(), context);
     }
 
     @Override
-    public void releasePageRangesLocks(LongSet pageIds) {
-        pageIds.forEach(lockedPageRanges::remove);
+    public void releasePageRangesLocks(LongSet pageIds, CursorContext cursorContext) {
+        lockedPageRanges.remove(pageIds, cursorContext);
     }
 
     @Override
@@ -804,6 +802,7 @@ public class IndexedIdGenerator implements IdGenerator {
             // We're just helping other allocation requests and avoiding unwanted sliding of highId here
             scanner.tryLoadFreeIdsIntoCache(true, true, cursorContext);
         }
+        lockedPageRanges.maintenance(cursorContext);
     }
 
     private void checkRefillCache(CursorContext cursorContext) {

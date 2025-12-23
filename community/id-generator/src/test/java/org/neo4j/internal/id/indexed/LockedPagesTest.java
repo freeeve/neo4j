@@ -1,0 +1,86 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.internal.id.indexed;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.Test;
+import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.io.pagecache.context.VersionContext;
+
+class LockedPagesTest {
+
+    @Test
+    void addDifferentNotLockedPage() {
+        LockedPages lockedPages = new LockedPages();
+        CursorContext context = cursorContext(1, 2);
+        assertTrue(lockedPages.add(1, context));
+        assertTrue(lockedPages.add(2, context));
+        assertTrue(lockedPages.add(3, context));
+    }
+
+    @Test
+    void addLockedPage() {
+        LockedPages lockedPages = new LockedPages();
+        CursorContext context = cursorContext(3, 4);
+        assertTrue(lockedPages.add(1, context));
+        assertFalse(lockedPages.add(1, context));
+    }
+
+    @Test
+    void tryAddLockedPageWithDifferentBoundaries() {
+        LockedPages lockedPages = new LockedPages();
+        CursorContext context = cursorContext(30, 31);
+        assertTrue(lockedPages.add(1, context));
+
+        CursorContext olderContext = cursorContext(28, 29);
+        assertFalse(lockedPages.add(1, olderContext));
+    }
+
+    @Test
+    void releaseLockedPage() {
+        LockedPages lockedPages = new LockedPages();
+        CursorContext context = cursorContext(30, 31);
+        CursorContext releaseContext = cursorContext(30, 32);
+        CursorContext postReleaseContext = cursorContext(33, 0);
+
+        assertTrue(lockedPages.add(1, context));
+
+        lockedPages.remove(1, releaseContext);
+
+        assertFalse(lockedPages.add(1, context));
+        assertFalse(lockedPages.add(1, releaseContext));
+        assertTrue(lockedPages.add(1, postReleaseContext));
+    }
+
+    // remove
+
+    private CursorContext cursorContext(long highestClosed, long committingTransactionId) {
+        CursorContext cursorContext = mock(CursorContext.class);
+        VersionContext versionContext = mock(VersionContext.class);
+        when(versionContext.highestClosed()).thenReturn(highestClosed);
+        when(versionContext.committingTransactionId()).thenReturn(committingTransactionId);
+        when(cursorContext.getVersionContext()).thenReturn(versionContext);
+        return cursorContext;
+    }
+}

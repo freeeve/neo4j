@@ -227,7 +227,7 @@ public class EmptyIdGeneratorFactory implements IdGeneratorFactory {
         }
 
         @Override
-        public PageIdRange nextContinuousPageRange(int idsPerPage) {
+        public PageIdRange nextContinuousPageRange(int idsPerPage, CursorContext cursorContext) {
             return PageIdRange.EMPTY;
         }
 
@@ -235,7 +235,7 @@ public class EmptyIdGeneratorFactory implements IdGeneratorFactory {
         public void releasePageRange(PageIdRange range, CursorContext cursorContext) {}
 
         @Override
-        public void releasePageRangesLocks(LongSet pageIds) {}
+        public void releasePageRangesLocks(LongSet pageIds, CursorContext cursorContext) {}
 
         @Override
         public boolean consistencyCheck(
