@@ -24,6 +24,7 @@ import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.lucene.document.KeywordField;
@@ -50,6 +51,7 @@ import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.TemporalOf
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.TemporalWithZone;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 import org.neo4j.values.storable.BooleanValue;
+import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.FloatingPointValue;
 import org.neo4j.values.storable.IntegralValue;
 import org.neo4j.values.storable.NoValue;
@@ -146,6 +148,8 @@ final class Lucene10FilterQueryBuilder {
                         TemporalWithZone.zoneIdString(twz.zoneId()));
                 yield everyQuery(instantQuery, zoneOffsetQuery, zoneIdQuery);
             }
+            case DurationValue d -> exactDurationQuery(d, propertyIndex);
+
             case null -> null;
             default ->
                 throw new IllegalArgumentException(
@@ -233,6 +237,13 @@ final class Lucene10FilterQueryBuilder {
                         sTo.stringValue(),
                         fromInclusive,
                         toInclusive);
+            } else if (from instanceof DurationValue dFrom && to instanceof DurationValue dTo) {
+                if (fromInclusive && toInclusive && dFrom.equals(dTo)) {
+                    return exactDurationQuery(dFrom, propertyIndex);
+                } else {
+                    return new MatchNoDocsQuery();
+                }
+
             } else if (from == null || to == null) {
                 return null;
             }
@@ -458,6 +469,32 @@ final class Lucene10FilterQueryBuilder {
         return anyQuery(queries);
     }
 
+    private Query exactDurationQuery(DurationValue d, int propertyIndex) {
+        long nanos = d.get(ChronoUnit.NANOS);
+        long seconds = d.get(ChronoUnit.SECONDS);
+        long days = d.get(ChronoUnit.DAYS);
+        long months = d.get(ChronoUnit.MONTHS);
+
+        var builder = new BooleanQuery.Builder();
+        builder.add(
+                Lucene10ValueFields.SingleLongField.newExactQuery(
+                        vectorDocumentStructure.durationMonthsValueKeyFor(propertyIndex), months),
+                Occur.FILTER);
+        builder.add(
+                Lucene10ValueFields.SingleLongField.newExactQuery(
+                        vectorDocumentStructure.durationDaysValueKeyFor(propertyIndex), days),
+                Occur.FILTER);
+        builder.add(
+                Lucene10ValueFields.SingleLongField.newExactQuery(
+                        vectorDocumentStructure.durationSecondsValueKeyFor(propertyIndex), seconds),
+                Occur.FILTER);
+        builder.add(
+                Lucene10ValueFields.SingleLongField.newExactQuery(
+                        vectorDocumentStructure.durationNanosValueKeyFor(propertyIndex), nanos),
+                Occur.FILTER);
+        return builder.build();
+    }
+
     private Query booleanRangeQuery(
             BooleanValue from, boolean fromInclusive, BooleanValue to, boolean toInclusive, int propertyIndex) {
         // empty range, x > true or x < false
@@ -497,6 +534,8 @@ final class Lucene10FilterQueryBuilder {
                         Lucene10ValueFields.storedFromTemporal(tTo),
                         toInclusive,
                         propertyIndex);
+            case DurationValue dTo when toInclusive -> exactDurationQuery(dTo, propertyIndex);
+            case DurationValue ignored -> new MatchNoDocsQuery();
             case null -> null;
             default ->
                 throw new IllegalArgumentException(String.format("Unexpected value type in filter predicate '%s'", to));
@@ -529,6 +568,9 @@ final class Lucene10FilterQueryBuilder {
                         null,
                         true,
                         propertyIndex);
+            case DurationValue dFrom when fromInclusive -> exactDurationQuery(dFrom, propertyIndex);
+            case DurationValue ignored -> new MatchNoDocsQuery();
+
             case null -> null;
             default ->
                 throw new IllegalArgumentException(

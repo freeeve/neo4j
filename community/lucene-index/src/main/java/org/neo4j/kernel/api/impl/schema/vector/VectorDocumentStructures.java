@@ -73,6 +73,26 @@ class VectorDocumentStructures {
         public String zoneIdValueKeyFor(int propertyIndex, ValueGroup group) {
             throw new UnsupportedOperationException("V1 does not support single stage filtering");
         }
+
+        @Override
+        public String durationNanosValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
+
+        @Override
+        public String durationSecondsValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
+
+        @Override
+        public String durationDaysValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
+
+        @Override
+        public String durationMonthsValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
     };
 
     private static final VectorDocumentStructure V2 = new VectorDocumentStructure() {
@@ -115,6 +135,26 @@ class VectorDocumentStructures {
 
         @Override
         public String zoneIdValueKeyFor(int propertyIndex, ValueGroup group) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String durationNanosValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String durationSecondsValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String durationDaysValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String durationMonthsValueKeyFor(int propertyIndex) {
             throw new UnsupportedOperationException("V2 does not support single stage filtering");
         }
     };
@@ -161,6 +201,26 @@ class VectorDocumentStructures {
         @Override
         public String zoneIdValueKeyFor(int propertyIndex, ValueGroup group) {
             return "zoneid-" + group.name() + "-" + propertyIndex;
+        }
+
+        @Override
+        public String durationNanosValueKeyFor(int propertyIndex) {
+            return "nanos-" + propertyIndex;
+        }
+
+        @Override
+        public String durationSecondsValueKeyFor(int propertyIndex) {
+            return "seconds-" + propertyIndex;
+        }
+
+        @Override
+        public String durationDaysValueKeyFor(int propertyIndex) {
+            return "days-" + propertyIndex;
+        }
+
+        @Override
+        public String durationMonthsValueKeyFor(int propertyIndex) {
+            return "months-" + propertyIndex;
         }
     };
 }

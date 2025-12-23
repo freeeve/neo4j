@@ -19,9 +19,12 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
+import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.values.storable.CoordinateReferenceSystem.CARTESIAN;
+import static org.neo4j.values.storable.DurationValue.duration;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.time.Duration;
@@ -29,7 +32,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetTime;
-import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -250,13 +252,6 @@ public class Lucene10FilterQueryBuilderTest {
                         () -> scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, Values.pointValue(CARTESIAN, 2, 2))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unexpected value type in filter predicate");
-        assertThatThrownBy(() -> scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, asValue(Period.of(10, 2, 12)))))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unexpected value type in filter predicate");
-        assertThatThrownBy(() -> scoreForQuery(
-                        keyIndex, PropertyIndexQuery.exact(1, asValue(Duration.of(10, ChronoUnit.SECONDS)))))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unexpected value type in filter predicate");
     }
 
     @Test
@@ -295,10 +290,10 @@ public class Lucene10FilterQueryBuilderTest {
         for (var temporal : temporals) {
             if (temporal.isSupported(ChronoField.YEAR)) {
                 checkTemporalRange(temporal, ChronoField.YEAR, ChronoUnit.YEARS);
-                checkTemporalRange(temporal, ChronoField.INSTANT_SECONDS, ChronoUnit.SECONDS);
-                checkTemporalRange(temporal, ChronoField.DAY_OF_YEAR, ChronoUnit.DAYS);
+                checkTemporalRange(temporal, ChronoField.INSTANT_SECONDS, SECONDS);
+                checkTemporalRange(temporal, ChronoField.DAY_OF_YEAR, DAYS);
                 checkTemporalRange(temporal, ChronoField.HOUR_OF_DAY, ChronoUnit.HOURS);
-                checkTemporalRange(temporal, ChronoField.OFFSET_SECONDS, ChronoUnit.SECONDS);
+                checkTemporalRange(temporal, ChronoField.OFFSET_SECONDS, SECONDS);
             }
         }
     }
@@ -809,6 +804,44 @@ public class Lucene10FilterQueryBuilderTest {
         }
     }
 
+    @Test
+    public void testDuration() {
+        int keyIndex = KEY_INDEX;
+        var value = duration(1, 1, 1, 1);
+        addField(keyIndex, value);
+
+        // exact
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, value))).isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex + 1, PropertyIndexQuery.exact(1, value)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, duration(0, 0, 0, 1))))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, duration(0, 0, 1, 0))))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, duration(0, 1, 0, 0))))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, duration(1, 0, 0, 0))))
+                .isEqualTo(0.0f);
+
+        // range
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, value, true, value, true)))
+                .isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, value, true, value, false)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, value, false, value, true)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, value, false, value, false)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, value, true, null, false)))
+                .isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, value, false, null, false)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, null, false, value, true)))
+                .isEqualTo(1.0f);
+        assertThat(scoreForQuery(keyIndex, PropertyIndexQuery.range(1, null, false, value, false)))
+                .isEqualTo(0.0f);
+    }
+
     private void checkTemporalRange(Temporal temporal, TemporalField field, TemporalUnit unit) {
         if (temporal.isSupported(field)) {
             assertInRangeFF(temporal.minus(1, unit), temporal.plus(1, unit));
@@ -894,6 +927,26 @@ public class Lucene10FilterQueryBuilderTest {
         @Override
         public String zoneIdValueKeyFor(int propertyIndex, ValueGroup group) {
             return "zoneIdValueKeyFor" + propertyIndex + "Group" + group.name();
+        }
+
+        @Override
+        public String durationNanosValueKeyFor(int propertyIndex) {
+            return "nanoseconds" + propertyIndex + "Value";
+        }
+
+        @Override
+        public String durationSecondsValueKeyFor(int propertyIndex) {
+            return "seconds" + propertyIndex + "Value";
+        }
+
+        @Override
+        public String durationDaysValueKeyFor(int propertyIndex) {
+            return "days" + propertyIndex + "Value";
+        }
+
+        @Override
+        public String durationMonthsValueKeyFor(int propertyIndex) {
+            return "months" + propertyIndex + "Value";
         }
     }
 }

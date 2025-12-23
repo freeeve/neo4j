@@ -38,4 +38,12 @@ public abstract class VectorDocumentStructure {
     public abstract String zoneOffsetValueKeyFor(int propertyIndex, ValueGroup group);
 
     public abstract String zoneIdValueKeyFor(int propertyIndex, ValueGroup group);
+
+    public abstract String durationNanosValueKeyFor(int propertyIndex);
+
+    public abstract String durationSecondsValueKeyFor(int propertyIndex);
+
+    public abstract String durationDaysValueKeyFor(int propertyIndex);
+
+    public abstract String durationMonthsValueKeyFor(int propertyIndex);
 }

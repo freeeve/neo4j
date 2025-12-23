@@ -79,6 +79,7 @@ import org.neo4j.values.storable.Values.stringValue
 import org.neo4j.values.storable.VectorValue
 import org.neo4j.values.virtual.VirtualValues.EMPTY_MAP
 
+import java.time.Duration
 import java.time.LocalTime
 import java.time.OffsetTime
 import java.time.ZoneOffset
@@ -2521,7 +2522,8 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       ValueType.DATE_TIME,
       ValueType.LOCAL_TIME,
       ValueType.TIME,
-      ValueType.DATE
+      ValueType.DATE,
+      ValueType.DURATION
     )
     val Seq(min, max) = Seq(randomValue, randomValue).sorted(comparatorToOrdering(Values.COMPARATOR))
     def randomSearchPredicate = {
@@ -4035,6 +4037,69 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
 
     // then
     execute(logicalQuery, runtime) should beColumns("r").withRows(inOrder(relationships.sortBy(-_.getId).map(Array(_))))
+  }
+
+  test("should work with durations", Tags.NoSpdOverride) {
+    // given
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      relationshipGraph(sizeHint, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          write.relationshipSetProperty(r.getId, idToken, Values.durationValue(Duration.ofSeconds(i)))
+      })
+    }
+    // when
+
+    val d1 = Duration.ofSeconds(10)
+    val d2 = Duration.ofSeconds(20)
+    def executeDurationQuery(predicate: QueryExpression[Expression]) = {
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("dur")
+        .projection("r.id AS dur")
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          typeNames = Seq("Foo"),
+          properties = Seq("v", "id"),
+          indexName = "VectorIndex",
+          vector = vectorAsCypherList(randomVector),
+          limit = s"10000000",
+          score = "score",
+          filter = Some(predicate)
+        )
+        .build()
+
+      execute(
+        logicalQuery,
+        runtime,
+        parameters =
+          Map(
+            "d1" -> d1,
+            "d2" -> d2
+          )
+      )
+    }
+
+    // then
+    executeDurationQuery(equal(param("d1"))) should beColumns("dur").withSingleRow(d1)
+    executeDurationQuery(equal(param("d2"))) should beColumns("dur").withSingleRow(d2)
+    executeDurationQuery(rangeExpression(gte(param("d1")))) should beColumns("dur").withSingleRow(d1)
+    executeDurationQuery(rangeExpression(gt(param("d1")))) should beColumns("dur").withNoRows()
+    executeDurationQuery(rangeExpression(lte(param("d1")))) should beColumns("dur").withSingleRow(d1)
+    executeDurationQuery(rangeExpression(lt(param("d1")))) should beColumns("dur").withNoRows()
+
+    executeDurationQuery(between(gt(param("d1")), lt(param("d2")))) should beColumns("dur").withNoRows()
+    executeDurationQuery(between(gte(param("d1")), lt(param("d2")))) should beColumns("dur").withNoRows()
+    executeDurationQuery(between(gt(param("d1")), lte(param("d2")))) should beColumns("dur").withNoRows()
+    executeDurationQuery(between(gte(param("d1")), lte(param("d2")))) should beColumns("dur").withNoRows()
+
+    executeDurationQuery(between(gt(param("d1")), lt(param("d1")))) should beColumns("dur").withNoRows()
+    executeDurationQuery(between(gte(param("d1")), lt(param("d1")))) should beColumns("dur").withNoRows()
+    executeDurationQuery(between(gt(param("d1")), lte(param("d1")))) should beColumns("dur").withNoRows()
+    executeDurationQuery(between(gte(param("d1")), lte(param("d1")))) should beColumns("dur").withSingleRow(d1)
   }
 
   private def booleanVectorGraph(size: Int): Unit = {

@@ -19,6 +19,11 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
+import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.MONTHS;
+import static java.time.temporal.ChronoUnit.NANOS;
+import static java.time.temporal.ChronoUnit.SECONDS;
+
 import java.util.function.Consumer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Field;
@@ -40,6 +45,7 @@ import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.BooleanValue;
+import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.FloatingPointValue;
 import org.neo4j.values.storable.IntegralValue;
 import org.neo4j.values.storable.TemporalValue;
@@ -131,10 +137,10 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
     /**
      * Create the Lucene field(s) which represent the value in the vector index
      * "add" these fields using the supplied consumer.
-     *
+     * <p>
      * Most types of value straightforwardly are represented with a single field (numeric or text values)
      * Some types of value (e.g. temporal) result in the creation of multiple fields.
-     *
+     * <p>
      * Receiving a null or not being able to index able specific value, is not a failure.
      * If a value cannot be indexed, it is simply skipped;
      * this is how it other type-restrictive indexes are handled.
@@ -177,6 +183,17 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
                                 Store.NO));
                     }
                 }
+            }
+            case DurationValue d -> {
+                long nanos = d.get(NANOS);
+                long seconds = d.get(SECONDS);
+                long days = d.get(DAYS);
+                long months = d.get(MONTHS);
+                addField.accept(new SingleLongField(vectorDocumentStructure.durationMonthsValueKeyFor(index), months));
+                addField.accept(new SingleLongField(vectorDocumentStructure.durationDaysValueKeyFor(index), days));
+                addField.accept(
+                        new SingleLongField(vectorDocumentStructure.durationSecondsValueKeyFor(index), seconds));
+                addField.accept(new SingleLongField(vectorDocumentStructure.durationNanosValueKeyFor(index), nanos));
             }
             case null, default -> {}
         }
