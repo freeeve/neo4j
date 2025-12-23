@@ -26,7 +26,7 @@ import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.Values;
 
 /** Maps a jdbc result set boolean value to a neo4j value. */
-public class BooleanMapping implements JdbcValueMapper {
+public final class BooleanMapping implements JdbcValueMapper {
     private final int column;
 
     public BooleanMapping(int column) {

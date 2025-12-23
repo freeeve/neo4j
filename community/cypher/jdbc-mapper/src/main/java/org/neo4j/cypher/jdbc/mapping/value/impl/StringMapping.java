@@ -26,10 +26,10 @@ import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.Values;
 
 /** Maps a jdbc result set string value to a neo4j value. */
-final class StringMapping implements JdbcValueMapper {
+public final class StringMapping implements JdbcValueMapper {
     private final int column;
 
-    StringMapping(int column) {
+    public StringMapping(int column) {
         this.column = column;
     }
 

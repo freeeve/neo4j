@@ -28,7 +28,7 @@ import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.SortedKeysMapValue;
 
 /** Maps multiple jdbc result set columns to a neo4j map value. */
-public class MultiColumnMapValueMapper implements JdbcValueMapper {
+public final class MultiColumnMapValueMapper implements JdbcValueMapper {
     private final String[] sortedKeys;
     private final JdbcValueMapper[] valueMappers;
 

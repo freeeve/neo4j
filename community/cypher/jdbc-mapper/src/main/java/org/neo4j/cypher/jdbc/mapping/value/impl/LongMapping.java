@@ -26,10 +26,10 @@ import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.Values;
 
 /** Maps a jdbc result set long value to a neo4j value. */
-final class LongMapping implements JdbcValueMapper {
+public final class LongMapping implements JdbcValueMapper {
     private final int column;
 
-    LongMapping(int column) {
+    public LongMapping(int column) {
         this.column = column;
     }
 
