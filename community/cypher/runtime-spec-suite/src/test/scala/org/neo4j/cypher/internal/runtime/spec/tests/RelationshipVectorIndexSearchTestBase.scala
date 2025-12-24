@@ -2572,36 +2572,39 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"index equivalence test iteration=$i, seed=$seed, predicate: $predicateString, directed=$directed",
+      s"index equivalence test iteration=$i, directed=$directed",
       Tags.NoSpdOverride
     ) {
-      // given
-      givenGraph(randomGraph())
+      withClue(s"seed=$seed predicate=$predicateString") {
+        // given
+        givenGraph(randomGraph())
 
-      // when
-      def rightArrow = if (directed) "->" else "-"
-      val vectorQuery = new LogicalQueryBuilder(this)
-        .produceResults("id")
-        .projection("r.id AS id")
-        .relationshipVectorIndexSearch(
-          s"()-[r]$rightArrow()",
-          typeNames = Seq("Foo"),
-          properties = Seq("v", "id"),
-          indexName = "VectorIndex",
-          vector = "$vector",
-          limit = s"10000000",
-          filter = Some(predicate)
-        )
-        .build()
+        // when
+        def rightArrow = if (directed) "->" else "-"
 
-      val rangeQuery = new LogicalQueryBuilder(this)
-        .produceResults("id")
-        .projection("r.id AS id")
-        .relationshipIndexOperator(s"()-[r:Foo(id)]$rightArrow()", customQueryExpression = Some(predicate))
-        .build()
+        val vectorQuery = new LogicalQueryBuilder(this)
+          .produceResults("id")
+          .projection("r.id AS id")
+          .relationshipVectorIndexSearch(
+            s"()-[r]$rightArrow()",
+            typeNames = Seq("Foo"),
+            properties = Seq("v", "id"),
+            indexName = "VectorIndex",
+            vector = "$vector",
+            limit = s"10000000",
+            filter = Some(predicate)
+          )
+          .build()
 
-      // then
-      run(vectorQuery) should contain theSameElementsAs run(rangeQuery)
+        val rangeQuery = new LogicalQueryBuilder(this)
+          .produceResults("id")
+          .projection("r.id AS id")
+          .relationshipIndexOperator(s"()-[r:Foo(id)]$rightArrow()", customQueryExpression = Some(predicate))
+          .build()
+
+        // then
+        run(vectorQuery) should contain theSameElementsAs run(rangeQuery)
+      }
     }
   })
 

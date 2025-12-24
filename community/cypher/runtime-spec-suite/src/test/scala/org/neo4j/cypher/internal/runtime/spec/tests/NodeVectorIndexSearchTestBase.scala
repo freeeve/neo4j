@@ -1458,6 +1458,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
    * compared to what we get from a filtering vector stage query.
    */
   private val seed: Long = System.currentTimeMillis()
+  println("seed=$seed")
   private val random = RandomValues.create(new java.util.Random(seed))
   private def randomVector = random.nextFloat32Vector(1536, 1536)
 
@@ -1526,33 +1527,35 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       })
     }
 
-    test(s"index equivalence test iteration=$i, seed=$seed, predicate: $predicateString", Tags.NoSpdOverride) {
-      // given
-      givenGraph(randomGraph())
+    test(s"index equivalence test iteration=$i", Tags.NoSpdOverride) {
+      withClue(s"seed=$seed predicate=$predicateString") {
+        // given
+        givenGraph(randomGraph())
 
-      // when
-      val vectorQuery = new LogicalQueryBuilder(this)
-        .produceResults("id")
-        .projection("n.id AS id")
-        .nodeVectorIndexSearch(
-          node = "n",
-          labelNames = Seq("Foo"),
-          properties = Seq("v", "id"),
-          indexName = "VectorIndex",
-          vector = "$vector",
-          limit = s"10000000",
-          filter = Some(predicate)
-        )
-        .build()
+        // when
+        val vectorQuery = new LogicalQueryBuilder(this)
+          .produceResults("id")
+          .projection("n.id AS id")
+          .nodeVectorIndexSearch(
+            node = "n",
+            labelNames = Seq("Foo"),
+            properties = Seq("v", "id"),
+            indexName = "VectorIndex",
+            vector = "$vector",
+            limit = s"10000000",
+            filter = Some(predicate)
+          )
+          .build()
 
-      val rangeQuery = new LogicalQueryBuilder(this)
-        .produceResults("id")
-        .projection("n.id AS id")
-        .nodeIndexOperator("n:Foo(id)", customQueryExpression = Some(predicate))
-        .build()
+        val rangeQuery = new LogicalQueryBuilder(this)
+          .produceResults("id")
+          .projection("n.id AS id")
+          .nodeIndexOperator("n:Foo(id)", customQueryExpression = Some(predicate))
+          .build()
 
-      // then
-      run(vectorQuery) should contain theSameElementsAs run(rangeQuery)
+        // then
+        run(vectorQuery) should contain theSameElementsAs run(rangeQuery)
+      }
     }
   })
 
