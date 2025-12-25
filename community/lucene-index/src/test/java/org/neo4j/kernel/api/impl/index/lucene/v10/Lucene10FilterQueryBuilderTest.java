@@ -59,6 +59,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.kernel.api.StatementConstants;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
@@ -250,8 +251,15 @@ public class Lucene10FilterQueryBuilderTest {
 
         assertThatThrownBy(
                         () -> scoreForQuery(keyIndex, PropertyIndexQuery.exact(1, Values.pointValue(CARTESIAN, 2, 2))))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unexpected value type in filter predicate");
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("""
+                    Status: 22G03
+                    Message:\s
+                    Subcondition: invalid value type
+                    Position:\s
+                    Caused by:   \s
+                        Status: 22N01\
+                    """);
     }
 
     @Test
@@ -501,14 +509,21 @@ public class Lucene10FilterQueryBuilderTest {
         assertThatThrownBy(() -> scoreForQuery(
                         keyIndex, PropertyIndexQuery.range(1, asValue(41), true, Values.charValue('b'), true)))
                 .isInstanceOf(ClassCastException.class)
-                .hasMessageContaining(
-                        "class org.neo4j.values.storable.CharValue cannot be cast to class org.neo4j.values.storable.NumberValue");
+                .hasMessageContaining("class org.neo4j.values.storable.CharValue cannot be cast to class"
+                        + " org.neo4j.values.storable.NumberValue");
 
         assertThatThrownBy(() -> scoreForQuery(
                         keyIndex,
                         PropertyIndexQuery.range(1, asValue(LocalTime.of(10, 30, 45)), true, asValue('b'), true)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unexpected value type in filter predicate");
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("""
+                    Status: 22G03
+                    Message:\s
+                    Subcondition: invalid value type
+                    Position:\s
+                    Caused by:   \s
+                        Status: 22N01\
+                    """);
 
         // Incomparable, so 0.0f
         assertThat(scoreForQuery(

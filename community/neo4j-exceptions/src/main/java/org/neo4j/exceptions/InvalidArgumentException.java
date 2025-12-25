@@ -1437,6 +1437,11 @@ public class InvalidArgumentException extends Neo4jException {
                 gql, String.format("Wrong type for %s. Expected %s, got %s", context, expectedType, actualType));
     }
 
+    public static InvalidArgumentException invalidType(String value, String actualType, List<String> expectedTypes) {
+        var gql = GqlHelper.getGql22G03_22N01(value, expectedTypes, actualType);
+        return new InvalidArgumentException(gql, gql.toString());
+    }
+
     public static InvalidArgumentException expectedString(String msg, String gotPretty, String gotCypherType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("STRING"), gotCypherType);
         return new InvalidArgumentException(gql, msg);

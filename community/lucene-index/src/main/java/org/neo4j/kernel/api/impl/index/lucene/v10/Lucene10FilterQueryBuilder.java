@@ -38,6 +38,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExistsPredicate;
@@ -151,10 +152,13 @@ final class Lucene10FilterQueryBuilder {
             case DurationValue d -> exactDurationQuery(d, propertyIndex);
 
             case null -> null;
-            default ->
-                throw new IllegalArgumentException(
-                        String.format("Unexpected value type in filter predicate '%s'", predicate));
+            default -> throw typeNotSupported(predicate.value());
         };
+    }
+
+    private static InvalidArgumentException typeNotSupported(Value value) {
+        return InvalidArgumentException.invalidType(
+                value.prettyPrint(), value.getTypeName(), List.of("NUMBER", "STRING", "BOOLEAN", "TEMPORAL"));
     }
 
     private Query queryForNumericRangeFrom(
@@ -247,8 +251,7 @@ final class Lucene10FilterQueryBuilder {
             } else if (from == null || to == null) {
                 return null;
             }
-            throw new IllegalArgumentException(
-                    String.format("Unexpected value type in filter predicate '%s'", predicate));
+            throw typeNotSupported(from);
         }
     }
 
@@ -537,8 +540,7 @@ final class Lucene10FilterQueryBuilder {
             case DurationValue dTo when toInclusive -> exactDurationQuery(dTo, propertyIndex);
             case DurationValue ignored -> new MatchNoDocsQuery();
             case null -> null;
-            default ->
-                throw new IllegalArgumentException(String.format("Unexpected value type in filter predicate '%s'", to));
+            default -> throw typeNotSupported(to);
         };
     }
 
@@ -572,9 +574,7 @@ final class Lucene10FilterQueryBuilder {
             case DurationValue ignored -> new MatchNoDocsQuery();
 
             case null -> null;
-            default ->
-                throw new IllegalArgumentException(
-                        String.format("Unexpected value type in filter predicate '%s'", from));
+            default -> throw typeNotSupported(from);
         };
     }
 

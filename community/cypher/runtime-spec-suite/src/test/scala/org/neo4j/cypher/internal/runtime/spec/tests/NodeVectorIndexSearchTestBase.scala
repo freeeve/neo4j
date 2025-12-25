@@ -2445,6 +2445,44 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     executeDurationQuery(between(gte(param("d1")), lte(param("d1")))) should beColumns("dur").withSingleRow(d1)
   }
 
+  test("should fail if filter type isn't supported", Tags.NoSpdOverride) {
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      nodeGraph(11, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, idToken, Values.longArray(Array(42L)))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id", "score")
+      .projection("n.id AS id")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = s"${vectorAsCypherList(randomVector)}",
+        limit = "13",
+        score = "score",
+        filter = Some(equal(listOf(literalInt(42))))
+      ).build()
+
+    // then
+    val error = the[InvalidArgumentException] thrownBy consume(execute(logicalQuery, runtime))
+    error.gqlStatus() should equal("22G03")
+    error.cause().get().gqlStatus() should equal("22N01")
+  }
+
   private def booleanVectorGraph(size: Int): Unit = {
     val random = new Random()
     nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "bool")
