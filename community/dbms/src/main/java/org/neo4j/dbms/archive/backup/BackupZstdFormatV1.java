@@ -23,10 +23,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import org.neo4j.dbms.archive.ArchiveFormat;
+import org.neo4j.dbms.archive.MagicSignature;
 import org.neo4j.dbms.archive.StandardCompressionFormat;
 
 public class BackupZstdFormatV1 implements BackupCompressionFormat {
-    static final String MAGIC_HEADER = ArchiveFormat.BACKUP_PREFIX + "ZV1";
+    static final MagicSignature MAGIC_HEADER = MagicSignature.of(ArchiveFormat.BACKUP_PREFIX + "ZV1");
 
     private BackupMetadataV1 metadata;
 

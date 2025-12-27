@@ -22,19 +22,18 @@ package org.neo4j.dbms.archive;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import org.neo4j.dbms.archive.Dumper.DumpFormat;
 
-public class DumpZstdFormatV1 implements DumpFormat {
-    static final MagicSignature MAGIC_HEADER = MagicSignature.of(ArchiveFormat.DUMP_PREFIX + "ZV1");
+public class DumpGzipFormatVLegacy implements Dumper.DumpFormat {
+    // GZIP file header 0x8B1F (little endian).
+    public static final MagicSignature MAGIC_HEADER = MagicSignature.of(0x1F, 0x8B);
 
     @Override
     public OutputStream compress(OutputStream stream) throws IOException {
-        stream.write(MAGIC_HEADER.getBytes());
-        return StandardCompressionFormat.ZSTD.compress(stream);
+        return StandardCompressionFormat.GZIP.compress(stream);
     }
 
     @Override
     public InputStream decompress(InputStream stream) throws IOException {
-        return StandardCompressionFormat.ZSTD.decompress(stream);
+        return StandardCompressionFormat.GZIP.decompress(stream);
     }
 }

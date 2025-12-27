@@ -224,6 +224,8 @@ public class Loader {
             return new TarArchiveInputStream(decompressor, UTF_8.name());
         } catch (NoSuchFileException ioe) {
             throw ioe;
+        } catch (IllegalArgumentException e) {
+            throw new IncorrectFormat(inputName, new IOException(e.getMessage(), e));
         } catch (IOException e) {
             throw new IncorrectFormat(inputName, e);
         }

@@ -22,14 +22,13 @@ package org.neo4j.dbms.archive;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import org.neo4j.dbms.archive.Dumper.DumpFormat;
 
-public class DumpZstdFormatV1 implements DumpFormat {
-    static final MagicSignature MAGIC_HEADER = MagicSignature.of(ArchiveFormat.DUMP_PREFIX + "ZV1");
+public class DumpZstdFormatVLegacy implements Dumper.DumpFormat {
+    // Zstd frame magic: 0xFD2FB528 (little endian)
+    public static final MagicSignature MAGIC_HEADER = MagicSignature.of(0x28, 0xB5, 0x2F, 0xFD);
 
     @Override
     public OutputStream compress(OutputStream stream) throws IOException {
-        stream.write(MAGIC_HEADER.getBytes());
         return StandardCompressionFormat.ZSTD.compress(stream);
     }
 

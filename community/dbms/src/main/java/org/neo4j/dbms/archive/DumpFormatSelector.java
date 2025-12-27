@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.PushbackInputStream;
+import java.util.Arrays;
 import java.util.function.Consumer;
 import org.neo4j.dbms.archive.Dumper.DumpFormat;
 import org.neo4j.dbms.archive.backup.BackupDescription;
@@ -35,19 +36,14 @@ import org.neo4j.function.ThrowingSupplier;
 public class DumpFormatSelector {
 
     public static InputStream decompress(ThrowingSupplier<InputStream, IOException> streamSupplier) throws IOException {
-        // use pushback stream to support reading of legacy zstd dumps from stdin
-        // if dump magic isn't recognized, this could be legacy dump format (plain zstd or gzip stream)
-        // if source is file - stream can be recreated and this way both zstd and gzip formats can be read
-        // but if source is stdin - it can't be reopened, so unrecognized magic pushed back to the stream
-        // and format selection attempted using it if it's not closed yet
-        var input = new PushbackInputStream(streamSupplier.get(), MAGIC_PREFIX_LENGTH);
-        var bytes = input.readNBytes(MAGIC_PREFIX_LENGTH);
-        var format = selectDumpFormat(bytes);
-        if (format != null) {
-            return format.decompress(input);
+        var input = streamSupplier.get();
+        try {
+            var bytes = input.readNBytes(MAGIC_PREFIX_LENGTH);
+            return decompress0(input, bytes);
+        } catch (IOException | IllegalArgumentException exc) {
+            input.close();
+            throw exc;
         }
-        input.unread(bytes);
-        return legacyDecompress(streamSupplier, input);
     }
 
     /**
@@ -57,54 +53,66 @@ public class DumpFormatSelector {
             ThrowingSupplier<InputStream, IOException> streamSupplier,
             Consumer<BackupDescription> backupDescriptionConsumer)
             throws IOException {
-        var input = new PushbackInputStream(streamSupplier.get(), MAGIC_PREFIX_LENGTH);
-        var bytes = input.readNBytes(MAGIC_PREFIX_LENGTH);
-        var magic = new String(bytes);
-        var backupFormat = BackupFormatSelector.selectFormat(magic);
-        if (backupFormat.isPresent()) {
-            var streamWithDescription = backupFormat.get().decompressAndDescribe(input);
-            backupDescriptionConsumer.accept(streamWithDescription.backupDescription());
-            return streamWithDescription.inputStream();
-        }
-        var format = selectDumpFormat(bytes);
-        if (format != null) {
-            return format.decompress(input);
-        }
-        input.unread(bytes);
-        return legacyDecompress(streamSupplier, input);
-    }
-
-    static InputStream legacyDecompress(
-            ThrowingSupplier<InputStream, IOException> streamSupplier, PushbackInputStream input) throws IOException {
-        return StandardCompressionFormat.decompress(() -> {
-            try {
-                // StandardCompressionFormat.decompress() closes stream if it fails to parse it as ZSTD
-                // this call here to ensure that stream still open before returning it, otherwise get new one from
-                // supplier
-                if (input.available() > 0) {
-                    return input;
-                }
-                input.close();
-            } catch (IOException e) {
-                // ignore
+        var input = streamSupplier.get();
+        try {
+            var bytes = input.readNBytes(MAGIC_PREFIX_LENGTH);
+            // Note: num read bytes may be less than MAGIC_PREFIX_LENGTH
+            var backupFormat = BackupFormatSelector.selectReadFormat(bytes);
+            if (backupFormat != null) {
+                var streamWithDescription = backupFormat.decompressAndDescribe(input);
+                backupDescriptionConsumer.accept(streamWithDescription.backupDescription());
+                return streamWithDescription.inputStream();
             }
-            return streamSupplier.get();
-        });
+
+            return decompress0(input, bytes);
+        } catch (IOException | IllegalArgumentException exc) {
+            input.close();
+            throw exc;
+        }
     }
 
-    private static DumpFormat selectDumpFormat(byte[] bytes) {
-        return switch (new String(bytes)) {
-            case DumpZstdFormatV1.MAGIC_HEADER -> new DumpZstdFormatV1();
-            case DumpGzipFormatV1.MAGIC_HEADER -> new DumpGzipFormatV1();
-            default -> null;
-        };
+    public static void throwUnsupported(byte[] magic) {
+        throw new IllegalArgumentException("Unsupported format backup format: " + Arrays.toString(magic));
     }
 
-    public static DumpFormat selectFormat() {
-        return selectFormat(null);
+    private static InputStream decompress0(InputStream input, byte[] magic) throws IOException {
+        var format = selectReadFormat(magic);
+        if (format == null) {
+            throwUnsupported(magic);
+        }
+
+        if (format instanceof DumpZstdFormatVLegacy || format instanceof DumpGzipFormatVLegacy) {
+            // When we are exposed to a legacy dump, we need to return the magic bytes of the compression format
+            // to the stream.
+            var pushback = new PushbackInputStream(input, MAGIC_PREFIX_LENGTH);
+            pushback.unread(magic);
+            input = pushback;
+        }
+
+        return format.decompress(input);
     }
 
-    public static DumpFormat selectFormat(PrintStream err) {
+    private static DumpFormat selectReadFormat(byte[] bytes) {
+        if (DumpZstdFormatV1.MAGIC_HEADER.matches(bytes)) {
+            return new DumpZstdFormatV1();
+        }
+        if (DumpGzipFormatV1.MAGIC_HEADER.matches(bytes)) {
+            return new DumpGzipFormatV1();
+        }
+        if (DumpZstdFormatVLegacy.MAGIC_HEADER.matches(bytes)) {
+            return new DumpZstdFormatVLegacy();
+        }
+        if (DumpGzipFormatVLegacy.MAGIC_HEADER.matches(bytes)) {
+            return new DumpGzipFormatVLegacy();
+        }
+        return null;
+    }
+
+    public static DumpFormat selectWriteFormat() {
+        return selectWriteFormat(null);
+    }
+
+    public static DumpFormat selectWriteFormat(PrintStream err) {
         if (StandardCompressionFormat.selectCompressionFormat(err) == ZSTD) {
             return new DumpZstdFormatV1();
         }

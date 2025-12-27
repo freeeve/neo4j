@@ -279,7 +279,7 @@ public class DumpCommand extends AbstractAdminCommand {
     private void dump(Dumper dumper, DatabaseLayout databaseLayout, String databaseName, Path storagePath) {
         Path databasePath = databaseLayout.databaseDirectory();
         try {
-            var format = DumpFormatSelector.selectFormat(ctx.err());
+            var format = DumpFormatSelector.selectWriteFormat(ctx.err());
             var lockFile = databaseLayout.databaseLockFile().getFileName().toString();
             var quarantineMarkerFile =
                     databaseLayout.quarantineFile().getFileName().toString();

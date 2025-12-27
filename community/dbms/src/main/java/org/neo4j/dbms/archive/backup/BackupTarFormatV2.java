@@ -23,9 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import org.neo4j.dbms.archive.ArchiveFormat;
+import org.neo4j.dbms.archive.MagicSignature;
 
 public class BackupTarFormatV2 implements BackupCompressionFormat {
-    static final String MAGIC_HEADER = ArchiveFormat.BACKUP_PREFIX + "TV2";
+    static final MagicSignature MAGIC_HEADER = MagicSignature.of(ArchiveFormat.BACKUP_PREFIX + "TV2");
 
     private BackupMetadataV2 metadata;
 

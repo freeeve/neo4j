@@ -22,8 +22,8 @@ package org.neo4j.dbms.archive.backup;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.Optional;
 import org.neo4j.dbms.archive.ArchiveFormat;
+import org.neo4j.dbms.archive.DumpFormatSelector;
 import org.neo4j.function.ThrowingSupplier;
 
 public class BackupFormatSelector {
@@ -35,32 +35,42 @@ public class BackupFormatSelector {
                 new BackupZstdFormatV1(), new BackupTarFormatV1(), new BackupZstdFormatV2(), new BackupTarFormatV2());
     }
 
-    public static BackupCompressionFormat selectFormat(boolean compress) {
+    public static BackupCompressionFormat selectWriteFormat(boolean compress) {
         return compress ? new BackupZstdFormatV2() : new BackupTarFormatV2();
     }
 
     public static BackupDescription readDescription(InputStream inputStream) throws IOException {
-        return selectFormat(inputStream).readMetadata(inputStream);
+        return selectReadFormat(inputStream).readMetadata(inputStream);
     }
 
     public static InputStream decompress(ThrowingSupplier<InputStream, IOException> streamSupplier) throws IOException {
         InputStream inputStream = streamSupplier.get();
-        return selectFormat(inputStream).decompress(inputStream);
+        return selectReadFormat(inputStream).decompress(inputStream);
     }
 
-    private static BackupCompressionFormat selectFormat(InputStream inputStream) throws IOException {
-        String magicPrefix = new String(inputStream.readNBytes(ArchiveFormat.MAGIC_PREFIX_LENGTH));
-        return selectFormat(magicPrefix)
-                .orElseThrow(() -> new IllegalArgumentException("Unsupported format backup format: " + magicPrefix));
+    private static BackupCompressionFormat selectReadFormat(InputStream inputStream) throws IOException {
+        byte[] magicPrefix = inputStream.readNBytes(ArchiveFormat.MAGIC_PREFIX_LENGTH);
+        var format = selectReadFormat(magicPrefix);
+        if (format == null) {
+            DumpFormatSelector.throwUnsupported(magicPrefix);
+        }
+        return format;
     }
 
-    public static Optional<BackupCompressionFormat> selectFormat(String magicPrefix) {
-        return switch (magicPrefix) {
-            case BackupZstdFormatV1.MAGIC_HEADER -> Optional.of(new BackupZstdFormatV1());
-            case BackupTarFormatV1.MAGIC_HEADER -> Optional.of(new BackupTarFormatV1());
-            case BackupZstdFormatV2.MAGIC_HEADER -> Optional.of(new BackupZstdFormatV2());
-            case BackupTarFormatV2.MAGIC_HEADER -> Optional.of(new BackupTarFormatV2());
-            default -> Optional.empty();
-        };
+    public static BackupCompressionFormat selectReadFormat(byte[] bytes) {
+        if (BackupZstdFormatV2.MAGIC_HEADER.matches(bytes)) {
+            return new BackupZstdFormatV2();
+        }
+        if (BackupZstdFormatV1.MAGIC_HEADER.matches(bytes)) {
+            return new BackupZstdFormatV1();
+        }
+        if (BackupTarFormatV2.MAGIC_HEADER.matches(bytes)) {
+            return new BackupTarFormatV2();
+        }
+        if (BackupTarFormatV1.MAGIC_HEADER.matches(bytes)) {
+            return new BackupTarFormatV1();
+        }
+
+        return null;
     }
 }
