@@ -37,8 +37,6 @@ public interface DatabaseOperationCounts {
 
     long recoveredCount();
 
-    long panicCount();
-
     class Counter implements DatabaseOperationCounts {
         private final LongAdder createCount = new LongAdder();
         private final LongAdder startCount = new LongAdder();
@@ -46,7 +44,6 @@ public interface DatabaseOperationCounts {
         private final LongAdder dropCount = new LongAdder();
         private final LongAdder failedCount = new LongAdder();
         private final LongAdder recoveredCount = new LongAdder();
-        private final LongAdder panicCount = new LongAdder();
 
         @Override
         public long startCount() {
@@ -78,11 +75,6 @@ public interface DatabaseOperationCounts {
             return recoveredCount.sum();
         }
 
-        @Override
-        public long panicCount() {
-            return panicCount.sum();
-        }
-
         public void increaseCreateCount() {
             createCount.increment();
         }
@@ -105,10 +97,6 @@ public interface DatabaseOperationCounts {
 
         public void increaseRecoveredCount() {
             recoveredCount.increment();
-        }
-
-        public void increasePanicCount() {
-            panicCount.increment();
         }
     }
 }

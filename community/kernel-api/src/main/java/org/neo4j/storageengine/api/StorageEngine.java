@@ -201,11 +201,6 @@ public interface StorageEngine extends ReadableStorageEngine, Lifecycle {
     StoreEntityCounters storeEntityCounters();
 
     /**
-     * @return a {@link InternalErrorTracer}, providing trace information on internal errors.
-     */
-    InternalErrorTracer internalErrorTracer();
-
-    /**
      * @return specific behaviour of transaction state that is optimal for this storage engine.
      */
     default TransactionStateBehaviour transactionStateBehaviour() {
