@@ -20,6 +20,7 @@
 package org.neo4j.test;
 
 import static java.lang.Boolean.FALSE;
+import static org.neo4j.test.DynamicPorts.OS_SELECTED_DYNAMIC_PORT;
 import static org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER_KEY;
 import static org.neo4j.util.Preconditions.checkState;
 
@@ -38,6 +39,8 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
+import org.neo4j.configuration.connectors.HttpConnector;
+import org.neo4j.configuration.connectors.HttpsConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilderImplementation;
@@ -182,9 +185,12 @@ public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServ
                         BoltConnectorInternalSettings.max_protocol_version,
                         BoltConnectorInternalSettings.ConfiguredProtocolVersion.fromString(
                                 BoltProtocol.latestVersionInstalled()))
-                .setDefault(
-                        BoltConnector.listen_address,
-                        new SocketAddress("localhost", DynamicPorts.OS_SELECTED_DYNAMIC_PORT))
+                .setDefault(BoltConnector.listen_address, new SocketAddress("localhost", OS_SELECTED_DYNAMIC_PORT))
+                .setDefault(BoltConnector.advertised_address, new SocketAddress("localhost", OS_SELECTED_DYNAMIC_PORT))
+                .setDefault(HttpConnector.listen_address, new SocketAddress("localhost", OS_SELECTED_DYNAMIC_PORT))
+                .setDefault(HttpConnector.advertised_address, new SocketAddress("localhost", OS_SELECTED_DYNAMIC_PORT))
+                .setDefault(HttpsConnector.listen_address, new SocketAddress("localhost", OS_SELECTED_DYNAMIC_PORT))
+                .setDefault(HttpsConnector.advertised_address, new SocketAddress("localhost", OS_SELECTED_DYNAMIC_PORT))
                 .setDefault(
                         GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout,
                         Duration.ofSeconds(1));

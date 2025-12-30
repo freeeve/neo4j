@@ -48,7 +48,7 @@ class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
   private val onlineStatus = DatabaseStatus.Online.stringValue()
   private val accessString = "read-write"
   private val typeString = "standard"
-  private val localHostString = "localhost:7687"
+  private val localHostString = "localhost:0"
   private val dbDefaultMap = Map("db" -> DEFAULT_DATABASE_NAME)
   private val nameDefaultMap = Map("name" -> DEFAULT_DATABASE_NAME)
   private val nameSystemMap = Map("name" -> SYSTEM_DATABASE_NAME)
