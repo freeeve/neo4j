@@ -693,8 +693,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
-  // TODO Unignore after PLAN-3109
-  ignore(
+  test(
     "identify implicit type predicates within conjunctions and ensure plan filters on the non-implicit predicates"
   ) {
     val planner = plannerBuilder().build()
@@ -716,9 +715,9 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults("`r.plot`")
-        .projection("r.plot AS `r.plot`")
-        // TODO: PLAN-3109 will ensure that we filter by CONTRIBUTED here:
-        .filter("r:CONTRIBUTED")
+        .projection("cacheR[r.plot] AS `r.plot`")
+        .filter(hasTypes("r", "CONTRIBUTED"))
+        .cacheProperties("cacheRFromStore[r.plot]")
         .relationshipVectorIndexSearch(
           "()-[r]-()",
           Seq("ACTS_IN"),
@@ -1216,6 +1215,72 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .expandAll("(d)-[a:ACTS_IN]->(movie)")
         .filter("d.name = 'Beatty, Warren'")
         .nodeByLabelScan("d", "Person")
+        .build()
+  }
+
+  test("should check for type when planning RelationshipVectorIndexSearch") {
+    val planner = plannerBuilder().build()
+    // Since a relationship can only have one type, the filter on r:CONTRIBUTED expects r to have type contributed.
+    // The filter on r:ACTS_IN is implicit in the vector index search.
+    // This should result in an empty result set, and the generated plan should reflect that by planning the filter.
+    val query =
+      """MATCH ()-[r:CONTRIBUTED]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    val expectedPlan =
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("cacheR[r.plot] AS `r.plot`")
+        .filter(hasTypes("r", "CONTRIBUTED"))
+        .cacheProperties("cacheRFromStore[r.plot]")
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10"
+        )
+        .build()
+
+    plan shouldEqual expectedPlan
+  }
+
+  test(
+    "should ignore unsolved relationship type in a disjunction if RelationshipVectorIndexSearch implies the other type"
+  ) {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH ()-[r:CONTRIBUTED|ACTS_IN]->()
+        |  SEARCH r IN (
+        |    VECTOR INDEX actsInScript
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN r.plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.plot`")
+        .projection("r.plot AS `r.plot`")
+        .relationshipVectorIndexSearch(
+          "()-[r]->()",
+          Seq("ACTS_IN"),
+          Seq("script"),
+          "actsInScript",
+          "$embedding",
+          "10"
+        )
         .build()
   }
 }

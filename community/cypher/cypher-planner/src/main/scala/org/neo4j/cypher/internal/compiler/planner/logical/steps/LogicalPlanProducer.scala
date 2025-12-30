@@ -72,10 +72,12 @@ import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
 import org.neo4j.cypher.internal.expressions.HasDynamicLabels
 import org.neo4j.cypher.internal.expressions.HasDynamicType
+import org.neo4j.cypher.internal.expressions.HasTypes
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapProjection
+import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
@@ -472,7 +474,7 @@ case class LogicalPlanProducer(
   }
 
   /**
-   * @param variable             the name of the relationship variable
+   * @param variable           the name of the relationship variable
    * @param patternForLeafPlan the pattern to use for the leaf plan
    * @param originalPattern    the original pattern, as it appears in the query graph
    * @param hiddenSelections   selections that make the leaf plan solve the originalPattern instead.
@@ -516,7 +518,7 @@ case class LogicalPlanProducer(
   }
 
   /**
-   * @param variable             the name of the relationship variable
+   * @param variable           the name of the relationship variable
    * @param relType            the relType to scan
    * @param patternForLeafPlan the pattern to use for the leaf plan
    * @param originalPattern    the original pattern, as it appears in the query graph
@@ -573,7 +575,7 @@ case class LogicalPlanProducer(
   }
 
   /**
-   * @param variable             the name of the relationship variable
+   * @param variable           the name of the relationship variable
    * @param relTypes           the relTypes to scan
    * @param patternForLeafPlan the pattern to use for the leaf plan
    * @param originalPattern    the original pattern, as it appears in the query graph
@@ -958,7 +960,7 @@ case class LogicalPlanProducer(
   }
 
   /**
-   * @param variable             the name of the relationship variable
+   * @param variable           the name of the relationship variable
    * @param patternForLeafPlan the pattern to use for the leaf plan
    * @param originalPattern    the original pattern, as it appears in the query graph
    * @param hiddenSelections   selections that make the leaf plan solve the originalPattern instead.
@@ -2117,19 +2119,46 @@ case class LogicalPlanProducer(
     argumentIds: Set[LogicalVariable],
     implicitlySolvedPredicates: Set[Expression] = Set.empty
   ): LogicalPlan = {
+    val selectionsFromUnsolvedTypes: Seq[Expression] = {
+      // The relationship vector index determines the relationship type that is actually solved.
+      // The index could cover multiple relationship types, so we need to check which types are actually solved by the index.
+      // If the pattern relationship has a type that is either not included in the index or is a specific subset of it, then we should identify that and solve it separately as a hidden selection.
+      val solvedTypes = indexedTypes.map(_.name).toSet
+      val typesToSolve = patternRelationship.types.map(_.name).toSet
+      if (typesToSolve.nonEmpty && !solvedTypes.subsetOf(typesToSolve)) {
+        // Assume the types supported by the index are ACTS_IN and KNOWS, but the pattern relationship only allows ACTS_IN
+        // Then we need to solve the ACTS_IN type separately as a hidden selection.
+        // Furthermore, if the index only supports KNOWS, but the pattern relationship allows only ACTS_IN, we need a hidden selection that filters out all relationships (since a relationship only has one type).
+        // However, if it was the converse, i.e., the pattern relationship allows both ACTS_IN and KNOWS, but the index only supports ACTS_IN,
+        // then all relationships returned by the index would be valid since ACTS_IN is a valid subset of (ACTS_IN, KNOWS)
+        // Also, if the pattern relationship does not have any types specified, then we assume all types returned by the index are valid
+        val relTypeQueries = patternRelationship.types.map(relType =>
+          HasTypes(patternRelationship.variable, Seq(relType))(InputPosition.NONE)
+        )
+        Seq(Ors.create(ListSet.from(relTypeQueries)))
+      } else Seq.empty
+    }
+
+    val solvedQueryGraphWithPredicate = QueryGraph.empty
+      .addSearchClause(Some(VectorSearchClause(
+        patternRelationship.variable,
+        indexName,
+        embedding,
+        limit,
+        scoreVariable
+      )))
+      .addPredicates(implicitlySolvedPredicates)
+      .addArgumentIds(argumentIds)
+    val withSolvedPatternRelationship = if (selectionsFromUnsolvedTypes.isEmpty) {
+      // We have solved all types, lets add the pattern relationship to the query graph
+      solvedQueryGraphWithPredicate.addPatternRelationship(patternRelationship)
+    } else {
+      // Let the hidden selection handle the solved pattern relationship to the query graph
+      solvedQueryGraphWithPredicate
+    }
+
     val solved = RegularSinglePlannerQuery(
-      queryGraph =
-        QueryGraph.empty
-          .addPatternRelationship(patternRelationship)
-          .addSearchClause(Some(VectorSearchClause(
-            patternRelationship.variable,
-            indexName,
-            embedding,
-            limit,
-            scoreVariable
-          )))
-          .addPredicates(implicitlySolvedPredicates)
-          .addArgumentIds(argumentIds),
+      queryGraph = withSolvedPatternRelationship,
       horizon = RegularQueryProjection(
         importedExposedSymbols = context.plannerState.importedSubqueryVariables
       )
@@ -2181,8 +2210,9 @@ case class LogicalPlanProducer(
         cachedPropertiesForIndexedProperties(context, patternRelationship.variable, indexedProperties),
         context
       )
+    val rewritten = solver.rewriteLeafPlan(annotatedPlan)
 
-    solver.rewriteLeafPlan(annotatedPlan)
+    planHiddenSelectionIfNeeded(rewritten, selectionsFromUnsolvedTypes, context, patternRelationship)
   }
 
   private def cachedPropertiesForIndexedProperties(
