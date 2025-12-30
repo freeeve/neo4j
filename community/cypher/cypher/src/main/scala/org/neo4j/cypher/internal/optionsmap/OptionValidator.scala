@@ -158,7 +158,7 @@ object SeedURIOption extends OptionValidator[SeedURI] {
     value match {
       case textValue: TextValue => SeedURI.single(textValue.stringValue())
       case mapValue: MapValue =>
-        val map = new util.HashMap[String, String](mapValue.size())
+        val map: util.HashMap[String, String] = util.HashMap.newHashMap(mapValue.size())
         mapValue.foreachEntry((k, v) =>
           map.put(
             k,

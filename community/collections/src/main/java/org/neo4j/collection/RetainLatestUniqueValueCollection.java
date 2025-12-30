@@ -44,21 +44,9 @@ public class RetainLatestUniqueValueCollection<E> extends AbstractCollection<E> 
         addAll(collection);
     }
 
-    public RetainLatestUniqueValueCollection(int initialCapacity, float loadFactor) {
-        this(new HashMap<>(initialCapacity, loadFactor));
-    }
-
-    public RetainLatestUniqueValueCollection(int initialCapacity) {
-        this(new HashMap<>(initialCapacity));
-    }
-
     private RetainLatestUniqueValueCollection(HashMap<E, E> map) {
         assert map != null && map.isEmpty();
         this.map = map;
-    }
-
-    public static <E> RetainLatestUniqueValueCollection<E> newRetainLatestUniqueValueCollection(int numberOfElements) {
-        return new RetainLatestUniqueValueCollection<>(HashMap.newHashMap(numberOfElements));
     }
 
     @Override

@@ -1275,7 +1275,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
     }
 
     private long countNodes(String... labels) {
-        Set<Label> givenLabels = new HashSet<>(labels.length);
+        Set<Label> givenLabels = HashSet.newHashSet(labels.length);
         for (String label : labels) {
             givenLabels.add(Label.label(label));
         }

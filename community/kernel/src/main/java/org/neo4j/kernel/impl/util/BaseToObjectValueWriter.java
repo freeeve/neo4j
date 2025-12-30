@@ -500,7 +500,7 @@ public abstract class BaseToObjectValueWriter<E extends Exception> implements An
         private final Map<String, Object> map;
 
         MapWriter(int size) {
-            this.map = new HashMap<>(size);
+            this.map = HashMap.newHashMap(size);
         }
 
         @Override

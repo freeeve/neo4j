@@ -159,7 +159,7 @@ class ForsetiLockManagerTest {
     @Test
     void lockClientsShouldNotHaveMutatingEqualsAndHashCode() {
         int uniqueClients = 10_000;
-        var allClientsSet = new HashSet<LockManager.Client>(uniqueClients);
+        var allClientsSet = HashSet.<LockManager.Client>newHashSet(uniqueClients);
         var allClientsList = new ArrayList<LockManager.Client>(uniqueClients);
 
         for (int i = 0; i < uniqueClients; i++) {

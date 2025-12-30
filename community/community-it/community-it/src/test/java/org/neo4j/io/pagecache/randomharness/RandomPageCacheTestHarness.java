@@ -359,7 +359,7 @@ public class RandomPageCacheTestHarness implements Closeable {
             filePageSize = cache.pageSize();
         }
         cache.setPrintExceptionsOnClose(false);
-        Map<Path, PagedFile> fileMap = new HashMap<>(files.length);
+        Map<Path, PagedFile> fileMap = HashMap.newHashMap(files.length);
         for (int i = 0; i < Math.min(files.length, initialMappedFiles); i++) {
             Path file = files[i];
             fileMap.put(file, cache.map(file, filePageSize, DEFAULT_DATABASE_NAME, openOptions));

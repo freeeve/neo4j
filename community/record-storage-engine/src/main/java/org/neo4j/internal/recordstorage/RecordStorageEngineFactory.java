@@ -651,7 +651,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
 
     private static List<NamedToken> unique(List<NamedToken> tokens) {
         if (!tokens.isEmpty()) {
-            Set<String> names = new HashSet<>(tokens.size());
+            Set<String> names = HashSet.newHashSet(tokens.size());
             int i = 0;
             while (i < tokens.size()) {
                 if (names.add(tokens.get(i).name())) {

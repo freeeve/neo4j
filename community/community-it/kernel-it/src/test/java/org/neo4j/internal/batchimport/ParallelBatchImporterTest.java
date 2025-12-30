@@ -444,7 +444,7 @@ public class ParallelBatchImporterTest {
                                 new LongAdder())
                         .iterator();
                 ResourceIterable<Node> dbNodes = tx.getAllNodes()) {
-            Map<String, Node> nodeByInputId = new HashMap<>(nodeCount);
+            Map<String, Node> nodeByInputId = HashMap.newHashMap(nodeCount);
             for (final var node : dbNodes) {
                 String id = (String) node.getProperty("id");
                 assertNull(nodeByInputId.put(id, node));

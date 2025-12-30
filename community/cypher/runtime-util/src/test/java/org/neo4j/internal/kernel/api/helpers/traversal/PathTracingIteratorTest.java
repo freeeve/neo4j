@@ -106,7 +106,7 @@ class PathTracingIteratorTest {
         PathTracingIterator<HeapTrackingArrayList<PathTraceStep>> pti =
                 rectangularPathSet(sourceLength, targetLength, width, degree);
 
-        Set<PathReference> paths = new HashSet<>(expectedCardinality);
+        Set<PathReference> paths = HashSet.newHashSet(expectedCardinality);
         for (int i = 0; i < expectedCardinality; i++) {
             assertThat(pti.hasNext()).isTrue();
             PathReference nextPath = pti.next();
@@ -128,7 +128,7 @@ class PathTracingIteratorTest {
         PathTracingIterator<HeapTrackingArrayList<PathTraceStep>> pti =
                 rectangularPathSet(sourceLength, targetLength, width, degree);
 
-        Set<PathReference> paths = new HashSet<>(expectedCardinality);
+        Set<PathReference> paths = HashSet.newHashSet(expectedCardinality);
         for (int i = 0; i < expectedCardinality; i++) {
             assertThat(pti.hasNext()).isTrue();
             PathReference nextPath = pti.next();
@@ -150,7 +150,7 @@ class PathTracingIteratorTest {
         PathTracingIterator<HeapTrackingArrayList<PathTraceStep>> pti =
                 rectangularPathSet(sourceLength, targetLength, width, degree);
 
-        Set<PathReference> paths = new HashSet<>(expectedCardinality);
+        Set<PathReference> paths = HashSet.newHashSet(expectedCardinality);
         for (int i = 0; i < expectedCardinality; i++) {
             assertThat(pti.hasNext()).isTrue();
             PathReference nextPath = pti.next();
@@ -172,7 +172,7 @@ class PathTracingIteratorTest {
         PathTracingIterator<HeapTrackingArrayList<PathTraceStep>> pti =
                 rectangularPathSet(sourceLength, targetLength, width, degree);
 
-        Set<PathReference> paths = new HashSet<>(expectedCardinality);
+        Set<PathReference> paths = HashSet.newHashSet(expectedCardinality);
         for (int i = 0; i < expectedCardinality; i++) {
             assertThat(pti.hasNext()).isTrue();
             PathReference nextPath = pti.next();
@@ -194,7 +194,7 @@ class PathTracingIteratorTest {
         PathTracingIterator<HeapTrackingArrayList<PathTraceStep>> pti =
                 rectangularPathSet(sourceLength, targetLength, width, degree);
 
-        Set<PathReference> paths = new HashSet<>(expectedCardinality);
+        Set<PathReference> paths = HashSet.newHashSet(expectedCardinality);
         for (int i = 0; i < expectedCardinality; i++) {
             assertThat(pti.hasNext()).isTrue();
             PathReference nextPath = pti.next();
@@ -216,7 +216,7 @@ class PathTracingIteratorTest {
         PathTracingIterator<HeapTrackingArrayList<PathTraceStep>> pti =
                 rectangularPathSet(sourceLength, targetLength, width, degree);
 
-        Set<PathReference> paths = new HashSet<>(expectedCardinality);
+        Set<PathReference> paths = HashSet.newHashSet(expectedCardinality);
         for (int i = 0; i < expectedCardinality; i++) {
             assertThat(pti.hasNext()).isTrue();
             PathReference nextPath = pti.next();

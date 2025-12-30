@@ -33,7 +33,7 @@ public enum AccessMode {
 
     static {
         AccessMode[] values = values();
-        var mutableFlagMap = new HashMap<String, AccessMode>(1 + values.length);
+        var mutableFlagMap = HashMap.<String, AccessMode>newHashMap(1 + values.length);
         // allow "a" for AUTO access mode, which is considered WRITE for now
         mutableFlagMap.put("a", WRITE);
         for (var mode : values) {

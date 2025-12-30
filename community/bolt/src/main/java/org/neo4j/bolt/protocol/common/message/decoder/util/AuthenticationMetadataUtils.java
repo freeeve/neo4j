@@ -66,7 +66,7 @@ public final class AuthenticationMetadataUtils {
         }
 
         var writer = new AuthTokenValueWriter();
-        var metadataMap = new HashMap<String, Object>(metadataMapValue.size());
+        var metadataMap = HashMap.<String, Object>newHashMap(metadataMapValue.size());
         metadataMapValue.foreach((key, value) -> {
             if (!AuthToken.containsSensitiveInformation(key)) {
                 value.writeTo(writer);

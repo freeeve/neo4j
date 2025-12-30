@@ -105,7 +105,7 @@ public abstract class AbstractEntity implements Entity {
         }
 
         int[] propertyIds = propertyIds(tokenRead(), keys);
-        Map<String, Object> result = new HashMap<>(propertyIds.length);
+        Map<String, Object> result = HashMap.newHashMap(propertyIds.length);
         singleEntity.properties(properties, PropertySelection.selection(propertyIds));
         while (properties.next()) {
             result.put(

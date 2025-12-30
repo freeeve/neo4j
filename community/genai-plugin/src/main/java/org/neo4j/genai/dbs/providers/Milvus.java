@@ -213,7 +213,7 @@ public final class Milvus implements VectorDatabaseProvider {
             try {
                 List<Map<String, Object>> points = new ArrayList<>();
                 for (Map<String, Object> vector : ((List<Map<String, Object>>) additionalArguments.get("vectors"))) {
-                    Map<String, Object> point = new HashMap<>(3);
+                    Map<String, Object> point = HashMap.newHashMap(3);
                     point.put("id", vector.get("id"));
                     point.put("payload", vector.get("metadata"));
                     point.put("vector", vector.get("vector"));

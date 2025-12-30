@@ -290,7 +290,7 @@ public class RelationshipEntity implements Relationship, RelationshipVisitor<Run
             propertyIds[i] = token.propertyKey(key);
         }
 
-        Map<String, Object> properties = new HashMap<>(itemsToReturn);
+        Map<String, Object> properties = HashMap.newHashMap(itemsToReturn);
         PropertyCursor propertyCursor = initializePropertyCursor(
                 transaction.ambientPropertyCursor(), transaction, PropertySelection.selection(propertyIds));
         while (propertyCursor.next()) {

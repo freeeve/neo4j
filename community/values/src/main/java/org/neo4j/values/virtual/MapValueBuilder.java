@@ -20,7 +20,6 @@
 package org.neo4j.values.virtual;
 
 import static org.neo4j.memory.HeapEstimator.sizeOf;
-import static org.neo4j.util.Preconditions.requirePositive;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,7 +35,7 @@ public class MapValueBuilder {
     }
 
     public MapValueBuilder(int expectedSize) {
-        this.map = new HashMap<>(capacity(expectedSize));
+        this.map = HashMap.newHashMap(expectedSize);
     }
 
     public AnyValue add(String key, AnyValue value) {
@@ -64,13 +63,5 @@ public class MapValueBuilder {
         } else {
             return new MapValue.MapWrappingMapValue(map, payloadSize);
         }
-    }
-
-    private static int capacity(int expectedSize) {
-        if (expectedSize < 3) {
-            requirePositive(expectedSize);
-            return expectedSize + 1;
-        }
-        return (int) ((float) expectedSize / 0.75f + 1.0f);
     }
 }

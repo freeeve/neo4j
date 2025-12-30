@@ -43,7 +43,7 @@ public enum HttpMethod {
 
     private static Map<String, HttpMethod> indexMethodsByName() {
         HttpMethod[] methods = HttpMethod.values();
-        Map<String, HttpMethod> result = new HashMap<>(methods.length * 2);
+        Map<String, HttpMethod> result = HashMap.newHashMap(methods.length * 2);
         for (HttpMethod method : methods) {
             result.put(method.name(), method);
         }

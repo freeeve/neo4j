@@ -119,7 +119,7 @@ public final class VirtualValues {
             return new SingletonMapValue(keys[0], values[0]);
         } else {
             long payloadSize = 0;
-            Map<String, AnyValue> map = new HashMap<>((int) ((float) keys.length / 0.75f + 1.0f));
+            Map<String, AnyValue> map = HashMap.newHashMap(keys.length);
             for (int i = 0; i < keys.length; i++) {
                 String key = keys[i];
                 AnyValue value = values[i];

@@ -139,11 +139,11 @@ public enum GeometryType {
     }
 
     private static final GeometryType[] TYPES = GeometryType.values();
-    private static final Map<String, GeometryType> all = new HashMap<>(TYPES.length);
+    private static final Map<String, GeometryType> ALL = HashMap.newHashMap(TYPES.length);
 
     static {
         for (GeometryType geometryType : TYPES) {
-            all.put(geometryType.name, geometryType);
+            ALL.put(geometryType.name, geometryType);
         }
     }
 

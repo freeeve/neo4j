@@ -5629,7 +5629,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
         } else if (keys.length == 1 && params.length > 0) {
             return singletonMap(keys[0].name(), params[0]);
         } else {
-            final var result = new HashMap<String, Object>(keys.length, 1.0f);
+            final var result = HashMap.<String, Object>newHashMap(keys.length);
             for (int i = 0; i < keys.length && i < params.length; i++) {
                 final var key = keys[i];
                 result.put(key.name(), params[i]);
@@ -5648,7 +5648,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
         } else if (keys.length == 1 && params.containsKey(keys[0])) {
             return singletonMap(keys[0].name(), params.get(keys[0]));
         } else {
-            final var result = new HashMap<String, Object>(statusParameterKeys.length, 1.0f);
+            final var result = HashMap.<String, Object>newHashMap(statusParameterKeys.length);
             for (int i = 0; i < statusParameterKeys.length; i++) {
                 final var key = statusParameterKeys[i];
                 result.put(key.name(), params.get(key));

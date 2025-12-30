@@ -129,7 +129,7 @@ public abstract class AbstractTransactionInitiatingMessageDecoder<M extends Abst
         }
 
         var writer = new TransactionMetadataWriter();
-        var txMeta = new HashMap<String, Object>(mapValue.size());
+        var txMeta = HashMap.<String, Object>newHashMap(mapValue.size());
         mapValue.foreach((key, value) -> txMeta.put(key, writer.valueAsObject(value)));
         return txMeta;
     }

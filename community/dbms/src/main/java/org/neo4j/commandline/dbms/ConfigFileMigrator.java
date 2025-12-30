@@ -302,8 +302,8 @@ public class ConfigFileMigrator {
             Consumer<String> removedValueConsumer,
             Consumer<String> unrecognisedValueConsumer) {
         Set<String> migratedKeys = new HashSet<>();
-        Map<String, List<String>> migratedValues = new HashMap<>(originalValues.size());
-        Map<String, Map<String, String>> originalValueMapping = new HashMap<>(originalValues.size());
+        Map<String, List<String>> migratedValues = HashMap.newHashMap(originalValues.size());
+        Map<String, Map<String, String>> originalValueMapping = HashMap.newHashMap(originalValues.size());
 
         for (String originalValue : originalValues) {
             Map<String, String> map = Maps.mutable.of(originalKey, originalValue);
@@ -318,7 +318,7 @@ public class ConfigFileMigrator {
                                 .computeIfAbsent(migratedKey, ignored -> new ArrayList<>(originalValues.size()))
                                 .add(entry.getValue());
                         originalValueMapping
-                                .computeIfAbsent(migratedKey, ignored -> new HashMap<>(originalValues.size()))
+                                .computeIfAbsent(migratedKey, ignored -> HashMap.newHashMap(originalValues.size()))
                                 .put(entry.getValue(), originalValue);
                     } else {
                         unrecognisedValueConsumer.accept(originalValue);

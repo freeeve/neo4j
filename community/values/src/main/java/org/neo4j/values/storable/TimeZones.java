@@ -39,7 +39,7 @@ public class TimeZones {
     private TimeZones() {}
 
     private static final List<String> TIME_ZONE_SHORT_TO_STRING = new ArrayList<>(1024);
-    private static final Map<String, Short> TIME_ZONE_STRING_TO_SHORT = new HashMap<>(1024);
+    private static final Map<String, Short> TIME_ZONE_STRING_TO_SHORT = HashMap.newHashMap(1024);
 
     private static final long MIN_ZONE_OFFSET_SECONDS = -18 * 3600;
     private static final long MAX_ZONE_OFFSET_SECONDS = 18 * 3600;
@@ -76,7 +76,7 @@ public class TimeZones {
     static {
         String latestVersion = "";
         Pattern version = Pattern.compile("# tzdata([0-9]{4}[a-z])");
-        Map<String, String> oldToNewName = new HashMap<>(1024);
+        Map<String, String> oldToNewName = HashMap.newHashMap(1024);
 
         try (BufferedReader reader =
                 new BufferedReader(new InputStreamReader(TimeZones.class.getResourceAsStream("/TZIDS")))) {

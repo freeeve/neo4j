@@ -69,7 +69,7 @@ public class ParameterValueMapper implements ValueMapper<Object> {
 
     @Override
     public Object mapMap(MapValue value) {
-        final var map = new HashMap<String, Object>(value.size());
+        final var map = HashMap.newHashMap(value.size());
         value.foreach((k, v) -> map.put(k, v.map(this)));
         return map;
     }

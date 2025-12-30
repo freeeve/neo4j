@@ -801,7 +801,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         private void addFromScan(List<EntityUpdates> entityUpdates, CursorContext cursorContext) {
             // This is called from a full store node scan, meaning that all node properties are included in the
             // EntityUpdates object. Therefore no additional properties need to be loaded.
-            Map<IndexPopulation, List<IndexEntryUpdate>> updates = new HashMap<>(populations.size());
+            Map<IndexPopulation, List<IndexEntryUpdate>> updates = HashMap.newHashMap(populations.size());
             var descriptors = populations.keySet();
             for (EntityUpdates update : entityUpdates) {
                 for (var indexUpdate : update.valueUpdatesForIndexKeys(descriptors)) {

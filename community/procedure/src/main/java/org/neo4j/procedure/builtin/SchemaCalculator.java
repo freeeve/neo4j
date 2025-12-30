@@ -56,7 +56,7 @@ public class SchemaCalculator {
     private final CursorFactory cursors;
     private final CursorContext cursorContext;
     private final MemoryTracker memoryTracker;
-    private boolean useCypherTypes;
+    private final boolean useCypherTypes;
 
     SchemaCalculator(KernelTransaction ktx, boolean useCypherTypes) {
         this.dataRead = ktx.dataRead();
@@ -67,7 +67,7 @@ public class SchemaCalculator {
         this.useCypherTypes = useCypherTypes;
 
         // the only one that is common for both nodes and rels so thats why we can do it here
-        propertyIdToPropertyNameMapping = new HashMap<>(tokenRead.propertyKeyCount());
+        propertyIdToPropertyNameMapping = HashMap.newHashMap(tokenRead.propertyKeyCount());
         addNamesToCollection(tokenRead.propertyKeyGetAllTokens(), propertyIdToPropertyNameMapping);
     }
 
@@ -324,7 +324,7 @@ public class SchemaCalculator {
     private static class ValueTypeListHelper {
         private final Set<String> seenValueTypes;
         private boolean isMandatory = true;
-        private boolean useCypherTypes;
+        private final boolean useCypherTypes;
 
         ValueTypeListHelper(Value v, boolean useCypherTypes) {
             seenValueTypes = new HashSet<>();
@@ -369,8 +369,8 @@ public class SchemaCalculator {
         final Map<Integer, String> labelIdToLabelName;
 
         NodeMappings(int labelCount) {
-            labelSetToPropertyKeys = new HashMap<>(labelCount);
-            labelIdToLabelName = new HashMap<>(labelCount);
+            labelSetToPropertyKeys = HashMap.newHashMap(labelCount);
+            labelIdToLabelName = HashMap.newHashMap(labelCount);
             labelSetANDNodePropertyKeyIdToValueType = new HashMap<>();
             nullableLabelSets = new HashSet<>();
         }
@@ -389,8 +389,8 @@ public class SchemaCalculator {
                 nullableRelationshipTypes; // used for types without properties -> all properties are viewed as nullable
 
         RelationshipMappings(int relationshipTypeCount) {
-            relationshipTypIdToRelationshipName = new HashMap<>(relationshipTypeCount);
-            relationshipTypeIdToPropertyKeys = new HashMap<>(relationshipTypeCount);
+            relationshipTypIdToRelationshipName = HashMap.newHashMap(relationshipTypeCount);
+            relationshipTypeIdToPropertyKeys = HashMap.newHashMap(relationshipTypeCount);
             relationshipTypeIdANDPropertyTypeIdToValueType = new HashMap<>();
             nullableRelationshipTypes = new HashSet<>();
         }

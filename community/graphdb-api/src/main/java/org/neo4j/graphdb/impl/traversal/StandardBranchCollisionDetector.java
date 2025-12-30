@@ -36,7 +36,7 @@ import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.TraversalBranch;
 
 public class StandardBranchCollisionDetector implements BranchCollisionDetector {
-    private final Map<Node, Collection<TraversalBranch>[]> paths = new HashMap<>(1000);
+    private final Map<Node, Collection<TraversalBranch>[]> paths = HashMap.newHashMap(1000);
     private final Evaluator evaluator;
     private final Set<Path> returnedPaths = new HashSet<>();
     private Predicate<Path> pathPredicate = Predicates.alwaysTrue();
