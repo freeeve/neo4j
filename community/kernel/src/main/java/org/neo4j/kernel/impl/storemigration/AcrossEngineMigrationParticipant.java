@@ -271,46 +271,55 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
             StoreVersion versionToUpgradeTo,
             MemoryTracker memoryTracker)
             throws IOException {
-        DatabaseLayout mig = targetStorageEngine.formatSpecificDatabaseLayout(migrationLayoutArg);
-        DatabaseLayout dir = srcStorageEngine.formatSpecificDatabaseLayout(directoryLayoutArg);
+        DatabaseLayout migrationDatabaseLayout = targetStorageEngine.formatSpecificDatabaseLayout(migrationLayoutArg);
+        DatabaseLayout sourceDatabaseLayout = srcStorageEngine.formatSpecificDatabaseLayout(directoryLayoutArg);
 
         // Delete all old store files, indexes, profiles that belonged to the old store since the
         // engine probably has different files and move won't replace all
-        Path indexFolder = IndexDirectoryStructure.baseSchemaIndexFolder(dir.databaseDirectory());
+        Path indexFolder = IndexDirectoryStructure.baseSchemaIndexFolder(sourceDatabaseLayout.databaseDirectory());
         Path toplevelIndexFolder = indexFolder;
-        while (!toplevelIndexFolder.getParent().equals(dir.databaseDirectory())) {
+        while (!toplevelIndexFolder.getParent().equals(sourceDatabaseLayout.databaseDirectory())) {
             toplevelIndexFolder = toplevelIndexFolder.getParent();
         }
-        Path profiles = dir.databaseDirectory().resolve("profiles");
-        Collection<Path> storeFiles = new ArrayList<>(srcStorageEngine.listStorageFiles(fileSystem, dir));
+        Path profiles = sourceDatabaseLayout.databaseDirectory().resolve("profiles");
+        Path vectors = sourceDatabaseLayout.vectorStoresDirectory();
+        Collection<Path> storeFiles =
+                new ArrayList<>(srcStorageEngine.listStorageFiles(fileSystem, sourceDatabaseLayout));
         storeFiles.add(toplevelIndexFolder);
+        storeFiles.add(vectors);
         storeFiles.add(profiles);
         // If migrating from <5 the legacy token indexes are not in the index folder
-        storeFiles.add(dir.file(Path.of(TokenIndexMigrator.LEGACY_LABEL_INDEX_STORE)));
-        storeFiles.add(dir.file(Path.of(TokenIndexMigrator.LEGACY_RELATIONSHIP_TYPE_INDEX_STORE)));
+        storeFiles.add(sourceDatabaseLayout.file(TokenIndexMigrator.LEGACY_LABEL_INDEX_STORE));
+        storeFiles.add(sourceDatabaseLayout.file(TokenIndexMigrator.LEGACY_RELATIONSHIP_TYPE_INDEX_STORE));
         fileOperation(
                 DELETE_INCLUDING_DIRS,
                 fileSystem,
-                dir,
-                mig,
+                sourceDatabaseLayout,
+                migrationDatabaseLayout,
                 storeFiles.toArray(new Path[] {}),
                 true, // allow to skip non-existent source files
                 ExistingTargetStrategy.OVERWRITE);
 
         // Move the migrated ones into the store directory
-        Path migIndexFolder = IndexDirectoryStructure.baseSchemaIndexFolder(mig.databaseDirectory());
-        storeFiles = targetStorageEngine.listStorageFiles(fileSystem, mig);
+        Path migIndexFolder =
+                IndexDirectoryStructure.baseSchemaIndexFolder(migrationDatabaseLayout.databaseDirectory());
+        Path vectorIndexFolder = migrationDatabaseLayout.vectorStoresDirectory();
+        storeFiles = targetStorageEngine.listStorageFiles(fileSystem, migrationDatabaseLayout);
         fileOperation(
                 MOVE,
                 fileSystem,
-                mig,
-                dir,
+                migrationDatabaseLayout,
+                sourceDatabaseLayout,
                 storeFiles.toArray(new Path[] {}),
                 true, // allow to skip non-existent source files
                 ExistingTargetStrategy.OVERWRITE);
 
         // Move the token indexes that were built in migrate, so they don't have to rebuild on start-up
         fileSystem.moveToDirectory(migIndexFolder, indexFolder.getParent());
+        // move vector files
+        if (fileSystem.fileExists(vectorIndexFolder)) {
+            fileSystem.moveToDirectory(vectorIndexFolder, sourceDatabaseLayout.databaseDirectory());
+        }
     }
 
     @Override

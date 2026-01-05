@@ -339,8 +339,8 @@ public abstract class DatabaseMigrationITBase {
                 .isFalse();
 
         // The legacy location for scanstores should have been cleared
-        assertFalse(fs.fileExists(databaseLayout.file(Path.of("neostore.labelscanstore.db"))));
-        assertFalse(fs.fileExists(databaseLayout.file(Path.of("neostore.relationshiptypescanstore.db"))));
+        assertFalse(fs.fileExists(databaseLayout.file("neostore.labelscanstore.db")));
+        assertFalse(fs.fileExists(databaseLayout.file("neostore.relationshiptypescanstore.db")));
     }
 
     private static IndexDirectoryStructure getIndexProviderDirectoryStructure(

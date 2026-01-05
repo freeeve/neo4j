@@ -3206,7 +3206,7 @@ class ImportCommandTest {
     }
 
     private Path badFile() {
-        return layout.databaseLayout(DEFAULT_DATABASE_NAME).file(Path.of(FileImporter.DEFAULT_REPORT_FILE_NAME));
+        return layout.databaseLayout(DEFAULT_DATABASE_NAME).file(FileImporter.DEFAULT_REPORT_FILE_NAME);
     }
 
     private static void writeRelationshipHeader(

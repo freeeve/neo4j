@@ -19,6 +19,8 @@
  */
 package org.neo4j.io.layout;
 
+import static org.neo4j.io.layout.DatabaseFile.ID_FILE_SUFFIX;
+
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -69,7 +71,9 @@ public interface DatabaseLayout {
 
     Path databaseDirectory();
 
-    Path backupToolsFolder();
+    Path backupToolsDirectory();
+
+    Path vectorStoresDirectory();
 
     Path metadataStore();
 
@@ -84,13 +88,13 @@ public interface DatabaseLayout {
     /**
      * Resolves the file path against the database directory and returns that path.
      */
-    Path file(Path filePath);
+    Path file(String name);
 
     Path file(DatabaseFile databaseFile);
 
     Stream<Path> allFiles(DatabaseFile databaseFile);
 
     default boolean isIdFile(Path file) {
-        return file.getFileName().toString().endsWith(".id");
+        return file.getFileName().toString().endsWith(ID_FILE_SUFFIX);
     }
 }

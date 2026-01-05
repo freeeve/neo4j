@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.configuration.Config.defaults;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
+import static org.neo4j.io.layout.DatabaseFile.ID_FILE_SUFFIX;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.impl.store.format.RecordFormatSelector.selectForStoreOrConfigForNewDbs;
@@ -125,7 +126,7 @@ class StoreFactoryTest {
     @Test
     void shouldHandleStoreConsistingOfOneEmptyFile() throws Exception {
         StoreFactory storeFactory = storeFactory(defaults());
-        fileSystem.write(databaseLayout.file(Path.of("neostore.nodestore.db.labels")));
+        fileSystem.write(databaseLayout.file("neostore.nodestore.db.labels"));
         storeFactory.openAllNeoStores().close();
     }
 
@@ -134,7 +135,7 @@ class StoreFactoryTest {
         StoreFactory storeFactory = storeFactory(defaults());
         storeFactory.openAllNeoStores().close();
         for (Path f : fileSystem.listFiles(databaseLayout.databaseDirectory())) {
-            if (!f.getFileName().toString().endsWith(".id") && !f.equals(databaseLayout.metadataStore())) {
+            if (!f.getFileName().toString().endsWith(ID_FILE_SUFFIX) && !f.equals(databaseLayout.metadataStore())) {
                 fileSystem.truncate(f, 0);
             }
         }

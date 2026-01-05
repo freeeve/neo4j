@@ -92,16 +92,16 @@ public class TokenIndexMigrator extends AbstractStoreMigrationParticipant {
         deleteRelationshipTokenIndex = !fromVersion.hasCompatibleCapabilities(toVersion, CapabilityType.FORMAT);
         // Token indexes were stored at a different location before 5.0
         // This migrator will take them to the 5.0+ location
-        moveFiles = scanStoreExists(directoryLayout, Path.of(LEGACY_LABEL_INDEX_STORE))
-                || scanStoreExists(directoryLayout, Path.of(LEGACY_RELATIONSHIP_TYPE_INDEX_STORE));
+        moveFiles = scanStoreExists(directoryLayout, LEGACY_LABEL_INDEX_STORE)
+                || scanStoreExists(directoryLayout, LEGACY_RELATIONSHIP_TYPE_INDEX_STORE);
     }
 
     private boolean differentMultiVersionCapabilities(StoreVersion toVersion, StoreVersion fromVersion) {
         return toVersion.hasCapability(MULTI_VERSION_INDEXES) ^ fromVersion.hasCapability(MULTI_VERSION_INDEXES);
     }
 
-    private boolean scanStoreExists(DatabaseLayout directoryLayout, Path path) {
-        return fileSystem.fileExists(directoryLayout.file(path));
+    private boolean scanStoreExists(DatabaseLayout directoryLayout, String fileName) {
+        return fileSystem.fileExists(directoryLayout.file(fileName));
     }
 
     @Override
@@ -145,19 +145,19 @@ public class TokenIndexMigrator extends AbstractStoreMigrationParticipant {
             }
 
             if (schemaRule.schema().entityType() == EntityType.NODE) {
-                moveFile(schemaRule, Path.of(LEGACY_LABEL_INDEX_STORE));
+                moveFile(schemaRule, LEGACY_LABEL_INDEX_STORE);
             } else {
-                moveFile(schemaRule, Path.of(LEGACY_RELATIONSHIP_TYPE_INDEX_STORE));
+                moveFile(schemaRule, LEGACY_RELATIONSHIP_TYPE_INDEX_STORE);
             }
         }
     }
 
-    private void moveFile(SchemaRule schemaRule, Path legacyPath) throws IOException {
-        if (scanStoreExists(layout, legacyPath)) {
+    private void moveFile(SchemaRule schemaRule, String fileName) throws IOException {
+        if (scanStoreExists(layout, fileName)) {
             Path destination = storeFileProvider.apply(schemaRule);
             try {
                 fileSystem.mkdirs(destination.getParent());
-                fileSystem.renameFile(layout.file(legacyPath), destination);
+                fileSystem.renameFile(layout.file(fileName), destination);
             } catch (IOException e) {
                 throw new IOException("Failed to move LOOKUP index files to index directory during migration", e);
             }

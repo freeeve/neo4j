@@ -304,7 +304,7 @@ public class ConsistencyCheckServiceIntegrationTest {
         fixture.close();
 
         // when
-        Path schemaDir = findFile(databaseLayout, Path.of("schema"));
+        Path schemaDir = findFile(databaseLayout, "schema");
         FileUtils.deleteDirectory(schemaDir);
 
         Result result = consistencyCheckService().runFullConsistencyCheck();
@@ -324,10 +324,10 @@ public class ConsistencyCheckServiceIntegrationTest {
         fixture.apply(tx -> tx.schema().awaitIndexesOnline(2, TimeUnit.MINUTES));
     }
 
-    private static Path findFile(DatabaseLayout databaseLayout, Path targetPath) {
-        Path file = databaseLayout.file(targetPath);
+    private static Path findFile(DatabaseLayout databaseLayout, String fielName) {
+        Path file = databaseLayout.file(fielName);
         if (Files.notExists(file)) {
-            fail("Could not find file " + targetPath);
+            fail("Could not find file " + fielName);
         }
         return file;
     }

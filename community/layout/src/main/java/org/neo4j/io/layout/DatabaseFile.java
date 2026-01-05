@@ -19,25 +19,15 @@
  */
 package org.neo4j.io.layout;
 
-import java.nio.file.Path;
-
 public interface DatabaseFile {
     String DATABASE_FILE_SUFFIX = ".db";
-
     String ID_FILE_SUFFIX = ".id";
 
     String getName();
 
-    /**
-     * Get the path of this database file, relative to the given root database directory.
-     */
-    default Path getPath(Path databaseDirectory) {
-        return databaseDirectory.resolve(getName());
-    }
-
-    default Path getIdFilePath(Path databaseDirectory) {
-        return databaseDirectory.resolve(getName() + ID_FILE_SUFFIX);
-    }
-
     boolean hasIdFile();
+
+    default boolean isVector() {
+        return false;
+    }
 }

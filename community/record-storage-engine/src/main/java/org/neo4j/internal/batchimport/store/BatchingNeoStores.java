@@ -175,7 +175,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
         this.internalLogProvider = logService.getInternalLogProvider();
         this.userLogProvider = logService.getUserLogProvider();
         this.databaseLayout = databaseLayout;
-        this.temporaryDatabaseLayout = RecordDatabaseLayout.ofFlat(databaseLayout.file(Path.of(TEMP_STORE_NAME)));
+        this.temporaryDatabaseLayout = RecordDatabaseLayout.ofFlat(databaseLayout.file(TEMP_STORE_NAME));
         this.neo4jConfig = neo4jConfig;
         this.pageCache = pageCache;
         this.ioTracer = ioTracer;

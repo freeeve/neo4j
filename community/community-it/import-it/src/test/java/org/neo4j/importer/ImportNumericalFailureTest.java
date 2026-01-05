@@ -76,7 +76,7 @@ class ImportNumericalFailureTest {
     @MethodSource(value = "parameters")
     void failImportOnInvalidData(String type, String val, String expectedError) throws Exception {
 
-        Path data = file(databaseLayout, Path.of("whitespace.csv"));
+        Path data = file(databaseLayout, "whitespace.csv");
         try (PrintStream writer = new PrintStream(Files.newOutputStream(data))) {
             writer.println(":LABEL,adult:" + type);
             writer.println("PERSON," + val);
@@ -87,10 +87,7 @@ class ImportNumericalFailureTest {
                 () -> runImport(
                         databaseLayout.databaseDirectory().toAbsolutePath(),
                         "--report-file",
-                        databaseLayout
-                                .file(Path.of("import.report"))
-                                .toAbsolutePath()
-                                .toString(),
+                        databaseLayout.file("import.report").toAbsolutePath().toString(),
                         "--quote",
                         "'",
                         "--nodes",
@@ -98,8 +95,8 @@ class ImportNumericalFailureTest {
         assertExceptionContains(exception, expectedError, InputException.class);
     }
 
-    private static Path file(DatabaseLayout databaseLayout, Path path) {
-        return databaseLayout.file(path);
+    private static Path file(DatabaseLayout databaseLayout, String name) {
+        return databaseLayout.file(name);
     }
 
     private static void runImport(Path homeDir, String... arguments) {

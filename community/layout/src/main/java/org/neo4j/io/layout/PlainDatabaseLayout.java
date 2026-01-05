@@ -37,7 +37,8 @@ import org.neo4j.kernel.database.NormalizedDatabaseName;
  */
 public class PlainDatabaseLayout implements DatabaseLayout {
     private static final String DATABASE_LOCK_FILENAME = "database_lock";
-    private static final String BACKUP_TOOLS_FOLDER = "tools";
+    private static final String VECTOR_SUB_DIRECTORY = "vector";
+    private static final String BACKUP_TOOLS_DIRECTORY = "tools";
     private static final String QUARANTINE_MARKER_FILENAME = "quarantine_marker";
 
     private final Path databaseDirectory;
@@ -88,8 +89,13 @@ public class PlainDatabaseLayout implements DatabaseLayout {
     }
 
     @Override
-    public Path backupToolsFolder() {
-        return databaseDirectory().resolve(BACKUP_TOOLS_FOLDER);
+    public Path backupToolsDirectory() {
+        return databaseDirectory().resolve(BACKUP_TOOLS_DIRECTORY);
+    }
+
+    @Override
+    public Path vectorStoresDirectory() {
+        return databaseDirectory().resolve(VECTOR_SUB_DIRECTORY);
     }
 
     @Override
@@ -115,17 +121,17 @@ public class PlainDatabaseLayout implements DatabaseLayout {
 
     @Override
     public Optional<Path> idFile(DatabaseFile file) {
-        return file.hasIdFile() ? Optional.of(file.getIdFilePath(databaseDirectory)) : Optional.empty();
+        return file.hasIdFile() ? Optional.of(idFile(file.getName())) : Optional.empty();
     }
 
     @Override
-    public Path file(Path filePath) {
-        return databaseDirectory.resolve(filePath);
+    public Path file(String name) {
+        return databaseDirectory.resolve(name);
     }
 
     @Override
     public Path file(DatabaseFile databaseFile) {
-        return databaseFile.getPath(databaseDirectory);
+        return file(databaseFile.getName());
     }
 
     @Override
@@ -137,6 +143,14 @@ public class PlainDatabaseLayout implements DatabaseLayout {
         throw new IllegalStateException(
                 "Can not determine whether the store '%s' is recoverable in a PlainDatabaseLayout"
                         .formatted(file.getName()));
+    }
+
+    private Path idFile(String name) {
+        return file(idFileName(name));
+    }
+
+    protected String idFileName(String name) {
+        return name + DatabaseFile.ID_FILE_SUFFIX;
     }
 
     @Override

@@ -118,7 +118,7 @@ class DefaultStoreSnapshotFactoryTest {
     @Test
     void shouldReturnExpectedListOfFileNamesForEachType() throws Exception {
         // given
-        var expectedFiles = new Path[] {databaseLayout.file(Path.of("a")), databaseLayout.file(Path.of("b"))};
+        var expectedFiles = new Path[] {databaseLayout.file("a"), databaseLayout.file("b")};
         setExpectedFiles(expectedFiles);
 
         // when

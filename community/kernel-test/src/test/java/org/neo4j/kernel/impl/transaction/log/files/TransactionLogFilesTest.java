@@ -199,9 +199,9 @@ class TransactionLogFilesTest {
         LogFiles files = createLogFiles();
 
         fileSystem
-                .write(databaseLayout.file(Path.of(getVersionedLogFileName("some", "4"))))
+                .write(databaseLayout.file(getVersionedLogFileName("some", "4")))
                 .close();
-        fileSystem.write(databaseLayout.file(Path.of(DEFAULT_NAME))).close();
+        fileSystem.write(databaseLayout.file(DEFAULT_NAME)).close();
 
         // when
         final long highestLogVersion = files.getLogFile().getLogRangeInfo().highestVersion();

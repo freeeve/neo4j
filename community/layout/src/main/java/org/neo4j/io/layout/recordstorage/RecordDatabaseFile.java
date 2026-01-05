@@ -122,8 +122,6 @@ public enum RecordDatabaseFile implements DatabaseFile {
 
     private static final Set<RecordDatabaseFile> ALL_FILES = Set.of(values());
 
-    static final Set<RecordDatabaseFile> STORE_FILES = ALL_FILES;
-
     static final Set<RecordDatabaseFile> RECOVERABLE_STORE_FILES =
             Set.of(COUNTS_STORE, RELATIONSHIP_GROUP_DEGREES_STORE, INDEX_STATISTICS_STORE);
 }

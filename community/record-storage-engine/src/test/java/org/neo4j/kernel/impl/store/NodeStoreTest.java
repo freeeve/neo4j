@@ -35,6 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.DYNAMIC_LABEL_STORE_CURSOR;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.NODE_CURSOR;
+import static org.neo4j.io.layout.DatabaseFile.ID_FILE_SUFFIX;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.impl.store.DynamicArrayStore.allocateFromNumbers;
@@ -322,7 +323,7 @@ class NodeStoreTest {
                             EvictionBouncer evictionGuard,
                             VersionStorage versionStorage)
                             throws IOException {
-                        if (path.getFileName().toString().toLowerCase().endsWith(".id")) {
+                        if (path.getFileName().toString().toLowerCase().endsWith(ID_FILE_SUFFIX)) {
                             fired.setTrue();
                             throw new IOException("Proving a point here");
                         }
