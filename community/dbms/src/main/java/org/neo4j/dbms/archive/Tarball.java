@@ -63,6 +63,8 @@ import org.neo4j.function.ThrowingSupplier;
 public class Tarball {
     // You are one of today's 10 000 lucky ones.
     private static final FileTime J2000 = FileTime.from(Instant.parse("2000-01-01T11:58:55.816Z"));
+    private static final Writer DEFAULT_WRITER = Files::copy;
+    private static final Reader DEFAULT_READER = Files::copy;
 
     private Tarball() {}
 
@@ -115,7 +117,12 @@ public class Tarball {
                               making tar unable to decompress the archive*/);
         var target = where.resolve(filename);
         var stream = new BufferedOutputStream(Files.newOutputStream(target, StandardOpenOption.CREATE_NEW));
-        create(compressor != null ? compressor.compress(stream) : stream, include, clamped_mTime, sources);
+        create(
+                compressor != null ? compressor.compress(stream) : stream,
+                include,
+                clamped_mTime,
+                DEFAULT_WRITER,
+                sources);
         return target;
     }
 
@@ -127,10 +134,12 @@ public class Tarball {
      * @param include Paths to be included in the archive.
      * @param clamped_mTime Fixated modified time (for reproducible archives). Use null, if the value should be read
      *     from the file.
+     * @param writer The writer to use to write the contents of the file. This allows progress monitoring instrumentation.
      * @param sources The directory to archive.
      * @throws IOException If it fails to write to the OutputStream, or read from the files.
      **/
-    public static void create(OutputStream os, Predicate<Path> include, FileTime clamped_mTime, Path... sources)
+    public static void create(
+            OutputStream os, Predicate<Path> include, FileTime clamped_mTime, Writer writer, Path... sources)
             throws IOException {
 
         // Make sure that sources are sorted.
@@ -144,7 +153,7 @@ public class Tarball {
             for (Path source : sources) {
                 var src = source.toAbsolutePath();
                 if (Files.isRegularFile(source, LinkOption.NOFOLLOW_LINKS)) {
-                    addFile(tar, src, clamped_mTime);
+                    addFile(tar, src, clamped_mTime, writer);
                 }
                 if (Files.isDirectory(source, LinkOption.NOFOLLOW_LINKS)) {
                     addDirectory(tar, src.getParent(), listRecursive(src, include), clamped_mTime);
@@ -153,11 +162,12 @@ public class Tarball {
         }
     }
 
-    private static void addFile(TarArchiveOutputStream tar, Path path, FileTime clamped_mTime) throws IOException {
+    private static void addFile(TarArchiveOutputStream tar, Path path, FileTime clamped_mTime, Writer writer)
+            throws IOException {
         requireFile(path);
         var entry = makeTarEntry(path, path.getFileName().toString(), clamped_mTime);
         tar.putArchiveEntry(entry);
-        Files.copy(path, tar);
+        writer.write(path, tar);
         tar.closeArchiveEntry();
     }
 
@@ -178,7 +188,6 @@ public class Tarball {
             }
         }
     }
-
     /**
      * Reads a compressed TAR archive and output its contents to the `target` directory.
      * The method attempts to determine the compression algorithm used to create the archive from
@@ -193,6 +202,24 @@ public class Tarball {
      * @throws IOException
      */
     public static void extract(Path archive, Path target) throws IOException {
+        extract(archive, target, DEFAULT_READER);
+    }
+
+    /**
+     * Reads a compressed TAR archive and output its contents to the `target` directory.
+     * The method attempts to determine the compression algorithm used to create the archive from
+     * {@link StandardCompressionFormat}.
+     * <p>Note:<i>
+     * The implementation assumes that it is allowed to create the necessary files and directories
+     * as needed.
+     * </i></p>
+     *
+     * @param archive The archive to read.
+     * @param target Where the archive will be written.
+     * @param reader The reader to read the content of the archive, to the target path.
+     * @throws IOException
+     */
+    public static void extract(Path archive, Path target, Reader reader) throws IOException {
         requireFile(archive);
         requireDirectory(target);
         try (var tar = selectDecompressor(() -> new BufferedInputStream(Files.newInputStream(archive)))) {
@@ -203,7 +230,7 @@ public class Tarball {
                     Files.createDirectories(pth);
                 } else if (entry.isFile()) {
                     Files.createDirectories(pth.getParent());
-                    Files.copy(tar, pth);
+                    reader.read(tar, pth);
                 }
             }
         }
@@ -305,5 +332,15 @@ public class Tarball {
             return filename;
         }
         return filename + extension;
+    }
+
+    @FunctionalInterface
+    public interface Writer {
+        void write(Path source, OutputStream os) throws IOException;
+    }
+
+    @FunctionalInterface
+    public interface Reader {
+        void read(InputStream is, Path target) throws IOException;
     }
 }
