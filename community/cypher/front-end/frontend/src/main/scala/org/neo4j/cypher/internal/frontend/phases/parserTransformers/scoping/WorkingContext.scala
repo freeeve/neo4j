@@ -74,6 +74,9 @@ sealed trait RegularContext extends WorkingContext {
   @inline def constantChildContext(): RegularContext =
     RegularContext(constants union variables, unitVariables, localCallables)
 
+  @inline def aggregatingConstantChildContext(): RegularContext =
+    RegularContext(constants union variables, unitVariables, localCallables)
+
   @inline def replaceWith(replacement: Set[LogicalVariable]): RegularContext =
     RegularContext(constants, replacement, localCallables)
 
@@ -82,8 +85,7 @@ sealed trait RegularContext extends WorkingContext {
     checkIfVariablesAreAlreadyDeclaredIn(
       constants,
       newVariables,
-      if (inSubExpr) SemanticError.variableShadowingOuterScope
-      else SemanticError.variableAlreadyDeclaredInOuterScope
+      SemanticError.variableShadowingOuterScope
     )
   }
 
@@ -239,7 +241,22 @@ case class AggregatingExpressionContext(
   override lazy val constantSymbols: Set[LogicalVariable] = constants ++ groupingVars
 
   override def constantChildContext(): RegularContext =
+    RegularContext(constants union groupingVars, unitVariables, localCallables)
+
+  override def aggregatingConstantChildContext(): RegularContext =
     RegularContext(constants union variables union groupingVars, unitVariables, localCallables)
+
+  override def amendedWithConstant(amendment: LogicalVariable): RegularContext =
+    AggregatingExpressionContext(constants + amendment, variables, localCallables, groupingKeys, inSubclause)
+
+  override def amendedWithConstant(amendment: Set[LogicalVariable]): RegularContext =
+    AggregatingExpressionContext(constants union amendment, variables, localCallables, groupingKeys, inSubclause)
+
+  override def amendedWith(amendment: LogicalVariable): RegularContext =
+    AggregatingExpressionContext(constants, variables + amendment, localCallables, groupingKeys, inSubclause)
+
+  override def amendedWith(amendment: Set[LogicalVariable]): RegularContext =
+    AggregatingExpressionContext(constants, variables union amendment, localCallables, groupingKeys, inSubclause)
 
 }
 

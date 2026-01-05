@@ -442,6 +442,18 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `b` not defined.")
   }
 
+  test("""SHOW USERS YIELD user ORDER BY passwordChangeRequired""".stripMargin) {
+    error("42N62", "Variable `passwordChangeRequired` not defined.")
+  }
+
+  test("""SHOW SETTINGS foo""".stripMargin) {
+    error("42N62", "Variable `foo` not defined.")
+  }
+
+  test("""TERMINATE TRANSACTIONS foo""".stripMargin) {
+    error("42N62", "Variable `foo` not defined.")
+  }
+
   test(
     """MATCH (n)-[:REL]->(d)
       |WHERE any(d in ["a", "b", "c"] WHERE n.name = d)
@@ -1489,11 +1501,19 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `nope` not defined.")
   }
 
+  test("SHOW USERS WHERE user ='bob'") {
+    passes()
+  }
+
   test("SHOW TRANSACTIONS YIELD connectionId") {
     passes()
   }
 
   test("SHOW TRANSACTIONS YIELD connectionId WHERE connectionId <> 'system'") {
+    passes()
+  }
+
+  test("SHOW CURRENT USER YIELD * WHERE user = $name RETURN user, passwordChangeRequired") {
     passes()
   }
 
@@ -1752,6 +1772,19 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test(
+    """MATCH (prev)
+      |WITH prev, 5 AS five
+      |MERGE (prev)-[r:R]->(a)-[r2:R {p:r.p}]->(b)""".stripMargin
+  ) {
+    passes(CypherVersion.Cypher5)
+    error(
+      "42I58",
+      "invalid entity reference. Entity, 'r', cannot be created and referenced in the same clause.",
+      CypherVersion.Cypher25
+    )
+  }
+
   test("""MATCH (a:A)
          |CALL (a) {
          |  MATCH (a)-->(b:B)
@@ -1761,4 +1794,5 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |RETURN a, cntB""".stripMargin) {
     passes()
   }
+
 }

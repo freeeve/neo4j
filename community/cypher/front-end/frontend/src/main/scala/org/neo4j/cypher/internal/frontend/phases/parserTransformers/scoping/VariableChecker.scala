@@ -56,7 +56,7 @@ import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlParams.StringParam
 
-case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
+case class VariableChecker(version: CypherVersion, checkAggregations: Boolean = false) extends VariableCheckerUtil {
 
   private val redeclarationOfVariable: VariableCheck = {
     case (acc, Scope.Clause.Declaring(astNode, incoming, Declarations(constants, variables, _), children))
@@ -80,7 +80,10 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
           incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(
             variables,
             (n, p) => {
-              if (children.head.result.getColumns.exists(_.name == n))
+              if (
+                children.head.result.getColumns.exists(_.name == n) &&
+                !children.head.astNode.isInstanceOf[ConditionalQueryWhen]
+              )
                 SemanticError.variableAlreadyDeclaredInOuterScope(n, p) // Inner query throws 42N07
               else SemanticError.variableAlreadyDeclared(n, p) // IN TRANSACTIONS throw 42N59
             }
@@ -129,13 +132,17 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
         .flatMap(v => Seq(SemanticError.variableNotDefined(v.name, v.position))))
   }
 
-  private val statementChecks: Seq[VariableCheck] = Seq(
-    redeclarationOfVariable,
-    multipleReturnColumns,
-    incompatibleReturnColumns,
-    invalidUseOfReturnStar,
-    variableNotDefinedInScopeClause
-  )
+  private val statementChecks: Seq[VariableCheck] = {
+    if (checkAggregations) Seq.empty
+    else
+      Seq(
+        redeclarationOfVariable,
+        multipleReturnColumns,
+        incompatibleReturnColumns,
+        invalidUseOfReturnStar,
+        variableNotDefinedInScopeClause
+      )
+  }
 
   private val unboundVariablesInPatternExpression: VariableCheck = {
     case (acc, ExpressionScope(_: PatternExpression, incoming, ref, _, _)) =>
@@ -191,15 +198,32 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
         acc(SemanticError.inaccessibleVariable(variable.name, clause, variable.position))
       else
         acc(SemanticError.variableNotDefined(variable.name, variable.position))
+    case (
+        Acc.Aggregation(acc, clause, incomingToClause),
+        ExpressionScope(_: FullSubqueryExpression, aec: AggregatingExpressionContext, refs, _, _)
+      )
+      if !refs.forall(aec.constantSymbols.contains) =>
+      refs.foldLeft(acc) { case (acc, lv) =>
+        if (incomingToClause contains lv)
+          acc(SemanticError.inaccessibleVariable(lv.name, clause, lv.position))
+        else
+          acc(SemanticError.variableNotDefined(lv.name, lv.position))
+      }
     case (acc, Scope.Expr.Variable(variable, incoming)) if !(incoming.constants contains variable) =>
       acc(SemanticError.variableNotDefined(variable.name, variable.position))
   }
 
-  private val expressionChecks: Seq[VariableCheck] =
-    Seq(
-      unboundVariablesInPatternExpression,
-      variableNotDefined
-    )
+  private val expressionChecks: Seq[VariableCheck] = {
+    if (checkAggregations)
+      Seq(
+        variableNotDefined
+      )
+    else
+      Seq(
+        unboundVariablesInPatternExpression,
+        variableNotDefined
+      )
+  }
 
   private val redeclarationOfVariablesInPatterns: VariableCheck = {
     case (acc, Scope.Pattern.NamedPath(path, topo, Declarations(_, variables, _))) =>
@@ -227,11 +251,14 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
       }
   }
 
-  private val patternChecks: Seq[VariableCheck] =
-    Seq(
-      redeclarationOfVariablesInPatterns,
-      relationshipVariableAlreadyBound
-    )
+  private val patternChecks: Seq[VariableCheck] = {
+    if (checkAggregations) Seq.empty
+    else
+      Seq(
+        redeclarationOfVariablesInPatterns,
+        relationshipVariableAlreadyBound
+      )
+  }
 
   private def checkFold(s: WorkingScope, acc: Acc, checks: Seq[VariableCheck]): Acc =
     checks.foldLeft(acc) { case (acc, check) =>
@@ -349,7 +376,7 @@ case class VariableChecker(version: CypherVersion) extends VariableCheckerUtil {
             val (inaccessibleVariable, otherErrors) =
               aggregatingItemAcc.errors.partition(_.gqlStatusObject.cause().get().gqlStatus() == "42N44")
 
-            val invalidReference = Option.when(inaccessibleVariable.nonEmpty) {
+            val invalidReference = Option.when(checkAggregations && inaccessibleVariable.nonEmpty) {
               val variableNames: Seq[String] =
                 inaccessibleVariable.map(
                   _.gqlStatusObject.cause().get()
@@ -408,11 +435,13 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
     if (context.semanticFeatures contains ScopeQueries) {
       val semanticsErrors = if (1 == 1) {
         from.maybeScopeState.map(s =>
-          VariableChecker(context.cypherVersion).collectAll(s.workingScope)
+          VariableChecker(context.cypherVersion).collectAll(s.workingScope) ++
+            VariableChecker.checkForAmbiguousAggregation(from, context)
         )
       } else {
         from.maybeScopeState.map(s =>
-          VariableChecker(context.cypherVersion).collectFirst(s.workingScope)
+          VariableChecker(context.cypherVersion).collectFirst(s.workingScope) ++
+            VariableChecker.checkForAmbiguousAggregation(from, context)
         )
       }
       semanticsErrors.foreach(errors => context.errorHandler(errors.toSeq))
@@ -425,6 +454,14 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
       VariableChecker(context.cypherVersion).collectAll(s.workingScope).toSeq
     ).getOrElse(Seq.empty)
     errors.distinct
+  }
+
+  def checkForAmbiguousAggregation(from: BaseState, context: BaseContext): Seq[SemanticError] = {
+    val errors = from.maybeScopeState.map(s =>
+      VariableChecker(context.cypherVersion, checkAggregations = true).collectAll(s.workingScope).toSeq
+    ).getOrElse(Seq.empty)
+    errors.filter(_.gqlStatusObject.cause().get().gqlStatus() == "42I18")
+      .distinct
   }
 
   override val phase = CompilationPhase.VARIABLE_CHECK
@@ -465,8 +502,6 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
       e.gqlStatusObject.cause().get().gqlStatus() != null
     ) {
       explicitOrderingOfErrorCodes.indexOf(e.gqlStatusObject.cause().get().gqlStatus())
-    } else if (e.gqlStatusObject.gqlStatus() == "22N93") {
-      50
     } else -1
   }
 

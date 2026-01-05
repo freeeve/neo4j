@@ -1765,7 +1765,7 @@ object ProjectionClause {
     arg match {
       case With(distinct, ri, orderBy, skip, limit, where, _)  => Some((distinct, ri, orderBy, skip, limit, where))
       case Return(distinct, ri, orderBy, skip, limit, _, _, _) => Some((distinct, ri, orderBy, skip, limit, None))
-      case Yield(ri, orderBy, skip, limit, where)              => Some((false, ri, orderBy, skip, limit, where))
+      case Yield(ri, orderBy, skip, limit, where, _)           => Some((false, ri, orderBy, skip, limit, where))
     }
   }
 
@@ -1792,8 +1792,8 @@ object ProjectionClause {
           Elements(distinct, items, Subclauses(orderBy, skip, limit, where), withType, projectionType)
         case Return(distinct, ReturnItems(projectionType, items, _), orderBy, skip, limit, _, returnType, _) =>
           Elements(distinct, items, Subclauses(orderBy, skip, limit, None), returnType, projectionType)
-        case Yield(ReturnItems(projectionType, items, _), orderBy, skip, limit, where) =>
-          Elements(false, items, Subclauses(orderBy, skip, limit, where), DefaultYield, projectionType)
+        case Yield(ReturnItems(projectionType, items, _), orderBy, skip, limit, where, yieldType) =>
+          Elements(false, items, Subclauses(orderBy, skip, limit, where), yieldType, projectionType)
       }
     }
   }
@@ -2003,6 +2003,7 @@ sealed trait ClauseType
 
 sealed trait YieldType extends ClauseType
 case object DefaultYield extends YieldType
+case object YieldAddedInRewrite extends YieldType
 
 sealed trait WithType extends ClauseType
 sealed trait MayBeImportingWithType extends WithType
@@ -2170,7 +2171,8 @@ case class Yield(
   orderBy: Option[OrderBy],
   skip: Option[Skip],
   limit: Option[Limit],
-  where: Option[Where]
+  where: Option[Where],
+  yieldType: YieldType = DefaultYield
 )(val position: InputPosition) extends ProjectionClause with ClauseAllowedOnSystem {
   override def distinct: Boolean = false
 
@@ -2181,6 +2183,9 @@ case class Yield(
 
   def withReturnItems(returnItems: ReturnItems): Yield =
     this.copy(returnItems = returnItems)(this.position)
+
+  def withYieldType(yieldType: YieldType): Yield =
+    this.copy(yieldType = yieldType)(this.position)
 
   override def warnOnAccessToRestrictedVariableInOrderByOrWhere(previousScopeVars: Set[String])(error: SemanticErrorDef)
     : SemanticErrorDef = error
@@ -2655,7 +2660,7 @@ case class ShowIndexesClause(
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   override def getClauseWithoutSubclauses: CommandClause =
-    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
 }
 
 object ShowIndexesClause {
@@ -2742,7 +2747,7 @@ case class ShowConstraintsClause(
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   override def getClauseWithoutSubclauses: CommandClause =
-    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
 
   override def getFilteredColumns(features: Set[SemanticFeature]): Seq[LogicalVariable] =
     if (!features(SemanticFeature.GraphTypes)) {
@@ -2853,7 +2858,7 @@ case class ShowCurrentGraphTypeClause(
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   override def getClauseWithoutSubclauses: CommandClause =
-    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
     requireFeatureSupport("`SHOW CURRENT GRAPH TYPE`", SemanticFeature.GraphTypes, position) chain
@@ -2902,7 +2907,7 @@ case class ShowProceduresClause(
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   override def getClauseWithoutSubclauses: CommandClause =
-    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
 }
 
 object ShowProceduresClause {
@@ -2984,7 +2989,7 @@ case class ShowFunctionsClause(
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   override def getClauseWithoutSubclauses: CommandClause =
-    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
 }
 
 object ShowFunctionsClause {
@@ -3068,7 +3073,7 @@ case class ShowTransactionsClause(
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   override def getClauseWithoutSubclauses: CommandClause =
-    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
 }
 
 object ShowTransactionsClause {
@@ -3210,7 +3215,7 @@ case class TerminateTransactionsClause(
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   override def getClauseWithoutSubclauses: CommandClause =
-    copy(yieldItems = List.empty, yieldWith = None)(position)
+    copy(yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
 }
 
 object TerminateTransactionsClause {
@@ -3270,7 +3275,7 @@ case class ShowSettingsClause(
   override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   override def getClauseWithoutSubclauses: CommandClause =
-    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
 
   override def clauseSpecificSemanticCheck: SemanticCheck = {
     requireFeatureSupport(

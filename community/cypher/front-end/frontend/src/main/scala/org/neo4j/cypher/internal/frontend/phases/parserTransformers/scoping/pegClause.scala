@@ -17,11 +17,13 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
+import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.ClauseType
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.DefaultWith
+import org.neo4j.cypher.internal.ast.DefaultYield
 import org.neo4j.cypher.internal.ast.Delete
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
@@ -87,8 +89,6 @@ object pegClause {
       /**
        * Clause
        */
-      // composition
-      // Importing With is already deprecated
       case call @ ImportingWithSubqueryCall(query, inTransactionsParameters, _) =>
         val importingAll = query.isCorrelated && query.importColumns.isEmpty
         val importedVariableSet: Set[LogicalVariable] =
@@ -104,7 +104,6 @@ object pegClause {
           incoming,
           importedVariableSet,
           innerQueryIncoming,
-          importingAll,
           innerQuery.get,
           inTransactionsParameters
         )
@@ -125,7 +124,6 @@ object pegClause {
           incoming,
           innerQueryIncoming.allSymbols,
           innerQueryIncoming,
-          isImportingAll,
           innerQuery,
           inTransactionsParameters
         )
@@ -412,9 +410,14 @@ object pegClause {
   private def getIncoming(
     incoming: RegularContext,
     introducedVariables: Seq[LogicalVariable],
-    visibleIncomingVariables: Set[LogicalVariable]
-  ): (RegularContext, RegularContext) =
-    (incoming, incoming.replaceWith(introducedVariables.toSet union visibleIncomingVariables).constantChildContext())
+    visibleIncomingVariables: Set[LogicalVariable],
+    clauseType: ClauseType
+  ): (RegularContext, RegularContext) = clauseType match {
+    case DefaultYield =>
+      (incoming, incoming.replaceWith(introducedVariables.toSet).constantChildContext())
+    case _ =>
+      (incoming, incoming.replaceWith(introducedVariables.toSet union visibleIncomingVariables).constantChildContext())
+  }
 
   private def getAggregationIncoming(
     incoming: RegularContext,
@@ -464,6 +467,23 @@ object pegClause {
       limitOpt.toSeq.map(limit => pegExpression(limit.expression, incoming))
 
     sortItemScopes ++ skipExpScopes ++ limitExpScopes ++ whereExpScopes
+  }
+
+  private def getIntroducedVariables(
+    incoming: RegularContext,
+    variableItems: Seq[ReturnItem],
+    items: Seq[ReturnItem],
+    clauseType: ClauseType,
+    projectionType: ProjectionType
+  ): Seq[LogicalVariable] = {
+    val availableItems = clauseType match {
+      case DefaultYield if projectionType != FreeProjection => incoming.variables.map(AliasedReturnItem(_)).toSeq
+      case DefaultWith | AddedInRewriteGeneral              => variableItems
+      case _                                                => items
+    }
+
+    returnItemAliases(availableItems)
+
   }
 
   private def getIncludedIncomingVariables(
@@ -546,12 +566,7 @@ object pegClause {
     val (constantItems, variableItems) =
       items.partition(ri => ri.alias.exists(v => ri.isPassThrough && (incoming.constants contains v)))
 
-    val availableItems = clauseType match {
-      case DefaultWith | AddedInRewriteGeneral => variableItems
-      case _                                   => items
-    }
-
-    val introducedVariables = returnItemAliases(availableItems)
+    val introducedVariables = getIntroducedVariables(incoming, variableItems, items, clauseType, projectionType)
     val visibleIncomingVariables = incoming.variables.filterNot(v => introducedVariables contains v)
     val includedIncomingVariables = getIncludedIncomingVariables(visibleIncomingVariables, projectionType)
     val resultingVariables = includedIncomingVariables.toSeq ++ introducedVariables
@@ -563,7 +578,7 @@ object pegClause {
       if (isAggregating)
         getAggregationIncoming(incoming, groupingItems, includedIncomingVariables, introducedVariables)
       else
-        getIncoming(incoming, introducedVariables, visibleIncomingVariables)
+        getIncoming(incoming, introducedVariables, visibleIncomingVariables, clauseType)
 
     val itemScopes = scopeProjectionItems(incoming, itemIncoming, aggregatingItems, groupingItems)
 
@@ -589,7 +604,6 @@ object pegClause {
     incoming: RegularContext,
     importedVariables: Set[LogicalVariable],
     innerQueryIncoming: RegularContext,
-    importingAll: Boolean,
     innerQuery: Query,
     inTransactionsParameters: Option[InTransactionsParameters]
   )(implicit c: PegContext) = {

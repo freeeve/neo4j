@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.ast.ShowSupportedPrivilegeCommand
 import org.neo4j.cypher.internal.ast.ShowUsers
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.Yield
+import org.neo4j.cypher.internal.ast.YieldAddedInRewrite
 import org.neo4j.cypher.internal.ast.YieldOrWhere
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
@@ -111,7 +112,8 @@ case object ExpandShowWhere extends Step with DefaultPostCondition with Preparat
         None,
         None,
         None,
-        Some(where)
+        Some(where),
+        YieldAddedInRewrite
       )(where.position),
       None
     )))

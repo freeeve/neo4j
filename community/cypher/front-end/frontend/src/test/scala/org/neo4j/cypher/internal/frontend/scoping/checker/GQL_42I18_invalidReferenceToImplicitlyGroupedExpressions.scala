@@ -103,6 +103,21 @@ class GQL_42I18_invalidReferenceToImplicitlyGroupedExpressions extends VariableC
     )
   }
 
+  test("""MATCH (a) RETURN COUNT { (a)--(b) } + count(a)""".stripMargin) {
+    error(
+      "42I18",
+      "The aggregation column contains implicit grouping expressions referenced by the variables `a`."
+    )
+  }
+
+  test("""WITH {a:1, b:{c:2}} AS map
+         |RETURN map.b.c, map.b.c + count(*)""".stripMargin) {
+    error(
+      "42I18",
+      "The aggregation column contains implicit grouping expressions referenced by the variables `map`."
+    )
+  }
+
   // Positive tests
 
   test("""MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
@@ -178,6 +193,33 @@ class GQL_42I18_invalidReferenceToImplicitlyGroupedExpressions extends VariableC
          |    WITH * WHERE x < 0
          |    RETURN COUNT(*)+g AS agg
          |} AS x""".stripMargin) {
+    passes()
+  }
+
+  test("""UNWIND [1,2,3] as number
+         |RETURN {
+         |  a: max(number),
+         |  b: min(number)
+         |} AS map""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (v:player)--(n:team)
+         |RETURN n.age, [x IN collect(v.age) WHERE x > 40| x + n.age] AS res""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (a:A)
+         |CALL (a) {
+         |  MATCH (a)-->(b:B)
+         |  FILTER a.x = b.x
+         |  RETURN COUNT(b) AS cntB
+         |}
+         |RETURN a, cntB""".stripMargin) {
+    passes()
+  }
+
+  test("""UNWIND [1, 2, 3] AS nums RETURN min(nums)""") {
     passes()
   }
 }

@@ -110,7 +110,7 @@ object AdministrationShowCommandUtils {
 
     val clauses = (yieldColumns, returnColumns) match {
       // YIELD with WHERE and no RETURN so convert YIELD / WHERE to WITH and YIELD to RETURN
-      case (Some(y @ Yield(returnItems, orderBy, skip, limit, Some(where))), None) =>
+      case (Some(y @ Yield(returnItems, orderBy, skip, limit, Some(where), _)), None) =>
         Seq(
           With(
             distinct = false,
@@ -124,10 +124,10 @@ object AdministrationShowCommandUtils {
           Return(distinct = false, generateReturnItemsFromAliases(returnItems), orderBy, skip, limit)(y.position)
         )
       // YIELD with no WHERE so convert YIELD to RETURN
-      case (Some(y @ Yield(returnItems, orderBy, skip, limit, None)), None) =>
+      case (Some(y @ Yield(returnItems, orderBy, skip, limit, None, _)), None) =>
         Seq(Return(distinct = false, returnItems, orderBy, skip, limit)(y.position))
       // YIELD and RETURN so convert YIELD to WITH, and keep the RETURN
-      case (Some(y @ Yield(returnItems, orderBy, skip, limit, where)), Some(returnClause)) =>
+      case (Some(y @ Yield(returnItems, orderBy, skip, limit, where, _)), Some(returnClause)) =>
         Seq(
           With(
             distinct = false,

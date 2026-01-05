@@ -3922,7 +3922,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
     hasScope(
       ExpectedWorkingScope(
         Ast("SHOW ALIAS $alias FOR DATABASE YIELD *"),
-        Referenced(variables = aliasCols.toSet),
         Outgoing(variables = aliasCols.toSet),
         ExpectedResult.TableResult(aliasCols: _*),
         ExpectedWorkingScope(
@@ -3934,7 +3933,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ExpectedWorkingScope(
           Ast("YIELD *"),
           Incoming(variables = aliasCols.toSet),
-          Referenced(variables = aliasCols.toSet),
           Outgoing(variables = aliasCols.toSet),
           ExpectedResult.TableResult(aliasCols: _*)
         )

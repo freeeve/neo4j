@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.expressions.ReduceExpression
 import org.neo4j.cypher.internal.expressions.ReduceScope
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.functions.AggregatingFunction
+import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.util.ASTNode
@@ -93,7 +94,7 @@ object pegExpression {
        * Property
        * Special case when a property is a grouping key
        */
-      case property: Property if incoming.isInstanceOf[AggregatingExpressionContext] =>
+      case property @ Property(LogicalVariable(_), _) if incoming.isInstanceOf[AggregatingExpressionContext] =>
         val children = WorkingScope.noChildren
         val groupingName: String = ExpressionStringifier().apply(property)
         if (incoming.asInstanceOf[AggregatingExpressionContext].groupingKeys.contains(property)) {
@@ -111,7 +112,11 @@ object pegExpression {
       case cntStar: CountStar =>
         collect(incoming.expressionResultScope(cntStar, Seq.empty))
       case fi @ FunctionInvocation(_, _, args, _, false, _) if fi.function.isInstanceOf[AggregatingFunction] =>
-        val argIncoming = incoming.constantChildContext()
+        val argIncoming = incoming.aggregatingConstantChildContext()
+        val children = args.map(arg => apply(arg, argIncoming))
+        collect(incoming.expressionResultScope(fi, children))
+      case fi @ ResolvedFunctionInvocation(_, _, args) if fi.isAggregate =>
+        val argIncoming = incoming.aggregatingConstantChildContext()
         val children = args.map(arg => apply(arg, argIncoming))
         collect(incoming.expressionResultScope(fi, children))
 
@@ -119,7 +124,7 @@ object pegExpression {
        * Scalar subqueries
        */
       case fse: FullSubqueryExpression =>
-        val child = ScopeSurveyor.scope(fse.query, incoming.constantChildContext(), c)
+        val child = ScopeSurveyor.scope(fse.query, incoming.aggregatingConstantChildContext(), c)
         val children = Seq(child)
         collect(incoming.expressionResultScope(fse, children))
 

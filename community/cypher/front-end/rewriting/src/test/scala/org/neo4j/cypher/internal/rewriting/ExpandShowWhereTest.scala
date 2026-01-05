@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdditiveProjection
+import org.neo4j.cypher.internal.ast.DefaultYield
 import org.neo4j.cypher.internal.ast.ReadAdministrationCommand
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ShowAliases
@@ -28,6 +29,7 @@ import org.neo4j.cypher.internal.ast.ShowRoles
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.Yield
+import org.neo4j.cypher.internal.ast.YieldAddedInRewrite
 import org.neo4j.cypher.internal.expressions.Contains
 import org.neo4j.cypher.internal.expressions.StartsWith
 import org.neo4j.cypher.internal.expressions.StringLiteral
@@ -55,7 +57,8 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
               None,
               None,
               None,
-              Some(Where(StartsWith(Variable("name"), StringLiteral("s"))))
+              Some(Where(StartsWith(Variable("name"), StringLiteral("s")))),
+              YieldAddedInRewrite
             ),
             None
           ))),
@@ -96,7 +99,8 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
               None,
               None,
               None,
-              Some(Where(StartsWith(Variable("name"), StringLiteral("s"))))
+              Some(Where(StartsWith(Variable("name"), StringLiteral("s")))),
+              DefaultYield
             ),
             None
           ))),
@@ -135,7 +139,8 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
               None,
               None,
               None,
-              Some(Where(StartsWith(Variable("name"), StringLiteral("s"))))
+              Some(Where(StartsWith(Variable("name"), StringLiteral("s")))),
+              YieldAddedInRewrite
             ),
             None
           ))),
@@ -174,7 +179,8 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
               None,
               None,
               None,
-              Some(Where(Contains(Variable("command"), StringLiteral("MATCH"))))
+              Some(Where(Contains(Variable("command"), StringLiteral("MATCH")))),
+              YieldAddedInRewrite
             ),
             None
           ))),
@@ -236,7 +242,12 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
 
     val updatedYield = expected.asInstanceOf[ReadAdministrationCommand].yieldOrWhere.map {
       case Left((y, r)) if y.returnItems.defaultOrderOnColumns.isEmpty =>
-        Left((y.withReturnItems(y.returnItems.withDefaultOrderOnColumns(expectedDefaultColumns)), r))
+        Left((
+          y.withReturnItems(
+            y.returnItems.withDefaultOrderOnColumns(expectedDefaultColumns)
+          ).withYieldType(YieldAddedInRewrite),
+          r
+        ))
       case o => o
     }
     val updatedExpected = expected.asInstanceOf[ReadAdministrationCommand].withYieldOrWhere(updatedYield)

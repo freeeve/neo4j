@@ -536,7 +536,8 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
 
     val transformers = {
       if (skipVariableChecker) Parse andThen scopeSurveyorPipe
-      else if (withPrepRewriting) Parse andThen PreparatoryRewriting andThen scopeSurveyorPipe andThen VariableChecker
+      else if (withPrepRewriting)
+        Parse andThen PreparatoryRewriting andThen scopeSurveyorPipe andThen VariableChecker
       else {
         Parse andThen scopeSurveyorPipe andThen VariableChecker
       }

@@ -59,7 +59,7 @@ case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty, in
         returnItems(clause, values.items, values.defaultOrderOnColumns, excludedNames ++ exclude ++ inScope)
       clause.copy(returnItems = newReturnItems, excludedNames = Set.empty)(clause.position)
 
-    case clause @ Yield(values, _, _, _, _) if values.includeExisting =>
+    case clause @ Yield(values, _, _, _, _, _) if values.includeExisting =>
       val newReturnItems = returnItems(clause, values.items, values.defaultOrderOnColumns)
       clause.copy(returnItems = newReturnItems)(clause.position)
 
