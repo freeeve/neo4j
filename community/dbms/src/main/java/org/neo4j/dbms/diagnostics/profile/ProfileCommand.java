@@ -34,11 +34,11 @@ import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.Converters;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.configuration.Config;
+import org.neo4j.dbms.archive.Manifest;
 import org.neo4j.dbms.archive.StandardCompressionFormat;
 import org.neo4j.dbms.archive.Tarball;
 import org.neo4j.dbms.diagnostics.jmx.JMXDumper;
 import org.neo4j.dbms.diagnostics.jmx.JmxDump;
-import org.neo4j.function.Predicates;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.io.fs.FileHandle;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -177,14 +177,11 @@ public class ProfileCommand extends AbstractAdminCommand {
                             // Moves all files into a .tar.gz archive, by first generating the artifact and then
                             // deleting everything else.
                             var archive = output.resolve(filename);
-                            Predicate<Path> skipArchive = path -> !path.equals(archive);
+                            Manifest manifest =
+                                    Manifest.builder().addContentsOf(output).build();
                             Tarball.tarball(
-                                    output,
-                                    filename,
-                                    StandardCompressionFormat.GZIP,
-                                    Predicates.alwaysTrue(),
-                                    FileTime.from(now),
-                                    Tarball.list(output, skipArchive));
+                                    output, filename, StandardCompressionFormat.GZIP, FileTime.from(now), manifest);
+                            Predicate<Path> skipArchive = path -> !path.equals(archive);
                             fs.deleteRecursively(output, skipArchive);
                         }
                     }

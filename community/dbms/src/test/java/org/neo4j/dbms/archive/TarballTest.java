@@ -28,7 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +66,7 @@ class TarballTest {
                         StandardCompressionFormat.ZSTD,
                         Predicates.alwaysTrue(),
                         null,
-                        Tarball.list(source, Predicates.alwaysTrue())))
+                        source))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -81,9 +80,8 @@ class TarballTest {
                 testDirectory.homePath(),
                 "archie",
                 compressor,
-                Predicates.alwaysTrue(),
                 null,
-                Tarball.list(source, Predicates.alwaysTrue()));
+                Manifest.builder().addContentsOf(source).build());
         assertThat(archive).exists();
         assertThat(archive).isNotEmptyFile();
 
@@ -150,27 +148,6 @@ class TarballTest {
         assertSourceTree(extract.resolve("source2"));
     }
 
-    @Test
-    void listFilesWorks() throws IOException {
-        var files = Tarball.list(source, Predicates.alwaysTrue());
-        assertThat(files).containsExactly(source.resolve("a"), source.resolve("b"), source.resolve("c"));
-    }
-
-    @Test
-    void listRecursiveWorks() throws IOException {
-        var files = Tarball.listRecursive(source, Predicates.alwaysTrue());
-        assertThat(files)
-                .containsExactly(
-                        source,
-                        source.resolve("a"),
-                        source.resolve("a").resolve("aa"),
-                        source.resolve("a").resolve("ab"),
-                        source.resolve("b"),
-                        source.resolve("b").resolve("ba"),
-                        source.resolve("b").resolve("ba").resolve("baa"),
-                        source.resolve("c"));
-    }
-
     private void writeSourceTree(Path source) throws IOException {
         // Build a tree of files
         //         source
@@ -207,7 +184,10 @@ class TarballTest {
         Path c = source.resolve("c");
 
         var expectedFiles = Set.of(source, a, aa, ab, b, ba, baa, c);
-        var actualFiles = Set.copyOf(Arrays.asList(Tarball.listRecursive(source, Predicates.alwaysTrue())));
+        Set<Path> actualFiles = new HashSet<>();
+        try (var stream = Files.walk(source)) {
+            stream.forEach(actualFiles::add);
+        }
 
         Set<Path> missingFiles = new HashSet<>(expectedFiles);
         missingFiles.removeAll(actualFiles);

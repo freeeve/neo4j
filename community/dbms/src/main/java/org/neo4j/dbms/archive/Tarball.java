@@ -31,20 +31,19 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.function.Predicate;
 import java.util.zip.ZipException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.neo4j.dbms.archive.Manifest.DirectoryRecord;
+import org.neo4j.dbms.archive.Manifest.FileRecord;
 import org.neo4j.function.ThrowingSupplier;
 
 /**
@@ -106,23 +105,41 @@ public class Tarball {
             FileTime clamped_mTime,
             Path... sources)
             throws IOException {
-        requireDirectory(where);
-        requireNotBlank(filename);
         requireNonNull(include);
         requireNonNull(sources);
+        var manifest = Manifest.builder().add(include, sources).build();
+        return tarball(where, filename, compressor, clamped_mTime, manifest);
+    }
+
+    /**
+     * Creates a compressed TAR archive ("tarball") of the {@code source} paths.
+     *
+     * @param where Where the archive will be written, the archive will be named after the source.
+     * @param filename The name of the archive (file ending will be added automatically, if needed).
+     * @param compressor The compression algorithm to use.
+     * @param manifest The directories to archive, each listed will be added to the root of the archive.
+     * @return The path to the created archive.
+     * @throws FileAlreadyExistsException If the archive filename (with appropriate file extension) already exists.
+     * @throws NotDirectoryException If {@code where} is not a directory.
+     * @throws IOException If it fails to write to the OutputStream, or read from the files.
+     */
+    public static Path tarball(
+            Path where,
+            String filename,
+            StandardCompressionFormat compressor,
+            FileTime clamped_mTime,
+            Manifest manifest)
+            throws IOException {
+        requireDirectory(where);
+        requireNotBlank(filename);
+        requireNonNull(manifest);
         requireCompressor(
                 compressor,
-                StandardCompressionFormat
-                        .GZIP /* Currently, StandardCompressionFormat.ZSTD writes extra data into the compressed stream,
-                              making tar unable to decompress the archive*/);
+                GZIP /* Currently, StandardCompressionFormat.ZSTD writes extra data into the compressed stream,
+                     making tar unable to decompress the archive*/);
         var target = where.resolve(filename);
         var stream = new BufferedOutputStream(Files.newOutputStream(target, StandardOpenOption.CREATE_NEW));
-        create(
-                compressor != null ? compressor.compress(stream) : stream,
-                include,
-                clamped_mTime,
-                DEFAULT_WRITER,
-                sources);
+        create(compressor != null ? compressor.compress(stream) : stream, clamped_mTime, DEFAULT_WRITER, manifest);
         return target;
     }
 
@@ -131,58 +148,30 @@ public class Tarball {
      * Creates a compressed TAR archive of everything in the `source(s)` directory, ignoring any symlinks.
      *
      * @param os The OutputStream to write to tarball to.
-     * @param include Paths to be included in the archive.
      * @param clamped_mTime Fixated modified time (for reproducible archives). Use null, if the value should be read
      *     from the file.
      * @param writer The writer to use to write the contents of the file. This allows progress monitoring instrumentation.
-     * @param sources The directory to archive.
+     * @param manifest The manifest over what to archive.
      * @throws IOException If it fails to write to the OutputStream, or read from the files.
      **/
-    public static void create(
-            OutputStream os, Predicate<Path> include, FileTime clamped_mTime, Writer writer, Path... sources)
+    public static void create(OutputStream os, FileTime clamped_mTime, Writer writer, Manifest manifest)
             throws IOException {
-
-        // Make sure that sources are sorted.
-        Arrays.sort(sources, Comparator.comparing(Path::toString));
 
         try (var tar = new TarArchiveOutputStream(os)) {
             tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
             tar.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
 
-            // Process top-level files/directories.
-            for (Path source : sources) {
-                var src = source.toAbsolutePath();
-                if (Files.isRegularFile(source, LinkOption.NOFOLLOW_LINKS)) {
-                    addFile(tar, src, clamped_mTime, writer);
-                }
-                if (Files.isDirectory(source, LinkOption.NOFOLLOW_LINKS)) {
-                    addDirectory(tar, src.getParent(), listRecursive(src, include), clamped_mTime);
-                }
-            }
-        }
-    }
-
-    private static void addFile(TarArchiveOutputStream tar, Path path, FileTime clamped_mTime, Writer writer)
-            throws IOException {
-        requireFile(path);
-        var entry = makeTarEntry(path, path.getFileName().toString(), clamped_mTime);
-        tar.putArchiveEntry(entry);
-        writer.write(path, tar);
-        tar.closeArchiveEntry();
-    }
-
-    private static void addDirectory(TarArchiveOutputStream tar, Path root, Path[] files, FileTime clamped_mTime)
-            throws IOException {
-        requireDirectory(root);
-        for (var path : files) {
-            var filename = "./" + root.relativize(path);
-            boolean isFile = Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS);
-            boolean isDirectory = Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS);
-            if (isFile || isDirectory) {
-                var entry = makeTarEntry(path, filename, clamped_mTime);
-                tar.putArchiveEntry(entry);
-                if (isFile) {
-                    Files.copy(path, tar);
+            for (var desc : manifest.files()) {
+                switch (desc) {
+                    case DirectoryRecord dd ->
+                        tar.putArchiveEntry(
+                                makeTarEntry(dd.source(), dd.target().toString(), clamped_mTime));
+                    case FileRecord fd -> {
+                        tar.putArchiveEntry(
+                                makeTarEntry(fd.source(), fd.target().toString(), clamped_mTime));
+                        // Write contents
+                        writer.write(fd.source(), tar);
+                    }
                 }
                 tar.closeArchiveEntry();
             }
@@ -246,34 +235,15 @@ public class Tarball {
         }
     }
 
-    public static Path[] list(Path source, Predicate<Path> include) throws IOException {
-        requireDirectory(source);
-        try (var stream = Files.list(source)) {
-            return stream.filter(include)
-                    .sorted(Comparator.comparing(Path::toString))
-                    .toArray(Path[]::new);
-        }
-    }
-
-    public static Path[] listRecursive(Path source, Predicate<Path> include) throws IOException {
-        requireDirectory(source);
-        try (var stream = Files.walk(source)) {
-            return stream.filter(include)
-                    .map(Path::toAbsolutePath)
-                    .sorted(Comparator.comparing(Path::toString))
-                    .toArray(Path[]::new);
-        }
-    }
-
     private static void requireDirectory(Path source) throws NotDirectoryException {
         if (!Files.isDirectory(source)) {
             throw new NotDirectoryException(source.toString());
         }
     }
 
-    private static void requireFile(Path target) throws NoSuchFileException {
+    private static void requireFile(Path target) {
         if (!Files.isRegularFile(target)) {
-            throw new NoSuchFileException(target.toString());
+            throw new IllegalArgumentException("Required a file, but got:" + target);
         }
     }
 
