@@ -215,6 +215,11 @@ public class InMemoryClosableChannel
     }
 
     @Override
+    public byte getContentType() throws IOException {
+        return UNSPECIFIED_CONTENT_TYPE;
+    }
+
+    @Override
     public byte markAndGetVersion(LogPositionMarker marker) throws IOException {
         return ReadableLogPositionAwareChannel.super.markAndGetVersion(marker);
     }
@@ -514,6 +519,11 @@ public class InMemoryClosableChannel
         @Override
         public long getAppendIndex() throws IOException {
             return getLong();
+        }
+
+        @Override
+        public byte getContentType() {
+            return UNSPECIFIED_CONTENT_TYPE;
         }
 
         @Override

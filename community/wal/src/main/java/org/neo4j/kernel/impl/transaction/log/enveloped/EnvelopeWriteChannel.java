@@ -21,10 +21,10 @@ package org.neo4j.kernel.impl.transaction.log.enveloped;
 
 import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
+import static org.neo4j.io.fs.ReadableChannel.UNSPECIFIED_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_CONTENT_VERSION;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
 import static org.neo4j.storageengine.api.LogVersionRepository.UNKNOWN_LOG_OFFSET;
 import static org.neo4j.util.Preconditions.checkArgument;

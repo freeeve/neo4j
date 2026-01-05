@@ -100,6 +100,11 @@ public class PeekableChannel implements ReadableChannel {
     }
 
     @Override
+    public byte getContentType() throws IOException {
+        return channel.getContentType();
+    }
+
+    @Override
     public int read(ByteBuffer dst) throws IOException {
         return 0;
     }

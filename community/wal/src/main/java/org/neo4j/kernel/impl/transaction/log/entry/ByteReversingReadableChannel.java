@@ -80,6 +80,11 @@ public class ByteReversingReadableChannel implements ReadableChannel {
     }
 
     @Override
+    public byte getContentType() throws IOException {
+        return delegate.getContentType();
+    }
+
+    @Override
     public void beginChecksum() {
         delegate.beginChecksum();
     }

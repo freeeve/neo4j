@@ -25,8 +25,9 @@ import static java.util.Objects.requireNonNull;
 import static org.neo4j.io.fs.ChecksumWriter.CHECKSUM_FACTORY;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_CONTENT_VERSION;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.KERNEL_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.REPLICATED_TX_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_INDEX;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkTail;
@@ -491,8 +492,35 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     }
 
     @Override
+    public byte getContentType() throws IOException {
+        if (checkForEndOfEnvelope()) {
+            readEnvelopeHeader();
+        }
+        return currentContentType;
+    }
+
+    @Override
     public long getAppendIndex() throws IOException {
         return entryIndex();
+    }
+
+    /**
+     * Move the channel to the start of the next transaction entry (either kernel or replicated from Raft), skipping
+     * over any non-tx entries along the way.
+     *
+     * @return position of the next transaction entry
+     * @throws IOException I/O error from channel.
+     * @throws ReadPastEndException if the end is reached.
+     */
+    public long goToNextTransactionEntry() throws IOException {
+        byte contentType;
+        do {
+            goToNextEntry();
+            contentType = getContentType();
+        } while (contentType != KERNEL_CONTENT_TYPE
+                && contentType != UNSPECIFIED_CONTENT_TYPE
+                && contentType != REPLICATED_TX_CONTENT_TYPE);
+        return position() - HEADER_SIZE;
     }
 
     /**

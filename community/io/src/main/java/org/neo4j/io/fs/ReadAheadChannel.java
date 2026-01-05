@@ -156,6 +156,11 @@ public class ReadAheadChannel<T extends StoreChannel> implements ReadableChannel
     }
 
     @Override
+    public byte getContentType() {
+        return UNSPECIFIED_CONTENT_TYPE;
+    }
+
+    @Override
     public int read(ByteBuffer dst) throws IOException {
         int length = dst.remaining();
         if (aheadBuffer.remaining() >= length) {

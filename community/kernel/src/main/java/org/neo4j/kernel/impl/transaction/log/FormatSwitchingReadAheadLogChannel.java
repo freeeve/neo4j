@@ -190,6 +190,11 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
     }
 
     @Override
+    public byte getContentType() throws IOException {
+        return delegate.getContentType();
+    }
+
+    @Override
     public void position(long byteOffset) throws IOException {
         delegate.position(byteOffset);
     }

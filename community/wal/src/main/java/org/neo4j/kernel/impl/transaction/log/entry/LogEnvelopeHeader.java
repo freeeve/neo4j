@@ -46,10 +46,10 @@ public class LogEnvelopeHeader {
     public static final int MAX_ZERO_PADDING_SIZE = Long.BYTES + LogEnvelopeHeader.HEADER_SIZE;
 
     public static final byte IGNORE_CONTENT_VERSION = -1;
-    public static final byte UNSPECIFIED_CONTENT_TYPE = -1;
     public static final byte UNSPECIFIED_INDEX = -1;
     public static final byte UNSPECIFIED_TERM = -1;
     public static final byte KERNEL_CONTENT_TYPE = 64;
+    public static final byte REPLICATED_TX_CONTENT_TYPE = 0; // Must be same as ContentCodes.TX_CONTENT_TYPE
 
     /**
      * Describes the type of envelope data written within the log file

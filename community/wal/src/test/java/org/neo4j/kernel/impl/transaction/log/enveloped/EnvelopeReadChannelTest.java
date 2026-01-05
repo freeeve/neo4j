@@ -27,9 +27,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.io.ByteUnit.KibiByte;
 import static org.neo4j.io.fs.ChecksumWriter.CHECKSUM_FACTORY;
+import static org.neo4j.io.fs.ReadableChannel.UNSPECIFIED_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.KERNEL_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.REPLICATED_TX_CONTENT_TYPE;
+import static org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeWriteChannelTest.buffer;
+import static org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeWriteChannelTest.writeChannel;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 
 import java.io.IOException;
@@ -53,6 +58,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.memory.ByteBuffers;
+import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
@@ -1264,6 +1270,83 @@ class EnvelopeReadChannelTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(bytes = {KERNEL_CONTENT_TYPE, CONTENT_TYPE, REPLICATED_TX_CONTENT_TYPE})
+    void getContentType(byte contentType) throws IOException {
+        // GIVEN an envelope with specific content type
+        int segmentSize = 256;
+        final var bytes = bytes(random, TEST_DATA_SIZE);
+        final HeapScopedBuffer buffer = buffer(segmentSize);
+        try (var channel = writeChannel(logChannel(), segmentSize, buffer)) {
+            channel.resetAppendedBytesCounter();
+            channel.beginChecksumForWriting();
+            channel.putVersion(LatestVersions.LATEST_KERNEL_VERSION.version());
+            channel.putTerm(24L);
+            channel.put(bytes, bytes.length);
+            channel.putContentType(contentType);
+            channel.endCurrentEntry();
+        }
+
+        // WHEN reading the envelope
+        try (var channel = new EnvelopeReadChannel(
+                logChannel(), segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            // THEN the content type is as expected
+            assertThat(channel.getContentType()).isEqualTo(contentType);
+        }
+    }
+
+    @Test
+    void nextTransactionEntry() throws IOException {
+        int segmentSize = 256;
+        final var bytes = bytes(random, TEST_DATA_SIZE);
+        final byte version = LatestVersions.LATEST_KERNEL_VERSION.version();
+
+        writeSomeData(buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+            int checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.FULL, BASE_TX_CHECKSUM, version, bytes, START_INDEX, KERNEL_CONTENT_TYPE);
+            checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.BEGIN, checksum, version, bytes, START_INDEX + 1, UNSPECIFIED_CONTENT_TYPE);
+            checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.END, checksum, version, bytes, START_INDEX + 1, UNSPECIFIED_CONTENT_TYPE);
+            checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.BEGIN, checksum, version, bytes, START_INDEX + 2, CONTENT_TYPE);
+
+            buffer.put(new byte[4]); // padding
+            assertThat(buffer.position()).isEqualTo(segmentSize * 2);
+
+            checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.MIDDLE, checksum, version, bytes, START_INDEX + 2, CONTENT_TYPE);
+            checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.END, checksum, version, bytes, START_INDEX + 2, CONTENT_TYPE);
+            checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.FULL, checksum, version, bytes, START_INDEX + 3, CONTENT_TYPE);
+            writeHeaderAndPayload(
+                    buffer, EnvelopeType.FULL, checksum, version, bytes, START_INDEX + 4, REPLICATED_TX_CONTENT_TYPE);
+        });
+
+        var logChannel = logChannel();
+        try (var channel = new EnvelopeReadChannel(
+                logChannel, segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            // WHEN at beginning of file, THEN it skips to first transaction entry
+            assertThat(channel.goToNextTransactionEntry()).isEqualTo(segmentSize);
+            assertThat(channel.entryIndex()).isEqualTo(START_INDEX);
+            assertThat(channel.getContentType()).isEqualTo(KERNEL_CONTENT_TYPE);
+
+            // WHEN called again, THEN it moves to subsequent entries of tx-associated content types (skipping others)
+            assertThat(channel.goToNextTransactionEntry()).isEqualTo(segmentSize + TEST_ENTRY_SIZE);
+            assertThat(channel.entryIndex()).isEqualTo(START_INDEX + 1);
+            assertThat(channel.getContentType()).isEqualTo(UNSPECIFIED_CONTENT_TYPE);
+
+            assertThat(channel.goToNextTransactionEntry()).isEqualTo(segmentSize * 2 + TEST_ENTRY_SIZE * 3);
+            assertThat(channel.entryIndex()).isEqualTo(START_INDEX + 4);
+            assertThat(channel.getContentType()).isEqualTo(REPLICATED_TX_CONTENT_TYPE);
+
+            // WHEN called at position in last transaction entry, THEN it will ReadPastEndException
+            assertThatThrownBy(channel::goToNextTransactionEntry).isInstanceOf(ReadPastEndException.class);
+        }
+    }
+
     @Test
     void nextEntry() throws IOException {
         int segmentSize = 256;
@@ -1298,9 +1381,8 @@ class EnvelopeReadChannelTest {
                 logChannel, segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
             for (int i = 0; i < positions.length; i++) {
                 var position = positions[i];
-                channel.goToNextEntry();
+                assertThat(channel.goToNextEntry()).isEqualTo(position);
                 assertThat(channel.entryIndex()).isEqualTo(START_INDEX + i);
-                assertThat(channel.position() - HEADER_SIZE).isEqualTo(position);
             }
 
             assertThatThrownBy(channel::goToNextEntry).isInstanceOf(ReadPastEndException.class);

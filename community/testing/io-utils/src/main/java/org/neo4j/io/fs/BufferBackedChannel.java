@@ -82,6 +82,11 @@ public class BufferBackedChannel implements WritableChannel, ReadableChannel {
     }
 
     @Override
+    public byte getContentType() {
+        return UNSPECIFIED_CONTENT_TYPE;
+    }
+
+    @Override
     public int read(ByteBuffer dst) {
         final var remaining = buffer.remaining();
         if (remaining >= dst.remaining()) {

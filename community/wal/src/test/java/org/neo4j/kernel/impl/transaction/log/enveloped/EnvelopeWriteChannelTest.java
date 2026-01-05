@@ -25,9 +25,9 @@ import static java.util.Arrays.copyOfRange;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.neo4j.io.fs.ReadableChannel.UNSPECIFIED_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.KERNEL_CONTENT_TYPE;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
 import static org.neo4j.kernel.impl.transaction.log.rotation.LogRotation.NO_ROTATION;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -2589,17 +2589,17 @@ class EnvelopeWriteChannelTest {
         };
     }
 
-    private EnvelopeWriteChannel writeChannel(StoreChannel channel, int segmentSize, ScopedBuffer scopedBuffer)
+    static EnvelopeWriteChannel writeChannel(StoreChannel channel, int segmentSize, ScopedBuffer scopedBuffer)
             throws IOException {
         return writeChannel(channel, segmentSize, BASE_TX_CHECKSUM, scopedBuffer);
     }
 
-    private EnvelopeWriteChannel writeChannel(
+    private static EnvelopeWriteChannel writeChannel(
             StoreChannel channel, int segmentSize, int checksum, ScopedBuffer scopedBuffer) throws IOException {
         return writeChannel(channel, segmentSize, checksum, scopedBuffer, NO_ROTATION, LogTracers.NULL);
     }
 
-    private EnvelopeWriteChannel writeChannel(
+    private static EnvelopeWriteChannel writeChannel(
             StoreChannel channel,
             int segmentSize,
             ScopedBuffer scopedBuffer,
@@ -2609,7 +2609,7 @@ class EnvelopeWriteChannelTest {
         return writeChannel(channel, segmentSize, BASE_TX_CHECKSUM, scopedBuffer, logRotation, logTracers);
     }
 
-    private EnvelopeWriteChannel writeChannel(
+    private static EnvelopeWriteChannel writeChannel(
             StoreChannel channel,
             int segmentSize,
             int checksum,
@@ -2621,7 +2621,7 @@ class EnvelopeWriteChannelTest {
                 channel, segmentSize, checksum, scopedBuffer, logRotation, logTracers, segmentSize, FIRST_INDEX - 1);
     }
 
-    private EnvelopeWriteChannel writeChannel(
+    private static EnvelopeWriteChannel writeChannel(
             StoreChannel channel,
             int segmentSize,
             int checksum,
@@ -2648,7 +2648,7 @@ class EnvelopeWriteChannelTest {
         return new HeapScopedBuffer(SEGMENT_SIZE, LITTLE_ENDIAN, INSTANCE);
     }
 
-    private static HeapScopedBuffer buffer(int segmentSize) {
+    static HeapScopedBuffer buffer(int segmentSize) {
         return new HeapScopedBuffer(segmentSize, LITTLE_ENDIAN, INSTANCE);
     }
 

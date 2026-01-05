@@ -87,6 +87,11 @@ public class InputStreamReadableChannel implements ReadableChannel {
     }
 
     @Override
+    public byte getContentType() {
+        return UNSPECIFIED_CONTENT_TYPE;
+    }
+
+    @Override
     public boolean isOpen() {
         return !isClosed;
     }
