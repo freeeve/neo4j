@@ -3443,6 +3443,18 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       .error(initialState, SemanticError.authRuleMustHaveACondition(p)).errors
   }
 
+  test("CREATE OR REPLACE AUTH RULE authRule") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsReplace,
+      List.empty
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE OR REPLACE"))) shouldBe SemanticCheckResult
+      .error(initialState, SemanticError.authRuleMustHaveACondition(p)).errors
+  }
+
   test("CREATE AUTH RULE authRule SET CONDITION 1=1 SET CONDITION 2=2") {
     val authRule = CreateAuthRule(
       literalString("authRule"),
@@ -3455,6 +3467,21 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
+      .error(initialState, SemanticError.authRuleCannotHaveMoreThanOneCondition(p)).errors
+  }
+
+  test("CREATE OR REPLACE AUTH RULE authRule SET CONDITION 1=1 SET CONDITION 2=2") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsReplace,
+      List(
+        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(p),
+        AuthRuleCondition(equals(literalInt(2), literalInt(2)))(p)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE OR REPLACE"))) shouldBe SemanticCheckResult
       .error(initialState, SemanticError.authRuleCannotHaveMoreThanOneCondition(p)).errors
   }
 
@@ -3480,6 +3507,52 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
   }
 
+  test("CREATE OR REPLACE AUTH RULE authRule SET CONDITION 1=1 SET ENABLED true SET ENABLED false") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsReplace,
+      List(
+        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(p),
+        AuthRuleEnabled(enabled = true)(pos1),
+        AuthRuleEnabled(enabled = false)(pos2)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE OR REPLACE"))) shouldBe SemanticCheckResult
+      .error(
+        getGql42N19_duplicateClause("SET ENABLED", pos2),
+        initialState,
+        "Duplicate `SET ENABLED` clause.",
+        pos2
+      ).errors
+
+  }
+
+  test("CREATE OR REPLACE AUTH RULE IF EXISTS authRule SET CONDITION 1=1 SET ENABLED true") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsInvalidSyntax,
+      List(
+        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(p),
+        AuthRuleEnabled(enabled = true)(pos1),
+        AuthRuleEnabled(enabled = false)(pos2)
+      )
+    )(p)
+
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE OR REPLACE"))) shouldBe SemanticCheckResult
+      .error(
+        initialState,
+        SemanticError(
+          GqlHelper.getGql42001_42N14("OR REPLACE", "IF NOT EXISTS", p.offset, p.line, p.column),
+          "Failed to create the specified auth rule 'authRule': cannot have both `OR REPLACE` and `IF NOT EXISTS`.",
+          p
+        )
+      ).errors
+
+  }
+
   test("CREATE AUTH RULE authRule SET CONDITION toLoWer('HELLO') = 'hello'") {
     val functionInvocation = FunctionInvocation(
       name = FunctionName("toLoWer")(p),
@@ -3496,6 +3569,24 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     // Should succeed except for failure on feature flag
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(initialState, authRuleFeatureToggleError("CREATE")).errors
+  }
+
+  test("CREATE OR REPLACE AUTH RULE authRule SET CONDITION toLoWer('HELLO') = 'hello'") {
+    val functionInvocation = FunctionInvocation(
+      name = FunctionName("toLoWer")(p),
+      argument = literalString("HELLO")
+    )(p)
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsReplace,
+      List(
+        AuthRuleCondition(functionInvocation)(p)
+      )
+    )(p)
+
+    // Should succeed except for failure on feature flag
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
+      .error(initialState, authRuleFeatureToggleError("CREATE OR REPLACE")).errors
   }
 
   test("DROP AUTH RULE authRule") {

@@ -2719,8 +2719,16 @@ class PrettifierIT extends AbstractPrettifierTest {
       "CREATE AUTH RULE abc SET CONDITION true SET ENABLED TRUE"
     ),
     FailsInCypher5(
+      "create or replace auth rule abc set condition true set enabled true",
+      "CREATE OR REPLACE AUTH RULE abc SET CONDITION true SET ENABLED TRUE"
+    ),
+    FailsInCypher5(
       "create auth rule $abc set condition true set enabled false",
       "CREATE AUTH RULE $abc SET CONDITION true SET ENABLED FALSE"
+    ),
+    FailsInCypher5(
+      "create or replace auth rule $abc set condition true set enabled false",
+      "CREATE OR REPLACE AUTH RULE $abc SET CONDITION true SET ENABLED FALSE"
     ),
     FailsInCypher5(
       "create auth rule abc if not exists set condition true set enabled true",

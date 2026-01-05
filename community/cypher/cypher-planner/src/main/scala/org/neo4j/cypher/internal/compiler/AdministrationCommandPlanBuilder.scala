@@ -283,11 +283,9 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
     ): plans.SecurityAdministrationLogicalPlan = {
       ifExistsDo match {
         case IfExistsReplace =>
-          // TODO: Implement when drop is implemented
-          throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
-            "CREATE OR REPLACE AUTH RULE",
-            s"The following commands are not allowed on a system database: CREATE OR REPLACE AUTH RULE.",
-            false
+          plans.DropAuthRule(
+            plans.AssertAllowedDbmsActions(None, Seq(DropAuthRuleAction, CreateAuthRuleAction)),
+            authRuleName
           )
         case IfExistsDoNothing =>
           plans.DoNothingIfExists(

@@ -948,7 +948,7 @@ final case class CreateAuthRule(
     ifExistsDo match {
       case IfExistsInvalidSyntax =>
         val name = Prettifier.escapeName(authRuleName)
-        SemanticCheck.error(SemanticError.bothOrReplaceAndIfNotExists("role", name, position))
+        SemanticCheck.error(SemanticError.bothOrReplaceAndIfNotExists("auth rule", name, position))
       case _ =>
         super.semanticCheck chain
           featureCheck chain
