@@ -624,7 +624,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
     queryContext: QueryContext,
-    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty[TestPlanCombinationRewriterHint]
+    testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint]
   ): (ExecutionPlan, CONTEXT) = {
     val defaultLanguage = CypherVersion.Legacy.legacyVersion() // To be replaced with db specific default
     val runtimeContext = newRuntimeContext(queryContext, defaultLanguage)

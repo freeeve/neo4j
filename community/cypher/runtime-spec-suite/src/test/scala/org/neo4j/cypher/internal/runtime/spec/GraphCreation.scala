@@ -42,6 +42,7 @@ import org.neo4j.kernel.api.KernelTransaction
 import java.util.concurrent.TimeUnit
 
 import scala.collection.mutable.ArrayBuffer
+import scala.language.implicitConversions
 import scala.util.Random
 
 /**

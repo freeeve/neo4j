@@ -258,7 +258,7 @@ abstract class MergeUniqueNodeTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("mergeUnique should perform on create side effect") {
-    val nodes = givenGraph {
+    givenGraph {
       uniqueNodeIndex(IndexType.RANGE, "Honey", "prop")
       nodeGraph(5, "Milk")
       nodePropertyGraph(

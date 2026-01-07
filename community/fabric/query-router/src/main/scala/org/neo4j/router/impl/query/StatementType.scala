@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ast.UpdateClause
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.exceptions.InternalException
 import org.neo4j.fabric.util.Folded.FoldableOps
 import org.neo4j.fabric.util.Folded.Stop
 import org.neo4j.router.impl.query.StatementType.CommandOrQueryType.AdminCommand
@@ -101,6 +102,10 @@ object StatementType {
       case _: Query                 => StatementType(Query, maybeContainsUpdates)
       case _: SchemaCommand         => StatementType(SchemaCommand, maybeContainsUpdates)
       case _: AdministrationCommand => StatementType(AdminCommand, maybeContainsUpdates)
+      case x => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Expected Query, SchemaCommand or AdministrationCommand but got ${x.getClass}"
+        )
     }
   }
 
