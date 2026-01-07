@@ -249,6 +249,7 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByIdSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.UndirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
@@ -969,7 +970,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         id,
         "NodeVectorIndexSearch",
         Seq.empty,
-        Seq(details("SEARCH n IN VECTOR INDEX vectorIndex FOR [1, 2] LIMIT 5")),
+        Seq(details("SEARCH n IN (VECTOR INDEX vectorIndex FOR [1, 2] LIMIT 5)")),
         Set("n")
       )
     )
@@ -989,7 +990,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
             IndexedProperty(PropertyKeyToken("prop1", PropertyKeyId(1)), DoNotGetValue, NODE_TYPE),
             IndexedProperty(PropertyKeyToken("prop2", PropertyKeyId(2)), DoNotGetValue, NODE_TYPE)
           ),
-          score = None,
+          score = Some(v"sc"),
           indexName = "vectorIndex",
           vector = listOf(literalInt(1), literalInt(2)),
           limit = literalInt(5),
@@ -1009,8 +1010,10 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         id,
         "NodeVectorIndexSearch",
         Seq.empty,
-        Seq(details("SEARCH n IN VECTOR INDEX vectorIndex FOR [1, 2] WHERE prop1 = 42 AND prop2 > 42 LIMIT 5")),
-        Set("n")
+        Seq(details(
+          "SEARCH n IN (VECTOR INDEX vectorIndex FOR [1, 2] WHERE prop1 = 42 AND prop2 > 42 LIMIT 5) SCORE AS sc"
+        )),
+        Set("n", "sc")
       )
     )
   }
@@ -1040,7 +1043,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         id,
         "DirectedRelationshipVectorIndexSearch",
         Seq.empty,
-        Seq(details("SEARCH (a)-[r:R1|R2]->(b) IN VECTOR INDEX vectorIndex FOR [1, 2] LIMIT 5")),
+        Seq(details("SEARCH (a)-[r:R1|R2]->(b) IN (VECTOR INDEX vectorIndex FOR [1, 2] LIMIT 5)")),
         Set("r", "a", "b")
       )
     )
@@ -1057,7 +1060,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
             IndexedProperty(PropertyKeyToken("p1", PropertyKeyId(1)), DoNotGetValue, RELATIONSHIP_TYPE),
             IndexedProperty(PropertyKeyToken("p2", PropertyKeyId(2)), DoNotGetValue, RELATIONSHIP_TYPE)
           ),
-          None,
+          Some(v"sc"),
           "vectorIndex",
           listOf(literalInt(1), literalInt(2)),
           literalInt(5),
@@ -1078,9 +1081,83 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         "DirectedRelationshipVectorIndexSearch",
         Seq.empty,
         Seq(
-          details("SEARCH (a)-[r:R1|R2]->(b) IN VECTOR INDEX vectorIndex FOR [1, 2] WHERE p1 = 42 AND p2 > 42 LIMIT 5")
+          details(
+            "SEARCH (a)-[r:R1|R2]->(b) IN (VECTOR INDEX vectorIndex FOR [1, 2] WHERE p1 = 42 AND p2 > 42 LIMIT 5) SCORE AS sc"
+          )
         ),
+        Set("r", "a", "b", "sc")
+      )
+    )
+  }
+
+  test("UndirectedRelationshipVectorIndexSearch") {
+    assertGood(
+      attach(
+        UndirectedRelationshipVectorIndexSearch(
+          Some(varFor("r")),
+          Some(varFor("a")),
+          Some(varFor("b")),
+          Seq(RelationshipTypeToken("R1", RelTypeId(0)), RelationshipTypeToken("R2", RelTypeId(1))),
+          Seq(
+            IndexedProperty(PropertyKeyToken("p1", PropertyKeyId(0)), DoNotGetValue, RELATIONSHIP_TYPE),
+            IndexedProperty(PropertyKeyToken("p2", PropertyKeyId(0)), DoNotGetValue, RELATIONSHIP_TYPE)
+          ),
+          None,
+          "vectorIndex",
+          listOf(literalInt(1), literalInt(2)),
+          literalInt(5),
+          None,
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "UndirectedRelationshipVectorIndexSearch",
+        Seq.empty,
+        Seq(details("SEARCH (a)-[r:R1|R2]-(b) IN (VECTOR INDEX vectorIndex FOR [1, 2] LIMIT 5)")),
         Set("r", "a", "b")
+      )
+    )
+
+    assertGood(
+      attach(
+        UndirectedRelationshipVectorIndexSearch(
+          Some(varFor("r")),
+          Some(varFor("a")),
+          Some(varFor("b")),
+          Seq(RelationshipTypeToken("R1", RelTypeId(0)), RelationshipTypeToken("R2", RelTypeId(1))),
+          Seq(
+            IndexedProperty(PropertyKeyToken("p0", PropertyKeyId(0)), DoNotGetValue, RELATIONSHIP_TYPE),
+            IndexedProperty(PropertyKeyToken("p1", PropertyKeyId(1)), DoNotGetValue, RELATIONSHIP_TYPE),
+            IndexedProperty(PropertyKeyToken("p2", PropertyKeyId(2)), DoNotGetValue, RELATIONSHIP_TYPE)
+          ),
+          Some(v"sc"),
+          "vectorIndex",
+          listOf(literalInt(1), literalInt(2)),
+          literalInt(5),
+          Some(CompositeQueryExpression(
+            Seq(
+              SingleQueryExpression(literalInt(42)),
+              RangeQueryExpression(
+                InequalitySeekRangeWrapper(RangeGreaterThan(NonEmptyList(ExclusiveBound(literalInt(42)))))(pos)
+              )
+            )
+          )),
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "UndirectedRelationshipVectorIndexSearch",
+        Seq.empty,
+        Seq(
+          details(
+            "SEARCH (a)-[r:R1|R2]-(b) IN (VECTOR INDEX vectorIndex FOR [1, 2] WHERE p1 = 42 AND p2 > 42 LIMIT 5) SCORE AS sc"
+          )
+        ),
+        Set("r", "a", "b", "sc")
       )
     )
   }

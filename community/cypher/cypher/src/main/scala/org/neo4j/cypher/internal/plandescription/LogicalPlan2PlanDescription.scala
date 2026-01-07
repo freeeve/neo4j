@@ -310,6 +310,7 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.UndirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
@@ -687,7 +688,7 @@ case class LogicalPlan2PlanDescription(
           idName,
           _,
           properties,
-          _,
+          maybeScore,
           indexName,
           vector,
           limit,
@@ -699,8 +700,12 @@ case class LogicalPlan2PlanDescription(
             pretty" WHERE ${indexPredicateString(properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
           case None => pretty""
         }
+        val score = maybeScore match {
+          case Some(scoreVariable) => pretty" SCORE AS ${asPrettyString(scoreVariable.name)}"
+          case None                => pretty""
+        }
         val prettyDetails =
-          pretty"SEARCH ${asPrettyString(idName)} IN VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)}$predicate LIMIT ${asPrettyString(limit)}"
+          pretty"SEARCH ${asPrettyString(idName)} IN (VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)}$predicate LIMIT ${asPrettyString(limit)})$score"
 
         PlanDescriptionImpl(
           id,
@@ -718,7 +723,7 @@ case class LogicalPlan2PlanDescription(
           end,
           typeTokens,
           properties,
-          _,
+          maybeScore,
           indexName,
           vector,
           limit,
@@ -731,12 +736,52 @@ case class LogicalPlan2PlanDescription(
             pretty" WHERE ${indexPredicateString(properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
           case None => pretty""
         }
+        val score = maybeScore match {
+          case Some(scoreVariable) => pretty" SCORE AS ${asPrettyString(scoreVariable.name)}"
+          case None                => pretty""
+        }
         val prettyDetails =
-          pretty"SEARCH ${relationshipPattern(start, idName, typeTokens.map(t => RelTypeName(t.name)(InputPosition.NONE)), end, OUTGOING)} IN VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)}$predicate LIMIT ${asPrettyString(limit)}"
+          pretty"SEARCH ${relationshipPattern(start, idName, typeTokens.map(t => RelTypeName(t.name)(InputPosition.NONE)), end, OUTGOING)} IN (VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)}$predicate LIMIT ${asPrettyString(limit)})$score"
 
         PlanDescriptionImpl(
           id,
           "DirectedRelationshipVectorIndexSearch",
+          Seq.empty,
+          Seq(Details(prettyDetails)),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case UndirectedRelationshipVectorIndexSearch(
+          idName,
+          start,
+          end,
+          typeTokens,
+          properties,
+          maybeScore,
+          indexName,
+          vector,
+          limit,
+          maybeFilter,
+          _
+        ) =>
+
+        val predicate = maybeFilter match {
+          case Some(valueExpr) =>
+            pretty" WHERE ${indexPredicateString(properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
+          case None => pretty""
+        }
+        val score = maybeScore match {
+          case Some(scoreVariable) => pretty" SCORE AS ${asPrettyString(scoreVariable.name)}"
+          case None                => pretty""
+        }
+        val prettyDetails =
+          pretty"SEARCH ${relationshipPattern(start, idName, typeTokens.map(t => RelTypeName(t.name)(InputPosition.NONE)), end, BOTH)} IN (VECTOR INDEX ${asPrettyString(indexName)} FOR ${asPrettyString(vector)}$predicate LIMIT ${asPrettyString(limit)})$score"
+
+        PlanDescriptionImpl(
+          id,
+          "UndirectedRelationshipVectorIndexSearch",
           Seq.empty,
           Seq(Details(prettyDetails)),
           variables,
