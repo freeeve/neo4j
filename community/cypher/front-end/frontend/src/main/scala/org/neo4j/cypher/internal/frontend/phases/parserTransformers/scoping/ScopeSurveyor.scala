@@ -72,7 +72,7 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState]
   val unitVariables: Set[LogicalVariable] = Set.empty[LogicalVariable]
   val noLocalCallables: Set[LocalCallableScopeSignature] = Set.empty[LocalCallableScopeSignature]
 
-  private val namespacing: Regex = """[ ]{2}(?<varName>.*)@\d+""".r
+  private val namespacing: Regex = """[ ]{2}(.*)@\d+""".r
 
   private val removeNamespacing: Rewriter = Rewriter.lift {
     case v @ Variable(namespacing(varName)) => v.copy(name = varName)(v.position, v.isIsolated)
