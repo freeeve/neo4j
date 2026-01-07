@@ -235,15 +235,13 @@ public class BuiltInDbmsProcedures {
         long clearedRouterAndCompositeQueries = 0;
         var optionalExecutor = graph.getDependencyResolver().resolveOptionalDependency(FabricExecutor.class);
         if (optionalExecutor.isPresent()) {
+            // only if databases is composite
             clearedRouterAndCompositeQueries = optionalExecutor.get().clearQueryCachesForDatabase(graph.databaseName());
         }
         var optionalRouter = graph.getDependencyResolver().resolveOptionalDependency(QueryRouter.class);
         if (optionalRouter.isPresent()) {
+            // database name is ignored when clearing the query cache
             clearedRouterAndCompositeQueries += optionalRouter.get().clearQueryCachesForDatabase(graph.databaseName());
-        }
-
-        if (spdBuiltInProcedures.isGraphShard()) {
-            spdBuiltInProcedures.clearQueryCaches();
         }
 
         // we subtract 1 because the query "CALL db.queryClearCaches()" is compiled and thus populates the caches by 1
