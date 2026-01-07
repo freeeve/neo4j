@@ -238,7 +238,7 @@ class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
     result.toSet should be(Set(homeOrDefaultDb(DEFAULT_DATABASE_NAME)))
 
     // GIVEN
-    managementService.shutdown();
+    managementService.shutdown()
     setup(Map(initial_default_database -> "foo"))
 
     // WHEN
@@ -296,7 +296,19 @@ class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
     val db = managementService.database(DEFAULT_DATABASE_NAME).asInstanceOf[GraphDatabaseAPI]
     val format =
       db.getDependencyResolver.resolveDependency(classOf[MetadataProvider]).getStoreId.getStoreVersionUserString
-    result should have size 27
+
+    if (dbmsDefaultQueryLanguage equals CypherVersion.Cypher25) {
+      result should have size 32
+      result should contain.allOf(
+        "currentPropertyShardReplicas" -> null,
+        "requestedPropertyShardReplicas" -> null,
+        "shardTxnLag" -> null,
+        "graphShards" -> Seq("neo4j"),
+        "propertyShards" -> Seq.empty
+      )
+    } else {
+      result should have size 27
+    }
     result should contain.allOf(
       "name" -> DEFAULT_DATABASE_NAME,
       "type" -> "standard",
