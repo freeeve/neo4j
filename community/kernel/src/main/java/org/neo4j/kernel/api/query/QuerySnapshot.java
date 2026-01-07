@@ -189,7 +189,12 @@ public class QuerySnapshot {
         if (compilerInfo == null) {
             return Collections.emptyList();
         }
-        return Stream.concat(compilerInfo.indexes().stream(), compilerInfo.relationshipTypeIndexes().stream())
+
+        return Stream.concat(
+                        Stream.concat(compilerInfo.indexes().stream(), compilerInfo.relationshipTypeIndexes().stream()),
+                        Stream.concat(
+                                compilerInfo.semanticNodeIndexes().stream(),
+                                compilerInfo.semanticRelationshipIndexes().stream()))
                 .map(IndexUsage::asMap)
                 .toList();
     }

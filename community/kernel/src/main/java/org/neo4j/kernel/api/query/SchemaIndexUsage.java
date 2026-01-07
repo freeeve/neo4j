@@ -43,7 +43,7 @@ public class SchemaIndexUsage extends IndexUsage {
         return labelIds;
     }
 
-    public int[] getPropertyKeys() {
+    public int[] getPropertyKeyIds() {
         return propertyKeyIds;
     }
 

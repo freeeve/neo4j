@@ -123,6 +123,18 @@ final case class SchemaRelationshipIndexUsage(
   propertyTokens: Seq[PropertyKeyToken]
 ) extends IndexUsage
 
+final case class SchemaSemanticNodeIndexUsage(
+  identifier: LogicalVariable,
+  labels: Seq[LabelToken],
+  propertyTokens: Seq[PropertyKeyToken]
+) extends IndexUsage
+
+final case class SchemaSemanticRelationshipIndexUsage(
+  identifier: LogicalVariable,
+  labels: Seq[RelationshipTypeToken],
+  propertyTokens: Seq[PropertyKeyToken]
+) extends IndexUsage
+
 final case class SchemaIndexLookupUsage(identifier: LogicalVariable, entityType: EntityType) extends IndexUsage
 
 trait IndexSeekNames {
@@ -341,6 +353,22 @@ sealed abstract class LogicalPlan(idGen: IdGen)
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.RELATIONSHIP)
       case PartitionedUndirectedRelationshipTypeScan(Some(idName), _, _, _, _) =>
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.RELATIONSHIP)
+      case NodeVectorIndexSearch(idName, entityTypes, properties, _, _, _, _, _, _) =>
+        acc => acc :+ SchemaSemanticNodeIndexUsage(idName, entityTypes, properties.map(_.propertyKeyToken))
+      case UndirectedRelationshipVectorIndexSearch(maybeIdName, _, _, entityTypes, properties, _, _, _, _, _, _) =>
+        acc =>
+          acc :+ SchemaSemanticRelationshipIndexUsage(
+            maybeIdName.getOrElse(Variable("UNKNOWN")(InputPosition.NONE, isIsolated = false)),
+            entityTypes,
+            properties.map(_.propertyKeyToken)
+          )
+      case DirectedRelationshipVectorIndexSearch(maybeIdName, _, _, entityTypes, properties, _, _, _, _, _, _) =>
+        acc =>
+          acc :+ SchemaSemanticRelationshipIndexUsage(
+            maybeIdName.getOrElse(Variable("UNKNOWN")(InputPosition.NONE, isIsolated = false)),
+            entityTypes,
+            properties.map(_.propertyKeyToken)
+          )
       case relIndexScan: RelationshipIndexLeafPlan if relIndexScan.idName.isDefined =>
         acc =>
           acc :+

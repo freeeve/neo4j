@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal
 
 import org.neo4j.common.EntityType
 import org.neo4j.internal.schema.SchemaDescriptors
+import org.neo4j.kernel.api.query.RelationshipTypeIndexUsage
+import org.neo4j.kernel.api.query.SchemaIndexUsage
 import org.neo4j.kernel.impl.api.SchemaStateKey
 import org.neo4j.kernel.impl.query.TransactionalContext
 
@@ -55,19 +57,45 @@ class SchemaHelper(val queryCache: QueryCache[_, _], val masterCompiler: MasterC
     tc: TransactionalContext
   ): LockedEntities = {
     // Lock all used indexes
-    val labelIds = executionPlan.labelIdsOfUsedIndexes
-    val relationshipIds = executionPlan.relationshipsOfUsedIndexes
+    // We do not lock semantic indexes because we use them by name. They are therefore already locked during planning.
+    val labelIndexIds: Set[IndexIds] = executionPlan.labelIndexIdsOfUsedIndexes
+    val relationshipIndexIds: Set[IndexIds] = executionPlan.relationshipIndexIdsOfUsedIndexes
+    val semanticNodeIndexesUsed = executionPlan.semanticNodeIndexesUsed
+    val semanticRelIndexesUsed = executionPlan.semanticRelationshipIndexesUsed
     val lookupTypes: ArraySeq[EntityType] = ArraySeq.unsafeWrapArray(executionPlan.lookupEntityTypes)
-    acquireLocks(tc, labelIds.keys.toArray, relationshipIds.keys.toArray, lookupTypes)
+    acquireLocks(
+      tc,
+      labelIndexIds.flatMap(_.entityTypeIds).toArray,
+      relationshipIndexIds.flatMap(_.entityTypeIds).toArray,
+      lookupTypes
+    )
 
-    if (lookupTypes.nonEmpty || labelIds.nonEmpty || relationshipIds.nonEmpty) {
+    if (
+      lookupTypes.nonEmpty ||
+      labelIndexIds.nonEmpty ||
+      relationshipIndexIds.nonEmpty ||
+      semanticNodeIndexesUsed.isEmpty ||
+      semanticRelIndexesUsed.isEmpty
+    ) {
       val schemaTokenAfter = readSchemaToken(tc)
       // Need to check if index has been dropped because we can still acquire and get the lock
-      val indexDropped = !indexExists(tc, labelIds, relationshipIds, lookupTypes)
+      val indexDropped = !indexExists(
+        tc,
+        labelIndexIds,
+        relationshipIndexIds,
+        semanticNodeIndexesUsed,
+        semanticRelIndexesUsed,
+        lookupTypes
+      )
 
       // if the schema has changed while taking all locks OR if the lookup index has been dropped we release locks and return false
       if (schemaTokenBefore != schemaTokenAfter || indexDropped) {
-        releaseLocks(tc, labelIds.keys.toArray, relationshipIds.keys.toArray, lookupTypes)
+        releaseLocks(
+          tc,
+          labelIndexIds.flatMap(_.entityTypeIds).toArray,
+          relationshipIndexIds.flatMap(_.entityTypeIds).toArray,
+          lookupTypes
+        )
         return LockedEntities(successful = false, needsReplan = indexDropped)
       }
     }
@@ -110,24 +138,51 @@ class SchemaHelper(val queryCache: QueryCache[_, _], val masterCompiler: MasterC
 
   private def indexExists(
     tc: TransactionalContext,
-    labelIndexes: Map[Long, Array[Int]],
-    relIndexes: Map[Long, Array[Int]],
+    labelIndexes: Set[IndexIds],
+    relIndexes: Set[IndexIds],
+    semanticNodeIndexesUsed: Set[SchemaIndexUsage],
+    semanticRelationshipIndexUsage: Set[RelationshipTypeIndexUsage],
     lookupEntities: Seq[EntityType]
-  ): Boolean = {
-    labelIndexes.forall { case (label, properties) => hasLabelIndex(tc, label, properties) } &&
-    relIndexes.forall { case (relType, properties) => hasRelationshipTypeIndex(tc, relType, properties) } &&
-    lookupEntities.forall(hasLookupIndex(tc, _))
-  }
+  ): Boolean =
+    labelIndexes.forall(hasLabelIndex(tc, _)) &&
+      relIndexes.forall(hasRelationshipTypeIndex(tc, _)) &&
+      semanticNodeIndexesUsed.forall(hasSemanticNodeIndex(tc, _)) &&
+      semanticRelationshipIndexUsage.forall(hasSemanticRelationshipIndex(tc, _)) &&
+      lookupEntities.forall(hasLookupIndex(tc, _))
 
   private def hasLookupIndex(tc: TransactionalContext, entityType: EntityType): Boolean =
     tc.kernelTransaction.schemaRead().indexForSchemaNonTransactional(
       SchemaDescriptors.forAnyEntityTokens(entityType)
     ).hasNext
 
+  private def hasSemanticNodeIndex(tc: TransactionalContext, indexUsage: SchemaIndexUsage): Boolean =
+    tc.kernelTransaction
+      .schemaRead()
+      .indexForSchemaNonTransactional(SchemaDescriptors.forSemanticSearch(
+        EntityType.NODE,
+        indexUsage.getLabelIds,
+        indexUsage.getPropertyKeyIds
+      )).hasNext
+
+  private def hasSemanticRelationshipIndex(tc: TransactionalContext, indexUsage: RelationshipTypeIndexUsage): Boolean =
+    tc.kernelTransaction
+      .schemaRead()
+      .indexForSchemaNonTransactional(SchemaDescriptors.forSemanticSearch(
+        EntityType.RELATIONSHIP,
+        indexUsage.getRelationshipTypeIds,
+        indexUsage.getPropertyKeyIds
+      )).hasNext
+
+  private def hasRelationshipTypeIndex(tc: TransactionalContext, indexId: IndexIds): Boolean =
+    hasRelationshipTypeIndex(tc, indexId.entityTypeIds.head, indexId.propertyKeyIds)
+
   private def hasRelationshipTypeIndex(tc: TransactionalContext, relType: Long, properties: Array[Int]): Boolean =
     tc.kernelTransaction
       .schemaRead()
       .indexForSchemaNonTransactional(SchemaDescriptors.forRelType(relType.toInt, properties: _*)).hasNext
+
+  private def hasLabelIndex(tc: TransactionalContext, indexId: IndexIds): Boolean =
+    hasLabelIndex(tc, indexId.entityTypeIds.head, indexId.propertyKeyIds)
 
   private def hasLabelIndex(tc: TransactionalContext, label: Long, properties: Array[Int]): Boolean =
     tc.kernelTransaction
@@ -136,3 +191,5 @@ class SchemaHelper(val queryCache: QueryCache[_, _], val masterCompiler: MasterC
 
   case class LockedEntities(successful: Boolean, needsReplan: Boolean)
 }
+
+case class IndexIds(entityTypeIds: Array[Long], propertyKeyIds: Array[Int])

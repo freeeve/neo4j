@@ -39,6 +39,8 @@ import org.neo4j.cypher.internal.logical.plans.SchemaIndexLookupUsage
 import org.neo4j.cypher.internal.logical.plans.SchemaLabelIndexUsage
 import org.neo4j.cypher.internal.logical.plans.SchemaLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.SchemaRelationshipIndexUsage
+import org.neo4j.cypher.internal.logical.plans.SchemaSemanticNodeIndexUsage
+import org.neo4j.cypher.internal.logical.plans.SchemaSemanticRelationshipIndexUsage
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
@@ -303,13 +305,15 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     runtimeName: RuntimeName,
     cypherVersion: CypherVersion
   ) = {
-    val schemaIndexUsage = ListBuffer.empty[SchemaIndexUsage]
+    val nodeLabelIndexUsage = ListBuffer.empty[SchemaIndexUsage]
     val relationshipTypeIndexUsage = ListBuffer.empty[RelationshipTypeIndexUsage]
+    val nodeSemanticIndexUsage = ListBuffer.empty[SchemaIndexUsage]
+    val relationshipSemanticIndexUsage = ListBuffer.empty[RelationshipTypeIndexUsage]
     val lookupIndexUsage = ListBuffer.empty[LookupIndexUsage]
 
     logicalPlan.indexUsage().foreach {
       case SchemaLabelIndexUsage(identifier, labels, propertyKeys) =>
-        schemaIndexUsage.addOne(new SchemaIndexUsage(
+        nodeLabelIndexUsage.addOne(new SchemaIndexUsage(
           identifier.name,
           labels.map(_.nameId.id).toArray,
           labels.map(_.name).toArray,
@@ -326,6 +330,24 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
           propertyKeys.map(_.name).toArray
         ))
 
+      case SchemaSemanticNodeIndexUsage(identifier, labels, propertyKeys) =>
+        nodeSemanticIndexUsage.addOne(new SchemaIndexUsage(
+          identifier.name,
+          labels.map(_.nameId.id).toArray,
+          labels.map(_.name).toArray,
+          propertyKeys.map(_.nameId.id).toArray,
+          propertyKeys.map(_.name).toArray
+        ))
+
+      case SchemaSemanticRelationshipIndexUsage(identifier, relTypes, propertyKeys) =>
+        relationshipSemanticIndexUsage.addOne(new RelationshipTypeIndexUsage(
+          identifier.name,
+          relTypes.map(_.nameId.id).toArray,
+          relTypes.map(_.name).toArray,
+          propertyKeys.map(_.nameId.id).toArray,
+          propertyKeys.map(_.name).toArray
+        ))
+
       case SchemaIndexLookupUsage(identifier, entityType) =>
         lookupIndexUsage.addOne(new LookupIndexUsage(identifier.name, entityType))
     }
@@ -333,9 +355,11 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     new CompilerInfo(
       plannerName.name,
       runtimeName.name,
-      schemaIndexUsage.asJava,
+      nodeLabelIndexUsage.asJava,
       relationshipTypeIndexUsage.asJava,
       lookupIndexUsage.asJava,
+      nodeSemanticIndexUsage.asJava,
+      relationshipSemanticIndexUsage.asJava,
       cypherVersion
     )
   }

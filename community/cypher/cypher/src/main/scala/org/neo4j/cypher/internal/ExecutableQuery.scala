@@ -95,21 +95,25 @@ trait ExecutableQuery extends CacheabilityInfo {
    * Returns label ids paired with the properties of the indexes used by this executable query, excluding lookup indexes.
    * Precomputed to reduce execution latency for very fast queries.
    */
-  val labelIdsOfUsedIndexes: Map[Long, Array[Int]] = compilerInfo.indexes().asScala
-    .collect { case item: SchemaIndexUsage => item.getLabelIds.map(lid => lid.toLong -> item.getPropertyKeys) }
-    .flatten
-    .toMap
+  val labelIndexIdsOfUsedIndexes: Set[IndexIds] = compilerInfo.indexes().asScala
+    .collect { case item: SchemaIndexUsage => IndexIds(item.getLabelIds.map(_.toLong), item.getPropertyKeyIds) }
+    .toSet
 
   /**
    * Returns the relationship type id paired with the property keys of the indexes used by this executable query, excluding lookup indexes.
    * Precomputed to reduce execution latency for very fast queries.
    */
-  val relationshipsOfUsedIndexes: Map[Long, Array[Int]] = compilerInfo.relationshipTypeIndexes().asScala
+  val relationshipIndexIdsOfUsedIndexes: Set[IndexIds] = compilerInfo.relationshipTypeIndexes().asScala
     .collect { case item: RelationshipTypeIndexUsage =>
-      item.getRelationshipTypeIds.map(lid => lid.toLong -> item.getPropertyKeyIds)
+      IndexIds(item.getRelationshipTypeIds.map(_.toLong), item.getPropertyKeyIds)
     }
-    .flatten
-    .toMap
+    .toSet
+
+  val semanticNodeIndexesUsed: Set[SchemaIndexUsage] =
+    compilerInfo.semanticNodeIndexes().asScala.toSet
+
+  val semanticRelationshipIndexesUsed: Set[RelationshipTypeIndexUsage] =
+    compilerInfo.semanticRelationshipIndexes().asScala.toSet
 
   /**
    * Lookup entity types used by this executable query.

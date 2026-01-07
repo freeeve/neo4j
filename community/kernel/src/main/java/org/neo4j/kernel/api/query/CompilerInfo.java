@@ -30,6 +30,8 @@ public class CompilerInfo {
     private final List<SchemaIndexUsage> indexes;
     private final List<RelationshipTypeIndexUsage> relationshipTypeIndexes;
     private final List<LookupIndexUsage> lookupIndexes;
+    private final List<SchemaIndexUsage> semanticNodeIndexes;
+    private final List<RelationshipTypeIndexUsage> semanticRelationshipIndexes;
     private final CypherVersion cypherVersion;
 
     public CompilerInfo(
@@ -38,17 +40,29 @@ public class CompilerInfo {
             List<SchemaIndexUsage> indexes,
             List<RelationshipTypeIndexUsage> relationshipTypeIndexes,
             List<LookupIndexUsage> lookupIndexes,
+            List<SchemaIndexUsage> semanticNodeIndexes,
+            List<RelationshipTypeIndexUsage> semanticRelationshipIndexes,
             CypherVersion cypherVersion) {
         this.planner = planner;
         this.runtime = runtime;
         this.indexes = indexes;
         this.relationshipTypeIndexes = relationshipTypeIndexes;
         this.lookupIndexes = lookupIndexes;
+        this.semanticNodeIndexes = semanticNodeIndexes;
+        this.semanticRelationshipIndexes = semanticRelationshipIndexes;
         this.cypherVersion = cypherVersion;
     }
 
     public CompilerInfo(String planner, String runtime, List<SchemaIndexUsage> indexes, CypherVersion cypherVersion) {
-        this(planner, runtime, indexes, Collections.emptyList(), Collections.emptyList(), cypherVersion);
+        this(
+                planner,
+                runtime,
+                indexes,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                cypherVersion);
     }
 
     public String planner() {
@@ -69,6 +83,14 @@ public class CompilerInfo {
 
     public List<LookupIndexUsage> lookupIndexes() {
         return lookupIndexes;
+    }
+
+    public List<SchemaIndexUsage> semanticNodeIndexes() {
+        return semanticNodeIndexes;
+    }
+
+    public List<RelationshipTypeIndexUsage> semanticRelationshipIndexes() {
+        return semanticRelationshipIndexes;
     }
 
     public CypherVersion getCypherVersion() {

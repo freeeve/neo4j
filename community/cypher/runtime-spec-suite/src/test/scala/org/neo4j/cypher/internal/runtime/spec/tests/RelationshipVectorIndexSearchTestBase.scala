@@ -45,7 +45,6 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.dbms.database.DbmsRuntimeVersion
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InvalidArgumentException
-import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.schema.IndexType
@@ -86,7 +85,6 @@ import java.time.ZoneOffset
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.Ordering.comparatorToOrdering
-import scala.util.Random
 
 //noinspection ScalaDeprecation,RedundantDefaultArgument
 abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
