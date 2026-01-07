@@ -125,6 +125,10 @@ public abstract class RequestQueue implements AutoCloseable {
         // do what thou whilst
     }
 
+    protected long pollingTimeoutMs() {
+        return queueConfig.pollingTimeout().toMillis();
+    }
+
     private CompletableFuture<ByteBuffer> request(long from) {
         final var end = Math.min(from + queueConfig.chunkSize(), objectSize);
         onBeforeLoad(from, end);

@@ -23,6 +23,7 @@ import static org.neo4j.cloud.storage.StorageUtils.toIOException;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.neo4j.cloud.storage.queues.RequestQueueConfigs.QueueConfig;
 
 /**
@@ -64,7 +65,7 @@ public abstract class PushQueue extends RequestQueue implements Runnable {
             // loop while we have some requests still in the queue
             while ((response = poll(true)) != null) {
                 // send the data on its merry way
-                onData(response.get());
+                onData(response.get(pollingTimeoutMs(), TimeUnit.MILLISECONDS));
             }
         } catch (Exception ex) {
             onError(toIOException(ex, () -> "Unable to get the next chunk of data: " + this));

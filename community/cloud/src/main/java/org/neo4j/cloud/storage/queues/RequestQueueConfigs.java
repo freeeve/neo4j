@@ -23,13 +23,16 @@ import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.cloud.storage.StorageSettingsDeclaration.READ_IS_FOR_SAMPLING_FLAG;
 import static org.neo4j.cloud.storage.StorageSettingsDeclaration.pullQueueChunkSize;
+import static org.neo4j.cloud.storage.StorageSettingsDeclaration.pullQueuePollTimeout;
 import static org.neo4j.cloud.storage.StorageSettingsDeclaration.pullQueueSlotSize;
 import static org.neo4j.cloud.storage.StorageSettingsDeclaration.pushQueueChunkSize;
+import static org.neo4j.cloud.storage.StorageSettingsDeclaration.pushQueuePollTimeout;
 import static org.neo4j.cloud.storage.StorageSettingsDeclaration.pushQueueSlotSize;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.io.ByteUnit.mebiBytes;
 import static org.neo4j.util.Preconditions.requirePositive;
 
+import java.time.Duration;
 import org.neo4j.cloud.storage.StoragePath;
 import org.neo4j.cloud.storage.StorageSystemProvider;
 
@@ -66,27 +69,35 @@ public record RequestQueueConfigs(QueueConfig pushConfig, QueueConfig pullConfig
 
     private static QueueConfig pushQueueConfig(StoragePath path) {
         final var config = StorageSystemProvider.config(path);
-        return new QueueConfig(config.get(pushQueueSlotSize(path)), toIntExact(config.get(pushQueueChunkSize(path))));
+        return new QueueConfig(
+                config.get(pushQueueSlotSize(path)),
+                toIntExact(config.get(pushQueueChunkSize(path))),
+                config.get(pushQueuePollTimeout(path)));
     }
 
     private static QueueConfig pullQueueConfig(StoragePath path, boolean isForSampling) {
         final var config = StorageSystemProvider.config(path);
         if (isForSampling) {
-            return new QueueConfig(SAMPLING_PULL_QUEUE_SIZE, SAMPLING_PULL_QUEUE_CHUNK_SIZE);
+            return new QueueConfig(
+                    SAMPLING_PULL_QUEUE_SIZE, SAMPLING_PULL_QUEUE_CHUNK_SIZE, config.get(pullQueuePollTimeout(path)));
         } else {
             return new QueueConfig(
-                    config.get(pullQueueSlotSize(path)), toIntExact(config.get(pullQueueChunkSize(path))));
+                    config.get(pullQueueSlotSize(path)),
+                    toIntExact(config.get(pullQueueChunkSize(path))),
+                    config.get(pullQueuePollTimeout(path)));
         }
     }
 
     /**
      * @param queueSize the size of the queue that maintains at most <code>queueSize</code> requests concurrently running
      * @param chunkSize the size of the data chunk to be downloaded in each request
+     * @param pollingTimeout the timeout when polling for a chunk to be downloaded in the queue
      */
-    public record QueueConfig(int queueSize, int chunkSize) {
+    public record QueueConfig(int queueSize, int chunkSize, Duration pollingTimeout) {
         public QueueConfig {
             requirePositive(queueSize);
             requirePositive(chunkSize);
+            requireNonNull(pollingTimeout);
         }
     }
 }

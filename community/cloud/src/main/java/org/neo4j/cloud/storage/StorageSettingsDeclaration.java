@@ -23,10 +23,12 @@ import static org.neo4j.configuration.SettingConstraints.min;
 import static org.neo4j.configuration.SettingConstraints.range;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BYTES;
+import static org.neo4j.configuration.SettingValueParsers.DURATION;
 import static org.neo4j.configuration.SettingValueParsers.INT;
 import static org.neo4j.io.ByteUnit.gibiBytes;
 import static org.neo4j.io.ByteUnit.mebiBytes;
 
+import java.time.Duration;
 import java.util.Objects;
 import org.neo4j.cloud.storage.queues.PullQueue;
 import org.neo4j.cloud.storage.queues.PushQueue;
@@ -39,6 +41,8 @@ import org.neo4j.graphdb.config.Setting;
 public abstract class StorageSettingsDeclaration implements SettingsDeclaration {
 
     public static final long CHUNK_SIZE = mebiBytes(8);
+
+    public static final Duration DEFAULT_POLL_TIMEOUT = Duration.ofMinutes(5);
 
     public static final int MINIMUM_INFLIGHT_WRITE_REQUESTS = 3;
 
@@ -75,6 +79,14 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
 
     /**
      * @param path the path to use for determining the setting
+     * @return the appropriate push queue poll timeout (based on the {@link StoragePath} scheme
+     */
+    public static Setting<Duration> pushQueuePollTimeout(StoragePath path) {
+        return pushQueueTimeoutDuration(scheme(path));
+    }
+
+    /**
+     * @param path the path to use for determining the setting
      * @return the appropriate pull queue slot size setting (based on the {@link StoragePath} scheme
      */
     public static Setting<Integer> pullQueueSlotSize(StoragePath path) {
@@ -89,27 +101,45 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
         return pullQueueChunkSize(scheme(path));
     }
 
+    /**
+     * @param path the path to use for determining the setting
+     * @return the appropriate pull queue poll timeout (based on the {@link StoragePath} scheme
+     */
+    public static Setting<Duration> pullQueuePollTimeout(StoragePath path) {
+        return pullQueueTimeoutDuration(scheme(path));
+    }
+
     protected static Setting<Integer> pushQueueSlotSize(String scheme) {
-        return queueOption(scheme, "push", "slot", INT, PushQueue.QUEUE_SIZE)
+        return queueOption(scheme, "push", "slot_size", INT, PushQueue.QUEUE_SIZE)
                 .addConstraint(min(16))
                 .build();
     }
 
     protected static Setting<Long> pushQueueChunkSize(String scheme) {
-        return queueOption(scheme, "push", "chunk", BYTES, CHUNK_SIZE)
+        return queueOption(scheme, "push", "chunk_size", BYTES, CHUNK_SIZE)
                 .addConstraint(CHUNK_RANGE)
                 .build();
     }
 
+    protected static Setting<Duration> pushQueueTimeoutDuration(String scheme) {
+        return queueOption(scheme, "push", "poll_timeout", DURATION, DEFAULT_POLL_TIMEOUT)
+                .build();
+    }
+
     protected static Setting<Integer> pullQueueSlotSize(String scheme) {
-        return queueOption(scheme, "pull", "slot", INT, defaultPullQueueSize())
+        return queueOption(scheme, "pull", "slot_size", INT, defaultPullQueueSize())
                 .addConstraint(min(1))
                 .build();
     }
 
     protected static Setting<Long> pullQueueChunkSize(String scheme) {
-        return queueOption(scheme, "pull", "chunk", BYTES, CHUNK_SIZE)
+        return queueOption(scheme, "pull", "chunk_size", BYTES, CHUNK_SIZE)
                 .addConstraint(CHUNK_RANGE)
+                .build();
+    }
+
+    protected static Setting<Duration> pullQueueTimeoutDuration(String scheme) {
+        return queueOption(scheme, "pull", "poll_timeout", DURATION, DEFAULT_POLL_TIMEOUT)
                 .build();
     }
 
@@ -130,7 +160,7 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
 
     private static <S> SettingBuilder<S> queueOption(
             String scheme, String queueType, String optionType, SettingValueParser<S> parser, S defaultValue) {
-        return internalOption(scheme, "%s_queue_%s_size".formatted(queueType, optionType), parser, defaultValue);
+        return internalOption(scheme, "%s_queue_%s".formatted(queueType, optionType), parser, defaultValue);
     }
 
     private static String scheme(StoragePath path) {

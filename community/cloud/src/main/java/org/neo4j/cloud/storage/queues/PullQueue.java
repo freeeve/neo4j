@@ -25,7 +25,7 @@ import static org.neo4j.util.Preconditions.requireNonNegative;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
-import org.neo4j.cloud.storage.StorageSettingsDeclaration;
+import java.util.concurrent.TimeUnit;
 import org.neo4j.cloud.storage.queues.RequestQueueConfigs.QueueConfig;
 import org.neo4j.function.ThrowingSupplier;
 
@@ -41,7 +41,6 @@ public abstract class PullQueue extends RequestQueue implements ThrowingSupplier
 
     /**
      * @param config the queue config
-     * {@link StorageSettingsDeclaration#pull_queue_chunk_size}
      * @param objectSize the total size of the object in cloud storage
      */
     protected PullQueue(QueueConfig config, long objectSize) {
@@ -98,7 +97,7 @@ public abstract class PullQueue extends RequestQueue implements ThrowingSupplier
 
     private ByteBuffer asByteBuffer(CompletableFuture<ByteBuffer> response) throws IOException {
         try {
-            return response == null ? null : response.get();
+            return response == null ? null : response.get(pollingTimeoutMs(), TimeUnit.MILLISECONDS);
         } catch (Exception ex) {
             throw toIOException(ex, () -> "Unable to get the next chunk of data: " + this);
         }
