@@ -194,9 +194,11 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
 
   selectors.map(_.syntax).foreach { selector =>
     test(s"MATCH p = $selector ((a)-[r]->+(b)<-[s]-+(c) WHERE length(p) > 3) RETURN p") {
-      run().hasErrorMessages(
-        """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-          |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) (()<-[s]-())+ (c) WHERE length(p) > 3).""".stripMargin
+      run().hasAllErrorMessagesIn(_ =>
+        Seq(
+          """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+            |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) (()<-[s]-())+ (c) WHERE length(p) > 3).""".stripMargin
+        )
       )
     }
   }

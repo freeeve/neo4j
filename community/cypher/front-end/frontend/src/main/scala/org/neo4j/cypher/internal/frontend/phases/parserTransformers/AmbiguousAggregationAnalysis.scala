@@ -20,12 +20,15 @@ import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.SEMANTIC_CHECK
 import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.VariableChecker
 import org.neo4j.cypher.internal.rewriting.conditions.FunctionInvocationsResolved
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions.ExpressionsHaveComputedDependencies
 import org.neo4j.cypher.internal.util.StepSequencer
@@ -36,11 +39,21 @@ import org.neo4j.cypher.internal.util.StepSequencer
 case object AmbiguousAggregationAnalysis extends VisitorPhase[BaseContext, BaseState] with StepSequencer.Step {
 
   override def visit(from: BaseState, context: BaseContext): Unit = {
-    val errors = from.statement().folder.fold(Seq.empty[SemanticErrorDef]) {
-      // If we project '*', we don't need to check ambiguity since we group on all available variables.
-      case projectionClause: ProjectionClause if !projectionClause.returnItems.includeExisting =>
-        _ ++ projectionClause.orderBy.toSeq.flatMap(_.checkIllegalOrdering(projectionClause.returnItems)) ++
-          ReturnItems.checkAmbiguousGrouping(projectionClause.returnItems)
+    val errors = if (from.semantics().features.contains(VariableChecking)) {
+      // Until we remove the feature flag we won't be able to set the correct dependencies for the transformer
+      //  without causing a lot of unnecessary rerunning of the ScopeSurveyor. Instead, we run it manually here.
+      from.statement().folder.fold(Seq.empty[SemanticErrorDef]) {
+        // If we project '*', we don't need to check ambiguity since we group on all available variables.
+        case projectionClause: ProjectionClause if !projectionClause.returnItems.includeExisting =>
+          _ ++ projectionClause.orderBy.toSeq.flatMap(_.checkIllegalOrdering(projectionClause.returnItems))
+      } ++ VariableChecker.checkForAmbiguousAggregation(ScopeSurveyor.process(from, context), context)
+    } else {
+      from.statement().folder.fold(Seq.empty[SemanticErrorDef]) {
+        // If we project '*', we don't need to check ambiguity since we group on all available variables.
+        case projectionClause: ProjectionClause if !projectionClause.returnItems.includeExisting =>
+          _ ++ projectionClause.orderBy.toSeq.flatMap(_.checkIllegalOrdering(projectionClause.returnItems)) ++
+            ReturnItems.checkAmbiguousGrouping(projectionClause.returnItems)
+      }
     }
 
     context.errorHandler(errors)

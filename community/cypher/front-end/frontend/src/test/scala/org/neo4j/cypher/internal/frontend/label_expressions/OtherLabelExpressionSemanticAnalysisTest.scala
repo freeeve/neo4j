@@ -269,11 +269,9 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test(
-    """
-      |MATCH (n)
-      |WITH [x IN [n] WHERE x:$(A)] AS labelCheck
-      |RETURN labelCheck
-      |""".stripMargin
+    """MATCH (n)
+      |WITH [x IN [n] WHERE x:$("A")] AS labelCheck
+      |RETURN labelCheck""".stripMargin
   ) {
     runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher25)).hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
@@ -284,7 +282,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   test(
     """
       |MATCH (n)
-      |WHERE n:$(A)
+      |WHERE n:$("A")
       |RETURN n
       |""".stripMargin
   ) {
@@ -297,7 +295,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   test(
     """
       |MATCH (n)
-      |RETURN n:$(A)
+      |RETURN n:$("A")
       |""".stripMargin
   ) {
     runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher25)).hasErrorMessages(
@@ -308,7 +306,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test(
     """
-      |MATCH (n WHERE n:$(A))
+      |MATCH (n WHERE n:$("A"))
       |RETURN n
       |""".stripMargin
   ) {
@@ -320,7 +318,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test(
     """
-      |MATCH ()-[r WHERE r:$(A)]->()
+      |MATCH ()-[r WHERE r:$("A")]->()
       |RETURN r
       |""".stripMargin
   ) {

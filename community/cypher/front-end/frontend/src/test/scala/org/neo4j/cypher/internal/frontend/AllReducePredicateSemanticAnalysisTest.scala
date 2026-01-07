@@ -333,7 +333,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |WHERE allReduce(acc = 0,
         |                node IN n | acc + node.prop,
         |                EXISTS {
-        |                        CALL (m) { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a AS k, m AS x }
+        |                        CALL (m, acc) { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a AS k, m AS x }
         |                      })
         |RETURN a, b
         |""".stripMargin
@@ -585,7 +585,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       """MATCH (a)-[r]->+(b)
         |RETURN allReduce(acc = 0, acc + 1, acc <= 5)
         |""".stripMargin
-    ).hasGQLErrorsIn {
+    ).hasAllGQLErrorsIn {
       case CypherVersion.Cypher5 => Seq((
           ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001).withCause(
             ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62).atPosition(37, 2, 18).withParam(
@@ -616,7 +616,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       """MATCH (a)-[r]->+(b)
         |RETURN allReduce(step IN r | acc + 1, acc <= 5)
         |""".stripMargin
-    ).hasGQLErrorsIn(_ => invalidAllReduceSyntax(line = 2, column = 8, offset = 27))
+    ).hasAllGQLErrorsIn(_ => invalidAllReduceSyntax(line = 2, column = 8, offset = 27))
   }
 
   test("should return a meaningful error when allReduce is with multiple reduction steps") {
@@ -624,7 +624,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       """MATCH (a)-[r]->+(b)
         |RETURN allReduce(acc = 0, step IN r | acc + 1, stepA in a | acc + 1, acc <= 5)
         |""".stripMargin
-    ).hasGQLErrorsIn(_ => invalidAllReduceSyntax(offset = 27, column = 8, line = 2))
+    ).hasAllGQLErrorsIn(_ => invalidAllReduceSyntax(offset = 27, column = 8, line = 2))
   }
 
   private def invalidAllReduceSyntax(offset: Int, column: Int, line: Int) = Seq((

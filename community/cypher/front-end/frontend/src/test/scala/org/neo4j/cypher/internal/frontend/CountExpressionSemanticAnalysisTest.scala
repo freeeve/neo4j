@@ -222,10 +222,21 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    run().hasError(
-      getGql42001_42N07("a", 51, 4, 15),
-      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      p(51, 4, 15)
+    run().hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        // Semantic Analysis
+        (
+          getGql42001_42N07("a", 51, 4, 15),
+          "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+          p(51, 4, 15)
+        ),
+        // Variable Checker
+        (
+          getGql42001_42N07("a", 39, 4, 3),
+          "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+          p(39, 4, 3)
+        )
+      )
     )
   }
 
@@ -243,10 +254,21 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    run().hasError(
-      getGql42001_42N07("a", 126, 10, 15),
-      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      p(126, 10, 15)
+    run().hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        // Semantic Analysis
+        (
+          getGql42001_42N07("a", 126, 10, 15),
+          "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+          p(126, 10, 15)
+        ),
+        // Variable Checker
+        (
+          getGql42001_42N07("a", 114, 10, 3),
+          "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+          p(114, 10, 3)
+        )
+      )
     )
   }
 

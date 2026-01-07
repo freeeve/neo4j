@@ -258,18 +258,26 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
   }
 
   test("should not allow node pattern predicates in CREATE") {
-    run("CREATE (n WHERE n.prop = 123)").hasError(
-      GqlHelper.getGql42001_42I32("a CREATE clause", 23, 1, 24),
-      "Node pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
-      p(23, 1, 24)
+    run("CREATE (n WHERE n.prop = 123)").hasAllGQLErrorsIn(_ =>
+      Seq(
+        (
+          GqlHelper.getGql42001_42I32("a CREATE clause", 23, 1, 24),
+          "Node pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
+          p(23, 1, 24)
+        )
+      )
     )
   }
 
   test("should not allow node pattern predicates in MERGE") {
-    run("MERGE (n WHERE n.prop = 123)").hasError(
-      GqlHelper.getGql42001_42I32("a MERGE clause", 22, 1, 23),
-      "Node pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
-      p(22, 1, 23)
+    run("MERGE (n WHERE n.prop = 123)").hasAllGQLErrorsIn(_ =>
+      Seq(
+        (
+          GqlHelper.getGql42001_42I32("a MERGE clause", 22, 1, 23),
+          "Node pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
+          p(22, 1, 23)
+        )
+      )
     )
   }
 
@@ -331,10 +339,12 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
   test("should not allow relationship pattern predicates in MATCH when path length is provided") {
     run(
       "WITH 123 AS minValue MATCH (n)-[r:Relationship*1..3 {prop: 42} WHERE r.otherProp > minValue]->(m) RETURN r AS result"
-    ).hasError(
-      GqlHelper.getGql42001_42N37(81, 1, 82),
-      "Relationship pattern predicates are not supported for variable-length relationships.",
-      p(81, 1, 82)
+    ).hasAllGQLErrorsIn(_ =>
+      Seq((
+        GqlHelper.getGql42001_42N37(81, 1, 82),
+        "Relationship pattern predicates are not supported for variable-length relationships.",
+        p(81, 1, 82)
+      ))
     )
   }
 
@@ -344,18 +354,22 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
   }
 
   test("should not allow relationship pattern predicates in CREATE") {
-    run("CREATE (n)-[r:Relationship WHERE r.prop = 42]->(m)").hasError(
-      GqlHelper.getGql42001_42I32("a CREATE clause", 40, 1, 41),
-      "Relationship pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
-      p(40, 1, 41)
+    run("CREATE (n)-[r:Relationship WHERE r.prop = 42]->(m)").hasAllGQLErrorsIn(_ =>
+      Seq((
+        GqlHelper.getGql42001_42I32("a CREATE clause", 40, 1, 41),
+        "Relationship pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
+        p(40, 1, 41)
+      ))
     )
   }
 
   test("should not allow relationship pattern predicates in MERGE") {
-    run("MERGE (n)-[r:Relationship WHERE r.prop = 42]->(m)").hasError(
-      GqlHelper.getGql42001_42I32("a MERGE clause", 39, 1, 40),
-      "Relationship pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
-      p(39, 1, 40)
+    run("MERGE (n)-[r:Relationship WHERE r.prop = 42]->(m)").hasAllGQLErrorsIn(_ =>
+      Seq((
+        GqlHelper.getGql42001_42I32("a MERGE clause", 39, 1, 40),
+        "Relationship pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
+        p(39, 1, 40)
+      ))
     )
   }
 
@@ -1542,13 +1556,19 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
   }
 
   test("Should disallow introducing variables in pattern expressions") {
-    run("MATCH (x) WHERE (x)-[r]-(y) RETURN x").hasErrors(
-      gql42N29(p(21, 1, 22), "r"),
-      "PatternExpressions are not allowed to introduce new variables: 'r'.",
-      p(21, 1, 22),
-      gql42N29(p(25, 1, 26), "y"),
-      "PatternExpressions are not allowed to introduce new variables: 'y'.",
-      p(25, 1, 26)
+    run("MATCH (x) WHERE (x)-[r]-(y) RETURN x").hasAllGQLErrorsIn(_ =>
+      Seq(
+        (
+          gql42N29(p(21, 1, 22), "r"),
+          "PatternExpressions are not allowed to introduce new variables: 'r'.",
+          p(21, 1, 22)
+        ),
+        (
+          gql42N29(p(25, 1, 26), "y"),
+          "PatternExpressions are not allowed to introduce new variables: 'y'.",
+          p(25, 1, 26)
+        )
+      )
     )
   }
 

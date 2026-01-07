@@ -88,19 +88,29 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH (p = (a)--(b))+ (p = (c)--(d))+ RETURN p") {
-    run().hasErrors(
-      GqlHelper.getGql42001_42N59("p", 7, 1, 8),
-      "The variable `p` occurs in multiple quantified path patterns and needs to be renamed.",
-      InputPosition(7, 1, 8),
-      GqlHelper.getGql42001_42N34(7, 1, 8),
-      "Assigning a path in a quantified path pattern is not yet supported.",
-      InputPosition(7, 1, 8),
-      GqlHelper.getGql42001_42N34(23, 1, 24),
-      "Assigning a path in a quantified path pattern is not yet supported.",
-      InputPosition(23, 1, 24),
-      GqlHelper.getGql42001_42N59("p", 22, 1, 23),
-      "Variable `p` already declared",
-      InputPosition(22, 1, 23)
+    run().hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        (
+          GqlHelper.getGql42001_42N59("p", 7, 1, 8),
+          "The variable `p` occurs in multiple quantified path patterns and needs to be renamed.",
+          InputPosition(7, 1, 8)
+        ),
+        (
+          GqlHelper.getGql42001_42N34(7, 1, 8),
+          "Assigning a path in a quantified path pattern is not yet supported.",
+          InputPosition(7, 1, 8)
+        ),
+        (
+          GqlHelper.getGql42001_42N34(23, 1, 24),
+          "Assigning a path in a quantified path pattern is not yet supported.",
+          InputPosition(23, 1, 24)
+        ),
+        (
+          GqlHelper.getGql42001_42N59("p", 22, 1, 23),
+          "Variable `p` already declared",
+          InputPosition(22, 1, 23)
+        )
+      )
     )
   }
 
@@ -119,19 +129,29 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH (p = (a)--(b))+ MATCH (p = (c)--(d))+ RETURN p") {
-    run().hasErrors(
-      GqlHelper.getGql42001_42N34(7, 1, 8),
-      "Assigning a path in a quantified path pattern is not yet supported.",
-      InputPosition(7, 1, 8),
-      GqlHelper.getGql42001_42N34(29, 1, 30),
-      "Assigning a path in a quantified path pattern is not yet supported.",
-      InputPosition(29, 1, 30),
-      GqlHelper.getGql42001_42N59("p", 29, 1, 30),
-      "The variable `p` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
-      InputPosition(29, 1, 30),
-      GqlHelper.getGql42001_42N59("p", 28, 1, 29),
-      "Variable `p` already declared",
-      InputPosition(28, 1, 29)
+    run().hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        (
+          GqlHelper.getGql42001_42N34(7, 1, 8),
+          "Assigning a path in a quantified path pattern is not yet supported.",
+          InputPosition(7, 1, 8)
+        ),
+        (
+          GqlHelper.getGql42001_42N34(29, 1, 30),
+          "Assigning a path in a quantified path pattern is not yet supported.",
+          InputPosition(29, 1, 30)
+        ),
+        (
+          GqlHelper.getGql42001_42N59("p", 29, 1, 30),
+          "The variable `p` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
+          InputPosition(29, 1, 30)
+        ),
+        (
+          GqlHelper.getGql42001_42N59("p", 28, 1, 29),
+          "Variable `p` already declared",
+          InputPosition(28, 1, 29)
+        )
+      )
     )
   }
 
@@ -415,7 +435,7 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH ((a)-->(b))+ ((b)-->(c))+ RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasAtLeastOneErrorMessageIn(
       "The variable `b` occurs in multiple quantified path patterns and needs to be renamed.",
       "Type mismatch: b defined with conflicting type List<Node> (expected Node)",
       "Variable `b` already declared"
@@ -423,7 +443,7 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH (()-[r]->())+ (()-[r]->())+ RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasAtLeastOneErrorMessageIn(
       "The variable `r` occurs in multiple quantified path patterns and needs to be renamed.",
       "Type mismatch: r defined with conflicting type List<Relationship> (expected Relationship)",
       "Variable `r` already declared"
@@ -431,42 +451,35 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH ((a)-[b]->(c))* (d)-[e]->(a) RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasAtLeastOneErrorMessageIn(
       "The variable `a` occurs both inside and outside a quantified path pattern and needs to be renamed.",
       "Type mismatch: a defined with conflicting type List<Node> (expected Node)"
     )
   }
 
   test("MATCH (a)-[e]->(d) ((a)-[b]->(c))*  RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasAtLeastOneErrorMessageIn(
       "The variable `a` occurs both inside and outside a quantified path pattern and needs to be renamed.",
       "Variable `a` already declared"
     )
   }
 
   test("MATCH (()-[r]->())* ()-[r]->() RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasAtLeastOneErrorMessageIn(
       "The variable `r` occurs both inside and outside a quantified path pattern and needs to be renamed.",
       "Type mismatch: r defined with conflicting type List<Relationship> (expected Relationship)"
     )
   }
 
   test("MATCH ()-[r]->() (()-[r]->())*  RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasAtLeastOneErrorMessageIn(
       "The variable `r` occurs both inside and outside a quantified path pattern and needs to be renamed.",
       "Variable `r` already declared"
-    ).hasErrors(
-      GqlHelper.getGql42001_42N59("r", 22, 1, 23),
-      "The variable `r` occurs both inside and outside a quantified path pattern and needs to be renamed.",
-      InputPosition(22, 1, 23),
-      GqlHelper.getGql42001_42N59("r", 17, 1, 18),
-      "Variable `r` already declared",
-      InputPosition(17, 1, 18)
     )
   }
 
   test("MATCH ((a)-[b]->(c))* (d)-[e]->()((a)-[f]->(g)){2,} RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasAtLeastOneErrorMessageIn(
       "The variable `a` occurs in multiple quantified path patterns and needs to be renamed.",
       "Type mismatch: a defined with conflicting type List<Node> (expected Node)",
       "Variable `a` already declared"
@@ -474,7 +487,7 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH ((a)-[b]->(c))* (d)-[b]->+(f) RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasAtLeastOneErrorMessageIn(
       "The variable `b` occurs in multiple quantified path patterns and needs to be renamed.",
       "Type mismatch: b defined with conflicting type List<Relationship> (expected Relationship)",
       "Variable `b` already declared"
@@ -482,21 +495,29 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH (a)-->(b) MATCH (x)--(y) ((a)-->(t)){1,5} ()-->(z) RETURN count(*)") {
-    run().hasErrorMessages(
-      "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
-      "Variable `a` already declared"
-    ).hasErrors(
-      GqlHelper.getGql42001_42N59("a", 33, 1, 34),
-      "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
-      InputPosition(33, 1, 34),
-      GqlHelper.getGql42001_42N59("a", 31, 1, 32),
-      "Variable `a` already declared",
-      InputPosition(31, 1, 32)
+    run().hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        (
+          GqlHelper.getGql42001_42N59("a", 33, 1, 34),
+          "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
+          InputPosition(33, 1, 34)
+        ),
+        (
+          GqlHelper.getGql42001_42N59("a", 33, 1, 34),
+          "Variable `a` already declared",
+          InputPosition(33, 1, 34)
+        ),
+        (
+          GqlHelper.getGql42001_42N59("a", 31, 1, 32),
+          "Variable `a` already declared",
+          InputPosition(31, 1, 32)
+        )
+      )
     )
   }
 
   test("MATCH ((a)-->(b))+ MATCH (x)--(y) ((a)-->(t)){1,5} ()-->(z) RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasAtLeastOneErrorMessageIn(
       "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
       "Type mismatch: a defined with conflicting type List<Node> (expected Node)",
       "Variable `a` already declared"
@@ -642,18 +663,20 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH p=(x)-->(y), ((a)-[e]->(b {h: nodes(p)[0].prop}))* (s)-->(u) RETURN count(*)") {
-    run().hasError(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(6, 1, 7)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
+    run().hasAtLeastOneGqlErrorIn(_ =>
+      Seq((
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(6, 1, 7)
-          .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
-          .withParam(GqlParams.StringParam.pat, "((a)-[e]->(b {h: (nodes(p)[0]).prop}))*")
-          .build())
-        .build(),
-      """From within a quantified path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-        |In this case, `p` is defined in the same `MATCH` clause as ((a)-[e]->(b {h: (nodes(p)[0]).prop}))*.""".stripMargin,
-      InputPosition(6, 1, 7)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
+            .atPosition(6, 1, 7)
+            .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
+            .withParam(GqlParams.StringParam.pat, "((a)-[e]->(b {h: (nodes(p)[0]).prop}))*")
+            .build())
+          .build(),
+        """From within a quantified path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+          |In this case, `p` is defined in the same `MATCH` clause as ((a)-[e]->(b {h: (nodes(p)[0]).prop}))*.""".stripMargin,
+        InputPosition(6, 1, 7)
+      ))
     )
   }
 
@@ -707,9 +730,11 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
     val query =
       """MATCH p = (a) ((b)-[r]-(c) WHERE r.prop = length(p))+ (d)
         |RETURN p""".stripMargin
-    run(query).hasErrorMessages(
-      """From within a quantified path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-        |In this case, `p` is defined in the same `MATCH` clause as ((b)-[r]-(c) WHERE r.prop = length(p))+.""".stripMargin
+    run(query).hasAllErrorMessagesIn(_ =>
+      Seq(
+        """From within a quantified path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+          |In this case, `p` is defined in the same `MATCH` clause as ((b)-[r]-(c) WHERE r.prop = length(p))+.""".stripMargin
+      )
     )
   }
 

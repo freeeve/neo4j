@@ -89,6 +89,10 @@ object SemanticFeature {
     override def name: String = "scope queries"
   }
 
+  case object VariableChecking extends SemanticFeature with FeatureToString {
+    override def name: String = "variable checking"
+  }
+
   /**
    * Normally it's not allowed to mix old and new label expression syntax within a clause.
    * The implementation of this check has had bugs in the past, can be inconvenient for users
@@ -123,6 +127,7 @@ object SemanticFeature {
     VectorSearch,
     LocalCallables,
     ScopeQueries,
+    VariableChecking,
     AllowClauseWithMixedLabelSyntax,
     PathModes,
     AttributeBasedAccessControl

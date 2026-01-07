@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
@@ -37,6 +38,8 @@ import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransfor
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting.SemanticAnalysisPossible
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.VariableChecker
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
@@ -68,7 +71,19 @@ case class SemanticAnalysis(warn: Option[Boolean], features: SemanticFeature*)
     if (warn.getOrElse(!from.maybeSemantics.exists(_.semanticCheckHasRunOnce)))
       state.notifications.foreach(context.notificationLogger.log)
 
-    context.errorHandler(errors)
+    // feature flag here
+    if (context.semanticFeatures.contains(VariableChecking)) {
+      val saErrors = errors.filter(VariableChecker.isNotImplementedCode)
+      val vcErrors = if (from.maybeSemantics.isEmpty) {
+        // Until we remove the feature flag we won't be able to set the correct dependencies for the transformer
+        //  without causing a lot of unnecessary rerunning of the ScopeSurveyor. Instead, we run it manually here.
+        VariableChecker.gatherAllErrors(ScopeSurveyor.process(from, context), context)
+      } else Seq.empty
+      val allErrors = (vcErrors ++ saErrors).sortBy(e => VariableChecker.getErrorOrder(e))
+      context.errorHandler(allErrors)
+    } else {
+      context.errorHandler(errors)
+    }
 
     val cleanedTypeTable =
       state.typeTable

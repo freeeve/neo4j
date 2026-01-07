@@ -243,9 +243,9 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
     val updatedYield = expected.asInstanceOf[ReadAdministrationCommand].yieldOrWhere.map {
       case Left((y, r)) if y.returnItems.defaultOrderOnColumns.isEmpty =>
         Left((
-          y.withReturnItems(
-            y.returnItems.withDefaultOrderOnColumns(expectedDefaultColumns)
-          ).withYieldType(YieldAddedInRewrite),
+          y
+            .withReturnItems(y.returnItems.withDefaultOrderOnColumns(expectedDefaultColumns))
+            .withYieldType(YieldAddedInRewrite),
           r
         ))
       case o => o

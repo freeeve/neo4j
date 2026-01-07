@@ -371,11 +371,9 @@ class MutatingStatementConvertersTest extends CypherFunSuite with LogicalPlannin
       "MERGE (prev)-[r:R]->(a) ON CREATE SET prev.p = five" -> Set("prev", "five"),
       "MERGE (prev)-[r:R]->(a {p: five})" -> Set("prev", "five"),
       "MERGE (prev)-[r:R {p: five}]->(a)" -> Set("prev", "five"),
-      "MERGE (prev)-[r:R {p: a.p}]->(a)" -> Set("prev"),
       "MERGE (prev)-[r:R {p: prev.p}]->(a)" -> Set("prev"),
       "MERGE (prev)-[r:R]->(a)" -> Set("prev"),
-      "MERGE (prev)-[r:R]->(a)-[r2:R]->(b)" -> Set("prev"),
-      "MERGE (prev)-[r:R]->(a)-[r2:R {p:r.p}]->(b)" -> Set("prev")
+      "MERGE (prev)-[r:R]->(a)-[r2:R]->(b)" -> Set("prev")
     )
 
     forAll(merges) {

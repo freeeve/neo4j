@@ -387,6 +387,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.cypher.enable_scope_queries", BOOL, false).build();
 
     @Internal
+    @Description("Set this to enable the use of the variable checker in semantic analysis.")
+    public static final Setting<Boolean> cypher_enable_variable_checker =
+            newBuilder("internal.cypher.enable_variable_checker", BOOL, true).build();
+
+    @Internal
     @Description("Set this to enable monitors in the Cypher runtime.")
     public static final Setting<Boolean> cypher_enable_runtime_monitors =
             newBuilder("internal.cypher.enable_runtime_monitors", BOOL, false).build();

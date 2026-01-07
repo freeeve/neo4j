@@ -190,6 +190,20 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
         }
       }
 
+    def hasAllErrorsIn(expected: SemanticErrorDef*): Self =
+      assert { result =>
+        (result.errors, expected) match {
+          case (Seq(error), Seq(expected)) =>
+            withClue(s"""position: ${error.position.verboseString}
+                        |expected position: ${expected.position.verboseString}
+                        |""".stripMargin) {
+              error shouldEqual expected
+            }
+          case (actual, expected) =>
+            actual should contain allElementsOf expected
+        }
+      }
+
     def hasErrors(gql1: GqlError, msg1: String, p1: Pos, gql2: GqlError, msg2: String, p2: Pos): Self =
       hasErrors(SemanticError(gql1, msg1, p1), SemanticError(gql2, msg2, p2))
 
@@ -230,6 +244,9 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     def hasErrorMessages(expected: String*): Self =
       assert(_.errorMessages.distinct.map(normalizeNewLines) should contain theSameElementsAs expected)
 
+    def hasAtLeastOneErrorMessageIn(expected: String*): Self =
+      assert(_.errorMessages.distinct.map(normalizeNewLines) should contain atLeastOneElementOf expected)
+
     def hasNotifications(expected: Notification*): Self =
       assert(_.notifications should contain theSameElementsAs expected)
     def hasNoNotifications: Any = hasNotifications()
@@ -243,8 +260,17 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     def hasErrorMessagesIn(f: CypherVersion => Seq[String]): Self =
       assertIn(v => r => r.errorMessages should contain theSameElementsAs f(v))
 
+    def hasAllErrorMessagesIn(f: CypherVersion => Seq[String]): Self =
+      assertIn(v => r => r.errorMessages should contain allElementsOf f(v))
+
     def hasGQLErrorsIn(f: CypherVersion => Seq[(GqlError, String, Pos)]): Self =
       assertIn(v => r => r.errors should contain theSameElementsAs f(v).map(toSemErr))
+
+    def hasAllGQLErrorsIn(f: CypherVersion => Seq[(GqlError, String, Pos)]): Self =
+      assertIn(v => r => r.errors should contain allElementsOf f(v).map(toSemErr))
+
+    def hasAtLeastOneGqlErrorIn(f: CypherVersion => Seq[(GqlError, String, Pos)]): Self =
+      assertIn(v => r => r.errors should contain atLeastOneElementOf f(v).map(toSemErr))
 
     def failsWithMessageContaining(msg: String): Any = assertTry { res =>
       res should be a Symbol("failure")

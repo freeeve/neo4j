@@ -87,13 +87,19 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    run(query).hasErrors(
-      getGql42001_42N07("i", 42, 4, 10),
-      "Variable `i` already declared in outer scope",
-      p(42, 4, 10),
-      getGql42001_42N07("i", 82, 7, 15),
-      "Variable `i` already declared in outer scope",
-      p(82, 7, 15)
+    run(query).hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        (
+          getGql42001_42N07("i", 42, 4, 10),
+          "Variable `i` already declared in outer scope",
+          p(42, 4, 10)
+        ),
+        (
+          getGql42001_42N07("i", 82, 7, 15),
+          "Variable `i` already declared in outer scope",
+          p(82, 7, 15)
+        )
+      )
     )
   }
 
@@ -107,7 +113,12 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    run(query).hasError(getGql42001_42N07("i", 38, 4, 3), "Variable `i` already declared in outer scope", p(38, 4, 3))
+    run(query).hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        (getGql42001_42N07("i", 38, 4, 3), "Variable `i` already declared in outer scope", p(38, 4, 3)),
+        (getGql42001_42N07("i", 34, 3, 13), "Variable `i` already declared in outer scope", p(34, 3, 13))
+      )
+    )
   }
 
   test("Returning a variable implicitly that is already bound outside should give a useful error") {
@@ -120,7 +131,12 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    run(query).hasError(getGql42001_42N07("i", 42, 4, 10), "Variable `i` already declared in outer scope", p(42, 4, 10))
+    run(query).hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        (getGql42001_42N07("i", 42, 4, 10), "Variable `i` already declared in outer scope", p(42, 4, 10)),
+        (getGql42001_42N07("i", 31, 3, 13), "Variable `i` already declared in outer scope", p(31, 3, 13))
+      )
+    )
   }
 
   test("Returning a variable implicitly that is already bound outside, from a union, should give a useful error") {
@@ -136,13 +152,24 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    run(query).hasErrors(
-      getGql42001_42N07("i", 42, 4, 10),
-      "Variable `i` already declared in outer scope",
-      p(42, 4, 10),
-      getGql42001_42N07("i", 77, 7, 10),
-      "Variable `i` already declared in outer scope",
-      p(77, 7, 10)
+    run(query).hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        (
+          getGql42001_42N07("i", 42, 4, 10),
+          "Variable `i` already declared in outer scope",
+          p(42, 4, 10)
+        ),
+        (
+          getGql42001_42N07("i", 77, 7, 10),
+          "Variable `i` already declared in outer scope",
+          p(77, 7, 10)
+        ),
+        (
+          getGql42001_42N07("i", 31, 3, 13),
+          "Variable `i` already declared in outer scope",
+          p(31, 3, 13)
+        )
+      )
     )
   }
 
@@ -357,10 +384,19 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN shadowed AS x
         |}
         |RETURN *""".stripMargin
-    run(query).hasError(
-      getGql42001_42N07("shadowed", 78, 4, 13),
-      "The variable `shadowed` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      p(78, 4, 13)
+    run(query).hasAtLeastOneGqlErrorIn(_ =>
+      Seq(
+        (
+          getGql42001_42N07("shadowed", 78, 4, 13),
+          "The variable `shadowed` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+          p(78, 4, 13)
+        ),
+        (
+          getGql42001_42N07("shadowed", 78, 4, 13),
+          "Variable `shadowed` already declared in outer scope",
+          p(78, 4, 13)
+        )
+      )
     )
   }
 
@@ -421,10 +457,12 @@ class SubqueryCallSemanticAnalysisTest
   }
 
   test("Subquery with only importing WITH") {
-    run("WITH 1 AS a CALL { WITH a } RETURN a").hasError(
-      getGql42001_42N71(19, 1, 20),
-      "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
-      p(19, 1, 20)
+    run("WITH 1 AS a CALL { WITH a } RETURN a").hasAtLeastOneGqlErrorIn(_ =>
+      Seq((
+        getGql42001_42N71(19, 1, 20),
+        "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
+        p(19, 1, 20)
+      ))
     )
   }
 
@@ -438,19 +476,23 @@ class SubqueryCallSemanticAnalysisTest
 
   test("Subquery with only USE") {
     val query = "WITH 1 AS a CALL { USE x } RETURN a"
-    run(query, withMultiGraphs).hasError(
-      getGql42001_42N71(19, 1, 20),
-      "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
-      p(19, 1, 20)
+    run(query, withMultiGraphs).hasAtLeastOneGqlErrorIn(_ =>
+      Seq((
+        getGql42001_42N71(19, 1, 20),
+        "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
+        p(19, 1, 20)
+      ))
     )
   }
 
   test("Subquery with only USE and importing WITH") {
     val query = "WITH 1 AS a CALL { USE x WITH a } RETURN a"
-    run(query, withMultiGraphs).hasError(
-      getGql42001_42N71(19, 1, 20),
-      "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
-      p(19, 1, 20)
+    run(query, withMultiGraphs).hasAtLeastOneGqlErrorIn(_ =>
+      Seq((
+        getGql42001_42N71(19, 1, 20),
+        "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
+        p(19, 1, 20)
+      ))
     )
   }
 

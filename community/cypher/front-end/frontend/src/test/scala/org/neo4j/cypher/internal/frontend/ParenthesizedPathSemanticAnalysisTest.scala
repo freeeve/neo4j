@@ -42,18 +42,20 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |RETURN b
         |""".stripMargin
 
-    run(q).hasError(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(6, 1, 7)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
+    run(q).hasAtLeastOneGqlErrorIn(_ =>
+      Seq((
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(6, 1, 7)
-          .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
-          .withParam(GqlParams.StringParam.pat, "((a) (()-[r]->())+ (b) WHERE length(p) % 2 = 0)")
-          .build())
-        .build(),
-      """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-        |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE length(p) % 2 = 0).""".stripMargin,
-      InputPosition(6, 1, 7)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
+            .atPosition(6, 1, 7)
+            .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
+            .withParam(GqlParams.StringParam.pat, "((a) (()-[r]->())+ (b) WHERE length(p) % 2 = 0)")
+            .build())
+          .build(),
+        """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+          |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE length(p) % 2 = 0).""".stripMargin,
+        InputPosition(6, 1, 7)
+      ))
     )
   }
 
@@ -74,27 +76,29 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |RETURN b
         |""".stripMargin
 
-    run(q).hasError(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(6, 1, 7)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
+    run(q).hasAtLeastOneGqlErrorIn(_ =>
+      Seq((
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(6, 1, 7)
-          .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
-          .withParam(
-            GqlParams.StringParam.pat,
-            """((a) (()-[r]->())+ (b) WHERE 0 = COUNT {
-              |  MATCH (x)-->(y)
-              |    WHERE length(p) % 2 = 0
-              |})""".stripMargin
-          )
-          .build())
-        .build(),
-      """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-        |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE 0 = COUNT {
-        |  MATCH (x)-->(y)
-        |    WHERE length(p) % 2 = 0
-        |}).""".stripMargin,
-      InputPosition(6, 1, 7)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
+            .atPosition(6, 1, 7)
+            .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
+            .withParam(
+              GqlParams.StringParam.pat,
+              """((a) (()-[r]->())+ (b) WHERE 0 = COUNT {
+                |  MATCH (x)-->(y)
+                |    WHERE length(p) % 2 = 0
+                |})""".stripMargin
+            )
+            .build())
+          .build(),
+        """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+          |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE 0 = COUNT {
+          |  MATCH (x)-->(y)
+          |    WHERE length(p) % 2 = 0
+          |}).""".stripMargin,
+        InputPosition(6, 1, 7)
+      ))
     )
   }
 
@@ -119,8 +123,10 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |WHERE NOT EXISTS { ANY (p = (a)<--+(b) WHERE length(p) % 2 = 1) }
         |RETURN *""".stripMargin
 
-    run(q).hasErrorMessages(
-      """The variable `p` is shadowing a variable with the same name from the outer scope and needs to be renamed""".stripMargin
+    run(q).hasAllErrorMessagesIn(_ =>
+      Seq(
+        """The variable `p` is shadowing a variable with the same name from the outer scope and needs to be renamed""".stripMargin
+      )
     )
   }
 }
