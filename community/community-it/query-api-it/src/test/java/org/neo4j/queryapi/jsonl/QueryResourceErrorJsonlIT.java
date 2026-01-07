@@ -227,7 +227,8 @@ class QueryResourceErrorJsonlIT {
 
         QueryResponseJsonlAssertions.assertThat(response)
                 .hasContentType(QueryContentType.UNTYPED_L)
-                .hasStatus(400)
+                .hasStatus(202)
+                .receivesHeader("f")
                 .receivesError(Status.Statement.ArithmeticError, "/ by zero")
                 .hasNoRemainingEvents();
     }
@@ -273,11 +274,13 @@ class QueryResourceErrorJsonlIT {
     @Test
     void errorDuringCypherExecution() throws IOException, InterruptedException {
         var response = QueryApiTestUtil.simpleRequestJsonl(
-                client, queryEndpoint, "{\"statement\": \"UNWIND range(5, 0, -1) as N RETURN 3/N\"}");
+                client, queryEndpoint, "{\"statement\": \"UNWIND range(5, 0, -1) as N RETURN 3/N as f\"}");
 
         QueryResponseJsonlAssertions.assertThat(response)
                 .hasContentType(QueryContentType.UNTYPED_L)
-                .hasStatus(400)
+                .hasStatus(202)
+                .receivesHeader("f")
+                .receivesNRecords(5)
                 .receivesError(Status.Statement.ArithmeticError, "/ by zero")
                 .hasNoRemainingEvents();
     }

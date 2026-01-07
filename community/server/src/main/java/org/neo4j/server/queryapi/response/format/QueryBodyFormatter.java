@@ -46,14 +46,16 @@ public class QueryBodyFormatter {
         this.state = State.CREATED;
     }
 
-    public void json(FormatterConsumer<JsonBodyFormatter> consumer) throws IOException {
+    public boolean json(FormatterConsumer<JsonBodyFormatter> consumer) throws IOException {
         accessState();
-        this.serializer.write(() -> consumer.accept(new JsonBodyFormatter(this.serializer)));
+        var jsonBodyFormatter = new JsonBodyFormatter(this.serializer);
+        return this.serializer.write(() -> consumer.accept(jsonBodyFormatter));
     }
 
-    public JsonLinesFormatter jsonl() throws IOException {
+    public boolean jsonl(FormatterConsumer<JsonLinesFormatter> consumer) throws IOException {
         accessState();
-        return new JsonLinesFormatter(this.serializer);
+        var jsonBodyFormatter = new JsonLinesFormatter(this.serializer);
+        return this.serializer.writeEvents(() -> consumer.accept(jsonBodyFormatter));
     }
 
     private void accessState() {
@@ -158,8 +160,12 @@ public class QueryBodyFormatter {
         }
 
         public void error(HttpErrorResponse error) throws IOException {
-            this.serializer.writeEvent(CYPHER_EVENT_ERROR, () -> {
-                this.serializer.writeError(error);
+            error(serializer, error);
+        }
+
+        static void error(DriverResultSerializer serializer, HttpErrorResponse error) throws IOException {
+            serializer.writeEvent(CYPHER_EVENT_ERROR, () -> {
+                serializer.writeError(error);
             });
         }
     }

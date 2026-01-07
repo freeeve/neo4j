@@ -24,6 +24,7 @@ import static org.neo4j.server.queryapi.response.format.Fieldnames.COUNTERS_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_BODY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_EVENT;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.DATA_KEY;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.ERRORS_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.FIELDS_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.NOTIFICATIONS_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.PROFILE_KEY;
@@ -43,8 +44,11 @@ import java.util.Set;
 import org.neo4j.driver.Bookmark;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
+import org.neo4j.driver.exceptions.Neo4jException;
 import org.neo4j.driver.summary.Notification;
 import org.neo4j.driver.summary.ResultSummary;
+import org.neo4j.server.queryapi.exception.ExceptionsUnwrapper;
+import org.neo4j.server.queryapi.exception.QueryApiException;
 import org.neo4j.server.queryapi.response.error.HttpErrorResponse;
 
 class DriverResultSerializer {
@@ -57,9 +61,49 @@ class DriverResultSerializer {
         this.outputStream = outputStream;
     }
 
-    public void write(RunnableSerialization runnable) throws IOException {
-        object(runnable);
-        jsonGenerator.flush();
+    public boolean write(RunnableSerialization runnable) throws IOException {
+        try {
+            HttpErrorResponse errorResponse;
+            try {
+                jsonGenerator.writeStartObject();
+                runnable.run();
+                return true;
+            } catch (IOException ex) {
+                errorResponse = ExceptionsUnwrapper.transformNeo4jAndQueryApiExceptions(
+                        HttpErrorResponse::fromDriverException, HttpErrorResponse::fromQueryApiException, ex);
+            } catch (Neo4jException neo4jException) {
+                errorResponse = HttpErrorResponse.fromDriverException(neo4jException);
+            } catch (QueryApiException queryApiException) {
+                errorResponse = HttpErrorResponse.fromQueryApiException(queryApiException);
+            }
+            if (errorResponse != null) {
+                jsonGenerator.writeFieldName(ERRORS_KEY);
+                writeError(errorResponse);
+            }
+            return false;
+        } finally {
+            jsonGenerator.writeEndObject();
+            jsonGenerator.flush();
+        }
+    }
+
+    public boolean writeEvents(RunnableSerialization runnable) throws IOException {
+        HttpErrorResponse errorResponse;
+        try {
+            runnable.run();
+            return true;
+        } catch (IOException ex) {
+            errorResponse = ExceptionsUnwrapper.transformNeo4jAndQueryApiExceptions(
+                    HttpErrorResponse::fromDriverException, HttpErrorResponse::fromQueryApiException, ex);
+        } catch (Neo4jException neo4jException) {
+            errorResponse = HttpErrorResponse.fromDriverException(neo4jException);
+        } catch (QueryApiException queryApiException) {
+            errorResponse = HttpErrorResponse.fromQueryApiException(queryApiException);
+        }
+        if (errorResponse != null) {
+            QueryBodyFormatter.JsonLinesFormatter.error(this, errorResponse);
+        }
+        return false;
     }
 
     public void writeEvent(String event, RunnableSerialization runnable) throws IOException {

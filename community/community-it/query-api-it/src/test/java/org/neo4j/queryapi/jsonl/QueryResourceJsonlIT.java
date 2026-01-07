@@ -333,4 +333,20 @@ class QueryResourceJsonlIT {
                 .receivesSummary()
                 .hasNoRemainingEvents();
     }
+
+    @Test
+    void shouldHandleErrorAfterStreamingStarts() throws IOException, InterruptedException {
+        var response = testClient.autoCommitJsonl(QueryRequest.newBuilder()
+                .statement("UNWIND range(10_000, 0, -1) AS n RETURN 10_000/n AS n")
+                .build());
+
+        assertThat(response)
+                .isTransferEncodingChunked()
+                .hasContentType(QueryContentType.UNTYPED_L)
+                .wasSuccessful()
+                .receivesHeader("n")
+                .receivesNRecords(10000)
+                .receivesError(Status.Statement.ArithmeticError)
+                .hasNoRemainingEvents();
+    }
 }

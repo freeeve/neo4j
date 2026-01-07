@@ -180,8 +180,9 @@ public class QueryResourceTxJsonlErrorIT {
                 .build());
 
         QueryResponseJsonlAssertions.assertThat(res)
-                .hasStatus(400)
+                .hasStatus(202)
                 .hasContentType(QueryContentType.UNTYPED_L)
+                .receivesNHeaders(1)
                 .receivesError(Status.Transaction.TransactionStartFailed)
                 .hasNoRemainingEvents();
     }

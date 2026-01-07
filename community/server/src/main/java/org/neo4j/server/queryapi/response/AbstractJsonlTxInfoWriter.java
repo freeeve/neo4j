@@ -61,10 +61,11 @@ abstract class AbstractJsonlTxInfoWriter implements MessageBodyWriter<QueryRespo
         httpHeaders.add("Transfer-encoding", "chunked");
         var jsonGenerator = factory.createGenerator(outputStream);
         var formatter = new QueryBodyFormatter(jsonGenerator, outputStream);
-        var jsonl = formatter.jsonl();
-        jsonl.header();
-        jsonl.summary(
-                queryResponseTxInfo.transaction().id(),
-                queryResponseTxInfo.transaction().expires());
+        formatter.jsonl(jsonl -> {
+            jsonl.header();
+            jsonl.summary(
+                    queryResponseTxInfo.transaction().id(),
+                    queryResponseTxInfo.transaction().expires());
+        });
     }
 }

@@ -71,7 +71,9 @@ public class JsonlErrorResponseWriter implements MessageBodyWriter<HttpErrorResp
             return;
         }
 
-        var formatter = new QueryBodyFormatter(jsonGenerator, outputStream).jsonl();
-        formatter.error(httpErrorResponse);
+        var formatter = new QueryBodyFormatter(jsonGenerator, outputStream);
+        formatter.jsonl(jsonl -> {
+            jsonl.error(httpErrorResponse);
+        });
     }
 }

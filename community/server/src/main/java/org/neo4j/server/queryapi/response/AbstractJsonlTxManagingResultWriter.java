@@ -61,39 +61,39 @@ abstract class AbstractJsonlTxManagingResultWriter implements MessageBodyWriter<
             OutputStream entityStream)
             throws IOException, WebApplicationException {
         httpHeaders.add("Transfer-encoding", "chunked");
-        var hasFailed = true;
+        var success = false;
         var jsonGenerator = jsonFactory.createGenerator(entityStream);
-        var formatter = new QueryBodyFormatter(jsonGenerator, entityStream).jsonl();
+        var formatter = new QueryBodyFormatter(jsonGenerator, entityStream);
         try {
             var result = container.transaction().retrieveResults();
             var keys = result != null ? result.keys() : null;
-            formatter.header(keys);
-            if (result != null) {
-                while (result.hasNext()) {
-                    formatter.record(result.next());
-                    entityStream.flush();
+            success = formatter.jsonl(jsonl -> {
+                jsonl.header(keys);
+                if (result != null) {
+                    while (result.hasNext()) {
+                        jsonl.record(result.next());
+                        entityStream.flush();
+                    }
                 }
-            }
-            if (container.requiresCommit()) {
-                var bookmarks = container.transaction().commit();
-                formatter.summary(
-                        container.transaction().resultSummary(), bookmarks, container.requireSummaryCounters());
-            } else {
-                container.transaction().extendTimeout();
-                formatter.summary(
-                        container.transaction().resultSummary(),
-                        null,
-                        container.transaction().id(),
-                        container.transaction().expiresAt(),
-                        container.requireSummaryCounters());
-            }
-
-            hasFailed = false;
+                if (container.requiresCommit()) {
+                    var bookmarks = container.transaction().commit();
+                    jsonl.summary(
+                            container.transaction().resultSummary(), bookmarks, container.requireSummaryCounters());
+                } else {
+                    container.transaction().extendTimeout();
+                    jsonl.summary(
+                            container.transaction().resultSummary(),
+                            null,
+                            container.transaction().id(),
+                            container.transaction().expiresAt(),
+                            container.requireSummaryCounters());
+                }
+            });
         } catch (IOException ex) {
             ExceptionsUnwrapper.unwrapAndThrowNeo4jAndQueryApiExceptions(ex);
             throw new ConnectionException("Failed to write to the connection", ex);
         } finally {
-            if (!container.transaction().isOpen() || hasFailed) {
+            if (!container.transaction().isOpen() || !success) {
                 transactionManager.removeTransaction(container.transaction().id());
             } else {
                 transactionManager.releaseTransaction(container.transaction().id());

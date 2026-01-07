@@ -60,19 +60,21 @@ abstract class AbstractJsonlDriverResultWriter implements MessageBodyWriter<Auto
             throws IOException {
         httpHeaders.add("Transfer-encoding", "chunked");
         var jsonGenerator = jsonFactory.createGenerator(outputStream);
-        var formatter = new QueryBodyFormatter(jsonGenerator, outputStream).jsonl();
+        var formatter = new QueryBodyFormatter(jsonGenerator, outputStream);
 
         try (var session = container.session()) {
-            var result = container.result();
-            formatter.header(result.keys());
-            while (result.hasNext()) {
-                formatter.record(result.next());
-                outputStream.flush();
-            }
-            formatter.summary(
-                    result.consume(),
-                    session.lastBookmarks(),
-                    container.queryRequest().includeCounters());
+            formatter.jsonl(jsonl -> {
+                var result = container.result();
+                jsonl.header(result.keys());
+                while (result.hasNext()) {
+                    jsonl.record(result.next());
+                    outputStream.flush();
+                }
+                jsonl.summary(
+                        result.consume(),
+                        session.lastBookmarks(),
+                        container.queryRequest().includeCounters());
+            });
         } catch (IOException ex) {
             ExceptionsUnwrapper.unwrapAndThrowNeo4jAndQueryApiExceptions(ex);
             throw new ConnectionException("Failed to write to the connection", ex);

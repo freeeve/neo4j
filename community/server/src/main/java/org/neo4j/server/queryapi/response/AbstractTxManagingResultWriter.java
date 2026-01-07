@@ -69,11 +69,11 @@ abstract class AbstractTxManagingResultWriter implements MessageBodyWriter<TxMan
     }
 
     public void writeDriverResult(TxManagedResultContainer result, OutputStream outputStream) throws IOException {
-        var hasFailed = true;
+        var success = false;
         var jsonGenerator = jsonFactory.createGenerator(outputStream);
         var formatter = new QueryBodyFormatter(jsonGenerator, outputStream);
         try {
-            formatter.json((singleBodyFormatter) -> {
+            success = formatter.json((singleBodyFormatter) -> {
                 singleBodyFormatter.data(result.transaction().retrieveResults());
 
                 if (result.requiresCommit()) {
@@ -94,12 +94,12 @@ abstract class AbstractTxManagingResultWriter implements MessageBodyWriter<TxMan
                             result.requireSummaryCounters());
                 }
             });
-            hasFailed = false;
+
         } catch (IOException ex) {
             ExceptionsUnwrapper.unwrapAndThrowNeo4jAndQueryApiExceptions(ex);
             throw new ConnectionException("Failed to write to the connection", ex);
         } finally {
-            if (!result.transaction().isOpen() || hasFailed) {
+            if (!result.transaction().isOpen() || !success) {
                 transactionManager.removeTransaction(result.transaction().id());
             } else {
                 transactionManager.releaseTransaction(result.transaction().id());

@@ -153,12 +153,14 @@ public class QueryResourceTxJsonlIT {
     @Test
     void shouldHandleStartTxRuntimeError() throws IOException, InterruptedException {
         var res = testClient.beginTxJsonl(QueryRequest.newBuilder()
-                .statement("UNWIND range(5, 0, -1) as N RETURN 3/N")
+                .statement("UNWIND range(5, 0, -1) as N RETURN 3/N as f")
                 .build());
 
         QueryResponseJsonlAssertions.assertThat(res)
                 .hasContentType(QueryContentType.UNTYPED_L)
-                .hasStatus(400)
+                .hasStatus(202)
+                .receivesHeader("f")
+                .receivesNRecords(5)
                 .receivesError(Status.Statement.ArithmeticError)
                 .hasNoRemainingEvents();
     }
@@ -238,13 +240,15 @@ public class QueryResourceTxJsonlIT {
         var txIdCapture = beginTxWithoutStatement();
         var cont = testClient.runInTxJsonl(
                 QueryRequest.newBuilder()
-                        .statement("UNWIND range(5, 0, -1) as N RETURN 3/N")
+                        .statement("UNWIND range(5, 0, -1) as N RETURN 3/N as f")
                         .build(),
                 txIdCapture.getCaptured().getFirst());
 
         QueryResponseJsonlAssertions.assertThat(cont)
                 .hasContentType(QueryContentType.UNTYPED_L)
-                .hasStatus(400)
+                .hasStatus(202)
+                .receivesHeader("f")
+                .receivesNRecords(5)
                 .receivesError(Status.Statement.ArithmeticError)
                 .hasNoRemainingEvents();
     }
@@ -328,13 +332,15 @@ public class QueryResourceTxJsonlIT {
 
         var commitRes = testClient.commitTxJsonl(
                 QueryRequest.newBuilder()
-                        .statement("UNWIND range(5, 0, -1) as N RETURN 3/N")
+                        .statement("UNWIND range(5, 0, -1) as N RETURN 3/N as f")
                         .build(),
                 txIdCapture.getCaptured().getFirst());
 
         QueryResponseJsonlAssertions.assertThat(commitRes)
                 .hasContentType(QueryContentType.UNTYPED_L)
-                .hasStatus(400)
+                .hasStatus(202)
+                .receivesHeader("f")
+                .receivesNRecords(5)
                 .receivesError(Status.Statement.ArithmeticError)
                 .hasNoRemainingEvents();
 

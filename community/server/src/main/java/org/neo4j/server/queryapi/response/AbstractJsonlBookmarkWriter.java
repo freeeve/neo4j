@@ -58,9 +58,9 @@ abstract class AbstractJsonlBookmarkWriter implements MessageBodyWriter<QueryRes
         httpHeaders.add("Transfer-encoding", "chunked");
         var jsonGenerator = factory.createGenerator(outputStream);
         var formatter = new QueryBodyFormatter(jsonGenerator, outputStream);
-        var jsonl = formatter.jsonl();
-
-        jsonl.header();
-        jsonl.summary(queryResponseBookmarks.bookmarks());
+        formatter.jsonl(jsonl -> {
+            jsonl.header();
+            jsonl.summary(queryResponseBookmarks.bookmarks());
+        });
     }
 }
