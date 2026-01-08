@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.rewriting.rewriters
+package org.neo4j.cypher.internal.frontend.phases.rewriting
 
 import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ReplacePatternComprehensionWithCollectSubqueryRewriter
 import org.neo4j.cypher.internal.rewriting.RewriteTest
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ReplacePatternComprehensionWithCollectSubquery
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.util.test_helpers.TestName
 class ReplacePatternComprehensionWithCollectSubqueryTest extends CypherFunSuite with RewriteTest with TestName {
 
   override def rewriterUnderTest: Rewriter = inSequence(
-    ReplacePatternComprehensionWithCollectSubquery(new AnonymousVariableNameGenerator()).instance,
+    ReplacePatternComprehensionWithCollectSubqueryRewriter(new AnonymousVariableNameGenerator()).instance,
     removeGeneratedNamesAndParamsOnTree
   )
 

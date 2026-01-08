@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.Compilat
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.SurveyorNameGenerator.prefix
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.ASTNode
@@ -47,9 +48,6 @@ case class SurveyorNameGenerator() extends AnonymousVariableNameGenerator {
   private var counter = 0
   private val inc = 1
 
-  val generatorName = "SURVEYOR"
-  private val prefix = s"  $generatorName"
-
   def anonymousVarName(counter: Int) =
     s"$prefix$counter"
 
@@ -58,6 +56,16 @@ case class SurveyorNameGenerator() extends AnonymousVariableNameGenerator {
     counter += inc
     result
   }
+}
+
+object SurveyorNameGenerator {
+  val generatorName = "SURVEYOR"
+  private val prefix = s"  $generatorName"
+
+  def anonymousVarName(counter: Int) =
+    s"$prefix$counter"
+
+  def named(x: String): Boolean = !s""" {2}($generatorName)(-?\\d+)""".r.matches(x)
 }
 
 case object UpToDateScopes extends StepSequencer.Condition

@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.IterablePredicateExpression
 import org.neo4j.cypher.internal.expressions.ListComprehension
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PatternComprehension
+import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.ReduceExpression
 import org.neo4j.cypher.internal.expressions.ReduceScope
@@ -146,6 +147,15 @@ object pegExpression {
         }
         val declared = Declarations(Seq(variable), Seq.empty)
         collect(incoming.expressionResultScope(lc, children, referenced, declared))
+
+      case pe @ PatternExpression(pattern) =>
+        val patternResult = pegPattern(pattern.element, incoming.aggregatingConstantChildContext())
+        collect(incoming.expressionResultScope(
+          pe,
+          Seq(patternResult),
+          Some(patternResult.referenced),
+          patternResult.declared.withoutAnonymousDeclaration
+        ))
 
       case pc @ PatternComprehension(optVar, pattern, innerPredicate, projection) =>
         val patternResult = pegPattern(pattern.element, incoming)

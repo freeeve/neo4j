@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.scoping.checker
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.frontend.scoping.VariableCheckingTestSuite
 
 /**
@@ -32,5 +33,10 @@ class GQL_42N29_UnboundVariablesInPatternExpression extends VariableCheckingTest
   test("""MATCH (n)
          |RETURN (n)-[:T]->(b)""".stripMargin) {
     error("42N29", "Pattern expressions are not allowed to introduce new variables: `b`.")
+  }
+
+  test("""MATCH (where :Node) WHERE ( WHERE { } )-->()
+         |RETURN 1""".stripMargin) {
+    error("42N29", "Pattern expressions are not allowed to introduce new variables: `WHERE`.", CypherVersion.Cypher5)
   }
 }

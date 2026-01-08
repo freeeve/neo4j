@@ -199,6 +199,12 @@ case class Declarations(
 
   def amendVariables(amendment: Seq[LogicalVariable]): Declarations =
     copy(variables = variables ++ amendment)
+
+  def withoutAnonymousDeclaration: Declarations =
+    copy(
+      constants = constants.filter(c => SurveyorNameGenerator.named(c.name)),
+      variables = variables.filter(v => SurveyorNameGenerator.named(v.name))
+    )
 }
 
 object Declarations {

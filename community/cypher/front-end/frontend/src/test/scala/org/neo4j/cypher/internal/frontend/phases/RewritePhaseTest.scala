@@ -29,9 +29,9 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.helpers.TestContext
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ReplacePatternComprehensionWithCollectSubqueryRewriter
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.parser.AstParserFactory
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ReplacePatternComprehensionWithCollectSubquery
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -79,6 +79,8 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
   }
 
   def assertNotRewritten(from: String): Unit = assertRewritten(from, from)
+
+  def assertNotRewritten(version: CypherVersion, from: String): Unit = assertRewritten(version, from, from)
 
   def assertRewritten(version: CypherVersion, from: String, to: String): Unit = assertRewritten(version, from, to, Nil)
 
@@ -244,17 +246,21 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     val cleanedAst = parsedAst.endoRewrite(NormalizeWithAndReturnClauses(exceptionFactory))
     if (astRewriteAndAnalyze) {
       val semanticState = cleanedAst.semanticStateWithCypherVersion(version, semanticFeatures ++ features: _*)
-      ASTRewriter.rewrite(
+      val intermediate = ASTRewriter.rewrite(
         cleanedAst.endoRewrite(
           computeDependenciesForExpressions(semanticState)
-        ).endoRewrite(ReplacePatternComprehensionWithCollectSubquery(nameGenerator).instance),
+        ),
         semanticState,
         Map.empty,
         exceptionFactory,
         nameGenerator,
         CancellationChecker.NeverCancelled,
         version
-      )
+      ).endoRewrite(ReplacePatternComprehensionWithCollectSubqueryRewriter(nameGenerator).instance)
+
+      val intermediateState = intermediate.semanticStateWithCypherVersion(version, semanticFeatures ++ features: _*)
+      intermediate.endoRewrite(computeDependenciesForExpressions(intermediateState))
+
     } else {
       cleanedAst
     }

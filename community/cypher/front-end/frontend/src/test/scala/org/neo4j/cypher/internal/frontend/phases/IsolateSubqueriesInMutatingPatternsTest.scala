@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqueriesInMutatingPatterns
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -32,7 +33,7 @@ class IsolateSubqueriesInMutatingPatternsNoSemanticAnalysisTest extends CypherFu
     with AstConstructionTestSupport {
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
-    IsolateSubqueriesInMutatingPatterns
+    ScopeSurveyor andThen IsolateSubqueriesInMutatingPatterns
 
   override def astRewriteAndAnalyze: Boolean = false
 
@@ -49,7 +50,8 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
 
   // Rewrite away WITH * in tests directly
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
-    IsolateSubqueriesInMutatingPatterns andThen
+    ScopeSurveyor andThen
+      IsolateSubqueriesInMutatingPatterns andThen
       SemanticAnalysis(Some(false), semanticFeatures: _*) andThen
       ExpandStarRewriter
 
@@ -251,14 +253,10 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
     )
   }
 
-  test("Does not rewrite CREATE wih cross-references") {
+  test("Does not rewrite CREATE with cross-references") {
     // These are deprecated, but we cannot rewrite these and keep the same semantics.
-    // The queries are going to be non-deterministic, until we forbid them in 6.0
-
-    assertNotRewritten("CREATE (a), (b {prop: EXISTS { (a)-[r2]->(c) }})")
-    assertNotRewritten("CREATE (a)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})")
-    assertNotRewritten("CREATE (a)-[r:R]->(b {prop: CASE WHEN true THEN EXISTS { (a)-[r2]->(c) } END})")
-    assertNotRewritten("CREATE (a)-[r:R]->(b {prop: EXISTS { (c) WHERE EXISTS { (c)<-[r2]-(a) }}})")
+    // The queries are going to be non-deterministic. The query is invalid in Cypher 25
+    assertNotRewritten(CypherVersion.Cypher5, "CREATE (a), (b {prop: EXISTS { (a)-[r2]->(c) }})")
   }
 
   test("Rewrites subquery expression in REMOVE") {

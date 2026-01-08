@@ -145,10 +145,8 @@ case class VariableChecker(version: CypherVersion, checkAggregations: Boolean = 
   }
 
   private val unboundVariablesInPatternExpression: VariableCheck = {
-    case (acc, ExpressionScope(_: PatternExpression, incoming, ref, _, _)) =>
-      acc(ref.filter(!incoming.constantSymbols.contains(_)).map(v =>
-        SemanticError.unboundVariablesInPatternExpression(v.name, v.position)
-      ).toSeq)
+    case (acc, ExpressionScope(_: PatternExpression, _, _, declarations, _)) if declarations.variables.nonEmpty =>
+      acc(declarations.variables.map(v => SemanticError.unboundVariablesInPatternExpression(v.name, v.position)))
   }
 
   private val variableNotDefined: VariableCheck = {
