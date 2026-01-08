@@ -21,6 +21,8 @@ package org.neo4j.values.virtual;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.neo4j.values.storable.Values.intValue;
 import static org.neo4j.values.storable.Values.longArray;
 import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.virtual.VirtualValues.EMPTY_LIST;
@@ -83,5 +85,29 @@ class ReversedListTest {
 
         // Then
         assertEquals(longArray(new long[] {8, 7, 6, 5}), reverse.toStorableArray());
+    }
+
+    @Test
+    void shouldReverseRange() {
+        var range = VirtualValues.range(0, 3, 1);
+        var equivalent = list(longValue(0), longValue(1), longValue(2), longValue(3));
+
+        assertEquals(equivalent, range);
+        assertEquals(equivalent.reverse(), range.reverse());
+        assertEquals(equivalent.reverse().reverse(), range.reverse().reverse());
+    }
+
+    @Test
+    void shouldReversePrepend() {
+        var list = list(intValue(1)).prepend(intValue(2));
+
+        assertInstanceOf(ListValue.AppendList.class, list.reverse());
+    }
+
+    @Test
+    void shouldReverseAppend() {
+        var list = list(intValue(1)).append(intValue(2));
+
+        assertInstanceOf(ListValue.PrependList.class, list.reverse());
     }
 }

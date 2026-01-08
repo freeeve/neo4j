@@ -289,23 +289,11 @@ public interface SequenceValue extends Iterable<AnyValue> {
     }
 
     default ListValue insertAt(int index, AnyValue value) {
-        if (index == 0) {
-            return asListValue().prepend(value);
-        } else if (index == this.intSize()) {
-            return asListValue().append(value);
-        } else {
-            return asListValue().insertAt(index, value);
-        }
+        return asListValue().insertAt(index, value);
     }
 
     default ListValue remove(int index) {
-        if (index == 0) {
-            return asListValue().slice(1, this.intSize());
-        } else if (index == this.intSize()) {
-            return asListValue().slice(0, this.intSize() - 1);
-        } else {
-            return asListValue().remove(index);
-        }
+        return asListValue().remove(index);
     }
 
     default int indexOf(AnyValue value) {

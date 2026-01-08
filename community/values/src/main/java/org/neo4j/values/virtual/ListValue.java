@@ -66,6 +66,19 @@ import org.neo4j.values.storable.Values;
 
 public abstract class ListValue extends VirtualValue implements SequenceValue, Iterable<AnyValue> {
 
+    public static final int LIST_DEPTH_COMPACTION_THRESHOLD = 128;
+
+    /**
+     * ListValues may be nested structures such as AppendList, PrependList, ConcatList etc. We track the depth of
+     * these nested structures in order to compact them for the sake of performance/avoiding stack overflows.
+     * It is important that classes extending ListValue override this method if they contain an inner ListValue, and
+     * that the overridden method does not call listDepth() on the inner ListValue (this should be done in the
+     * constructor and assigned to a field)
+     * */
+    protected int listDepth() {
+        return 1;
+    }
+
     public Value ternaryContains(AnyValue value) {
         Iterator<AnyValue> iterator = iterator();
 
@@ -259,6 +272,12 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         }
 
         @Override
+        protected long compactInto(AnyValue[] array, int fromInclusive) {
+            System.arraycopy(values, 0, array, fromInclusive, values.length);
+            return payloadSize;
+        }
+
+        @Override
         public long estimatedHeapUsage() {
             return ARRAY_LIST_VALUE_SHALLOW_SIZE + payloadSize;
         }
@@ -358,6 +377,16 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
             return values.hashCode();
         }
 
+        @Override // override to skip recomputing payloadSize
+        protected long compactInto(AnyValue[] array, int fromInclusive) {
+            int i = fromInclusive;
+            for (var x : this) {
+                array[i] = x;
+                i++;
+            }
+            return payloadSize;
+        }
+
         @Override
         public Iterator<AnyValue> iterator() {
             return values.iterator();
@@ -378,16 +407,24 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
 
     static final class ListSlice extends ListValue {
         private final ListValue inner;
-        private final long from;
-        private final long to;
+        private final long fromInclusive;
+        private final long toExclusive;
 
-        ListSlice(ListValue inner, long from, long to) {
-            assert from >= 0;
-            assert to <= inner.actualSize();
-            assert from <= to;
+        ListSlice(ListValue inner, long fromInclusive, long toExclusive) {
+            assert fromInclusive >= 0;
+            assert toExclusive <= inner.actualSize();
+            assert fromInclusive <= toExclusive;
+            this.listDepth = inner.listDepth() + 1;
             this.inner = inner;
-            this.from = from;
-            this.to = to;
+            this.fromInclusive = fromInclusive;
+            this.toExclusive = toExclusive;
+        }
+
+        private final int listDepth;
+
+        @Override
+        protected int listDepth() {
+            return listDepth;
         }
 
         @Override
@@ -397,12 +434,12 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
 
         @Override
         public long actualSize() {
-            return to - from;
+            return toExclusive - fromInclusive;
         }
 
         @Override
         public AnyValue value(long offset) {
-            return inner.value(offset + from);
+            return inner.value(offset + fromInclusive);
         }
 
         @Override
@@ -420,12 +457,12 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
             @Override
             protected AnyValue fetchNextOrNull() {
                 // make sure we are at least at first element
-                while (count < from && innerIterator.hasNext()) {
+                while (count < fromInclusive && innerIterator.hasNext()) {
                     innerIterator.next();
                     count++;
                 }
                 // check if we are done
-                if (count < from || count >= to || !innerIterator.hasNext()) {
+                if (count < fromInclusive || count >= toExclusive || !innerIterator.hasNext()) {
                     return null;
                 }
                 // take the next step
@@ -449,9 +486,16 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
 
     static final class ReversedList extends ListValue {
         private final ListValue inner;
+        private final int listDepth;
 
         ReversedList(ListValue inner) {
+            this.listDepth = inner.listDepth() + 1;
             this.inner = inner;
+        }
+
+        @Override
+        protected int listDepth() {
+            return listDepth;
         }
 
         @Override
@@ -512,20 +556,43 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         ConcatList(ListValue[] lists) {
             ValueRepresentation representation = ValueRepresentation.ANYTHING;
             var pref = lists.length < 10 ? RANDOM_ACCESS : ITERATION;
+            int depth = 0;
             for (ListValue list : lists) {
                 representation = representation.coerce(list.itemValueRepresentation());
                 if (list.iterationPreference() == ITERATION) {
                     pref = ITERATION;
                 }
+                if (list.listDepth() > depth) {
+                    depth = list.listDepth();
+                }
             }
             this.iterationPreference = pref;
             this.itemValueRepresentation = representation;
             this.lists = lists;
+            this.listDepth = depth + 1;
+        }
+
+        private final int listDepth;
+
+        @Override
+        protected int listDepth() {
+            return listDepth;
         }
 
         @Override
         public IterationPreference iterationPreference() {
             return iterationPreference;
+        }
+
+        @Override
+        protected long compactInto(AnyValue[] array, int fromInclusive) {
+            long payloadSize = 0;
+            int start = fromInclusive;
+            for (var list : lists) {
+                payloadSize += list.compactInto(array, start);
+                start += list.intSize();
+            }
+            return payloadSize;
         }
 
         @Override
@@ -590,11 +657,11 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         }
 
         @Override
-        public ListValue appendAll(ListValue value) {
+        public ListValue appendAll(ListValue other) {
             var newSize = lists.length + 1;
             var newArray = new ListValue[newSize];
             System.arraycopy(lists, 0, newArray, 0, lists.length);
-            newArray[lists.length] = value;
+            newArray[lists.length] = other;
             return new ConcatList(newArray);
         }
 
@@ -627,15 +694,23 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
     public static final class AppendList extends ListValue {
         private final ListValue base;
         private final AnyValue appended;
-        private long size;
+        private volatile long size;
         private volatile long memoizedEstimatedHeapUsage;
         private static final long NOT_MEMOIZED = -1L;
 
         AppendList(ListValue base, AnyValue appended) {
+            this.listDepth = base.listDepth() + 1;
             this.base = base;
             this.appended = appended;
             this.size = NOT_MEMOIZED;
             this.memoizedEstimatedHeapUsage = NOT_MEMOIZED;
+        }
+
+        private final int listDepth;
+
+        @Override
+        protected int listDepth() {
+            return listDepth;
         }
 
         @Override
@@ -647,6 +722,13 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
                 }
             }
             return super.toStorableArray();
+        }
+
+        // ReversedList uses random access iteration which results in O(n²) iteration time for a linked list, so
+        // this override trades O(n) iteration time for an additional O(n) construction time
+        @Override
+        public ListValue reverse() {
+            return base.reverse().prepend(appended);
         }
 
         @Override
@@ -714,6 +796,12 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         }
 
         @Override
+        protected long compactInto(AnyValue[] array, int fromInclusive) {
+            array[fromInclusive + base.intSize()] = appended;
+            return appended.estimatedHeapUsage() + base.compactInto(array, fromInclusive);
+        }
+
+        @Override
         public Iterator<AnyValue> iterator() {
             return switch (base.iterationPreference()) {
                 case RANDOM_ACCESS -> randomAccessIterator();
@@ -763,15 +851,30 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         private static final long NOT_MEMOIZED = -1L;
 
         PrependList(ListValue base, AnyValue prepended) {
+            this.listDepth = base.listDepth() + 1;
             this.base = base;
             this.prepended = prepended;
             this.size = NOT_MEMOIZED;
             this.memoizedEstimatedHeapUsage = NOT_MEMOIZED;
         }
 
+        private final int listDepth;
+
+        @Override
+        protected int listDepth() {
+            return listDepth;
+        }
+
         @Override
         public IterationPreference iterationPreference() {
             return base.iterationPreference();
+        }
+
+        // ReversedList uses random access iteration which results in O(n²) iteration time for a linked list, so
+        // this override trades O(n) iteration time for an additional O(n) construction time
+        @Override
+        public ListValue reverse() {
+            return base.reverse().append(prepended);
         }
 
         @Override
@@ -780,6 +883,11 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
                 size = base.actualSize() + 1;
             }
             return size;
+        }
+
+        @Override
+        public AnyValue head() {
+            return prepended;
         }
 
         @Override
@@ -830,6 +938,12 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
             } else {
                 throw new IndexOutOfBoundsException(offset + " is outside range " + size);
             }
+        }
+
+        @Override
+        protected long compactInto(AnyValue[] array, int fromInclusive) {
+            array[fromInclusive] = prepended;
+            return prepended.estimatedHeapUsage() + base.compactInto(array, fromInclusive + 1);
         }
 
         @Override
@@ -1023,29 +1137,53 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         }
     }
 
-    public ListValue slice(int from, int to) {
-        int f = Math.max(from, 0);
-        int t = Math.min(to, intSize());
-        if (f > t) {
+    public ListValue slice(long fromInclusive, long toExclusive) {
+        long f = Math.max(fromInclusive, 0L);
+        long t = Math.min(toExclusive, intSize());
+
+        if (f >= t) {
             return EMPTY_LIST;
-        } else {
-            return new ListSlice(this, f, t);
         }
+
+        // with Prepend/AppendList we can simply unwrap them to get the inner list rather than creating a view over them
+        var list = this;
+        while (true) {
+            if (list instanceof PrependList prependList && f > 0) {
+                // if we are slicing from the tail of the list, we can discard a prepended value.
+                list = prependList.base;
+
+                // since we unwrapped a prepended list, we decrement both slice offsets which were relative to the start
+                // of it
+                f--;
+                t--;
+            } else if (list instanceof AppendList appendList && t < list.intSize()) {
+                // if we are slicing up to less than the total list length, we can discard an appended value.
+
+                list = appendList.base;
+                // unwrapping an appended value does not affect the slice offsets since they are relative to the start
+                // of the list, not the end
+            } else {
+                break;
+            }
+        }
+
+        if (f == 0 && t == list.intSize()) {
+            return list;
+        }
+
+        return new ListSlice(list, f, t);
     }
 
     public ListValue tail() {
-        return slice(1, intSize());
+        return drop(1);
     }
 
     public ListValue drop(long n) {
-        long size = actualSize();
-        long start = Math.max(0, Math.min(n, size));
-        return new ListSlice(this, start, size);
+        return slice(n, actualSize());
     }
 
-    public ListValue take(int n) {
-        long end = Math.max(0, Math.min(n, actualSize()));
-        return new ListSlice(this, 0, end);
+    public ListValue take(long n) {
+        return slice(0, n);
     }
 
     public ListValue reverse() {
@@ -1056,25 +1194,91 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         return this;
     }
 
+    /**
+     * Compacts the contents of the list into the provided array starting from the specified index.
+     *
+     * @param array         The destination array into which list elements will be copied.
+     * @param fromInclusive The starting index in the destination array for copying elements.
+     * @return The total estimated heap usage of the copied elements in the list.
+     */
+    protected long compactInto(AnyValue[] array, int fromInclusive) {
+        int i = fromInclusive;
+        long payloadSize = 0L;
+        for (var x : this) {
+            array[i] = x;
+            payloadSize += x.estimatedHeapUsage();
+            i++;
+        }
+        return payloadSize;
+    }
+
     public ListValue append(AnyValue value) {
-        return new AppendList(this, value);
+        if (listDepth() < LIST_DEPTH_COMPACTION_THRESHOLD) {
+            return new AppendList(this, value);
+        }
+        var values = new AnyValue[intSize() + 1];
+        values[values.length - 1] = value;
+
+        long payloadSize = value.estimatedHeapUsage() + compactInto(values, 0);
+
+        return new ArrayListValue(values, payloadSize, itemValueRepresentation().coerce(value.valueRepresentation()));
     }
 
     public ListValue prepend(AnyValue value) {
-        return new PrependList(this, value);
+        if (listDepth() < LIST_DEPTH_COMPACTION_THRESHOLD) {
+            return new PrependList(this, value);
+        }
+        var values = new AnyValue[intSize() + 1];
+        values[0] = value;
+
+        long payloadSize = value.estimatedHeapUsage() + compactInto(values, 1);
+
+        return new ArrayListValue(values, payloadSize, itemValueRepresentation().coerce(value.valueRepresentation()));
     }
 
-    public ListValue appendAll(ListValue value) {
-        return new ConcatList(new ListValue[] {this, value});
+    public ListValue appendAll(ListValue other) {
+        if (other.isEmpty()) {
+            return this;
+        }
+
+        int otherLength = other.intSize();
+        if (otherLength == 1) {
+            return append(other.head());
+        }
+
+        if (Math.max(listDepth(), other.listDepth()) < LIST_DEPTH_COMPACTION_THRESHOLD) {
+            return new ConcatList(new ListValue[] {this, other});
+        }
+
+        int thisLength = intSize();
+
+        var values = new AnyValue[thisLength + otherLength];
+
+        long thisSize = this.compactInto(values, 0);
+        long valueSize = other.compactInto(values, thisLength);
+
+        return new ArrayListValue(
+                values, thisSize + valueSize, itemValueRepresentation().coerce(other.itemValueRepresentation()));
     }
 
     public ListValue insertAt(int index, AnyValue value) {
-        return new ConcatList(
-                new ListValue[] {new AppendList(this.slice(0, index), value), this.slice(index, this.intSize())});
+        if (index == 0) {
+            return prepend(value);
+        } else if (index == this.intSize()) {
+            return append(value);
+        } else {
+            return slice(0, index).append(value).appendAll(slice(index, intSize()));
+        }
     }
 
     public ListValue remove(int index) {
-        return new ConcatList(new ListValue[] {this.slice(0, index), this.slice(index + 1, this.intSize())});
+        if (index == 0) {
+            return slice(1, intSize());
+        } else if (index == intSize()) {
+            return slice(0, intSize() - 1);
+        } else {
+            return slice(0, index).appendAll(slice(index + 1, intSize()));
+        }
     }
 
     public ListValue distinct() {

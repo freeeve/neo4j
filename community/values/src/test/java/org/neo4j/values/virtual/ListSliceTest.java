@@ -30,7 +30,9 @@ import static org.neo4j.values.virtual.VirtualValues.EMPTY_LIST;
 import static org.neo4j.values.virtual.VirtualValues.fromArray;
 import static org.neo4j.values.virtual.VirtualValues.list;
 
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
+import org.neo4j.values.storable.Values;
 
 class ListSliceTest {
     @Test
@@ -165,6 +167,55 @@ class ListSliceTest {
         assertEquals(expected.hashCode(), take.hashCode());
         assertArrayEquals(expected.asArray(), take.asArray());
         assertTrue(iteratorsEqual(expected.iterator(), take.iterator()));
+    }
+
+    @Test
+    void shouldGiveAccurateSize() {
+        var inner = list(
+                longValue(5L),
+                longValue(6L),
+                longValue(7L),
+                longValue(8L),
+                longValue(9L),
+                longValue(10L),
+                longValue(11L));
+
+        var slice = inner.slice(2, 4);
+
+        assertEquals(slice.asArray().length, slice.actualSize());
+    }
+
+    @Test
+    void slicingYieldsExpectedValuesForDifferentImplementations() {
+        var base = list(intValue(2));
+        var alternating = base.prepend(intValue(1))
+                .append(intValue(3))
+                .prepend(intValue(0))
+                .append(intValue(4));
+        var prependFirst = base.prepend(intValue(1))
+                .prepend(intValue(0))
+                .append(intValue(3))
+                .append(intValue(4));
+        var appendFirst = base.append(intValue(3))
+                .append(intValue(4))
+                .prepend(intValue(1))
+                .prepend(intValue(0));
+        var range = VirtualValues.range(0, 4, 1);
+        var array = list(intValue(0), intValue(1), intValue(2), intValue(3), intValue(4));
+
+        var all = new ListValue[] {alternating, prependFirst, appendFirst, range, array};
+
+        for (int i = -1; i < 6; i++) {
+            for (int j = i - 1; j < 6; j++) {
+                for (ListValue list : all) {
+                    var slice = list.slice(i, j).asArray();
+                    var expected = IntStream.range(Math.clamp(i, 0, 5), Math.clamp(j, i, 5))
+                            .mapToObj(Values::intValue)
+                            .toArray();
+                    assertArrayEquals(expected, slice);
+                }
+            }
+        }
     }
 
     @Test

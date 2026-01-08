@@ -209,6 +209,16 @@ public final class SetListValue extends ListValue {
         return this;
     }
 
+    @Override // override to skip recomputing payloadSize
+    protected long compactInto(AnyValue[] array, int fromInclusive) {
+        int i = fromInclusive;
+        for (var x : this) {
+            array[i] = x;
+            i++;
+        }
+        return payload;
+    }
+
     @Override
     public Iterator<AnyValue> iterator() {
         return set.iterator();

@@ -21,6 +21,8 @@ package org.neo4j.values.virtual;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.internal.helpers.collection.Iterators.iteratorsEqual;
 import static org.neo4j.values.storable.Values.NO_VALUE;
@@ -28,10 +30,13 @@ import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.floatValue;
 import static org.neo4j.values.storable.Values.intValue;
 import static org.neo4j.values.storable.Values.longValue;
+import static org.neo4j.values.virtual.ListValue.LIST_DEPTH_COMPACTION_THRESHOLD;
 import static org.neo4j.values.virtual.VirtualValues.fromArray;
 import static org.neo4j.values.virtual.VirtualValues.list;
 
+import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
+import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 
 class AppendedPrependListTest {
@@ -161,7 +166,7 @@ class AppendedPrependListTest {
                 longValue(10L),
                 longValue(11L),
                 longValue(12L));
-        assertListValuesEquals(appended, expected);
+        assertListValuesEquals(expected, appended);
     }
 
     @Test
@@ -174,7 +179,7 @@ class AppendedPrependListTest {
 
         // Then
         ListValue expected = list(longValue(5L), longValue(6L), NO_VALUE);
-        assertListValuesEquals(appended, expected);
+        assertListValuesEquals(expected, appended);
     }
 
     @Test
@@ -202,7 +207,7 @@ class AppendedPrependListTest {
                 longValue(7L),
                 longValue(6L),
                 longValue(5L));
-        assertListValuesEquals(appended, expected);
+        assertListValuesEquals(expected, appended);
     }
 
     @Test
@@ -230,7 +235,7 @@ class AppendedPrependListTest {
                 longValue(9L),
                 longValue(10L),
                 longValue(11L));
-        assertListValuesEquals(prepend, expected);
+        assertListValuesEquals(expected, prepend);
     }
 
     @Test
@@ -243,7 +248,7 @@ class AppendedPrependListTest {
 
         // Then
         ListValue expected = list(NO_VALUE, longValue(5L), longValue(6L));
-        assertListValuesEquals(prepended, expected);
+        assertListValuesEquals(expected, prepended);
     }
 
     @Test
@@ -294,7 +299,119 @@ class AppendedPrependListTest {
         assertEquals(list(longValue(4L), longValue(5L), longValue(6L)), fromArray(prepended.toStorableArray()));
     }
 
-    private static void assertListValuesEquals(ListValue appended, ListValue expected) {
+    @Test
+    void shouldCompactToArrayWhenOverThreshold() {
+        var expected = new ArrayList<AnyValue>();
+        expected.add(intValue(0));
+
+        ListValue inner = list(intValue(0));
+        for (int i = 1; i <= LIST_DEPTH_COMPACTION_THRESHOLD; i++) {
+            if (i % 2 == 0) {
+                inner = inner.append(intValue(i));
+                expected.add(intValue(i));
+            } else {
+                inner = inner.prepend(intValue(i));
+                expected.addFirst(intValue(i));
+            }
+        }
+
+        assertInstanceOf(ListValue.ArrayListValue.class, inner);
+        assertArrayEquals(expected.toArray(), inner.asArray());
+    }
+
+    @Test
+    void shouldReCompactToArrayWhenOverThreshold() {
+        var expected = new ArrayList<AnyValue>();
+        expected.add(intValue(0));
+
+        ListValue inner = list(intValue(0));
+        for (int i = 1; i <= LIST_DEPTH_COMPACTION_THRESHOLD * 2; i++) {
+            if (i % 2 == 0) {
+                inner = inner.append(intValue(i));
+                expected.add(intValue(i));
+            } else {
+                inner = inner.prepend(intValue(i));
+                expected.addFirst(intValue(i));
+            }
+        }
+
+        assertInstanceOf(ListValue.ArrayListValue.class, inner);
+        assertArrayEquals(expected.toArray(), inner.asArray());
+    }
+
+    @Test
+    void shouldBeAbleToTraverseQuiteLongList() {
+        var expected = new ArrayList<AnyValue>();
+        expected.add(intValue(0));
+
+        ListValue inner = list(intValue(0));
+        for (int i = 1; i <= 10000; i++) {
+            if (i % 3 == 0) {
+                inner = inner.append(intValue(i));
+                expected.add(intValue(i));
+            } else if (i % 3 == 1) {
+                inner = inner.prepend(intValue(i));
+                expected.addFirst(intValue(i));
+            } else {
+                inner = inner.appendAll(list(intValue(-i), intValue(i)));
+                expected.add(intValue(-i));
+                expected.add(intValue(i));
+            }
+        }
+
+        int i = 0;
+        for (AnyValue x : inner) {
+            assertEquals(expected.get(i), x);
+            i++;
+        }
+    }
+
+    @Test
+    void dropUnwrapsPrependList() {
+        var base = list(intValue(0));
+        var input = base.prepend(intValue(1)).prepend(intValue(2));
+
+        var dropped = input.drop(2);
+        assertSame(dropped, base);
+    }
+
+    @Test
+    void takeUnwrapsAppendList() {
+        var base = list(intValue(0));
+        var input = base.append(intValue(1)).append(intValue(2));
+
+        var taken = input.take(1);
+        assertSame(taken, base);
+    }
+
+    @Test
+    void sliceUnwrapsPrependList() {
+        var base = list(intValue(0), intValue(1), intValue(2));
+        var input = base.prepend(intValue(3));
+
+        var sliced = input.slice(1, 2);
+        assertListValuesEquals(list(intValue(0)), sliced);
+    }
+
+    @Test
+    void sliceUnwrapsAppendList() {
+        var base = list(intValue(0), intValue(1), intValue(2));
+        var input = base.append(intValue(3));
+
+        var sliced = input.slice(1, 2);
+        assertListValuesEquals(list(intValue(1)), sliced);
+    }
+
+    @Test
+    void sliceUnwrapsPrependAppendList() {
+        var base = list(intValue(0));
+        var input = base.prepend(intValue(1)).append(intValue(2));
+
+        var sliced = input.slice(1, 2);
+        assertSame(sliced, base);
+    }
+
+    private static void assertListValuesEquals(ListValue expected, ListValue appended) {
         assertEquals(expected, appended);
         assertEquals(expected.hashCode(), appended.hashCode());
         assertArrayEquals(expected.asArray(), appended.asArray());

@@ -73,6 +73,11 @@ public abstract class IntegralRangeListValue extends ListValue {
         }
 
         @Override
+        public ListValue reverse() {
+            return new IntRangeListValue(end, start, -step);
+        }
+
+        @Override
         public long actualSize() {
             return intSize();
         }
@@ -168,6 +173,11 @@ public abstract class IntegralRangeListValue extends ListValue {
             @Override
             public String toString() {
                 return "Range(" + start + "..." + end + ", step = " + step + ")";
+            }
+
+            @Override
+            public ListValue reverse() {
+                return new LongRangeListValue(end, start, -step);
             }
 
             @Override
