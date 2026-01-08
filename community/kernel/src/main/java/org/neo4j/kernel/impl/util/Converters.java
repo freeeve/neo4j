@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.function.Function;
 import org.neo4j.internal.helpers.collection.NumberAwareStringComparator;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.FileSystemAbstraction.PatternStyle;
 
 public class Converters {
     private Converters() {}
@@ -43,10 +44,11 @@ public class Converters {
             (o1, o2) -> NumberAwareStringComparator.INSTANCE.compare(
                     o1.toAbsolutePath().toString(), o2.toAbsolutePath().toString());
 
-    public static Function<String, Path[]> regexFiles(FileSystemAbstraction fs, boolean cleverNumberRegexSort) {
+    public static Function<String, Path[]> patternMatchFiles(
+            FileSystemAbstraction fs, boolean cleverNumberRegexSort, PatternStyle patternStyle) {
         return name -> {
             Comparator<Path> sorting = cleverNumberRegexSort ? BY_FILE_NAME_WITH_CLEVER_NUMBERS : BY_FILE_NAME;
-            List<Path> files = Validators.matchingFiles(fs, name.trim());
+            List<Path> files = Validators.matchingFiles(fs, patternStyle, name.trim());
             files.sort(sorting);
             return files.toArray(new Path[0]);
         };

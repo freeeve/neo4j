@@ -26,6 +26,7 @@ import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.neo4j.io.fs.watcher.FileWatcher;
@@ -196,6 +197,11 @@ public class DelegatingFileSystemAbstraction implements FileSystemAbstraction {
     @Override
     public void copyRecursively(Path fromDirectory, Path toDirectory) throws IOException {
         delegate.copyRecursively(fromDirectory, toDirectory);
+    }
+
+    @Override
+    public List<Path> matchFiles(Path dir, PatternStyle patternStyle, String pattern) throws IOException {
+        return delegate.matchFiles(dir, patternStyle, pattern);
     }
 
     @Override

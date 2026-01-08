@@ -73,5 +73,15 @@
             <artifactId>eclipse-collections-api</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>blue.strategic.parquet</groupId>
+            <artifactId>parquet-floor</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-column</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

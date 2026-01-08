@@ -22,6 +22,7 @@ package org.neo4j.importer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.neo4j.io.fs.FileSystemAbstraction.PatternStyle.regex;
 
 import java.io.File;
 import java.io.IOException;
@@ -104,7 +105,8 @@ class ImportCommandTest {
                 "--auto-skip-subsequent-headers",
                 "--input-type",
                 "--overwrite-destination",
-                "--format");
+                "--format",
+                "--path-pattern-style");
         final var positionals = getPositionals(help);
         final var expectedPositionals = List.of("<database>");
 
@@ -128,50 +130,6 @@ class ImportCommandTest {
             new CommandLine(command).parseArgs(args.toArray(String[]::new));
             assertThat(command.idType).isEqualTo(idType);
         }
-    }
-
-    @Test
-    void shouldDefaultToCsvInput() {
-        var command = new ImportCommand.Full(getExecutionContext());
-        var tempFileName = testDir.createFile("dummy").toString();
-        var requiredArgs = List.of("--nodes", tempFileName, "--relationships", tempFileName);
-        new CommandLine(command).parseArgs(requiredArgs.toArray(String[]::new));
-        var dummyFS = new SchemeFileSystemAbstraction(getExecutionContext().fs());
-        assertThat(command.resolveFileInputType(dummyFS)).isEqualTo(FileImporter.FileInputType.CSV);
-    }
-
-    @Test
-    void shouldDeriveFileInputTypeFromFileNamesParquet() {
-        var command = new ImportCommand.Full(getExecutionContext());
-        var f1Name = testDir.createFile("something.parquet").toString();
-        var f2Name = testDir.createFile("something_else.parquet").toString();
-        var tempFileNames = f1Name + "," + f2Name;
-        var requiredArgs = List.of("--nodes", tempFileNames, "--relationships", tempFileNames);
-        new CommandLine(command).parseArgs(requiredArgs.toArray(String[]::new));
-        var dummyFS = new SchemeFileSystemAbstraction(getExecutionContext().fs());
-        assertThat(command.resolveFileInputType(dummyFS)).isEqualTo(FileImporter.FileInputType.PARQUET);
-    }
-
-    @Test
-    void shouldDeriveFileInputTypeFromFileNamesCSV() {
-        var command = new ImportCommand.Full(getExecutionContext());
-        var f1Name = testDir.createFile("something.csv").toString();
-        var f2Name = testDir.createFile("something_else.csv").toString();
-        var tempFileNames = f1Name + "," + f2Name;
-        var requiredArgs = List.of("--nodes", tempFileNames, "--relationships", tempFileNames);
-        new CommandLine(command).parseArgs(requiredArgs.toArray(String[]::new));
-        var dummyFS = new SchemeFileSystemAbstraction(getExecutionContext().fs());
-        assertThat(command.resolveFileInputType(dummyFS)).isEqualTo(FileImporter.FileInputType.CSV);
-    }
-
-    @Test
-    void fileInputTypeParameterOverridesFileNameDetection() {
-        var command = new ImportCommand.Full(getExecutionContext());
-        var tempFileName = testDir.createFile("something.csv").toString();
-        var requiredArgs = List.of("--nodes", tempFileName, "--relationships", tempFileName, "--input-type", "parquet");
-        new CommandLine(command).parseArgs(requiredArgs.toArray(String[]::new));
-        var dummyFS = new SchemeFileSystemAbstraction(getExecutionContext().fs());
-        assertThat(command.resolveFileInputType(dummyFS)).isEqualTo(FileImporter.FileInputType.PARQUET);
     }
 
     @Test
@@ -278,7 +236,7 @@ class ImportCommandTest {
         @Test
         void validateFileExistence() {
             assertThrows(IllegalArgumentException.class, () -> ImportCommand.parseNodeFilesGroup("nonexisting.file")
-                    .toPaths(testDir.getFileSystem()));
+                    .toPaths(testDir.getFileSystem(), regex));
         }
 
         @ParameterizedTest
@@ -343,7 +301,7 @@ class ImportCommandTest {
         void validateFileExistence() {
             assertThrows(
                     IllegalArgumentException.class, () -> ImportCommand.parseRelationshipFilesGroup("nonexisting.file")
-                            .toPaths(testDir.getFileSystem()));
+                            .toPaths(testDir.getFileSystem(), regex));
         }
 
         @ParameterizedTest
@@ -386,7 +344,7 @@ class ImportCommandTest {
     private static void assertPathsFound(TestDirectory dir, InputFilesGroup<?> group, Path... expectedPaths) {
         // the groups will have either local paths or file URIs so will be handled by the simple scheme system below
         try (var fs = new SchemeFileSystemAbstraction(dir.getFileSystem())) {
-            assertThat(group.toPaths(fs)).containsOnly(expectedPaths);
+            assertThat(group.toPaths(fs, regex)).containsOnly(expectedPaths);
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }

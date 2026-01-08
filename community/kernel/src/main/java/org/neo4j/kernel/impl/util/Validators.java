@@ -19,40 +19,44 @@
  */
 package org.neo4j.kernel.impl.util;
 
-import static org.neo4j.cloud.storage.StorageSchemeResolver.isSchemeBased;
+import static org.neo4j.util.Preconditions.checkState;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
+import org.neo4j.cloud.storage.PathRepresentation;
 import org.neo4j.cloud.storage.SchemeFileSystemAbstraction;
 import org.neo4j.common.Validator;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.FileSystemAbstraction.PatternStyle;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.storageengine.api.StorageEngineFactory;
-import org.neo4j.util.Preconditions;
 
 public final class Validators {
+    private static final String GLOB_PATTERN = "**";
 
     private Validators() {}
 
-    static List<Path> matchingFiles(FileSystemAbstraction fs, String fileWithRegexInName) {
-        List<Path> paths;
-        if (isSchemeBased(fileWithRegexInName)) {
-            paths = matchingStorageFiles(fs, fileWithRegexInName);
-        } else {
-            paths = matchingLocalFiles(fileWithRegexInName);
-        }
+    static List<Path> matchingFiles(FileSystemAbstraction fs, PatternStyle patternStyle, String pathPattern) {
+        try {
+            List<Path> paths;
+            if (patternStyle == PatternStyle.glob && pathPattern.contains(GLOB_PATTERN)) {
+                paths = recursiveGlobPaths(fs, patternStyle, pathPattern);
+            } else {
+                paths = paths(fs, patternStyle, pathPattern);
+            }
 
-        if (paths.isEmpty()) {
-            throw new IllegalArgumentException("File '" + fileWithRegexInName + "' doesn't exist");
-        }
+            if (paths.isEmpty()) {
+                throw new IllegalArgumentException("File '" + pathPattern + "' doesn't exist");
+            }
 
-        return paths;
+            return paths;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public static final Validator<Path> CONTAINS_EXISTING_DATABASE = dbDir -> {
@@ -78,66 +82,56 @@ public final class Validators {
         return value -> {};
     }
 
-    private static List<Path> matchingLocalFiles(String fileWithRegexInName) {
-        // Special handling of regex patterns for Windows since Windows paths naturally contains \ characters and also
-        // regex can contain those
-        // so in order to support this on Windows then \\ will be required in regex patterns and will not be treated as
-        // directory delimiter.
-        // Get those double backslashes out of the way so that we can trust the File operations to return correct parent
-        // etc.
-        String parentSafeFileName = fileWithRegexInName.replace("\\\\", "__");
-        File absoluteParentSafeFile = new File(parentSafeFileName).getAbsoluteFile();
-        File parent = absoluteParentSafeFile.getParentFile();
-        Preconditions.checkState(
-                parent != null && parent.exists(), "Directory %s of %s doesn't exist", parent, fileWithRegexInName);
-
-        // Then since we can't trust the file operations to do the right thing on Windows if there are regex backslashes
-        // we instead
-        // get the pattern by cutting off the parent directory from the name manually.
-        int fileNameLength = absoluteParentSafeFile.getAbsolutePath().length()
-                - parent.getAbsolutePath().length()
-                - 1;
-        String patternString = fileWithRegexInName
-                .substring(fileWithRegexInName.length() - fileNameLength)
-                .replace("\\\\", "\\");
-        final Pattern pattern = Pattern.compile(patternString);
-        List<Path> paths = new ArrayList<>();
-        //noinspection DataFlowIssue
-        for (File file : parent.listFiles()) {
-            if (pattern.matcher(file.getName()).matches()) {
-                paths.add(file.toPath());
-            }
-        }
-
-        return paths;
+    private static List<Path> recursiveGlobPaths(
+            FileSystemAbstraction fs, PatternStyle patternStyle, String pathPattern) throws IOException {
+        int ix = pathPattern.indexOf(GLOB_PATTERN);
+        Path parent = resolveParent(fs, pathPattern.substring(0, ix));
+        checkState(fs.fileExists(parent), "Directory %s of %s doesn't exist", parent, pathPattern);
+        return fs.matchFiles(parent, patternStyle, pathPattern.substring(ix));
     }
 
-    private static List<Path> matchingStorageFiles(FileSystemAbstraction fs, String pathWithRegexInName) {
-        Preconditions.checkArgument(
-                fs instanceof SchemeFileSystemAbstraction,
-                "File system provided is not scheme based and cannot resolve the path: " + pathWithRegexInName);
-        final var system = (SchemeFileSystemAbstraction) fs;
+    private static List<Path> paths(FileSystemAbstraction fs, PatternStyle patternStyle, String pathPattern)
+            throws IOException {
+        String separator = pathSeparator(fs, pathPattern);
+        int pos = pathPattern.length();
 
-        // can skip all the backslash-escaping dance as storage paths are always '/' based thankfully
-        final var ix = pathWithRegexInName.lastIndexOf("/");
-        Preconditions.checkArgument(ix != -1, "Invalid storage path provided: " + pathWithRegexInName);
-        final var parentPath = pathWithRegexInName.substring(0, ix);
-        final var patternString = pathWithRegexInName.substring(ix + 1);
-
-        try {
-            final var parent = system.resolve(parentPath);
-            final var pattern = Pattern.compile(patternString);
-
-            final var paths = new ArrayList<Path>();
-            for (var child : system.listFiles(parent)) {
-                if (pattern.matcher(child.getFileName().toString()).matches()) {
-                    paths.add(child);
+        int ix;
+        while (true) {
+            ix = pathPattern.lastIndexOf(separator, pos);
+            if (ix != -1) {
+                // special handling of regex patterns for Windows paths as they naturally contain \ characters
+                // and these can also appear as part of a regex
+                if (separator.equals("\\") && pathPattern.charAt(ix - 1) == separator.charAt(0)) {
+                    pos = ix - 1;
+                    continue;
                 }
+
+                break;
             }
 
-            return paths;
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
+            throw new IllegalArgumentException("Unable to find the parent of the path: " + pathPattern);
         }
+
+        Path parent = resolveParent(fs, pathPattern.substring(0, ix + 1));
+        checkState(fs.fileExists(parent), "Directory %s of %s doesn't exist", parent, pathPattern);
+        return fs.matchFiles(parent, patternStyle, pathPattern.substring(ix + 1).replace("\\\\", "\\"));
+    }
+
+    private static String pathSeparator(FileSystemAbstraction fs, String pathPattern) {
+        if (fs instanceof SchemeFileSystemAbstraction system) {
+            if (system.canResolve(pathPattern)) {
+                return PathRepresentation.SEPARATOR;
+            }
+        }
+
+        return File.separator;
+    }
+
+    private static Path resolveParent(FileSystemAbstraction fs, String parentPath) throws IOException {
+        if (fs instanceof SchemeFileSystemAbstraction system) {
+            return system.resolve(parentPath).toRealPath();
+        }
+
+        return Path.of(parentPath).toRealPath();
     }
 }

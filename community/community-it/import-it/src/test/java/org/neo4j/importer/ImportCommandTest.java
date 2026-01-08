@@ -60,6 +60,7 @@ import static org.neo4j.internal.helpers.collection.MapUtil.stringMap;
 import static org.neo4j.kernel.impl.store.format.RecordFormatSelector.defaultFormat;
 import static org.neo4j.storemigration.StoreMigrationTestUtils.getStoreVersion;
 
+import blue.strategic.parquet.ParquetWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -88,6 +89,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
+import org.apache.parquet.schema.Types;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterEach;
@@ -1347,7 +1352,7 @@ class ImportCommandTest {
         assertThatThrownBy(() -> runImport(
                         "--nodes", path, "--multiline-fields", badMultiPath, "--multiline-fields-format", "v2"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContainingAll("File", badMultiPath, "doesn't exist");
+                .hasMessageContainingAll("Unable to find the parent of the path", badMultiPath);
     }
 
     @Test
@@ -2833,6 +2838,57 @@ class ImportCommandTest {
                 .rootCause()
                 .isInstanceOf(DuplicateInputIdException.class)
                 .hasMessageContaining("Id '1' is defined more than once in group 'GroupOne'");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldHandleParquetInput(boolean explicitlySetParquetFormat) throws Exception {
+        // given
+        String name = explicitlySetParquetFormat ? "nodes.whatever" : "nodes.parquet";
+        List<org.apache.parquet.schema.Type> types = List.of(
+                Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(":ID"),
+                Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                        .as(LogicalTypeAnnotation.stringType())
+                        .named("name"));
+        var nodes = createParquetFile(name, types, List.of(new Object[] {1L, "Tom"}, new Object[] {2L, "Jerry"}));
+
+        // when
+        List<String> args = Lists.mutable.of("--nodes", nodes.toString());
+        if (explicitlySetParquetFormat) {
+            args.add("--input-type=parquet");
+        }
+        runImport(args.toArray(new String[0]));
+
+        // then
+        try (var tx = getDatabaseApi().beginTx()) {
+            Set<String> namedNodes = new HashSet<>();
+            tx.getAllNodes().forEach(node -> {
+                boolean added = namedNodes.add(node.getProperty("name").toString());
+                assertThat(added).isTrue();
+            });
+            assertThat(namedNodes).containsExactlyInAnyOrder("Tom", "Jerry");
+        }
+    }
+
+    private Path createParquetFile(String name, List<org.apache.parquet.schema.Type> types, List<Object[]> data)
+            throws Exception {
+        Path path = testDirectory.file(name);
+        try (var writer =
+                ParquetWriter.writeFile(new MessageType("something", types), path.toFile(), (record, valueWriter) -> {
+                    var recordData = (Object[]) record;
+                    for (int i = 0; i < types.size(); i++) {
+                        org.apache.parquet.schema.Type type = types.get(i);
+                        Object value = recordData[i];
+                        if (value != null) {
+                            valueWriter.write(type.getName(), value);
+                        }
+                    }
+                })) {
+            for (Object[] datum : data) {
+                writer.write(datum);
+            }
+        }
+        return path;
     }
 
     private static void assertContains(String linesType, List<String> lines, String string) {

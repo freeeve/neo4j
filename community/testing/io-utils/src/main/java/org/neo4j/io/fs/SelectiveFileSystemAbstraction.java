@@ -26,6 +26,7 @@ import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.neo4j.io.IOUtils;
@@ -207,6 +208,11 @@ public class SelectiveFileSystemAbstraction implements FileSystemAbstraction {
     @Override
     public Path createTempDirectory(Path dir, String prefix) throws IOException {
         return defaultFileSystem.createTempDirectory(dir, prefix);
+    }
+
+    @Override
+    public List<Path> matchFiles(Path dir, PatternStyle patternStyle, String pattern) throws IOException {
+        return defaultFileSystem.matchFiles(dir, patternStyle, pattern);
     }
 
     private FileSystemAbstraction chooseFileSystem(Path file) {

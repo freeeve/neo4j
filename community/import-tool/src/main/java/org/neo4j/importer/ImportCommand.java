@@ -80,6 +80,7 @@ import org.neo4j.internal.batchimport.input.BadCollector;
 import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaCommand.SchemaCommandReaderException;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.FileSystemAbstraction.PatternStyle;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.locker.FileLockException;
@@ -210,6 +211,13 @@ public class ImportCommand {
                 fallbackValue = "true",
                 description = "If unspecified columns should be ignored during the import.")
         private boolean ignoreExtraColumns;
+
+        @Option(
+                names = "--path-pattern-style",
+                defaultValue = "regex",
+                description =
+                        "Pattern style to use for matching --nodes and --relationships files. Can be either 'regex' or 'glob'")
+        private PatternStyle patternStyle;
 
         private static final String MULTILINE_FIELDS = "--multiline-fields";
         private static final String MULTILINE_FIELDS_FORMAT = MULTILINE_FIELDS + "-format";
@@ -572,17 +580,23 @@ public class ImportCommand {
                             .withAutoSkipHeaders(autoSkipHeaders)
                             .withLogProvider(logProvider)
                             .withSchemaCommands(parseSchemaCommands(fileSystem, databaseConfig))
-                            .withLogProvider(logProvider)
-                            .withFileInputType(resolveFileInputType(fileSystem)));
+                            .withLogProvider(logProvider));
 
+                    FileImporter.FileInputType fileInputType = this.fileInputType;
                     for (var n : nodes) {
-                        importerBuilder.addNodeFiles(n.key, n.toPaths(fileSystem));
+                        Path[] paths = n.toPaths(fileSystem, patternStyle);
+                        importerBuilder.addNodeFiles(n.key, paths);
+                        if (fileInputType == null) {
+                            // If undecided, then try to auto-detect the file type.
+                            fileInputType = resolveFileInputType(paths);
+                        }
                     }
 
                     for (var r : relationships) {
-                        importerBuilder.addRelationshipFiles(r.key, r.toPaths(fileSystem));
+                        importerBuilder.addRelationshipFiles(r.key, r.toPaths(fileSystem, patternStyle));
                     }
 
+                    importerBuilder.withFileInputType(fileInputType);
                     importerBuilder.build().doImport(this);
                     postImport(fileSystem, databaseConfig, logProvider, databaseLayout);
                 } catch (FileLockException e) {
@@ -726,7 +740,7 @@ public class ImportCommand {
                         }
                     }
                     case V2 -> {
-                        final var paths = Arrays.stream(parseFilesList(fs, multilineFields))
+                        final var paths = Arrays.stream(parseFilesList(fs, multilineFields, patternStyle))
                                 .map(StorageUtils::toString)
                                 .collect(toSet());
                         builder.withMultilineDocuments(paths::contains);
@@ -803,24 +817,14 @@ public class ImportCommand {
             };
         }
 
-        FileImporter.FileInputType resolveFileInputType(FileSystemAbstraction fs) {
-            if (fileInputType != null) {
-                return fileInputType;
-            }
-
-            if (nodes.stream()
-                    .flatMap(nodeFile -> stream(nodeFile.toPaths(fs)))
-                    .map(path -> path.getFileName()
+        private FileImporter.FileInputType resolveFileInputType(Path... paths) {
+            // default to CSV and not throw an error for backward compatibility reasons
+            return Arrays.stream(paths).anyMatch(path -> path.getFileName()
                             .toString()
                             .toLowerCase(Locale.ROOT)
                             .endsWith(".parquet"))
-                    .reduce((b1, b2) -> b1 && b2)
-                    .orElse(false)) {
-                return FileImporter.FileInputType.PARQUET;
-            }
-
-            // default to CSV and not throw an error for backward compatibility reasons
-            return FileImporter.FileInputType.CSV;
+                    ? FileImporter.FileInputType.PARQUET
+                    : FileImporter.FileInputType.CSV;
         }
 
         static class EscapedCharacterConverter implements ITypeConverter<Character> {
@@ -841,9 +845,9 @@ public class ImportCommand {
             }
         }
 
-        static class RelationshipFilesConverter implements ITypeConverter<InputFilesGroup<String>> {
+        static class RelationshipFilesConverter implements ITypeConverter<RelationshipFilesGroup> {
             @Override
-            public InputFilesGroup<String> convert(String value) {
+            public RelationshipFilesGroup convert(String value) {
                 try {
                     return parseRelationshipFilesGroup(value);
                 } catch (Exception e) {
@@ -1022,8 +1026,8 @@ public class ImportCommand {
             this.files = files;
         }
 
-        Path[] toPaths(FileSystemAbstraction fs) {
-            return parseFilesList(fs, files);
+        Path[] toPaths(FileSystemAbstraction fs, PatternStyle patternStyle) {
+            return parseFilesList(fs, files, patternStyle);
         }
     }
 
@@ -1067,8 +1071,8 @@ public class ImportCommand {
         return pair(keyParser.apply(keyStr), str.substring(i + 1));
     }
 
-    private static Path[] parseFilesList(FileSystemAbstraction fs, String str) {
-        return Converters.toFiles(MULTI_FILE_DELIMITER, Converters.regexFiles(fs, true))
+    private static Path[] parseFilesList(FileSystemAbstraction fs, String str, PatternStyle patternStyle) {
+        return Converters.toFiles(MULTI_FILE_DELIMITER, Converters.patternMatchFiles(fs, true, patternStyle))
                 .apply(str);
     }
 

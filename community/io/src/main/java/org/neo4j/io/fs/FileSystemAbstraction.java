@@ -29,12 +29,17 @@ import java.nio.file.CopyOption;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -482,4 +487,42 @@ public interface FileSystemAbstraction extends Closeable {
      * @throws IOException if an I/O error occurs or the specified directory does not exist.
      */
     Path createTempDirectory(Path dir, String prefix) throws IOException;
+
+    /**
+     * Match files using a glob pattern.
+     * @param dir base directory to match files in.
+     * @param style style of pattern to use to match files, e.g.: regex or glob.
+     * @param pattern pattern to match files against, e.g. {@code "*.txt"}.
+     * @return matching files.
+     * @throws IOException if an I/O error occurs or the specified directory does not exist.
+     */
+    default List<Path> matchFiles(Path dir, PatternStyle style, String pattern) throws IOException {
+        PathMatcher matcher = dir.getFileSystem().getPathMatcher(style.name() + ":" + pattern);
+        List<Path> matches = new ArrayList<>();
+        if (style == PatternStyle.glob && pattern.contains("**")) {
+            try (Stream<Path> stream = Files.walk(dir)) {
+                Iterator<Path> iterator = stream.iterator();
+                while (iterator.hasNext()) {
+                    Path candidate = iterator.next();
+                    if (isDirectory(candidate)) {
+                        continue;
+                    }
+                    if (matcher.matches(dir.relativize(candidate.toAbsolutePath()))) {
+                        matches.add(candidate);
+                    }
+                }
+            }
+        } else {
+            Path[] listedFiles = listFiles(dir, path -> matcher.matches(path.getFileName()));
+            if (listedFiles != null) {
+                matches.addAll(List.of(listedFiles));
+            }
+        }
+        return matches;
+    }
+
+    enum PatternStyle {
+        regex,
+        glob
+    }
 }
