@@ -115,30 +115,26 @@ case class FabricFrontEnd(
     def traceStart(): CompilationTracer.QueryCompilationEvent =
       compilationTracer.compileQuery(query.description)
 
-    private val semanticFeatures = Seq(
-      MultipleGraphs,
-      UseAsMultipleGraphsSelector
-    )
+    val semanticFeatures = CompilationPhases.enabledSemanticFeatures(
+      cypherConfig.enableExtraSemanticFeatures ++
+        cypherConfig.toggledFeatures(
+          GraphDatabaseInternalSettings.show_setting -> SemanticFeature.ShowSetting.productPrefix,
+          GraphDatabaseInternalSettings.oidc_credential_forwarding_enabled -> SemanticFeature.OidcCredentialForwarding.productPrefix,
+          GraphDatabaseInternalSettings.composable_commands -> SemanticFeature.ComposableCommands.productPrefix,
+          GraphDatabaseInternalSettings.graph_type_enabled -> SemanticFeature.GraphTypes.productPrefix,
+          GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,
+          GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix,
+          GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> SemanticFeature.VectorSingleStageFilteringEnabled.productPrefix,
+          GraphDatabaseInternalSettings.cypher_vector_search_enabled -> SemanticFeature.VectorSearch.productPrefix,
+          GraphDatabaseInternalSettings.cypher_enable_local_callables -> SemanticFeature.LocalCallables.productPrefix,
+          GraphDatabaseInternalSettings.cypher_enable_scope_queries -> SemanticFeature.ScopeQueries.productPrefix,
+          GraphDatabaseInternalSettings.attribute_based_access_control -> SemanticFeature.AttributeBasedAccessControl.productPrefix
+        )
+    ) ++ Seq(MultipleGraphs, UseAsMultipleGraphsSelector)
 
     private val parsingConfig = CompilationPhases.ParsingConfig(
       extractLiterals = cypherConfig.extractLiterals,
       parameterTypeMapping = ParameterValueTypeHelper.asCypherTypeMap(params, cypherConfig.useParameterSizeHint),
-      semanticFeatures =
-        CompilationPhases.enabledSemanticFeatures(
-          cypherConfig.enableExtraSemanticFeatures ++ cypherConfig.toggledFeatures(Map(
-            GraphDatabaseInternalSettings.show_setting -> SemanticFeature.ShowSetting.productPrefix,
-            GraphDatabaseInternalSettings.oidc_credential_forwarding_enabled -> SemanticFeature.OidcCredentialForwarding.productPrefix,
-            GraphDatabaseInternalSettings.composable_commands -> SemanticFeature.ComposableCommands.productPrefix,
-            GraphDatabaseInternalSettings.graph_type_enabled -> SemanticFeature.GraphTypes.productPrefix,
-            GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,
-            GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix,
-            GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> SemanticFeature.VectorSingleStageFilteringEnabled.productPrefix,
-            GraphDatabaseInternalSettings.cypher_vector_search_enabled -> SemanticFeature.VectorSearch.productPrefix,
-            GraphDatabaseInternalSettings.cypher_enable_local_callables -> SemanticFeature.LocalCallables.productPrefix,
-            GraphDatabaseInternalSettings.cypher_enable_scope_queries -> SemanticFeature.ScopeQueries.productPrefix,
-            GraphDatabaseInternalSettings.attribute_based_access_control -> SemanticFeature.AttributeBasedAccessControl.productPrefix
-          ))
-        ) ++ semanticFeatures,
       obfuscateLiterals = cypherConfig.obfuscateLiterals,
       resolveSimpleDynamicExpressions = cypherConfig.resolveSimpleDynamicExpressions
     )
@@ -153,7 +149,7 @@ case class FabricFrontEnd(
       cancellationChecker,
       internalSyntaxUsageStats,
       sessionDatabase,
-      parsingConfig.semanticFeatures,
+      semanticFeatures,
       query.options.queryOptions.planMode.isScope,
       shadowedFunctions = shadowedFunctions
     )

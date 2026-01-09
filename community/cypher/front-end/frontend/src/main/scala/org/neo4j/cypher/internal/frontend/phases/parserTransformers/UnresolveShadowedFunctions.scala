@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnresolvedCall
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.functions.UnresolvedFunction
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
@@ -68,7 +67,6 @@ case object UnresolveShadowedFunctions extends StatementRewriter with StepSequen
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
   ): Transformer[BaseContext, BaseState, BaseState] = UnresolveShadowedFunctions
 }

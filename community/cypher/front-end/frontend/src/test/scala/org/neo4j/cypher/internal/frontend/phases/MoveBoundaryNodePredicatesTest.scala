@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
@@ -29,8 +28,8 @@ class MoveBoundaryNodePredicatesTest extends CypherFunSuite
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] = MoveBoundaryNodePredicates
 
-  override def preProcessPhase(features: SemanticFeature*): Transformer[BaseContext, BaseState, BaseState] =
-    super.preProcessPhase(features: _*) andThen
+  override def preProcessPhase(): Transformer[BaseContext, BaseState, BaseState] =
+    super.preProcessPhase() andThen
       flattenBooleanOperators
 
   test("MATCH (start:A) (()-->())+ () RETURN count(*) AS c") {

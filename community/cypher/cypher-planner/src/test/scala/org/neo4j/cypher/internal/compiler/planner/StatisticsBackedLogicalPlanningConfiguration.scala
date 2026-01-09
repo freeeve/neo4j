@@ -1804,13 +1804,13 @@ class StatisticsBackedLogicalPlanningConfiguration(
       planVarExpandInto = plannerConfiguration.planVarExpandInto(),
       databaseReferenceRepository = options.databaseReferenceRepository,
       labelInferenceStrategy = labelInferenceStrategy,
-      notificationLogger = notificationLogger
+      notificationLogger = notificationLogger,
+      semanticFeatures = options.semanticFeatures
     )
     val state = InitialState(queryString, IDPPlannerName, new AnonymousVariableNameGenerator)
     val parsingConfig = {
       val cfg = LogicalPlanningTestSupport2.defaultParsingConfig
       cfg.copy(
-        semanticFeatures = cfg.semanticFeatures ++ options.semanticFeatures,
         resolveSimpleDynamicExpressions = cc.resolveSimpleDynamicExpressions
       )
     }

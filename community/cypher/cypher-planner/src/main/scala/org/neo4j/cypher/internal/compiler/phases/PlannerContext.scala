@@ -59,17 +59,17 @@ import org.neo4j.values.virtual.MapValue
 import java.time.Clock
 
 class BaseContextImpl(
-  override val cypherVersion: CypherVersion,
-  override val cypherExceptionFactory: CypherExceptionFactory,
-  override val tracer: CompilationPhaseTracer,
-  override val notificationLogger: InternalNotificationLogger,
-  override val monitors: Monitors,
-  override val cancellationChecker: CancellationChecker,
-  override val internalUsageStats: InternalUsageStats,
-  val sessionDatabase: DatabaseReference,
-  override val semanticFeatures: Seq[SemanticFeature],
-  override val isScopeQuery: Boolean,
-  override val shadowedFunctions: Set[String]
+  final override val cypherVersion: CypherVersion,
+  final override val cypherExceptionFactory: CypherExceptionFactory,
+  final override val tracer: CompilationPhaseTracer,
+  final override val notificationLogger: InternalNotificationLogger,
+  final override val monitors: Monitors,
+  final override val cancellationChecker: CancellationChecker,
+  final override val internalUsageStats: InternalUsageStats,
+  final override val sessionDatabase: DatabaseReference,
+  final override val semanticFeatures: Seq[SemanticFeature],
+  final override val isScopeQuery: Boolean,
+  final override val shadowedFunctions: Set[String]
 ) extends BaseContext {
 
   override val errorHandler: Seq[SemanticErrorDef] => Unit =
@@ -138,9 +138,9 @@ class PlannerContext(
   val internalNotificationStats: InternalNotificationStats,
   internalSyntaxUsageStats: InternalUsageStats,
   val labelInferenceStrategy: LabelInferenceStrategy,
-  override val sessionDatabase: DatabaseReference,
-  override val semanticFeatures: Seq[SemanticFeature] = Seq(),
-  override val shadowedFunctions: Set[String]
+  sessionDatabase: DatabaseReference,
+  semanticFeatures: Seq[SemanticFeature] = Seq(),
+  shadowedFunctions: Set[String]
 ) extends BaseContextImpl(
       cypherVersion,
       cypherExceptionFactory,
@@ -188,7 +188,8 @@ class PlannerContext(
       internalSyntaxUsageStats,
       labelInferenceStrategy,
       sessionDatabase,
-      shadowedFunctions = shadowedFunctions
+      shadowedFunctions = shadowedFunctions,
+      semanticFeatures = semanticFeatures
     )
   }
 }
@@ -225,7 +226,8 @@ object PlannerContext {
     internalNotificationStats: InternalNotificationStats,
     internalUsageStats: InternalUsageStats,
     sessionDatabase: DatabaseReference,
-    shadowedFunctions: Set[String]
+    shadowedFunctions: Set[String],
+    semanticFeatures: Seq[SemanticFeature]
   ): PlannerContext = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
 
@@ -267,7 +269,8 @@ object PlannerContext {
       internalUsageStats,
       labelInferenceStrategy,
       sessionDatabase,
-      shadowedFunctions = shadowedFunctions
+      shadowedFunctions = shadowedFunctions,
+      semanticFeatures = semanticFeatures
     )
   }
 }

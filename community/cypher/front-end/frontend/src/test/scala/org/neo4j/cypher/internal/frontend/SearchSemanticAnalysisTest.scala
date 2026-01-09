@@ -38,14 +38,19 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
 
   private val pipelineWithAstRewriting: Pipeline =
     PreparatoryRewriting andThen
-      SemanticAnalysis(warn = Some(true), VectorSearch, VectorSingleStageFilteringEnabled) andThen
+      SemanticAnalysis(warn = Some(true)) andThen
       AstRewriting() andThen
       rewriteEqualityToInPredicate andThen
-      SemanticAnalysis(warn = Some(false), VectorSearch, VectorSingleStageFilteringEnabled) andThen
+      SemanticAnalysis(warn = Some(false)) andThen
       SemanticTypeCheck
 
   private def runSearchWithRewriter(): AnalysisAssertions = {
-    runWith(Set(CypherVersion.Cypher5), pipelineWithAstRewriting)
+    run(
+      defaultQuery,
+      pipelineWithAstRewriting,
+      semanticFeatures = Seq(VectorSearch, VectorSingleStageFilteringEnabled),
+      disabledVersions = Set(CypherVersion.Cypher5)
+    )
   }
 
   private def runSearch(): AnalysisAssertions =

@@ -21,7 +21,9 @@ import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleGraphs
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsMultipleGraphsSelector
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsSingleGraphSelector
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTest.gql42NA5
 import org.neo4j.cypher.internal.notification.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
@@ -36,16 +38,6 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 class SubqueryCallSemanticAnalysisTest
     extends CypherFunSuite
     with NameBasedSemanticAnalysisTestSuite {
-
-  private val withMultiGraphs = pipelineWithSemanticFeatures(
-    SemanticFeature.MultipleGraphs,
-    SemanticFeature.UseAsMultipleGraphsSelector
-  )
-
-  private val withSingleGraph = pipelineWithSemanticFeatures(
-    SemanticFeature.MultipleGraphs,
-    SemanticFeature.UseAsSingleGraphSelector
-  )
 
   test("Returning a variable that is already bound outside should give a useful error with scope") {
     val query =
@@ -467,7 +459,7 @@ class SubqueryCallSemanticAnalysisTest
   }
 
   test("Scoped Subquery with only USE") {
-    run("WITH 1 AS a CALL () { USE x } RETURN a", withMultiGraphs).hasError(
+    runWith("WITH 1 AS a CALL () { USE x } RETURN a", MultipleGraphs, UseAsMultipleGraphsSelector).hasError(
       getGql42001_42N71(22, 1, 23),
       "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
       p(22, 1, 23)
@@ -476,7 +468,7 @@ class SubqueryCallSemanticAnalysisTest
 
   test("Subquery with only USE") {
     val query = "WITH 1 AS a CALL { USE x } RETURN a"
-    run(query, withMultiGraphs).hasAtLeastOneGqlErrorIn(_ =>
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasAtLeastOneGqlErrorIn(_ =>
       Seq((
         getGql42001_42N71(19, 1, 20),
         "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
@@ -487,7 +479,7 @@ class SubqueryCallSemanticAnalysisTest
 
   test("Subquery with only USE and importing WITH") {
     val query = "WITH 1 AS a CALL { USE x WITH a } RETURN a"
-    run(query, withMultiGraphs).hasAtLeastOneGqlErrorIn(_ =>
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasAtLeastOneGqlErrorIn(_ =>
       Seq((
         getGql42001_42N71(19, 1, 20),
         "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
@@ -510,7 +502,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    run(query, withSingleGraph).hasNoErrors
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasNoErrors
   }
 
   test("should allow Multiple USE referencing the same graph when UseAsSingleGraphSelector feature is set") {
@@ -525,7 +517,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    run(query, withSingleGraph).hasGQLErrorsIn {
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -545,7 +537,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    run(query, withSingleGraph).hasNoErrors
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasNoErrors
   }
 
   test(
@@ -562,7 +554,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    run(query, withSingleGraph).hasGQLErrorsIn {
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -582,7 +574,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    run(query, withSingleGraph).hasError(
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasError(
       gql42NA5(p(31, 5, 3)),
       messageProvider.createMultipleGraphReferencesError("y"),
       p(31, 5, 3)
@@ -601,7 +593,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    run(query, withSingleGraph).hasError(
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasError(
       gql42NA5(p(28, 5, 3)),
       messageProvider.createMultipleGraphReferencesError("y"),
       p(28, 5, 3)
@@ -618,7 +610,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withMultiGraphs).hasNoErrors
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasNoErrors
   }
 
   test("Allow view invocation in USE when UseAsMultipleGraphsSelector feature is set") {
@@ -631,7 +623,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withMultiGraphs).hasGQLErrorsIn {
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -647,7 +639,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withSingleGraph).hasError(
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasError(
       GqlHelper.getGql42001_42N72(37, 4, 3),
       messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName(g, w(k))"),
       p(37, 4, 3)
@@ -664,7 +656,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withSingleGraph).hasError(
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasError(
       GqlHelper.getGql42001_42N72(30, 4, 3),
       messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName(g, w(k))"),
       p(30, 4, 3)
@@ -681,7 +673,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withMultiGraphs).hasNoErrors
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasNoErrors
   }
 
   test("Allow qualified view invocation in USE") {
@@ -694,7 +686,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withMultiGraphs).hasGQLErrorsIn {
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -710,7 +702,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withMultiGraphs).hasNoErrors
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasNoErrors
   }
 
   test("Allow expressions in view invocations (with feature flag)") {
@@ -723,7 +715,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withMultiGraphs).hasGQLErrorsIn {
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }
@@ -740,7 +732,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN a
         |""".stripMargin
 
-    run(query, withMultiGraphs).hasErrors(
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasErrors(
       SemanticError(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(50, 4, 28)
@@ -777,7 +769,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN a
         |""".stripMargin
 
-    run(query, withMultiGraphs).hasError(
+    runWith(query, MultipleGraphs, UseAsMultipleGraphsSelector).hasError(
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
         .atPosition(47, 4, 28)
         .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
@@ -801,7 +793,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN n
         |""".stripMargin
-    run(query, withSingleGraph).hasError(
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasError(
       SemanticError.invalidPlacementOfUseClause(
         p(37, 5, 3)
       ).gqlStatusObject,
@@ -821,7 +813,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN n
         |""".stripMargin
-    run(query, withSingleGraph).hasError(
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasError(
       GqlHelper.getGql42001_42N73(34, 5, 3),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(34, 5, 3)
@@ -839,7 +831,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withSingleGraph).hasError(
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasError(
       GqlHelper.getGql42001_42N73(36, 5, 3),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(36, 5, 3)
@@ -857,7 +849,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    run(query, withSingleGraph).hasGQLErrorsIn {
+    runWith(query, MultipleGraphs, UseAsSingleGraphSelector).hasGQLErrorsIn {
       case Cypher25 => Seq.empty
       case Cypher5  => Seq.empty
     }

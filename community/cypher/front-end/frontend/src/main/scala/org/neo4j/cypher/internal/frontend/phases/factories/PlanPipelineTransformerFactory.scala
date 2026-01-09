@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.factories
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.IfChangedSetSemantics
@@ -25,7 +24,6 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnal
 
 final case class PlanPipelineTransformerConfig(
   pushdownPropertyReads: Boolean,
-  semanticFeatures: Seq[SemanticFeature],
   allowSubqueryDuplicationInCnf: Boolean
 )
 

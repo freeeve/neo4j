@@ -32,7 +32,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstructionTestSupport {
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
-    SemanticAnalysis(Some(false), semanticFeatures: _*) andThen
+    SemanticAnalysis(Some(false)) andThen
       ExpandWhen
 
   override def astRewriteAndAnalyze: Boolean = false

@@ -34,7 +34,7 @@ object StatementHelper extends Assertions {
       semanticStateWithCypherVersion(CypherVersion.Legacy.legacyVersion(), features: _*)
 
     def semanticStateWithCypherVersion(version: CypherVersion, features: SemanticFeature*): SemanticState =
-      ast.semanticCheck.run(SemanticState.clean.withFeatures(features: _*), version) match {
+      ast.semanticCheck.run(SemanticState.clean.withFeatures(features), version) match {
         case SemanticCheckResult(state, errors) =>
           if (errors.isEmpty) {
             state

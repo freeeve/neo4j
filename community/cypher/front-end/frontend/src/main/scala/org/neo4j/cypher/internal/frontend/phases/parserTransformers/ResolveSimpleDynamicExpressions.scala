@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
@@ -166,7 +165,6 @@ case class ResolveSimpleDynamicExpressions(parameters: MapValue)
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
   ): Transformer[BaseContext, BaseState, BaseState] = this
 

@@ -41,7 +41,7 @@ class TransitiveEqualitiesTest extends CypherFunSuite with AstConstructionTestSu
   val cnfNormalizer: Transformer[BaseContext, BaseState, BaseState] =
     StepSequencer[PlanPipelineTransformerFactory with StepSequencer.Step]()
       .orderSteps(
-        CNFNormalizer.steps ++ Set(SemanticWrapper(Nil)),
+        CNFNormalizer.steps ++ Set(SemanticWrapper()),
         initialConditions = Set(
           BaseContains[Statement](),
           SemanticAnalysisPossible,
@@ -49,7 +49,7 @@ class TransitiveEqualitiesTest extends CypherFunSuite with AstConstructionTestSu
         )
       )
       .steps
-      .map(_.getTransformer(CNFNormalizerTest.transformerConfig(Nil)))
+      .map(_.getTransformer(CNFNormalizerTest.transformerConfig()))
       .map(_.asInstanceOf[Transformer[BaseContext, BaseState, BaseState]])
       .reduceLeft((t1, t2) => t1 andThen t2)
 

@@ -22,7 +22,6 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
@@ -42,7 +41,6 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -70,24 +68,6 @@ case class SemanticAnalysisResult(context: ErrorCollectingContext, state: BaseSt
 object SemanticAnalysisTestSuite {
   type Pipeline = Transformer[BaseContext, BaseState, BaseState]
 
-  protected def run(
-    version: CypherVersion,
-    pipeline: Pipeline,
-    createInitialState: () => BaseState,
-    isComposite: Boolean,
-    sessionDatabase: String,
-    messageProvider: ErrorMessageProvider,
-    query: String
-  ): SemanticAnalysisResult = {
-    require(!pipeline.name.contains("Parse"))
-
-    val context = new ErrorCollectingContext(version, isComposite, sessionDatabase, query) {
-      override def errorMessageProvider: ErrorMessageProvider = messageProvider
-    }
-    val state = (Parse andThen pipeline).transform(createInitialState(), context)
-    SemanticAnalysisResult(context, state)
-  }
-
   def initialStateWithQuery(query: String): InitialState =
     InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
 }
@@ -99,31 +79,31 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
   def run(
     query: String,
-    pipeline: Pipeline = pipelineWithSemanticFeatures(),
+    pipeline: Pipeline = semanticAnalysisTwice(),
     isComposite: Boolean = false,
     sessionDatabase: String = defaultDatabaseName,
     state: BaseState => BaseState = s => s,
+    semanticFeatures: Seq[SemanticFeature] = Seq.empty,
     disabledVersions: Set[CypherVersion] = Set.empty
-  ): AnalysisAssertions = analyse(query, pipeline, isComposite, sessionDatabase, state, disabledVersions).run
+  ): AnalysisAssertions =
+    analyse(query, pipeline, isComposite, sessionDatabase, state, semanticFeatures, disabledVersions).run
 
   def analyse(
     query: String,
-    pipeline: Pipeline = pipelineWithSemanticFeatures(),
+    pipeline: Pipeline = semanticAnalysisTwice(),
     isComposite: Boolean = false,
     sessionDatabase: String = defaultDatabaseName,
     state: BaseState => BaseState = s => s,
+    semanticFeatures: Seq[SemanticFeature] = Seq.empty,
     disabledVersions: Set[CypherVersion] = Set.empty
-  ): Analyse = Analyse(query, pipeline, isComposite, sessionDatabase, state, messageProvider, disabledVersions)
+  ): Analyse =
+    Analyse(query, pipeline, isComposite, sessionDatabase, state, messageProvider, semanticFeatures, disabledVersions)
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
-  def pipelineWithSemanticFeatures(semanticFeatures: SemanticFeature*): Pipeline = {
-    (if (semanticFeatures contains ScopeQueries) {
-       ScopeSurveyor andThen PreparatoryRewriting
-     } else {
-       PreparatoryRewriting
-     }) andThen
-      SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
-      SemanticAnalysis(warn = Some(false), semanticFeatures: _*) andThen
+  def semanticAnalysisTwice(): Pipeline = {
+    PreparatoryRewriting andThen
+      SemanticAnalysis(warn = Some(true)) andThen
+      SemanticAnalysis(warn = Some(false)) andThen
       SemanticTypeCheck
   }
 
@@ -134,6 +114,7 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     sessionDatabase: String,
     stateTransform: BaseState => BaseState,
     messageProvider: ErrorMessageProvider,
+    semanticFeatures: Seq[SemanticFeature],
     disabledVersions: Set[CypherVersion] = Set.empty
   ) {
     def withPipeline(pipeline: Pipeline): Analyse = copy(pipeline = pipeline)
@@ -146,18 +127,18 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     def state(f: BaseState => BaseState): Analyse = copy(stateTransform = stateTransform.andThen(f))
 
     def run: AnalysisAssertions = {
-      val results = (CypherVersion.values().toSet -- disabledVersions).toSeq
-        .map(v =>
-          v -> Try(SemanticAnalysisTestSuite.run(
-            v,
-            pipeline,
-            () => stateTransform(initialStateWithQuery(query)),
-            isComposite,
-            sessionDatabase,
-            messageProvider,
-            query
-          ))
-        )
+      require(!pipeline.name.contains("Parse"))
+      val results = CypherVersion.values().view
+        .collect {
+          case v if !disabledVersions.contains(v) =>
+            v -> Try {
+              val context = new ErrorCollectingContext(v, isComposite, sessionDatabase, query, semanticFeatures) {
+                override def errorMessageProvider: ErrorMessageProvider = messageProvider
+              }
+              val state = (Parse andThen pipeline).transform(stateTransform(initialStateWithQuery(query)), context)
+              SemanticAnalysisResult(context, state)
+            }
+        }
         .toMap
       AnalysisAssertions(this, results)
     }
@@ -347,7 +328,7 @@ trait SemanticAnalysisTestSuiteWithDefaultQuery extends SemanticAnalysisTestSuit
     runWith(defaultQuery, features: _*)
 
   def runWith(query: String, features: SemanticFeature*): AnalysisAssertions =
-    run(query, pipelineWithSemanticFeatures(features: _*))
+    run(query, semanticFeatures = features)
 
   def run(disabledCypherVersions: Set[CypherVersion]): AnalysisAssertions = runWith(disabledCypherVersions)
 
@@ -362,7 +343,7 @@ trait SemanticAnalysisTestSuiteWithDefaultQuery extends SemanticAnalysisTestSuit
     disabledCypherVersions: Set[CypherVersion],
     features: SemanticFeature*
   ): AnalysisAssertions =
-    run(query, pipelineWithSemanticFeatures(features: _*), disabledVersions = disabledCypherVersions)
+    run(query, semanticAnalysisTwice(), disabledVersions = disabledCypherVersions, semanticFeatures = features)
 }
 
 trait NameBasedSemanticAnalysisTestSuite extends SemanticAnalysisTestSuiteWithDefaultQuery with TestName {

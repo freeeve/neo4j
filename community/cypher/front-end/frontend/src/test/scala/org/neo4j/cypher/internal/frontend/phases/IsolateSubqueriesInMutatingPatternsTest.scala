@@ -52,7 +52,7 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
     ScopeSurveyor andThen
       IsolateSubqueriesInMutatingPatterns andThen
-      SemanticAnalysis(Some(false), semanticFeatures: _*) andThen
+      SemanticAnalysis(Some(false)) andThen
       ExpandStarRewriter
 
   private val additionalExpectedAstUpdates = (expectedStatement: Statement) => {

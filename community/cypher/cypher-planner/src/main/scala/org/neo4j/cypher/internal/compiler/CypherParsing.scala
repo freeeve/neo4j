@@ -71,6 +71,11 @@ class CypherParsing(
     val plannerName = PlannerNameFor(plannerNameText)
     val startState = InitialState(queryText, plannerName, new AnonymousVariableNameGenerator)
 
+    val semanticFeatures = CypherParsingConfig.getEnabledFeatures(
+      config.semanticFeatures,
+      sessionDatabase != null && sessionDatabase.isComposite,
+      config.queryRouterForCompositeEnabled
+    )
     val context = BaseContextImpl(
       cypherVersion,
       tracer,
@@ -81,22 +86,16 @@ class CypherParsing(
       cancellationChecker,
       internalSyntaxUsageStats,
       sessionDatabase,
-      config.semanticFeatures,
+      semanticFeatures,
       isScopeQuery,
       shadowedFunctions
     )
     val paramTypes = ParameterValueTypeHelper.asCypherTypeMap(params, config.useParameterSizeHint)
 
-    val features = CypherParsingConfig.getEnabledFeatures(
-      config.semanticFeatures,
-      if (sessionDatabase == null) None else Some(sessionDatabase.isComposite),
-      config.queryRouterForCompositeEnabled
-    )
     CompilationPhases.parsing(
       ParsingConfig(
         extractLiterals = config.extractLiterals,
         parameterTypeMapping = paramTypes,
-        semanticFeatures = features,
         obfuscateLiterals = config.obfuscateLiterals(),
         resolveSimpleDynamicExpressions = config.resolveSimpleDynamicExpressions
       ),
@@ -128,11 +127,6 @@ case class CypherParsingConfig(
 object CypherParsingConfig {
 
   def fromCypherConfiguration(cypherConfiguration: CypherConfiguration): CypherParsingConfig = {
-    def obfuscateLiterals(): Boolean = {
-      // Is dynamic, but documented to not affect caching.
-      cypherConfiguration.obfuscateLiterals
-    }
-
     val extractLiterals: ExtractLiteral = {
       AssertMacros.checkOnlyWhenAssertionsAreEnabled(
         !GraphDatabaseInternalSettings.extract_literals.dynamic()
@@ -159,7 +153,7 @@ object CypherParsingConfig {
         !GraphDatabaseInternalSettings.cypher_enable_extra_semantic_features.dynamic()
       )
       CompilationPhases.enabledSemanticFeatures(
-        cypherConfiguration.enableExtraSemanticFeatures ++ cypherConfiguration.toggledFeatures(Map(
+        cypherConfiguration.enableExtraSemanticFeatures ++ cypherConfiguration.toggledFeatures(
           GraphDatabaseInternalSettings.show_setting -> SemanticFeature.ShowSetting.productPrefix,
           GraphDatabaseInternalSettings.oidc_credential_forwarding_enabled -> SemanticFeature.OidcCredentialForwarding.productPrefix,
           GraphDatabaseInternalSettings.composable_commands -> SemanticFeature.ComposableCommands.productPrefix,
@@ -172,28 +166,26 @@ object CypherParsingConfig {
           GraphDatabaseInternalSettings.cypher_enable_scope_queries -> SemanticFeature.ScopeQueries.productPrefix,
           GraphDatabaseInternalSettings.cypher_enable_variable_checker -> SemanticFeature.VariableChecking.productPrefix,
           GraphDatabaseInternalSettings.attribute_based_access_control -> SemanticFeature.AttributeBasedAccessControl.productPrefix
-        ))
+        )
       )
     }
-
-    val queryRouterForCompositeQueriesEnabled: Boolean = cypherConfiguration.allowCompositeQueries
 
     CypherParsingConfig(
       extractLiterals,
       useParameterSizeHint,
       enabledSemanticFeatures,
-      () => obfuscateLiterals(),
-      queryRouterForCompositeQueriesEnabled,
+      () => cypherConfiguration.obfuscateLiterals, // Is dynamic, but documented to not affect caching.
+      cypherConfiguration.allowCompositeQueries,
       resolveSimpleDynamicExpressions
     )
   }
 
   def getEnabledFeatures(
     semanticFeatures: Seq[SemanticFeature],
-    targetsCompositeInQueryRouter: Option[Boolean],
+    targetsCompositeInQueryRouter: Boolean,
     queryRouterForCompositeEnabled: Boolean
   ): Seq[SemanticFeature] = {
-    if (queryRouterForCompositeEnabled && targetsCompositeInQueryRouter.getOrElse(false))
+    if (queryRouterForCompositeEnabled && targetsCompositeInQueryRouter)
       semanticFeatures ++ Seq(SemanticFeature.UseAsMultipleGraphsSelector, SemanticFeature.MultipleGraphs)
     else
       semanticFeatures ++ Seq(SemanticFeature.UseAsSingleGraphSelector)

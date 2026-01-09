@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.compiler.phases
 
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.AdministrationCommandPlanBuilder
 import org.neo4j.cypher.internal.compiler.SchemaCommandPlanBuilder
 import org.neo4j.cypher.internal.compiler.UnsupportedSystemCommand
@@ -159,11 +158,10 @@ object CompilationPhases extends FrontEndCompilationPhases {
   // Phase 3
   def planPipeLine(
     pushdownPropertyReads: Boolean = true,
-    semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
     allowSubqueryDuplicationInCnf: Boolean
   ): Transformer[PlannerContext, BaseState, LogicalPlanState] = {
     val planPipelineConfig =
-      PlanPipelineTransformerConfig(pushdownPropertyReads, semanticFeatures, allowSubqueryDuplicationInCnf)
+      PlanPipelineTransformerConfig(pushdownPropertyReads, allowSubqueryDuplicationInCnf)
 
     SetSemanticsNotUpToDate andThen
       SchemaCommandPlanBuilder andThen

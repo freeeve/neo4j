@@ -88,7 +88,7 @@ trait QueryGraphProducer {
     val onError = SyntaxExceptionCreator.throwOnError(exceptionFactory)
     val semanticContext = SemanticCheckContext(version, NotImplementedErrorMessageProvider)
     val SemanticCheckResult(semanticState, errors) =
-      SemanticChecker.check(cleanedStatement, SemanticState.clean.withFeatures(semanticFeatures: _*), semanticContext)
+      SemanticChecker.check(cleanedStatement, SemanticState.clean.withFeatures(semanticFeatures), semanticContext)
     onError(errors)
 
     val ns = Namespace(List("my", "proc"))(pos)
@@ -128,11 +128,12 @@ trait QueryGraphProducer {
     val context = ContextHelper.create(
       version = version,
       logicalPlanIdGen = idGen,
-      planContext = resolver
+      planContext = resolver,
+      semanticFeatures = semanticFeatures
     )
     val output = (
       RewriteProcedureCalls andThen
-        SemanticAnalysis(warn = Some(false), semanticFeatures: _*) andThen
+        SemanticAnalysis(warn = Some(false)) andThen
         Namespacer andThen
         rewriteEqualityToInPredicate andThen
         cnfNormalizerTransformer andThen

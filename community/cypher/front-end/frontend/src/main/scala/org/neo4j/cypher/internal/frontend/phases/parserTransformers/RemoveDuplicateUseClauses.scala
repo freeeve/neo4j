@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UseGraph
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
@@ -123,7 +122,6 @@ case object RemoveDuplicateUseClauses extends StatementRewriter with StepSequenc
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
   ): Transformer[BaseContext, BaseState, BaseState] = RemoveDuplicateUseClauses
 }

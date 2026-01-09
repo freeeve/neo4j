@@ -117,7 +117,7 @@ trait RewriteTest extends AstRewritingTestSupport {
     val expected = parseForRewriting(expectedQuery)
     SemanticChecker.check(
       original,
-      SemanticState.clean.withFeatures(getFeatures(): _*),
+      SemanticState.clean.withFeatures(getFeatures()),
       SemanticCheckContext(CypherVersionHelpers.randomVersion(), NotImplementedErrorMessageProvider)
     )
     val result = rewrite(original, originalQuery)
@@ -133,7 +133,7 @@ trait RewriteTest extends AstRewritingTestSupport {
     val expected = parseForRewriting(version, expectedQuery)
     SemanticChecker.check(
       original,
-      SemanticState.clean.withFeatures(getFeatures(): _*),
+      SemanticState.clean.withFeatures(getFeatures()),
       SemanticCheckContext(version, NotImplementedErrorMessageProvider)
     )
     val result = rewrite(original, originalQuery)

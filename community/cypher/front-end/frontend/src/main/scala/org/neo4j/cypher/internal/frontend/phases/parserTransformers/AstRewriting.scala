@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.frontend.phases.ASTRewriter
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
@@ -75,7 +74,6 @@ case object AstRewriting extends StepSequencer.Step with ParsePipelineTransforme
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
   ): Transformer[BaseContext, BaseState, BaseState] = AstRewriting(parameterTypeMapping)
 }

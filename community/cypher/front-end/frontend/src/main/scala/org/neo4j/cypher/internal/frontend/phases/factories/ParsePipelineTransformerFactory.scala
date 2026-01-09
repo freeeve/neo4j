@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.factories
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.IfChangedSetSemantics
@@ -30,18 +29,15 @@ trait ParsePipelineTransformerFactory {
   def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
   ): Transformer[BaseContext, BaseState, BaseState]
 
   def getCheckedTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
   ): Transformer[BaseContext, BaseState, BaseState] = {
-    val transformer =
-      getTransformer(literalExtractionStrategy, parameterTypeMapping, semanticFeatures, obfuscateLiterals)
+    val transformer = getTransformer(literalExtractionStrategy, parameterTypeMapping, obfuscateLiterals)
     if (transformer.invalidatedConditions.intersect(SemanticAnalysis.postConditions).nonEmpty)
       IfChangedSetSemantics.using(transformer)
     else transformer

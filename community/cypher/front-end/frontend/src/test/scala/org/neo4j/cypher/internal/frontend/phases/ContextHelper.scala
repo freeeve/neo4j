@@ -32,34 +32,26 @@ import org.scalatestplus.mockito.MockitoSugar
 
 object ContextHelper extends MockitoSugar {
 
-  def create(version: CypherVersion, sessionDatabaseReference: DatabaseReference = null): BaseContext = {
+  def create(
+    version: CypherVersion,
+    semantics: Seq[SemanticFeature],
+    sessionDatabaseReference: DatabaseReference = null
+  ): BaseContext = {
     new BaseContext {
       override def cypherVersion: CypherVersion = version
-
+      override def semanticFeatures: Seq[SemanticFeature] = semantics
+      override def sessionDatabase: DatabaseReference = sessionDatabaseReference
       override def tracer: CompilationPhaseTracer = NO_TRACING
-
       override def notificationLogger: InternalNotificationLogger = devNullLogger
-
       override def cypherExceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory(null, None)
-
       override def monitors: Monitors = mock[Monitors]
-
       override def errorHandler: Seq[SemanticErrorDef] => Unit =
         (errors: Seq[SemanticErrorDef]) =>
           errors.foreach(e => throw cypherExceptionFactory.syntaxException(e.gqlStatusObject, e.msg, e.position))
-
       override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
-
       override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
-
       override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
-
-      override def sessionDatabase: DatabaseReference = sessionDatabaseReference
-
-      override def semanticFeatures: Seq[SemanticFeature] = Seq()
-
-      def isScopeQuery: Boolean = false
-
+      override def isScopeQuery: Boolean = false
       override def shadowedFunctions: Set[String] = Set.empty
     }
   }

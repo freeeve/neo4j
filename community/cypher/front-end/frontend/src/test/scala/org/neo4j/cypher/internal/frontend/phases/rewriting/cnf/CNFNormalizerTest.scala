@@ -66,7 +66,7 @@ import org.scalatestplus.mockito.MockitoSugar
 
 class CNFNormalizerTest extends CypherFunSuite with PredicateTestSupport {
 
-  final private val cnfNormalizerTransformer = CNFNormalizerTest.getTransformer(Nil)
+  final private val cnfNormalizerTransformer = CNFNormalizerTest.getTransformer()
   var rewriter: Rewriter = _
   var astRewritingMonitor: AstRewritingMonitor = _
 
@@ -212,20 +212,18 @@ class CNFNormalizerTest extends CypherFunSuite with PredicateTestSupport {
 
 object CNFNormalizerTest {
 
-  def transformerConfig(semanticFeatures: List[SemanticFeature]): PlanPipelineTransformerConfig =
+  def transformerConfig(): PlanPipelineTransformerConfig =
     PlanPipelineTransformerConfig(
       pushdownPropertyReads = false,
-      semanticFeatures = semanticFeatures,
       allowSubqueryDuplicationInCnf = false
     )
 
-  case class SemanticWrapper(semanticFeatures: List[SemanticFeature])
+  case class SemanticWrapper()
       extends Transformer[BaseContext, BaseState, BaseState]
       with StepSequencer.Step
       with PlanPipelineTransformerFactory {
 
-    private val transformer =
-      SemanticAnalysis.getTransformer(transformerConfig(semanticFeatures))
+    private val transformer = SemanticAnalysis.getTransformer(transformerConfig())
 
     override def preConditions: Set[Condition] = SemanticAnalysis.preConditions
 
@@ -240,13 +238,13 @@ object CNFNormalizerTest {
     override def name: String = transformer.name
   }
 
-  def getTransformer(semanticFeatures: List[SemanticFeature]): Transformer[BaseContext, BaseState, BaseState] = {
+  def getTransformer(): Transformer[BaseContext, BaseState, BaseState] = {
     val orderedSteps: Seq[Transformer[BaseContext, BaseState, BaseState]] =
       StepSequencer[PlanPipelineTransformerFactory with StepSequencer.Step]()
         .orderSteps(
           Set(
             transitiveEqualities,
-            SemanticWrapper(semanticFeatures)
+            SemanticWrapper()
           ) ++ steps,
           initialConditions = Set(
             BaseContains[Statement](),
@@ -255,7 +253,7 @@ object CNFNormalizerTest {
           )
         )
         .steps
-        .map(_.getTransformer(transformerConfig(semanticFeatures)))
+        .map(_.getTransformer(transformerConfig()))
         .map(_.asInstanceOf[Transformer[BaseContext, BaseState, BaseState]])
 
     orderedSteps.reduceLeft[Transformer[BaseContext, BaseState, BaseState]]((t1, t2) => t1 andThen t2)

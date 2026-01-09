@@ -30,13 +30,13 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleGraphs
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsMultipleGraphsSelector
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.ParsingConfig
-import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.defaultSemanticFeatures
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
+import org.neo4j.cypher.internal.frontend.phases.FrontEndCompilationPhases.defaultSemanticFeatures
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
@@ -98,10 +98,7 @@ class FabricParsingPropertyTest extends CypherFunSuite
     }
   }
 
-  private val fabricParsingConfig =
-    ParsingConfig(
-      semanticFeatures = defaultSemanticFeatures ++ Seq(MultipleGraphs, UseAsMultipleGraphsSelector)
-    )
+  private val fabricParsingConfig = ParsingConfig()
   private val fabricParsing = CompilationPhases.fabricParsing(fabricParsingConfig, resolver, MapValue.EMPTY)
 
   private val prettifier: Prettifier =
@@ -148,9 +145,9 @@ class FabricParsingPropertyTest extends CypherFunSuite
           override val errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
           override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
           override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
-
           override def sessionDatabase: DatabaseReference = null
-          override def semanticFeatures: Seq[SemanticFeature] = Seq()
+          override def semanticFeatures: Seq[SemanticFeature] =
+            defaultSemanticFeatures ++ Seq(MultipleGraphs, UseAsMultipleGraphsSelector)
           override def isScopeQuery: Boolean = false
           override def shadowedFunctions: Set[String] = Set.empty
         }

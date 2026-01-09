@@ -37,7 +37,6 @@ import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.UpdateClause
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.With
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.CountStar
@@ -462,7 +461,6 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
   ): Transformer[BaseContext, BaseState, BaseState] = ExpandNext
 

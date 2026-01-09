@@ -98,7 +98,6 @@ case object Parse extends Phase[BaseContext, BaseState, BaseState]
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean = false
   ): Transformer[BaseContext, BaseState, BaseState] = this
 }

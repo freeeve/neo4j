@@ -34,7 +34,7 @@ import org.neo4j.kernel.database.NormalizedDatabaseName
 class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstructionTestSupport {
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
-    SemanticAnalysis(Some(false), semanticFeatures: _*) andThen
+    SemanticAnalysis(Some(false)) andThen
       ExpandNext
 
   override def astRewriteAndAnalyze: Boolean = false

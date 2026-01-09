@@ -53,16 +53,12 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42NA5
 
 class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructionTestSupport {
 
-  private val pipelineWithMultiGraphs = pipelineWithSemanticFeatures(
-    SemanticFeature.MultipleGraphs
-  )
-
-  private val pipelineWithUseAsMultipleGraphsSelector = pipelineWithSemanticFeatures(
+  private val useAsMulti = Seq(
     SemanticFeature.MultipleGraphs,
     SemanticFeature.UseAsMultipleGraphsSelector
   )
 
-  private val pipelineWithUseAsSingleGraphSelector = pipelineWithSemanticFeatures(
+  private val useAsSingle = Seq(
     SemanticFeature.MultipleGraphs,
     SemanticFeature.UseAsSingleGraphSelector
   )
@@ -396,19 +392,19 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
 
   test("redundant composite use clause should not be considered as nested use clause") {
     val query = "USE comp CALL { USE comp.c1 RETURN 1 as n } RETURN n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasNoErrors
   }
 
   test("redundant composite use clause should not be considered as nested use clause and scope clause") {
     val query = "USE comp CALL () { USE comp.c1 RETURN 1 as n } RETURN n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasNoErrors
   }
 
   test("redundant composite use clause should not be considered as nested use clause (case insensitive)") {
     val query = "USE comp CALL { USE COMP.c1 RETURN 1 as n } RETURN n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasNoErrors
   }
 
@@ -424,7 +420,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |  RETURN n
         |}
         |RETURN n""".stripMargin
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasError(
         GqlHelper.getGql42001_42N74(47, 5, 9, "comp.c2", "comp.c1"),
         "Nested subqueries must use the same graph as their parent query",
@@ -434,7 +430,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
 
   test("redundant composite use clause should not be considered as nested use clause with graph function") {
     val query = "USE comp CALL { USE graph.byName('c1') RETURN 1 as n } return n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasNoErrors
   }
 
@@ -442,25 +438,25 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
     "redundant composite use clause should not be considered as nested use clause with graph function, scope clause"
   ) {
     val query = "USE comp CALL () { USE graph.byName('c1') RETURN 1 as n } return n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasNoErrors
   }
 
   test("identical static graph target should not be considered as nested use clause (case insensitive)") {
     val query = "USE comp.c1 CALL { USE COMP.c1 RETURN 1 as n } return n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasNoErrors
   }
 
   test("identical dynamic graph target should not be considered as nested use clause") {
     val query = "USE graph.byName('comp.c2') CALL { USE graph.byName('comp.c2') RETURN 1 as n } return n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasNoErrors
   }
 
   test("throw nested use clause exception with nested static use clauses") {
     val query = "USE comp.c1 CALL { USE comp.c1.c2 RETURN 1 as n } return n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasError(
         GqlHelper.getGql42001_42N74(23, 1, 24, "comp.c1.c2", "comp.c1"),
         "Nested subqueries must use the same graph as their parent query",
@@ -470,7 +466,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
 
   test("throw nested use clause exception with nested dynamic use clauses") {
     val query = "USE graph.byName('comp.c1') CALL { USE graph.byName('comp.c2') RETURN 1 as n } return n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasError(
         GqlHelper.getGql42001_42N74(39, 1, 40, "graph.byName(\"comp.c2\")", "graph.byName(\"comp.c1\")"),
         "Nested subqueries must use the same graph as their parent query",
@@ -494,7 +490,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |      RETURN prop
         |}
         |RETURN prop""".stripMargin
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasError(
         GqlHelper.getGql42001_42N74(145, 8, 16, "graph.byName(\"comp.\" + i)", "graph.byName(\"comp.\" + i)"),
         "Nested subqueries must use the same graph as their parent query",
@@ -516,7 +512,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |      RETURN prop
         |}
         |RETURN prop""".stripMargin
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasError(
         GqlHelper.getGql42001_42N74(122, 6, 16, "graph.byName(\"comp.\" + j)", "graph.byName(\"comp.\" + i)"),
         "Nested subqueries must use the same graph as their parent query",
@@ -526,13 +522,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
 
   test("allow nested use clause exception if inner catalog name has more than a length of 2") {
     val query = "USE comp CALL { USE comp.c1.c2 RETURN 1 as n } return n"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+    run(query, semanticFeatures = useAsMulti, isComposite = true, sessionDatabase = "comp")
       .hasNoErrors
   }
 
   test("throw exception multi database on single graph selector") {
     val query = "USE comp CALL { USE comp.c1 RETURN 1 as n } return n"
-    run(query, pipelineWithUseAsSingleGraphSelector, isComposite = true, "neo4j").hasError(
+    run(query, semanticFeatures = useAsSingle, isComposite = true, sessionDatabase = "neo4j").hasError(
       gql42NA5(p(16, 1, 17)),
       messageProvider.createMultipleGraphReferencesError("comp.c1"),
       p(16, 1, 17)
@@ -540,25 +536,25 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
   }
 
   test("should not allow USE when semantic feature is not set") {
-    run("USE g RETURN 1", pipelineWithMultiGraphs)
+    run("USE g RETURN 1", semanticFeatures = Seq(SemanticFeature.MultipleGraphs))
       .hasErrorMessages(messageProvider.createUseClauseUnsupportedError())
   }
 
   test("should allow USE when UseAsMultipleGraphsSelector feature is set") {
-    run("USE g RETURN 1", pipelineWithUseAsMultipleGraphsSelector).hasNoErrors
+    run("USE g RETURN 1", semanticFeatures = useAsMulti).hasNoErrors
   }
 
   test("should allow USE when UseAsSingleGraphSelector feature is set") {
-    run("USE g RETURN 1", pipelineWithUseAsSingleGraphSelector).hasNoErrors
+    run("USE g RETURN 1", semanticFeatures = useAsSingle).hasNoErrors
   }
 
   test("Allow qualified identifier in USE when UseAsMultipleGraphsSelector feature is set") {
-    run("USE x.y.z RETURN 1", pipelineWithUseAsMultipleGraphsSelector)
+    run("USE x.y.z RETURN 1", semanticFeatures = useAsMulti)
       .hasNoErrors
   }
 
   test("Allow qualified identifier in USE when UseAsSingleGraphSelector feature is set") {
-    run("USE x.y.z RETURN 1", pipelineWithUseAsSingleGraphSelector)
+    run("USE x.y.z RETURN 1", semanticFeatures = useAsSingle)
       .hasNoErrors
   }
 
@@ -568,7 +564,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |USE graph.byName($g, w($k))
         |RETURN 1
         |""".stripMargin
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true)
+    run(query, semanticFeatures = useAsMulti, isComposite = true)
       .hasNoErrors
   }
 
@@ -578,7 +574,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |USE graph.byName($g, w($k))
         |RETURN 1
         |""".stripMargin
-    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+    run(query, semanticFeatures = useAsSingle).hasError(
       GqlHelper.getGql42001_42N72(1, 2, 1),
       messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName($g, w($k))"),
       p(1, 2, 1)
@@ -591,17 +587,17 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |USE graph.byName($g, x.g(), x.v($k))
         |RETURN 1
         |""".stripMargin
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true).hasNoErrors
+    run(query, semanticFeatures = useAsMulti, isComposite = true).hasNoErrors
   }
 
   test("Allow expressions in view invocations (with feature flag)") {
     val query = "USE graph.byName(2, 'x', $x, $x+3) RETURN 1"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true).hasNoErrors
+    run(query, semanticFeatures = useAsMulti, isComposite = true).hasNoErrors
   }
 
   test("Expressions in view invocations are checked (with feature flag)") {
     val query = "USE graph.byName(2, 'x', y, $x+3) RETURN 1"
-    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true).hasError(
+    run(query, semanticFeatures = useAsMulti, isComposite = true).hasError(
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
         .atPosition(25, 1, 26)
         .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
@@ -623,7 +619,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |USE x
         |RETURN 1
         |""".stripMargin
-    run(query, pipelineWithUseAsSingleGraphSelector).hasNoErrors
+    run(query, semanticFeatures = useAsSingle).hasNoErrors
   }
 
   test(
@@ -638,7 +634,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN 1
         |""".stripMargin
 
-    run(query, pipelineWithUseAsSingleGraphSelector).hasNoErrors
+    run(query, semanticFeatures = useAsSingle).hasNoErrors
   }
 
   test("should not allow multiple USE referencing different graphs when UseAsSingleGraphSelector feature is set") {
@@ -651,7 +647,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN 1
         |""".stripMargin
 
-    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+    run(query, semanticFeatures = useAsSingle).hasError(
       gql42NA5(p(22, 5, 1)),
       messageProvider.createMultipleGraphReferencesError("y"),
       p(22, 5, 1)
@@ -672,7 +668,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN n;
         |""".stripMargin
 
-    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+    run(query, semanticFeatures = useAsSingle).hasError(
       gql42NA5(p(29, 5, 5)),
       messageProvider.createMultipleGraphReferencesError("B"),
       p(29, 5, 5)
@@ -693,7 +689,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN n;
         |""".stripMargin
 
-    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+    run(query, semanticFeatures = useAsSingle).hasError(
       gql42NA5(p(27, 5, 5)),
       messageProvider.createMultipleGraphReferencesError("B"),
       p(27, 5, 5)
@@ -709,7 +705,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN 1
         |""".stripMargin
 
-    run(query, pipelineWithUseAsSingleGraphSelector).hasNoErrors
+    run(query, semanticFeatures = useAsSingle).hasNoErrors
   }
 
   test("should allow USE only in leading position") {
@@ -719,7 +715,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |USE g
         |RETURN n
         |""".stripMargin
-    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+    run(query, semanticFeatures = useAsSingle).hasError(
       GqlHelper.getGql42001_42N73(11, 3, 1),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(11, 3, 1)
@@ -737,7 +733,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN n
         |""".stripMargin
 
-    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+    run(query, semanticFeatures = useAsSingle).hasError(
       GqlHelper.getGql42001_42N73(13, 3, 1),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(13, 3, 1)
@@ -754,7 +750,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |MATCH (n)
         |RETURN n
         |""".stripMargin
-    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+    run(query, semanticFeatures = useAsSingle).hasError(
       GqlHelper.getGql42001_42N73(11, 3, 1),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(11, 3, 1)

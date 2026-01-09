@@ -44,7 +44,7 @@ import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext
 import org.neo4j.cypher.internal.compiler.TestSignatureResolvingPlanContext
 import org.neo4j.cypher.internal.compiler.helpers.FakeLeafPlan
-import org.neo4j.cypher.internal.compiler.phases.CreatePlannerQuery
+import org.neo4j.cypher.internal.compiler.phases.CreatePlannerQueryTransformer
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.phases.RewriteProcedureCalls
@@ -547,25 +547,25 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     }
   }
 
-  lazy val cnfNormalizerTransformer = CNFNormalizerTest.getTransformer(semanticFeatures)
+  lazy val cnfNormalizerTransformer = CNFNormalizerTest.getTransformer()
 
   private lazy val pipeLine: Transformer[PlannerContext, BaseState, LogicalPlanState] =
     Parse andThen
       PreparatoryRewriting andThen
-      SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
+      SemanticAnalysis(warn = Some(true)) andThen
       AstRewriting() andThen
       RewriteProcedureCalls andThen
-      SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
+      SemanticAnalysis(warn = Some(true)) andThen
       Namespacer andThen
       isolateAggregation andThen
-      SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
+      SemanticAnalysis(warn = Some(true)) andThen
       Namespacer andThen
       ProjectNamedPathsRewriter andThen
       rewriteEqualityToInPredicate andThen
       cnfNormalizerTransformer andThen
       collapseMultipleInPredicates andThen
       MoveBoundaryNodePredicates andThen
-      CreatePlannerQuery(semanticFeatures.toSet) andThen
+      CreatePlannerQueryTransformer andThen
       NameDeduplication
 
   // Hack to guarantee coverage in all versions :/
@@ -612,7 +612,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       cypherExceptionFactory = exceptionFactory,
       planContext = planContext,
       logicalPlanIdGen = idGen,
-      config = CypherPlannerConfiguration.withSettings(databaseConfig ++ additionalSettings)
+      config = CypherPlannerConfiguration.withSettings(databaseConfig ++ additionalSettings),
+      semanticFeatures = semanticFeatures
     )
     val output = pipeLine.transform(state, context)
 

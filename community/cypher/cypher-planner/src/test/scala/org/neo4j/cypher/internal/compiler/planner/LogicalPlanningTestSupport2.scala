@@ -221,7 +221,6 @@ object LogicalPlanningTestSupport2 extends MockitoSugar {
       prepareForCaching andThen
       planPipeLine(
         pushdownPropertyReads = pushdownPropertyReads,
-        semanticFeatures = parsingConfig.semanticFeatures,
         allowSubqueryDuplicationInCnf = allowSubqueryDuplicationInCnfNormalizer
       )
     p1 andThen

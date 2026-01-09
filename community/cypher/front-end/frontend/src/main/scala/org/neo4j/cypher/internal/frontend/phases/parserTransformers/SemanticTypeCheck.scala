@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UpdateClause
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -99,7 +98,6 @@ case object SemanticTypeCheck extends VisitorPhase[BaseContext, BaseState]
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
   ): Transformer[BaseContext, BaseState, BaseState] = this
 

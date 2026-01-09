@@ -48,8 +48,7 @@ import org.neo4j.exceptions.NotSystemDatabaseException
 /**
  * From the normalized ast, create the corresponding PlannerQuery.
  */
-case class CreatePlannerQuery(semanticFeatures: Set[SemanticFeature])
-    extends Phase[PlannerContext, BaseState, LogicalPlanState] {
+case object CreatePlannerQueryTransformer extends Phase[PlannerContext, BaseState, LogicalPlanState] {
 
   override def phase = LOGICAL_PLANNING
 
@@ -57,7 +56,7 @@ case class CreatePlannerQuery(semanticFeatures: Set[SemanticFeature])
     case query: Query =>
       val statementConverters = StatementConverters(PlannerQueryBuilder.Config.fromPlannerConfig(context.config))
       val plannerQuery: PlannerQuery =
-        if (semanticFeatures.contains(SemanticFeature.UseAsMultipleGraphsSelector))
+        if (context.semanticFeatures.contains(SemanticFeature.UseAsMultipleGraphsSelector))
           statementConverters.convertCompositePlannerQuery(
             query = query,
             semanticTable = from.semanticTable(),
@@ -106,7 +105,7 @@ case object CreatePlannerQuery extends StepSequencer.Step with PlanPipelineTrans
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty
 
-  override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig)
-    : Transformer[PlannerContext, BaseState, LogicalPlanState] =
-    CreatePlannerQuery(planPipelineConfig.semanticFeatures.toSet)
+  override def getTransformer(
+    planPipelineConfig: PlanPipelineTransformerConfig
+  ): Transformer[PlannerContext, BaseState, LogicalPlanState] = CreatePlannerQueryTransformer
 }

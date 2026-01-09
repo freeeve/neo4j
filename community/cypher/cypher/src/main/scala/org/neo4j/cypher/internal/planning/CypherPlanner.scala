@@ -511,7 +511,12 @@ case class CypherPlanner(
       null,
       shadowedFunctions = transactionalContextWrapper.procedures.shadowedNamespaces(
         QueryLanguage.toKernelScope(options.resolvedLanguage)
-      ).asScala.toSet
+      ).asScala.toSet,
+      semanticFeatures = CypherParsingConfig.getEnabledFeatures(
+        parsingConfig.semanticFeatures,
+        plannerConfig.targetsComposite,
+        parsingConfig.queryRouterForCompositeEnabled
+      )
     )
 
     // Prepare query for caching

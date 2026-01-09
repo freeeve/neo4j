@@ -24,7 +24,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.helpers.HistogramsFromConfigHelper
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.planPipeLine
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.prepareForCaching
@@ -88,28 +87,16 @@ case class CypherPlanner[Context <: PlannerContext](
     prepareForCaching.transform(state, context)
 
   def planPreparedQuery(state: BaseState, context: PlannerContext): LogicalPlanState = {
-    val features: Seq[SemanticFeature] = CypherParsingConfig.getEnabledFeatures(
-      parsingConfig.semanticFeatures,
-      Some(context.config.targetsComposite),
-      parsingConfig.queryRouterForCompositeEnabled
-    )
-
     val allowSubqueryDuplication = context.config.allowDuplicatingSubqueryExpressionsInCnfNormalizer()
 
     val pipeLine =
       if (plannerConfig.planSystemCommands)
         systemPipeLine
       else if (context.debugOptions.toStringEnabled) {
-        planPipeLine(
-          semanticFeatures = features,
-          allowSubqueryDuplicationInCnf = allowSubqueryDuplication
-        ) andThen
+        planPipeLine(allowSubqueryDuplicationInCnf = allowSubqueryDuplication) andThen
           DebugPrinter
       } else
-        planPipeLine(
-          semanticFeatures = features,
-          allowSubqueryDuplicationInCnf = allowSubqueryDuplication
-        )
+        planPipeLine(allowSubqueryDuplicationInCnf = allowSubqueryDuplication)
 
     pipeLine.transform(state, context)
   }

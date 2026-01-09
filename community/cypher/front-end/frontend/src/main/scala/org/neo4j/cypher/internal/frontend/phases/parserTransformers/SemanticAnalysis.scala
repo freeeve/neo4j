@@ -22,7 +22,6 @@ import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
@@ -51,13 +50,13 @@ import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 /**
  * Do variable binding, typing, type checking and other semantic checks.
  */
-case class SemanticAnalysis(warn: Option[Boolean], features: SemanticFeature*)
+case class SemanticAnalysis(warn: Option[Boolean])
     extends Phase[BaseContext, BaseState, BaseState] {
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
     val startState =
       SemanticState.clean
-        .withFeatures(features: _*)
+        .withFeatures(context.semanticFeatures)
         .semanticCheckHasRunOnce(from.maybeSemanticTable.isDefined)
 
     val checkContext =
@@ -152,20 +151,16 @@ case object SemanticAnalysis extends StepSequencer.Step with ParsePipelineTransf
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
-  ): Transformer[BaseContext, BaseState, BaseState] = ifSemanticsNotUpToDate(warn = None, semanticFeatures)
+  ): Transformer[BaseContext, BaseState, BaseState] = ifSemanticsNotUpToDate(warn = None)
 
   /**
    * Transformer for the plan pipeline
    */
-  override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig)
-    : Transformer[BaseContext, BaseState, BaseState] =
-    ifSemanticsNotUpToDate(warn = Some(false), planPipelineConfig.semanticFeatures)
+  override def getTransformer(
+    planPipelineConfig: PlanPipelineTransformerConfig
+  ): Transformer[BaseContext, BaseState, BaseState] = ifSemanticsNotUpToDate(warn = Some(false))
 
-  def ifSemanticsNotUpToDate(
-    warn: Option[Boolean],
-    semanticFeatures: Seq[SemanticFeature]
-  ): Transformer[BaseContext, BaseState, BaseState] =
-    If((s: BaseState) => !s.semanticsUpToDate)(SemanticAnalysis(warn, semanticFeatures: _*))
+  def ifSemanticsNotUpToDate(warn: Option[Boolean]): Transformer[BaseContext, BaseState, BaseState] =
+    If((s: BaseState) => !s.semanticsUpToDate)(SemanticAnalysis(warn))
 }

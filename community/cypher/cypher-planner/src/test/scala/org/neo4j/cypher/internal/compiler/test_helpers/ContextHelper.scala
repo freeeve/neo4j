@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.test_helpers
 import org.mockito.Mockito.when
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext
@@ -88,7 +89,8 @@ object ContextHelper extends MockitoSugar {
     internalNotificationStats: InternalNotificationStats = new InternalNotificationStats(),
     internalSyntaxUsageStats: InternalUsageStats = InternalUsageStats.newImpl(),
     labelInferenceStrategy: LabelInferenceStrategy = NoInference,
-    sessionDatabase: DatabaseReference = null
+    sessionDatabase: DatabaseReference = null,
+    semanticFeatures: Seq[SemanticFeature] = Seq.empty
   ): PlannerContext = {
     new PlannerContext(
       version,
@@ -118,6 +120,7 @@ object ContextHelper extends MockitoSugar {
       internalSyntaxUsageStats,
       labelInferenceStrategy,
       sessionDatabase,
+      semanticFeatures,
       shadowedFunctions = Set.empty
     )
   }

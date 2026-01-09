@@ -584,8 +584,8 @@ case class SemanticState(
     (copy(typeTable = typeTable.updated(expression, updated)), actualUpdated)
   }
 
-  def withFeatures(features: SemanticFeature*): SemanticState =
-    features.foldLeft(this)(_.withFeature(_))
+  def withFeatures(features: Seq[SemanticFeature]): SemanticState =
+    copy(features = this.features ++ features)
 
   // Some semantic checks only make sense to be done on the first run before extensive rewriting
   def semanticCheckHasRunOnce(hasRun: Boolean): SemanticState = {

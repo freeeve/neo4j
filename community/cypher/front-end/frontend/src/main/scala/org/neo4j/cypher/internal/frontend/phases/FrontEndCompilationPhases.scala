@@ -61,7 +61,6 @@ trait FrontEndCompilationPhases {
     extractLiterals: ExtractLiteral = ExtractLiteral.ALWAYS,
     /* TODO: This is not part of configuration - Move to BaseState */
     parameterTypeMapping: Map[String, ParameterTypeInfo] = Map.empty,
-    semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
     obfuscateLiterals: Boolean = false,
     resolveSimpleDynamicExpressions: Boolean = false
   ) {
@@ -100,12 +99,14 @@ trait FrontEndCompilationPhases {
     Chainer.chainTransformers(orderedSteps.map(_.getCheckedTransformer(
       literalExtractionStrategy = config.literalExtractionStrategy,
       parameterTypeMapping = config.parameterTypeMapping,
-      semanticFeatures = config.semanticFeatures,
       obfuscateLiterals = config.obfuscateLiterals
     ))).asInstanceOf[Transformer[BaseContext, BaseState, BaseState]]
   }
 
-  def parsingBase(config: ParsingConfig, parameters: MapValue): Transformer[BaseContext, BaseState, BaseState] = {
+  private def parsingBase(
+    config: ParsingConfig,
+    parameters: MapValue
+  ): Transformer[BaseContext, BaseState, BaseState] = {
     Parse andThen
       If((_: BaseState) => config.obfuscateLiterals)(
         // Needs to be done before any other rewrites to not miss literals
@@ -116,7 +117,7 @@ trait FrontEndCompilationPhases {
       If((_: BaseState) => config.resolveSimpleDynamicExpressions)(
         IfChangedSetSemantics.using(ResolveSimpleDynamicExpressions(parameters))
       ) andThen
-      SemanticAnalysis.ifSemanticsNotUpToDate(warn = Some(false), config.semanticFeatures)
+      SemanticAnalysis.ifSemanticsNotUpToDate(warn = Some(false))
   }
 
   // Phase 1
@@ -147,16 +148,16 @@ trait FrontEndCompilationPhases {
       ExpandStarRewriter andThen
       TryRewriteProcedureCalls(resolver) andThen
       ObfuscationMetadataCollection andThen
-      SemanticAnalysis(warn = Some(true), config.semanticFeatures: _*)
+      SemanticAnalysis(warn = Some(true))
   }
 
   // Phase 1.1 (Fabric)
   def fabricFinalize(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
     UnresolveShadowedFunctions andThen
-      SemanticAnalysis(warn = Some(true), config.semanticFeatures: _*) andThen
+      SemanticAnalysis(warn = Some(true)) andThen
       AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
-      SemanticAnalysis(warn = Some(false), config.semanticFeatures: _*)
+      SemanticAnalysis(warn = Some(false))
   }
 }
 

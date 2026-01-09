@@ -94,8 +94,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       """MATCH (a)-[r]->+(b)
         |RETURN allReduce(acc = count(*), rel IN r | acc + rel.prop, acc <= 5) AS result
         |""".stripMargin,
-      pipeline =
-        pipelineWithSemanticFeatures() andThen AmbiguousAggregationAnalysis,
+      pipeline = semanticAnalysisTwice() andThen AmbiguousAggregationAnalysis,
       disabledVersions = Set(CypherVersion.Cypher5)
     ).hasErrorMessages(SemanticError.implicitGroupingExpressionInAggregationColumnErrorMessage(Seq("r")))
   }

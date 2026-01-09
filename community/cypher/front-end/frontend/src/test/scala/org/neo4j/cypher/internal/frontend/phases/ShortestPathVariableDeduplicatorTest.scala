@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -28,8 +27,8 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
     with RewritePhaseTest {
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] = ShortestPathVariableDeduplicator
 
-  override def preProcessPhase(features: SemanticFeature*): Transformer[BaseContext, BaseState, BaseState] =
-    super.preProcessPhase(features: _*) andThen
+  override def preProcessPhase(): Transformer[BaseContext, BaseState, BaseState] =
+    super.preProcessPhase() andThen
       flattenBooleanOperators andThen
       // flattenBooleanOperators invalidates SemanticInformation
       SemanticAnalysis(Some(false))
