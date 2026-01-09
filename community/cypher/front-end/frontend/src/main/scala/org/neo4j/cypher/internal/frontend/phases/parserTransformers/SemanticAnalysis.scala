@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.expressions.ExpressionWithComputedDependencies
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
@@ -44,8 +45,10 @@ import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions.ExpressionsHaveComputedDependencies
+import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
+import org.neo4j.cypher.internal.util.topDown
 
 /**
  * Do variable binding, typing, type checking and other semantic checks.
@@ -66,6 +69,8 @@ case class SemanticAnalysis(warn: Option[Boolean])
         Option(context.sessionDatabase)
       )
 
+    val upToDateScopes = ScopeSurveyor.process(from, context)
+
     val SemanticCheckResult(state, errors) = SemanticChecker.check(from.statement(), startState, checkContext)
     if (warn.getOrElse(!from.maybeSemantics.exists(_.semanticCheckHasRunOnce)))
       state.notifications.foreach(context.notificationLogger.log)
@@ -76,7 +81,7 @@ case class SemanticAnalysis(warn: Option[Boolean])
       val vcErrors = if (from.maybeSemantics.isEmpty) {
         // Until we remove the feature flag we won't be able to set the correct dependencies for the transformer
         //  without causing a lot of unnecessary rerunning of the ScopeSurveyor. Instead, we run it manually here.
-        VariableChecker.gatherAllErrors(ScopeSurveyor.process(from, context), context)
+        VariableChecker.gatherAllErrors(upToDateScopes, context)
       } else Seq.empty
       val allErrors = (vcErrors ++ saErrors).sortBy(e => VariableChecker.getErrorOrder(e))
       context.errorHandler(allErrors)
@@ -111,16 +116,32 @@ case class SemanticAnalysis(warn: Option[Boolean])
         // Some expressions record some semantic information in themselves.
         // This is done by the computeDependenciesForExpressions rewriter.
         // We need to apply it after each pass of SemanticAnalysis.
-        from.statement().endoRewrite(computeDependenciesForExpressions(state))
+        // Disabled until Namespacer interactions can be solved.
+        if (false && context.semanticFeatures.contains(VariableChecking)) {
+          from.statement().endoRewrite(
+            topDown(Rewriter.lift {
+              case x: ExpressionWithComputedDependencies =>
+                val scope = upToDateScopes.scopeState().recordedScopes(x)
+                x.withComputedIntroducedVariables(scope.declared.allSymbols)
+                  .withComputedScopeDependencies(scope.referenced)
+            })
+          )
+        } else {
+          from.statement().endoRewrite(computeDependenciesForExpressions(state))
+        }
       } else {
         // If we have errors we should rather avoid running computeDependenciesForExpressions, since the state might be incomplete.
         from.statement()
       }
-    from
-      .withStatement(rewrittenStatement)
-      .withSemanticState(state)
-      .withSemanticTable(table)
-      .withSemanticsUpToDate(true)
+
+    ScopeSurveyor.process(
+      from
+        .withStatement(rewrittenStatement)
+        .withSemanticState(state)
+        .withSemanticTable(table)
+        .withSemanticsUpToDate(true),
+      context
+    )
   }
 
   override def phase: CompilationPhaseTracer.CompilationPhase = SEMANTIC_CHECK

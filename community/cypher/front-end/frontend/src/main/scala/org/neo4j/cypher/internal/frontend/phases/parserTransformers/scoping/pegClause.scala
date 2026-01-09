@@ -56,7 +56,6 @@ import org.neo4j.cypher.internal.ast.SetPropertyItem
 import org.neo4j.cypher.internal.ast.SetPropertyItems
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.SortItem
-import org.neo4j.cypher.internal.ast.StarNotReferencing
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsBatchParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsConcurrencyParameters
@@ -91,8 +90,9 @@ object pegClause {
        */
       case call @ ImportingWithSubqueryCall(query, inTransactionsParameters, _) =>
         val importingAll = query.isCorrelated && query.importColumns.isEmpty
+        val explicitImportedVariables = query.importColumns.toSet
         val importedVariableSet: Set[LogicalVariable] =
-          if (importingAll) incoming.variables else query.importColumns.toSet
+          if (importingAll) incoming.allSymbols else explicitImportedVariables
         val graphSelectionScopes = query.getGraphSelections.map(gs =>
           pegExpression(gs.graphReference, incoming.constantChildContext())
         )
@@ -102,7 +102,7 @@ object pegClause {
         val scope = if (innerQuery.isDefined) scopeInlineSubquery(
           call,
           incoming,
-          importedVariableSet,
+          explicitImportedVariables,
           innerQueryIncoming,
           innerQuery.get,
           inTransactionsParameters
@@ -110,7 +110,6 @@ object pegClause {
         else StatementScope(call, incoming, Set.empty, Declarations.noDeclarations, RegularContext.unit)
         scope.withChildren(scope.children ++ graphSelectionScopes)
 
-      // TODO is this taking the USE clause in to consideration correctly
       case call @ ScopeClauseSubqueryCall(innerQuery, isImportingAll, importedVariables, inTransactionsParameters, _) =>
         val innerQueryIncoming =
           if (isImportingAll) incoming.constantChildContext()
@@ -119,10 +118,11 @@ object pegClause {
             variables = unitVariables,
             localCallables = incoming.localCallables
           )
+
         scopeInlineSubquery(
           call,
           incoming,
-          innerQueryIncoming.allSymbols,
+          importedVariables.toSet,
           innerQueryIncoming,
           innerQuery,
           inTransactionsParameters
@@ -542,15 +542,14 @@ object pegClause {
     children: Seq[WorkingScope],
     includedIncomingVariables: Set[LogicalVariable],
     incomingConstants: Set[LogicalVariable],
-    projectionType: ProjectionType,
-    clauseType: ClauseType
+    clauseType: ClauseType,
+    isAggregating: Boolean
   ): Set[LogicalVariable] = {
     val referencedInChildren = WorkingScope.referencedInChildren(children)
-    (clauseType, projectionType) match {
-      case (_: StarNotReferencing, _) => referencedInChildren
-      case (_: WithType, proj) if proj != FreeProjection =>
-        referencedInChildren union includedIncomingVariables union incomingConstants
-      case _ => referencedInChildren union includedIncomingVariables
+    (clauseType, isAggregating) match {
+      case (_: WithType, false) => referencedInChildren
+      case (_: WithType, true)  => referencedInChildren union includedIncomingVariables union incomingConstants
+      case _                    => referencedInChildren union includedIncomingVariables
     }
   }
 
@@ -590,7 +589,7 @@ object pegClause {
     val result = getProjectionResult(resultingVariables, clauseType)
     val declared = getProjectionDeclared(introducedVariables, clauseType)
     val referenced =
-      getProjectionReferenced(children, includedIncomingVariables, incoming.constants, projectionType, clauseType)
+      getProjectionReferenced(children, includedIncomingVariables, incoming.constants, clauseType, isAggregating)
 
     StatementScope(astNode, incoming, referenced, declared, outgoing, result, children)
 
@@ -602,7 +601,7 @@ object pegClause {
   @inline private def scopeInlineSubquery(
     callClause: SubqueryCall,
     incoming: RegularContext,
-    importedVariables: Set[LogicalVariable],
+    explicitlyImportedVariables: Set[LogicalVariable],
     innerQueryIncoming: RegularContext,
     innerQuery: Query,
     inTransactionsParameters: Option[InTransactionsParameters]
@@ -624,7 +623,7 @@ object pegClause {
         throw new IllegalStateException("inner query cannot have an expression result")
     }
     val children = innerQueryScope +: inTransactionsChildren
-    val referenced = Some(innerQueryScope.referenced union importedVariables)
+    val referenced = Some(innerQueryScope.referenced union explicitlyImportedVariables)
     val declared = Declarations(Seq.empty, declaredVariables ++ declaredInTransactionsVariables)
     incoming.noResultScope(outgoing, children, referenced, declared)
   }

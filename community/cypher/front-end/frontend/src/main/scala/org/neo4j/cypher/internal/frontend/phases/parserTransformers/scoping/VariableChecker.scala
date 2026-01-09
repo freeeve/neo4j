@@ -47,6 +47,8 @@ import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
 import org.neo4j.cypher.internal.frontend.phases.Phase
+import org.neo4j.cypher.internal.notification.DeprecatedPropertyReferenceInCreate
+import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.Foldable
 import org.neo4j.cypher.internal.util.Foldable.FoldingBehavior
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -56,7 +58,11 @@ import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlParams.StringParam
 
-case class VariableChecker(version: CypherVersion, checkAggregations: Boolean = false) extends VariableCheckerUtil {
+case class VariableChecker(
+  version: CypherVersion,
+  checkAggregations: Boolean = false,
+  logger: InternalNotificationLogger
+) extends VariableCheckerUtil {
 
   private val redeclarationOfVariable: VariableCheck = {
     case (acc, Scope.Clause.Declaring(astNode, incoming, Declarations(constants, variables, _), children))
@@ -132,6 +138,30 @@ case class VariableChecker(version: CypherVersion, checkAggregations: Boolean = 
         .flatMap(v => Seq(SemanticError.variableNotDefined(v.name, v.position))))
   }
 
+  private val invalidEntityReferenceInUpdatingClause: VariableCheck = {
+    case ( // ≥ Cypher 25
+        Acc.CreatePattern(acc, topo, _, create, true),
+        StatementScope(_: Match, _, _, declared, _, _, _)
+      )
+      if version != CypherVersion.Cypher5 && (declared.withoutAnonymousDeclaration.allSymbols intersect topo).nonEmpty =>
+      acc(declared.withoutAnonymousDeclaration.allSymbols.filter(topo).map(v =>
+        SemanticError.invalidEntityReference(v.name, create.name, v.position)
+      ).toSeq)
+    case ( // Cypher 5
+        Acc.CreatePattern(acc, topo, patternVars, create, true),
+        StatementScope(_: Match, _, _, declared, _, _, _)
+      )
+      if version == CypherVersion.Cypher5 && (declared.withoutAnonymousDeclaration.allSymbols intersect topo).nonEmpty =>
+      acc(declared.withoutAnonymousDeclaration.allSymbols.flatMap(v =>
+        if (patternVars contains v)
+          Seq(SemanticError.invalidEntityReference(v.name, create.name, v.position))
+        else {
+          logger.log(DeprecatedPropertyReferenceInCreate(v.position, v.name))
+          Seq()
+        }
+      ).toSeq)
+  }
+
   private val statementChecks: Seq[VariableCheck] = {
     if (checkAggregations) Seq.empty
     else
@@ -140,7 +170,8 @@ case class VariableChecker(version: CypherVersion, checkAggregations: Boolean = 
         multipleReturnColumns,
         incompatibleReturnColumns,
         invalidUseOfReturnStar,
-        variableNotDefinedInScopeClause
+        variableNotDefinedInScopeClause,
+        invalidEntityReferenceInUpdatingClause
       )
   }
 
@@ -433,12 +464,12 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
     if (context.semanticFeatures contains ScopeQueries) {
       val semanticsErrors = if (1 == 1) {
         from.maybeScopeState.map(s =>
-          VariableChecker(context.cypherVersion).collectAll(s.workingScope) ++
+          VariableChecker(context.cypherVersion, logger = context.notificationLogger).collectAll(s.workingScope) ++
             VariableChecker.checkForAmbiguousAggregation(from, context)
         )
       } else {
         from.maybeScopeState.map(s =>
-          VariableChecker(context.cypherVersion).collectFirst(s.workingScope) ++
+          VariableChecker(context.cypherVersion, logger = context.notificationLogger).collectFirst(s.workingScope) ++
             VariableChecker.checkForAmbiguousAggregation(from, context)
         )
       }
@@ -449,14 +480,18 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
 
   def gatherAllErrors(from: BaseState, context: BaseContext): Seq[SemanticError] = {
     val errors = from.maybeScopeState.map(s =>
-      VariableChecker(context.cypherVersion).collectAll(s.workingScope).toSeq
+      VariableChecker(context.cypherVersion, logger = context.notificationLogger).collectAll(s.workingScope).toSeq
     ).getOrElse(Seq.empty)
     errors.distinct
   }
 
   def checkForAmbiguousAggregation(from: BaseState, context: BaseContext): Seq[SemanticError] = {
     val errors = from.maybeScopeState.map(s =>
-      VariableChecker(context.cypherVersion, checkAggregations = true).collectAll(s.workingScope).toSeq
+      VariableChecker(
+        context.cypherVersion,
+        checkAggregations = true,
+        logger = context.notificationLogger
+      ).collectAll(s.workingScope).toSeq
     ).getOrElse(Seq.empty)
     errors.filter(_.gqlStatusObject.cause().get().gqlStatus() == "42I18")
       .distinct

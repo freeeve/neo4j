@@ -157,20 +157,17 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 |}""".stripMargin),
           Incoming(variables = Set("x")),
           Declared(variables = Seq("y")),
-          Referenced(Set("x")),
           Outgoing(variables = Set("x", "y")),
           ExpectedWorkingScope(
             Ast("""WITH *, 2 AS y
                   |RETURN y""".stripMargin),
             Incoming(constants = Set("x")),
-            Referenced(Set("x")),
             Outgoing(variables = Set("y")),
             ExpectedResult.TableResult("y"),
             ExpectedWorkingScope(
               Ast("""WITH *, 2 AS y""".stripMargin),
               Incoming(constants = Set("x")),
               Declared(variables = Seq("y")),
-              Referenced(Set("x")),
               Outgoing(constants = Set("x"), variables = Set("y")),
               ExpectedWorkingScope.constExp("2", Set("x"))
             ),
@@ -181,6 +178,167 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               Outgoing(variables = Set("y")),
               ExpectedResult.TableResult("y"),
               ExpectedWorkingScope.varExp("y", Set("x", "y"))
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN x, y"),
+          Incoming(variables = Set("x", "y")),
+          Referenced(Set("x", "y")),
+          Outgoing(variables = Set("x", "y")),
+          ExpectedResult.TableResult("x", "y"),
+          ExpectedWorkingScope.varExp("x", Set("x", "y")),
+          ExpectedWorkingScope.varExp("y", Set("x", "y"))
+        )
+      )
+    )
+  }
+
+  test("""WITH 1 AS x
+         |CALL (*) {
+         |  WITH DISTINCT *
+         |  WITH *, 2 AS y
+         |  RETURN y
+         |}
+         |RETURN x, y""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""WITH 1 AS x
+              |CALL (*) {
+              |  WITH DISTINCT *
+              |  WITH *, 2 AS y
+              |  RETURN y
+              |}
+              |RETURN x, y""".stripMargin),
+        Outgoing(variables = Set("x", "y")),
+        ExpectedResult.TableResult("x", "y"),
+        ExpectedWorkingScope(
+          Ast("WITH 1 AS x"),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("x")),
+          ExpectedWorkingScope.constExp("1")
+        ),
+        ExpectedWorkingScope(
+          Ast("""CALL (*) {
+                |  WITH DISTINCT *
+                |  WITH *, 2 AS y
+                |  RETURN y
+                |}""".stripMargin),
+          Incoming(variables = Set("x")),
+          Referenced(Set("x")),
+          Declared(variables = Seq("y")),
+          Outgoing(variables = Set("x", "y")),
+          ExpectedWorkingScope(
+            Ast("""WITH DISTINCT *
+                  |WITH *, 2 AS y
+                  |RETURN y""".stripMargin),
+            Incoming(constants = Set("x")),
+            Referenced(Set("x")),
+            Outgoing(variables = Set("y")),
+            ExpectedResult.TableResult("y"),
+            ExpectedWorkingScope(
+              Ast("""WITH DISTINCT *""".stripMargin),
+              Incoming(constants = Set("x")),
+              Referenced(Set("x")),
+              Outgoing(constants = Set("x"))
+            ),
+            ExpectedWorkingScope(
+              Ast("""WITH *, 2 AS y""".stripMargin),
+              Incoming(constants = Set("x")),
+              Declared(variables = Seq("y")),
+              Outgoing(constants = Set("x"), variables = Set("y")),
+              ExpectedWorkingScope.constExp("2", Set("x"))
+            ),
+            ExpectedWorkingScope(
+              Ast("""RETURN y""".stripMargin),
+              Incoming(constants = Set("x"), variables = Set("y")),
+              Referenced(Set("y")),
+              Outgoing(variables = Set("y")),
+              ExpectedResult.TableResult("y"),
+              ExpectedWorkingScope.varExp("y", Set("x", "y"))
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN x, y"),
+          Incoming(variables = Set("x", "y")),
+          Referenced(Set("x", "y")),
+          Outgoing(variables = Set("x", "y")),
+          ExpectedResult.TableResult("x", "y"),
+          ExpectedWorkingScope.varExp("x", Set("x", "y")),
+          ExpectedWorkingScope.varExp("y", Set("x", "y"))
+        )
+      )
+    )
+  }
+
+  test("""WITH 1 AS x
+         |CALL (*) {
+         |  WITH *, count(*) AS cnt
+         |  WITH *, 2 AS y
+         |  RETURN y
+         |}
+         |RETURN x, y""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""WITH 1 AS x
+              |CALL (*) {
+              |  WITH *, count(*) AS cnt
+              |  WITH *, 2 AS y
+              |  RETURN y
+              |}
+              |RETURN x, y""".stripMargin),
+        Outgoing(variables = Set("x", "y")),
+        ExpectedResult.TableResult("x", "y"),
+        ExpectedWorkingScope(
+          Ast("WITH 1 AS x"),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("x")),
+          ExpectedWorkingScope.constExp("1")
+        ),
+        ExpectedWorkingScope(
+          Ast("""CALL (*) {
+                |  WITH *, count(*) AS cnt
+                |  WITH *, 2 AS y
+                |  RETURN y
+                |}""".stripMargin),
+          Incoming(variables = Set("x")),
+          Referenced(Set("x")),
+          Declared(variables = Seq("y")),
+          Outgoing(variables = Set("x", "y")),
+          ExpectedWorkingScope(
+            Ast("""WITH *, count(*) AS cnt
+                  |WITH *, 2 AS y
+                  |RETURN y""".stripMargin),
+            Incoming(constants = Set("x")),
+            Referenced(Set("x")),
+            Outgoing(variables = Set("y")),
+            ExpectedResult.TableResult("y"),
+            ExpectedWorkingScope(
+              Ast("""WITH *, count(*) AS cnt""".stripMargin),
+              Incoming(constants = Set("x")),
+              Referenced(Set("x")),
+              Declared(variables = Seq("cnt")),
+              Outgoing(constants = Set("x"), variables = Set("cnt")),
+              ExpectedWorkingScope(
+                Ast("count(*)"),
+                AggregationIncoming(constants = Set("x"))
+              )
+            ),
+            ExpectedWorkingScope(
+              Ast("""WITH *, 2 AS y""".stripMargin),
+              Incoming(constants = Set("x"), variables = Set("cnt")),
+              Declared(variables = Seq("y")),
+              Outgoing(constants = Set("x"), variables = Set("y", "cnt")),
+              ExpectedWorkingScope.constExp("2", Set("x", "cnt"))
+            ),
+            ExpectedWorkingScope(
+              Ast("""RETURN y""".stripMargin),
+              Incoming(constants = Set("x"), variables = Set("y", "cnt")),
+              Referenced(Set("y")),
+              Outgoing(variables = Set("y")),
+              ExpectedResult.TableResult("y"),
+              ExpectedWorkingScope.varExp("y", Set("x", "cnt", "y"))
             )
           )
         ),
@@ -223,7 +381,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
                 |}""".stripMargin),
           Incoming(variables = Set("x")),
           Declared(variables = Seq("y")),
-          Referenced(Set("x")),
           Outgoing(variables = Set("x", "y")),
           ExpectedWorkingScope(
             Ast("""RETURN 2 AS y""".stripMargin),
@@ -1247,7 +1404,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ExpectedWorkingScope(
           Ast("WITH *, 1 AS b"),
           Incoming(variables = Set("a")),
-          Referenced(Set("a")),
           Declared(variables = Seq("b")),
           Outgoing(variables = Set("a", "b")),
           ExpectedWorkingScope.constExp("1", Set("a"))

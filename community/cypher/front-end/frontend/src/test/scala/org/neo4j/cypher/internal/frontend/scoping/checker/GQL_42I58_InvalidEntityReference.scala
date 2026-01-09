@@ -75,6 +75,22 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
     errorAllVersions("42I58", "Entity, 'r', cannot be created and referenced in the same clause.")
   }
 
+  test("""CREATE (x) CREATE (a)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})""") {
+    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  }
+
+  test("""CREATE (x) CREATE (a)-[r:R {prop: EXISTS { (a)-[r2]->(c) }}]->(b)""") {
+    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  }
+
+  test("""CREATE (x) CREATE (a), (a1)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})""") {
+    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
+  }
+
+  test("""CREATE (x) CREATE (a), (a1)-[r:R {prop: EXISTS { (a)-[r2]->(c) }}]->(b)""") {
+    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
+  }
+
   // Reference between different patterns
 
   test("""CREATE (a), (b {prop: a.prop})""") {
@@ -123,6 +139,11 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
   }
 
   test("""CREATE (b {prop: a.prop}), (a)""") {
+    passes(CypherVersion.Cypher5)
+    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  }
+
+  test("""CREATE (b {prop: EXISTS {(a)-->()}}), (a)""") {
     passes(CypherVersion.Cypher5)
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
   }
@@ -186,6 +207,14 @@ class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
 
   test("""INSERT (a {prop: 1}), ({prop: a.prop})""".stripMargin) {
     error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
+  }
+
+  test("""INSERT (x) INSERT (a)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})""") {
+    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  }
+
+  test("""INSERT (x) INSERT (a)-[r:R {prop: EXISTS { (a)-[r2]->(c) }}]->(b)""") {
+    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
   }
 
   for {

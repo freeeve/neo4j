@@ -197,6 +197,8 @@ case class Declarations(
   @inline def isConstantsEmpty: Boolean = constants.isEmpty
   @inline def isVariablesEmpty: Boolean = variables.isEmpty
 
+  def allSymbols: Set[LogicalVariable] = (constants ++ variables).toSet
+
   def amendVariables(amendment: Seq[LogicalVariable]): Declarations =
     copy(variables = variables ++ amendment)
 
