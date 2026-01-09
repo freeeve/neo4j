@@ -61,6 +61,26 @@ class LetClauseSemanticAnalysisTest
       |LET hasNeighbor = EXISTS { (a)--() }
       |RETURN a, hasNeighbor
       |""".stripMargin
+  ) ++ (
+    /*
+     * Valid use of aggregating function in scalar subquery in this context
+     */
+    for {
+      scalar <- Seq("EXISTS", "COUNT", "COLLECT")
+      (agg, args) <- Seq(
+        ("collect", "a"),
+        ("count", "*"),
+        ("count", "a"),
+        ("sum", "a"),
+        ("min", "a"),
+        ("max", "a"),
+        ("avg", "a"),
+        ("stDev", "a"),
+        ("stDevP", "a"),
+        ("percentileCont", "a, 0.5"),
+        ("percentileDisc", "a, 0.5")
+      )
+    } yield s"LET x = $scalar { UNWIND [1.1, 2.1, 3.1] AS a RETURN $agg($args) } RETURN x"
   )
 
   for {

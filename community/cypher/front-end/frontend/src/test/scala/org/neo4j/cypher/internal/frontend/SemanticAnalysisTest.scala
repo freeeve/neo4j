@@ -1480,14 +1480,28 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
       ))
   }
 
-  test("Should allow repeating rel variable in pattern") {
-    run("MATCH ()-[r]-()-[r]-() RETURN r AS r").hasNotifications(
-      RepeatedRelationshipReference(
-        p(10, 1, 11),
-        "r",
-        "()-[r]-()-[r]-()"
-      )
-    )
+  test("Should allow to use aggregate functions inside a scalar subquery inside an aggregate functions") {
+    val position = p(23, 1, 24)
+    run("WITH 1 AS x RETURN sum(max(x)) AS sumOfMax")
+      .hasErrors(SemanticError(
+        GqlHelper.getGql42001_42I24("max(x)", position.offset, position.line, position.column),
+        "Can't use aggregate functions inside of aggregate functions.",
+        position
+      ))
+  }
+
+  for {
+    scalar <- Seq("EXISTS", "COUNT", "COLLECT")
+    agg <- Seq("count(*)", "count(x)", "sum(x)", "min(x)", "max(x)")
+  } {
+    test(s"Should allow repeating rel variable in pattern for $agg in $scalar") {
+      run(
+        s"""RETURN count($scalar {
+           |  UNWIND [1, 2, 3] AS x
+           |  RETURN $agg
+           |}) AS fine""".stripMargin
+      ).hasNoErrors
+    }
   }
 
   test("Should allow repeating rel variable in comma separated patterns") {

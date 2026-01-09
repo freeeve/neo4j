@@ -205,15 +205,22 @@ abstract class Expression extends ASTNode {
   /**
    * Return true is this expression contains an aggregating expression.
    */
-  def containsAggregate: Boolean = this.folder.treeExists {
-    case IsAggregate(_) => true
+  def containsAggregate: Boolean = this.folder.treeFold(false) {
+    case _: SubqueryExpression => acc => SkipChildren(acc)
+    case IsAggregate(_)        => _ => SkipChildren(true)
   }
 
   /**
    * Returns the first encountered aggregate expression, or None if none existed.
    */
-  def findAggregate: Option[Expression] = this.folder.treeFind[Expression] {
-    case IsAggregate(_) => true
+  def findAggregate: Option[Expression] = this.folder.treeFold[Option[Expression]](None) {
+    case _: SubqueryExpression => acc => SkipChildren(acc)
+    case ex: Expression if IsAggregate(ex) =>
+      acc =>
+        SkipChildren(acc match {
+          case None => Some(ex)
+          case acc  => acc
+        })
   }
 
   /**

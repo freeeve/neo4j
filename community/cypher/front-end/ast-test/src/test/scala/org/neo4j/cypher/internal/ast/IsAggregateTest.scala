@@ -51,4 +51,23 @@ class IsAggregateTest extends CypherFunSuite with AstConstructionTestSupport {
 
     IsAggregate.unapply(expr) should equal(None)
   }
+
+  for {
+    (keyword, ast) <- Seq[(String, SingleQuery => FullSubqueryExpression)](
+      "COLLECT" -> ((q: SingleQuery) => CollectExpression(q)(pos, None, None)),
+      "EXISTS" -> ((q: SingleQuery) => ExistsExpression(q)(pos, None, None)),
+      "COUNT" -> ((q: SingleQuery) => CountExpression(q)(pos, None, None))
+    )
+  } {
+    test(s"$keyword { UNWIND [1,2,3] AS x RETURN count(*) } is an not aggregate expression") {
+      val expr = ast(
+        singleQuery(
+          unwind(listOfInt(1, 2, 3), varFor("x")),
+          return_(returnItem(CountStar()(pos), "count(*)"))
+        )
+      )
+
+      IsAggregate.unapply(expr) should equal(None)
+    }
+  }
 }
