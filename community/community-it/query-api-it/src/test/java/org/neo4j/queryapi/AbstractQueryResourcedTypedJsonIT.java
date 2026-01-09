@@ -129,6 +129,27 @@ public abstract class AbstractQueryResourcedTypedJsonIT {
     }
 
     @Test
+    void floatTypes() throws IOException, InterruptedException {
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement(
+                        "RETURN 1.23 as float, -1.23 as negativeFloat, NaN as nan, Infinity as infinity, -Infinity as negativeInfinity ")
+                .build());
+
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(contentType())
+                .wasSuccessful()
+                .hasFieldNames("float", "negativeFloat", "nan", "infinity", "negativeInfinity");
+
+        var parsedJson = response.body().data();
+
+        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(0, "Float", "1.23");
+        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(1, "Float", "-1.23");
+        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(2, "Float", "NaN");
+        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(3, "Float", "Infinity");
+        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(4, "Float", "-Infinity");
+    }
+
+    @Test
     void temporalTypes() throws IOException, InterruptedException {
         var response = testClient.autoCommit(QueryRequest.newBuilder()
                 .statement("RETURN datetime('2015-06-24T12:50:35.556+0100') AS theOffsetDateTime, "
