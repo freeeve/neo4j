@@ -172,7 +172,9 @@ public class KernelRead implements Read {
 
         EntityIndexSeekClient client = (EntityIndexSeekClient) cursor;
         client.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
-        indexSession.reader().query(client, queryContext, queryContext.cursorContext(), constraints, query);
+        CursorContext cursorContext =
+                pickCursorContext(queryContext.cursorContext(), includeChangesFromThisTransaction);
+        indexSession.reader().query(client, queryContext, cursorContext, constraints, query);
     }
 
     @Override
@@ -215,7 +217,9 @@ public class KernelRead implements Read {
 
         EntityIndexSeekClient client = (EntityIndexSeekClient) cursor;
         client.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
-        indexSession.reader().query(client, queryContext, queryContext.cursorContext(), constraints, query);
+        CursorContext cursorContext =
+                pickCursorContext(queryContext.cursorContext(), includeChangesFromThisTransaction);
+        indexSession.reader().query(client, queryContext, cursorContext, constraints, query);
     }
 
     @Override
@@ -234,6 +238,10 @@ public class KernelRead implements Read {
                     "Relationship index seek can not be performed on index: " + descriptor.userDescription(tokenRead));
         }
         return propertyIndexSeek(index, desiredNumberOfPartitions, queryContext, query);
+    }
+
+    private CursorContext pickCursorContext(CursorContext cursorContext, boolean includeChangesFromThisTransaction) {
+        return includeChangesFromThisTransaction ? cursorContext : cursorContext.noCurrentTransactionContext();
     }
 
     private void verifyNotParallel() {
@@ -404,14 +412,11 @@ public class KernelRead implements Read {
             boolean includeChangesFromThisTransaction)
             throws KernelException {
         indexSeekClient.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
+        CursorContext cursorContext =
+                pickCursorContext(queryContext.cursorContext(), includeChangesFromThisTransaction);
         indexSession
                 .reader()
-                .query(
-                        indexSeekClient,
-                        queryContext,
-                        queryContext.cursorContext(),
-                        constraints,
-                        PropertyIndexQuery.allEntries());
+                .query(indexSeekClient, queryContext, cursorContext, constraints, PropertyIndexQuery.allEntries());
     }
 
     @Override
@@ -485,7 +490,8 @@ public class KernelRead implements Read {
 
         DefaultNodeLabelIndexCursor indexCursor = (DefaultNodeLabelIndexCursor) cursor;
         indexCursor.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
-        tokenSession.reader().query(indexCursor, constraints, query, cursorContext);
+        CursorContext cursorContextForScan = pickCursorContext(cursorContext, includeChangesFromThisTransaction);
+        tokenSession.reader().query(indexCursor, constraints, query, cursorContextForScan);
     }
 
     @Override
@@ -621,7 +627,8 @@ public class KernelRead implements Read {
 
         var indexCursor = (InternalTokenIndexCursor) cursor;
         indexCursor.initState(this, txStateHolder, accessModeProvider, includeChangesFromThisTransaction);
-        tokenSession.reader().query(indexCursor, constraints, query, cursorContext);
+        CursorContext cursorContextForScan = pickCursorContext(cursorContext, includeChangesFromThisTransaction);
+        tokenSession.reader().query(indexCursor, constraints, query, cursorContextForScan);
     }
 
     @Override
