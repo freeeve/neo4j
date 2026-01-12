@@ -1398,7 +1398,7 @@ trait AstConstructionTestSupport {
   }
 
   def search(
-    refVariable: String,
+    resultVariable: String,
     score: Option[String],
     indexName: Either[String, Parameter],
     embedding: Expression,
@@ -1406,7 +1406,7 @@ trait AstConstructionTestSupport {
     where: Option[Where] = None
   ): Search = {
     val scoreVariable = if (score.isDefined) Some(varFor(score.get)) else None
-    Search(varFor(refVariable), scoreVariable, indexName, embedding, where, limit(limitNbr))(pos)
+    Search(varFor(resultVariable), scoreVariable, indexName, embedding, where, limit(limitNbr))(pos)
   }
 
   def with_(items: ReturnItem*): With =

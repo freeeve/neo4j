@@ -109,13 +109,18 @@ sealed trait VectorIndexDefinition {
   def property: String
 }
 
-final case class NodeVectorIndexDefinition(name: String, labels: Set[EntityType.Node], property: String)
-    extends VectorIndexDefinition
+final case class NodeVectorIndexDefinition(
+  name: String,
+  labels: Seq[EntityType.Node],
+  property: String,
+  additionalProperties: Seq[String]
+) extends VectorIndexDefinition
 
 final case class RelationshipVectorIndexDefinition(
   name: String,
-  relTypes: Set[EntityType.Relationship],
-  property: String
+  relTypes: Seq[EntityType.Relationship],
+  property: String,
+  additionalProperties: Seq[String]
 ) extends VectorIndexDefinition
 
 class IndexAttributes(
@@ -156,14 +161,21 @@ trait LogicalPlanningConfigurationAdHocSemanticTable {
     }
 
     vectorIndexes.values.foreach {
-      case NodeVectorIndexDefinition(_, labels, property) =>
+      case NodeVectorIndexDefinition(_, labels, property, additionalProperties) =>
         labels.foreach(label =>
           addLabelIfUnknown(label.label)
         )
         addPropertyKeyIfUnknown(property)
-      case RelationshipVectorIndexDefinition(_, relTypes, property) =>
+        additionalProperties.foreach(addPropertyKeyIfUnknown)
+      case RelationshipVectorIndexDefinition(
+          _,
+          relTypes,
+          property,
+          additionalProperties
+        ) =>
         relTypes.foreach(relType => addRelationshipTypeIfUnknown(relType.relType))
         addPropertyKeyIfUnknown(property)
+        additionalProperties.foreach(addPropertyKeyIfUnknown)
     }
 
     labelCardinality.keys.foreach(addLabelIfUnknown)

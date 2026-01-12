@@ -23,24 +23,16 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
+import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
-import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
-import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
-import org.neo4j.cypher.internal.logical.plans.InclusiveBound
-import org.neo4j.cypher.internal.logical.plans.InequalitySeekRange
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
-import org.neo4j.cypher.internal.logical.plans.RangeBetween
-import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
-import org.neo4j.cypher.internal.logical.plans.RangeLessThan
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
-import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
-import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.dbms.database.DbmsRuntimeVersion
 import org.neo4j.exceptions.CypherTypeException
@@ -104,7 +96,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         )
       ),
       runtime
-    ) {
+    ) with QueryExpressionConstructionTestSupport {
 
   private val configurations = Seq(
     ("INT64", int64Vector(1L to sizeHint: _*)),
@@ -670,7 +662,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "13",
-          filter = Some(equal(param("seekValue")))
+          filter = Some(single(param("seekValue")))
         ).build()
 
       val runtimeResult =
@@ -1483,14 +1475,14 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     )
 
     val Seq(min, max) = Seq(randomValue, randomValue).sorted(comparatorToOrdering(Values.COMPARATOR))
-    def randomSearchPredicate = {
+    def randomSearchPredicate: (QueryExpression[Expression], String) = {
       random.nextInt(6) match {
         case 0 => (rangeExpression(gt(param("min"))), s"n.prop > $min")
         case 1 => (rangeExpression(gte(param("min"))), s"n.prop >= $min")
         case 2 => (rangeExpression(lt(param("min"))), s"n.prop < $min")
         case 3 => (rangeExpression(lte(param("min"))), s"n.prop <= $min")
         case 4 => (between(gte(param("min")), lte(param("max"))), s"$min <= n.prop <= $max")
-        case 5 => (equal(param("min")), s"n.prop = $min")
+        case 5 => (single(param("min")), s"n.prop = $min")
         case _ => throw new IllegalStateException
       }
     }
@@ -1589,7 +1581,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(equal(param("p")))
+        filter = Some(single(param("p")))
       )
       .build()
 
@@ -1638,7 +1630,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(equal(param("p")))
+        filter = Some(single(param("p")))
       )
       .build()
 
@@ -1689,7 +1681,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(equal(param("p1")), equal(param("p2"))))
+        filter = Some(composite(single(param("p1")), single(param("p2"))))
       )
       .build()
 
@@ -1751,7 +1743,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(equal(param("p1")), equal(param("p2")), AllQueryExpression()))
+        filter = Some(composite(single(param("p1")), single(param("p2")), AllQueryExpression()))
       )
       .build()
 
@@ -1835,7 +1827,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), equal(param("p"))))
+        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), single(param("p"))))
       )
       .build()
 
@@ -2045,7 +2037,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         limit = s"10000000",
         filter = Some(composite(
           between(gte(param("from")), lte(param("to"))),
-          equal(param("exact"))
+          single(param("exact"))
         ))
       )
       .build()
@@ -2427,8 +2419,8 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     // then
-    executeDurationQuery(equal(param("d1"))) should beColumns("dur").withSingleRow(d1)
-    executeDurationQuery(equal(param("d2"))) should beColumns("dur").withSingleRow(d2)
+    executeDurationQuery(single(param("d1"))) should beColumns("dur").withSingleRow(d1)
+    executeDurationQuery(single(param("d2"))) should beColumns("dur").withSingleRow(d2)
     executeDurationQuery(rangeExpression(gte(param("d1")))) should beColumns("dur").withSingleRow(d1)
     executeDurationQuery(rangeExpression(gte(param("d1")))) should beColumns("dur").withSingleRow(d1)
     executeDurationQuery(rangeExpression(lte(param("d1")))) should beColumns("dur").withSingleRow(d1)
@@ -2474,7 +2466,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         vector = s"${vectorAsCypherList(randomVector)}",
         limit = "13",
         score = "score",
-        filter = Some(equal(listOf(literalInt(42))))
+        filter = Some(single(listOf(literalInt(42))))
       ).build()
 
     // then
@@ -2530,27 +2522,6 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     )
   }
 
-  private def between(gt: RangeGreaterThan[Expression], lt: RangeLessThan[Expression]) = {
-    rangeExpression(
-      RangeBetween(
-        gt,
-        lt
-      )
-    )
-  }
-
-  private def rangeExpression(e: InequalitySeekRange[Expression]): RangeQueryExpression[InequalitySeekRangeWrapper] = {
-    RangeQueryExpression(
-      InequalitySeekRangeWrapper(e)(pos)
-    )
-  }
-
-  private def composite(es: QueryExpression[Expression]*) = CompositeQueryExpression(es)
-  private def equal(e: Expression) = SingleQueryExpression(e)
-  private def gt(e: Expression) = RangeGreaterThan(NonEmptyList(ExclusiveBound(e)))
-  private def gte(e: Expression) = RangeGreaterThan(NonEmptyList(InclusiveBound(e)))
-  private def lt(e: Expression) = RangeLessThan(NonEmptyList(ExclusiveBound(e)))
-  private def lte(e: Expression) = RangeLessThan(NonEmptyList(InclusiveBound(e)))
   private def param(name: String) = parameter(name, CTAny)
 
   private def vectorAsCypherList(v: VectorValue): String = {

@@ -30,7 +30,8 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport {
 
   override val semanticFeatures: List[SemanticFeature] = List(
-    SemanticFeature.VectorSearch
+    SemanticFeature.VectorSearch,
+    SemanticFeature.VectorSingleStageFilteringEnabled
   )
 
   private def buildSinglePlannerQuery(query: String, version: CypherVersion) =
@@ -69,6 +70,7 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
           resultVariable = v"movie",
           indexName = "moviePlots",
           embedding = prop("m", "embedding"),
+          None,
           limit = SignedDecimalIntegerLiteral("5")(pos),
           scoreVariable = None
         )
@@ -99,6 +101,7 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
           resultVariable = v"movie",
           indexName = "moviePlots",
           embedding = prop("m", "embedding"),
+          None,
           limit = SignedDecimalIntegerLiteral("5")(pos),
           scoreVariable = Some(v"score")
         )
@@ -141,9 +144,37 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
           resultVariable = v"movie",
           indexName = "moviePlots",
           embedding = v"embedding",
+          where = None,
           limit = SignedDecimalIntegerLiteral("10")(pos),
           scoreVariable = Some(v"similarity")
         )
+    }
+  }
+
+  test("search clause should be correctly formatted as string") {
+    versionsExcept5 { version =>
+      val query =
+        """MATCH (m:Movie)
+          |MATCH (movie:Movie)
+          |  search movie in (
+          |    vector index moviePlots
+          |    for m.embedding
+          |    where movie.prop > 10
+          |      and movie.prop <= 100
+          |    limit 5
+          |  ) score as similarity
+          |RETURN similarity, movie.title AS title """.stripMargin
+
+      val searchClauseAsString = buildSinglePlannerQuery(query, version)
+        .allPlannerQueries
+        .map(_.queryGraph)
+        .find(_.patternNodes.contains(varFor("movie")))
+        .flatMap(_.searchClause)
+        .getOrElse(fail("Expected search clause for MATCH-SEARCH clause"))
+        .toString
+
+      searchClauseAsString shouldEqual
+        "SEARCH movie IN (VECTOR INDEX moviePlots FOR m.embedding WHERE movie.prop > 10 AND movie.prop <= 100 LIMIT 5) SCORE AS similarity"
     }
   }
 }

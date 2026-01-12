@@ -1713,7 +1713,7 @@ object LogicalPlanToPlanBuilderString {
           indexName,
           vector,
           limit,
-          None,
+          maybeFilter,
           argumentIds
         ) =>
         params(
@@ -1725,7 +1725,8 @@ object LogicalPlanToPlanBuilderString {
           limit.quoted,
           score.map(_.name.quoted).getOrElse("".quoted),
           argumentIds,
-          mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex)
+          mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
+          maybeFilter
         )
 
       case DirectedRelationshipVectorIndexSearch(
@@ -1738,7 +1739,7 @@ object LogicalPlanToPlanBuilderString {
           indexName,
           vector,
           limit,
-          None,
+          maybeFilter,
           argumentIds
         ) =>
         params(
@@ -1750,7 +1751,8 @@ object LogicalPlanToPlanBuilderString {
           limit.quoted,
           score.map(_.name.quoted).getOrElse("".quoted),
           argumentIds,
-          mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex)
+          mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
+          maybeFilter
         )
 
       case UndirectedRelationshipVectorIndexSearch(
@@ -1763,7 +1765,7 @@ object LogicalPlanToPlanBuilderString {
           indexName,
           vector,
           limit,
-          None,
+          maybeFilter,
           argumentIds
         ) =>
         params(
@@ -1775,7 +1777,8 @@ object LogicalPlanToPlanBuilderString {
           limit.quoted,
           score.map(_.name.quoted).getOrElse("".quoted),
           argumentIds,
-          mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex)
+          mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
+          maybeFilter
         )
 
       case RollUpApply(_, _, collectionName, variableToCollect) => params(collectionName, variableToCollect)
@@ -2541,6 +2544,39 @@ object LogicalPlanToPlanBuilderString {
     implicit def fromOption[A: ToParam]: ToParam[Option[A]] = {
       case Some(a) => call("Some", a)
       case None    => Param("None")
+    }
+
+    /**
+     * This is the inverse of [[QueryExpressionConstructionTestSupport]]
+     */
+    implicit def fromQueryExpression: ToParam[QueryExpression[Expression]] = {
+      case RangeQueryExpression(InequalitySeekRangeWrapper(RangeBetween(gt, lt))) =>
+        call(
+          "between",
+          gt.asInstanceOf[InequalitySeekRange[Expression]],
+          lt.asInstanceOf[InequalitySeekRange[Expression]]
+        )
+      case RangeQueryExpression(InequalitySeekRangeWrapper(range)) =>
+        call("rangeExpression", range)
+      case SingleQueryExpression(expression) =>
+        call("single", expression)
+      case queryExpression: QueryExpression[Expression] =>
+        // Ideally, we should not get here, but as QueryExpression is an extensive trait, there is this fallback
+        queryExpression.toString
+    }
+
+    implicit def fromInequalitySeekRange: ToParam[InequalitySeekRange[Expression]] = {
+      case RangeGreaterThan(NonEmptyList(ExclusiveBound(expression))) =>
+        call("gt", expression)
+      case RangeGreaterThan(NonEmptyList(InclusiveBound(expression))) =>
+        call("gte", expression)
+      case RangeLessThan(NonEmptyList(ExclusiveBound(expression))) =>
+        call("lt", expression)
+      case RangeLessThan(NonEmptyList(InclusiveBound(expression))) =>
+        call("lte", expression)
+      case other =>
+        // Ideally, we should not get here, but as QueryExpression is an extensive trait, there is this fallback
+        other.toString
     }
 
     implicit def fromStringToNamedTuple[A: ToParam]: ToParam[(String, A)] = {

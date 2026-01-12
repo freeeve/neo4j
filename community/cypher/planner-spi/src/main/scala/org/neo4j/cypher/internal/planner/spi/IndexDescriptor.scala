@@ -210,10 +210,18 @@ case class TokenIndexDescriptor(
 
 sealed trait VectorIndexDescriptor {
   def property: PropertyKeyId
+  def additionalProperties: Seq[PropertyKeyId]
+  def properties: Seq[PropertyKeyId] = property +: additionalProperties
 }
 
-final case class NodeVectorIndexDescriptor(labelIds: Set[LabelId], property: PropertyKeyId)
-    extends VectorIndexDescriptor
+final case class NodeVectorIndexDescriptor(
+  labelIds: Seq[LabelId],
+  property: PropertyKeyId,
+  additionalProperties: Seq[PropertyKeyId]
+) extends VectorIndexDescriptor
 
-final case class RelationshipVectorIndexDescriptor(relTypeIds: Set[RelTypeId], property: PropertyKeyId)
-    extends VectorIndexDescriptor
+final case class RelationshipVectorIndexDescriptor(
+  relTypeIds: Seq[RelTypeId],
+  property: PropertyKeyId,
+  additionalProperties: Seq[PropertyKeyId]
+) extends VectorIndexDescriptor

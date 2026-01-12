@@ -3216,7 +3216,6 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def nestedPlanCollectExpressionProjection(resultList: String, resultPart: String): IMPL = {
     val inner = parseExpression(resultPart)
     appendAtCurrentIndent(BinaryOperator((lhs, rhs) =>
-      // TODO Set.empty?
       Projection(
         lhs,
         Map(varFor(resultList) -> NestedPlanCollectExpression(rhs, inner, "collect(...)")(NONE))
@@ -3232,7 +3231,6 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   def nestedPlanGetByNameExpressionProjection(columnNameToGet: String, resultName: String): IMPL = {
     appendAtCurrentIndent(BinaryOperator((lhs, rhs) =>
-      // TODO Set.empty?
       Projection(
         lhs,
         Map(varFor(resultName) -> NestedPlanGetByNameExpression(rhs, varFor(columnNameToGet), "getByName(...)")(NONE))

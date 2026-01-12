@@ -322,9 +322,7 @@ object TestConf {
   object Parallel {
 
     private def baseConf: TestConf = TestConf(
-      preparserOptions = Map("runtime" -> "parallel"),
-      // TODO remove when https://linear.app/neo4j/issue/PLAN-3140/vector-search-fails-to-return-results-for-parallel-runtime is fixed
-      additionalTagContext = Set("parallel-temp")
+      preparserOptions = Map("runtime" -> "parallel")
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -411,9 +409,7 @@ object TestConf {
     private def baseConf: TestConf = TestConf(
       neo4jConf = Map("server.bolt.enabled" -> "true"),
       useBolt = true,
-      preparserOptions = Map("runtime" -> "parallel"),
-      // TODO remove when https://linear.app/neo4j/issue/PLAN-3140/vector-search-fails-to-return-results-for-parallel-runtime is fixed
-      additionalTagContext = Set("parallel-temp")
+      preparserOptions = Map("runtime" -> "parallel")
     )
 
     object Cypher25 extends InjectedTestConf {

@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -2305,10 +2306,10 @@ object SemanticError {
   }
 
   def singleStageWithInvalidPredicate(expr: Expression, position: InputPosition): SemanticError = {
-    val exprString = ExpressionStringifier().apply(expr)
+    val exprString = And.flatten(expr).map(ExpressionStringifier().apply).mkString(" AND ")
     SemanticError(
       GqlHelper.getGql42001_42I73(exprString, position.offset, position.line, position.column),
-      s"Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. '$exprString' does not fulfill this.",
+      s"A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). '$exprString' does not fulfill this.",
       position
     )
   }
@@ -2316,7 +2317,7 @@ object SemanticError {
   def singleStageWithInvalidVariable(variable1: String, variable2: String, position: InputPosition): SemanticError = {
     SemanticError(
       GqlHelper.getGql42001_42I74(variable1, variable2, position.offset, position.line, position.column),
-      s"The variable `$variable1` in a graph metadata filter property predicate must be the same as the search clause binding variable `$variable2`.",
+      s"The variable `$variable1` in a vector search filter property predicate must be the same as the search clause binding variable `$variable2`.",
       position
     )
   }

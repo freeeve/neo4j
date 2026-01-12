@@ -18,18 +18,15 @@ package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.And
-import org.neo4j.cypher.internal.expressions.Equals
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.GreaterThan
-import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
-import org.neo4j.cypher.internal.expressions.LessThan
-import org.neo4j.cypher.internal.expressions.LessThanOrEqual
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -37,9 +34,10 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
-import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
+import org.neo4j.cypher.internal.expressions.VectorFilterExpression
+import org.neo4j.cypher.internal.expressions.VectorFilterExpression.VectorFilterExpressionRange
 import org.neo4j.cypher.internal.notification.IdentifierShadowsVariableNotification
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
@@ -88,7 +86,7 @@ case class Search(
 
   private def checkSingleStageFeatureFlag(): SemanticCheck =
     requireFeatureSupport(
-      "Graph metadata filtering for vector search",
+      "Vector search filtering",
       SemanticFeature.VectorSingleStageFilteringEnabled,
       position
     )
@@ -144,38 +142,88 @@ case class Search(
        */
       if (where.isDefined && !state.semanticCheckHasRunOnce) {
         checkSingleStageFeatureFlag() ifOkChain
-          checkWhereExpression(where.get.expression)
+          checkExpressionsRangeOrExact(where.get.expression)
       } else {
         SemanticCheck.success
       }
     }
   }
 
-  private def checkWhereExpression(expression: Expression): SemanticCheck = {
-    expression match {
-      case GreaterThan(Property(variable: LogicalVariable, _), rhs) =>
-        checkWhereVariable(variable) chain checkRhsType(rhs)
-      case GreaterThanOrEqual(Property(variable: LogicalVariable, _), rhs) =>
-        checkWhereVariable(variable) chain checkRhsType(rhs)
-      case LessThan(Property(variable: LogicalVariable, _), rhs) => checkWhereVariable(variable) chain checkRhsType(rhs)
-      case LessThanOrEqual(Property(variable: LogicalVariable, _), rhs) =>
-        checkWhereVariable(variable) chain checkRhsType(rhs)
-      case Equals(Property(variable: LogicalVariable, _), rhs) =>
-        checkWhereVariable(variable) chain checkRhsType(rhs, equality = true)
-      case And(lhs, rhs) => checkWhereExpression(lhs) chain checkWhereExpression(rhs)
-      case expr          => SemanticError.singleStageWithInvalidPredicate(expr, expr.position)
+  private def checkExpressionsRangeOrExact(expression: Expression): SemanticCheck = {
+    val CheckedVectorFilterExpression(check, expressions) = asFilterExpressions(expression)
+    check ifOkChain {
+      val expressionsByProperty = expressions.groupBy(_.propertyName).values
+      // TODO: Improve error reporting to show offending expressions (see SURF-489)
+      val invalid = expressionsByProperty.exists {
+        case Seq(_)                            => false
+        case VectorFilterExpressionRange(_, _) => false
+        case _                                 => true
+      }
+      when(invalid) {
+        SemanticError.singleStageWithInvalidPredicate(expression, expression.position)
+      }
     }
   }
 
-  private def checkWhereVariable(variable: LogicalVariable): SemanticCheck = {
-    if (bindingVariable.equals(variable)) {
-      SemanticCheck.success
-    } else {
+  private case class CheckedVectorFilterExpression(
+    check: SemanticCheck,
+    expressions: Seq[VectorFilterExpression]
+  ) {
+
+    def ++(other: CheckedVectorFilterExpression): CheckedVectorFilterExpression =
+      CheckedVectorFilterExpression(
+        this.check chain other.check,
+        this.expressions ++ other.expressions
+      )
+  }
+
+  private object CheckedVectorFilterExpression {
+
+    val empty: CheckedVectorFilterExpression =
+      CheckedVectorFilterExpression(SemanticCheck.success, Seq.empty)
+
+    def apply(
+      variable: LogicalVariable,
+      rhs: Expression,
+      filterExpression: VectorFilterExpression
+    ): CheckedVectorFilterExpression = {
+      val isEquality = filterExpression.isInstanceOf[VectorFilterExpression.Equality]
+      CheckedVectorFilterExpression(
+        checkWhereVariable(variable) chain checkRhs(rhs, isEquality),
+        Seq(filterExpression)
+      )
+    }
+
+    def apply(error: SemanticError): CheckedVectorFilterExpression =
+      CheckedVectorFilterExpression(error, Seq.empty)
+  }
+
+  private def asFilterExpressions(expression: Expression): CheckedVectorFilterExpression =
+    expression match {
+      case VectorFilterExpression(variable: LogicalVariable, rhs: Expression, operator: VectorFilterExpression) =>
+        CheckedVectorFilterExpression(variable, rhs, operator)
+      case And(lhs, rhs) => asFilterExpressions(lhs) ++ asFilterExpressions(rhs)
+      case Ands(exprs) =>
+        exprs.map(asFilterExpressions).foldLeft(CheckedVectorFilterExpression.empty)(_ ++ _)
+      case expr =>
+        CheckedVectorFilterExpression(SemanticError.singleStageWithInvalidPredicate(expr, expr.position))
+    }
+
+  private def checkWhereVariable(variable: LogicalVariable): SemanticCheck =
+    when(!bindingVariable.equals(variable)) {
       SemanticError.singleStageWithInvalidVariable(variable.name, bindingVariable.name, variable.position)
     }
-  }
 
-  private def checkRhsType(rhs: Expression, equality: Boolean = false): SemanticCheck = {
+  private def checkRhs(rhs: Expression, equality: Boolean): SemanticCheck =
+    checkRhsType(rhs, equality) chain
+      when(rhs.dependencies.contains(bindingVariable)) {
+        // TODO SURF-482: Throw right error
+        // To be removed again in PLAN-3087
+        // SemanticError.singleStageWithInvalidPredicate(rhs, rhs.position)
+        SemanticCheck.success
+      }
+
+  private def checkRhsType(rhs: Expression, equality: Boolean): SemanticCheck = {
     val validTypes = CTInteger
       .union(CTFloat)
       .union(CTBoolean)

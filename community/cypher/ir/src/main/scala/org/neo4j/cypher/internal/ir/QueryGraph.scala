@@ -767,7 +767,7 @@ final case class QueryGraph private (
     addSetIfNonEmpty(hints, "Hints", (_: Hint).toString)
     addSetIfNonEmpty(mutatingPatterns, "MutatingPatterns", (_: MutatingPattern).toString)
     addSetIfNonEmpty(selectivePathPatterns, "SelectivePathPatterns", (_: SelectivePathPattern).toString)
-    addOptionIfNonEmpty(searchClause, "Search Predicate", (_: SearchClause).toString)
+    addOptionIfNonEmpty(searchClause, "Search Clause", (_: SearchClause).toString)
 
     builder.append("}")
     builder.toString()

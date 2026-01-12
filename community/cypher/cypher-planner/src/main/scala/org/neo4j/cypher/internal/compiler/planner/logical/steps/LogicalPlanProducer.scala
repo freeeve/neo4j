@@ -45,6 +45,7 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.UsingScanHint
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathHint
+import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
 import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
@@ -329,6 +330,8 @@ import org.neo4j.cypher.internal.util.attribution.IdGen
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.exceptions.ExhaustiveShortestPathForbiddenException
 import org.neo4j.exceptions.InternalException
+
+import scala.util.chaining.scalaUtilChainingOps
 
 /*
  * The responsibility of this class is to produce the correct solved PlannerQuery when creating logical plans.
@@ -2021,10 +2024,12 @@ case class LogicalPlanProducer(
   def planNodeVectorIndexSearch(
     context: LogicalPlanningContext,
     resultVariable: LogicalVariable,
-    labels: Set[LabelToken],
+    labels: Seq[LabelToken],
     indexedProperties: Seq[IndexedProperty],
     indexName: String,
     embedding: Expression,
+    where: Option[Where],
+    maybeFilter: Option[QueryExpression[Expression]],
     limit: Expression,
     scoreVariable: Option[LogicalVariable],
     argumentIds: Set[LogicalVariable],
@@ -2039,6 +2044,7 @@ case class LogicalPlanProducer(
             resultVariable,
             indexName,
             embedding,
+            where,
             limit,
             scoreVariable
           )))
@@ -2052,6 +2058,8 @@ case class LogicalPlanProducer(
     val solver = SubqueryExpressionSolver.solverForLeafPlan(argumentIds, context)
 
     val rewrittenEmbedding = solver.solve(embedding)
+    // While we cannot have subqueries in limit expressions today, we apply the solver here as a precautionary measure,
+    // should we change that restriction in the future.
     val rewrittenLimit = solver.solve(limit)
     val newArguments = solver.newArguments
     val allArgumentIds = argumentIds.union(newArguments)
@@ -2059,13 +2067,13 @@ case class LogicalPlanProducer(
     def createNodeVectorIndexSearchPlan(variable: LogicalVariable) = {
       val nodeVectorIndexSearch = NodeVectorIndexSearch(
         idName = variable,
-        labels = labels.toList,
+        labels = labels,
         properties = indexedProperties,
         score = scoreVariable,
         indexName = indexName,
         vector = rewrittenEmbedding,
         limit = rewrittenLimit,
-        maybeFilter = None,
+        maybeFilter = maybeFilter,
         argumentIds = allArgumentIds
       )(idGen)
 
@@ -2114,6 +2122,8 @@ case class LogicalPlanProducer(
     indexedProperties: Seq[IndexedProperty],
     indexName: String,
     embedding: Expression,
+    where: Option[Where],
+    maybeFilter: Option[QueryExpression[Expression]],
     limit: Expression,
     scoreVariable: Option[LogicalVariable],
     argumentIds: Set[LogicalVariable],
@@ -2139,26 +2149,30 @@ case class LogicalPlanProducer(
       } else Seq.empty
     }
 
-    val solvedQueryGraphWithPredicate = QueryGraph.empty
-      .addSearchClause(Some(VectorSearchClause(
-        patternRelationship.variable,
-        indexName,
-        embedding,
-        limit,
-        scoreVariable
-      )))
-      .addPredicates(implicitlySolvedPredicates)
-      .addArgumentIds(argumentIds)
-    val withSolvedPatternRelationship = if (selectionsFromUnsolvedTypes.isEmpty) {
-      // We have solved all types, lets add the pattern relationship to the query graph
-      solvedQueryGraphWithPredicate.addPatternRelationship(patternRelationship)
-    } else {
-      // Let the hidden selection handle the solved pattern relationship to the query graph
-      solvedQueryGraphWithPredicate
-    }
+    val solvedQueryGraphWithPredicate =
+      QueryGraph.empty
+        .addSearchClause(Some(VectorSearchClause(
+          patternRelationship.variable,
+          indexName,
+          embedding,
+          where,
+          limit,
+          scoreVariable
+        )))
+        .addPredicates(implicitlySolvedPredicates)
+        .addArgumentIds(argumentIds)
+        .pipe { qg =>
+          if (selectionsFromUnsolvedTypes.isEmpty) {
+            // We have solved all types, lets add the pattern relationship to the query graph
+            qg.addPatternRelationship(patternRelationship)
+          } else {
+            // Let the hidden selection handle the solved pattern relationship to the query graph
+            qg
+          }
+        }
 
     val solved = RegularSinglePlannerQuery(
-      queryGraph = withSolvedPatternRelationship,
+      queryGraph = solvedQueryGraphWithPredicate,
       horizon = RegularQueryProjection(
         importedExposedSymbols = context.plannerState.importedSubqueryVariables
       )
@@ -2184,7 +2198,7 @@ case class LogicalPlanProducer(
           indexName = indexName,
           vector = rewrittenEmbedding,
           limit = rewrittenLimit,
-          maybeFilter = None,
+          maybeFilter = maybeFilter,
           argumentIds = allArgumentIds
         )(idGen)
       case _ => DirectedRelationshipVectorIndexSearch(
@@ -2197,7 +2211,7 @@ case class LogicalPlanProducer(
           indexName = indexName,
           vector = rewrittenEmbedding,
           limit = rewrittenLimit,
-          maybeFilter = None,
+          maybeFilter = maybeFilter,
           argumentIds = allArgumentIds
         )(idGen)
     }

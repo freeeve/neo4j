@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -105,7 +106,11 @@ import scala.tools.nsc.interpreter.shell.ReplReporterImpl
 /**
  * If you reference something new and a type was not found an import needs to be added to [[interpretPlanBuilder]]
  */
-class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName with AstConstructionTestSupport {
+class LogicalPlanToPlanBuilderStringTest
+    extends CypherFunSuite
+    with TestName
+    with AstConstructionTestSupport
+    with QueryExpressionConstructionTestSupport {
 
   private val testedOperators = mutable.Set[String]()
 
@@ -1900,6 +1905,45 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       .|.nodeVectorIndexSearch(
         "y",
         Seq("L"),
+        Seq("prop", "prop2"),
+        "'rhsIndex'",
+        "[1, 2, 3]",
+        "10",
+        score = "score",
+        argumentIds = Set("x"),
+        getValueFromIndex = Map("prop" -> GetValue, "prop2" -> DoNotGetValue),
+        filter = Some(rangeExpression(gte(5)))
+      )
+      .apply()
+      .|.nodeVectorIndexSearch(
+        "y",
+        Seq("L"),
+        Seq("prop", "prop2"),
+        "'rhsIndex'",
+        "[1, 2, 3]",
+        "10",
+        score = "score",
+        argumentIds = Set("x"),
+        getValueFromIndex = Map("prop" -> GetValue, "prop2" -> DoNotGetValue),
+        filter = Some(single(5))
+      )
+      .apply()
+      .|.nodeVectorIndexSearch(
+        "y",
+        Seq("L"),
+        Seq("prop", "prop2"),
+        "'rhsIndex'",
+        "[1, 2, 3]",
+        "10",
+        score = "score",
+        argumentIds = Set("x"),
+        getValueFromIndex = Map("prop" -> GetValue, "prop2" -> DoNotGetValue),
+        filter = Some(between(gte(5), lt(10)))
+      )
+      .apply()
+      .|.nodeVectorIndexSearch(
+        "y",
+        Seq("L"),
         Seq("prop"),
         "'rhsIndex'",
         "[1, 2, 3]",
@@ -1924,6 +1968,18 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "relationshipVectorIndexSearch",
     new TestPlanBuilder()
       .produceResults("r1", "r2")
+      .apply()
+      .|.relationshipVectorIndexSearch(
+        "(x1)-[r1]->()",
+        Seq("L"),
+        Seq("prop"),
+        "'rhsIndex'",
+        "[1, 2, 3]",
+        "10",
+        score = "score",
+        argumentIds = Set("x1", "r1", "y1"),
+        filter = Some(rangeExpression(gte(5)))
+      )
       .apply()
       .|.relationshipVectorIndexSearch(
         "(x1)-[r1]->()",
@@ -3398,6 +3454,13 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
+            |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.between
+            |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.gt
+            |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.gte
+            |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.lte
+            |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.lt
+            |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.rangeExpression
+            |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.single
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createPattern
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode

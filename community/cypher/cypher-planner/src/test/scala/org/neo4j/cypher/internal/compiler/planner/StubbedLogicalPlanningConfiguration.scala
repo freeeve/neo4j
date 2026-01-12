@@ -91,19 +91,21 @@ trait FakeIndexAndConstraintManagement {
     IndexModifier(indexes(indexDef))
   }
 
-  def nodeVectorIndexOn(indexName: String, labels: Set[String], property: String): Unit = {
+  def nodeVectorIndexOn(indexName: String, labels: Seq[String], property: String): Unit = {
     vectorIndexes += indexName -> NodeVectorIndexDefinition(
       indexName,
       labels.map(label => IndexDefinition.EntityType.Node(label)),
-      property
+      property,
+      Seq.empty
     )
   }
 
-  def relationshipVectorIndexOn(indexName: String, relTypes: Set[String], property: String): Unit = {
+  def relationshipVectorIndexOn(indexName: String, relTypes: Seq[String], property: String): Unit = {
     vectorIndexes += indexName -> RelationshipVectorIndexDefinition(
       indexName,
       relTypes.map(relType => IndexDefinition.EntityType.Relationship(relType)),
-      property
+      property,
+      Seq.empty
     )
   }
 
@@ -234,7 +236,7 @@ class StubbedLogicalPlanningConfiguration(val parent: LogicalPlanningConfigurati
     val indexed = indexes.keys.collect {
       case IndexDef(IndexDefinition.EntityType.Node(label), _, _) => label
     }.toSeq ++ vectorIndexes.values.collect {
-      case NodeVectorIndexDefinition(_, nodes, _) => nodes.map(_.label)
+      case NodeVectorIndexDefinition(_, nodes, _, _) => nodes.map(_.label)
     }.flatten
     val known = knownLabels.toSeq
     val indexedThenKnown = (indexed ++ known).distinct
@@ -245,7 +247,7 @@ class StubbedLogicalPlanningConfiguration(val parent: LogicalPlanningConfigurati
     val indexed = indexes.keys.collect {
       case IndexDef(IndexDefinition.EntityType.Relationship(relationshipType), _, _) => relationshipType
     }.toSeq ++ vectorIndexes.values.collect {
-      case RelationshipVectorIndexDefinition(_, relTypes, _) => relTypes.map(_.relType)
+      case RelationshipVectorIndexDefinition(_, relTypes, _, _) => relTypes.map(_.relType)
     }.flatten
     val known = knownRelationships.toSeq
     val indexedThenKnown = (indexed ++ known).distinct

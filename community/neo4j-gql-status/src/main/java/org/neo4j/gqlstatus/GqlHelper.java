@@ -388,6 +388,13 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql22ND3(String propertyName, String indexName) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22ND3)
+                .withParam(GqlParams.StringParam.propKey, propertyName)
+                .withParam(GqlParams.StringParam.idx, indexName)
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42N45(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N45)
                 .atPosition(offset, line, column)

@@ -22,24 +22,32 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
+import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
+import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.VectorIndexSearchException
 
 class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
-    with AstConstructionTestSupport {
+    with AstConstructionTestSupport
+    with LogicalPlanConstructionTestSupport
+    with QueryExpressionConstructionTestSupport {
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
     super.plannerBuilder()
       .addSemanticFeature(VectorSearch)
+      .addSemanticFeature(VectorSingleStageFilteringEnabled)
       .setAllNodesCardinality(120)
-      .setLabelCardinality("Movie", 120)
+      .setLabelCardinality("Movie", 80)
+      .setLabelCardinality("Actor", 40)
       .setLabelCardinality("Person", 10)
       .setRelationshipCardinality("()-[]->()", 100)
       .setRelationshipCardinality("()-[:ACTS_IN]->()", 50)
@@ -53,12 +61,17 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       .setRelationshipCardinality("(:Person)-[:DIRECTED]->()", 20)
       .setRelationshipCardinality("()-[:DIRECTED]->(:Movie)", 20)
       .setRelationshipCardinality("(:Person)-[:DIRECTED]->(:Movie)", 20)
-      .addNodeVectorIndex("moviePlots", Set("Movie"), "plot")
-      .addRelationshipVectorIndex("actsInScript", Set("ACTS_IN"), "script")
-      .addRelationshipVectorIndex("contributed", Set("CONTRIBUTED"), "embedding")
-      .addNodeVectorIndex("movieOrDirectorInfo", Set("Movie", "Director"), "info")
-      .addRelationshipVectorIndex("actsOrContributedInScript", Set("ACTS_IN", "CONTRIBUTED"), "script")
+      // node indexes
+      .addNodeVectorIndex("moviePlots", Seq("Movie"), "plot", Seq("imdbRating", "releaseYear"))
+      .addNodeVectorIndex("movieOrDirectorInfo", Seq("Movie", "Director"), "info")
       .addNodeIndex("Movie", List("title"), 1.0, 1.0 / 120.0, isUnique = true)
+      // relationship indexes
+      .addRelationshipVectorIndex("actsInScript", Seq("ACTS_IN"), "script", Seq("workingDays"))
+      .addRelationshipVectorIndex("contributed", Seq("CONTRIBUTED"), "embedding")
+      .addRelationshipVectorIndex("actsOrContributedInScript", Seq("ACTS_IN", "CONTRIBUTED"), "script")
+
+  private val moviePlotsProperties = Seq("plot", "imdbRating", "releaseYear")
+  private val actsInScriptProperties = Seq("script", "workingDays")
 
   test("plan node vector index search") {
     val planner = plannerBuilder().build()
@@ -81,14 +94,48 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
           argumentIds = Set(),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
         )
         .build()
+  }
+
+  test("should plan vector index operator with all labels in the correct order") {
+    val planner =
+      plannerBuilder()
+        // This hopefully mixes up the order of label ids
+        .setLabelCardinality("C", 5)
+        .addNodeVectorIndex("lotsOfLabels", Seq("A", "B", "C", "D", "E", "F", "G", "H", "I", "J"), "prop")
+        .build()
+
+    val query =
+      """MATCH (n)
+        |  SEARCH n IN (
+        |    VECTOR INDEX lotsOfLabels
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN n.prop""".stripMargin
+
+    planner.plan(CypherVersion.Cypher25, query) should equal(
+      planner.planBuilder()
+        .produceResults("`n.prop`")
+        .projection("cacheN[n.prop] AS `n.prop`")
+        .nodeVectorIndexSearch(
+          node = "n",
+          labelNames = Seq("A", "B", "C", "D", "E", "F", "G", "H", "I", "J"),
+          properties = Seq("prop"),
+          indexName = "lotsOfLabels",
+          vector = "$embedding",
+          limit = "10",
+          getValueFromIndex = Map("prop" -> GetValue)
+        )
+        .build()
+    )
   }
 
   test(
@@ -143,16 +190,16 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("movie", "cacheN[movie.plot]"))
+        .produceResults(column("movie", "cacheN[movie.plot]", "cacheN[movie.imdbRating]", "cacheN[movie.releaseYear]"))
         .expandAll("(movie)-[]->()")
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = _ => GetValue
         )
         .build()
   }
@@ -174,17 +221,17 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("movie", "cacheN[movie.plot]"))
+        .produceResults(column("movie", "cacheN[movie.plot]", "cacheN[movie.imdbRating]", "cacheN[movie.releaseYear]"))
         .apply()
         .|.nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "embedding",
           limit = "10",
           argumentIds = Set("embedding"),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = _ => GetValue
         )
         .projection("[1, 2, 3, 4, 5] AS embedding")
         .argument()
@@ -207,17 +254,17 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("movie", "cacheN[movie.plot]"))
+        .produceResults(column("movie", "cacheN[movie.plot]", "cacheN[movie.imdbRating]", "cacheN[movie.releaseYear]"))
         .apply()
         .|.nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "anon_0",
           limit = "10",
           argumentIds = Set("anon_0"),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = _ => GetValue
         )
         .rollUpApply("anon_0", "m.releaseYear")
         .|.sort("`m.releaseYear` ASC")
@@ -243,15 +290,15 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("movie", "cacheN[movie.plot]"))
+        .produceResults(column("movie", "cacheN[movie.plot]", "cacheN[movie.imdbRating]", "cacheN[movie.releaseYear]"))
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "$limit",
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = _ => GetValue
         )
         .build()
   }
@@ -272,17 +319,20 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("movie", "cacheN[movie.plot]"), column("similarity"))
+        .produceResults(
+          column("movie", "cacheN[movie.plot]", "cacheN[movie.imdbRating]", "cacheN[movie.releaseYear]"),
+          column("similarity")
+        )
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
           score = "similarity",
           argumentIds = Set(),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = _ => GetValue
         )
         .build()
   }
@@ -317,7 +367,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
           vector = "movie.titleEmbedding",
           limit = "10",
           argumentIds = Set("movie"),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = _ => GetValue
         )
         .filter("movie.title IN $titles")
         .nodeByLabelScan("movie", "Movie")
@@ -347,11 +397,10 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
-          limit = "10",
-          getValueFromIndex = Map("plot" -> DoNotGetValue)
+          limit = "10"
         )
         .build()
   }
@@ -376,15 +425,14 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .projection("cacheN[movie.plot] AS `movie.plot`")
         // movie.plot IS NOT NULL is solved by vector search implicitly so we don't need to check movie.plot2 = 'someValue'
         .nodeVectorIndexSearch(
-          "movie",
-          Seq("Movie"),
-          Seq("plot"),
-          "moviePlots",
-          "$embedding",
-          "10",
-          "",
-          Set(),
-          Map("plot" -> GetValue)
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = moviePlotsProperties,
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          argumentIds = Set(),
+          getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
         )
         .build()
   }
@@ -508,10 +556,11 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .relationshipVectorIndexSearch(
           pattern = "()-[r]->()",
           typeNames = Seq("ACTS_IN"),
-          properties = Seq("script"),
+          properties = Seq("script", "workingDays"),
           indexName = "actsInScript",
           vector = "$embedding",
-          limit = "10"
+          limit = "10",
+          getValueFromIndex = Map("script" -> DoNotGetValue, "workingDays" -> DoNotGetValue)
         )
         .build()
   }
@@ -535,12 +584,13 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults("`r.plot`")
         .projection("r.plot AS `r.plot`")
         .relationshipVectorIndexSearch(
-          "()-[r]->()",
-          Seq("ACTS_IN", "CONTRIBUTED"),
-          Seq("script"),
-          "actsOrContributedInScript",
-          "$embedding",
-          "10"
+          pattern = "()-[r]->()",
+          typeNames = Seq("ACTS_IN", "CONTRIBUTED"),
+          properties = Seq("script"),
+          indexName = "actsOrContributedInScript",
+          vector = "$embedding",
+          limit = "10",
+          getValueFromIndex = Map("script" -> DoNotGetValue)
         )
         .build()
   }
@@ -561,16 +611,16 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("r", "cacheR[r.script]"))
+        .produceResults(column("r", "cacheR[r.script]", "cacheR[r.workingDays]"))
         .relationshipVectorIndexSearch(
           pattern = "()-[r]->()",
           typeNames = Seq("ACTS_IN"),
-          properties = Seq("script"),
+          properties = Seq("script", "workingDays"),
           indexName = "actsInScript",
           vector = "$embedding",
           limit = "10",
           argumentIds = Set(),
-          getValueFromIndex = Map("script" -> GetValue)
+          getValueFromIndex = Map("script" -> GetValue, "workingDays" -> GetValue)
         )
         .build()
   }
@@ -591,16 +641,16 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("r", "cacheR[r.script]"))
+        .produceResults(column("r", "cacheR[r.script]", "cacheR[r.workingDays]"))
         .relationshipVectorIndexSearch(
           "()-[r]-()",
           typeNames = Seq("ACTS_IN"),
-          properties = Seq("script"),
+          properties = Seq("script", "workingDays"),
           indexName = "actsInScript",
           vector = "$embedding",
           limit = "10",
           argumentIds = Set(),
-          getValueFromIndex = Map("script" -> GetValue)
+          getValueFromIndex = Map("script" -> GetValue, "workingDays" -> GetValue)
         )
         .build()
   }
@@ -626,10 +676,11 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .relationshipVectorIndexSearch(
           pattern = "()<-[r]-()",
           typeNames = Seq("ACTS_IN"),
-          properties = Seq("script"),
+          properties = Seq("script", "workingDays"),
           indexName = "actsInScript",
           vector = "$embedding",
-          limit = "10"
+          limit = "10",
+          getValueFromIndex = Map("script" -> DoNotGetValue, "workingDays" -> DoNotGetValue)
         )
         .build()
   }
@@ -655,10 +706,11 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .relationshipVectorIndexSearch(
           pattern = "()-[r]-()",
           typeNames = Seq("ACTS_IN"),
-          properties = Seq("script"),
+          properties = Seq("script", "workingDays"),
           indexName = "actsInScript",
           vector = "$embedding",
-          limit = "10"
+          limit = "10",
+          getValueFromIndex = Map("script" -> DoNotGetValue, "workingDays" -> DoNotGetValue)
         )
         .build()
   }
@@ -683,12 +735,13 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .produceResults("`r.plot`")
         .projection("r.plot AS `r.plot`")
         .relationshipVectorIndexSearch(
-          "()-[r]-()",
-          Seq("ACTS_IN"),
-          Seq("script"),
-          "actsInScript",
-          "$embedding",
-          "10"
+          pattern = "()-[r]-()",
+          typeNames = Seq("ACTS_IN"),
+          properties = Seq("script", "workingDays"),
+          indexName = "actsInScript",
+          vector = "$embedding",
+          limit = "10",
+          getValueFromIndex = Map("script" -> DoNotGetValue, "workingDays" -> DoNotGetValue)
         )
         .build()
   }
@@ -721,7 +774,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .relationshipVectorIndexSearch(
           "()-[r]-()",
           Seq("ACTS_IN"),
-          Seq("script"),
+          actsInScriptProperties,
           "actsInScript",
           "$embedding",
           "10"
@@ -729,8 +782,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
-  // TODO Will be fixed by PLAN-3109
-  ignore(
+  test(
     "identify that there are no implicit type predicates within conjunctions on multi type vector indexes and ensure plan filters on the non-implicit predicates"
   ) {
     val planner = plannerBuilder().build()
@@ -752,21 +804,16 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults("`r.plot`")
-        .projection("r.plot AS `r.plot`")
-        .filter(
-          "r:CONTRIBUTED",
-          "r:ACTS_IN"
-        ) // TODO: PLAN-3109 will ensure that we filter by both CONTRIBUTED and ACTS_IN here.
+        .projection("cacheR[r.plot] AS `r.plot`")
+        .filter(andsReorderableAst(hasTypes("r", "ACTS_IN"), hasTypes("r", "CONTRIBUTED")))
+        .cacheProperties("cacheRFromStore[r.plot]")
         .relationshipVectorIndexSearch(
-          "()-[r]-()",
-          Seq("ACTS_IN", "CONTRIBUTED"),
-          Seq("script"),
-          "actsOrContributedInScript",
-          "$embedding",
-          "10",
-          "",
-          Set(),
-          Map("script" -> DoNotGetValue)
+          pattern = "()-[r]-()",
+          typeNames = Seq("ACTS_IN", "CONTRIBUTED"),
+          properties = Seq("script"),
+          indexName = "actsOrContributedInScript",
+          vector = "$embedding",
+          limit = "10"
         )
         .build()
   }
@@ -864,10 +911,11 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .relationshipVectorIndexSearch(
           pattern = "()-[r]->()",
           typeNames = Seq("ACTS_IN"),
-          properties = Seq("script"),
+          properties = Seq("script", "workingDays"),
           indexName = "actsInScript",
           vector = "$embedding",
-          limit = "10"
+          limit = "10",
+          getValueFromIndex = Map("script" -> DoNotGetValue, "workingDays" -> DoNotGetValue)
         )
         .build()
   }
@@ -892,17 +940,20 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("movie", "cacheN[movie.plot]"), column("person"))
+        .produceResults(
+          column("movie", "cacheN[movie.plot]", "cacheN[movie.imdbRating]", "cacheN[movie.releaseYear]"),
+          column("person")
+        )
         .apply()
         .|.nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "person.embedding",
           limit = "10",
           argumentIds = Set("person"),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = _ => GetValue
         )
         .nodeByLabelScan("person", "Person")
         .build()
@@ -932,12 +983,12 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
           score = "similarity",
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
         )
         .build()
   }
@@ -963,13 +1014,12 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
           score = "similarity",
-          argumentIds = Set(),
-          getValueFromIndex = Map("plot" -> DoNotGetValue)
+          argumentIds = Set()
         )
         .build()
   }
@@ -991,17 +1041,17 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("movie", "cacheN[movie.plot]"))
+        .produceResults(column("movie", "cacheN[movie.plot]", "cacheN[movie.imdbRating]", "cacheN[movie.releaseYear]"))
         .filter(not(hasDegreeGreater("movie", OUTGOING, literalInt(0))))
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
           argumentIds = Set(),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = _ => GetValue
         )
         .build()
   }
@@ -1033,7 +1083,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .|.nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "5",
@@ -1075,21 +1125,21 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .|.nodeVectorIndexSearch(
           node = "movie2",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
           argumentIds = Set("movie"),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
         )
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
         )
         .build()
   }
@@ -1118,12 +1168,12 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .|.nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
           argumentIds = Set("person"),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
         )
         .cacheProperties("cacheNFromStore[person.name]")
         .nodeByLabelScan("person", "Person")
@@ -1159,22 +1209,22 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .|.nodeVectorIndexSearch(
           node = "movie2",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "movie.embedding",
           limit = "10",
           argumentIds = Set("movie"),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
         )
         .nodeVectorIndexSearch(
           node = "movie",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "10",
           argumentIds = Set(),
-          getValueFromIndex = Map("plot" -> GetValue)
+          getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
         )
         .build()
   }
@@ -1204,12 +1254,13 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .|.relationshipVectorIndexSearch(
           pattern = "()-[a]->()",
           typeNames = Seq("ACTS_IN"),
-          properties = Seq("script"),
+          properties = Seq("script", "workingDays"),
           indexName = "actsInScript",
           vector = "$embedding",
           limit = "10",
           score = "similarity",
-          argumentIds = Set("d", "movie", "a")
+          argumentIds = Set("d", "movie", "a"),
+          getValueFromIndex = Map("script" -> DoNotGetValue, "workingDays" -> DoNotGetValue)
         )
         .filter("movie:Movie")
         .expandAll("(d)-[a:ACTS_IN]->(movie)")
@@ -1243,7 +1294,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .relationshipVectorIndexSearch(
           "()-[r]->()",
           Seq("ACTS_IN"),
-          Seq("script"),
+          actsInScriptProperties,
           "actsInScript",
           "$embedding",
           "10"
@@ -1276,11 +1327,177 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         .relationshipVectorIndexSearch(
           "()-[r]->()",
           Seq("ACTS_IN"),
-          Seq("script"),
+          actsInScriptProperties,
           "actsInScript",
           "$embedding",
           "10"
         )
         .build()
+  }
+
+  private val valuesToCompare = Seq(
+    ("8", literalInt(8)),
+    ("$parameter", parameter("parameter", CTAny))
+  )
+
+  private val comparisons = valuesToCompare.flatMap { case (cypher, expression) =>
+    Seq(
+      (s"IN [ $cypher ]", QueryExpressionConstructionTestSupport.single(expression)),
+      (s"= $cypher", QueryExpressionConstructionTestSupport.single(expression)),
+      (s"< $cypher", rangeExpression(lt(expression))),
+      (s"<= $cypher", rangeExpression(lte(expression))),
+      (s"> $cypher", rangeExpression(gt(expression))),
+      (s">= $cypher", rangeExpression(gte(expression)))
+    )
+  }
+
+  test("plan node vector search with inlined predicate") {
+    val planner =
+      plannerBuilder()
+        .build()
+
+    for ((comparison, comparisonExpression) <- comparisons) {
+      withClue(comparison) {
+        val query =
+          s"""MATCH (movie:Movie)
+             |  SEARCH movie IN (
+             |    VECTOR INDEX moviePlots
+             |    FOR $$embedding
+             |    WHERE movie.imdbRating $comparison
+             |    LIMIT 5
+             |  )
+             |RETURN movie""".stripMargin
+
+        planner.plan(CypherVersion.Cypher25, query) should equal(
+          planner.planBuilder()
+            .produceResults(column(
+              "movie",
+              "cacheN[movie.plot]",
+              "cacheN[movie.imdbRating]",
+              "cacheN[movie.releaseYear]"
+            ))
+            .nodeVectorIndexSearch(
+              node = "movie",
+              labelNames = Seq("Movie"),
+              properties = moviePlotsProperties,
+              indexName = "moviePlots",
+              vector = "$embedding",
+              limit = "5",
+              getValueFromIndex = moviePlotsProperties.map(_ -> GetValue).toMap,
+              filter = Some(composite(comparisonExpression, all()))
+            )
+            .build()
+        )
+      }
+    }
+  }
+
+  test("plan node vector search with inlined between predicate") {
+    val planner =
+      plannerBuilder()
+        .build()
+
+    val query =
+      s"""MATCH (movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR $$embedding
+         |    WHERE movie.imdbRating < $$upperBound AND movie.imdbRating >= $$lowerBound AND movie.releaseYear = 1989
+         |    LIMIT 5
+         |  )
+         |RETURN movie""".stripMargin
+
+    planner.plan(CypherVersion.Cypher25, query) should equal(
+      planner.planBuilder()
+        .produceResults(column("movie", "cacheN[movie.plot]", "cacheN[movie.imdbRating]", "cacheN[movie.releaseYear]"))
+        .nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = moviePlotsProperties,
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "5",
+          getValueFromIndex = moviePlotsProperties.map(_ -> GetValue).toMap,
+          filter = Some(composite(
+            between(
+              gte(parameter("lowerBound", CTAny)),
+              lt(parameter("upperBound", CTAny))
+            ),
+            single(literalInt(1989))
+          ))
+        )
+        .build()
+    )
+  }
+
+  test("planning node vector search with inlined predicate should fail gracefully if the property is not indexed") {
+    val planner =
+      plannerBuilder()
+        .build()
+
+    for ((comparison, _) <- comparisons) {
+      withClue(comparison) {
+        val query =
+          s"""MATCH (movie:Movie)
+             |  SEARCH movie IN (
+             |    VECTOR INDEX moviePlots
+             |    FOR $$embedding
+             |    WHERE movie.imdbVotes $comparison
+             |    LIMIT 5
+             |  )
+             |RETURN movie""".stripMargin
+
+        val exception =
+          the[VectorIndexSearchException] thrownBy {
+            planner.plan(CypherVersion.Cypher25, query)
+          }
+
+        exception should not equal null
+        exception.getMessage should equal(
+          "22ND3: The property `imdbVotes` has not been added as an additional property for the vector index `moviePlots`."
+        )
+      }
+    }
+  }
+
+  test("plan relationship vector search with inlined predicate") {
+    val planner =
+      plannerBuilder()
+        .build()
+
+    for ((comparison, comparisonExpression) <- comparisons) {
+      withClue(comparison) {
+        for (direction <- Seq(("-", "->"), ("<-", "-"), ("-", "-"))) {
+          val query =
+            s"""MATCH ()${direction._1}[r:ACTS_IN]${direction._2}()
+               |  SEARCH r IN (
+               |    VECTOR INDEX actsInScript
+               |    FOR $$embedding
+               |    WHERE r.workingDays $comparison
+               |    LIMIT 5
+               |  )
+               |RETURN r""".stripMargin
+
+          withClue(s"Testing direction: ${direction._1}[r:CONTRIBUTED]${direction._2}") {
+            val properties = Seq("script", "workingDays")
+            planner.plan(CypherVersion.Cypher25, query) should equal(
+              planner.planBuilder()
+                .produceResults(column("r", "cacheR[r.script]", "cacheR[r.workingDays]"))
+                .relationshipVectorIndexSearch(
+                  pattern = s"()${direction._1}[r]${direction._2}()",
+                  typeNames = Seq("ACTS_IN"),
+                  properties = properties,
+                  indexName = "actsInScript",
+                  vector = "$embedding",
+                  limit = "5",
+                  getValueFromIndex = properties.map(_ -> GetValue).toMap,
+                  filter = Some(comparisonExpression)
+                )
+                .build()
+            )
+          }
+        }
+      }
+    }
   }
 }

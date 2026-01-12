@@ -47,10 +47,10 @@ class SpdVectorSearchPlanningIntegrationTest extends CypherFunSuite
   // Graph counts based on a subset of LDBC SF 1
   final protected val planBuilder = spdPlanner
     .addSemanticFeature(VectorSearch)
-    .addNodeVectorIndex("messageContent", Set("Message"), "content")
-    .addRelationshipVectorIndex("knowsDescr", Set("KNOWS"), "description")
-    .addNodeVectorIndex("messageOrInfoContent", Set("Message", "Info"), "content")
-    .addRelationshipVectorIndex("knowsOrThinksDescr", Set("KNOWS", "THINKS"), "description")
+    .addNodeVectorIndex("messageContent", Seq("Message"), "content")
+    .addRelationshipVectorIndex("knowsDescr", Seq("KNOWS"), "description")
+    .addNodeVectorIndex("messageOrInfoContent", Seq("Message", "Info"), "content")
+    .addRelationshipVectorIndex("knowsOrThinksDescr", Seq("KNOWS", "THINKS"), "description")
     .setAllNodesCardinality(3181725)
     .setLabelCardinality("Message", 3055774)
     .setRelationshipCardinality("()-[:KNOWS]->()", 180623)

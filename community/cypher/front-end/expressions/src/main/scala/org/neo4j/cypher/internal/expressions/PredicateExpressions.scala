@@ -31,6 +31,15 @@ case class And(lhs: Expression, rhs: Expression)(val position: InputPosition) ex
   )
 }
 
+object And {
+
+  def flatten(expression: Expression): ListSet[Expression] =
+    expression match {
+      case And(lhs, rhs) => flatten(lhs) ++ flatten(rhs)
+      case other         => ListSet(other)
+    }
+}
+
 object Ands {
 
   def create(exprs: Set[Expression]): Expression = {

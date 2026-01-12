@@ -526,7 +526,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("true", 97 + optionalLength, 5, 11),
-          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'true' does not fulfill this.",
+          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'true' does not fulfill this.",
           p(97 + optionalLength, 5, 11).withInputLength(4)
         )
       )
@@ -546,7 +546,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("2008 < movie.year", 102 + optionalLength, 5, 16),
-          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. '2008 < movie.year' does not fulfill this.",
+          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). '2008 < movie.year' does not fulfill this.",
           p(102 + optionalLength, 5, 16)
         )
       )
@@ -566,7 +566,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("movie.imdbRating > 8 OR movie.year > 2010", 118 + optionalLength, 5, 32),
-          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'movie.imdbRating > 8 OR movie.year > 2010' does not fulfill this.",
+          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'movie.imdbRating > 8 OR movie.year > 2010' does not fulfill this.",
           p(118 + optionalLength, 5, 32)
         )
       )
@@ -586,7 +586,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("NOT movie.imdbRating = 8", 97 + optionalLength, 5, 11),
-          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'NOT movie.imdbRating = 8' does not fulfill this.",
+          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'NOT movie.imdbRating = 8' does not fulfill this.",
           p(97 + optionalLength, 5, 11)
         )
       )
@@ -606,7 +606,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("true", 122 + optionalLength, 5, 36),
-          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'true' does not fulfill this.",
+          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'true' does not fulfill this.",
           p(122 + optionalLength, 5, 36).withInputLength(4)
         )
       )
@@ -629,7 +629,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I74("m", "movie", 137 + optionalLength, 6, 11),
-          "The variable `m` in a graph metadata filter property predicate must be the same as the search clause binding variable `movie`.",
+          "The variable `m` in a vector search filter property predicate must be the same as the search clause binding variable `movie`.",
           p(137 + optionalLength, 6, 11)
         )
       )
@@ -650,7 +650,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I74("m", "movie", 159 + optionalLength, 6, 33),
-          "The variable `m` in a graph metadata filter property predicate must be the same as the search clause binding variable `movie`.",
+          "The variable `m` in a vector search filter property predicate must be the same as the search clause binding variable `movie`.",
           p(159 + optionalLength, 6, 33)
         )
       )
@@ -727,7 +727,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
     }
 
     /*
-     * This is a case where the AND predicates are dependent and not possible to combine into a single range
+     * This is a case where the AND predicates are dependent and not possible to combine into a single range.
      * While we could statically determine this in semantic analysis in this case with literals,
      * it must be checked at runtime in the more general case, so we defer the checking until then.
      * => This test will pass semantic checking but fail at runtime
@@ -747,6 +747,57 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearchWithRewriter().hasNoErrors
     }
 
+    for (comparator <- Seq(">", ">=", "=")) {
+      // Throw on combining > and (=, > or >=) on the same property
+      test(
+        s"""MATCH (m:Movie {title:'Matrix, The'})
+           |${maybeOptional}MATCH (movie:Movie)
+           |  SEARCH movie IN (
+           |    VECTOR INDEX moviePlots
+           |    FOR m.embedding
+           |    WHERE movie.p > 8.2 AND movie.p $comparator 8.8 // <- This is the problematic pair
+           |      AND movie.q < 'a' AND movie.q > 'b'
+           |      AND movie.r = 7.5
+           |    LIMIT 5
+           |  ) SCORE AS score
+           |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+           |""".stripMargin
+      ) {
+        runSearch().hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_42I73(
+              s"movie.p > 8.2 AND movie.p $comparator 8.8 AND movie.q < \"a\" AND movie.q > \"b\" AND movie.r = 7.5",
+              250 + optionalLength + comparator.length,
+              8,
+              7
+            ),
+            s"A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'movie.p > 8.2 AND movie.p $comparator 8.8 AND movie.q < \"a\" AND movie.q > \"b\" AND movie.r = 7.5' does not fulfill this.",
+            p(250 + optionalLength + comparator.length, 8, 7)
+          )
+        )
+      }
+    }
+
+    // Do not throw if either of the comparisons in the problematic pair is removed
+    for (comparator <- Seq(">", ">=", "<", "<=", "=")) {
+      test(
+        s"""MATCH (m:Movie {title:'Matrix, The'})
+           |${maybeOptional}MATCH (movie:Movie)
+           |  SEARCH movie IN (
+           |    VECTOR INDEX moviePlots
+           |    FOR m.embedding
+           |    WHERE movie.p $comparator 8.2
+           |      AND movie.q < 'a' AND movie.q > 'b'
+           |      AND movie.r = 7.5
+           |    LIMIT 5
+           |  ) SCORE AS score
+           |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+           |""".stripMargin
+      ) {
+        runSearch().hasNoErrors
+      }
+    }
+
     // Test for single-stage filtering - Rule 4 - Rule 6 from CIP-240
 
     val validValues = Seq(
@@ -759,7 +810,9 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       "time('10:10:10+01:00')",
       "localdatetime('2018-03-30T10:10:10')",
       "time({hour: 6, minute: 41, second: 23, timezone:'+01:00'})",
-      // duration is invalid for range predicates but the function is not resolved until after the semantic check so it will pass here and fail at runtime
+      // Duration is invalid for range predicates.
+      // But the function is not resolved until after the semantic check.
+      // Therefore, it will pass here and fail at runtime.
       "duration('PT2H20M')",
       "null",
       "1000 * 2 - 1",
@@ -886,7 +939,8 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       }
     }
 
-    // Here the rhs is dependent on the node being searched. This will pass semantic checking but fail at runtime.
+    // TODO: SURF-482
+    // Here the rhs is dependent on the node being searched. This can fail at semantic checking already
     test(
       s"""${maybeOptional}MATCH (movie: Movie)
          |  SEARCH movie IN (
@@ -901,25 +955,33 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearchWithRewriter().hasNoErrors
     }
 
-    // Test for single-stage filtering - Rule 7 from CIP-240
-    test(
-      s"""${maybeOptional}MATCH (movie: Movie)
-         |  SEARCH movie IN (
-         |    VECTOR INDEX moviePlots
-         |    FOR [1, 2, 3]
-         |    WHERE movie.imdbRating <> 8
-         |    LIMIT 5
-         |  )
-         |RETURN movie.title AS title
-         |""".stripMargin
-    ) {
-      runSearch().hasErrors(
-        SemanticError(
-          GqlHelper.getGql42001_42I73("movie.imdbRating <> 8", 114 + optionalLength, 5, 28),
-          "Graph metadata filtering predicates must consist of predicates of the form `x.y <comp> <expr>` with AND between them, where <comp> is <, <=, >, >= or =. 'movie.imdbRating <> 8' does not fulfill this.",
-          p(114 + optionalLength, 5, 28)
-        )
+    for (
+      comparison <- Seq(
+        "<> 8",
+        "IS NOT NULL",
+        """STARTS WITH "A""""
       )
+    ) {
+      // Test for single-stage filtering - Rule 7 from CIP-240
+      test(
+        s"""${maybeOptional}MATCH (movie: Movie)
+           |  SEARCH movie IN (
+           |    VECTOR INDEX moviePlots
+           |    FOR [1, 2, 3]
+           |    WHERE movie.imdbRating $comparison
+           |    LIMIT 5
+           |  )
+           |RETURN movie.title AS title
+           |""".stripMargin
+      ) {
+        runSearch().hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_42I73(s"movie.imdbRating $comparison", 114 + optionalLength, 5, 28),
+            s"A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'movie.imdbRating $comparison' does not fulfill this.",
+            p(114 + optionalLength, 5, 28)
+          )
+        )
+      }
     }
 
     // Tests for MATCH restrictions

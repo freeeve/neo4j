@@ -22,6 +22,7 @@ package org.neo4j.exceptions;
 import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -52,6 +53,11 @@ public class VectorIndexSearchException extends Neo4jException {
                 .withCause(gqlCause)
                 .build();
         return new VectorIndexSearchException(gql, Status.Statement.TypeError, gqlCause.getMessage());
+    }
+
+    public static VectorIndexSearchException propertyNotFound(String propertyName, String indexName) {
+        var gql = GqlHelper.getGql22ND3(propertyName, indexName);
+        return new VectorIndexSearchException(gql, Status.Statement.PropertyNotFound, gql.getMessage());
     }
 
     @Override

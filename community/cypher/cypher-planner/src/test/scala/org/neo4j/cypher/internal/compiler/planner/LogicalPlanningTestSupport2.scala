@@ -372,10 +372,11 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
 
       override def nodeVectorIndexByName(indexName: String): Either[VectorIndexError, NodeVectorIndexDescriptor] =
         config.vectorIndexes.get(indexName) match {
-          case Some(NodeVectorIndexDefinition(_, labels, property)) =>
+          case Some(NodeVectorIndexDefinition(_, labels, property, additionalProperties)) =>
             Right(NodeVectorIndexDescriptor(
               labels.map(label => semanticTable.resolvedLabelNames(label.label)),
-              semanticTable.resolvedPropertyKeyNames(property)
+              semanticTable.resolvedPropertyKeyNames(property),
+              additionalProperties.map(semanticTable.resolvedPropertyKeyNames(_))
             ))
           case Some(_) =>
             Left(WrongEntityType(EntityType.NODE, EntityType.RELATIONSHIP))
@@ -385,10 +386,11 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
       override def relationshipVectorIndexByName(indexName: String)
         : Either[VectorIndexError, RelationshipVectorIndexDescriptor] =
         config.vectorIndexes.get(indexName) match {
-          case Some(RelationshipVectorIndexDefinition(_, relTypes, property)) =>
+          case Some(RelationshipVectorIndexDefinition(_, relTypes, property, additionalProperties)) =>
             Right(RelationshipVectorIndexDescriptor(
               relTypes.map(relType => semanticTable.resolvedRelTypeNames(relType.relType)),
-              semanticTable.resolvedPropertyKeyNames(property)
+              semanticTable.resolvedPropertyKeyNames(property),
+              additionalProperties.map(semanticTable.resolvedPropertyKeyNames(_))
             ))
           case Some(_) =>
             Left(WrongEntityType(EntityType.RELATIONSHIP, EntityType.NODE))
