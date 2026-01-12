@@ -255,7 +255,7 @@ public class Configuration {
             }
 
             State.getInstance().setActive(true);
-            return Stream.of(new Result("Fleet management is restarted"));
+            return Stream.of(new Result("Fleet management is restarting"));
         } else {
             return Stream.of(new Result("Register a token to enable Fleet Management"));
         }

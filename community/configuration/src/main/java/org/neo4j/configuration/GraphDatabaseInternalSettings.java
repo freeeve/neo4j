@@ -1886,6 +1886,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .addConstraint(resolution(ChronoUnit.SECONDS))
             .build();
 
+    @Internal
+    @Description("Set a custom URL endpoint for reporting fleet management data")
+    public static final Setting<String> fleet_management_api_base_url =
+            newBuilder("internal.dbms.fleet_manager.base_url", STRING, null).build();
+
     // Helper method
     public static HeapEstimatorCacheConfig extractCustomHeapEstimatorCacheConfig(Config config) {
         return new HeapEstimatorCacheConfig(

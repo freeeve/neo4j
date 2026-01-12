@@ -108,7 +108,7 @@ public class PingService extends AbstractReportingService {
             this.pingService = pingService;
         }
 
-        public void execute() {
+        protected void execute() {
             if (this.state.isConnected()) {
                 this.pingService.report();
             }

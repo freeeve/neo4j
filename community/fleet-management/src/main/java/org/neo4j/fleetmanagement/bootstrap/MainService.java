@@ -54,6 +54,7 @@ public class MainService implements PropertyChangeListener {
     private final ConnectService connectService;
     private final State state;
     private ScheduledFuture<?> connectServiceTaskHandle;
+    private ConnectService.ConnectServiceTask connectServiceTask;
 
     private Boolean lastActiveState = null;
     private Boolean lastConnectedState = null;
@@ -92,8 +93,9 @@ public class MainService implements PropertyChangeListener {
         this.state.addPropertyChangeListener(this);
         this.configuration.addPropertyChangeListener(this);
 
-        this.connectServiceTaskHandle = this.scheduler.scheduleAtFixedRate(
-                new ConnectService.ConnectServiceTask(state, clusterSync, connectService), 1, 30, TimeUnit.SECONDS);
+        this.connectServiceTask = new ConnectService.ConnectServiceTask(state, clusterSync, connectService);
+        this.connectServiceTaskHandle =
+                this.scheduler.scheduleAtFixedRate(this.connectServiceTask, 1, 30, TimeUnit.SECONDS);
     }
 
     public void stop() {
@@ -161,6 +163,7 @@ public class MainService implements PropertyChangeListener {
         lastActiveState = value;
         if (value) {
             this.state.setConnectionMessage("Connecting");
+            connectServiceTask.run();
             userLog.info("Fleet Manager is enabled");
         } else {
             if (state.isConnected()) {

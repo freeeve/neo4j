@@ -54,7 +54,7 @@ public class ConnectService extends BaseService {
         this.configuration = Configuration.getInstance();
     }
 
-    public synchronized void ensureConnected() {
+    private synchronized void ensureConnected() {
         if (!state.isConnected()) {
             connect();
         }
@@ -173,7 +173,7 @@ public class ConnectService extends BaseService {
             this.connectService = connectService;
         }
 
-        public void execute() {
+        protected void execute() {
             if (this.state.isActive() && !this.state.isRotatingToken()) {
                 connectService.ensureConnected();
             }

@@ -85,7 +85,7 @@ public class TopologyService extends AbstractReportingService {
             this.topologyService = topologyService;
         }
 
-        public void execute() {
+        protected void execute() {
             if (this.state.isConnected()) {
                 this.topologyService.report();
             }

@@ -32,6 +32,8 @@ import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Objects;
 import javax.net.ssl.SSLSocketFactory;
+import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.fleetmanagement.communication.Helpers;
 import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.topology.TopologyMapper;
@@ -61,8 +63,8 @@ public class Upstream {
 
     private volatile String apiToken;
 
-    public Upstream(ITransactor transactor, Log userLog) {
-        String customBaseUrl = System.getenv("FLEET_MANAGEMENT_API_BASE_URL");
+    public Upstream(ITransactor transactor, Log userLog, Config config) {
+        var customBaseUrl = config.get(GraphDatabaseInternalSettings.fleet_management_api_base_url);
         this.baseUrl = Objects.requireNonNullElse(customBaseUrl, "https://fleet-management-api.neo4j.io/api/v1");
 
         this.transactor = transactor;

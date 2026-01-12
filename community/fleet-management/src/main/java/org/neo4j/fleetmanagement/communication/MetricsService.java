@@ -76,7 +76,7 @@ public class MetricsService extends AbstractReportingService {
             this.metricsService = metricsService;
         }
 
-        public void execute() {
+        protected void execute() {
             if (this.state.isConnected()) {
                 this.metricsService.report();
             }
