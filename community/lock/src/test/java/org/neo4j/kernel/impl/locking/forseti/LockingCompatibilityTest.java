@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.locking.forseti;
 import org.junit.jupiter.api.Nested;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.impl.locking.LockManager;
+import org.neo4j.kernel.impl.locking.LockMonitor;
 import org.neo4j.lock.LockType;
 import org.neo4j.lock.ResourceType;
 import org.neo4j.test.extension.actors.Actor;
@@ -29,8 +30,8 @@ import org.neo4j.time.SystemNanoClock;
 
 /** Base for locking tests. */
 public class LockingCompatibilityTest {
-    protected LockManager createLockManager(Config config, SystemNanoClock clock) {
-        return new ForsetiLockManager(config, clock, ResourceType.values());
+    protected LockManager createLockManager(Config config, LockMonitor lockMonitor, SystemNanoClock clock) {
+        return new ForsetiLockManager(config, clock, lockMonitor, ResourceType.values());
     }
 
     /**

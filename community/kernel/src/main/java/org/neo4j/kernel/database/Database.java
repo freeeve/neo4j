@@ -339,7 +339,7 @@ public class Database extends AbstractDatabase {
         this.storageEngineFactory = storageEngineFactorySupplier.create();
         boolean multiVersioned = storageEngineFactory.multiVersioned();
         this.cursorContextFactory = cursorContextFactorySupplier.create(multiVersioned);
-        var storageLockManager = storageEngineFactory.createLockManager(databaseConfig, this.clock);
+        var storageLockManager = storageEngineFactory.createLockManager(databaseConfig, this.clock, transactionStats);
         this.databaseLockManager =
                 multiVersioned ? new MultiVersionLockManager(storageLockManager) : storageLockManager;
         this.lockService = createLockService(storageEngineFactory, getNamedDatabaseId());

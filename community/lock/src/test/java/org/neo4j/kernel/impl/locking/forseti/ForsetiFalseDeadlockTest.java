@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.locking.forseti;
 import static java.lang.Integer.max;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.kernel.impl.locking.LockManager.Client;
+import static org.neo4j.kernel.impl.locking.LockMonitor.EMPTY_LOCK_MONITOR;
 import static org.neo4j.test.Race.throwing;
 
 import java.util.ArrayList;
@@ -81,7 +82,8 @@ class ForsetiFalseDeadlockTest {
     @Test
     void shouldManageToTakeSortedLocksWithoutFalseDeadlocks() throws Throwable {
         Config config = Config.defaults(GraphDatabaseInternalSettings.lock_manager_verbose_deadlocks, true);
-        ForsetiLockManager manager = new ForsetiLockManager(config, Clocks.nanoClock(), ResourceType.values());
+        ForsetiLockManager manager =
+                new ForsetiLockManager(config, Clocks.nanoClock(), EMPTY_LOCK_MONITOR, ResourceType.values());
         AtomicInteger txCount = new AtomicInteger();
         AtomicInteger numDeadlocks = new AtomicInteger();
         Race race = new Race().withEndCondition(() -> txCount.get() > 10000);
@@ -353,7 +355,7 @@ class ForsetiFalseDeadlockTest {
         FORSETI {
             @Override
             public LockManager create(ResourceType resourceType) {
-                return new ForsetiLockManager(Config.defaults(), Clocks.nanoClock(), resourceType);
+                return new ForsetiLockManager(Config.defaults(), Clocks.nanoClock(), EMPTY_LOCK_MONITOR, resourceType);
             }
         };
 

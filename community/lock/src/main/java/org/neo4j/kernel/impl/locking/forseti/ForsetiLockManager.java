@@ -30,6 +30,7 @@ import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.SettingChangeListener;
 import org.neo4j.kernel.impl.locking.LockManager;
+import org.neo4j.kernel.impl.locking.LockMonitor;
 import org.neo4j.lock.LockType;
 import org.neo4j.lock.ResourceType;
 import org.neo4j.time.SystemNanoClock;
@@ -153,6 +154,7 @@ public class ForsetiLockManager implements LockManager {
     }
 
     private final Config config;
+    private final LockMonitor lockMonitor;
     private final SettingChangeListener<Boolean> verboseDeadlocksSettingListener;
 
     /** Pointers to lock maps, one array per resource type. */
@@ -169,8 +171,10 @@ public class ForsetiLockManager implements LockManager {
     private volatile boolean closed;
 
     @SuppressWarnings("unchecked")
-    public ForsetiLockManager(Config config, SystemNanoClock clock, ResourceType... resourceTypes) {
+    public ForsetiLockManager(
+            Config config, SystemNanoClock clock, LockMonitor lockMonitor, ResourceType... resourceTypes) {
         this.config = config;
+        this.lockMonitor = lockMonitor;
         int maxResourceId = findMaxResourceId(resourceTypes);
         this.lockMaps = new ConcurrentMap[maxResourceId];
         this.resourceTypes = new ResourceType[maxResourceId];
@@ -194,7 +198,7 @@ public class ForsetiLockManager implements LockManager {
             throw new IllegalStateException(this + " already closed");
         }
 
-        return new ForsetiClient(lockMaps, clock, verboseDeadlocks, clientIds.incrementAndGet());
+        return new ForsetiClient(lockMaps, clock, lockMonitor, verboseDeadlocks, clientIds.incrementAndGet());
     }
 
     @Override

@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.locking.forseti;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.lock.ResourceType.NODE;
 
 import java.util.Arrays;
@@ -38,16 +39,19 @@ abstract class DeadlockCompatibility extends LockCompatibilityTestSupport {
 
     @Test
     void shouldDetectTwoClientExclusiveDeadlock() throws Exception {
+        assertThat(lockMonitor.deadlockCount()).isZero();
         acquireExclusive(clientA, LockTracer.NONE, NODE, 1L).call().get();
         acquireExclusive(clientB, LockTracer.NONE, NODE, 2L).call().get();
 
         assertDetectsDeadlock(
                 acquireExclusive(clientB, LockTracer.NONE, NODE, 1L),
                 acquireExclusive(clientA, LockTracer.NONE, NODE, 2L));
+        assertThat(lockMonitor.deadlockCount()).isOne();
     }
 
     @Test
     void shouldDetectThreeClientExclusiveDeadlock() throws Exception {
+        assertThat(lockMonitor.deadlockCount()).isZero();
         acquireExclusive(clientA, LockTracer.NONE, NODE, 1L).call().get();
         acquireExclusive(clientB, LockTracer.NONE, NODE, 2L).call().get();
         acquireExclusive(clientC, LockTracer.NONE, NODE, 3L).call().get();
@@ -56,16 +60,19 @@ abstract class DeadlockCompatibility extends LockCompatibilityTestSupport {
                 acquireExclusive(clientB, LockTracer.NONE, NODE, 1L),
                 acquireExclusive(clientC, LockTracer.NONE, NODE, 2L),
                 acquireExclusive(clientA, LockTracer.NONE, NODE, 3L));
+        assertThat(lockMonitor.deadlockCount()).isGreaterThanOrEqualTo(1);
     }
 
     @Test
     void shouldDetectMixedExclusiveAndSharedDeadlock() throws Exception {
+        assertThat(lockMonitor.deadlockCount()).isZero();
         acquireShared(clientA, LockTracer.NONE, NODE, 1L).call().get();
         acquireExclusive(clientB, LockTracer.NONE, NODE, 2L).call().get();
 
         assertDetectsDeadlock(
                 acquireExclusive(clientB, LockTracer.NONE, NODE, 1L),
                 acquireShared(clientA, LockTracer.NONE, NODE, 2L));
+        assertThat(lockMonitor.deadlockCount()).isOne();
     }
 
     private static void assertDetectsDeadlock(LockCommand... commands) {

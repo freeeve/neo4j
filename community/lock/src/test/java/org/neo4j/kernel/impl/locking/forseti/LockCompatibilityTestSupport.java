@@ -28,11 +28,13 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.LongAdder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.impl.api.LeaseService.NoLeaseClient;
 import org.neo4j.kernel.impl.locking.LockManager;
+import org.neo4j.kernel.impl.locking.LockMonitor;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.ResourceType;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -60,6 +62,7 @@ public abstract class LockCompatibilityTestSupport {
 
     protected final LockingCompatibilityTest suite;
 
+    protected CompatibilityLockMonitor lockMonitor;
     protected LockManager locks;
     protected LockManager.Client clientA;
     protected LockManager.Client clientB;
@@ -73,7 +76,8 @@ public abstract class LockCompatibilityTestSupport {
 
     @BeforeEach
     public void before() {
-        locks = suite.createLockManager(Config.defaults(), Clocks.nanoClock());
+        lockMonitor = new CompatibilityLockMonitor();
+        locks = suite.createLockManager(Config.defaults(), lockMonitor, Clocks.nanoClock());
         clientA = locks.newClient();
         clientB = locks.newClient();
         clientC = locks.newClient();
@@ -169,5 +173,18 @@ public abstract class LockCompatibilityTestSupport {
     void assertWaiting(LockManager.Client client, Future<Void> lock) {
         assertThrows(TimeoutException.class, () -> lock.get(10, TimeUnit.MILLISECONDS));
         assertDoesNotThrow(() -> clientToThreadMap.get(client).untilWaiting());
+    }
+
+    static class CompatibilityLockMonitor implements LockMonitor {
+        private final LongAdder deadlockCount = new LongAdder();
+
+        public long deadlockCount() {
+            return deadlockCount.longValue();
+        }
+
+        @Override
+        public void deadlockDetected() {
+            deadlockCount.increment();
+        }
     }
 }

@@ -53,7 +53,7 @@ abstract class AcquisitionTimeoutCompatibility extends LockCompatibilityTestSupp
     void setUp() {
         Config customConfig = Config.defaults(GraphDatabaseSettings.lock_acquisition_timeout, Duration.ofMillis(100));
         clock = Clocks.fakeClock(100000, TimeUnit.MINUTES);
-        lockManager = suite.createLockManager(customConfig, clock);
+        lockManager = suite.createLockManager(customConfig, lockMonitor, clock);
         client = lockManager.newClient();
         client2 = lockManager.newClient();
         client.initialize(NoLeaseClient.INSTANCE, 1, EmptyMemoryTracker.INSTANCE, customConfig);

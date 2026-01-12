@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.locking.forseti;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.kernel.impl.locking.LockMonitor.EMPTY_LOCK_MONITOR;
 import static org.neo4j.test.Race.throwing;
 
 import java.util.ArrayList;
@@ -65,7 +66,7 @@ class ForsetiLockManagerTest {
     @BeforeEach
     void setUp() {
         config = Config.defaults(GraphDatabaseInternalSettings.lock_manager_verbose_deadlocks, true);
-        manager = new ForsetiLockManager(config, Clocks.nanoClock(), ResourceType.values());
+        manager = new ForsetiLockManager(config, Clocks.nanoClock(), EMPTY_LOCK_MONITOR, ResourceType.values());
     }
 
     @AfterEach

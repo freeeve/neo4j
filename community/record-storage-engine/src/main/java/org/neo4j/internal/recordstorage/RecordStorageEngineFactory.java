@@ -102,6 +102,7 @@ import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.locking.LockManager;
+import org.neo4j.kernel.impl.locking.LockMonitor;
 import org.neo4j.kernel.impl.locking.forseti.ForsetiLockManager;
 import org.neo4j.kernel.impl.store.AbstractDynamicStore;
 import org.neo4j.kernel.impl.store.DynamicAllocatorProvider;
@@ -853,8 +854,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
-    public LockManager createLockManager(Config config, SystemNanoClock clock) {
-        return new ForsetiLockManager(config, clock, ResourceType.values());
+    public LockManager createLockManager(Config config, SystemNanoClock clock, LockMonitor lockMonitor) {
+        return new ForsetiLockManager(config, clock, lockMonitor, ResourceType.values());
     }
 
     @Override

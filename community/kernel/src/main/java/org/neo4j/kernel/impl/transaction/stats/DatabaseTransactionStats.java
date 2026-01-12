@@ -22,10 +22,11 @@ package org.neo4j.kernel.impl.transaction.stats;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import org.neo4j.io.layout.DatabaseFile;
+import org.neo4j.kernel.impl.locking.LockMonitor;
 import org.neo4j.kernel.impl.monitoring.TransactionMonitor;
 import org.neo4j.kernel.impl.monitoring.TransactionSizeMonitor;
 
-public class DatabaseTransactionStats implements TransactionMonitor, TransactionCounters {
+public class DatabaseTransactionStats implements TransactionMonitor, TransactionCounters, LockMonitor {
     @FunctionalInterface
     public interface Factory {
         DatabaseTransactionStats create();
@@ -38,6 +39,7 @@ public class DatabaseTransactionStats implements TransactionMonitor, Transaction
     private final LongAdder committedWriteTransactionCount = new LongAdder();
     private final LongAdder rolledBackReadTransactionCount = new LongAdder();
     private final LongAdder rolledBackWriteTransactionCount = new LongAdder();
+    private final LongAdder rolledBackDeadlockedTransactionCount = new LongAdder();
     private final LongAdder terminatedReadTransactionCount = new LongAdder();
     private final LongAdder terminatedWriteTransactionCount = new LongAdder();
     private final LongAdder totalTransactionsValidationFailures = new LongAdder();
@@ -67,8 +69,18 @@ public class DatabaseTransactionStats implements TransactionMonitor, Transaction
     }
 
     @Override
+    public void deadlockDetected() {
+        rolledBackDeadlockedTransactionCount.increment();
+    }
+
+    @Override
     public void transactionTerminated(boolean write) {
         incrementCounter(terminatedReadTransactionCount, terminatedWriteTransactionCount, write);
+    }
+
+    @Override
+    public long getNumberOfRolledBackDeadlockedTransactions() {
+        return rolledBackDeadlockedTransactionCount.longValue();
     }
 
     @Override

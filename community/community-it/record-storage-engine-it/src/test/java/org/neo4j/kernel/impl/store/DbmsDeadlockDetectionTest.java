@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.store;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
@@ -36,6 +37,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.DeadlockDetectedException;
 import org.neo4j.kernel.impl.MyRelTypes;
 import org.neo4j.kernel.impl.store.format.FormatFamily;
+import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
@@ -52,6 +54,9 @@ class DbmsDeadlockDetectionTest {
 
     @Inject
     private GraphDatabaseService database;
+
+    @Inject
+    private DatabaseTransactionStats databaseTransactionStats;
 
     @AfterEach
     public void tearDown() {
@@ -73,6 +78,9 @@ class DbmsDeadlockDetectionTest {
         Relationship r3 = createRelationship(database, n1);
         Relationship r2 = createRelationship(database, n1);
         Relationship r1 = createRelationship(database, n1);
+
+        assertThat(databaseTransactionStats.getNumberOfRolledBackDeadlockedTransactions())
+                .isZero();
 
         // Nodes to lock for deadlock strategy to close expected lock client.
         // Since we use ABORT_YOUNG strategy by default we need expected client to hold less locks.
@@ -113,6 +121,9 @@ class DbmsDeadlockDetectionTest {
         //               relationship so that its surrounding relationships are locked at commit time.
         t1Tx.getRelationshipById(r2.getId()).delete();
         assertThrows(DeadlockDetectedException.class, t1Tx::commit);
+
+        assertThat(databaseTransactionStats.getNumberOfRolledBackDeadlockedTransactions())
+                .isOne();
 
         t2n2Wait.get();
         t2.executeDontWait(close(t2Tx)).get();

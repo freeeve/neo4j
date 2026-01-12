@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.neo4j.kernel.impl.locking.LockMonitor.EMPTY_LOCK_MONITOR;
 import static org.neo4j.lock.ResourceType.NODE;
 
 import java.util.ArrayDeque;
@@ -73,7 +74,8 @@ class ForsetiMemoryTrackingTest {
     void setUp() {
         memoryPool = new MemoryPools().pool(MemoryGroup.TRANSACTION, 0L, null);
         memoryTracker = new LocalMemoryTracker(memoryPool);
-        forsetiLockManager = new ForsetiLockManager(Config.defaults(), Clocks.nanoClock(), ResourceType.values());
+        forsetiLockManager = new ForsetiLockManager(
+                Config.defaults(), Clocks.nanoClock(), EMPTY_LOCK_MONITOR, ResourceType.values());
     }
 
     @AfterEach

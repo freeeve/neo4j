@@ -48,6 +48,7 @@ import org.neo4j.kernel.impl.locking.LockAcquisitionTimeoutException;
 import org.neo4j.kernel.impl.locking.LockClientStateHolder;
 import org.neo4j.kernel.impl.locking.LockClientStoppedException;
 import org.neo4j.kernel.impl.locking.LockManager;
+import org.neo4j.kernel.impl.locking.LockMonitor;
 import org.neo4j.lock.ActiveLock;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.LockType;
@@ -102,6 +103,7 @@ public class ForsetiClient implements LockManager.Client {
     private long lockAcquisitionTimeoutNano;
 
     private final SystemNanoClock clock;
+    private final LockMonitor lockMonitor;
     private boolean verboseDeadlocks;
 
     /** List of other clients this client is waiting for. */
@@ -148,12 +150,14 @@ public class ForsetiClient implements LockManager.Client {
     public ForsetiClient(
             ConcurrentMap<Long, ForsetiLockManager.Lock>[] lockMaps,
             SystemNanoClock clock,
+            LockMonitor lockMonitor,
             boolean verboseDeadlocks,
             long clientId) {
         this.lockMaps = lockMaps;
         this.sharedLockCounts = new HeapTrackingLongIntHashMap[lockMaps.length];
         this.exclusiveLockCounts = new HeapTrackingLongIntHashMap[lockMaps.length];
         this.clock = clock;
+        this.lockMonitor = lockMonitor;
         this.verboseDeadlocks = verboseDeadlocks;
         this.clientId = clientId;
     }
@@ -827,15 +831,14 @@ public class ForsetiClient implements LockManager.Client {
                 if (verboseDeadlocks) {
                     var deadlockCycleMessage = findDeadlockPath(lock, type, resourceId, depth);
                     if (deadlockCycleMessage != null) {
-                        var message = String.format(
+                        raiseDeadlockException(String.format(
                                 "%s can't acquire %s %s because it would form this deadlock wait cycle:%n%s",
-                                this, lockType, lockString(type, resourceId), deadlockCycleMessage);
-                        throw DeadlockDetectedException.deadlockDetected(message);
+                                this, lockType, lockString(type, resourceId), deadlockCycleMessage));
                     }
                     // else we tried to find a precise deadlock cycle, but found none - which means that
                     // there was no real deadlock
                 } else {
-                    throw DeadlockDetectedException.deadlockDetected(format(
+                    raiseDeadlockException(format(
                             "%s can't acquire %s on %s because holders of that lock are waiting for %s.%n Wait list:%s",
                             this, lock, lockString(type, resourceId), this, lock.describeWaitList()));
                 }
@@ -847,10 +850,15 @@ public class ForsetiClient implements LockManager.Client {
                 if (clientCommittingByCurrentThread(client) && isDeadlockReal(lock) != -1) {
                     String message = this + " can't acquire " + lock + " on " + type + "(" + resourceId
                             + "), because we are waiting for " + client + " that is committing on the same thread";
-                    throw DeadlockDetectedException.deadlockDetected(message);
+                    raiseDeadlockException(message);
                 }
             }
         }
+    }
+
+    private void raiseDeadlockException(String message) {
+        lockMonitor.deadlockDetected();
+        throw DeadlockDetectedException.deadlockDetected(message);
     }
 
     @VisibleForTesting
