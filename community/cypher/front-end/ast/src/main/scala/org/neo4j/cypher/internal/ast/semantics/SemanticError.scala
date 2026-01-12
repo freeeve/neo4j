@@ -1752,15 +1752,6 @@ object SemanticError {
     )
   }
 
-  def matchModesNotSupported(matchMode: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N54(matchMode, position.offset, position.line, position.column)
-    SemanticError(
-      gql,
-      s"Match modes such as `$matchMode` are not supported yet.",
-      position
-    )
-  }
-
   def matchModesNotSupportedInCypher5(matchMode: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N54(matchMode, position.offset, position.line, position.column)
     SemanticError(
@@ -2318,6 +2309,44 @@ object SemanticError {
     SemanticError(
       GqlHelper.getGql42001_42I74(variable1, variable2, position.offset, position.line, position.column),
       s"The variable `$variable1` in a vector search filter property predicate must be the same as the search clause binding variable `$variable2`.",
+      position
+    )
+  }
+
+  def singleStageWithPredicateReferencingEntity(
+    expression: String,
+    variable: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql42001_51N26(
+      s"Cross-referencing from vector search filters",
+      s"vector search filter expression `$expression` to depend on the search variable `$variable`",
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(
+      gql,
+      s"Vector search filters referencing the search variable",
+      position
+    )
+  }
+
+  def singleStageWithEmbeddingReferencingEntity(
+    expression: String,
+    variable: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql42001_51N26(
+      s"Cross-referencing from vector search embedding",
+      s"vector search embedding expression `$expression` to depend on the search variable `$variable`",
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(
+      gql,
+      s"Vector search embeddings referencing the search variable",
       position
     )
   }

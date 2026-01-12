@@ -344,7 +344,19 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN m.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_51N26(
+            "Cross-referencing from vector search embedding",
+            "vector search embedding expression `m.embedding` to depend on the search variable `m`",
+            92 + optionalLength,
+            4,
+            10
+          ),
+          s"Vector search embeddings referencing the search variable",
+          InputPosition(92 + optionalLength, 4, 10)
+        )
+      )
     }
 
     test(
@@ -357,7 +369,19 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_51N26(
+            "Cross-referencing from vector search embedding",
+            "vector search embedding expression `movie.embedding` to depend on the search variable `movie`",
+            82 + optionalLength,
+            4,
+            14
+          ),
+          s"Vector search embeddings referencing the search variable",
+          InputPosition(82 + optionalLength, 4, 14)
+        )
+      )
     }
 
     // Tests for LIMIT
@@ -939,8 +963,6 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       }
     }
 
-    // TODO: SURF-482
-    // Here the rhs is dependent on the node being searched. This can fail at semantic checking already
     test(
       s"""${maybeOptional}MATCH (movie: Movie)
          |  SEARCH movie IN (
@@ -952,7 +974,19 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_51N26(
+            "Cross-referencing from vector search filters",
+            "vector search filter expression `movie.prop` to depend on the search variable `movie`",
+            122 + optionalLength,
+            5,
+            36
+          ),
+          s"Vector search filters referencing the search variable",
+          InputPosition(122 + optionalLength, 5, 36)
+        )
+      )
     }
 
     for (

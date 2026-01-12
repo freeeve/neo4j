@@ -215,13 +215,7 @@ case class Search(
     }
 
   private def checkRhs(rhs: Expression, equality: Boolean): SemanticCheck =
-    checkRhsType(rhs, equality) chain
-      when(rhs.dependencies.contains(bindingVariable)) {
-        // TODO SURF-482: Throw right error
-        // To be removed again in PLAN-3087
-        // SemanticError.singleStageWithInvalidPredicate(rhs, rhs.position)
-        SemanticCheck.success
-      }
+    checkRhsType(rhs, equality)
 
   private def checkRhsType(rhs: Expression, equality: Boolean): SemanticCheck = {
     val validTypes = CTInteger

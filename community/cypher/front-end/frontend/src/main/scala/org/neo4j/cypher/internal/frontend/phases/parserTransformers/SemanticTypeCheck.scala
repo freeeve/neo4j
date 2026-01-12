@@ -21,10 +21,13 @@ import org.neo4j.cypher.internal.ast.CreateOrInsert
 import org.neo4j.cypher.internal.ast.Insert
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UpdateClause
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.expressions.And
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
@@ -34,6 +37,7 @@ import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
+import org.neo4j.cypher.internal.expressions.VectorFilterExpression
 import org.neo4j.cypher.internal.expressions.functions.Exists
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
@@ -43,6 +47,7 @@ import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ListCoercedToBooleanCheck.listCoercedToBooleanCheck
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.MatchChecks.SearchCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PatternExpressionInNonExistenceCheck.patternExpressionInNonExistenceCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck.SemanticErrorCheck
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
@@ -76,7 +81,8 @@ case object SemanticTypeCheck extends VisitorPhase[BaseContext, BaseState]
     SelfReferenceCheckWithinPatternPart.check,
     SelfReferenceCheckAcrossPatternParts.check,
     listCoercedToBooleanCheck,
-    MatchChecks.checkMatchMode
+    MatchChecks.checkMatchMode,
+    SearchCheck.check
   )
 
   override def visit(from: BaseState, context: BaseContext): Unit = {
@@ -290,4 +296,44 @@ object MatchChecks {
       clause.checkMatchMode(baseState.semantics(), baseContext.cypherVersion)
     }
   }
+
+  object SearchCheck {
+
+    def check: SemanticErrorCheck = (baseState, _) => {
+      baseState.statement().folder.treeFold(Seq.empty[SemanticError]) {
+        case Search(bindingVariable, _, _, embedding, where, _) =>
+          errors =>
+            val newErrors = Seq.empty[SemanticError] ++
+              Option.when(embedding.dependencies.contains(bindingVariable)) {
+                // To be removed again in PLAN-3087
+                SemanticError.singleStageWithEmbeddingReferencingEntity(
+                  embedding.asCanonicalStringVal,
+                  bindingVariable.name,
+                  embedding.position
+                )
+              } ++ where.toSeq.map(_.expression).flatMap(checkWhereClause)
+
+            SkipChildren(errors ++ newErrors)
+      }
+    }
+  }
+
+  private def checkWhereClause(expression: Expression): Seq[SemanticError] =
+    expression match {
+      case VectorFilterExpression(variable: LogicalVariable, rhs: Expression, _: VectorFilterExpression) =>
+        Option.when(rhs.dependencies.contains(variable)) {
+          // To be removed again in PLAN-3087
+          SemanticError.singleStageWithPredicateReferencingEntity(
+            rhs.asCanonicalStringVal,
+            variable.name,
+            rhs.position
+          )
+        }.toSeq
+      case And(lhs, rhs) => checkWhereClause(lhs) ++ checkWhereClause(rhs)
+      case Ands(exprs) =>
+        exprs.map(checkWhereClause).foldLeft(Seq.empty[SemanticError])(_ ++ _)
+      case _ =>
+        // Ignore. Will be caught during semantic analysis in Search.asFilterExpressions.
+        Seq.empty
+    }
 }
