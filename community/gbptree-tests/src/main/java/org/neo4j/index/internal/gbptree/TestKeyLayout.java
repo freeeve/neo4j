@@ -19,9 +19,4 @@
  */
 package org.neo4j.index.internal.gbptree;
 
-interface KeyValueSeeder<KEY, VALUE> extends KeySeeder<KEY> {
-
-    VALUE value(long seed);
-
-    long valueSeed(VALUE value);
-}
+public interface TestKeyLayout<KEY> extends KeyLayout<KEY>, KeySeeder<KEY> {}

@@ -19,7 +19,8 @@
  */
 package org.neo4j.index.internal.gbptree;
 
-public abstract class TestLayout<KEY, VALUE> extends Layout.Adapter<KEY, VALUE> implements KeyValueSeeder<KEY, VALUE> {
+public abstract class TestLayout<KEY, VALUE> extends Layout.Adapter<KEY, VALUE>
+        implements TestKeyLayout<KEY>, KeyValueSeeder<KEY, VALUE> {
     protected TestLayout(boolean fixedSize, long identifier, int majorVersion, int minorVersion) {
         super(fixedSize, identifier, majorVersion, minorVersion);
     }

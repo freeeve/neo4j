@@ -163,4 +163,9 @@ public class SimpleLongLayout extends TestLayout<MutableLong, MutableLong> {
     public void initializeAsHighest(MutableLong key) {
         key.setValue(Long.MAX_VALUE);
     }
+
+    @Override
+    public boolean valueDefined(MutableLong value) {
+        return value.longValue() != 0L;
+    }
 }
