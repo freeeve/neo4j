@@ -74,12 +74,14 @@ import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
 import org.neo4j.cypher.internal.expressions.HasDynamicLabels
 import org.neo4j.cypher.internal.expressions.HasDynamicType
 import org.neo4j.cypher.internal.expressions.HasTypes
+import org.neo4j.cypher.internal.expressions.ImpliedLabel
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapProjection
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.expressions.PartialPredicate
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Property
@@ -4904,7 +4906,8 @@ case class LogicalPlanProducer(
    */
   private def assertNoBadExpressionsExists(root: Any): Unit = {
     checkOnlyWhenAssertionsAreEnabled(!root.folder.treeExists {
-      case _: PatternComprehension | _: PatternExpression | _: IRExpression | _: MapProjection =>
+      case _: PatternComprehension | _: PatternExpression | _: IRExpression | _: MapProjection | _: PartialPredicate[_]
+        | _: ImpliedLabel =>
         throw InternalException.internalError(
           this.getClass.getSimpleName,
           s"This expression should not be added to a logical plan:\n$root"

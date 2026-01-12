@@ -29,8 +29,11 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.Updat
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
+import org.neo4j.cypher.internal.expressions.ImpliedLabel
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.MapProjection
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
+import org.neo4j.cypher.internal.expressions.PartialPredicate
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
@@ -66,6 +69,7 @@ import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.VarPatternLength
+import org.neo4j.cypher.internal.ir.ast.CountIRExpression
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
@@ -79,6 +83,7 @@ import org.neo4j.cypher.internal.logical.plans.NFA.PathLength
 import org.neo4j.cypher.internal.logical.plans.NotDistinct
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
+import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Selector.Shortest
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
@@ -2716,6 +2721,39 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         equals(prop("x", "foo"), prop("y", "foo")),
         ctx.context
       )
+    }
+  }
+
+  test("should throw when unsupported expression is added to a logical plan (when assertions are enabled, -ea)") {
+    val badExpressions: Seq[Expression] = Seq(
+      patternComprehension(relationshipChain(nodePat(), relPat(), nodePat()), literal(1))
+        .withComputedScopeDependencies(Set.empty),
+      patternExpression(v"x", v"x")
+        .withComputedScopeDependencies(Set.empty),
+      MapProjection(v"x", Seq.empty)(pos),
+      CountIRExpression(SinglePlannerQuery.empty, v"result", "")(pos, Some(Set.empty), Some(Set.empty)),
+      PartialPredicate(isNotNull(prop("x", "prop")), equals(prop("x", "prop"), prop("y", "prop"))),
+      ImpliedLabel(hasLabels("x", "A"))(pos)
+    )
+
+    new givenConfig().withLogicalPlanningContext { (_, context) =>
+      for (expr <- badExpressions) withClue(s"Expression $expr") {
+        val planWithBadExpression = {
+          val attrs = context.staticComponents.planningAttributes
+          val sourcePlan = fakeLogicalPlanFor(attrs, "x")
+          Selection(Seq(expr), sourcePlan)(attrs.asAttributes(idGen).copy(from = sourcePlan.id))
+        }
+
+        val ex = intercept[InternalException] {
+          context.staticComponents.logicalPlanProducer.planSkip(
+            planWithBadExpression,
+            literalInt(0),
+            InterestingOrder.empty,
+            context
+          )
+        }
+        ex.getMessage should include("This expression should not be added to a logical plan")
+      }
     }
   }
 
