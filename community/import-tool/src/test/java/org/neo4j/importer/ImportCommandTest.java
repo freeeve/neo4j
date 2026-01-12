@@ -22,7 +22,7 @@ package org.neo4j.importer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.neo4j.io.fs.FileSystemAbstraction.PatternStyle.regex;
+import static org.neo4j.io.fs.FileSystemAbstraction.PatternStyle.REGEX;
 
 import java.io.File;
 import java.io.IOException;
@@ -236,7 +236,7 @@ class ImportCommandTest {
         @Test
         void validateFileExistence() {
             assertThrows(IllegalArgumentException.class, () -> ImportCommand.parseNodeFilesGroup("nonexisting.file")
-                    .toPaths(testDir.getFileSystem(), regex));
+                    .toPaths(testDir.getFileSystem(), REGEX));
         }
 
         @ParameterizedTest
@@ -301,7 +301,7 @@ class ImportCommandTest {
         void validateFileExistence() {
             assertThrows(
                     IllegalArgumentException.class, () -> ImportCommand.parseRelationshipFilesGroup("nonexisting.file")
-                            .toPaths(testDir.getFileSystem(), regex));
+                            .toPaths(testDir.getFileSystem(), REGEX));
         }
 
         @ParameterizedTest
@@ -344,7 +344,7 @@ class ImportCommandTest {
     private static void assertPathsFound(TestDirectory dir, InputFilesGroup<?> group, Path... expectedPaths) {
         // the groups will have either local paths or file URIs so will be handled by the simple scheme system below
         try (var fs = new SchemeFileSystemAbstraction(dir.getFileSystem())) {
-            assertThat(group.toPaths(fs, regex)).containsOnly(expectedPaths);
+            assertThat(group.toPaths(fs, REGEX)).containsOnly(expectedPaths);
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }

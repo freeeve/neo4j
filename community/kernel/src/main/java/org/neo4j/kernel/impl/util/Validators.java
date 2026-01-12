@@ -42,12 +42,12 @@ public final class Validators {
 
     static List<Path> matchingFiles(FileSystemAbstraction fs, PatternStyle patternStyle, String pathPattern) {
         try {
-            List<Path> paths;
-            if (patternStyle == PatternStyle.glob && pathPattern.contains(GLOB_PATTERN)) {
-                paths = recursiveGlobPaths(fs, patternStyle, pathPattern);
-            } else {
-                paths = paths(fs, patternStyle, pathPattern);
-            }
+            List<Path> paths =
+                    switch (patternStyle) {
+                        case GLOB -> recursivePaths(fs, pathPattern);
+                        case REGEX -> regexOnParentPaths(fs, patternStyle, pathPattern);
+                        case NONE -> directPath(fs, pathPattern);
+                    };
 
             if (paths.isEmpty()) {
                 throw new IllegalArgumentException("File '" + pathPattern + "' doesn't exist");
@@ -82,16 +82,19 @@ public final class Validators {
         return value -> {};
     }
 
-    private static List<Path> recursiveGlobPaths(
-            FileSystemAbstraction fs, PatternStyle patternStyle, String pathPattern) throws IOException {
+    private static List<Path> recursivePaths(FileSystemAbstraction fs, String pathPattern) throws IOException {
         int ix = pathPattern.indexOf(GLOB_PATTERN);
-        Path parent = resolveParent(fs, pathPattern.substring(0, ix));
+        if (ix == -1) {
+            // no globs provided so fallback to parent path pattern matching
+            return regexOnParentPaths(fs, PatternStyle.GLOB, pathPattern);
+        }
+        Path parent = resolvePath(fs, pathPattern.substring(0, ix));
         checkState(fs.fileExists(parent), "Directory %s of %s doesn't exist", parent, pathPattern);
-        return fs.matchFiles(parent, patternStyle, pathPattern.substring(ix));
+        return fs.matchFiles(parent, PatternStyle.GLOB, pathPattern.substring(ix));
     }
 
-    private static List<Path> paths(FileSystemAbstraction fs, PatternStyle patternStyle, String pathPattern)
-            throws IOException {
+    private static List<Path> regexOnParentPaths(
+            FileSystemAbstraction fs, PatternStyle patternStyle, String pathPattern) throws IOException {
         String separator = pathSeparator(fs, pathPattern);
         int pos = pathPattern.length();
 
@@ -112,9 +115,13 @@ public final class Validators {
             throw new IllegalArgumentException("Unable to find the parent of the path: " + pathPattern);
         }
 
-        Path parent = resolveParent(fs, pathPattern.substring(0, ix + 1));
+        Path parent = resolvePath(fs, pathPattern.substring(0, ix + 1));
         checkState(fs.fileExists(parent), "Directory %s of %s doesn't exist", parent, pathPattern);
         return fs.matchFiles(parent, patternStyle, pathPattern.substring(ix + 1).replace("\\\\", "\\"));
+    }
+
+    private static List<Path> directPath(FileSystemAbstraction fs, String pathPattern) throws IOException {
+        return List.of(resolvePath(fs, pathPattern));
     }
 
     private static String pathSeparator(FileSystemAbstraction fs, String pathPattern) {
@@ -127,11 +134,11 @@ public final class Validators {
         return File.separator;
     }
 
-    private static Path resolveParent(FileSystemAbstraction fs, String parentPath) throws IOException {
+    private static Path resolvePath(FileSystemAbstraction fs, String path) throws IOException {
         if (fs instanceof SchemeFileSystemAbstraction system) {
-            return system.resolve(parentPath).toRealPath();
+            return system.resolve(path).toRealPath();
         }
 
-        return Path.of(parentPath).toRealPath();
+        return Path.of(path).toRealPath();
     }
 }

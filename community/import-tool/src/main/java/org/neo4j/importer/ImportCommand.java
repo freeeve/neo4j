@@ -139,6 +139,13 @@ public class ImportCommand {
             }
         }
 
+        static class PatternStyleConverter implements ITypeConverter<PatternStyle> {
+            @Override
+            public PatternStyle convert(String value) throws Exception {
+                return PatternStyle.valueOf(value.toUpperCase(Locale.ROOT));
+            }
+        }
+
         enum MultilineFormat {
             /**
              * Format for the legacy multiline parsing in single threaded mode
@@ -213,9 +220,11 @@ public class ImportCommand {
 
         @Option(
                 names = "--path-pattern-style",
+                showDefaultValue = ALWAYS,
+                paramLabel = "regex|glob|none",
+                converter = PatternStyleConverter.class,
                 defaultValue = "regex",
-                description =
-                        "Pattern style to use for matching --nodes and --relationships files. Can be either 'regex' or 'glob'")
+                description = "Pattern style to use for matching --nodes and --relationships files.")
         private PatternStyle patternStyle;
 
         private static final String MULTILINE_FIELDS = "--multiline-fields";

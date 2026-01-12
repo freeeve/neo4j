@@ -270,7 +270,7 @@ public interface FileSystemAbstraction extends Closeable {
      * Lists files in the given {@code directory}.
      *
      * @param directory the directory to list files for. Both files and directories contained in the {@code directory} are returned, non-recursively.
-     * @return a list of files and directories contained in the provided {@code directory}
+     * @return an array of files and directories contained in the provided {@code directory}
      * @throws NotDirectoryException if the provided {@code directory} isn't a directory.
      * @throws NoSuchFileException if the provided {@code directory} doesn't exist.
      * @throws IOException on I/O error.
@@ -282,7 +282,7 @@ public interface FileSystemAbstraction extends Closeable {
      *
      * @param directory the directory to list files for. Both files and directories contained in the {@code directory} are returned, non-recursively.
      * @param filter the filter to use in the listing.
-     * @return a list of files and directories contained in the provided {@code directory}
+     * @return an array of files and directories contained in the provided {@code directory}
      * @throws NotDirectoryException if the provided {@code directory} isn't a directory.
      * @throws NoSuchFileException if the provided {@code directory} doesn't exist.
      * @throws IOException on I/O error.
@@ -499,7 +499,7 @@ public interface FileSystemAbstraction extends Closeable {
     default List<Path> matchFiles(Path dir, PatternStyle style, String pattern) throws IOException {
         PathMatcher matcher = dir.getFileSystem().getPathMatcher(style.name() + ":" + pattern);
         List<Path> matches = new ArrayList<>();
-        if (style == PatternStyle.glob && pattern.contains("**")) {
+        if (style == PatternStyle.GLOB && pattern.contains("**")) {
             try (Stream<Path> stream = Files.walk(dir)) {
                 Iterator<Path> iterator = stream.iterator();
                 while (iterator.hasNext()) {
@@ -522,7 +522,8 @@ public interface FileSystemAbstraction extends Closeable {
     }
 
     enum PatternStyle {
-        regex,
-        glob
+        REGEX,
+        GLOB,
+        NONE
     }
 }

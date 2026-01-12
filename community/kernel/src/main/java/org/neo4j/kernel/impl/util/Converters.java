@@ -47,9 +47,10 @@ public class Converters {
     public static Function<String, Path[]> patternMatchFiles(
             FileSystemAbstraction fs, boolean cleverNumberRegexSort, PatternStyle patternStyle) {
         return name -> {
-            Comparator<Path> sorting = cleverNumberRegexSort ? BY_FILE_NAME_WITH_CLEVER_NUMBERS : BY_FILE_NAME;
             List<Path> files = Validators.matchingFiles(fs, patternStyle, name.trim());
-            files.sort(sorting);
+            if (patternStyle != PatternStyle.NONE) {
+                files.sort(cleverNumberRegexSort ? BY_FILE_NAME_WITH_CLEVER_NUMBERS : BY_FILE_NAME);
+            }
             return files.toArray(new Path[0]);
         };
     }
