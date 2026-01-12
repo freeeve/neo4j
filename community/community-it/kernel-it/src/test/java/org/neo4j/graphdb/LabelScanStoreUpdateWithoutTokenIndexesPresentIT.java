@@ -19,15 +19,17 @@
  */
 package org.neo4j.graphdb;
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
-import org.neo4j.test.TestDatabaseManagementServiceBuilder;
-import org.neo4j.test.extension.ExtensionCallback;
+import org.junit.jupiter.api.BeforeEach;
+import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 
-@ImpermanentDbmsExtension(configurationCallback = "configure")
+@ImpermanentDbmsExtension
 public class LabelScanStoreUpdateWithoutTokenIndexesPresentIT extends LabelScanStoreUpdateIT {
-    @ExtensionCallback
-    void configure(TestDatabaseManagementServiceBuilder builder) {
-        builder.setConfig(GraphDatabaseInternalSettings.skip_default_indexes_on_creation, true);
+    @BeforeEach
+    void setUp() {
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().getIndexes().forEach(IndexDefinition::drop);
+            tx.commit();
+        }
     }
 }

@@ -773,12 +773,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("If 'true', new database will be created without token indexes for labels and relationships.")
-    public static final Setting<Boolean> skip_default_indexes_on_creation = newBuilder(
-                    "internal.dbms.index.skip_default_indexes_on_creation", BOOL, false)
-            .build();
-
-    @Internal
     @Description(
             "If sent in index-provider in index create should be respected. Only for tests, latest should always be used")
     public static final Setting<Boolean> always_use_latest_index_provider = newBuilder(

@@ -236,11 +236,7 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
 
             @Override
             public IndexConfig indexConfig() {
-                IndexConfig indexConfig = IndexConfig.create();
-                if (!config.get(GraphDatabaseInternalSettings.skip_default_indexes_on_creation)) {
-                    indexConfig.withLabelIndex().withRelationshipTypeIndex();
-                }
-                return indexConfig;
+                return IndexConfig.create().withLabelIndex().withRelationshipTypeIndex();
             }
 
             @Override

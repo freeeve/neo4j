@@ -71,7 +71,6 @@ import org.neo4j.cloud.storage.StorageUtils;
 import org.neo4j.commandline.dbms.CannotWriteException;
 import org.neo4j.commandline.dbms.LockChecker;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.importer.FileImporter.CsvImportException;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
@@ -1033,10 +1032,7 @@ public class ImportCommand {
 
     @VisibleForTesting
     public static IndexConfig setupIndexConfigForImport(Config dbConfig, IndexConfig indexConfig) {
-        if (!dbConfig.get(GraphDatabaseInternalSettings.skip_default_indexes_on_creation)) {
-            indexConfig.withLabelIndex().withRelationshipTypeIndex();
-        }
-        return indexConfig;
+        return indexConfig.withLabelIndex().withRelationshipTypeIndex();
     }
 
     @VisibleForTesting

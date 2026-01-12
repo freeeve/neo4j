@@ -38,7 +38,7 @@ import org.neo4j.test.extension.Inject;
 @ImpermanentDbmsExtension
 class LabelScanStoreUpdateIT {
     @Inject
-    private GraphDatabaseService db;
+    GraphDatabaseService db;
 
     private Label First;
     private Label Second;

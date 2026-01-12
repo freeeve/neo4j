@@ -256,7 +256,9 @@ public final class SettingMigrators {
                 "dbms.tx_state.max_off_heap_memory",
                 "unsupported.dbms.index.population_print_debug",
                 "internal.dbms.index.population_print_debug",
-                "internal.cypher.enable_vector_type");
+                "internal.cypher.enable_vector_type",
+                "unsupported.dbms.index.skip_default_indexes_on_creation",
+                "internal.dbms.index.skip_default_indexes_on_creation");
 
         private static final Collection<Mapping> LEGACY_UNSUPPORTED_SETTINGS_MAPPING = List.of(
                 new Mapping("dbms.capabilities.blocked", "internal.dbms.capabilities.blocked"),
@@ -502,9 +504,6 @@ public final class SettingMigrators {
                 new Mapping(
                         "unsupported.dbms.index.sampling.log_recovered_samples",
                         "internal.dbms.index.sampling.log_recovered_samples"),
-                new Mapping(
-                        "unsupported.dbms.index.skip_default_indexes_on_creation",
-                        "internal.dbms.index.skip_default_indexes_on_creation"),
                 new Mapping(
                         "unsupported.dbms.index.spatial.curve.bottom_threshold",
                         "internal.dbms.index.spatial.curve.bottom_threshold"),

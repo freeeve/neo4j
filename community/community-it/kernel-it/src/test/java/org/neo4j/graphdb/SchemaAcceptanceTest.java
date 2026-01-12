@@ -159,8 +159,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         };
         monitors.addMonitorListener(trappingMonitor);
         builder.setMonitors(monitors);
-        builder.setConfig(GraphDatabaseInternalSettings.skip_default_indexes_on_creation, true)
-                .setConfig(GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled, true)
+        builder.setConfig(GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled, true)
                 .setConfig(
                         GraphDatabaseInternalSettings.latest_kernel_version,
                         VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING.version())
@@ -168,6 +167,14 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                         GraphDatabaseInternalSettings.latest_runtime_version,
                         DbmsRuntimeVersion.fromKernelVersion(VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING)
                                 .getVersion());
+    }
+
+    @BeforeEach
+    void setUp() {
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().getIndexes().forEach(IndexDefinition::drop);
+            tx.commit();
+        }
     }
 
     @Test

@@ -893,10 +893,7 @@ class RecoveryIT {
         // The database is only completely empty if we skip the creation of the default indexes initially.
         // Without skipping there will be entries in the transaction logs for the default token indexes, so recovery is
         // required if we remove the checkpoint.
-        Config config = Config.newBuilder()
-                .set(GraphDatabaseInternalSettings.skip_default_indexes_on_creation, true)
-                .set(preallocate_logical_logs, false)
-                .build();
+        Config config = Config.newBuilder().set(preallocate_logical_logs, false).build();
 
         managementService = new TestDatabaseManagementServiceBuilder(neo4jLayout)
                 .setConfig(config)

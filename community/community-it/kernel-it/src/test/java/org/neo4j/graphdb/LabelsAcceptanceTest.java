@@ -65,7 +65,7 @@ import org.neo4j.util.concurrent.BinaryLatch;
 @ImpermanentDbmsExtension
 class LabelsAcceptanceTest {
     @Inject
-    private GraphDatabaseAPI db;
+    protected GraphDatabaseAPI db;
 
     private enum Labels implements Label {
         MY_LABEL,
