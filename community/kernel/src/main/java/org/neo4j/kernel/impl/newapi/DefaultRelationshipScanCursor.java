@@ -55,7 +55,7 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
                 read,
                 includeChangesFromThisTransaction ? txStateHolder : TxStateHolder.EMPTY_TX_STATE,
                 accessModeProvider);
-        storeCursor.scan();
+        storeCursor.scan(includeChangesFromThisTransaction);
         this.single = LongReference.NULL;
         this.isSingle = false;
     }

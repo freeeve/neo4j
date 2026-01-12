@@ -40,7 +40,7 @@ public interface StoreCursors extends AutoCloseable {
     }
 
     /**
-     * If {@code includeChangesFromThisTransaction} is {@code false} then cursor will not include changes from this transaction in mutliversion enabled storage
+     * If {@code includeChangesFromThisTransaction} is {@code false} then cursor will not include changes from this transaction in multiversion enabled storage
      */
     PageCursor readCursor(CursorType type, boolean includeChangesFromThisTransaction);
 

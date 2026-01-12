@@ -23,7 +23,6 @@ import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_C
 
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
-import org.neo4j.util.VisibleForTesting;
 
 public class CursorContextFactory {
     public static final CursorContextFactory NULL_CONTEXT_FACTORY =
@@ -53,10 +52,5 @@ public class CursorContextFactory {
             TransactionIdSnapshotFactory transactionIdSnapshotFactory,
             OldestTransactionIdFactory oldestTransactionIdFactory) {
         versionContextSupplier.init(transactionIdSnapshotFactory, oldestTransactionIdFactory);
-    }
-
-    @VisibleForTesting
-    public VersionContextSupplier versionContextSupplier() {
-        return versionContextSupplier;
     }
 }
