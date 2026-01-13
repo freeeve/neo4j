@@ -1039,7 +1039,37 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
     ) should have message "Expected relationship type to be a string or list of strings."
   }
 
-  test("merge on the RHS of an apply") {
+  test("merge with all-node scan on the RHS of an apply") {
+    givenGraph(nodePropertyGraph(
+      sizeHint,
+      {
+        case i if i % 2 == 0 => Map("prop" -> i)
+      },
+      "L"
+    ))
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("n.prop AS res")
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("n", Seq("L"), "{prop: x}")))
+      .|.filter("n.prop = x", "n:L")
+      .|.allNodeScan("n", "x")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    runtimeResult should beColumns("res").withRows(singleColumn(1 to 10)).withStatistics(
+      nodesCreated = 5,
+      labelsAdded = 5,
+      propertiesSet = 5
+    )
+  }
+
+  test("merge with label scan on the RHS of an apply") {
     givenGraph(nodePropertyGraph(
       sizeHint,
       {
@@ -1065,6 +1095,238 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("res").withRows(singleColumn(1 to 10)).withStatistics(
       nodesCreated = 5,
       labelsAdded = 5,
+      propertiesSet = 5
+    )
+  }
+
+  test("merge with node-index scan on the RHS of an apply") {
+    givenGraph {
+      nodeIndex("L", "prop")
+
+      nodePropertyGraph(
+        sizeHint,
+        {
+          case i if i % 2 == 0 => Map("prop" -> i)
+        },
+        "L"
+      )
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("n.prop AS res")
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("n", Seq("L"), "{prop: x}")))
+      .|.filter("n.prop = x")
+      .|.nodeIndexOperator("n:L(prop)")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    runtimeResult should beColumns("res").withRows(singleColumn(1 to 10)).withStatistics(
+      nodesCreated = 5,
+      labelsAdded = 5,
+      propertiesSet = 5
+    )
+  }
+
+  test("merge with node-index seek on the RHS of an apply") {
+    givenGraph {
+      nodeIndex("L", "prop")
+
+      nodePropertyGraph(
+        sizeHint,
+        {
+          case i if i % 2 == 0 => Map("prop" -> i)
+        },
+        "L"
+      )
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("n.prop AS res")
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("n", Seq("L"), "{prop: x}")))
+      .|.nodeIndexOperator("n:L(prop=x)")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    runtimeResult should beColumns("res").withRows(singleColumn(1 to 10)).withStatistics(
+      nodesCreated = 5,
+      labelsAdded = 5,
+      propertiesSet = 5
+    )
+  }
+
+  test("merge with expand-into on the RHS of an apply") {
+    // since we use a cartesian product here using sizeHint makes the test unnecessary slow and memory hungry
+    val reducedSizeHint = 100
+
+    givenGraph {
+      nodeGraph(reducedSizeHint)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("r.prop AS res")
+      .apply()
+      .|.merge(relationships = Seq(createRelationship("r", "x", "R", "y", properties = Some("{prop: 42}"))))
+      .|.expandInto("(x)-[r:R]->(y)")
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime)
+    runtimeResult should beColumns(
+      "res"
+    ).withRows(singleColumn(Seq.fill(reducedSizeHint * reducedSizeHint)(42))).withStatistics(
+      relationshipsCreated = reducedSizeHint * reducedSizeHint,
+      propertiesSet = reducedSizeHint * reducedSizeHint
+    )
+  }
+
+  test("merge with all-relationship scan on the RHS of an apply") {
+    givenGraph {
+      val (_, rs) = circleGraph(sizeHint)
+      rs.zipWithIndex.foreach {
+        case (r, i) if i % 2 == 0 => r.setProperty("prop", i)
+        case _                    => // do nothing
+      }
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("r.prop AS res")
+      .apply()
+      .|.merge(
+        nodes = Seq(createNode("n"), createNode("m")),
+        relationships = Seq(createRelationship("r", "n", "R", "m", properties = Some("{prop: x}")))
+      )
+      .|.filter("r.prop = x")
+      .|.allRelationshipsScan("(n)-[r:R]->(m)")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    runtimeResult should beColumns("res").withRows(singleColumn(1 to 10)).withStatistics(
+      nodesCreated = 10,
+      relationshipsCreated = 5,
+      propertiesSet = 5
+    )
+  }
+
+  test("merge with relationship-type scan on the RHS of an apply") {
+    givenGraph {
+      val (_, rs) = circleGraph(sizeHint)
+      rs.zipWithIndex.foreach {
+        case (r, i) if i % 2 == 0 => r.setProperty("prop", i)
+        case _                    => // do nothing
+      }
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("r.prop AS res")
+      .apply()
+      .|.merge(
+        nodes = Seq(createNode("n"), createNode("m")),
+        relationships = Seq(createRelationship("r", "n", "R", "m", properties = Some("{prop: x}")))
+      )
+      .|.filter("r.prop = x")
+      .|.relationshipTypeScan("(n)-[r:R]->(m)")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    runtimeResult should beColumns("res").withRows(singleColumn(1 to 10)).withStatistics(
+      nodesCreated = 10,
+      relationshipsCreated = 5,
+      propertiesSet = 5
+    )
+  }
+
+  test("merge with relationship-index scan on the RHS of an apply") {
+    givenGraph {
+      relationshipIndex("R", "prop")
+      val (_, rs) = circleGraph(sizeHint)
+      rs.zipWithIndex.foreach {
+        case (r, i) if i % 2 == 0 => r.setProperty("prop", i)
+        case _                    => // do nothing
+      }
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("r.prop AS res")
+      .apply()
+      .|.merge(
+        nodes = Seq(createNode("n"), createNode("m")),
+        relationships = Seq(createRelationship("r", "n", "R", "m", properties = Some("{prop: x}")))
+      )
+      .|.filter("r.prop = x")
+      .|.relationshipIndexOperator("(n)-[r:R(prop)]->(m)")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    runtimeResult should beColumns("res").withRows(singleColumn(1 to 10)).withStatistics(
+      nodesCreated = 10,
+      relationshipsCreated = 5,
+      propertiesSet = 5
+    )
+  }
+
+  test("merge with relationship-index seek on the RHS of an apply") {
+    givenGraph {
+      relationshipIndex("R", "prop")
+      val (_, rs) = circleGraph(sizeHint)
+      rs.zipWithIndex.foreach {
+        case (r, i) if i % 2 == 0 => r.setProperty("prop", i)
+        case _                    => // do nothing
+      }
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("r.prop AS res")
+      .apply()
+      .|.merge(
+        nodes = Seq(createNode("n"), createNode("m")),
+        relationships = Seq(createRelationship("r", "n", "R", "m", properties = Some("{prop: x}")))
+      )
+      .|.relationshipIndexOperator("(n)-[r:R(prop = x)]->(m)")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    runtimeResult should beColumns("res").withRows(singleColumn(1 to 10)).withStatistics(
+      nodesCreated = 10,
+      relationshipsCreated = 5,
       propertiesSet = 5
     )
   }
