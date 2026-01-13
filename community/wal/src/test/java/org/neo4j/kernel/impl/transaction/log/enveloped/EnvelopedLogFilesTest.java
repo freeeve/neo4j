@@ -20,24 +20,30 @@
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.enveloped.LogsRepository.BASE_VERSION;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.kernel.DatabaseVersion;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
@@ -123,7 +129,8 @@ class EnvelopedLogFilesTest {
                 (currentEntry, currentOffset, currentLogFile) ->
                         pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile),
                 new StoreChannelNativeAccessor(
-                        fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}));
+                        fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}),
+                NullLogProvider.getInstance());
     }
 
     @AfterEach
@@ -242,17 +249,8 @@ class EnvelopedLogFilesTest {
 
     @Test
     void shouldReInitializeCorrectlyWithPreallocatedFiles() throws IOException {
-        // given - preallocated files
-        for (int i = 0; i < 3; i++) {
-            try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
-                var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
-                channel.writeAll(zeros);
-                zeros.position(0);
-                channel.writeAll(zeros);
-                zeros.position(0);
-                channel.flush();
-            }
-        }
+        // given - preallocated file
+        writePseudoPreallocatedFile(0);
 
         envelopedLogFiles.initialise();
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
@@ -261,6 +259,10 @@ class EnvelopedLogFilesTest {
         writeData(writeChannel, data); // index 1
         writeData(writeChannel, data); // index 2
         writeChannel.prepareForFlush().flush();
+        envelopedLogFiles.close();
+
+        // Plus one more preallocated file following first
+        writePseudoPreallocatedFile(1);
 
         // when
         recreateEnvelopedLogFiles();
@@ -377,18 +379,14 @@ class EnvelopedLogFilesTest {
 
     @Test
     void shouldHandleOnlyPreAllocatedFilesWithLogHeaderMetadata() throws IOException {
-        for (int i = 0; i < 2; i++) {
-            try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
-                var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
-                channel.writeAll(zeros);
-                zeros.position(0);
-                channel.writeAll(zeros);
-                zeros.position(0);
-                channel.flush();
-            }
-        }
+        // Start on a preallocated file
+        writePseudoPreallocatedFile(0);
 
         envelopedLogFiles.initialise();
+
+        // append an extra preallocated file now that first file has a header
+        writePseudoPreallocatedFile(1);
+
         var itr = envelopedLogFiles.logFilesMetadata();
         // envelopedLogFiles.initialise() will write a header to the first file
         assertThat(itr.next()).isTrue();
@@ -401,17 +399,8 @@ class EnvelopedLogFilesTest {
     }
 
     @Test
-    void shouldHandleOnlyPreAllocatedFiles() throws IOException {
-        for (int i = 0; i < 2; i++) {
-            try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
-                var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
-                channel.writeAll(zeros);
-                zeros.position(0);
-                channel.writeAll(zeros);
-                zeros.position(0);
-                channel.flush();
-            }
-        }
+    void shouldHandleOnlyPreAllocatedFile() throws IOException {
+        writePseudoPreallocatedFile(0);
 
         envelopedLogFiles.initialise();
         assertThat(envelopedLogFiles.currentWriteChannel().currentIndex()).isEqualTo(-1);
@@ -445,7 +434,7 @@ class EnvelopedLogFilesTest {
     void shouldRotateWithCorrectHeaderState() throws IOException {
         envelopedLogFiles.initialise();
 
-        int dataSize = segmentBlockSize - LogEnvelopeHeader.HEADER_SIZE - 4;
+        int dataSize = segmentBlockSize - HEADER_SIZE - 4;
         var data = new byte[dataSize];
         writeData(envelopedLogFiles.currentWriteChannel(), data, 0); // file 1
         writeData(envelopedLogFiles.currentWriteChannel(), data, 1); // file 1
@@ -1100,6 +1089,690 @@ class EnvelopedLogFilesTest {
         }
     }
 
+    @Test
+    void shouldAbortOnMissingFileInSequence() throws IOException {
+        // create three initial files
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+            writeData(writeChannel, data);
+        }
+        for (int i = 0; i < 3; i++) {
+            writeData(writeChannel, data);
+        }
+        envelopedLogFiles.close();
+        // remove a file in the sequence
+        fs.deleteFile(mirroringRepository.pathFor(1L));
+
+        recreateEnvelopedLogFiles();
+        assertThatThrownBy(() -> envelopedLogFiles.initialise())
+                .isInstanceOf(InconsistentLogFilesException.class)
+                .hasMessageContaining("Missing log file");
+    }
+
+    @Test
+    void shouldAbortOnRenamedFileInSequence() throws IOException {
+        // create three initial files
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+            writeData(writeChannel, data);
+        }
+        for (int i = 0; i < 3; i++) {
+            writeData(writeChannel, data);
+        }
+        envelopedLogFiles.close();
+        // remove first file in the sequence and rename so header doesn't match
+        fs.deleteFile(mirroringRepository.pathFor(0L));
+        fs.renameFile(mirroringRepository.pathFor(1L), mirroringRepository.pathFor(0L));
+        fs.renameFile(mirroringRepository.pathFor(2L), mirroringRepository.pathFor(1L));
+
+        recreateEnvelopedLogFiles();
+        assertThatThrownBy(() -> envelopedLogFiles.initialise())
+                .isInstanceOf(InconsistentLogFilesException.class)
+                .hasMessageContaining("mismatched logVersion");
+    }
+
+    @Test
+    void shouldAbortOnPreallocatedFileNotAtEnd() throws IOException {
+        // create three initial files
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+            writeData(writeChannel, data);
+        }
+        for (int i = 0; i < 3; i++) {
+            writeData(writeChannel, data);
+        }
+        envelopedLogFiles.close();
+
+        // zero out the middle file of the three
+        try (var channel = mirroringRepository.createWriteChannel(1L).channel()) {
+            var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
+            for (int i = 0; i < totalSegments; i++) {
+                zeros.clear();
+                channel.writeAll(zeros);
+            }
+        }
+
+        recreateEnvelopedLogFiles();
+        assertThatThrownBy(() -> envelopedLogFiles.initialise())
+                .isInstanceOf(InconsistentLogFilesException.class)
+                .hasMessageContaining(
+                        "has incomplete header, or is preallocated, but is not last in the log file sequence");
+    }
+
+    @Test
+    void shouldAbortOnMultiplePreallocatedFiles() throws IOException {
+        // create three initial files
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+            writeData(writeChannel, data);
+        }
+        for (int i = 0; i < 3; i++) {
+            writeData(writeChannel, data);
+        }
+        envelopedLogFiles.close();
+
+        // Add two preallocated files following last log file
+        for (int logVersion = 3; logVersion < 5; ++logVersion) {
+            writePseudoPreallocatedFile(logVersion);
+        }
+
+        recreateEnvelopedLogFiles();
+        assertThatThrownBy(() -> envelopedLogFiles.initialise())
+                .isInstanceOf(InconsistentLogFilesException.class)
+                .hasMessageContaining(
+                        "has incomplete header, or is preallocated, but is not last in the log file sequence");
+    }
+
+    private void writePseudoPreallocatedFile(int logVersion) throws IOException {
+        try (var channel = mirroringRepository.createWriteChannel(logVersion).channel()) {
+            var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
+            channel.writeAll(zeros);
+            zeros.position(0);
+            channel.writeAll(zeros);
+            zeros.position(0);
+            channel.writeAll(zeros);
+            channel.flush();
+        }
+    }
+
+    @Test
+    void shouldAbortOnOutOfOrderPreviousAppendIndex() throws IOException {
+        // create three initial files
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+            writeData(writeChannel, data);
+        }
+        for (int i = 0; i < 3; i++) {
+            writeData(writeChannel, data);
+        }
+        LogHeader headerOfLastFile;
+        try (var reader = envelopedLogFiles.openReadChannel(writeChannel.currentIndex())) {
+            headerOfLastFile = reader.logHeader();
+        }
+        envelopedLogFiles.close();
+
+        // mess with the last files header
+        try (var channel = mirroringRepository.openWriteChannel(2L).channel()) {
+            LogHeader newHeader = headerOfLastFile
+                    .getLogFormatVersion()
+                    .newRaftHeader(
+                            headerOfLastFile.getLogVersion(),
+                            2, // out of order as previous file is on appendIndex 11
+                            headerOfLastFile.getLastTerm(),
+                            headerOfLastFile.getStoreId(),
+                            segmentBlockSize,
+                            headerOfLastFile.getPreviousLogFileChecksum(),
+                            headerOfLastFile.getDatabaseVersion());
+            channel.position(0);
+            LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
+        }
+
+        recreateEnvelopedLogFiles();
+        assertThatThrownBy(() -> envelopedLogFiles.initialise())
+                .isInstanceOf(InconsistentLogFilesException.class)
+                .hasMessageContaining("has lower previousAppendIndex: 2 than previous file");
+    }
+
+    @Test
+    void shouldAbortOnOutOfOrderPreviousTerm() throws IOException {
+        // create three initial files
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        long term = 1L;
+        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+            writeChannel.putTerm(term++);
+            writeData(writeChannel, data);
+        }
+        for (int i = 0; i < 3; i++) {
+            writeChannel.putTerm(term++);
+            writeData(writeChannel, data);
+        }
+        LogHeader headerOfLastFile;
+        try (var reader = envelopedLogFiles.openReadChannel(writeChannel.currentIndex())) {
+            headerOfLastFile = reader.logHeader();
+        }
+        envelopedLogFiles.close();
+
+        // mess with the last files header
+        try (var channel = mirroringRepository.openWriteChannel(2L).channel()) {
+            LogHeader newHeader = headerOfLastFile
+                    .getLogFormatVersion()
+                    .newRaftHeader(
+                            headerOfLastFile.getLogVersion(),
+                            headerOfLastFile.getLastTerm(), // out of order as previous file is on appendIndex 11
+                            2L,
+                            headerOfLastFile.getStoreId(),
+                            segmentBlockSize,
+                            headerOfLastFile.getPreviousLogFileChecksum(),
+                            headerOfLastFile.getDatabaseVersion());
+            channel.position(0);
+            LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
+        }
+
+        recreateEnvelopedLogFiles();
+        assertThatThrownBy(() -> envelopedLogFiles.initialise())
+                .isInstanceOf(InconsistentLogFilesException.class)
+                .hasMessageContaining("has lower previousTerm: 2 than previous file");
+    }
+
+    @Test
+    void shouldAbortOnNonEnvelopedFiles() throws IOException {
+        // create a non enveloped log file
+        try (var channel = mirroringRepository.createWriteChannel(0L).channel()) {
+            LogHeader newHeader = LogFormat.V9.newHeader(
+                    0L, -1, -1, StoreId.UNKNOWN, segmentBlockSize, 100, KernelVersion.GLORIOUS_FUTURE);
+            channel.position(0);
+            LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
+            var zeros = new byte[segmentBlockSize];
+            channel.writeAll(ByteBuffer.wrap(zeros));
+            channel.writeAll(ByteBuffer.wrap(zeros));
+        }
+
+        assertThatThrownBy(() -> envelopedLogFiles.initialise())
+                .isInstanceOf(InconsistentLogFilesException.class)
+                .hasMessageContaining("is not using Envelopes as required");
+    }
+
+    @Test
+    void shouldAbortOnLogFormatDowngrade() throws IOException {
+        // create three initial files
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        long term = 1L;
+        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+            writeChannel.putTerm(term++);
+            writeData(writeChannel, data);
+        }
+        for (int i = 0; i < 3; i++) {
+            writeChannel.putTerm(term++);
+            writeData(writeChannel, data);
+        }
+        LogHeader headerOfLastFile;
+        try (var reader = envelopedLogFiles.openReadChannel(writeChannel.currentIndex())) {
+            headerOfLastFile = reader.logHeader();
+        }
+        assertThat(headerOfLastFile.getLogFormatVersion().getVersionByte())
+                .isGreaterThan(LogFormat.V10.getVersionByte());
+        envelopedLogFiles.close();
+
+        // mess with the last files header and make it V10
+        try (var channel = mirroringRepository.openWriteChannel(2L).channel()) {
+            LogHeader newHeader = LogFormat.V10.newHeader(
+                    headerOfLastFile.getLogVersion(),
+                    headerOfLastFile.getLastAppendIndex(),
+                    headerOfLastFile.getLastTerm(),
+                    headerOfLastFile.getStoreId(),
+                    segmentBlockSize,
+                    headerOfLastFile.getPreviousLogFileChecksum(),
+                    headerOfLastFile.getKernelVersion());
+            channel.position(0);
+            LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
+        }
+
+        recreateEnvelopedLogFiles();
+        assertThatThrownBy(() -> envelopedLogFiles.initialise())
+                .isInstanceOf(InconsistentLogFilesException.class)
+                .hasMessageContaining("uses LogFormat: V10 but previous file used higher LogFormat");
+    }
+
+    @Test
+    void shouldAbortOnFileWithInvalidHeaders() throws IOException {
+        // create a bad file
+        try (var file = mirroringRepository.createWriteChannel(0)) {
+            var testBytes = "This is not the log file you are looking for".getBytes(StandardCharsets.UTF_8);
+            // Fill a couple of segments worth otherwise we might be regarded as a short preallocated file
+            var gibberish = ByteBuffer.allocate(2 * segmentBlockSize);
+            while (gibberish.hasRemaining()) {
+                gibberish.put(testBytes, 0, Math.min(gibberish.remaining(), testBytes.length));
+            }
+            gibberish.flip();
+            file.channel().writeAll(gibberish);
+        }
+        assertThatThrownBy(() -> envelopedLogFiles.initialise()).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void shouldAbortOnBadPreallocatedFile() throws IOException {
+        // create three initial files
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+            writeData(writeChannel, data);
+        }
+        for (int i = 0; i < 3; i++) {
+            writeData(writeChannel, data);
+        }
+        envelopedLogFiles.close();
+
+        // write a 'preallocated' file, but modify a later byte so that we regard it as corrupted
+        try (var channel = mirroringRepository.createWriteChannel(3L).channel()) {
+            var zeros = ByteBuffer.wrap(new byte[256]);
+            channel.writeAll(zeros);
+            channel.writeAll(zeros);
+            channel.writeAll(zeros);
+            channel.writeAll(zeros);
+            channel.writeAll(zeros);
+            channel.writeAll(zeros);
+            var one = ByteBuffer.wrap(new byte[1]);
+            one.put((byte) 1);
+            one.flip();
+            channel.writeAll(one, 1300);
+            channel.flush();
+        }
+
+        recreateEnvelopedLogFiles();
+        assertThatThrownBy(() -> envelopedLogFiles.initialise()).isInstanceOf(IllegalStateException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 4, 8, 12, 16, 20, 24, 32, 38})
+    void shouldRecoverOnPartiallyWrittenFinalRecord(int offsetOfWipe) throws IOException {
+        // Create initial file with 3 entries
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data); // index 0
+        writeData(writeChannel, data); // index 1
+        var startOfEnvelope2 = writeChannel.position();
+        writeData(writeChannel, data); // index 2
+        writeChannel.prepareForFlush().flush();
+        envelopedLogFiles.close();
+
+        // Wipe the data at various offsets through the data
+        try (var channel = mirroringRepository.createWriteChannel(0).channel()) {
+            int wipeAt = (int) (startOfEnvelope2 + offsetOfWipe);
+            channel.position(wipeAt);
+            var zeros = ByteBuffer.wrap(new byte[2 * segmentBlockSize - wipeAt]);
+            channel.writeAll(zeros);
+            channel.flush();
+        }
+
+        // when
+        recreateEnvelopedLogFiles();
+        // should initialise to prev appendIndex 1
+        assertThat(envelopedLogFiles.initialise()).isEqualTo(1L);
+        writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        // then we expect it to have truncated and rolled to a new file
+        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(1);
+        // and should be able to append without issues
+        writeData(writeChannel, data); // write index 2 again
+        assertThat(writeChannel.currentIndex()).isEqualTo(2);
+        writeChannel.prepareForFlush().flush();
+
+        // verify readback
+        try (var readChannel = envelopedLogFiles.openReadChannel(0)) {
+            var buffer = ByteBuffer.allocate(8);
+            for (int i = 0; i < 3; i++) {
+                buffer.clear();
+                readChannel.beginChecksum();
+                assertThat(readChannel.read(buffer)).isEqualTo(8);
+                assertThat(buffer.array()).isEqualTo(data);
+                readChannel.endChecksumAndValidate();
+            }
+        }
+    }
+
+    @Test
+    void shouldRecoverOnPartiallyWrittenMultiEnvelopeRecord() throws IOException {
+        // Create initial file with 3 entries
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var bigData = new byte[segmentBlockSize];
+        Arrays.fill(bigData, (byte) 1);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data); // index 0
+        writeData(writeChannel, data); // index 1
+        writeData(writeChannel, bigData); // index 2 - spans envelopes
+        writeChannel.prepareForFlush().flush();
+        var endOffset = writeChannel.position();
+        envelopedLogFiles.close();
+
+        // Ruin the last envelope in the entry
+        try (var channel = mirroringRepository.createWriteChannel(0).channel()) {
+            int wipeAt = (int) (endOffset - 1);
+            channel.position(wipeAt);
+            var zero = ByteBuffer.wrap(new byte[1]);
+            channel.writeAll(zero);
+            channel.flush();
+        }
+
+        // when
+        recreateEnvelopedLogFiles();
+        // should initialise to prev appendIndex 1
+        assertThat(envelopedLogFiles.initialise()).isEqualTo(1L);
+        writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        // then we expect it to have truncated and rolled to a new file
+        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(1);
+        // and should be able to append without issues
+        writeData(writeChannel, data); // write index 2 again (with small message)
+        assertThat(writeChannel.currentIndex()).isEqualTo(2);
+        writeChannel.prepareForFlush().flush();
+
+        // verify readback
+        try (var readChannel = envelopedLogFiles.openReadChannel(0)) {
+            var buffer = ByteBuffer.allocate(8);
+            for (int i = 0; i < 3; i++) {
+                buffer.clear();
+                readChannel.beginChecksum();
+                assertThat(readChannel.read(buffer)).isEqualTo(8);
+                assertThat(buffer.array()).isEqualTo(data);
+                readChannel.endChecksumAndValidate();
+            }
+        }
+    }
+
+    @Test
+    void shouldTruncateAcrossFilesWhenLastIncompleteEntryStartsInEarlierFiles() throws IOException {
+        // Create initial file with 3 entries
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var bigData = new byte[2 * totalSegments * segmentBlockSize];
+        Arrays.fill(bigData, (byte) 1);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data); // index 0
+        writeData(writeChannel, data); // index 1
+        writeData(writeChannel, bigData); // index 2 - spans multiple files
+        writeChannel.prepareForFlush().flush();
+        var endOffset = writeChannel.position();
+        var lastLogFile = envelopedLogFiles.currentLogFileVersion();
+        envelopedLogFiles.close();
+
+        // Ruin the last envelope in the entry
+        try (var channel = mirroringRepository.createWriteChannel(lastLogFile).channel()) {
+            int wipeAt = (int) (endOffset - 1);
+            channel.position(wipeAt);
+            var zero = ByteBuffer.wrap(new byte[1]);
+            channel.writeAll(zero);
+            channel.flush();
+        }
+
+        // when
+        recreateEnvelopedLogFiles();
+        // should initialise to prev appendIndex 1
+        assertThat(envelopedLogFiles.initialise()).isEqualTo(1L);
+        writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        // then we expect it to have truncated and rolled to a new file
+        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(1);
+        // and should be able to append without issues
+        writeData(writeChannel, data); // write index 2 again (with small message)
+        assertThat(writeChannel.currentIndex()).isEqualTo(2);
+        writeChannel.prepareForFlush().flush();
+
+        // verify readback
+        try (var readChannel = envelopedLogFiles.openReadChannel(0)) {
+            var buffer = ByteBuffer.allocate(8);
+            for (int i = 0; i < 3; i++) {
+                buffer.clear();
+                readChannel.beginChecksum();
+                assertThat(readChannel.read(buffer)).isEqualTo(8);
+                assertThat(buffer.array()).isEqualTo(data);
+                readChannel.endChecksumAndValidate();
+            }
+        }
+    }
+
+    @Test
+    void shouldRecoverIfFirstEntryIsPartialAndPreserveHeader() throws IOException {
+        // generate three files
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        while (envelopedLogFiles.currentLogFileVersion() < 3L) {
+            writeData(writeChannel, data);
+        }
+        writeChannel.prepareForFlush().flush();
+        long lastAppendIndex = writeChannel.currentIndex();
+        long endOffset = writeChannel.position();
+        long lastLogFile = envelopedLogFiles.currentLogFileVersion();
+        // keep only the third file, which should contain just a single entry
+        envelopedLogFiles.prune(writeChannel.currentIndex());
+        LogHeader originalHeader;
+        try (var metadata = envelopedLogFiles.logFilesMetadata()) {
+            metadata.next();
+            originalHeader = metadata.get().logHeader();
+        }
+        envelopedLogFiles.close();
+
+        // Ruin the one remaining envelope
+        try (var channel = mirroringRepository.createWriteChannel(lastLogFile).channel()) {
+            int wipeAt = (int) (endOffset - 1);
+            channel.position(wipeAt);
+            var zero = ByteBuffer.wrap(new byte[1]);
+            channel.writeAll(zero);
+            channel.flush();
+        }
+
+        recreateEnvelopedLogFiles();
+        assertThat(envelopedLogFiles.initialise()).isEqualTo(lastAppendIndex - 1);
+        writeChannel = envelopedLogFiles.currentWriteChannel();
+        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(3L);
+        try (var metadata = envelopedLogFiles.logFilesMetadata()) {
+            metadata.next();
+            assertThat(metadata.get().logHeader()).isEqualTo(originalHeader);
+        }
+
+        // and should be able to append without issues
+        writeData(writeChannel, data); // write again
+        assertThat(writeChannel.currentIndex()).isEqualTo(lastAppendIndex);
+        writeChannel.prepareForFlush().flush();
+
+        // verify readback
+        try (var readChannel = envelopedLogFiles.openReadChannel(lastAppendIndex)) {
+            var buffer = ByteBuffer.allocate(8);
+            readChannel.beginChecksum();
+            assertThat(readChannel.read(buffer)).isEqualTo(8);
+            assertThat(buffer.array()).isEqualTo(data);
+            readChannel.endChecksumAndValidate();
+        }
+    }
+
+    @Test
+    void shouldRecoverWithCorruptFirstEntryInFile() throws IOException {
+        // Create initial files one with 2 entries and second with a single entry
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data); // index 0
+        writeData(writeChannel, data); // index 1
+        envelopedLogFiles.forceRotate();
+        writeData(writeChannel, data); // index 2
+        writeChannel.prepareForFlush().flush();
+        var endOffset = writeChannel.position();
+        envelopedLogFiles.close();
+
+        // Ruin the last envelope so that second file has no valid entries at all
+        try (var channel = mirroringRepository.createWriteChannel(1).channel()) {
+            int wipeAt = (int) (endOffset - 1);
+            channel.position(wipeAt);
+            var zero = ByteBuffer.wrap(new byte[1]);
+            channel.writeAll(zero);
+            channel.flush();
+        }
+
+        // when
+        recreateEnvelopedLogFiles();
+        // should initialise to last appendIndex 1
+        assertThat(envelopedLogFiles.initialise()).isEqualTo(1L);
+        writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        // then we expect it to have just carried on with recreating file 1
+        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(1);
+        // and should be able to re-append without issues
+        writeData(writeChannel, data); // write index 2
+        assertThat(writeChannel.currentIndex()).isEqualTo(2);
+        writeChannel.prepareForFlush().flush();
+
+        // verify readback
+        try (var readChannel = envelopedLogFiles.openReadChannel(0)) {
+            var buffer = ByteBuffer.allocate(8);
+            for (int i = 0; i < 3; i++) {
+                buffer.clear();
+                readChannel.beginChecksum();
+                assertThat(readChannel.read(buffer)).isEqualTo(8);
+                assertThat(buffer.array()).isEqualTo(data);
+                readChannel.endChecksumAndValidate();
+            }
+        }
+    }
+
+    @Test
+    void shouldNotTruncateOnHeaderOnlyFile() throws IOException {
+        // Create initial files one with 2 entries one that is empty and third with a single entry
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data); // index 0
+        writeData(writeChannel, data); // index 1
+        envelopedLogFiles.forceRotate();
+        // rotate again to leave a header only file
+        envelopedLogFiles.forceRotate();
+        writeData(writeChannel, data); // index 2
+        writeChannel.prepareForFlush().flush();
+        envelopedLogFiles.close();
+
+        // when
+        recreateEnvelopedLogFiles();
+        // should initialise to last appendIndex 2 without any truncation
+        assertThat(envelopedLogFiles.initialise()).isEqualTo(2L);
+        writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        // then we expect it to have just carried on with recreating file 1
+        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(2);
+        // and should be able to re-append without issues
+        writeData(writeChannel, data); // write index 3
+        assertThat(writeChannel.currentIndex()).isEqualTo(3);
+        writeChannel.prepareForFlush().flush();
+
+        // verify readback
+        try (var readChannel = envelopedLogFiles.openReadChannel(0)) {
+            var buffer = ByteBuffer.allocate(8);
+            for (int i = 0; i < 4; i++) {
+                buffer.clear();
+                readChannel.beginChecksum();
+                assertThat(readChannel.read(buffer)).isEqualTo(8);
+                assertThat(buffer.array()).isEqualTo(data);
+                readChannel.endChecksumAndValidate();
+            }
+        }
+    }
+
+    @Test
+    void shouldBeAbleToInitialiseTwiceWithoutException() throws IOException {
+        // Create initial file with 2 entries
+        assertThat(envelopedLogFiles.initialise()).isEqualTo(-1L);
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+        // should be fine to call initialise again
+        assertThat(envelopedLogFiles.initialise()).isEqualTo(-1L);
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data); // index 0
+        writeData(writeChannel, data); // index 1
+        writeChannel.prepareForFlush().flush();
+        long expectedAppendIndex = writeChannel.currentIndex();
+        // calling initialise on now non-empty files should also not cause issues
+        assertThat(envelopedLogFiles.initialise()).isEqualTo(expectedAppendIndex);
+        writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data);
+        assertThat(writeChannel.currentIndex()).isEqualTo(expectedAppendIndex + 1);
+    }
+
+    @Test
+    void truncatingFirstItemInFileShouldPreservePrevTerm() throws IOException {
+        // Create initial files one with 2 entries one that is empty and third with a single entry
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writer = envelopedLogFiles.currentWriteChannel();
+        writer.beginChecksumForWriting();
+        writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+        writer.putVersion(DatabaseVersion.getLatestVersion().identifier());
+        writer.putTerm(80L);
+        writer.write(ByteBuffer.wrap(data));
+        writer.putChecksum();
+        writer.beginChecksumForWriting();
+        writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+        writer.putVersion(DatabaseVersion.getLatestVersion().identifier());
+        writer.putTerm(81L);
+        writer.write(ByteBuffer.wrap(data));
+        writer.putChecksum();
+        writer.beginChecksumForWriting();
+        writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+        writer.putVersion(DatabaseVersion.getLatestVersion().identifier());
+        writer.putTerm(82L);
+        writer.write(ByteBuffer.wrap(data));
+        writer.putChecksum();
+        // rotate into new file
+        envelopedLogFiles.forceRotate();
+        writer = envelopedLogFiles.currentWriteChannel();
+        writer.beginChecksumForWriting();
+        writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+        writer.putVersion(DatabaseVersion.getLatestVersion().identifier());
+        writer.putTerm(83L);
+        writer.write(ByteBuffer.wrap(data));
+        writer.putChecksum();
+        writer.prepareForFlush().flush();
+        // verify term information
+        try (var reader = envelopedLogFiles.openReadChannel()) {
+            // initial file starts on term -1
+            assertThat(reader.logHeader().getLastTerm()).isEqualTo(-1L);
+            reader.alignWithStartEntry();
+            assertThat(reader.currentTerm()).isEqualTo(80L);
+            reader.goToNextEntry();
+            assertThat(reader.currentTerm()).isEqualTo(81L);
+            reader.goToNextEntry();
+            assertThat(reader.currentTerm()).isEqualTo(82L);
+            // move onto next file
+            reader.goToNextEntry();
+            assertThat(reader.logHeader().getLogVersion()).isEqualTo(1L);
+            assertThat(reader.logHeader().getLastTerm()).isEqualTo(82L);
+            assertThat(reader.currentTerm()).isEqualTo(83L);
+        }
+        // truncate away the first entry in second file
+        long truncateIndex = writer.currentIndex();
+        envelopedLogFiles.truncate(truncateIndex);
+        try (var reader = envelopedLogFiles.openReadChannel(3)) {
+            // should be log version 2, since we truncated and rolled the version 1 file
+            assertThat(reader.logHeader().getLogVersion()).isEqualTo(2L);
+            // the term should be rolled over from remaining file
+            assertThat(reader.logHeader().getLastTerm()).isEqualTo(82L);
+        }
+    }
+
     private byte[][] shuffledMessages(byte[] messageOne, byte[] messageTwo, byte[] messageThree, byte[] messageFour) {
         var list = new ArrayList<>(List.of(messageOne, messageTwo, messageThree, messageFour));
         Collections.shuffle(list, randomSupport.random());
@@ -1120,7 +1793,7 @@ class EnvelopedLogFilesTest {
         int readCount = 0;
         for (var pos : positions) {
             var channel = mirroringRepository.openReadChannel(pos.first());
-            try (var reader = envelopedLogFiles.envelopedReadChannel(channel, pos.first())) {
+            try (var reader = envelopedLogFiles.envelopedReadChannel(channel)) {
                 var posMarker = new LogPositionMarker();
                 posMarker.mark(pos.first(), pos.other());
                 reader.setLogPosition(posMarker);

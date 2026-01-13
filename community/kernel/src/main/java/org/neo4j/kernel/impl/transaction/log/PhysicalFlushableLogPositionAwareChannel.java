@@ -275,6 +275,7 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
                         logHeader.getSegmentBlockSize(),
                         previous.previousChecksum,
                         previous.previousAppendIndex,
+                        previous.previousTerm,
                         databaseTracer,
                         logRotation);
             } else {
@@ -302,6 +303,7 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
                         logHeader.getSegmentBlockSize(),
                         previous.previousChecksum,
                         previous.previousAppendIndex,
+                        previous.previousTerm,
                         DatabaseTracer.NULL,
                         LogRotation.NO_ROTATION);
             } else {
@@ -311,12 +313,13 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
         }
     }
 
-    record PreviousInfo(int previousChecksum, long previousAppendIndex) {}
+    record PreviousInfo(int previousChecksum, long previousAppendIndex, long previousTerm) {}
 
     private static PreviousInfo figureOutPreviousChecksumForEnvelopeChannel(
             LogVersionedStoreChannel logChannel, LogHeader logHeader) throws IOException {
         int previousChecksum = logHeader.getPreviousLogFileChecksum();
         long previousAppendIndex = logHeader.getLastAppendIndex();
+        long previousTerm = logHeader.getLastTerm();
 
         // Apparently not at the start of the file - must update to the correct checksum
         long position = logChannel.position();
@@ -329,9 +332,10 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
                         logChannel, logHeader.getSegmentBlockSize(), LogVersionBridge.NO_MORE_CHANNELS, true, buffer);
                 previousChecksum = envelopeReadChannel.temporaryFindPreviousChecksumBeforePosition(position);
                 previousAppendIndex = envelopeReadChannel.entryIndex();
+                previousTerm = envelopeReadChannel.currentTerm();
                 logChannel.position(position);
             }
         }
-        return new PreviousInfo(previousChecksum, previousAppendIndex);
+        return new PreviousInfo(previousChecksum, previousAppendIndex, previousTerm);
     }
 }

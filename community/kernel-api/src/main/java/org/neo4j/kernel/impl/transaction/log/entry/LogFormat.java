@@ -670,7 +670,7 @@ public enum LogFormat {
 
             LogFormat logFormat = BY_VERSION_BYTE[logFormatVersion];
             if (logFormat == null) {
-                throw new IOException("Unrecognized transaction log format version: " + logFormatVersion);
+                throw new UnknownLogFormatException(sourceFile, logFormatVersion);
             }
 
             if (checkUnderflow(buffer, logFormat.headerSize - LOG_HEADER_VERSION_SIZE, strict, sourceFile)) {

@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
 import static java.util.Collections.emptyList;
+import static org.neo4j.internal.helpers.Numbers.safeCastLongToInt;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.BIGGEST_HEADER;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointInfoFactory.ofLogEntry;
@@ -28,7 +29,6 @@ import static org.neo4j.storageengine.api.CommandReaderFactory.NO_COMMANDS;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.ByteOrder;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -38,8 +38,6 @@ import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.fs.filename.SequentialFilesHelper;
-import org.neo4j.io.memory.ByteBuffers;
-import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
@@ -57,6 +55,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
+import org.neo4j.kernel.impl.transaction.log.entry.TailUtils;
 import org.neo4j.kernel.impl.transaction.log.entry.UnsupportedLogVersionException;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -229,22 +228,17 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     private void verifyNoMoreDataAvailableInFile(FileSystemAbstraction fileSystem, Path currentCheckpointFile)
             throws IOException {
         try (StoreChannel channel = fileSystem.read(currentCheckpointFile)) {
-            try (var scopedBuffer = new NativeScopedBuffer(
-                    (int) Math.min(fileSystem.getFileSize(currentCheckpointFile), ByteUnit.kibiBytes(10)),
-                    ByteOrder.LITTLE_ENDIAN,
-                    context.getMemoryTracker())) {
-                var buffer = scopedBuffer.getBuffer();
-                channel.readAll(buffer);
-                buffer.flip();
-                if (buffer.capacity() > BIGGEST_HEADER) {
-                    buffer.position(BIGGEST_HEADER);
-                    if (ByteBuffers.directBufferContainsNonZeroData(buffer)) {
+            TailUtils.checkNonZerosAfterOffset(
+                    BIGGEST_HEADER,
+                    channel,
+                    context.memoryTracker(),
+                    safeCastLongToInt(ByteUnit.kibiBytes(10)),
+                    false,
+                    (offset, data) -> {
                         throw new IllegalStateException(
                                 "Checkpoint file: `" + currentCheckpointFile
                                         + "` has unreadable header but looks like it also contains some checkpoint data. Restore from the backup is required.");
-                    }
-                }
-            }
+                    });
         }
     }
 

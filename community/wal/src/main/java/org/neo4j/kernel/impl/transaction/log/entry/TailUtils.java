@@ -23,12 +23,18 @@ import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import org.neo4j.io.fs.ReadPastEndException;
+import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.memory.HeapScopedBuffer;
+import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.memory.MemoryTracker;
 
 public class TailUtils {
     private TailUtils() {}
@@ -70,6 +76,40 @@ public class TailUtils {
                             e);
                 }
             } while (!endReached && checkToEnd);
+        }
+    }
+
+    @FunctionalInterface
+    public interface NonZeroDataCallback {
+        void onNonZeroData(long offset, ByteBuffer data);
+    }
+
+    public static void checkNonZerosAfterOffset(
+            long startOffset,
+            StoreChannel channel,
+            MemoryTracker memoryTracker,
+            int bufferSize,
+            boolean checkToEnd,
+            NonZeroDataCallback failureCallback)
+            throws IOException {
+        try (NativeScopedBuffer scopedBuffer =
+                new NativeScopedBuffer(bufferSize, ByteOrder.LITTLE_ENDIAN, memoryTracker)) {
+            channel.position(startOffset);
+            ByteBuffer byteBuffer = scopedBuffer.getBuffer();
+            long lastOffset = channel.position();
+            while (channel.read(byteBuffer) >= 0) {
+                byteBuffer.flip();
+                if (ByteBuffers.directBufferContainsNonZeroData(byteBuffer)) {
+                    byteBuffer.position(0);
+                    failureCallback.onNonZeroData(lastOffset, byteBuffer);
+                    break;
+                }
+                if (!checkToEnd) {
+                    break;
+                }
+                byteBuffer.clear();
+                lastOffset = channel.position();
+            }
         }
     }
 }

@@ -316,6 +316,7 @@ class TransactionLogFilesTest {
                 DEFAULT_LOG_SEGMENT_SIZE,
                 BASE_TX_CHECKSUM,
                 1,
+                LogEnvelopeHeader.UNSPECIFIED_TERM,
                 LogTracers.NULL,
                 LogRotation.NO_ROTATION);
     }

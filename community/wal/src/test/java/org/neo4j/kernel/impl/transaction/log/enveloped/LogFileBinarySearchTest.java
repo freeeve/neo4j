@@ -107,7 +107,8 @@ class LogFileBinarySearchTest {
                 (currentEntry, currentOffset, currentLogFile) ->
                         pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile),
                 new StoreChannelNativeAccessor(
-                        fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}));
+                        fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}),
+                NullLogProvider.getInstance());
     }
 
     /**

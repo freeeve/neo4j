@@ -121,8 +121,8 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     private byte currentContentType = UNSPECIFIED_CONTENT_TYPE;
     // The index of the current entry. See LogEnvelopeHeader.index.
     private long currentIndex;
-    private long currentTerm = UNSPECIFIED_TERM;
-    private long nextTerm = UNSPECIFIED_TERM;
+    private long currentTerm;
+    private long nextTerm;
 
     private int lastWrittenPosition;
     private boolean begin = true;
@@ -138,6 +138,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
             int segmentBlockSize,
             int initialChecksum,
             long currentIndex,
+            long initialTerm,
             LogTracers logTracers,
             LogRotation logRotation)
             throws IOException {
@@ -151,6 +152,8 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         this.buffer = scopedBuffer.getBuffer();
         this.checksumView = buffer.duplicate().order(buffer.order());
         this.currentIndex = currentIndex;
+        this.currentTerm = initialTerm;
+        this.nextTerm = initialTerm;
         requireMultipleOf("Buffer", buffer.capacity(), "segment block size", segmentBlockSize);
 
         initialPositions(channel.position());

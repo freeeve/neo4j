@@ -35,7 +35,6 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_I
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -43,8 +42,6 @@ import java.util.List;
 import java.util.ListIterator;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.io.memory.ByteBuffers;
-import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
@@ -63,6 +60,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
+import org.neo4j.kernel.impl.transaction.log.entry.TailUtils;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
@@ -559,19 +557,18 @@ public class DetachedLogTailScanner {
             throws IOException {
         long initialPosition = channel.position();
         try {
-            channel.position(logPosition.getByteOffset());
-            try (var scopedBuffer = new NativeScopedBuffer(
-                    safeCastLongToInt(min(kibiBytes(12), channelLeftovers)), ByteOrder.LITTLE_ENDIAN, memoryTracker)) {
-                ByteBuffer byteBuffer = scopedBuffer.getBuffer();
-                channel.readAll(byteBuffer);
-                byteBuffer.flip();
-                if (ByteBuffers.directBufferContainsNonZeroData(byteBuffer)) {
-                    throw new RuntimeException(format(
-                            "%s log file with version %d has some data available after last readable log entry. "
-                                    + "Last readable position %d, read ahead buffer content: %s.",
-                            logName, version, logPosition.getByteOffset(), dumpBufferToString(byteBuffer)));
-                }
-            }
+            TailUtils.checkNonZerosAfterOffset(
+                    logPosition.getByteOffset(),
+                    channel,
+                    memoryTracker,
+                    safeCastLongToInt(min(kibiBytes(12), channelLeftovers)),
+                    false,
+                    (offset, data) -> {
+                        throw new RuntimeException(format(
+                                "%s log file with version %d has some data available after last readable log entry. "
+                                        + "Last readable position %d, read ahead buffer at %d non-zero content: %s.",
+                                logName, version, logPosition.getByteOffset(), offset, dumpBufferToString(data)));
+                    });
         } finally {
             channel.position(initialPosition);
         }

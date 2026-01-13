@@ -104,7 +104,8 @@ class SegmentBinarySearchTest {
                 EmptyMemoryTracker.INSTANCE,
                 pruneStrategy,
                 new StoreChannelNativeAccessor(
-                        fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}));
+                        fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}),
+                NullLogProvider.getInstance());
     }
 
     /**

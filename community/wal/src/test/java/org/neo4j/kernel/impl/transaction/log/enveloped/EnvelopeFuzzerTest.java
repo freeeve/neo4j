@@ -51,6 +51,7 @@ import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvents;
@@ -120,6 +121,7 @@ class EnvelopeFuzzerTest {
                 segmentSize,
                 initialChecksum,
                 PREV_INDEX,
+                LogEnvelopeHeader.UNSPECIFIED_TERM,
                 LogTracers.NULL,
                 logRotation)) {
             logRotation.bindWriteChannel(envelopeWriteChannel);

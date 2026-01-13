@@ -2633,7 +2633,14 @@ class EnvelopeWriteChannelTest {
             throws IOException {
         channel.position(offset);
         final var writeChannel = new EnvelopeWriteChannel(
-                channel, scopedBuffer, segmentSize, checksum, currentIndex, logTracers, logRotation);
+                channel,
+                scopedBuffer,
+                segmentSize,
+                checksum,
+                currentIndex,
+                LogEnvelopeHeader.UNSPECIFIED_TERM,
+                logTracers,
+                logRotation);
         if (logRotation instanceof LogRotationForChannel rotator) {
             rotator.bindWriteChannel(writeChannel);
         }

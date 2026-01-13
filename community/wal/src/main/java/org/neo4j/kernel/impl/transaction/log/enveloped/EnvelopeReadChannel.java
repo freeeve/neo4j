@@ -555,6 +555,13 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return payloadType == EnvelopeType.FULL || payloadType == EnvelopeType.BEGIN;
     }
 
+    /**
+     * If not already at the end of an entry then moves to the end of that entry
+     * otherwise seeks to the end of the following entry
+     * @return LogPosition at the end of the possibly multi-envelope entry
+     * @throws IOException          I/O error from channel.
+     * @throws ReadPastEndException if the end is reached.
+     */
     public LogPosition goToEndOfEntry() throws IOException {
         if (buffer.position() == payloadEndOffset
                 || (payloadType != EnvelopeType.FULL && payloadType != EnvelopeType.END)) {
@@ -1007,7 +1014,8 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 logHeader.getLogFormatVersion());
         checkState(
                 currentChecksum == logHeader.getPreviousLogFileChecksum(),
-                "Checksum chain broken. " + currentChecksum + " " + logHeader.getPreviousLogFileChecksum());
+                "Checksum chain broken on file change to logFileVersion: %d currentChecksum: %d header checksum: %d"
+                        .formatted(channel.getLogVersion(), currentChecksum, logHeader.getPreviousLogFileChecksum()));
 
         enforceZeros(segmentBlockSize - buffer.position());
     }
