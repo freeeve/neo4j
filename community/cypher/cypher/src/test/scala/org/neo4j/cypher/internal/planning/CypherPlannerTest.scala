@@ -86,7 +86,7 @@ class CypherPlannerTest extends CypherFunSuite {
    * debugging purposes, but that change should never be committed.
    */
   test("customPlanContextCreator should be None") {
-    CypherPlanner.customPlanContextCreator should be(None)
+    TransformingPlanner.customPlanContextCreator should be(None)
   }
 
   private def shouldBeIDPComponentConnectorPlanner(
@@ -216,7 +216,7 @@ class CypherPlannerTest extends CypherFunSuite {
         expectedIterationDurationLimit: Long,
         componentConnectorAssertion: (Int, Long) => JoinDisconnectedQueryGraphComponents => Assertion
       ) =>
-        val qgSolver = CypherPlanner.createQueryGraphSolver(
+        val qgSolver = TransformingPlanner.createQueryGraphSolver(
           CypherPlannerConfiguration.defaults(),
           planner,
           componentConnector,
@@ -270,7 +270,7 @@ class CypherPlannerTest extends CypherFunSuite {
       override def storageSupportsFastExpandInto: Boolean = true
     }
 
-    CypherPlanner.customPlanContextCreator = Some((_, _, _, _, _) => planContext)
+    TransformingPlanner.customPlanContextCreator = Some((_, _, _, _, _) => planContext)
 
     val monitors = new monitoring.Monitors()
 
@@ -284,7 +284,7 @@ class CypherPlannerTest extends CypherFunSuite {
       NullLogProvider.getInstance()
     )
 
-    val planner = CypherPlanner(
+    val planner = DefaultCypherPlanner(
       CypherParsingConfig(),
       CypherPlannerConfiguration.defaults(),
       Clock.systemUTC(),
@@ -343,7 +343,7 @@ class CypherPlannerTest extends CypherFunSuite {
   }
 
   test("should be able to disable exists subquery caching") {
-    val solverWithCaching = CypherPlanner.createQueryGraphSolver(
+    val solverWithCaching = TransformingPlanner.createQueryGraphSolver(
       CypherPlannerConfiguration.defaults(),
       CypherPlannerOption.default,
       CypherConnectComponentsPlannerOption.default,
@@ -352,7 +352,7 @@ class CypherPlannerTest extends CypherFunSuite {
     )
     solverWithCaching.existsSubqueryPlanner shouldBe an[ExistsSubqueryPlannerWithCaching]
 
-    val solverWithoutCaching = CypherPlanner.createQueryGraphSolver(
+    val solverWithoutCaching = TransformingPlanner.createQueryGraphSolver(
       CypherPlannerConfiguration.defaults(),
       CypherPlannerOption.default,
       CypherConnectComponentsPlannerOption.default,

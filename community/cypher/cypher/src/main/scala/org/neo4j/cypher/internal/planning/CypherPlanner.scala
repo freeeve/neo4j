@@ -39,7 +39,7 @@ import org.neo4j.cypher.internal.cache.CypherQueryCaches.AstCache.AstCacheValue
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.LogicalPlanCache
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.LogicalPlanCache.CacheableLogicalPlan
-import org.neo4j.cypher.internal.compiler
+import org.neo4j.cypher.internal.compiler.CypherParsing
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.ExecutionModel
@@ -52,9 +52,13 @@ import org.neo4j.cypher.internal.compiler.eagerUpdateStrategy
 import org.neo4j.cypher.internal.compiler.helpers.HistogramsFromConfigHelper
 import org.neo4j.cypher.internal.compiler.helpers.HistogramsFromConfigHelper.graphStatisticsDecoratorWithHistogramsFromConfig
 import org.neo4j.cypher.internal.compiler.phases.CachableLogicalPlanState
+import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.planPipeLine
+import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.prepareForCaching
+import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.systemPipeLine
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.CachedSimpleMetricsFactory
+import org.neo4j.cypher.internal.compiler.planner.logical.debug.DebugPrinter
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.ComponentConnectorPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.ConfigurableIDPSolverConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.DPSolverConfig
@@ -73,12 +77,14 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.SensitiveLiteral
 import org.neo4j.cypher.internal.expressions.SensitiveParameter
 import org.neo4j.cypher.internal.frontend.notification.InternalNotificationStats
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -104,7 +110,6 @@ import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.IndexComparatorFactory
 import org.neo4j.cypher.internal.planner.spi.PlanContext
-import org.neo4j.cypher.internal.planning.CypherPlanner.createQueryGraphSolver
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.preparser.QueryOptions
@@ -130,6 +135,7 @@ import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode.SHARDED
 import org.neo4j.logging.InternalLog
 import org.neo4j.monitoring
+import org.neo4j.util.VisibleForTesting
 import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.MapValueBuilder
 
@@ -139,7 +145,105 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
-object CypherPlanner {
+/**
+ * Cypher planner, which either parses and plans a [[PreParsedQuery]] into a [[LogicalPlanResult]] or just plans [[FullyParsedQuery]].
+ */
+sealed trait CypherPlanner {
+
+  /**
+   * Plan fully-parsed query into a logical plan.
+   *
+   * @param fullyParsedQuery     a fully-parsed query to plan
+   * @param tracer               tracer to which events of the parsing and planning are reported
+   * @param transactionalContext transactional context to use during parsing and planning
+   * @throws Neo4jException public cypher exceptions on compilation problems
+   * @return a logical plan result
+   */
+  @throws[Neo4jException]
+  def plan(
+    fullyParsedQuery: FullyParsedQuery,
+    tracer: CompilationPhaseTracer,
+    transactionalContext: TransactionalContext,
+    params: MapValue,
+    runtime: CypherRuntime[_],
+    notificationLogger: InternalNotificationLogger,
+    cacheStrategy: CacheStrategy
+  ): LogicalPlanResult
+
+  /**
+   * Compile pre-parsed query into a logical plan.
+   *
+   * @param preParsedQuery       pre-parsed query to convert
+   * @param tracer               tracer to which events of the parsing and planning are reported
+   * @param transactionalContext transactional context to use during parsing and planning
+   * @throws Neo4jException public cypher exceptions on compilation problems
+   * @return a logical plan result
+   */
+  def parseAndPlan(
+    preParsedQuery: PreParsedQuery,
+    tracer: CompilationPhaseTracer,
+    transactionalContext: TransactionalContext,
+    params: MapValue,
+    runtime: CypherRuntime[_],
+    notificationLogger: InternalNotificationLogger,
+    sessionDatabase: DatabaseReference,
+    cacheStrategy: CacheStrategy
+  ): LogicalPlanResult
+
+  /**
+   * Clear the caches of this caching compiler.
+   *
+   * @return the number of entries that were cleared
+   */
+  def clearCaches(): Long
+
+  def insertIntoCache(
+    preParsedQuery: PreParsedQuery,
+    params: MapValue,
+    parsedQuery: BaseState,
+    parsingNotifications: Set[InternalNotification]
+  ): Unit
+}
+
+object DefaultCypherPlanner {
+
+  /**
+   * Creates an instance of the default planner implementation.
+   * Note, this instance can not be re-used with a different [[CypherPlannerConfiguration]]!
+   */
+  def apply(
+    parsingConfig: CypherParsingConfig,
+    plannerConfig: CypherPlannerConfiguration,
+    clock: Clock,
+    kernelMonitors: monitoring.Monitors,
+    log: InternalLog,
+    securityLog: AbstractSecurityLog,
+    queryCaches: CypherQueryCaches,
+    plannerOption: CypherPlannerOption,
+    databaseReferenceRepository: DatabaseReferenceRepository,
+    schemaCommandRuntime: SchemaCommandRuntime,
+    internalNotificationStats: InternalNotificationStats,
+    internalUsageStats: InternalUsageStats
+  ): TransformingPlanner = new TransformingPlanner(
+    transformers =
+      if (plannerConfig.planSystemCommands) TransformingPlanner.SystemCommandTransformers
+      else TransformingPlanner.DefaultTransformers,
+    parsingConfig = parsingConfig,
+    plannerConfig = plannerConfig,
+    clock = clock,
+    kernelMonitors = kernelMonitors,
+    log = log,
+    securityLog = securityLog,
+    queryCaches = queryCaches,
+    plannerOption = plannerOption,
+    databaseReferenceRepository = databaseReferenceRepository,
+    schemaCommandRuntime = schemaCommandRuntime,
+    internalNotificationStats = internalNotificationStats,
+    internalUsageStats = internalUsageStats
+  )
+}
+
+object TransformingPlanner {
 
   /**
    * This back-door is intended for quick handling of bugs and support cases
@@ -201,6 +305,7 @@ object CypherPlanner {
     IDPQueryGraphSolver(singleComponentPlanner, componentConnectorPlanner, existsSubqueryPlanner)(monitor)
   }
 
+  @VisibleForTesting
   def selectExecutionModel(
     runtimeOption: CypherRuntimeOption,
     containsUpdates: Boolean,
@@ -216,12 +321,43 @@ object CypherPlanner {
       BatchedParallel(batchSize.small, batchSize.big, inferredRuntimeConfig.leverageOrder)
     case _ => Volcano
   }
+
+  sealed trait Transformers[Context <: BaseContext] {
+
+    /** Normalize a parsed statement, usually to prepare for caching. */
+    def normalizeQuery: Transformer[Context, BaseState, BaseState]
+
+    /** Query planning transformer. */
+    // TODO The context should not be needed to instantiate the pipeline
+    def plan(context: Context): Transformer[Context, BaseState, LogicalPlanState]
+  }
+
+  private[planning] object DefaultTransformers extends Transformers[PlannerContext] {
+    override def normalizeQuery: Transformer[PlannerContext, BaseState, BaseState] = prepareForCaching
+
+    override def plan(context: PlannerContext): Transformer[PlannerContext, BaseState, LogicalPlanState] = {
+      val planning = planPipeLine(
+        allowSubqueryDuplicationInCnf = context.config.allowDuplicatingSubqueryExpressionsInCnfNormalizer()
+      )
+      if (context.debugOptions.toStringEnabled) {
+        planning andThen DebugPrinter
+      } else {
+        planning
+      }
+    }
+  }
+
+  private[planning] object SystemCommandTransformers extends Transformers[PlannerContext] {
+    override def normalizeQuery: Transformer[PlannerContext, BaseState, BaseState] = prepareForCaching
+
+    override def plan(context: PlannerContext): Transformer[PlannerContext, BaseState, LogicalPlanState] =
+      systemPipeLine
+  }
 }
 
-/**
- * Cypher planner, which either parses and plans a [[PreParsedQuery]] into a [[LogicalPlanResult]] or just plans [[FullyParsedQuery]].
- */
-case class CypherPlanner(
+/** [[CypherPlanner]] implementation based on [[Transformer]]s. */
+final class TransformingPlanner private[planning] (
+  transformers: TransformingPlanner.Transformers[PlannerContext],
   parsingConfig: CypherParsingConfig,
   plannerConfig: CypherPlannerConfiguration,
   clock: Clock,
@@ -234,24 +370,14 @@ case class CypherPlanner(
   schemaCommandRuntime: SchemaCommandRuntime,
   internalNotificationStats: InternalNotificationStats,
   internalUsageStats: InternalUsageStats
-) {
-
+) extends CypherPlanner {
   private val caches = new queryCaches.CypherPlannerCaches()
-
   private val monitors: Monitors = WrappedMonitors(kernelMonitors)
-
-  private val planner: compiler.CypherPlanner[PlannerContext] =
-    compiler.CypherPlanner(monitors, parsingConfig, plannerConfig, clock, internalUsageStats)
-
+  private val parsing = new CypherParsing(monitors, parsingConfig, internalUsageStats)
   private val schemaStateKey: SchemaStateKey = SchemaStateKey.newKey()
 
-  /**
-   * Clear the caches of this caching compiler.
-   *
-   * @return the number of entries that were cleared
-   */
-  def clearCaches(): Long = {
-    planner.clearParserCache()
+  override def clearCaches(): Long = {
+    parsing.clearDFACaches()
     Math.max(caches.astCache.clear(), caches.logicalPlanCache.clear())
   }
 
@@ -270,22 +396,21 @@ case class CypherPlanner(
     shadowedFunctions: Set[String],
     cacheStrategy: CacheStrategy
   ): BaseState = {
-    def parseQuery(): BaseState = {
-      planner.parseQuery(
-        preParsedQuery.statement,
-        preParsedQuery.rawStatement,
-        preParsedQuery.resolvedLanguage,
-        notificationLogger,
-        preParsedQuery.options.queryOptions.planner.name,
-        Some(offset),
-        tracer,
-        params,
-        cancellationChecker,
-        sessionDatabase,
-        preParsedQuery.options.queryOptions.planMode.isScope,
-        shadowedFunctions = shadowedFunctions
-      )
-    }
+    def parseQuery(): BaseState = parsing.parseQuery(
+      queryText = preParsedQuery.statement,
+      rawQueryText = preParsedQuery.rawStatement,
+      cypherVersion = preParsedQuery.resolvedLanguage,
+      notificationLogger = notificationLogger,
+      plannerNameText = preParsedQuery.options.queryOptions.planner.name,
+      offset = Some(offset),
+      tracer = tracer,
+      params = params,
+      cancellationChecker = cancellationChecker,
+      resolver = None,
+      sessionDatabase = sessionDatabase,
+      isScopeQuery = preParsedQuery.options.queryOptions.planMode.isScope,
+      shadowedFunctions = shadowedFunctions
+    )
 
     if (!cacheStrategy.astShouldBeCached) {
       val parsedQuery = parseQuery()
@@ -307,7 +432,7 @@ case class CypherPlanner(
     }
   }
 
-  def insertIntoCache(
+  override def insertIntoCache(
     preParsedQuery: PreParsedQuery,
     params: MapValue,
     parsedQuery: BaseState,
@@ -321,16 +446,7 @@ case class CypherPlanner(
     caches.astCache.put(key, AstCacheValue(parsedQuery, parsingNotifications))
   }
 
-  /**
-   * Compile pre-parsed query into a logical plan.
-   *
-   * @param preParsedQuery       pre-parsed query to convert
-   * @param tracer               tracer to which events of the parsing and planning are reported
-   * @param transactionalContext transactional context to use during parsing and planning
-   * @throws Neo4jException public cypher exceptions on compilation problems
-   * @return a logical plan result
-   */
-  def parseAndPlan(
+  override def parseAndPlan(
     preParsedQuery: PreParsedQuery,
     tracer: CompilationPhaseTracer,
     transactionalContext: TransactionalContext,
@@ -377,17 +493,8 @@ case class CypherPlanner(
     )
   }
 
-  /**
-   * Plan fully-parsed query into a logical plan.
-   *
-   * @param fullyParsedQuery     a fully-parsed query to plan
-   * @param tracer               tracer to which events of the parsing and planning are reported
-   * @param transactionalContext transactional context to use during parsing and planning
-   * @throws Neo4jException public cypher exceptions on compilation problems
-   * @return a logical plan result
-   */
   @throws[Neo4jException]
-  def plan(
+  override def plan(
     fullyParsedQuery: FullyParsedQuery,
     tracer: CompilationPhaseTracer,
     transactionalContext: TransactionalContext,
@@ -431,7 +538,7 @@ case class CypherPlanner(
     }
 
     // Context used for db communication during planning
-    val createPlanContext = CypherPlanner.customPlanContextCreator.getOrElse(TransactionBoundPlanContext.apply _)
+    val createPlanContext = TransformingPlanner.customPlanContextCreator.getOrElse(TransactionBoundPlanContext.apply _)
 
     // Group the histograms from the config by the histogram key: entity type, labelId or relTypeId, PropertyKeyId
     // To get the histogram key, the label or type string and property key string will be resolved to ids
@@ -466,7 +573,12 @@ case class CypherPlanner(
     val containsUpdates: Boolean = syntacticQuery.statement().containsUpdates
     val inferredRuntimeConfig = () => options.queryOptions.parallelRuntimeConfigOption
     val executionModel =
-      CypherPlanner.selectExecutionModel(inferredRuntime, containsUpdates, inferredRuntimeConfig, () => getBatchSize)
+      TransformingPlanner.selectExecutionModel(
+        inferredRuntime,
+        containsUpdates,
+        inferredRuntimeConfig,
+        () => getBatchSize
+      )
     val maybeUpdateStrategy: Option[UpdateStrategy] = options.queryOptions.updateStrategy match {
       case CypherUpdateStrategy.eager => Some(eagerUpdateStrategy)
       case _                          => None
@@ -484,7 +596,7 @@ case class CypherPlanner(
       Some(options.offset),
       monitors,
       CachedSimpleMetricsFactory,
-      createQueryGraphSolver(
+      TransformingPlanner.createQueryGraphSolver(
         plannerConfig,
         plannerOption,
         options.queryOptions.connectComponentsPlanner,
@@ -509,18 +621,18 @@ case class CypherPlanner(
       internalNotificationStats,
       internalUsageStats,
       null,
-      shadowedFunctions = transactionalContextWrapper.procedures.shadowedNamespaces(
-        QueryLanguage.toKernelScope(options.resolvedLanguage)
-      ).asScala.toSet,
       semanticFeatures = CypherParsingConfig.getEnabledFeatures(
         parsingConfig.semanticFeatures,
         plannerConfig.targetsComposite,
         parsingConfig.queryRouterForCompositeEnabled
-      )
+      ),
+      shadowedFunctions = transactionalContextWrapper.procedures.shadowedNamespaces(
+        QueryLanguage.toKernelScope(options.resolvedLanguage)
+      ).asScala.toSet
     )
 
     // Prepare query for caching
-    val preparedQuery = planner.normalizeQuery(syntacticQuery, plannerContext)
+    val preparedQuery = transformers.normalizeQuery.transform(syntacticQuery, plannerContext)
 
     val (queryParamNames, autoExtractParams) =
       parameterNamesAndValues(preparedQuery.statement(), preparedQuery.maybeExtractedParams) match {
@@ -655,7 +767,7 @@ case class CypherPlanner(
     context: PlannerContext
   ): (LogicalPlanState, ReusabilityState, Boolean) = {
     val planContext = context.planContext
-    val logicalPlanStateOld = planner.planPreparedQuery(preparedQuery, context)
+    val logicalPlanStateOld = transformers.plan(context).transform(preparedQuery, context)
     val hasLoadCsv = logicalPlanStateOld.logicalPlan.folder.treeFind[LogicalPlan] {
       case _: LoadCSV => true
     }.nonEmpty

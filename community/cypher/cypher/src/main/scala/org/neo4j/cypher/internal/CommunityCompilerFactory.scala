@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.frontend.notification.InternalNotificationStats
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
-import org.neo4j.cypher.internal.planning.CypherPlanner
+import org.neo4j.cypher.internal.planning.DefaultCypherPlanner
 import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog
 import org.neo4j.kernel.GraphDatabaseQueryService
@@ -62,21 +62,20 @@ class CommunityCompilerFactory(
 
     val dependencies = graph.getDependencyResolver
 
-    val planner =
-      CypherPlanner(
-        parsingConfig,
-        plannerConfig,
-        MasterCompiler.CLOCK,
-        kernelMonitors,
-        log,
-        dependencies.resolveDependency(classOf[AbstractSecurityLog]),
-        queryCaches,
-        cypherPlanner,
-        dependencies.resolveDependency(classOf[DatabaseReferenceRepository]),
-        CommunitySchemaCommandRuntime,
-        dependencies.resolveDependency(classOf[InternalNotificationStats]),
-        dependencies.resolveDependency(classOf[InternalUsageStats])
-      )
+    val planner = DefaultCypherPlanner(
+      parsingConfig = parsingConfig,
+      plannerConfig = plannerConfig,
+      clock = MasterCompiler.CLOCK,
+      kernelMonitors = kernelMonitors,
+      log = log,
+      securityLog = dependencies.resolveDependency(classOf[AbstractSecurityLog]),
+      queryCaches = queryCaches,
+      plannerOption = cypherPlanner,
+      databaseReferenceRepository = dependencies.resolveDependency(classOf[DatabaseReferenceRepository]),
+      schemaCommandRuntime = CommunitySchemaCommandRuntime,
+      internalNotificationStats = dependencies.resolveDependency(classOf[InternalNotificationStats]),
+      internalUsageStats = dependencies.resolveDependency(classOf[InternalUsageStats])
+    )
 
     val runtime =
       if (plannerConfig.planSystemCommands)

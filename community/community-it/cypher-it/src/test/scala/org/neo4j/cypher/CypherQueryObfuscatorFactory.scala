@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.CypherQueryObfuscator
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.cache.ExecutorBasedCaffeineCacheFactory
 import org.neo4j.cypher.internal.cache.LFUCache
-import org.neo4j.cypher.internal.compiler.phases.PlannerContext
+import org.neo4j.cypher.internal.compiler.phases.PlannerContextImpl
 import org.neo4j.cypher.internal.compiler.phases.RewriteProcedureCalls
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
@@ -94,7 +94,7 @@ class CypherQueryObfuscatorFactory {
       ObfuscationMetadataCollection
 
   private def plannerContext(version: CypherVersion, query: String) =
-    new PlannerContext(
+    new PlannerContextImpl(
       version,
       Neo4jCypherExceptionFactory(query, None),
       CompilationPhaseTracer.NO_TRACING,
@@ -122,6 +122,7 @@ class CypherQueryObfuscatorFactory {
       null,
       null,
       null,
+      semanticFeatures = Seq.empty,
       shadowedFunctions = Set.empty
     )
 

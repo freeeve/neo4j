@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext
 import org.neo4j.cypher.internal.compiler.UpdateStrategy
 import org.neo4j.cypher.internal.compiler.defaultUpdateStrategy
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
+import org.neo4j.cypher.internal.compiler.phases.PlannerContextImpl
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryGraphSolver
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
@@ -92,7 +93,7 @@ object ContextHelper extends MockitoSugar {
     sessionDatabase: DatabaseReference = null,
     semanticFeatures: Seq[SemanticFeature] = Seq.empty
   ): PlannerContext = {
-    new PlannerContext(
+    new PlannerContextImpl(
       version,
       cypherExceptionFactory,
       tracer,

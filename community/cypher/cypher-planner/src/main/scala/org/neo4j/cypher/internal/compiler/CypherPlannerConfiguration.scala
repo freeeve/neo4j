@@ -23,115 +23,15 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.configuration.GraphDatabaseSettings
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.compiler.helpers.HistogramsFromConfigHelper
-import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.planPipeLine
-import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.prepareForCaching
-import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.systemPipeLine
-import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
-import org.neo4j.cypher.internal.compiler.phases.PlannerContext
-import org.neo4j.cypher.internal.compiler.planner.logical.CachedSimpleMetricsFactory
-import org.neo4j.cypher.internal.compiler.planner.logical.MetricsFactory
-import org.neo4j.cypher.internal.compiler.planner.logical.debug.DebugPrinter
 import org.neo4j.cypher.internal.config.CypherConfiguration
-import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
-import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
-import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.macros.AssertMacros
-import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
-import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
-import org.neo4j.cypher.internal.util.CancellationChecker
-import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.graphdb.config.Setting
-import org.neo4j.kernel.database.DatabaseReference
-import org.neo4j.values.virtual.MapValue
-
-import java.time.Clock
 
 import scala.jdk.CollectionConverters.MapHasAsJava
-
-object CypherPlanner {
-
-  def apply[Context <: PlannerContext](
-    monitors: Monitors,
-    parsingConfig: CypherParsingConfig,
-    plannerConfig: CypherPlannerConfiguration,
-    clock: Clock,
-    internalSyntaxUsageStats: InternalUsageStats
-  ): CypherPlanner[Context] = {
-    val metricsFactory = CachedSimpleMetricsFactory
-    CypherPlanner(monitors, metricsFactory, parsingConfig, plannerConfig, clock, internalSyntaxUsageStats)
-  }
-}
-
-case class CypherPlanner[Context <: PlannerContext](
-  monitors: Monitors,
-  metricsFactory: MetricsFactory,
-  parsingConfig: CypherParsingConfig,
-  plannerConfig: CypherPlannerConfiguration,
-  clock: Clock,
-  internalSyntaxUsageStats: InternalUsageStats
-) {
-
-  private val parsing = new CypherParsing(monitors, parsingConfig, internalSyntaxUsageStats)
-
-  def clearParserCache(): Unit = {
-    parsing.clearDFACaches()
-  }
-
-  def normalizeQuery(state: BaseState, context: Context): BaseState =
-    prepareForCaching.transform(state, context)
-
-  def planPreparedQuery(state: BaseState, context: PlannerContext): LogicalPlanState = {
-    val allowSubqueryDuplication = context.config.allowDuplicatingSubqueryExpressionsInCnfNormalizer()
-
-    val pipeLine =
-      if (plannerConfig.planSystemCommands)
-        systemPipeLine
-      else if (context.debugOptions.toStringEnabled) {
-        planPipeLine(allowSubqueryDuplicationInCnf = allowSubqueryDuplication) andThen
-          DebugPrinter
-      } else
-        planPipeLine(allowSubqueryDuplicationInCnf = allowSubqueryDuplication)
-
-    pipeLine.transform(state, context)
-  }
-
-  def parseQuery(
-    queryText: String,
-    rawQueryText: String,
-    cypherVersion: CypherVersion,
-    notificationLogger: InternalNotificationLogger,
-    plannerNameText: String = IDPPlannerName.name,
-    offset: Option[InputPosition],
-    tracer: CompilationPhaseTracer,
-    params: MapValue,
-    cancellationChecker: CancellationChecker,
-    sessionDatabase: DatabaseReference,
-    isScopeQuery: Boolean,
-    shadowedFunctions: Set[String]
-  ): BaseState = {
-    parsing.parseQuery(
-      queryText,
-      rawQueryText,
-      cypherVersion,
-      notificationLogger,
-      plannerNameText,
-      offset,
-      tracer,
-      params,
-      cancellationChecker,
-      sessionDatabase = sessionDatabase,
-      isScopeQuery = isScopeQuery,
-      shadowedFunctions = shadowedFunctions
-    )
-  }
-
-}
 
 object CypherPlannerConfiguration {
 

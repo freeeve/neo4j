@@ -58,6 +58,29 @@ import org.neo4j.values.virtual.MapValue
 
 import java.time.Clock
 
+trait PlannerContext extends BaseContext {
+  def planContext: PlanContext
+  def metrics: Metrics
+  def config: CypherPlannerConfiguration
+  def queryGraphSolver: QueryGraphSolver
+  def updateStrategy: UpdateStrategy
+  def debugOptions: CypherDebugOptions
+  def clock: Clock
+  def logicalPlanIdGen: IdGen
+  def params: MapValue
+  def executionModel: ExecutionModel
+  def materializedEntitiesMode: Boolean
+  def statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption
+  def planVarExpandInto: CypherPlanVarExpandInto
+  def databaseReferenceRepository: DatabaseReferenceRepository
+  def databaseId: NamedDatabaseId
+  def log: Log
+  def securityLog: AbstractSecurityLog
+  def internalNotificationStats: InternalNotificationStats
+  def labelInferenceStrategy: LabelInferenceStrategy
+  def withNotificationLogger(notificationLogger: InternalNotificationLogger): PlannerContext
+}
+
 class BaseContextImpl(
   final override val cypherVersion: CypherVersion,
   final override val cypherExceptionFactory: CypherExceptionFactory,
@@ -72,10 +95,10 @@ class BaseContextImpl(
   final override val shadowedFunctions: Set[String]
 ) extends BaseContext {
 
-  override val errorHandler: Seq[SemanticErrorDef] => Unit =
+  final override val errorHandler: Seq[SemanticErrorDef] => Unit =
     SyntaxExceptionCreator.throwOnError(cypherExceptionFactory)
 
-  override val errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
+  final override def errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
 }
 
 object BaseContextImpl {
@@ -111,87 +134,76 @@ object BaseContextImpl {
   }
 }
 
-class PlannerContext(
-  cypherVersion: CypherVersion,
-  cypherExceptionFactory: CypherExceptionFactory,
-  tracer: CompilationPhaseTracer,
-  notificationLogger: InternalNotificationLogger,
-  val planContext: PlanContext,
-  monitors: Monitors,
-  val metrics: Metrics,
-  val config: CypherPlannerConfiguration,
-  val queryGraphSolver: QueryGraphSolver,
-  val updateStrategy: UpdateStrategy,
-  val debugOptions: CypherDebugOptions,
-  val clock: Clock,
-  val logicalPlanIdGen: IdGen,
-  val params: MapValue,
-  val executionModel: ExecutionModel,
-  cancellationChecker: CancellationChecker,
-  val materializedEntitiesMode: Boolean,
-  val statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption,
-  val planVarExpandInto: CypherPlanVarExpandInto,
-  val databaseReferenceRepository: DatabaseReferenceRepository,
-  val databaseId: NamedDatabaseId,
-  val log: Log,
-  val securityLog: AbstractSecurityLog,
-  val internalNotificationStats: InternalNotificationStats,
-  internalSyntaxUsageStats: InternalUsageStats,
-  val labelInferenceStrategy: LabelInferenceStrategy,
-  sessionDatabase: DatabaseReference,
-  semanticFeatures: Seq[SemanticFeature] = Seq(),
-  shadowedFunctions: Set[String]
-) extends BaseContextImpl(
-      cypherVersion,
-      cypherExceptionFactory,
-      tracer,
-      notificationLogger,
-      monitors,
-      cancellationChecker,
-      internalSyntaxUsageStats,
-      sessionDatabase,
-      semanticFeatures,
-      false,
-      shadowedFunctions
-    ) {
+final class PlannerContextImpl(
+  override val cypherVersion: CypherVersion,
+  override val cypherExceptionFactory: CypherExceptionFactory,
+  override val tracer: CompilationPhaseTracer,
+  override val notificationLogger: InternalNotificationLogger,
+  override val planContext: PlanContext,
+  override val monitors: Monitors,
+  override val metrics: Metrics,
+  override val config: CypherPlannerConfiguration,
+  override val queryGraphSolver: QueryGraphSolver,
+  override val updateStrategy: UpdateStrategy,
+  override val debugOptions: CypherDebugOptions,
+  override val clock: Clock,
+  override val logicalPlanIdGen: IdGen,
+  override val params: MapValue,
+  override val executionModel: ExecutionModel,
+  override val cancellationChecker: CancellationChecker,
+  override val materializedEntitiesMode: Boolean,
+  override val statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption,
+  override val planVarExpandInto: CypherPlanVarExpandInto,
+  override val databaseReferenceRepository: DatabaseReferenceRepository,
+  override val databaseId: NamedDatabaseId,
+  override val log: Log,
+  override val securityLog: AbstractSecurityLog,
+  override val internalNotificationStats: InternalNotificationStats,
+  override val internalUsageStats: InternalUsageStats,
+  override val labelInferenceStrategy: LabelInferenceStrategy,
+  override val sessionDatabase: DatabaseReference,
+  override val semanticFeatures: Seq[SemanticFeature],
+  override val shadowedFunctions: Set[String]
+) extends PlannerContext {
 
-  /**
-   * Return a copy with the given notificationLogger
-   */
-  def withNotificationLogger(notificationLogger: InternalNotificationLogger): PlannerContext = {
-    val newPlanContext = planContext.withNotificationLogger(notificationLogger)
-    new PlannerContext(
-      cypherVersion,
-      cypherExceptionFactory,
-      tracer,
-      notificationLogger,
-      newPlanContext,
-      monitors,
-      metrics,
-      config,
-      queryGraphSolver,
-      updateStrategy,
-      debugOptions,
-      clock,
-      logicalPlanIdGen,
-      params,
-      executionModel,
-      cancellationChecker,
-      materializedEntitiesMode,
-      statefulShortestPlanningMode,
-      planVarExpandInto,
-      databaseReferenceRepository,
-      databaseId,
-      log,
-      securityLog,
-      internalNotificationStats,
-      internalSyntaxUsageStats,
-      labelInferenceStrategy,
-      sessionDatabase,
-      shadowedFunctions = shadowedFunctions,
-      semanticFeatures = semanticFeatures
-    )
-  }
+  override val errorHandler: Seq[SemanticErrorDef] => Unit =
+    SyntaxExceptionCreator.throwOnError(cypherExceptionFactory)
+
+  override def errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
+
+  def withNotificationLogger(notificationLogger: InternalNotificationLogger): PlannerContext = new PlannerContextImpl(
+    cypherVersion = cypherVersion,
+    cypherExceptionFactory = cypherExceptionFactory,
+    tracer = tracer,
+    notificationLogger = notificationLogger,
+    planContext = planContext.withNotificationLogger(notificationLogger),
+    monitors = monitors,
+    metrics = metrics,
+    config = config,
+    queryGraphSolver = queryGraphSolver,
+    updateStrategy = updateStrategy,
+    debugOptions = debugOptions,
+    clock = clock,
+    logicalPlanIdGen = logicalPlanIdGen,
+    params = params,
+    executionModel = executionModel,
+    cancellationChecker = cancellationChecker,
+    materializedEntitiesMode = materializedEntitiesMode,
+    statefulShortestPlanningMode = statefulShortestPlanningMode,
+    planVarExpandInto = planVarExpandInto,
+    databaseReferenceRepository = databaseReferenceRepository,
+    databaseId = databaseId,
+    log = log,
+    securityLog = securityLog,
+    internalNotificationStats = internalNotificationStats,
+    internalUsageStats = internalUsageStats,
+    labelInferenceStrategy = labelInferenceStrategy,
+    sessionDatabase = sessionDatabase,
+    semanticFeatures = semanticFeatures,
+    shadowedFunctions = shadowedFunctions
+  )
+
+  override def isScopeQuery: Boolean = false
 }
 
 object PlannerContext {
@@ -226,9 +238,9 @@ object PlannerContext {
     internalNotificationStats: InternalNotificationStats,
     internalUsageStats: InternalUsageStats,
     sessionDatabase: DatabaseReference,
-    shadowedFunctions: Set[String],
-    semanticFeatures: Seq[SemanticFeature]
-  ): PlannerContext = {
+    semanticFeatures: Seq[SemanticFeature],
+    shadowedFunctions: Set[String]
+  ): PlannerContextImpl = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
 
     val labelInferenceStrategy = LabelInferenceStrategy.fromConfig(planContext, labelInference)
@@ -241,7 +253,7 @@ object PlannerContext {
       labelInferenceStrategy
     )
 
-    new PlannerContext(
+    new PlannerContextImpl(
       cypherVersion,
       exceptionFactory,
       tracer,
@@ -269,8 +281,8 @@ object PlannerContext {
       internalUsageStats,
       labelInferenceStrategy,
       sessionDatabase,
-      shadowedFunctions = shadowedFunctions,
-      semanticFeatures = semanticFeatures
+      semanticFeatures = semanticFeatures,
+      shadowedFunctions = shadowedFunctions
     )
   }
 }

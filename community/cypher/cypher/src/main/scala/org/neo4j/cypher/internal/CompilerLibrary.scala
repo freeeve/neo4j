@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
-import org.neo4j.cypher.internal.planning.CypherPlanner
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.values.virtual.MapValue
 
@@ -59,22 +58,14 @@ class CompilerLibrary(factory: CompilerFactory, executionEngineProvider: () => E
     )
   }
 
-  def clearCaches(): Long = {
-    val numClearedEntries =
-      compilers.values().asScala.collect {
-        case c: CypherPlanner            => c.clearCaches()
-        case c: CypherCurrentCompiler[_] => c.clearCaches()
-      }
-
-    if (numClearedEntries.nonEmpty)
-      numClearedEntries.max
-    else 0
+  def clearCaches(): Long = compilers.values().asScala.foldLeft(0L) {
+    case (acc, compiler: CypherCurrentCompiler[_]) => math.max(acc, compiler.clearCaches())
+    case (acc, _)                                  => acc
   }
 
-  def clearExecutionPlanCaches(): Unit = {
-    compilers.values().asScala.collect {
-      case c: CypherCurrentCompiler[_] => c.clearExecutionPlanCache()
-    }
+  def clearExecutionPlanCaches(): Unit = compilers.values().forEach {
+    case c: CypherCurrentCompiler[_] => c.clearExecutionPlanCache()
+    case _                           =>
   }
 
   def insertIntoCache(
@@ -83,9 +74,9 @@ class CompilerLibrary(factory: CompilerFactory, executionEngineProvider: () => E
     parsedQuery: BaseState,
     parsingNotifications: Set[InternalNotification]
   ): Unit = {
-    compilers.values().asScala.collect {
-      case c: CypherPlanner            => c.insertIntoCache(preParsedQuery, params, parsedQuery, parsingNotifications)
+    compilers.values().forEach {
       case c: CypherCurrentCompiler[_] => c.insertIntoCache(preParsedQuery, params, parsedQuery, parsingNotifications)
+      case _                           =>
     }
   }
 

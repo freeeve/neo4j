@@ -101,7 +101,7 @@ class LogicalPlanCacheAcceptanceTest extends CypherFunSuite with GraphDatabaseTe
 
     val log = logProvider.getLog(getClass)
 
-    val planner = CypherPlanner(
+    val planner = DefaultCypherPlanner(
       CypherParsingConfig.fromCypherConfiguration(config),
       CypherPlannerConfiguration.fromCypherConfiguration(config, Config.defaults(), planSystemCommands = false, false),
       clock,

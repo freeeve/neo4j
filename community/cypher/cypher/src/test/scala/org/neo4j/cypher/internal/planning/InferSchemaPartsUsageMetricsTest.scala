@@ -287,7 +287,7 @@ class InferSchemaPartsUsageMetricsTest extends CypherFunSuite with CypherVersion
       override def storageSupportsFastExpandInto: Boolean = true
     }
 
-    CypherPlanner.customPlanContextCreator = Some((_, _, _, _, _) => planContext)
+    TransformingPlanner.customPlanContextCreator = Some((_, _, _, _, _) => planContext)
 
     val monitors = new monitoring.Monitors()
 
@@ -300,7 +300,7 @@ class InferSchemaPartsUsageMetricsTest extends CypherFunSuite with CypherVersion
       NullLogProvider.getInstance()
     )
 
-    CypherPlanner(
+    DefaultCypherPlanner(
       CypherParsingConfig(),
       CypherPlannerConfiguration.withSettings(
         Map(GraphDatabaseSettings.cypher_infer_schema_parts_strategy -> inferSchemaPartsStrategy)
