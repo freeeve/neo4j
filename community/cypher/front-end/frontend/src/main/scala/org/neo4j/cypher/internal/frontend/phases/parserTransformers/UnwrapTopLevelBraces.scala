@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.UseGraph
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
@@ -38,8 +39,8 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpTo
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNextStatements
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoTopLevelBraces
+import org.neo4j.cypher.internal.rewriting.conditions.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.Step
@@ -156,7 +157,11 @@ case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTra
       )
   })
 
-  override def instance(from: BaseState, context: BaseContext): Rewriter = propagateUse andThen rewriter
+  override def instance(from: BaseState, context: BaseContext): Rewriter =
+    if (context.semanticFeatures.contains(DisableReworkedRewriters))
+      propagateUse andThen rewriter
+    else
+      Rewriter.noop
 
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,

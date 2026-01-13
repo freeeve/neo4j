@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandNext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.util.Rewriter
@@ -41,7 +42,9 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
   val sessionDatabaseName: String = NormalizedDatabaseName.normalize("sessionDb");
   override def sessionDatabase: String = sessionDatabaseName
   override def targetsComposite: Boolean = true
-  override def semanticFeatures: Seq[SemanticFeature] = Seq(SemanticFeature.UseAsMultipleGraphsSelector)
+
+  override def semanticFeatures: Seq[SemanticFeature] =
+    Seq(SemanticFeature.UseAsMultipleGraphsSelector, DisableReworkedRewriters)
 
   private def withUpdate(exclude: Set[String] = Set.empty) = (expectedStatement: Statement) => {
     val transformed = expectedStatement.endoRewrite(bottomUp(Rewriter.lift {

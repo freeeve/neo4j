@@ -16,8 +16,10 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -87,38 +89,47 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState]
 
   override def process(from: BaseState, context: BaseContext): BaseState =
     if (from.maybeScopeState.isEmpty || from.statement != from.scopeState().workingScope.astNode)
-      run(from, context)
+      from.withScopeState(runFromState(from, context))
     else from
 
-  private def run(from: BaseState, context: BaseContext) = {
+  private def runFromState(from: BaseState, context: BaseContext): ScopeState =
+    run(from.statement(), from.maybeScopeState, context.cypherVersion, context.semanticFeatures)
+
+  def run(
+    statement: Statement,
+    maybeScopeState: Option[ScopeState],
+    cypherVersion: CypherVersion,
+    semanticFeatures: Seq[SemanticFeature]
+  ): ScopeState = {
     val anonVarGen = SurveyorNameGenerator()
-    val statement = from.statement().endoRewrite(topDown(removeNamespacing))
+    val cleanStatement = statement.endoRewrite(topDown(removeNamespacing))
 
     val workingContextOfStatement = scope(
-      statement,
+      cleanStatement,
       RegularContext.unit,
       PegContext(
         anonVarGen,
-        context.cypherVersion,
-        context.semanticFeatures.toSet,
-        from.maybeScopeState.map(_.recordedScopes).getOrElse(ScopeState.emptyRecordedScopes)
+        cypherVersion,
+        semanticFeatures.toSet,
+        maybeScopeState.map(_.recordedScopes).getOrElse(ScopeState.emptyRecordedScopes)
       )
     )
     val recordedScopes = workingContextOfStatement.getRecordedScopes
 
     val explainScope =
-      if (context.semanticFeatures.contains(ScopeQueries) && from.maybeScopeState.isEmpty)
+      if (semanticFeatures.contains(ScopeQueries) && maybeScopeState.isEmpty)
         Some(workingContextOfStatement)
-      else from.maybeScopeState.flatMap(x => x.explainScope)
+      else maybeScopeState.flatMap(x => x.explainScope)
 
-    from.withScopeState(ScopeState(workingContextOfStatement, recordedScopes, explainScope))
+    ScopeState(workingContextOfStatement, recordedScopes, explainScope)
   }
 
   def getTransformerWithoutCheck: Transformer[BaseContext, BaseState, BaseState] =
 
     new Transformer[BaseContext, BaseState, BaseState] {
 
-      override def transform(from: BaseState, context: BaseContext): BaseState = run(from, context)
+      override def transform(from: BaseState, context: BaseContext): BaseState =
+        from.withScopeState(runFromState(from, context))
 
       override def postConditions: Set[StepSequencer.Condition] = Set.empty
 

@@ -196,7 +196,7 @@ class NamespacerTest extends CypherFunSuite with AstConstructionTestSupport with
       List(varFor("p"))
     ),
     TestCase(
-      "CALL db.labels() YIELD label WITH count(*) AS c CALL db.labels() YIELD label RETURN *",
+      "CALL db.labels() YIELD label WITH count(*) AS c CALL db.labels() YIELD label RETURN c, label",
       "CALL db.labels() YIELD label AS `  label@0` WITH count(*) AS c CALL db.labels() YIELD label AS `  label@1` RETURN c AS c, `  label@1` AS `  label@1`",
       List(varFor("  label@0"), varFor("  label@1"))
     ),

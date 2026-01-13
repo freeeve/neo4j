@@ -16,16 +16,6 @@
  */
 package org.neo4j.cypher.internal.rewriting.conditions
 
-import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.StepSequencer.Condition
 
-case object ContainsNoNextStatements extends ContainsNoMatchingStatementNodes {
-
-  override val matcher: PartialFunction[ASTNode, String] = PartialFunction.empty
-// Disabled due to issues with ValidatingConditions and SemanticFeatures interactions
-//  {
-//    case _: NextStatement => "NEXT"
-//    case _ => _
-//  }
-
-  override val name: String = "NoNextStatements"
-}
+case object ProjectionClausesHaveSemanticInfo extends Condition

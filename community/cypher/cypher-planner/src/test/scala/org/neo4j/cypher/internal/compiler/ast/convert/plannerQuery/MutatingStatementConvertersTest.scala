@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -130,11 +131,26 @@ class MutatingStatementConvertersTest extends CypherFunSuite with LogicalPlannin
     query.queryGraph.readOnly should be(false)
   }
 
-  test("Read write and read again") {
-    val query = buildSinglePlannerQuery("MATCH (n) CREATE (m) WITH * MATCH (o) RETURN *")
+  test("Read write and read again Cypher 5") {
+    val query =
+      buildSinglePlannerQueryWithVersion(CypherVersion.Cypher5, "MATCH (n) CREATE (m) WITH * MATCH (o) RETURN *")
     query.horizon should equal(RegularQueryProjection(
       projections = Map(v"n" -> v"n", v"m" -> v"m")
     ))
+
+    query.queryGraph.patternNodes should equal(Set(v"n"))
+    query.queryGraph.mutatingPatterns should equal(Seq(CreatePattern(nodes("m"))))
+
+    val next = query.tail.get
+
+    next.queryGraph.patternNodes should equal(Set(v"o"))
+    next.queryGraph.readOnly should be(true)
+  }
+
+  test("Read write and read again Cypher 25") {
+    val query =
+      buildSinglePlannerQueryWithVersion(CypherVersion.Cypher25, "MATCH (n) CREATE (m) WITH * MATCH (o) RETURN *")
+    query.horizon should equal(PassthroughAllHorizon())
 
     query.queryGraph.patternNodes should equal(Set(v"n"))
     query.queryGraph.mutatingPatterns should equal(Seq(CreatePattern(nodes("m"))))

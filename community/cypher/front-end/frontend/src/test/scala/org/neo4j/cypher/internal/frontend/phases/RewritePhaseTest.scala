@@ -100,6 +100,18 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     additionalActualAstCleanup: Statement => Statement
   ): Unit = assertRewrittenImpl(version, from, to, Nil, additionalExpectedAstUpdates, additionalActualAstCleanup)
 
+  def assertRewritten(
+    from: String,
+    to: String,
+    additionalExpectedAstUpdates: Statement => Statement,
+    additionalActualAstCleanup: Statement => Statement
+  ): Unit =
+    CypherVersion.values().foreach { version =>
+      withClue(s"CYPHER $version\n")(
+        assertRewrittenImpl(version, from, to, Nil, additionalExpectedAstUpdates, additionalActualAstCleanup)
+      )
+    }
+
   def assertRewritten(from: String, to: String): Unit = CypherVersion.values().foreach { version =>
     withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty))
   }

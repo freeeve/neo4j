@@ -16,16 +16,16 @@
  */
 package org.neo4j.cypher.internal.rewriting.conditions
 
-import org.neo4j.cypher.internal.ast.ReturnItems
-import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.util.ASTNode
 
 case object ContainsNoReturnAll extends ContainsNoMatchingStatementNodes {
 
-  override val matcher: PartialFunction[ASTNode, String] = {
-    case ri: ReturnItems if ri.includeExisting            => "ReturnItems(includeExisting = true, ...)"
-    case sq: ScopeClauseSubqueryCall if sq.isImportingAll => "ScopeClauseSubqueryCall(isImportingAll = true, ...)"
-  }
+  override val matcher: PartialFunction[ASTNode, String] = PartialFunction.empty
+  // Disabled due to issues with ValidatingConditions and SemanticFeatures interactions will be replaced by ContainsNoExpandedClauses
+//  {
+//    case ri: ReturnItems if ri.includeExisting            => "ReturnItems(includeExisting = true, ...)"
+//    case sq: ScopeClauseSubqueryCall if sq.isImportingAll => "ScopeClauseSubqueryCall(isImportingAll = true, ...)"
+//  }
 
   override val name: String = "NoReturnAll"
 }

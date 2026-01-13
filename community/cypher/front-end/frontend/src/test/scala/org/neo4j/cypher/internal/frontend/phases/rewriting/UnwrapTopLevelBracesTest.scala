@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.frontend.helpers.TestState
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnwrapTopLevelBraces
@@ -32,7 +33,10 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   override val rewriterUnderTest: Rewriter =
-    UnwrapTopLevelBraces.instance(TestState(None), new TestContext(mock[Monitors]))
+    UnwrapTopLevelBraces.instance(
+      TestState(None),
+      new TestContext(mock[Monitors], semanticFeatures = Seq(DisableReworkedRewriters))
+    )
 
   test("braces") {
     assertRewrite("{ RETURN 1 AS x }", "RETURN 1 AS x")

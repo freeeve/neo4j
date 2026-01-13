@@ -87,6 +87,7 @@ import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
 import org.neo4j.cypher.internal.frontend.phases.isolateAggregation
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClauses
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
@@ -526,6 +527,15 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
 
   def semanticFeatures: List[SemanticFeature] = Nil
 
+  def buildSinglePlannerQueryWithVersion(
+    version: CypherVersion,
+    query: String,
+    procedureLookup: Option[QualifiedName => ProcedureSignature] = None,
+    functionLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None,
+    additionalSettings: Map[Setting[_], AnyRef] = Map.empty
+  ): SinglePlannerQuery =
+    buildSinglePlannerQuery(version, query, procedureLookup, functionLookup, additionalSettings)
+
   def buildSinglePlannerQuery(
     query: String,
     procedureLookup: Option[QualifiedName => ProcedureSignature] = None,
@@ -552,6 +562,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   private lazy val pipeLine: Transformer[PlannerContext, BaseState, LogicalPlanState] =
     Parse andThen
       PreparatoryRewriting andThen
+      SemanticAnalysis(warn = Some(true)) andThen
+      ExpandClauses andThen
       SemanticAnalysis(warn = Some(true)) andThen
       AstRewriting() andThen
       RewriteProcedureCalls andThen

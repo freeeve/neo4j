@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.functions.Size
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
+import org.neo4j.cypher.internal.rewriting.conditions.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.rewriting.conditions.SizeOfCollectRewrittenToCount
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactory
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator

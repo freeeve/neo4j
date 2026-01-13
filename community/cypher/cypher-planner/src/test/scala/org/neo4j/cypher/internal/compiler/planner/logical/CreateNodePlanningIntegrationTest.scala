@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
@@ -408,13 +409,13 @@ class CreateNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlann
         |MATCH (n:Account)
         |RETURN n""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Cypher25, query)
 
     plan shouldEqual planner
       .planBuilder()
       .produceResults("n")
       .apply()
-      .|.nodeByLabelScan("n", "Account", IndexOrderNone)
+      .|.nodeByLabelScan("n", "Account", IndexOrderNone, "anon_0")
       .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))))
       .create(createNodeFull("anon_0", dynamicLabels = Seq("$label")))
       .argument()

@@ -18,6 +18,9 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap.ASTAnnotationMap
+import org.neo4j.cypher.internal.ast.AliasedReturnItem
+import org.neo4j.cypher.internal.ast.ReturnItem
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState.RecordedScopes
 import org.neo4j.cypher.internal.util.ASTNode
 
@@ -25,7 +28,48 @@ case class ScopeState(
   workingScope: WorkingScope,
   recordedScopes: RecordedScopes,
   explainScope: Option[WorkingScope] = None
-)
+) {
+  def getIncoming(ast: ASTNode): Seq[LogicalVariable] = recordedScopes(ast).incoming.allSymbols.map(_.copyId).toSeq
+
+  def getOutgoing(ast: ASTNode): Seq[LogicalVariable] = recordedScopes(ast).outgoing.variables.map(_.copyId).toSeq
+
+  def getReferenced(ast: ASTNode): Set[LogicalVariable] = recordedScopes(ast).referenced.map(_.copyId)
+
+  def getResultCols(ast: ASTNode): Seq[LogicalVariable] = recordedScopes(ast).result match {
+    case TableResult(cols) => cols
+    case _                 => Seq.empty
+  }
+
+  def getIncomingConstants(ast: ASTNode): Seq[LogicalVariable] =
+    recordedScopes(ast).incoming match {
+      case rc: RegularContext => rc.constants.toSeq
+      case wc                 => wc.allSymbols.toSeq
+    }
+
+  def getIncomingVariables(ast: ASTNode): Seq[LogicalVariable] =
+    recordedScopes(ast).incoming match {
+      case rc: RegularContext => rc.variables.toSeq
+      case wc                 => wc.allSymbols.toSeq
+    }
+
+  def getResult(ast: ASTNode): Result = recordedScopes(ast).result
+
+  def getIncomingReturnItemSeq(ast: ASTNode): Seq[ReturnItem] =
+    getIncoming(ast).map(v =>
+      AliasedReturnItem(v.withPosition(ast.position), v.withPosition(ast.position))(ast.position)
+    )
+
+  def getIncomingConstantReturnItemSeq(ast: ASTNode): Seq[ReturnItem] =
+    getIncomingConstants(ast).map(v =>
+      AliasedReturnItem(v.withPosition(ast.position), v.withPosition(ast.position))(ast.position)
+    )
+
+  def getOutgoingVariableReturnItemSeq(ast: ASTNode): Seq[ReturnItem] =
+    getOutgoing(ast).map(v =>
+      AliasedReturnItem(v.withPosition(ast.position), v.withPosition(ast.position))(ast.position)
+    )
+
+}
 
 object ScopeState {
 

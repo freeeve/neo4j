@@ -21,7 +21,8 @@ import org.neo4j.cypher.internal.util.InputPosition
 /* Note that isIsolated may be false, even if the variable was isolated (escaped or parenthesized).
  * Currently, isIsolated is only set to true for isolated variables in the Cypher5 parser.
  */
-case class Variable(name: String)(val position: InputPosition, val isIsolated: Boolean) extends LogicalVariable {
+case class Variable(name: String)(val position: InputPosition, val isIsolated: Boolean)
+    extends LogicalVariable {
   override def copyId: Variable = copy()(position, isIsolated)
 
   override def withPosition(position: InputPosition): LogicalVariable =
@@ -48,6 +49,8 @@ case class Variable(name: String)(val position: InputPosition, val isIsolated: B
 }
 
 object Variable {
+
+  def apply(name: String, position: InputPosition): Variable = Variable(name)(position, isIsolated = false)
 
   val isIsolatedDefault: Boolean = false
 

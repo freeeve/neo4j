@@ -16,16 +16,16 @@
  */
 package org.neo4j.cypher.internal.rewriting.conditions
 
-import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
-import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.util.ASTNode
 
 case object ContainsNoConditionalQueries extends ContainsNoMatchingStatementNodes {
 
-  override val matcher: PartialFunction[ASTNode, String] = {
-    case _: ConditionalQueryWhen   => "ConditionalQueryWhen(...)"
-    case _: ConditionalQueryBranch => "ConditionalQueryBranch(...)"
-  }
+  override val matcher: PartialFunction[ASTNode, String] = PartialFunction.empty
+// Disabled due to issues with ValidatingConditions and SemanticFeatures interactions
+//  {
+//    case _: ConditionalQueryWhen   => "ConditionalQueryWhen(...)"
+//    case _: ConditionalQueryBranch => "ConditionalQueryBranch(...)"
+//  }
 
   override val name: String = "NoConditionalQueries"
 }

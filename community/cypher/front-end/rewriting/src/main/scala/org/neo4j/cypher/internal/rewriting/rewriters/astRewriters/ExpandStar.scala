@@ -28,26 +28,24 @@ import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
+import org.neo4j.cypher.internal.rewriting.conditions.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactory
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
-import org.neo4j.cypher.internal.util.StepSequencer.Condition
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 import org.neo4j.cypher.internal.util.topDown
-
-case object ProjectionClausesHaveSemanticInfo extends Condition
 
 case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty, inScope: Set[String] = Set.empty)
     extends Rewriter {
 
-  override def apply(that: AnyRef): AnyRef = {
-    instance(that)
-  }
+  override def apply(that: AnyRef): AnyRef =
+    if (state.features.contains(DisableReworkedRewriters)) instance(that) else that
 
   private val rewriter = Rewriter.lift {
     case clause @ With(_, values, _, _, _, _, _) if values.includeExisting =>

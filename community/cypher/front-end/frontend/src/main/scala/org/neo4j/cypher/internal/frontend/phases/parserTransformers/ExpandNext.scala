@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.UpdateClause
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.With
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.CountStar
@@ -61,8 +62,8 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqu
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNextStatements
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
+import org.neo4j.cypher.internal.rewriting.conditions.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
@@ -114,8 +115,11 @@ import org.neo4j.cypher.internal.util.topDown
  */
 case object ExpandNext extends StatementRewriter with StepSequencer.Step with ParsePipelineTransformerFactory {
 
-  override def instance(from: BaseState, context: BaseContext): Rewriter =
-    getRewriter(from.semantics(), from.anonymousVariableNameGenerator, Set.empty)
+  override def instance(from: BaseState, context: BaseContext): Rewriter = {
+    if (context.semanticFeatures.contains(DisableReworkedRewriters))
+      getRewriter(from.semantics(), from.anonymousVariableNameGenerator, Set.empty)
+    else Rewriter.noop
+  }
 
   override def preConditions: Set[Condition] =
     Set(ProjectionClausesHaveSemanticInfo, SubqueriesInMutatingPatternsIsolated)

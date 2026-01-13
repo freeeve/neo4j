@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.BooleanLiteral
 import org.neo4j.cypher.internal.expressions.CaseExpression
@@ -50,8 +51,8 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpTo
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoConditionalQueries
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNextStatements
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
+import org.neo4j.cypher.internal.rewriting.conditions.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
@@ -93,7 +94,10 @@ import org.neo4j.cypher.internal.util.topDown
 case object ExpandWhen extends StatementRewriter with StepSequencer.Step with ParsePipelineTransformerFactory {
 
   override def instance(from: BaseState, context: BaseContext): Rewriter =
-    getRewriter(from.semantics(), from.anonymousVariableNameGenerator)
+    if (context.semanticFeatures.contains(DisableReworkedRewriters))
+      getRewriter(from.semantics(), from.anonymousVariableNameGenerator)
+    else
+      Rewriter.noop
 
   override def preConditions: Set[Condition] =
     Set(ProjectionClausesHaveSemanticInfo, ContainsNoNextStatements)

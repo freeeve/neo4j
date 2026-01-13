@@ -19,10 +19,12 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClauses
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandNext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandWhen
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractSensitiveLiterals
@@ -79,6 +81,8 @@ trait FrontEndCompilationPhases {
         CollectSyntaxUsageMetrics,
         ExpandNext,
         ExpandWhen,
+        UnwrapTopLevelBraces,
+        ExpandClauses,
         IsolateSubqueriesInMutatingPatterns,
         PreparatoryRewriting,
         RemoveDuplicateUseClauses,
@@ -87,7 +91,6 @@ trait FrontEndCompilationPhases {
         SemanticTypeCheck,
         SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures),
         SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures),
-        UnwrapTopLevelBraces,
         UnresolveShadowedFunctions,
         WrapAndExpandProcedureCall,
         ScopeSurveyor
@@ -95,13 +98,12 @@ trait FrontEndCompilationPhases {
       initialConditions = Set(BaseContains[Statement]())
     )
 
-  def postParsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
+  def postParsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] =
     Chainer.chainTransformers(orderedSteps.map(_.getCheckedTransformer(
       literalExtractionStrategy = config.literalExtractionStrategy,
       parameterTypeMapping = config.parameterTypeMapping,
       obfuscateLiterals = config.obfuscateLiterals
     ))).asInstanceOf[Transformer[BaseContext, BaseState, BaseState]]
-  }
 
   private def parsingBase(
     config: ParsingConfig,
@@ -145,7 +147,9 @@ trait FrontEndCompilationPhases {
     parameters: MapValue
   ): Transformer[BaseContext, BaseState, BaseState] = {
     parsingBase(config, parameters) andThen
-      ExpandStarRewriter andThen
+      IfContext((conf: BaseContext) => conf.semanticFeatures.contains(DisableReworkedRewriters))(
+        ExpandStarRewriter
+      ) andThen
       TryRewriteProcedureCalls(resolver) andThen
       ObfuscationMetadataCollection andThen
       SemanticAnalysis(warn = Some(true))

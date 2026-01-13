@@ -93,6 +93,10 @@ object SemanticFeature {
     override def name: String = "variable checking"
   }
 
+  case object DisableReworkedRewriters extends SemanticFeature with FeatureToString {
+    override def name: String = "disable reworked rewriters"
+  }
+
   /**
    * Normally it's not allowed to mix old and new label expression syntax within a clause.
    * The implementation of this check has had bugs in the past, can be inconvenient for users
@@ -128,6 +132,7 @@ object SemanticFeature {
     LocalCallables,
     ScopeQueries,
     VariableChecking,
+    DisableReworkedRewriters,
     AllowClauseWithMixedLabelSyntax,
     PathModes,
     AttributeBasedAccessControl

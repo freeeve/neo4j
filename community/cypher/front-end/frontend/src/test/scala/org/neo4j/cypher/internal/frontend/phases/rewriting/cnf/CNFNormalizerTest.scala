@@ -289,7 +289,8 @@ object TestContext extends MockitoSugar {
 class TestContext(
   override val monitors: Monitors,
   language: Option[CypherVersion] = None,
-  override val shadowedFunctions: Set[String] = Set.empty
+  override val shadowedFunctions: Set[String] = Set.empty,
+  override val semanticFeatures: Seq[SemanticFeature] = Seq.empty
 ) extends BaseContext {
 
   override def cypherVersion: CypherVersion =
@@ -302,6 +303,5 @@ class TestContext(
   override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
   override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
   override def sessionDatabase: DatabaseReference = null
-  override def semanticFeatures: Seq[SemanticFeature] = Seq()
   override def isScopeQuery: Boolean = false
 }

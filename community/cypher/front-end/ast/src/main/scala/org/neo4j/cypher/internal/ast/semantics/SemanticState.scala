@@ -383,6 +383,13 @@ object SemanticState {
     ASTAnnotationMap.empty
   )
 
+  def cleanWithFeatures(features: Set[SemanticFeature]): SemanticState = SemanticState(
+    Scope.empty.location,
+    ASTAnnotationMap.empty,
+    ASTAnnotationMap.empty,
+    features = features
+  )
+
   implicit class ScopeLocation(val location: ScopeZipper.Location) extends AnyVal {
     def scope: Scope = location.elem
 

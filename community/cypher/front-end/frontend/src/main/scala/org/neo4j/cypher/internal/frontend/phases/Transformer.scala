@@ -203,6 +203,28 @@ case class If[-C <: BaseContext, FROM, STATE <: FROM](f: STATE => Boolean)(thenT
   override def invalidatedConditions: Set[StepSequencer.Condition] = thenT.invalidatedConditions
 }
 
+case class IfContext[-C <: BaseContext, FROM, STATE <: FROM](f: C => Boolean)(thenT: => Transformer[C, FROM, STATE])
+    extends Transformer[C, STATE, STATE] {
+
+  override def transform(from: STATE, context: C): STATE = {
+    if (f(context))
+      thenT.transform(from, context)
+    else
+      from
+  }
+
+  override def name: String = s"if(<f>) ${thenT.name}"
+
+  override def toString: String = name
+
+  // We cannot guarantee the postConditions of thenT, if it is never run.
+  // Also we cannot check `f(state)` to determine if we should run the post-condition
+  // (in a ConditionalValidatingCondition wrapper), since `state` might have changed.
+  override def postConditions: Set[StepSequencer.Condition] = Set.empty
+
+  override def invalidatedConditions: Set[StepSequencer.Condition] = thenT.invalidatedConditions
+}
+
 case class IfChanged[-C <: BaseContext, FROM, STATE <: FROM](f: (
   STATE,
   STATE

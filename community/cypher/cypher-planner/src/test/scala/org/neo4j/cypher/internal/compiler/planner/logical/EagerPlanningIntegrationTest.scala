@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
@@ -1872,7 +1873,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
                   |DELETE m
                   |RETURN n""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Cypher25, query)
 
     plan should equal(
       planner.planBuilder()
@@ -1888,9 +1889,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .apply()
         .|.cartesianProduct()
         .|.|.filter("NOT m:%") // Id(6)
-        .|.|.allNodeScan("m", "i", "n") // Id(7)
+        .|.|.allNodeScan("m", "n") // Id(7)
         .|.filter("n:$all([])", assertIsNode("n")) // Id(8)
-        .|.argument("n", "i")
+        .|.argument("n")
         .skip(0)
         .apply()
         .|.allNodeScan("n", "i") // Id(12)
@@ -1988,13 +1989,13 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         |MATCH (n:Account)
         |RETURN n""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Cypher25, query)
 
     plan shouldEqual planner
       .planBuilder()
       .produceResults("n")
       .apply()
-      .|.nodeByLabelScan("n", "Account", IndexOrderNone)
+      .|.nodeByLabelScan("n", "Account", IndexOrderNone, "anon_0")
       .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))))
       .create(createNodeFull("anon_0", dynamicLabels = Seq("$label")))
       .argument()
@@ -2043,7 +2044,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         |RETURN r
         |""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Cypher25, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -2053,7 +2054,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         andsReorderableAst(not(hasLabels("anon_3", "A")), not(hasLabels("anon_4", "A")))
       )
       .apply()
-      .|.allRelationshipsScan("(anon_3)-[r]->(anon_4)")
+      .|.allRelationshipsScan("(anon_3)-[r]->(anon_4)", "anon_0", "anon_2", "anon_1")
       .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(5), Id(3)))))
       .create(
         createNodeFull("anon_0", labels = Seq("A")),

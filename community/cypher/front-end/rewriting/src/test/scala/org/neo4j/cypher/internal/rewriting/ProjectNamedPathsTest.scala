@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
-import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
@@ -36,7 +35,6 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
-import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.MatchMode
@@ -56,7 +54,6 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.SingleRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.QuantifiedPathPatternNodeInsertRewriter
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
@@ -77,9 +74,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
   private def ast(queryText: String) = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, Some(pos))
     val parsed = parse(queryText, exceptionFactory)
-    val normalized = parsed.endoRewrite(inSequence(NormalizeWithAndReturnClauses(exceptionFactory)))
-    val checkResult = normalized.semanticCheck.run(SemanticState.clean, CypherVersionHelpers.arbitrarySemanticContext)
-    normalized.endoRewrite(inSequence(ExpandStar(checkResult.state)))
+    parsed.endoRewrite(inSequence(NormalizeWithAndReturnClauses(exceptionFactory)))
   }
 
   private def findReturnPExp(query: Statement): Expression = {

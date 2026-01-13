@@ -16,12 +16,13 @@
  */
 package org.neo4j.cypher.internal.rewriting.conditions
 
-import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.util.ASTNode
 
 case object ContainsNoTopLevelBraces extends ContainsNoMatchingStatementNodes {
 
-  override val matcher: PartialFunction[ASTNode, String] = { case _: TopLevelBraces => "TopLevelBraces(...)" }
+  override val matcher: PartialFunction[ASTNode, String] = PartialFunction.empty
+// Disabled due to issues with ValidatingConditions and SemanticFeatures interactions
+//    { case _: TopLevelBraces => "TopLevelBraces(...)" }
 
   override val name: String = "NoTopLevelBraces"
 }

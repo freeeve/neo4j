@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -202,7 +203,7 @@ class CreateRelationshipPlanningIntegrationTest extends CypherFunSuite with Logi
         |RETURN r
         |""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Cypher25, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -212,7 +213,7 @@ class CreateRelationshipPlanningIntegrationTest extends CypherFunSuite with Logi
         andsReorderableAst(not(hasLabels("anon_3", "A")), not(hasLabels("anon_4", "A")))
       )
       .apply()
-      .|.allRelationshipsScan("(anon_3)-[r]->(anon_4)")
+      .|.allRelationshipsScan("(anon_3)-[r]->(anon_4)", "anon_0", "anon_2", "anon_1")
       .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(5), Id(3)))))
       .create(
         createNodeFull("anon_0", labels = Seq("A")),

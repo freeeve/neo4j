@@ -59,11 +59,14 @@ import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.StepSequencer
+import org.neo4j.cypher.internal.util.StepSequencer.Condition
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
+
+case object SemanticTypeCheckCompleted extends Condition
 
 /**
  * Checks for semantic errors when semantic table has been initialized.
@@ -97,7 +100,7 @@ case object SemanticTypeCheck extends VisitorPhase[BaseContext, BaseState]
   ) ++ SemanticInfoAvailable
 
   // necessary because VisitorPhase defines empty postConditions
-  override def postConditions: Set[StepSequencer.Condition] = Set(completed)
+  override def postConditions: Set[StepSequencer.Condition] = Set(SemanticTypeCheckCompleted)
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty
 

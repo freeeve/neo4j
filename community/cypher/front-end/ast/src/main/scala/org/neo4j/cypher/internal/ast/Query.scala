@@ -788,6 +788,9 @@ object SingleQuery {
 
     lazy val clausesExceptInitialGraphSelection: Seq[Clause] =
       importingWith.toSeq ++ subsequentGraphSelection ++ clausesExceptImportingWithAndLeadingGraphSelection
+
+    lazy val clausesExceptImportingWith: Seq[Clause] =
+      initialGraphSelection.toSeq ++ subsequentGraphSelection ++ clausesExceptImportingWithAndLeadingGraphSelection
   }
 
   private def partitionClauses(clauses: Seq[Clause]): PartitionedClauses =

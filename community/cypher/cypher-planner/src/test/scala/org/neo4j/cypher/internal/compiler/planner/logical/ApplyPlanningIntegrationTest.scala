@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
@@ -68,13 +69,13 @@ class ApplyPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIn
         |RETURN DISTINCT simplePort.name AS sp_name
         |""".stripMargin
 
-    val plan = planner.plan(query).stripProduceResults
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .distinct("cacheN[simplePort.name] AS sp_name")
       .bfsPruningVarExpand("(simplePort)<-[:HAS*1..9]-()")
       .cacheProperties("cacheNFromStore[simplePort.name]")
       .apply()
-      .|.allNodeScan("simplePort", "x")
+      .|.allNodeScan("simplePort")
       .skip(0)
       .allNodeScan("x")
       .build()

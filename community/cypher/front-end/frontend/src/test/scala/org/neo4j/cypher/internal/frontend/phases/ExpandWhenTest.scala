@@ -23,6 +23,8 @@ import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.With
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandWhen
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.util.Rewriter
@@ -34,6 +36,8 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
     SemanticAnalysis(Some(false)) andThen
       ExpandWhen
+
+  override def semanticFeatures: Seq[SemanticFeature] = Seq(DisableReworkedRewriters)
 
   override def astRewriteAndAnalyze: Boolean = false
 

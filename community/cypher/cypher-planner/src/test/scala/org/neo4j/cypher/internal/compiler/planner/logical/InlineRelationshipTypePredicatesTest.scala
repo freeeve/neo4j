@@ -27,9 +27,13 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
+import org.neo4j.cypher.internal.frontend.PlannerName
+import org.neo4j.cypher.internal.frontend.helpers.TestContext
+import org.neo4j.cypher.internal.frontend.phases.InitialState
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClauses
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.simplifyPredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLabelsAndHasType
@@ -55,13 +59,30 @@ class InlineRelationshipTypePredicatesTest extends CypherFunSuite with PlannerQu
     InlineRelationshipTypePredicates.instance(state, plannerContext)
   }
 
+  def expand(statement: Statement): Statement = {
+
+    val plannerName = new PlannerName {
+      override def name: String = "fake"
+      override def toTextOutput: String = "fake"
+      override def version: String = "fake"
+    }
+    val testState =
+      InitialState("", plannerName, new AnonymousVariableNameGenerator, maybeStatement = Some(statement))
+    val testContext = TestContext(cypherVersion = CypherVersion.Cypher25)
+    val scopeState = ScopeSurveyor.process(testState, testContext)
+    ExpandClauses.process(scopeState, testContext).statement()
+  }
+
   override def rewriteAST(
     astOriginal: Statement,
     ceF: CypherExceptionFactory,
     anonVarGen: AnonymousVariableNameGenerator
   ): Statement = {
-    val orgAstState = SemanticChecker.check(astOriginal, SemanticState.clean, arbitrarySemanticContext()).state
-    astOriginal.endoRewrite(inSequence(
+    val rewritten = astOriginal.endoRewrite(Rewriter.lift {
+      case s: Statement => expand(s)
+    })
+    val orgAstState = SemanticChecker.check(rewritten, SemanticState.clean, arbitrarySemanticContext()).state
+    rewritten.endoRewrite(inSequence(
       computeDependenciesForExpressions(orgAstState),
       LabelExpressionPredicateNormalizer.instance,
       NormalizeHasLabelsAndHasType(orgAstState),
@@ -81,9 +102,9 @@ class InlineRelationshipTypePredicatesTest extends CypherFunSuite with PlannerQu
         CypherVersion.Cypher5
       ),
       flattenBooleanOperators.instance(CancellationChecker.NeverCancelled),
-      ExpandStar(orgAstState),
       simplifyPredicates(orgAstState, CancellationChecker.neverCancelled())
     ))
+
   }
 
   test("  MATCH ()-[r]-() WHERE r:X OR r:Y RETURN *") {

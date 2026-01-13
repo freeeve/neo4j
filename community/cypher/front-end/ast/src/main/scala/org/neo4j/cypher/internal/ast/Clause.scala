@@ -2033,6 +2033,9 @@ object With {
 
   def apply(returnItems: ReturnItems, withType: WithType)(pos: InputPosition): With =
     With(distinct = false, returnItems, None, None, None, None, withType)(pos)
+
+  def apply(returnItems: ReturnItems, where: Where, withType: WithType)(pos: InputPosition): With =
+    With(distinct = false, returnItems, None, None, None, Some(where), withType)(pos)
 }
 
 case class With(
@@ -2421,7 +2424,13 @@ case class ImportingWithSubqueryCall(
   }
 }
 
-case object ScopeClauseSubqueryCall extends UnaliasedNotAllowed { override val msg = "CALL () { RETURN ... }" }
+case object ScopeClauseSubqueryCall extends UnaliasedNotAllowed {
+  override val msg = "CALL () { RETURN ... }"
+
+  def apply(inner: Query, imports: Seq[LogicalVariable])(position: InputPosition): ScopeClauseSubqueryCall =
+    ScopeClauseSubqueryCall(inner, isImportingAll = false, imports, None, optional = false)(position)
+
+}
 
 case class ScopeClauseSubqueryCall(
   override val innerQuery: Query,
