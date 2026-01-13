@@ -752,9 +752,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
 
     /*
      * This is a case where the AND predicates are dependent and not possible to combine into a single range.
-     * While we could statically determine this in semantic analysis in this case with literals,
-     * it must be checked at runtime in the more general case, so we defer the checking until then.
-     * => This test will pass semantic checking but fail at runtime
+     * This should be allowed but will return no results at runtime
      */
     test(
       s"""MATCH (m:Movie {title:'Matrix, The'})
@@ -1056,7 +1054,13 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I72(6 + optionalLength, 1, 7 + optionalLength),
+          "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
+          p(6 + optionalLength, 1, 7 + optionalLength)
+        )
+      )
     }
 
     test(
@@ -1082,7 +1086,13 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN r
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter().hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I72(6 + optionalLength, 1, 7 + optionalLength),
+          "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
+          p(6 + optionalLength, 1, 7 + optionalLength)
+        )
+      )
     }
 
     test(
@@ -1196,11 +1206,12 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       ("(WHERE false)-[]->(movie)", 13, Some(5)),
       ("(movie)-[:REL]->()", 16, None),
       ("(movie:Movie)<-[{prop: 42}]-()", 22, None),
-      ("()-[WHERE true]-(movie)", 16, Some(4)),
-      ("()-[]-(:Actor)-[]->(movie)", 14, None),
-      ("(:Actor)-[]-()-[]->(movie)", 8, None),
-      ("(movie)-[]-()-[]->(:Actor)", 26, None),
-      ("()-[:REL]-()-[]->(movie)", 11, None)
+      ("()-[WHERE true]-(movie)", 16, Some(4))
+      // TODO: these cases can be re-added once we add planner support for longer path patterns
+      // ("()-[]-(:Actor)-[]->(movie)", 14, None),
+      // ("(:Actor)-[]-()-[]->(movie)", 8, None),
+      // ("(movie)-[]-()-[]->(:Actor)", 26, None),
+      // ("()-[:REL]-()-[]->(movie)", 11, None)
     )
 
     for {
@@ -1235,9 +1246,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       ("()-[r: REL {prop:42}]->(WHERE true)", 36, Some(4)),
       ("(:Actor|Director)-[r]->()", 13, None),
       ("({name: 'John Travolta'})-[r]-()", 7, None),
-      ("(WHERE false)-[r {prop: 42}]->()", 13, Some(5)),
-      ("(:Actor)-[]-()-[r]->()", 8, None),
-      ("()-[r]-()-[]->(:Movie)", 22, None)
+      ("(WHERE false)-[r {prop: 42}]->()", 13, Some(5))
+      // TODO: these cases can be re-added once we add planner support for longer path patterns
+      // ("(:Actor)-[]-()-[r]->()", 8, None),
+      // ("()-[r]-()-[]->(:Movie)", 22, None)
     )
 
     for {

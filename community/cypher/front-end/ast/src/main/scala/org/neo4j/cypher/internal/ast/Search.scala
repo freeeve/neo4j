@@ -276,6 +276,8 @@ case class Search(
   private def checkPatternElement(element: PatternElement): SemanticCheck = {
     element match {
       case n: NodePattern => checkNodePattern(n)
+      case relChain @ RelationshipChain(_: RelationshipChain, _, _) =>
+        SemanticError.searchWithTooComplexMatch(relChain.position)
       case RelationshipChain(p, r, n) =>
         checkPatternElement(p) chain checkNodePattern(n) chain checkRelationshipPattern(r)
       case _ => SemanticError.searchWithTooComplexMatch(element.position)
