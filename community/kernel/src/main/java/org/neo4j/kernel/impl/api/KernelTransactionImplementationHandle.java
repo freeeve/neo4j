@@ -172,6 +172,11 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
     }
 
     @Override
+    public long activeLockCount() {
+        return tx.lockClient().activeLockCount();
+    }
+
+    @Override
     public TransactionExecutionStatistic transactionStatistic() {
         if (transactionStamp.isNotExpired()) {
             return new TransactionExecutionStatistic(tx, clock, startTime);

@@ -130,6 +130,11 @@ public class TestKernelTransactionHandle implements KernelTransactionHandle {
     }
 
     @Override
+    public long activeLockCount() {
+        return 0L;
+    }
+
+    @Override
     public TransactionExecutionStatistic transactionStatistic() {
         return TransactionExecutionStatistic.NOT_AVAILABLE;
     }

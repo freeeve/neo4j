@@ -151,6 +151,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(txHandle1.getMetaData).thenReturn(util.Collections.emptyMap())
     when(txHandle1.getStatusDetails).thenReturn("")
     when(txHandle1.activeLocks()).thenAnswer(_ => util.Collections.emptyList())
+    when(txHandle1.activeLockCount()).thenReturn(0L)
     when(txHandle1.transactionInitialisationTrace()).thenReturn(new TransactionInitializationTrace())
     when(txHandle1.terminationMark).thenReturn(
       util.Optional.of(new TerminationMark(Status.Transaction.TransactionTimedOut, 600L))
@@ -182,6 +183,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(txHandle2.activeLocks()).thenAnswer(_ =>
       List[ActiveLock](new ActiveLock(ResourceType.LABEL, LockType.SHARED, 1L, 0L)).asJava
     )
+    when(txHandle2.activeLockCount()).thenReturn(1L)
     when(txHandle2.transactionInitialisationTrace()).thenReturn(TransactionInitializationTrace.NONE)
     when(txHandle2.terminationMark).thenReturn(util.Optional.empty())
 
@@ -255,6 +257,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
         new ActiveLock(ResourceType.NODE, LockType.SHARED, 0L, 2L)
       ).asJava
     )
+    when(txHandle3.activeLockCount()).thenReturn(2L)
     when(txHandle3.transactionInitialisationTrace()).thenReturn(TransactionInitializationTrace.NONE)
     when(txHandle3.terminationMark).thenReturn(util.Optional.empty())
 

@@ -1770,9 +1770,6 @@ public class KernelTransactionImplementation
 
     /**
      * This method will be invoked by concurrent threads for inspecting the locks held by this transaction.
-     * <p>
-     * The fact that {@link #lockClient} is a volatile fields, grants us enough of a read barrier to get a good
-     * enough snapshot of the lock state (as long as the underlying methods give us such guarantees).
      *
      * @return the locks held by this transaction.
      */

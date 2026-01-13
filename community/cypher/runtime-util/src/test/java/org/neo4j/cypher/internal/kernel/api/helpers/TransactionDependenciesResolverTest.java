@@ -202,6 +202,11 @@ class TransactionDependenciesResolverTest {
         }
 
         @Override
+        public long activeLockCount() {
+            return locks.size();
+        }
+
+        @Override
         public long getTransactionSequenceNumber() {
             return userTxId;
         }

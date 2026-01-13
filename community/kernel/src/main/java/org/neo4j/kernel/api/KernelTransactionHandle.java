@@ -147,6 +147,11 @@ public interface KernelTransactionHandle {
     Collection<ActiveLock> activeLocks();
 
     /**
+     * @return the number of lock requests granted for this transaction.
+     */
+    long activeLockCount();
+
+    /**
      * Provide underlying transaction execution statistics. For example: elapsed time, allocated bytes etc
      * @return transaction statistics projection
      */

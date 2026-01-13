@@ -164,7 +164,7 @@ case class ShowTransactionsCommand(
       case (transaction: KernelTransactionHandle, querySnapshot: util.Optional[QuerySnapshot], _) =>
         handleQuerySnapshotsMap.put(transaction, querySnapshot)
     }
-    val transactionDependenciesResolver = new TransactionDependenciesResolver(handleQuerySnapshotsMap)
+    var transactionDependenciesResolver: TransactionDependenciesResolver = null
 
     val zoneId = getConfiguredTimeZone(ctx)
     val rows = askedForTransactions.map {
@@ -197,6 +197,9 @@ case class ShowTransactionsCommand(
 
         val (status, statusDetails) =
           if (requestedColumnsNames.contains(statusColumn) || requestedColumnsNames.contains(statusDetailsColumn)) {
+            if (transactionDependenciesResolver == null) {
+              transactionDependenciesResolver = new TransactionDependenciesResolver(handleQuerySnapshotsMap)
+            }
             getStatus(transaction, transactionDependenciesResolver)
           } else ("", "")
 
@@ -258,7 +261,7 @@ case class ShowTransactionsCommand(
             ))
           // Number of active locks held by the transaction
           case `activeLockCountColumn` =>
-            Some(activeLockCountColumn -> Values.longValue(transaction.activeLocks.size()))
+            Some(activeLockCountColumn -> Values.longValue(transaction.activeLockCount()))
           // Number of active locks held by the currently executing query
           case `currentQueryActiveLockCountColumn` => Some(currentQueryActiveLockCountColumn -> queryActiveLockCount)
           // The CPU time
