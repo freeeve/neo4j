@@ -836,6 +836,14 @@ public final class CursorUtils {
         return result;
     }
 
+    public static void properties(
+            RelationshipCursor cursor, PropertyCursor propertyCursor, PropertySelection selection) {
+        if (cursor instanceof RelationshipIndexCursor indexCursor && !indexCursor.readFromStore()) {
+            throw EntityNotFoundException.relationshipDeletedInThisTransaction(indexCursor.relationshipReference());
+        }
+        cursor.properties(propertyCursor, selection);
+    }
+
     public static VirtualRelationshipValue relationshipById(RelationshipCursor cursor) {
         return VirtualValues.relationship(
                 cursor.relationshipReference(),
