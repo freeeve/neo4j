@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 public interface StorageSchemeResolver {
 
     // RFC2396: alpha *( alpha | digit | "+" | "-" | "." )
-    Pattern SCHEME = Pattern.compile("^([a-z][a-z0-9+-.]+):.+");
+    Pattern SCHEME = Pattern.compile("^([a-zA-Z][a-zA-Z0-9+-.]*):[^\\\\].*"); // don't capture Z:\path (ex. Windows)
 
     /**
      * Determine if a resource path is an absolute {@link URI} with a scheme. See RFC2396 for more details

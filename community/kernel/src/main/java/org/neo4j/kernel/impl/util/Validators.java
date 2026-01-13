@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.util.List;
 import org.neo4j.cloud.storage.PathRepresentation;
 import org.neo4j.cloud.storage.SchemeFileSystemAbstraction;
+import org.neo4j.cloud.storage.StorageSchemeResolver;
 import org.neo4j.common.Validator;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -36,7 +37,10 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 
 public final class Validators {
+
     private static final String GLOB_PATTERN = "**";
+
+    private static final String WINDOWS_SEPARATOR = "\\";
 
     private Validators() {}
 
@@ -45,7 +49,7 @@ public final class Validators {
             List<Path> paths =
                     switch (patternStyle) {
                         case GLOB -> recursivePaths(fs, pathPattern);
-                        case REGEX -> regexOnParentPaths(fs, patternStyle, pathPattern);
+                        case REGEX -> regexPaths(fs, pathPattern);
                         case NONE -> directPath(fs, pathPattern);
                     };
 
@@ -86,51 +90,75 @@ public final class Validators {
         int ix = pathPattern.indexOf(GLOB_PATTERN);
         if (ix == -1) {
             // no globs provided so fallback to parent path pattern matching
-            return regexOnParentPaths(fs, PatternStyle.GLOB, pathPattern);
+            return regexPaths(fs, PatternStyle.GLOB, pathPattern);
         }
         Path parent = resolvePath(fs, pathPattern.substring(0, ix));
         checkState(fs.fileExists(parent), "Directory %s of %s doesn't exist", parent, pathPattern);
         return fs.matchFiles(parent, PatternStyle.GLOB, pathPattern.substring(ix));
     }
 
-    private static List<Path> regexOnParentPaths(
-            FileSystemAbstraction fs, PatternStyle patternStyle, String pathPattern) throws IOException {
-        String separator = pathSeparator(fs, pathPattern);
-        int pos = pathPattern.length();
+    private static List<Path> regexPaths(FileSystemAbstraction fs, String pathPattern) throws IOException {
+        return regexPaths(fs, PatternStyle.REGEX, pathPattern);
+    }
 
-        int ix;
-        while (true) {
-            ix = pathPattern.lastIndexOf(separator, pos);
-            if (ix != -1) {
-                // special handling of regex patterns for Windows paths as they naturally contain \ characters
-                // and these can also appear as part of a regex
-                if (separator.equals("\\") && pathPattern.charAt(ix - 1) == separator.charAt(0)) {
-                    pos = ix - 1;
-                    continue;
-                }
-
-                break;
-            }
-
-            throw new IllegalArgumentException("Unable to find the parent of the path: " + pathPattern);
+    private static List<Path> regexPaths(FileSystemAbstraction fs, PatternStyle patternStyle, String pathPattern)
+            throws IOException {
+        RegexPath regexPath;
+        if (pathSeparator(pathPattern).equals(WINDOWS_SEPARATOR)) {
+            regexPath = regexPathOnWindows(pathPattern);
+        } else {
+            regexPath = regexPath(pathPattern, pathPattern.lastIndexOf(PathRepresentation.SEPARATOR));
         }
 
-        Path parent = resolvePath(fs, pathPattern.substring(0, ix + 1));
+        Path parent = resolvePath(fs, regexPath.parentPart);
         checkState(fs.fileExists(parent), "Directory %s of %s doesn't exist", parent, pathPattern);
-        return fs.matchFiles(parent, patternStyle, pathPattern.substring(ix + 1).replace("\\\\", "\\"));
+        return fs.matchFiles(parent, patternStyle, regexPath.regexPart.replace("\\\\", "\\"));
+    }
+
+    private static RegexPath regexPathOnWindows(String pathPattern) {
+        var pos = 0;
+        var ix = -1;
+        while (true) {
+            var nextIx = pathPattern.indexOf(File.separatorChar, pos);
+            if (nextIx == -1) {
+                // no more to scan so parent is up to last seen separator
+                return regexPath(pathPattern, ix);
+            } else {
+                if (nextIx + 1 == pathPattern.length()) {
+                    // scanned to the end so parent is up to last seen separator
+                    return regexPath(pathPattern, ix);
+                } else {
+                    if (pathPattern.charAt(nextIx + 1) == File.separatorChar) {
+                        // found the start of a regex pattern so the parent must have already been scanned
+                        return regexPath(pathPattern, ix);
+                    } else {
+                        ix = nextIx;
+                        pos = ix + 1;
+                    }
+                }
+            }
+        }
+    }
+
+    private static RegexPath regexPath(String pathPattern, int splitIndex) {
+        if (splitIndex != -1) {
+            var regexPart = pathPattern.substring(splitIndex + 1);
+            if (!regexPart.isEmpty()) {
+                return new RegexPath(pathPattern.substring(0, splitIndex + 1), regexPart);
+            }
+        }
+
+        throw new IllegalArgumentException("Unable to find the parent of the path: " + pathPattern);
     }
 
     private static List<Path> directPath(FileSystemAbstraction fs, String pathPattern) throws IOException {
         return List.of(resolvePath(fs, pathPattern));
     }
 
-    private static String pathSeparator(FileSystemAbstraction fs, String pathPattern) {
-        if (fs instanceof SchemeFileSystemAbstraction system) {
-            if (system.canResolve(pathPattern)) {
-                return PathRepresentation.SEPARATOR;
-            }
+    private static String pathSeparator(String pathPattern) {
+        if (StorageSchemeResolver.isSchemeBased(pathPattern) || pathPattern.startsWith(PathRepresentation.SEPARATOR)) {
+            return PathRepresentation.SEPARATOR;
         }
-
         return File.separator;
     }
 
@@ -141,4 +169,6 @@ public final class Validators {
 
         return Path.of(path).toRealPath();
     }
+
+    private record RegexPath(String parentPart, String regexPart) {}
 }

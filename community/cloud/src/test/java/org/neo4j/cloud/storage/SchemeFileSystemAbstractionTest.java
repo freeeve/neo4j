@@ -151,10 +151,6 @@ class SchemeFileSystemAbstractionTest {
         assertThat(schemeFs.canResolve(SCHEME + "://stuff"))
                 .as("handled via the storage system")
                 .isTrue();
-        assertThat(schemeFs.canResolve(SCHEME.toUpperCase(Locale.ROOT) + "://stuff"))
-                .as("handled via the storage system")
-                .isTrue();
-
         assertThat(schemeFs.canResolve(URI.create("file:///stuff")))
                 .as("handled via the fallback file system")
                 .isTrue();
@@ -168,6 +164,9 @@ class SchemeFileSystemAbstractionTest {
                 .as("handled via the fallback file system")
                 .isTrue();
 
+        assertThat(schemeFs.canResolve(SCHEME.toUpperCase(Locale.ROOT) + "://stuff"))
+                .as("not handled via the storage system")
+                .isFalse();
         assertThat(schemeFs.canResolve(URI.create("boom://stuff")))
                 .as("not handled via the storage system")
                 .isFalse();
