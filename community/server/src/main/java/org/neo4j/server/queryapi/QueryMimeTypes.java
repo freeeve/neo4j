@@ -44,12 +44,18 @@ public final class QueryMimeTypes {
     public static boolean hasTyped(String contentType) {
         return TYPED_JSON_V1x1.equals(contentType)
                 || TYPED_JSON_V1x0.equals(contentType)
-                || TYPED_JSON.equals(contentType)
-                || TYPED_JSONL_V1x0.equals(contentType)
-                || TYPED_JSONL_V1x1.equals(contentType);
+                || TYPED_JSON.equals(contentType);
+    }
+
+    public static boolean hasTypedJsonl(String contentType) {
+        return TYPED_JSONL_V1x0.equals(contentType) || TYPED_JSONL_V1x1.equals(contentType);
     }
 
     public static boolean hasUntyped(String contentType) {
-        return PLAIN_JSON.equals(contentType) || PLAIN_JSONL.equals(contentType);
+        return PLAIN_JSON.equals(contentType);
+    }
+
+    public static boolean hasUntypedJsonl(String contentType) {
+        return PLAIN_JSONL.equals(contentType);
     }
 }
