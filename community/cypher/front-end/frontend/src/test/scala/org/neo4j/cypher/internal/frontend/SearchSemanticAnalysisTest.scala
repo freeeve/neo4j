@@ -567,13 +567,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |RETURN movie.title AS title
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
-        SemanticError(
-          GqlHelper.getGql42001_42I73("2008 < movie.year", 102 + optionalLength, 5, 16),
-          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). '2008 < movie.year' does not fulfill this.",
-          p(102 + optionalLength, 5, 16)
-        )
-      )
+      runSearch().hasNoErrors
     }
 
     test(

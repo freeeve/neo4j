@@ -122,7 +122,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ("FLOAT32", float32Vector((1 to sizeHint).map(_.toFloat): _*))
   )
 
-  test("should project nodes from a directed search", Tags.NoSpdOverride) {
+  test("should project nodes from a directed search") {
     // given
     val (a, r, b) = givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
@@ -152,7 +152,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("a", "r", "b").withSingleRow(a, r, b)
   }
 
-  test("should project nodes from a undirected search", Tags.NoSpdOverride) {
+  test("should project nodes from a undirected search") {
     // given
     val (a, r, b) = givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
@@ -182,7 +182,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("a", "r", "b").withRows(Seq(Array(a, r, b), Array(b, r, a)))
   }
 
-  test("should only find one row if self-loop", Tags.NoSpdOverride) {
+  test("should only find one row if self-loop") {
     // given
     val (a, r) = givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
@@ -213,7 +213,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
 
   configurations.foreach {
     case (name, vector) =>
-      test(s"$name directed vector index search with score variable", Tags.NoSpdOverride) {
+      test(s"$name directed vector index search with score variable") {
         givenGraph {
           relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
           relationshipGraph(1, "Foo").foreach(r => {
@@ -244,7 +244,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         })
       }
 
-      test(s"$name undirected vector index search with score variable", Tags.NoSpdOverride) {
+      test(s"$name undirected vector index search with score variable") {
         givenGraph {
           relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
           relationshipGraph(1, "Foo").foreach(r => {
@@ -282,7 +282,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         })
       }
 
-      test(s"$name directed vector index search without score variable", Tags.NoSpdOverride) {
+      test(s"$name directed vector index search without score variable") {
         givenGraph {
           relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
           relationshipGraph(1, "Foo").foreach(r => {
@@ -310,7 +310,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         runtimeResult should beColumns("id").withSingleRow(1)
       }
 
-      test(s"$name undirected vector index search without score variable", Tags.NoSpdOverride) {
+      test(s"$name undirected vector index search without score variable") {
         givenGraph {
           relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
           relationshipGraph(1, "Foo").foreach(r => {
@@ -339,8 +339,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       }
 
       test(
-        s"$name should be able to do directed search using a list of integers instead of an explicit vector",
-        Tags.NoSpdOverride
+        s"$name should be able to do directed search using a list of integers instead of an explicit vector"
       ) {
         givenGraph {
           relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -371,8 +370,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       }
 
       test(
-        s"$name should be able to do undirected search using a list of integers instead of an explicit vector",
-        Tags.NoSpdOverride
+        s"$name should be able to do undirected search using a list of integers instead of an explicit vector"
       ) {
         givenGraph {
           relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -410,7 +408,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       }
   }
 
-  test("should be able to do a directed query of the index with multiple inputs from a property", Tags.NoSpdOverride) {
+  test("should be able to do a directed query of the index with multiple inputs from a property") {
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
       relationshipGraph(sizeHint, "Foo").zipWithIndex.foreach({
@@ -445,8 +443,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
   }
 
   test(
-    "should be able to do a undirected query of the index with multiple inputs from a property",
-    Tags.NoSpdOverride
+    "should be able to do a undirected query of the index with multiple inputs from a property"
   ) {
 
     givenGraph {
@@ -482,7 +479,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withRows(rowCount(2 * 20 * limit))
   }
 
-  test("should fail if index doesn't exists", Tags.NoSpdOverride) {
+  test("should fail if index doesn't exists") {
     val theVector = float32Vector((1 to sizeHint).map(_.toFloat): _*)
     givenGraph {
       relationshipGraph(1, "Foo").zipWithIndex.foreach({
@@ -511,7 +508,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.gqlStatus() shouldBe "22N69"
   }
 
-  test("should fail if index isn't a vector index", Tags.NoSpdOverride) {
+  test("should fail if index isn't a vector index") {
     val theVector = float32Vector((1 to sizeHint).map(_.toFloat): _*)
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.RANGE, Seq("Foo"), "v")
@@ -543,7 +540,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     )) should have message "22NCG: Expected the index `VectorIndex` to be a vector index but was a range index."
   }
 
-  test("should fail if search item has the wrong type", Tags.NoSpdOverride) {
+  test("should fail if search item has the wrong type") {
     val theVector = float32Vector((1 to sizeHint).map(_.toFloat): _*)
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -577,7 +574,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.cause().get().gqlStatus() shouldBe "22N01"
   }
 
-  test("should return empty if search item is null", Tags.NoSpdOverride) {
+  test("should return empty if search item is null") {
     val theVector = float32Vector((1 to sizeHint).map(_.toFloat): _*)
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -607,7 +604,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withNoRows()
   }
 
-  test("should fail if search item is a list containing null", Tags.NoSpdOverride) {
+  test("should fail if search item is a list containing null") {
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
       relationshipGraph(1, "Foo").zipWithIndex.foreach({
@@ -639,7 +636,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.gqlStatus() shouldBe "22NBG"
   }
 
-  test("should respect the limit (directed)", Tags.NoSpdOverride) {
+  test("should respect the limit (directed)") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -669,7 +666,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withRows(rowCount(13))
   }
 
-  test("should respect the limit (undirected)", Tags.NoSpdOverride) {
+  test("should respect the limit (undirected)") {
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
       relationshipGraph(sizeHint, "Foo").zipWithIndex.foreach({
@@ -698,7 +695,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withRows(rowCount(26))
   }
 
-  test("should handle limit 0 (directed)", Tags.NoSpdOverride) {
+  test("should handle limit 0 (directed)") {
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
       relationshipGraph(sizeHint, "Foo").zipWithIndex.foreach({
@@ -727,7 +724,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withNoRows()
   }
 
-  test("should handle limit 0 (undirected)", Tags.NoSpdOverride) {
+  test("should handle limit 0 (undirected)") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -757,7 +754,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id", "score").withNoRows()
   }
 
-  test("should fail on negative limits (directed)", Tags.NoSpdOverride) {
+  test("should fail on negative limits (directed)") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -791,7 +788,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.cause().get().gqlStatus() shouldBe "22N03"
   }
 
-  test("should fail on negative limits (undirected)", Tags.NoSpdOverride) {
+  test("should fail on negative limits (undirected)") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -825,7 +822,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.cause().get().gqlStatus() shouldBe "22N03"
   }
 
-  test("should fail on too large limits (directed)", Tags.NoSpdOverride) {
+  test("should fail on too large limits (directed)") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -859,7 +856,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.cause().get().gqlStatus() shouldBe "22N03"
   }
 
-  test("should fail on too large limits (undirected)", Tags.NoSpdOverride) {
+  test("should fail on too large limits (undirected)") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
@@ -893,7 +890,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     error.cause().get().gqlStatus() shouldBe "22N03"
   }
 
-  test("should support multiple types (directed)", Tags.NoSpdOverride) {
+  test("should support multiple types (directed)") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo", "Bar", "Baz"), "v")
@@ -926,7 +923,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("type").withRows(singleColumn(Seq("Foo", "Bar", "Baz")))
   }
 
-  test("should support multiple types (undirected)", Tags.NoSpdOverride) {
+  test("should support multiple types (undirected)") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo", "Bar", "Baz"), "v")
@@ -998,8 +995,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     val valueToSearch = range(indexToSearch)
 
     test(
-      s"should support single-stage filtering single exact directed search n.id = $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single exact directed search n.id = $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1034,8 +1030,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single exact undirected search n.id = $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single exact undirected search n.id = $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1070,8 +1065,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range search $valueToSearch <= n.id <= $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range search $valueToSearch <= n.id <= $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1107,8 +1101,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range search $valueToSearch <= n.id <= $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range search $valueToSearch <= n.id <= $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1144,8 +1137,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single range direct search $valueToSearch < n.id <= $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single range direct search $valueToSearch < n.id <= $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1181,8 +1173,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single range undirect search $valueToSearch < n.id <= $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single range undirect search $valueToSearch < n.id <= $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1218,8 +1209,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single direct range search $valueToSearch <= n.id < $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single direct range search $valueToSearch <= n.id < $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1255,8 +1245,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirect range search $valueToSearch <= n.id < $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirect range search $valueToSearch <= n.id < $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1292,8 +1281,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range seek $valueToSearch < n.id < $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range seek $valueToSearch < n.id < $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1329,8 +1317,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range seek $valueToSearch < n.id < $valueToSearch",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range seek $valueToSearch < n.id < $valueToSearch"
     ) {
       // given
       givenGraph(createGraph())
@@ -1366,8 +1353,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range search ${range(size - 1)} <= n.id <= ${range(0)}",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range search ${range(size - 1)} <= n.id <= ${range(0)}"
     ) {
       // given
       givenGraph(createGraph())
@@ -1404,8 +1390,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range search ${range(size - 1)} <= n.id <= ${range(0)}",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range search ${range(size - 1)} <= n.id <= ${range(0)}"
     ) {
       // given
       givenGraph(createGraph())
@@ -1442,8 +1427,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range search ${range(0)} <= n.id < ${range(size - 1)}",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range search ${range(0)} <= n.id < ${range(size - 1)}"
     ) {
       // given
       givenGraph(createGraph())
@@ -1481,8 +1465,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range search ${range(0)} <= n.id < ${range(size - 1)}",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range search ${range(0)} <= n.id < ${range(size - 1)}"
     ) {
       // given
       givenGraph(createGraph())
@@ -1520,8 +1503,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range search ${range(0)} < n.id <= ${range(size - 1)}",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range search ${range(0)} < n.id <= ${range(size - 1)}"
     ) {
       // given
       givenGraph(createGraph())
@@ -1559,8 +1541,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range search ${range(0)} < n.id <= ${range(size - 1)}",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range search ${range(0)} < n.id <= ${range(size - 1)}"
     ) {
       // given
       givenGraph(createGraph())
@@ -1598,8 +1579,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range search ${range(0)} <= n.id <= ${range(size - 1)}",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range search ${range(0)} <= n.id <= ${range(size - 1)}"
     ) {
       // given
       givenGraph(createGraph())
@@ -1637,8 +1617,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range search ${range(0)} <= n.id <= ${range(size - 1)}",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range search ${range(0)} <= n.id <= ${range(size - 1)}"
     ) {
       // given
       givenGraph(createGraph())
@@ -1676,8 +1655,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range search $valueToSearch < n.id",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range search $valueToSearch < n.id"
     ) {
       // given
       givenGraph(createGraph())
@@ -1715,8 +1693,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range search $valueToSearch < n.id",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range search $valueToSearch < n.id"
     ) {
       // given
       givenGraph(createGraph())
@@ -1754,8 +1731,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range search $valueToSearch <= n.id",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range search $valueToSearch <= n.id"
     ) {
       // given
       givenGraph(createGraph())
@@ -1792,8 +1768,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range search $valueToSearch <= n.id",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range search $valueToSearch <= n.id"
     ) {
       // given
       givenGraph(createGraph())
@@ -1830,8 +1805,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range search $valueToSearch > n.id",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range search $valueToSearch > n.id"
     ) {
       // given
       givenGraph(createGraph())
@@ -1868,8 +1842,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range search $valueToSearch > n.id",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range search $valueToSearch > n.id"
     ) {
       // given
       givenGraph(createGraph())
@@ -1906,8 +1879,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single directed range search $valueToSearch >= n.id",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single directed range search $valueToSearch >= n.id"
     ) {
       // given
       givenGraph(createGraph())
@@ -1944,8 +1916,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"should support single-stage filtering single undirected range search $valueToSearch >= n.id",
-      Tags.NoSpdOverride
+      s"should support single-stage filtering single undirected range search $valueToSearch >= n.id"
     ) {
       // given
       givenGraph(createGraph())
@@ -1982,7 +1953,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
   })
 
-  test("should support single-stage filtering single directed range search with different types", Tags.NoSpdOverride) {
+  test("should support single-stage filtering single directed range search with different types") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
@@ -2030,8 +2001,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
   }
 
   test(
-    "should support single-stage filtering single undirected range search with different types",
-    Tags.NoSpdOverride
+    "should support single-stage filtering single undirected range search with different types"
   ) {
 
     givenGraph {
@@ -2080,8 +2050,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
   }
 
   test(
-    "should support single-stage filtering single directed range search with different non-storable types",
-    Tags.NoSpdOverride
+    "should support single-stage filtering single directed range search with different non-storable types"
   ) {
 
     givenGraph {
@@ -2130,8 +2099,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
   }
 
   test(
-    "should support single-stage filtering single undirected range search with different non-storable types",
-    Tags.NoSpdOverride
+    "should support single-stage filtering single undirected range search with different non-storable types"
   ) {
 
     givenGraph {
@@ -2180,8 +2148,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
   }
 
   test(
-    "should support single-stage filtering single directed open range search with non-storable type",
-    Tags.NoSpdOverride
+    "should support single-stage filtering single directed open range search with non-storable type"
   ) {
 
     givenGraph {
@@ -2229,8 +2196,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
   }
 
   test(
-    "should support single-stage filtering single undirected open range search with non-storable type",
-    Tags.NoSpdOverride
+    "should support single-stage filtering single undirected open range search with non-storable type"
   ) {
 
     givenGraph {
@@ -2277,7 +2243,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support single-stage filtering single directed range search between null values", Tags.NoSpdOverride) {
+  test("should support single-stage filtering single directed range search between null values") {
 
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
@@ -2324,7 +2290,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support single-stage filtering single undirected range search between null values", Tags.NoSpdOverride) {
+  test("should support single-stage filtering single undirected range search between null values") {
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
       val write = tx.kernelTransaction().dataWrite
@@ -2370,7 +2336,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support single-stage filtering single range seek of booleans", Tags.NoSpdOverride) {
+  test("should support single-stage filtering single range seek of booleans") {
     // given
     givenGraph(booleanVectorGraph(20))
 
@@ -2562,8 +2528,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
 
     test(
-      s"index equivalence test iteration=$i, directed=$directed",
-      Tags.NoSpdOverride
+      s"index equivalence test iteration=$i, directed=$directed"
     ) {
       withClue(s"seed=$seed predicate=$predicateString") {
         // given
@@ -2598,7 +2563,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     }
   })
 
-  test("comparing floating point and integer", Tags.NoSpdOverride) {
+  test("comparing floating point and integer") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
@@ -2646,7 +2611,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("exact filter for non-storable value", Tags.NoSpdOverride) {
+  test("exact filter for non-storable value") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
@@ -2694,7 +2659,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("id").withNoRows()
   }
 
-  test("should support multiple composite directed exact filters", Tags.NoSpdOverride) {
+  test("should support multiple composite directed exact filters") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
@@ -2754,7 +2719,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     run(EMPTY_MAP, EMPTY_MAP) should beColumns("id1", "id2").withNoRows()
   }
 
-  test("should support multiple composite undirected exact filters", Tags.NoSpdOverride) {
+  test("should support multiple composite undirected exact filters") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
@@ -2814,7 +2779,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     run(EMPTY_MAP, EMPTY_MAP) should beColumns("id1", "id2").withNoRows()
   }
 
-  test("should support exact composite directed query with one gap", Tags.NoSpdOverride) {
+  test("should support exact composite directed query with one gap") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -2897,7 +2862,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("id1", "id2", "id3").withNoRows()
   }
 
-  test("should support exact composite undirected query with one gap", Tags.NoSpdOverride) {
+  test("should support exact composite undirected query with one gap") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -2980,7 +2945,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("id1", "id2", "id3").withNoRows()
   }
 
-  test("should support exact composite directed query with two gaps", Tags.NoSpdOverride) {
+  test("should support exact composite directed query with two gaps") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -3041,7 +3006,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     run(EMPTY_MAP) should beColumns("id1", "id2", "id3").withNoRows()
   }
 
-  test("should support exact composite undirected query with two gaps", Tags.NoSpdOverride) {
+  test("should support exact composite undirected query with two gaps") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -3106,7 +3071,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     run(EMPTY_MAP) should beColumns("id1", "id2", "id3").withNoRows()
   }
 
-  test("should support exact composite directed query with just gaps", Tags.NoSpdOverride) {
+  test("should support exact composite directed query with just gaps") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -3152,7 +3117,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("id1", "id2", "id3").withRows(rowCount(1000))
   }
 
-  test("should support exact composite undirected query with just gaps", Tags.NoSpdOverride) {
+  test("should support exact composite undirected query with just gaps") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -3198,7 +3163,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("id1", "id2", "id3").withRows(rowCount(2 * 1000))
   }
 
-  test("should support multiple composite directed range filters", Tags.NoSpdOverride) {
+  test("should support multiple composite directed range filters") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
@@ -3298,7 +3263,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     })
   }
 
-  test("should support multiple composite undirected range filters", Tags.NoSpdOverride) {
+  test("should support multiple composite undirected range filters") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
@@ -3398,7 +3363,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     })
   }
 
-  test("should support composite combined directed exact and range filters", Tags.NoSpdOverride) {
+  test("should support composite combined directed exact and range filters") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
@@ -3483,7 +3448,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     })
   }
 
-  test("should support composite combined undirected exact and range filters", Tags.NoSpdOverride) {
+  test("should support composite combined undirected exact and range filters") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
@@ -3568,7 +3533,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     })
   }
 
-  test("directed composite queries should find relationships with missing property", Tags.NoSpdOverride) {
+  test("directed composite queries should find relationships with missing property") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -3652,7 +3617,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     )
   }
 
-  test("undirected composite queries should find relationships with missing property", Tags.NoSpdOverride) {
+  test("undirected composite queries should find relationships with missing property") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2", "id3")
@@ -3744,7 +3709,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     )
   }
 
-  test("should support directed existence query", Tags.NoSpdOverride) {
+  test("should support directed existence query") {
     // given
     val relationships = ArrayBuffer.empty[Relationship]
     givenGraph {
@@ -3785,7 +3750,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("r").withRows(singleColumn(relationships))
   }
 
-  test("should support undirected existence query", Tags.NoSpdOverride) {
+  test("should support undirected existence query") {
     // given
     val relationships = ArrayBuffer.empty[Relationship]
     givenGraph {
@@ -3826,7 +3791,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("r").withRows(singleColumn(relationships.flatMap(r => Seq(r, r))))
   }
 
-  test("should support composite directed existence query", Tags.NoSpdOverride) {
+  test("should support composite directed existence query") {
 
     // given
     val relationships = ArrayBuffer.empty[Relationship]
@@ -3874,7 +3839,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("r").withRows(singleColumn(relationships))
   }
 
-  test("should support composite undirected existence query", Tags.NoSpdOverride) {
+  test("should support composite undirected existence query") {
 
     // given
     val relationships = ArrayBuffer.empty[Relationship]
@@ -3922,7 +3887,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("r").withRows(singleColumn(relationships.flatMap(r => Seq(r, r))))
   }
 
-  test("should work without issues on the RHS of apply", Tags.NoSpdOverride) {
+  test("should work without issues on the RHS of apply") {
     // given
     val relationships = ArrayBuffer.empty[Relationship]
     val size = 10
@@ -3960,7 +3925,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     execute(logicalQuery, runtime, input) should beColumns("r").withRows(expected)
   }
 
-  test("should work without issues on the RHS of cartesian product", Tags.NoSpdOverride) {
+  test("should work without issues on the RHS of cartesian product") {
     // given
     val relationships = ArrayBuffer.empty[Relationship]
     val size = 10
@@ -3997,7 +3962,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     execute(logicalQuery, runtime, input) should beColumns("i", "r").withRows(expected)
   }
 
-  test("sort on top of vector search", Tags.NoSpdOverride) {
+  test("sort on top of vector search") {
     // given
     val relationships = ArrayBuffer.empty[Relationship]
     val size = 10
@@ -4032,7 +3997,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     execute(logicalQuery, runtime) should beColumns("r").withRows(inOrder(relationships.sortBy(-_.getId).map(Array(_))))
   }
 
-  test("should work with durations", Tags.NoSpdOverride) {
+  test("should work with durations") {
     // given
     givenGraph {
       relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")

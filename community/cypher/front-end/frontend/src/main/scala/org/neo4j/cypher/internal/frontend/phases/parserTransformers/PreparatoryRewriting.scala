@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.Remove
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteGraphTypeReferences
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShortestPathWithFixedLengthRelationship
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShowQuery
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.SearchPredicateNormalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.TimestampRewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.AccumulatedSteps
@@ -59,7 +60,8 @@ case object PreparatoryRewriting extends Phase[BaseContext, BaseState, BaseState
         TimestampRewriter,
         RewriteGraphTypeReferences,
         RewriteShortestPathWithFixedLengthRelationship,
-        RewriteShowQuery
+        RewriteShowQuery,
+        SearchPredicateNormalizer
       )
     )
 
