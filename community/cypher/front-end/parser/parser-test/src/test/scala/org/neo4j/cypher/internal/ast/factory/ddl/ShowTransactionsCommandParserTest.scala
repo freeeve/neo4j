@@ -902,7 +902,7 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
               simpleCollectExpression(
                 patternForMatch(nodePat(Some("b"))),
                 None,
-                return__(returnItem(varFor("b"), "a"))
+                return_(returnItem(varFor("b"), "a"))
               ),
               listOf()
             )))

@@ -479,7 +479,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           returnAllItems.withDefaultOrderOnColumns(List("b")),
           Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
           where = Some(where(notEquals(
-            simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return__(returnItem(varFor("b"), "a"))),
+            simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return_(returnItem(varFor("b"), "a"))),
             listOf()
           )))
         ))
@@ -1221,7 +1221,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
               simpleCollectExpression(
                 patternForMatch(nodePat(Some("b"))),
                 None,
-                return__(returnItem(varFor("b"), "a"))
+                return_(returnItem(varFor("b"), "a"))
               ),
               listOf()
             )))

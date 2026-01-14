@@ -61,7 +61,8 @@ case object RewriteShowQuery extends Step with DefaultPostCondition with Prepara
   )
 
   val instance: Rewriter = bottomUp(Rewriter.lift {
-    case s @ SingleQuery(clauses) => s.copy(clauses = rewriteClauses(clauses.toList, List()))(s.position)
+    case s @ SingleQuery(clauses) if clauses.exists(_.isInstanceOf[CommandClause]) =>
+      s.copy(clauses = rewriteClauses(clauses.toList, List()))(s.position)
   })
 
   @tailrec

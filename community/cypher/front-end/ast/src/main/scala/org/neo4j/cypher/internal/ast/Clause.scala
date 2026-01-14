@@ -2023,7 +2023,6 @@ case object AddedInRewriteGeneral extends MayBeImportingWithType
 
 sealed trait ReturnType extends ClauseType
 case object DefaultReturn extends ReturnType
-case object ReturnPartOfShowCommand extends ReturnType
 case object ReturnAddedInRewrite extends ReturnType
 
 object With {
