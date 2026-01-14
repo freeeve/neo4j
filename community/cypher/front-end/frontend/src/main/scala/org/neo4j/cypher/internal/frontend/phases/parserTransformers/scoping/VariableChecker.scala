@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.Compilat
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.notification.DeprecatedPropertyReferenceInCreate
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
+import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.Foldable
 import org.neo4j.cypher.internal.util.Foldable.FoldingBehavior
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -162,18 +163,15 @@ case class VariableChecker(
       ).toSeq)
   }
 
-  private val statementChecks: Seq[VariableCheck] = {
-    if (checkAggregations) Seq.empty
-    else
-      Seq(
-        redeclarationOfVariable,
-        multipleReturnColumns,
-        incompatibleReturnColumns,
-        invalidUseOfReturnStar,
-        variableNotDefinedInScopeClause,
-        invalidEntityReferenceInUpdatingClause
-      )
-  }
+  private val statementChecks: Seq[VariableCheck] =
+    Seq(
+      redeclarationOfVariable,
+      multipleReturnColumns,
+      incompatibleReturnColumns,
+      invalidUseOfReturnStar,
+      variableNotDefinedInScopeClause,
+      invalidEntityReferenceInUpdatingClause
+    )
 
   private val unboundVariablesInPatternExpression: VariableCheck = {
     case (acc, ExpressionScope(_: PatternExpression, _, _, declarations, _)) if declarations.variables.nonEmpty =>
@@ -242,17 +240,16 @@ case class VariableChecker(
       acc(SemanticError.variableNotDefined(variable.name, variable.position))
   }
 
-  private val expressionChecks: Seq[VariableCheck] = {
-    if (checkAggregations)
-      Seq(
-        variableNotDefined
-      )
-    else
-      Seq(
-        unboundVariablesInPatternExpression,
-        variableNotDefined
-      )
-  }
+  private val expressionChecks: Seq[VariableCheck] =
+    Seq(
+      unboundVariablesInPatternExpression,
+      variableNotDefined
+    )
+
+  private val expressionAggregationChecks: Seq[VariableCheck] =
+    Seq(
+      variableNotDefined
+    )
 
   private val redeclarationOfVariablesInPatterns: VariableCheck = {
     case (acc, Scope.Pattern.NamedPath(path, topo, Declarations(_, variables, _))) =>
@@ -280,26 +277,30 @@ case class VariableChecker(
       }
   }
 
-  private val patternChecks: Seq[VariableCheck] = {
-    if (checkAggregations) Seq.empty
-    else
-      Seq(
-        redeclarationOfVariablesInPatterns,
-        relationshipVariableAlreadyBound
-      )
-  }
+  private val patternChecks: Seq[VariableCheck] =
+    Seq(
+      redeclarationOfVariablesInPatterns,
+      relationshipVariableAlreadyBound
+    )
 
   private def checkFold(s: WorkingScope, acc: Acc, checks: Seq[VariableCheck]): Acc =
     checks.foldLeft(acc) { case (acc, check) =>
       check.applyOrElse((acc, s), (_: (Acc, WorkingScope)) => acc)
     }
 
-  private def checkWorkingScope(acc: Acc, workingScope: WorkingScope): Acc = workingScope match {
-    case ss: StatementScope  => checkFold(ss, acc, statementChecks)
-    case es: ExpressionScope => checkFold(es, acc, expressionChecks)
-    case ps: PatternScope    => checkFold(ps, acc, patternChecks)
-    case _                   => acc
-  }
+  private def checkWorkingScope(acc: Acc, workingScope: WorkingScope): Acc =
+    if (checkAggregations)
+      workingScope match {
+        case es: ExpressionScope => checkFold(es, acc, expressionAggregationChecks)
+        case _                   => acc
+      }
+    else
+      workingScope match {
+        case ss: StatementScope  => checkFold(ss, acc, statementChecks)
+        case es: ExpressionScope => checkFold(es, acc, expressionChecks)
+        case ps: PatternScope    => checkFold(ps, acc, patternChecks)
+        case _                   => acc
+      }
 
   private def updateAccAndTraverse(
     acc: Acc,
@@ -487,15 +488,24 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
 
   def checkForAmbiguousAggregation(from: BaseState, context: BaseContext): Seq[SemanticError] = {
     val errors = from.maybeScopeState.map(s =>
-      VariableChecker(
-        context.cypherVersion,
-        checkAggregations = true,
-        logger = context.notificationLogger
-      ).collectAll(s.workingScope).toSeq
+      VariableChecker(context.cypherVersion, checkAggregations = true, logger = context.notificationLogger)
+        .collectAll(s.workingScope).toSeq
     ).getOrElse(Seq.empty)
     errors.filter(_.gqlStatusObject.cause().get().gqlStatus() == "42I18")
       .distinct
   }
+
+  def checkForAmbiguousAggregationFromClause(
+    from: BaseState,
+    context: BaseContext,
+    clause: ASTNode
+  ): Seq[SemanticError] =
+    from.scopeState().recordedScopes.get(clause).fold(Seq.empty[SemanticError]) { c =>
+      VariableChecker(context.cypherVersion, checkAggregations = true, logger = context.notificationLogger)
+        .collectAll(c).toSeq
+        .filter(_.gqlStatusObject.cause().get().gqlStatus() == "42I18")
+        .distinct
+    }
 
   override val phase = CompilationPhase.VARIABLE_CHECK
 

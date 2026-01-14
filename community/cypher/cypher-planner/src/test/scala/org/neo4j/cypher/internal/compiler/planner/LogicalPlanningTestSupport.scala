@@ -91,6 +91,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClause
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizerTest
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.rewriteEqualityToInPredicate
 import org.neo4j.cypher.internal.ir.PatternLength
@@ -563,6 +564,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     Parse andThen
       PreparatoryRewriting andThen
       SemanticAnalysis(warn = Some(true)) andThen
+      ScopeSurveyor andThen
       ExpandClauses andThen
       SemanticAnalysis(warn = Some(true)) andThen
       AstRewriting() andThen

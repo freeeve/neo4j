@@ -69,8 +69,6 @@ case class SemanticAnalysis(warn: Option[Boolean])
         Option(context.sessionDatabase)
       )
 
-    val upToDateScopes = ScopeSurveyor.process(from, context)
-
     val SemanticCheckResult(state, errors) = SemanticChecker.check(from.statement(), startState, checkContext)
     if (warn.getOrElse(!from.maybeSemantics.exists(_.semanticCheckHasRunOnce)))
       state.notifications.foreach(context.notificationLogger.log)
@@ -79,6 +77,7 @@ case class SemanticAnalysis(warn: Option[Boolean])
     if (context.semanticFeatures.contains(VariableChecking)) {
       val saErrors = errors.filter(VariableChecker.isNotImplementedCode)
       val vcErrors = if (from.maybeSemantics.isEmpty) {
+        val upToDateScopes = ScopeSurveyor.process(from, context)
         // Until we remove the feature flag we won't be able to set the correct dependencies for the transformer
         //  without causing a lot of unnecessary rerunning of the ScopeSurveyor. Instead, we run it manually here.
         VariableChecker.gatherAllErrors(upToDateScopes, context)
@@ -117,7 +116,8 @@ case class SemanticAnalysis(warn: Option[Boolean])
         // This is done by the computeDependenciesForExpressions rewriter.
         // We need to apply it after each pass of SemanticAnalysis.
         // Disabled until Namespacer interactions can be solved.
-        if (false && context.semanticFeatures.contains(VariableChecking)) {
+        if (false) {
+          val upToDateScopes = ScopeSurveyor.process(from, context)
           from.statement().endoRewrite(
             topDown(Rewriter.lift {
               case x: ExpressionWithComputedDependencies =>
@@ -134,14 +134,11 @@ case class SemanticAnalysis(warn: Option[Boolean])
         from.statement()
       }
 
-    ScopeSurveyor.process(
-      from
-        .withStatement(rewrittenStatement)
-        .withSemanticState(state)
-        .withSemanticTable(table)
-        .withSemanticsUpToDate(true),
-      context
-    )
+    from
+      .withStatement(rewrittenStatement)
+      .withSemanticState(state)
+      .withSemanticTable(table)
+      .withSemanticsUpToDate(true)
   }
 
   override def phase: CompilationPhaseTracer.CompilationPhase = SEMANTIC_CHECK

@@ -54,6 +54,7 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
     ScopeSurveyor andThen
       IsolateSubqueriesInMutatingPatterns andThen
       SemanticAnalysis(Some(false)) andThen
+      ScopeSurveyor andThen
       ExpandClauses
 
   private val additionalExpectedAstUpdates = (expectedStatement: Statement) => {

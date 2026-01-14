@@ -42,11 +42,14 @@ case object AmbiguousAggregationAnalysis extends VisitorPhase[BaseContext, BaseS
     val errors = if (from.semantics().features.contains(VariableChecking)) {
       // Until we remove the feature flag we won't be able to set the correct dependencies for the transformer
       //  without causing a lot of unnecessary rerunning of the ScopeSurveyor. Instead, we run it manually here.
+      val upToDateScope = ScopeSurveyor.process(from, context)
       from.statement().folder.fold(Seq.empty[SemanticErrorDef]) {
         // If we project '*', we don't need to check ambiguity since we group on all available variables.
         case projectionClause: ProjectionClause if !projectionClause.returnItems.includeExisting =>
-          _ ++ projectionClause.orderBy.toSeq.flatMap(_.checkIllegalOrdering(projectionClause.returnItems))
-      } ++ VariableChecker.checkForAmbiguousAggregation(ScopeSurveyor.process(from, context), context)
+          _ ++ projectionClause.orderBy.toSeq.flatMap(_.checkIllegalOrdering(projectionClause.returnItems)) ++
+            VariableChecker.checkForAmbiguousAggregationFromClause(upToDateScope, context, projectionClause)
+
+      }
     } else {
       from.statement().folder.fold(Seq.empty[SemanticErrorDef]) {
         // If we project '*', we don't need to check ambiguity since we group on all available variables.
