@@ -88,24 +88,35 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
 
     private final int totalSpace;
     private final int halfSpace;
-    final OffloadStore<KEY, VALUE> offloadStore;
+    protected final int headerSize;
+    protected final OffloadStore<KEY, VALUE> offloadStore;
     private final int maxKeyCount;
 
-    final Layout<KEY, VALUE> layout;
-    final int payloadSize;
+    protected final Layout<KEY, VALUE> layout;
+    protected final int payloadSize;
 
     LeafNodeDynamicSize(int payloadSize, Layout<KEY, VALUE> layout, OffloadStore<KEY, VALUE> offloadStore) {
+        this(payloadSize, layout, offloadStore, 0);
+    }
+
+    LeafNodeDynamicSize(
+            int payloadSize,
+            Layout<KEY, VALUE> layout,
+            OffloadStore<KEY, VALUE> offloadStore,
+            int additionalHeaderSize) {
         this.payloadSize = payloadSize;
         this.layout = layout;
 
         assert payloadSize < SUPPORTED_PAGE_SIZE_LIMIT
                 : "Only payload size less then " + SUPPORTED_PAGE_SIZE_LIMIT + " bytes supported";
-        this.totalSpace = payloadSize - DynamicSizeUtil.HEADER_LENGTH_DYNAMIC;
+
+        this.headerSize = DynamicSizeUtil.HEADER_LENGTH_DYNAMIC + additionalHeaderSize;
+        this.totalSpace = payloadSize - headerSize;
         this.maxKeyCount = totalSpace / (DynamicSizeUtil.OFFSET_SIZE + MIN_SIZE_KEY_VALUE_SIZE);
         this.offloadStore = offloadStore;
         this.halfSpace = totalSpace >> 1;
 
-        this.inlineKeyValueSizeCap = DynamicSizeUtil.inlineKeyValueSizeCapLeafNode(payloadSize);
+        this.inlineKeyValueSizeCap = DynamicSizeUtil.inlineKeyValueSizeCapLeafNode(payloadSize, headerSize);
         this.keyValueSizeCap = keyValueSizeCapFromPageSize(payloadSize);
 
         validateInlineCap(inlineKeyValueSizeCap, payloadSize);
@@ -390,7 +401,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
         return true;
     }
 
-    private static void resetOffsetAtPos(PageCursor cursor, int pos, int newKeyValueOffset) {
+    private void resetOffsetAtPos(PageCursor cursor, int pos, int newKeyValueOffset) {
         // Write to offset array
         cursor.setOffset(keyPosOffsetLeaf(pos));
         putUnsignedShort(cursor, newKeyValueOffset);
@@ -478,8 +489,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
         var sizes = new int[keyCount];
         // collect alive offsets and sizes
         recordAliveBlocks(cursor, keyCount, offsets, sizes, payloadSize, true);
-        compactToRight(
-                cursor, keyCount, offsetCount, offsets, sizes, payloadSize, LeafNodeDynamicSize::keyPosOffsetLeaf);
+        compactToRight(cursor, keyCount, offsetCount, offsets, sizes, payloadSize, this::keyPosOffsetLeaf);
         // Update dead space
         setDeadSpace(cursor, 0);
     }
@@ -936,15 +946,15 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     void placeCursorAtActualKey(PageCursor cursor, int pos) {
         // Set cursor to correct place in offset array
         int keyPosOffset = keyPosOffsetLeaf(pos);
-        DynamicSizeUtil.redirectCursor(cursor, keyPosOffset, DynamicSizeUtil.HEADER_LENGTH_DYNAMIC, payloadSize);
+        DynamicSizeUtil.redirectCursor(cursor, keyPosOffset, headerSize, payloadSize);
     }
 
     boolean keyValueSizeTooLarge(int keySize, int valueSize) {
         return keySize + valueSize > keyValueSizeCap;
     }
 
-    protected static int keyPosOffsetLeaf(int pos) {
-        return DynamicSizeUtil.HEADER_LENGTH_DYNAMIC + pos * DynamicSizeUtil.OFFSET_SIZE;
+    protected int keyPosOffsetLeaf(int pos) {
+        return headerSize + pos * DynamicSizeUtil.OFFSET_SIZE;
     }
 
     @Override
@@ -1102,7 +1112,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     public <ROOT_KEY> void deepVisitValue(PageCursor cursor, int pos, GBPTreeVisitor<ROOT_KEY, KEY, VALUE> visitor)
             throws IOException {}
 
-    protected static int lowestActiveKeyOffset(PageCursor cursor, int keyCount, int payloadSize) {
+    protected int lowestActiveKeyOffset(PageCursor cursor, int keyCount, int payloadSize) {
         int lowestOffsetSoFar = payloadSize;
         for (int pos = 0; pos < keyCount; pos++) {
             // Set cursor to correct place in offset array
@@ -1119,7 +1129,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     // Calculated by reading data instead of extrapolate from allocSpace and deadSpace
     private int totalActiveSpaceRaw(PageCursor cursor, int keyCount) {
         // Offset array
-        int offsetArrayStart = DynamicSizeUtil.HEADER_LENGTH_DYNAMIC;
+        int offsetArrayStart = headerSize;
         int offsetArrayEnd = keyPosOffsetLeaf(keyCount);
         int offsetArraySize = offsetArrayEnd - offsetArrayStart;
 

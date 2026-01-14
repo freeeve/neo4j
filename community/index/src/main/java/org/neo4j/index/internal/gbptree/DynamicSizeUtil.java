@@ -484,10 +484,10 @@ public class DynamicSizeUtil {
      * Inline key value size cap is calculated based of payload size and capped with max supported size of key for
      * inlined encoding.
      */
-    static int inlineKeyValueSizeCapLeafNode(int payloadSize) {
+    static int inlineKeyValueSizeCapLeafNode(int payloadSize, int headerSize) {
         int totalOverhead = OFFSET_SIZE + MAX_SIZE_KEY_VALUE_SIZE;
         int capToFitNumberOfEntriesPerPage =
-                (payloadSize - HEADER_LENGTH_DYNAMIC) / LEAST_NUMBER_OF_ENTRIES_PER_PAGE - totalOverhead;
+                (payloadSize - headerSize) / LEAST_NUMBER_OF_ENTRIES_PER_PAGE - totalOverhead;
         return Math.min(MAX_TWO_BYTE_KEY_SIZE, capToFitNumberOfEntriesPerPage);
     }
 

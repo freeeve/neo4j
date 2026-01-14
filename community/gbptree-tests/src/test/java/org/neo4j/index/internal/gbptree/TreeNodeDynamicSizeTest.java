@@ -323,7 +323,7 @@ public class TreeNodeDynamicSizeTest extends TreeNodeTestBase<RawBytes, RawBytes
         // Depending on the data on the right side this could result in a GSPP error when reading up what was
         // in the child pointer position before doing the actual write.
         int keySize = testOldLimit
-                ? DynamicSizeUtil.inlineKeyValueSizeCapLeafNode(PAGE_SIZE)
+                ? DynamicSizeUtil.inlineKeyValueSizeCapLeafNode(PAGE_SIZE, DynamicSizeUtil.HEADER_LENGTH_DYNAMIC)
                 : DynamicSizeUtil.inlineKeyValueSizeCapInternalNode(PAGE_SIZE);
 
         // A key with data so any accidental read among the keys from the offset array will be noticed

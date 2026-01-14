@@ -59,13 +59,14 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     protected final int maxKeyCount;
     protected final int keySize;
     protected final int valueSize;
+    private final int headerSize;
     private final int halfSpace;
 
     protected final Layout<KEY, VALUE> layout;
     private final int payloadSize;
 
     LeafNodeFixedSize(int pageSize, Layout<KEY, VALUE> layout) {
-        this(pageSize, layout, 0);
+        this(pageSize, layout, 0, 0);
     }
 
     /**
@@ -73,12 +74,13 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
      * @param layout - layout
      * @param additionalValueSize - extra bytes allocated for each value, can be used by descendants to store additional data
      */
-    LeafNodeFixedSize(int payloadSize, Layout<KEY, VALUE> layout, int additionalValueSize) {
+    LeafNodeFixedSize(int payloadSize, Layout<KEY, VALUE> layout, int additionalValueSize, int additionalHeaderSize) {
         this.payloadSize = payloadSize;
         this.layout = layout;
         this.keySize = layout.keySize(null);
         this.valueSize = layout.valueSize(null) + additionalValueSize;
-        this.maxKeyCount = Math.floorDiv(payloadSize - BASE_HEADER_LENGTH, keySize + valueSize);
+        this.headerSize = BASE_HEADER_LENGTH + additionalHeaderSize;
+        this.maxKeyCount = Math.floorDiv(payloadSize - headerSize, keySize + valueSize);
         int halfKeyCount = (maxKeyCount + 1) / 2;
         this.halfSpace = halfKeyCount * (keySize + valueSize);
 
@@ -235,11 +237,11 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     }
 
     protected int keyOffset(int pos) {
-        return BASE_HEADER_LENGTH + pos * keySize;
+        return headerSize + pos * keySize;
     }
 
     protected int valueOffset(int pos) {
-        return BASE_HEADER_LENGTH + maxKeyCount * keySize + pos * valueSize;
+        return headerSize + maxKeyCount * keySize + pos * valueSize;
     }
 
     @Override
