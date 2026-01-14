@@ -3239,6 +3239,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "wrong variable for vector search filtering",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I75(
+            new GqlStatus("42I75"),
+            "The expression { %s } in the search clause may not depend on the search clause binding variable { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.expr, GqlParams.StringParam.variable},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "self-referencing in vector search",
+            ErrorClassification.CLIENT_ERROR),
+
     STATUS_42N00(
             new GqlStatus("42N00"),
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",

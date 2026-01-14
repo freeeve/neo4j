@@ -2318,15 +2318,8 @@ object SemanticError {
     variable: String,
     position: InputPosition
   ): SemanticError = {
-    val gql = GqlHelper.getGql42001_51N26(
-      s"Cross-referencing from vector search filters",
-      s"vector search filter expression `$expression` to depend on the search variable `$variable`",
-      position.offset,
-      position.line,
-      position.column
-    )
     SemanticError(
-      gql,
+      GqlHelper.getGql42001_42I75(expression, variable, position.offset, position.line, position.column),
       s"Vector search filters referencing the search variable",
       position
     )
@@ -2337,15 +2330,8 @@ object SemanticError {
     variable: String,
     position: InputPosition
   ): SemanticError = {
-    val gql = GqlHelper.getGql42001_51N26(
-      s"Cross-referencing from vector search embedding",
-      s"vector search embedding expression `$expression` to depend on the search variable `$variable`",
-      position.offset,
-      position.line,
-      position.column
-    )
     SemanticError(
-      gql,
+      GqlHelper.getGql42001_42I75(expression, variable, position.offset, position.line, position.column),
       s"Vector search embeddings referencing the search variable",
       position
     )

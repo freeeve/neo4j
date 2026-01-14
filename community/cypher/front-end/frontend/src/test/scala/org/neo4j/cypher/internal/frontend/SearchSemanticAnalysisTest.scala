@@ -346,13 +346,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
     ) {
       runSearch().hasErrors(
         SemanticError(
-          GqlHelper.getGql42001_51N26(
-            "Cross-referencing from vector search embedding",
-            "vector search embedding expression `m.embedding` to depend on the search variable `m`",
-            92 + optionalLength,
-            4,
-            10
-          ),
+          GqlHelper.getGql42001_42I75("m.embedding", "m", 92 + optionalLength, 4, 10),
           s"Vector search embeddings referencing the search variable",
           InputPosition(92 + optionalLength, 4, 10)
         )
@@ -371,13 +365,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
     ) {
       runSearch().hasErrors(
         SemanticError(
-          GqlHelper.getGql42001_51N26(
-            "Cross-referencing from vector search embedding",
-            "vector search embedding expression `movie.embedding` to depend on the search variable `movie`",
-            82 + optionalLength,
-            4,
-            14
-          ),
+          GqlHelper.getGql42001_42I75("movie.embedding", "movie", 82 + optionalLength, 4, 14),
           s"Vector search embeddings referencing the search variable",
           InputPosition(82 + optionalLength, 4, 14)
         )
@@ -968,13 +956,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
     ) {
       runSearchWithRewriter().hasErrors(
         SemanticError(
-          GqlHelper.getGql42001_51N26(
-            "Cross-referencing from vector search filters",
-            "vector search filter expression `movie.prop` to depend on the search variable `movie`",
-            122 + optionalLength,
-            5,
-            36
-          ),
+          GqlHelper.getGql42001_42I75("movie.prop", "movie", 122 + optionalLength, 5, 36),
           s"Vector search filters referencing the search variable",
           InputPosition(122 + optionalLength, 5, 36)
         )
