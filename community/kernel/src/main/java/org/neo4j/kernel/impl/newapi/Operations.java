@@ -1643,7 +1643,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                                     relationshipCursor.sourceNodeReference(),
                                     relationshipCursor.targetNodeReference(),
                                     key,
-                                    k -> readRelationshipProperty(k) != NO_VALUE);
+                                    k -> readRelationshipProperty(k, relationshipCursor, propertyCursor) != NO_VALUE);
                     existingPropertyKeyIds = remove(existingPropertyKeyIds, existingPropertyKeyIdIndex);
                     if (storageReader.hasRelatedSchema(new int[] {type}, key, RELATIONSHIP)) {
                         updater.onPropertyRemove(
@@ -1846,7 +1846,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                             localRelationshipCursor.sourceNodeReference(),
                             localRelationshipCursor.targetNodeReference(),
                             propertyKey,
-                            k -> readRelationshipProperty(k) != NO_VALUE);
+                            k -> readRelationshipProperty(k, localRelationshipCursor, localPropertyCursor) != NO_VALUE);
             if (storageReader.hasRelatedSchema(new int[] {type}, propertyKey, RELATIONSHIP)) {
                 updater.onPropertyRemove(
                         localRelationshipCursor,
@@ -1868,11 +1868,12 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         return localPropertyCursor.next() ? localPropertyCursor.propertyValue() : NO_VALUE;
     }
 
-    private Value readRelationshipProperty(int propertyKey) {
-        localRelationshipCursor.properties(localPropertyCursor, PropertySelection.selection(propertyKey));
+    private Value readRelationshipProperty(
+            int propertyKey, RelationshipCursor relationshipCursor, PropertyCursor propertyCursor) {
+        relationshipCursor.properties(propertyCursor, PropertySelection.selection(propertyKey));
 
         // Find out if the property had a value
-        return localPropertyCursor.next() ? localPropertyCursor.propertyValue() : NO_VALUE;
+        return propertyCursor.next() ? propertyCursor.propertyValue() : NO_VALUE;
     }
 
     public CursorFactory cursors() {
