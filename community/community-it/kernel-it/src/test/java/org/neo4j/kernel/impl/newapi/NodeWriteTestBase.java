@@ -75,7 +75,7 @@ import org.neo4j.values.storable.Values;
 @SuppressWarnings("Duplicates")
 @RandomSupportExtension
 public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> extends KernelAPIWriteTestBase<G> {
-    private static final String propertyKey = "prop";
+    protected static final String propertyKey = "prop";
     private static final String labelName = "Town";
 
     @Inject
@@ -282,6 +282,21 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
 
         // Then
         assertProperty(node, propertyKey, "hello");
+    }
+
+    @Test
+    void shouldWriteWhenSettingPropertyToSameValue() throws Exception {
+        // Given
+        Value theValue = stringValue("The Value");
+        long nodeId = createNodeWithProperty(propertyKey, theValue.asObject());
+
+        // When
+        try (KernelTransaction tx = beginTransaction()) {
+            int property = tx.token().propertyKeyGetOrCreateForName(propertyKey);
+            tx.dataWrite().nodeSetProperty(nodeId, property, theValue);
+            // Then
+            assertThat(tx.commit()).isNotEqualTo(KernelTransaction.READ_ONLY_ID);
+        }
     }
 
     @Test
@@ -724,6 +739,26 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
     }
 
     @Test
+    void nodeApplyChangesShouldWriteIfPropertyIsSameValue() throws Exception {
+        // Given
+        Value theValue = stringValue("The Value");
+        long nodeId = createNodeWithProperty(propertyKey, theValue.asObject());
+
+        // When
+        try (KernelTransaction tx = beginTransaction()) {
+            int key = tx.token().propertyKeyGetOrCreateForName(propertyKey);
+            tx.dataWrite()
+                    .nodeApplyChanges(
+                            nodeId,
+                            IntSets.immutable.empty(),
+                            IntSets.immutable.empty(),
+                            IntObjectMaps.immutable.of(key, theValue));
+            // Then
+            assertThat(tx.commit()).isNotEqualTo(KernelTransaction.READ_ONLY_ID);
+        }
+    }
+
+    @Test
     void nodeApplyChangesShouldRemoveProperty() throws Exception {
         // Given
         String keyName = "key";
@@ -1076,7 +1111,7 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
         return node;
     }
 
-    private long createNodeWithProperty(String propertyKey, Object value) {
+    protected long createNodeWithProperty(String propertyKey, Object value) {
         Node node;
         try (org.neo4j.graphdb.Transaction ctx = graphDb.beginTx()) {
             node = ctx.createNode();

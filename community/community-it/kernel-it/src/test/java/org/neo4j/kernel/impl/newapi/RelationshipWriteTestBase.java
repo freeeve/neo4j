@@ -254,6 +254,22 @@ public abstract class RelationshipWriteTestBase<G extends KernelAPIWriteTestSupp
     }
 
     @Test
+    void shouldWriteWhenSettingPropertyToSameValue() throws Exception {
+        // Given
+        String propertyKey = "key";
+        Value theValue = stringValue("The Value");
+        long relationshipId = createRelationshipWithProperty(TYPE, propertyKey, theValue.asObject());
+
+        // When
+        try (KernelTransaction tx = beginTransaction()) {
+            int property = tx.token().propertyKeyGetOrCreateForName(propertyKey);
+            tx.dataWrite().relationshipSetProperty(relationshipId, property, theValue);
+            // Then
+            assertThat(tx.commit()).isNotEqualTo(KernelTransaction.READ_ONLY_ID);
+        }
+    }
+
+    @Test
     void shouldRemovePropertyFromRelationship() throws Exception {
         // Given
         long relationshipId;
@@ -483,6 +499,22 @@ public abstract class RelationshipWriteTestBase<G extends KernelAPIWriteTestSupp
                 assertProperties(relationshipCursor, propertyCursor, IntObjectMaps.immutable.of(key, changedValue));
             }
         });
+    }
+
+    @Test
+    void relationshipApplyChangesShouldWriteIfPropertyIsSameValue() throws Exception {
+        // Given
+        String propertyKey = "key";
+        Value theValue = stringValue("The Value");
+        long relationshipId = createRelationshipWithProperty(TYPE, propertyKey, theValue.asObject());
+
+        // When
+        try (KernelTransaction tx = beginTransaction()) {
+            int key = tx.token().propertyKeyGetOrCreateForName(propertyKey);
+            tx.dataWrite().relationshipApplyChanges(relationshipId, IntObjectMaps.immutable.of(key, theValue));
+            // Then
+            assertThat(tx.commit()).isNotEqualTo(KernelTransaction.READ_ONLY_ID);
+        }
     }
 
     @Test
@@ -730,7 +762,7 @@ public abstract class RelationshipWriteTestBase<G extends KernelAPIWriteTestSupp
         }
     }
 
-    private long createRelationshipWithProperty(RelationshipType type, String key, Object value) {
+    protected long createRelationshipWithProperty(RelationshipType type, String key, Object value) {
         try (var ctx = graphDb.beginTx()) {
             var relationship = ctx.createNode().createRelationshipTo(ctx.createNode(), type);
             relationship.setProperty(key, value);

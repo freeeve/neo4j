@@ -1897,6 +1897,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     public static final Setting<String> fleet_management_api_base_url =
             newBuilder("internal.dbms.fleet_manager.base_url", STRING, null).build();
 
+    @Internal
+    @Description("Do not create updates when the new property value is identical to the existing value. "
+            + "No recording of these updates are preserved, prioritizing performance over correctness.")
+    public static final Setting<Boolean> no_property_update_on_identical_value = newBuilder(
+                    "internal.db.transaction.no_property_update_on_identical_value", BOOL, false)
+            .build();
+
     // Helper method
     public static HeapEstimatorCacheConfig extractCustomHeapEstimatorCacheConfig(Config config) {
         return new HeapEstimatorCacheConfig(

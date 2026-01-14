@@ -215,6 +215,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private final boolean relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled;
     private final boolean alwaysUseLatestIndexProvider;
     private final boolean singleStageFilteringEnabled;
+    private final boolean noPropUpdateOnSameValue;
     private final TransactionStateBehaviour transactionStateBehaviour;
     private DefaultNodeCursor localNodeCursor;
     private NodeCursor restrictedNodeCursor;
@@ -269,6 +270,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         this.alwaysUseLatestIndexProvider = config.get(GraphDatabaseInternalSettings.always_use_latest_index_provider);
         this.singleStageFilteringEnabled =
                 config.get(GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled);
+        this.noPropUpdateOnSameValue = config.get(GraphDatabaseInternalSettings.no_property_update_on_identical_value);
         this.transactionStateBehaviour = transactionStateBehaviour;
     }
 
@@ -1288,9 +1290,19 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 .assertAllowsSetProperty(
                         ktx.securityContext(), this::resolvePropertyKey, Labels.from(labels), propertyKey);
 
+        LoadResult loadResult = null;
+        if (noPropUpdateOnSameValue) {
+            loadResult = loadSortedNodePropertyKeyListAndSingleValue(localNodeCursor, localPropertyCursor, propertyKey);
+            if (!propertyHasChanged(value, loadResult.propertyValue())) {
+                return;
+            }
+        }
+
         if (storageReader.hasRelatedSchema(labels, propertyKey, NODE)) {
-            LoadResult loadResult =
-                    loadSortedNodePropertyKeyListAndSingleValue(localNodeCursor, localPropertyCursor, propertyKey);
+            if (loadResult == null) {
+                loadResult =
+                        loadSortedNodePropertyKeyListAndSingleValue(localNodeCursor, localPropertyCursor, propertyKey);
+            }
             int[] existingPropertyKeyIds = loadResult.propertyKeyIds();
             Value existingValue = loadResult.propertyValue();
 
@@ -1506,9 +1518,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             Labels labelsAfterSet = Labels.from(labelsAfter);
             MutableIntSet existingPropertyKeyIdsBeforeChange = IntSets.mutable.of(existingPropertyKeyIds);
             for (int key : addedPropertyKeyIds) {
-                Value value = properties.get(key);
                 ktx.securityAuthorizationHandler()
                         .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, labelsAfterSet, key);
+                if (noPropUpdateOnSameValue
+                        && (changedPropertyKeyIdsSet == null || !changedPropertyKeyIdsSet.contains(key))) {
+                    continue;
+                }
+                Value value = properties.get(key);
                 ktx.txState().nodeDoAddProperty(node, key, value);
                 if (storageReader.hasRelatedSchema(labelsAfter, key, NODE)) {
                     Value existingValue = existingValuesForChangedProperties.getIfAbsent(key, () -> NO_VALUE);
@@ -1657,9 +1673,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         if (addedPropertyKeyIdsSet != null) {
             MutableIntSet existingPropertyKeyIdsBeforeChange = IntSets.mutable.of(existingPropertyKeyIds);
             for (int key : addedPropertyKeyIds) {
-                Value value = properties.get(key);
                 ktx.securityAuthorizationHandler()
                         .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, type, key);
+                if (noPropUpdateOnSameValue
+                        && (changedPropertyKeyIdsSet == null || !changedPropertyKeyIdsSet.contains(key))) {
+                    continue;
+                }
+                Value value = properties.get(key);
                 ktx.txState()
                         .relationshipDoAddProperty(
                                 relationship,
@@ -1792,9 +1812,21 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         ktx.securityAuthorizationHandler()
                 .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, type, propertyKey);
-        if (storageReader.hasRelatedSchema(new int[] {type}, propertyKey, RELATIONSHIP)) {
-            LoadResult loadResult = loadSortedRelationshipPropertyKeyListAndSingleValue(
+
+        LoadResult loadResult = null;
+        if (noPropUpdateOnSameValue) {
+            loadResult = loadSortedRelationshipPropertyKeyListAndSingleValue(
                     localRelationshipCursor, localPropertyCursor, propertyKey);
+            if (!propertyHasChanged(value, loadResult.propertyValue())) {
+                return;
+            }
+        }
+
+        if (storageReader.hasRelatedSchema(new int[] {type}, propertyKey, RELATIONSHIP)) {
+            if (loadResult == null) {
+                loadResult = loadSortedRelationshipPropertyKeyListAndSingleValue(
+                        localRelationshipCursor, localPropertyCursor, propertyKey);
+            }
             int[] existingPropertyKeyIds = loadResult.propertyKeyIds();
             Value existingValue = loadResult.propertyValue();
 
