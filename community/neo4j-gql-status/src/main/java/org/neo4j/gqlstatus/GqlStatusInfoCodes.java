@@ -4978,7 +4978,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N65(
             new GqlStatus("51N65"),
-            "Vector index { %s } has a dimensionality of { %s }, but indexed vectors have { %s }.",
+            "Vector index { %s } has a dimensionality of { %s }, but provided vector has { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idx, GqlParams.NumberParam.dim1, GqlParams.NumberParam.dim2
             },
             emptyMap(),

@@ -177,13 +177,7 @@ public final class CypherCoercions {
 
         final var dimensions = vectorIndexConfig.dimensions();
         if (dimensions.isPresent() && query.dimensions() != dimensions.getAsInt()) {
-            throw CypherTypeException.wrongVectorDimension(
-                    "Index query vector has %d dimensions, but indexed vectors have %d."
-                            .formatted(query.dimensions(), dimensions.getAsInt()),
-                    query.prettyPrint(),
-                    query.getTypeName(),
-                    dimensions.getAsInt(),
-                    query.dimensions());
+            throw CypherTypeException.wrongVectorDimension(index.getName(), dimensions.getAsInt(), query.dimensions());
         }
 
         final var similarityFunction = vectorIndexConfig.similarityFunction();

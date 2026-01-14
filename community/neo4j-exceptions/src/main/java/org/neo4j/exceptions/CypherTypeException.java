@@ -264,12 +264,17 @@ public class CypherTypeException extends Neo4jException {
         return new CypherTypeException(gql, String.format("Expected a %s, but got %s", expectedType, gotCypherType));
     }
 
-    public static CypherTypeException wrongVectorDimension(
-            String legacyMsg, String gotPretty, String nestedTypeName, long expectedDimension, int gotDimension) {
-        var expectedType = String.format("VECTOR<%s>(%d)", nestedTypeName, expectedDimension);
-        var gotCypherType = String.format("VECTOR<%s>(%d)", nestedTypeName, gotDimension);
-        var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of(expectedType), gotCypherType);
-        return new CypherTypeException(gql, legacyMsg);
+    public static CypherTypeException wrongVectorDimension(String indexName, int indexDim, int vectorDim) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N65)
+                .withParam(GqlParams.StringParam.idx, indexName)
+                .withParam(GqlParams.NumberParam.dim1, indexDim)
+                .withParam(GqlParams.NumberParam.dim2, vectorDim)
+                .build();
+
+        return new CypherTypeException(
+                gql,
+                "Index query vector has a dimensionality of %d, but provided vector has %d."
+                        .formatted(vectorDim, indexDim));
     }
 
     public static CypherTypeException howTreatPredicate(String got, String gotPretty, String gotCypherType) {

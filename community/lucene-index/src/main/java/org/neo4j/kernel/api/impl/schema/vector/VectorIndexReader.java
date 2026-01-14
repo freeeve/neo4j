@@ -124,7 +124,7 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
             final var queryVector = nearestNeighbour.query();
             if (dimensions.isPresent() && queryVector.length != dimensions.getAsInt()) {
                 throw IndexNotApplicableKernelException.vectorIndexDimensionalityMismatch(
-                        indexName(), queryVector.length, dimensions.getAsInt());
+                        indexName(), dimensions.getAsInt(), queryVector.length);
             }
         }
         return predicate;
