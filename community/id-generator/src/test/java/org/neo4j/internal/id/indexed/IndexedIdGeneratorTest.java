@@ -50,6 +50,7 @@ import static org.neo4j.index.internal.gbptree.IndexedIdGeneratorUnsafe.changeHe
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.id.FreeIds.NO_FREE_IDS;
 import static org.neo4j.internal.id.IdGenerator.NO_ID;
+import static org.neo4j.internal.id.IdSequence.FLAG_FAVOR_SAME_PAGE;
 import static org.neo4j.internal.id.IdSlotDistribution.SINGLE_IDS;
 import static org.neo4j.internal.id.IdSlotDistribution.powerTwoSlotSizesDownwards;
 import static org.neo4j.internal.id.IdSlotDistribution.slotDistribution;
@@ -257,9 +258,13 @@ class IndexedIdGeneratorTest {
         // when
         int firstSize = 2;
         int secondSize = 4;
-        long firstId = idGenerator.nextConsecutiveIdRange(firstSize, true, NULL_CONTEXT);
+        long firstId = idGenerator
+                .nextConsecutiveIdRange(firstSize, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                .id();
         assertThat(firstId).isEqualTo(0);
-        long secondId = idGenerator.nextConsecutiveIdRange(secondSize, true, NULL_CONTEXT);
+        long secondId = idGenerator
+                .nextConsecutiveIdRange(secondSize, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                .id();
         assertThat(secondId).isEqualTo(firstId + firstSize);
         markUsed(firstId, firstSize);
         markUsed(secondId, secondSize);
@@ -270,9 +275,18 @@ class IndexedIdGeneratorTest {
         idGenerator.maintenance(NULL_CONTEXT);
 
         // then
-        assertThat(idGenerator.nextConsecutiveIdRange(4, true, NULL_CONTEXT)).isEqualTo(2);
-        assertThat(idGenerator.nextConsecutiveIdRange(4, true, NULL_CONTEXT)).isEqualTo(6);
-        assertThat(idGenerator.nextConsecutiveIdRange(2, true, NULL_CONTEXT)).isEqualTo(0);
+        assertThat(idGenerator
+                        .nextConsecutiveIdRange(4, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                        .id())
+                .isEqualTo(2);
+        assertThat(idGenerator
+                        .nextConsecutiveIdRange(4, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                        .id())
+                .isEqualTo(6);
+        assertThat(idGenerator
+                        .nextConsecutiveIdRange(2, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                        .id())
+                .isEqualTo(0);
     }
 
     @Test
@@ -1057,7 +1071,8 @@ class IndexedIdGeneratorTest {
         Collection<long[]> allocations = ConcurrentHashMap.newKeySet();
         race.addContestants(4, () -> {
             int size = ThreadLocalRandom.current().nextInt(10, 1_000);
-            long batchStartId = idGenerator.nextConsecutiveIdRange(size, false, NULL_CONTEXT);
+            long batchStartId =
+                    idGenerator.nextConsecutiveIdRange(size, 0, NULL_CONTEXT).id();
             allocations.add(new long[] {batchStartId, size});
             numAllocations.incrementAndGet();
         });
@@ -1099,7 +1114,8 @@ class IndexedIdGeneratorTest {
 
         // when
         int numberOfIds = 200;
-        long batchStartId = idGenerator.nextConsecutiveIdRange(numberOfIds, false, NULL_CONTEXT);
+        long batchStartId =
+                idGenerator.nextConsecutiveIdRange(numberOfIds, 0, NULL_CONTEXT).id();
 
         // then
         assertThat(IdValidator.hasReservedIdInRange(batchStartId, batchStartId + numberOfIds))
@@ -1227,7 +1243,9 @@ class IndexedIdGeneratorTest {
                 4,
                 t -> () -> {
                     int size = ThreadLocalRandom.current().nextInt(1, 8);
-                    long startId = idGenerator.nextConsecutiveIdRange(size, favorSamePage, NULL_CONTEXT);
+                    long startId = idGenerator
+                            .nextConsecutiveIdRange(size, favorSamePage ? FLAG_FAVOR_SAME_PAGE : 0, NULL_CONTEXT)
+                            .id();
                     long endId = startId + size - 1;
                     if (favorSamePage) {
                         assertThat(startId / IDS_PER_ENTRY).isEqualTo(endId / IDS_PER_ENTRY);
@@ -1255,18 +1273,28 @@ class IndexedIdGeneratorTest {
         // given
         open(customization().with(slotDistribution(powerTwoSlotSizesDownwards(64))));
         idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
-        long preId1 = idGenerator.nextConsecutiveIdRange(64, true, NULL_CONTEXT);
-        long preId2 = idGenerator.nextConsecutiveIdRange(32, true, NULL_CONTEXT);
-        long preId3 = idGenerator.nextConsecutiveIdRange(16, true, NULL_CONTEXT);
+        long preId1 = idGenerator
+                .nextConsecutiveIdRange(64, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                .id();
+        long preId2 = idGenerator
+                .nextConsecutiveIdRange(32, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                .id();
+        long preId3 = idGenerator
+                .nextConsecutiveIdRange(16, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                .id();
         assertThat(preId1).isEqualTo(0);
         assertThat(preId2).isEqualTo(64);
         assertThat(preId3).isEqualTo(64 + 32);
 
         // when
-        long id = idGenerator.nextConsecutiveIdRange(32, true, NULL_CONTEXT);
+        long id = idGenerator
+                .nextConsecutiveIdRange(32, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                .id();
 
         // then
-        long postId = idGenerator.nextConsecutiveIdRange(8, true, NULL_CONTEXT);
+        long postId = idGenerator
+                .nextConsecutiveIdRange(8, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                .id();
         assertThat(id).isEqualTo(128);
         // the skipped ID ends up in the cache and will therefore be handed out here
         assertThat(postId).isEqualTo(64 + 32 + 16);
@@ -1469,8 +1497,8 @@ class IndexedIdGeneratorTest {
         }
 
         @Override
-        public long nextConsecutiveIdRange(int numberOfIds, boolean favorSamePage, CursorContext cursorContext) {
-            return withReadLock(() -> leader().nextConsecutiveIdRange(numberOfIds, favorSamePage, cursorContext));
+        public ConsecutiveId nextConsecutiveIdRange(int numberOfIds, int flags, CursorContext cursorContext) {
+            return withReadLock(() -> leader().nextConsecutiveIdRange(numberOfIds, flags, cursorContext));
         }
 
         @Override
@@ -1899,7 +1927,9 @@ class IndexedIdGeneratorTest {
         open(customization().with(monitor).with(slotDistribution(IDS_PER_ENTRY, slotSizes)));
         idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
         for (var size : slotSizes) {
-            var id = idGenerator.nextConsecutiveIdRange(size, true, NULL_CONTEXT);
+            var id = idGenerator
+                    .nextConsecutiveIdRange(size, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                    .id();
             markUsed(id, size);
             markDeleted(id, size);
 
@@ -1908,7 +1938,9 @@ class IndexedIdGeneratorTest {
 
             // then
             verify(monitor, never()).markedAsFree(anyLong(), anyInt());
-            var cachedId = idGenerator.nextConsecutiveIdRange(size, true, NULL_CONTEXT);
+            var cachedId = idGenerator
+                    .nextConsecutiveIdRange(size, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                    .id();
             assertThat(cachedId).isEqualTo(id);
         }
     }
@@ -1922,12 +1954,15 @@ class IndexedIdGeneratorTest {
         idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
         long[] initialCacheFillingIds = new long[10_000];
         for (int i = 0; i < initialCacheFillingIds.length; i++) {
-            initialCacheFillingIds[i] =
-                    idGenerator.nextConsecutiveIdRange(slotSizes[i % slotSizes.length], true, NULL_CONTEXT);
+            initialCacheFillingIds[i] = idGenerator
+                    .nextConsecutiveIdRange(slotSizes[i % slotSizes.length], FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                    .id();
         }
         long[] testableIds = new long[slotSizes.length];
         for (int i = 0; i < testableIds.length; i++) {
-            testableIds[i] = idGenerator.nextConsecutiveIdRange(slotSizes[i], true, NULL_CONTEXT);
+            testableIds[i] = idGenerator
+                    .nextConsecutiveIdRange(slotSizes[i], FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                    .id();
         }
         try (var marker = idGenerator.transactionalMarker(NULL_CONTEXT)) {
             for (int i = 0; i < initialCacheFillingIds.length; i++) {
@@ -2032,7 +2067,9 @@ class IndexedIdGeneratorTest {
         for (int slotSize : slotSizes) {
             long[] ids = new long[150];
             for (int i = 0; i < ids.length; i++) {
-                ids[i] = idGenerator.nextConsecutiveIdRange(slotSize, true, NULL_CONTEXT);
+                ids[i] = idGenerator
+                        .nextConsecutiveIdRange(slotSize, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                        .id();
             }
             try (var marker = idGenerator.transactionalMarker(NULL_CONTEXT)) {
                 for (long id : ids) {
@@ -2050,7 +2087,9 @@ class IndexedIdGeneratorTest {
         }
 
         // Allocate an ID X of size 3, its "waste" Y will not fit in cache so will be registered in the "waste" list
-        long x = idGenerator.nextConsecutiveIdRange(3, true, NULL_CONTEXT);
+        long x = idGenerator
+                .nextConsecutiveIdRange(3, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                .id();
 
         // Pretend that another member gets leader -> Call clearCache(false)
         idGenerator.clearCache(false, NULL_CONTEXT);
@@ -2064,7 +2103,9 @@ class IndexedIdGeneratorTest {
 
         // Allocate lots of IDs; none of them should be Y
         for (int i = 0; i < 1_000; i++) {
-            long id = idGenerator.nextConsecutiveIdRange(1, true, NULL_CONTEXT);
+            long id = idGenerator
+                    .nextConsecutiveIdRange(1, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                    .id();
             assertThat(id).isNotEqualTo(y);
         }
     }
@@ -2081,7 +2122,9 @@ class IndexedIdGeneratorTest {
         for (int slotSize : slotSizes) {
             long[] ids = new long[150];
             for (int i = 0; i < ids.length; i++) {
-                ids[i] = idGenerator.nextConsecutiveIdRange(slotSize, true, NULL_CONTEXT);
+                ids[i] = idGenerator
+                        .nextConsecutiveIdRange(slotSize, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                        .id();
             }
             try (var marker = idGenerator.transactionalMarker(NULL_CONTEXT)) {
                 for (long id : ids) {
@@ -2101,7 +2144,9 @@ class IndexedIdGeneratorTest {
 
         // Allocate a large ID which should result in at least some skipped IDs,
         // they will be registed in the "skipped high IDs" list.
-        long x = idGenerator.nextConsecutiveIdRange(IDS_PER_ENTRY, true, NULL_CONTEXT);
+        long x = idGenerator
+                .nextConsecutiveIdRange(IDS_PER_ENTRY, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                .id();
 
         // Verify that there have been some skipped high IDs as part of this allocation
         assertThat(x).isGreaterThan(lastAllocatedId + 1);
@@ -2119,7 +2164,9 @@ class IndexedIdGeneratorTest {
 
         // Allocate lots of IDs; none of them should be within Y
         for (int i = 0; i < 1_000; i++) {
-            long id = idGenerator.nextConsecutiveIdRange(1, true, NULL_CONTEXT);
+            long id = idGenerator
+                    .nextConsecutiveIdRange(1, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                    .id();
             assertThat(id).satisfiesAnyOf(_id -> assertThat(_id).isLessThan(yFirst), _id -> assertThat(_id)
                     .isGreaterThan(yLast));
         }
@@ -2178,7 +2225,9 @@ class IndexedIdGeneratorTest {
         long[] ids = new long[20];
         var expectedIds = LongLists.mutable.empty();
         for (int i = 0; i < ids.length; i++) {
-            ids[i] = idGenerator.nextConsecutiveIdRange(idSize, true, NULL_CONTEXT);
+            ids[i] = idGenerator
+                    .nextConsecutiveIdRange(idSize, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                    .id();
             if (i > 0 && ids[i] > ids[i - 1] + idSize) {
                 for (long gapId = ids[i - 1] + idSize; gapId < ids[i]; gapId++) {
                     if (!IdValidator.isReservedId(gapId)) {
@@ -2257,7 +2306,9 @@ class IndexedIdGeneratorTest {
                     tx.add(combinedIdAndNumberOfIds(id, numberOfIds, false));
                 } else {
                     int numberOfIds = random.among(slotSizes);
-                    long allocation = idGenerator.nextConsecutiveIdRange(numberOfIds, true, NULL_CONTEXT);
+                    long allocation = idGenerator
+                            .nextConsecutiveIdRange(numberOfIds, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                            .id();
                     tx.add(combinedIdAndNumberOfIds(allocation, numberOfIds, true));
                 }
             }
@@ -2431,7 +2482,9 @@ class IndexedIdGeneratorTest {
                 if (allocations.size() < maxAllocationsAhead) {
                     int size = rng.nextInt(maxSlotSize) + 1;
                     int leaseId = leaseIdSupplier.getAsInt();
-                    long id = idGenerator.nextConsecutiveIdRange(size, true, NULL_CONTEXT);
+                    long id = idGenerator
+                            .nextConsecutiveIdRange(size, FLAG_FAVOR_SAME_PAGE, NULL_CONTEXT)
+                            .id();
                     Allocation allocation = new Allocation(idGenerator, id, size, leaseId, leaseIdSupplier);
                     allocation.markAsInUse(expectedInUse);
                     allocations.add(allocation);

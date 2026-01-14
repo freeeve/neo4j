@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.id.indexed;
 
+import static org.neo4j.internal.id.IdGenerator.NO_ID;
 import static org.neo4j.internal.id.IdUtils.combinedIdAndNumberOfIds;
 import static org.neo4j.internal.id.IdUtils.idFromCombinedId;
 import static org.neo4j.internal.id.IdUtils.numberOfIdsFromCombinedId;
@@ -117,18 +118,29 @@ class FreeIdScanner {
     /**
      * Do a batch of scanning, either start a new scan from the beginning if none is active, or continue where a previous scan
      * paused. In this call free ids can be discovered and placed into the ID cache. IDs are marked as reserved before placed into cache.
+     * @param blocking whether to await the scan lock. If {@code false} then this method will return immediately w/o
+     * doing a scan if the scan lock is not available.
+     * @param maintenance whether this is a maintenance scan. Maintenance scan has lower thresholds in the
+     * condition checks for starting a new scan.
+     * @param requestedNumberOfIds the number of IDs that the requester wants to find as a side effect of this scan.
+     * If this value is larger than 0 and an ID of this size is found, then it will be returned from this method
+     * instead of being placed into cache. This is so that it's guaranteed that the requestor won't get starved
+     * in a highly concurrent allocation scenario.
+     * @return the first matching ID of size {@code requestedNumberOfIds} found in the scan,
+     * or {@code NO_ID} if none was found or if no scan was done.
      */
-    void tryLoadFreeIdsIntoCache(boolean blocking, boolean maintenance, CursorContext cursorContext) {
+    long tryLoadFreeIdsIntoCache(
+            boolean blocking, boolean maintenance, int requestedNumberOfIds, CursorContext cursorContext) {
         if (!hasMoreFreeIds(maintenance)) {
             // If no scan is in progress and if we have no reason to expect finding any free id from a scan then don't
             // do it.
-            return;
+            return NO_ID;
         }
 
         if (scanLock(blocking)) {
             try {
                 if (!allocationEnabled) {
-                    return;
+                    return NO_ID;
                 }
                 handleQueuedIds(cursorContext);
                 if (shouldFindFreeIdsByScan()) {
@@ -137,7 +149,7 @@ class FreeIdScanner {
                         var pendingIdQueue = LongLists.mutable.empty();
                         if (findSomeIdsToCache(pendingIdQueue, availableSpace, cursorContext)) {
                             // Get a writer and mark the found ids as reserved
-                            reserveAndOfferToCache(pendingIdQueue, cursorContext);
+                            return reserveAndOfferToCache(pendingIdQueue, requestedNumberOfIds, cursorContext);
                         }
                     }
                 }
@@ -147,6 +159,7 @@ class FreeIdScanner {
                 lock.unlock();
             }
         }
+        return NO_ID;
     }
 
     private void handleQueuedIds(CursorContext cursorContext) {
@@ -249,7 +262,9 @@ class FreeIdScanner {
         numQueuedIds.incrementAndGet();
     }
 
-    private void reserveAndOfferToCache(MutableLongList pendingIdQueue, CursorContext cursorContext) {
+    private long reserveAndOfferToCache(
+            MutableLongList pendingIdQueue, int requestedNumberOfIds, CursorContext cursorContext) {
+        long pocketedId = NO_ID;
         try (var marker = markerProvider.getMarker(cursorContext)) {
             var iterator = pendingIdQueue.longIterator();
             while (iterator.hasNext()) {
@@ -270,6 +285,14 @@ class FreeIdScanner {
                 var combinedId = iterator.next();
                 var id = idFromCombinedId(combinedId);
                 var numberOfIds = numberOfIdsFromCombinedId(combinedId);
+                if (requestedNumberOfIds > 0 && numberOfIds >= requestedNumberOfIds && pocketedId == NO_ID) {
+                    pocketedId = id;
+                    id += requestedNumberOfIds;
+                    numberOfIds -= requestedNumberOfIds;
+                    if (numberOfIds == 0) {
+                        continue;
+                    }
+                }
                 var accepted = cache.offer(id, numberOfIds, monitor);
                 if (accepted < numberOfIds) {
                     long idToUndo = id + accepted;
@@ -282,6 +305,7 @@ class FreeIdScanner {
                 }
             }
         }
+        return pocketedId;
     }
 
     private boolean findSomeIdsToCache(

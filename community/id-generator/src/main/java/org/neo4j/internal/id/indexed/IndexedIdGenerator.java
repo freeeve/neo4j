@@ -66,9 +66,11 @@ import org.neo4j.index.internal.gbptree.ValueHolder;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.id.FreeIds;
 import org.neo4j.internal.id.IdGenerator;
+import org.neo4j.internal.id.IdSequence;
 import org.neo4j.internal.id.IdSlotDistribution;
 import org.neo4j.internal.id.IdType;
 import org.neo4j.internal.id.IdValidator;
+import org.neo4j.internal.id.indexed.IdCache.SlotSizeFallback;
 import org.neo4j.internal.id.range.ContinuousIdRange;
 import org.neo4j.internal.id.range.PageIdRange;
 import org.neo4j.io.async.AsyncBlockAccessor;
@@ -320,6 +322,7 @@ public class IndexedIdGenerator implements IdGenerator {
 
     private final LockedPages lockedPageRanges;
     private final boolean respectsReservedIds;
+    private volatile SlotSizeFallback acceptableSlotSizeFallback = SlotSizeFallback.none;
 
     public IndexedIdGenerator(
             PageCache pageCache,
@@ -471,8 +474,12 @@ public class IndexedIdGenerator implements IdGenerator {
         do {
             // If strictly prioritizing the freelist then the method below will block on the current scan,
             // if there's any ongoing, otherwise it will not block.
-            checkRefillCache(cursorContext);
-            long id = cache.takeOrDefault(NO_ID);
+            long id = checkRefillCache(1, cursorContext);
+            if (id != NO_ID) {
+                monitor.allocatedFromReused(id, 1);
+                return id;
+            }
+            id = cache.takeOrDefault(NO_ID);
             if (id != NO_ID) {
                 monitor.allocatedFromReused(id, 1);
                 return id;
@@ -499,7 +506,7 @@ public class IndexedIdGenerator implements IdGenerator {
 
     @Override
     public PageIdRange nextPageRange(CursorContext cursorContext, int idsPerPage) {
-        checkRefillCache(cursorContext);
+        checkRefillCache(0, cursorContext);
         // Reuse is turned off in the case where we wish to guarantee the range can fit consecutive ids
         PageIdRange range = getPageIdRangeFromCache(cursorContext, idsPerPage);
         if (range != null) {
@@ -568,19 +575,33 @@ public class IndexedIdGenerator implements IdGenerator {
     }
 
     @Override
-    public long nextConsecutiveIdRange(int numberOfIds, boolean favorSamePage, CursorContext cursorContext) {
+    public ConsecutiveId nextConsecutiveIdRange(int numberOfIds, int flags, CursorContext cursorContext) {
+        boolean allowSmaller = (flags & IdSequence.FLAG_ALLOW_ALLOCATE_SMALLER) != 0;
+        SlotSizeFallback slotSizeFallback = allowSmaller ? this.acceptableSlotSizeFallback : SlotSizeFallback.none;
         if (numberOfIds <= biggestSlotSize) {
-            // TODO to fill cache in a do-while would be preferrable here too, but slightly harder since the scanner
-            //  may say that there are more free IDs, but there may not actually be more free IDs of the given
+            // TODO to always fill cache in a do-while would be preferrable here too, but slightly harder since the
+            //  scanner may say that there are more free IDs, but there may not actually be more free IDs of the given
             //  numberOfIds
-            checkRefillCache(cursorContext);
-            long id = cache.takeOrDefault(NO_ID, numberOfIds, monitor, scanner::queueWastedCachedId);
-            if (id != NO_ID) {
-                monitor.allocatedFromReused(id, numberOfIds);
-                return id;
-            }
+            int retries = 0;
+            do {
+                long idFromRefill = checkRefillCache(numberOfIds, cursorContext);
+                if (idFromRefill != NO_ID) {
+                    monitor.allocatedFromReused(idFromRefill, numberOfIds);
+                    return new ConsecutiveId(idFromRefill, numberOfIds);
+                }
+                ConsecutiveId id = cache.takeOrDefault(
+                        NO_ID, numberOfIds, monitor, scanner::queueWastedCachedId, slotSizeFallback);
+                if (id.id() != NO_ID) {
+                    monitor.allocatedFromReused(id.id(), id.numberOfIds());
+                    return id;
+                }
+            } while (allowSmaller
+                    && strictlyPrioritizeFreelist
+                    && scanner.hasMoreFreeIds(false)
+                    && retries++ < REUSE_RETRY_ATTEMPTS);
         }
 
+        boolean favorSamePage = (flags & IdSequence.FLAG_FAVOR_SAME_PAGE) != 0;
         long readHighId;
         long endId;
         int skipped;
@@ -621,7 +642,7 @@ public class IndexedIdGenerator implements IdGenerator {
             }
             monitor.skippedIdsAtHighId(id, numberOfIds);
         }
-        return id;
+        return new ConsecutiveId(id, numberOfIds);
     }
 
     @Override
@@ -800,16 +821,39 @@ public class IndexedIdGenerator implements IdGenerator {
     public void maintenance(CursorContext cursorContext) {
         if (started && !cache.isFull() && !readOnly) {
             // We're just helping other allocation requests and avoiding unwanted sliding of highId here
-            scanner.tryLoadFreeIdsIntoCache(true, true, cursorContext);
+            scanner.tryLoadFreeIdsIntoCache(true, true, 0, cursorContext);
         }
         lockedPageRanges.maintenance(cursorContext);
+
+        // For ID-generators that supports multi-ID slots and allows fragmentation in favor of 100% colocation
+        // This will figure out the reasonable amount of fragmentation to accept, and eventually pass on to
+        // IdCache when looking for IDs there.
+        if (!hasOnlySingleIds()) {
+            long numUnused = numUnusedIds.get();
+            SlotSizeFallback calculatedFallback = slotSizeFallbackForFactorUnused(
+                    (double) numUnused / Math.max(1, highestWrittenId.get()), numUnused);
+            if (calculatedFallback != acceptableSlotSizeFallback) {
+                this.acceptableSlotSizeFallback = calculatedFallback;
+            }
+        }
     }
 
-    private void checkRefillCache(CursorContext cursorContext) {
+    private SlotSizeFallback slotSizeFallbackForFactorUnused(double factorUnused, long numUnused) {
+        if (factorUnused < 0.05 && numUnused < 100_000) {
+            return SlotSizeFallback.none;
+        } else if (factorUnused < 0.20) {
+            return SlotSizeFallback.some;
+        }
+        return SlotSizeFallback.full;
+    }
+
+    private long checkRefillCache(int requestedNumberOfIds, CursorContext cursorContext) {
         if (cache.size() <= cacheOptimisticRefillThreshold) {
             // We're just helping other allocation requests and avoiding unwanted sliding of highId here
-            scanner.tryLoadFreeIdsIntoCache(strictlyPrioritizeFreelist, false, cursorContext);
+            return scanner.tryLoadFreeIdsIntoCache(
+                    strictlyPrioritizeFreelist, false, requestedNumberOfIds, cursorContext);
         }
+        return NO_ID;
     }
 
     @Override

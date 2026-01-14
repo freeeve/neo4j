@@ -59,8 +59,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.GBPTreeBuilder;
 import org.neo4j.internal.id.IdGenerator;
+import org.neo4j.internal.id.IdSequence.ConsecutiveId;
 import org.neo4j.internal.id.IdSlotDistribution.Slot;
 import org.neo4j.internal.id.TestIdType;
+import org.neo4j.internal.id.indexed.IdCache.SlotSizeFallback;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -109,7 +111,11 @@ class FreeIdScannerTest {
     }
 
     private void tryLoadFreeIdsIntoCache(FreeIdScanner scanner, boolean blocking) {
-        scanner.tryLoadFreeIdsIntoCache(blocking, false, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(blocking, false, 0, NULL_CONTEXT);
+    }
+
+    private long tryLoadFreeIdsIntoCache(FreeIdScanner scanner, boolean blocking, int requestedNumberOfIds) {
+        return scanner.tryLoadFreeIdsIntoCache(blocking, false, requestedNumberOfIds, NULL_CONTEXT);
     }
 
     @Test
@@ -136,14 +142,15 @@ class FreeIdScannerTest {
         tryLoadFreeIdsIntoCache(scanner, false);
         assertThat(cache.size() > 0).isTrue();
         // take at least one so that scanner wants to load more from the ongoing scan
-        assertThat(cache.takeOrDefault(-1)).isZero();
+        assertThat(cache.takeOrDefault(NO_ID)).isZero();
 
         // then
         assertThat(scanner.hasMoreFreeIds(false)).isTrue();
     }
 
-    @Test
-    void shouldFindMarkAndCacheOneIdFromAnEntry() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldFindMarkAndCacheOneIdFromAnEntry(boolean pocketed) {
         // given
         int generation = 1;
         FreeIdScanner scanner = scanner(IDS_PER_ENTRY, 8, generation, true);
@@ -154,18 +161,25 @@ class FreeIdScannerTest {
         });
 
         // when
-        tryLoadFreeIdsIntoCache(scanner, false);
+        long foundId = tryLoadFreeIdsIntoCache(scanner, false, pocketed ? 1 : 0);
 
         // then
-        assertCacheHasIds(range(0, 1));
+        if (pocketed) {
+            assertThat(foundId).isEqualTo(0);
+            assertThat(cache.takeOrDefault(NO_ID)).isEqualTo(NO_ID);
+        } else {
+            assertThat(foundId).isEqualTo(NO_ID);
+            assertCacheHasIds(range(0, 1));
+        }
     }
 
-    @Test
-    void shouldFindMarkAndCacheMultipleIdsFromAnEntry() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldFindMarkAndCacheMultipleIdsFromAnEntry(boolean pocketed) {
         // given
         int generation = 1;
         FreeIdScanner scanner = scanner(IDS_PER_ENTRY, 8, generation, true);
-        Range[] ranges = {range(0, 2), range(7, 8)}; // 0, 1, 2, 7
+        Range[] ranges = {range(0, 2), range(7, 8)}; // 0, 1, 7
 
         forEachId(generation, ranges).accept((marker, id) -> {
             marker.markDeleted(id);
@@ -173,10 +187,18 @@ class FreeIdScannerTest {
         });
 
         // when
-        tryLoadFreeIdsIntoCache(scanner, false);
+        long foundId = tryLoadFreeIdsIntoCache(scanner, false, pocketed ? 1 : 0);
 
         // then
-        assertCacheHasIds(ranges);
+        if (pocketed) {
+            assertThat(foundId).isEqualTo(0);
+            assertThat(cache.takeOrDefault(NO_ID)).isEqualTo(1);
+            assertThat(cache.takeOrDefault(NO_ID)).isEqualTo(7);
+            assertThat(cache.takeOrDefault(NO_ID)).isEqualTo(NO_ID);
+        } else {
+            assertThat(foundId).isEqualTo(NO_ID);
+            assertCacheHasIds(ranges);
+        }
     }
 
     @Test
@@ -185,7 +207,7 @@ class FreeIdScannerTest {
         int generation = 1;
         FreeIdScanner scanner = scanner(IDS_PER_ENTRY, 16, generation, true);
         Range[] ranges = {range(0, 2), range(167, 175)
-        }; // 0, 1, 2 in one entry and 67,68,69,70,71,72,73,74 in another entry
+        }; // 0,1 in one entry and 167,168,169,170,171,172,173,174 in another entry
 
         forEachId(generation, ranges).accept((marker, id) -> {
             marker.markDeleted(id);
@@ -197,6 +219,30 @@ class FreeIdScannerTest {
 
         // then
         assertCacheHasIds(ranges);
+    }
+
+    @Test
+    void shouldFindMarkAndCacheMultiSlotIdsFrom() {
+        // given
+        int generation = 1;
+        int slotCapacity = 8;
+        var idCache = new IdCache(new Slot(slotCapacity, 1), new Slot(slotCapacity, 2), new Slot(slotCapacity, 8));
+        FreeIdScanner scanner = scanner(IDS_PER_ENTRY, idCache, generation, true);
+        Range[] ranges = {range(0, 2), range(167, 175)
+        }; // 0,1 in one entry and 167,168,169,170,171,172,173,174 in another entry
+
+        forEachId(generation, ranges).accept((marker, id) -> {
+            marker.markDeleted(id);
+            marker.markFree(id);
+        });
+
+        // when
+        long foundId = tryLoadFreeIdsIntoCache(scanner, false, 8);
+
+        // then
+        assertThat(foundId).isEqualTo(167);
+        assertThat(idCache.takeOrDefault(NO_ID, 2, NO_MONITOR, EMPTY_ID_RANGE_CONSUMER, SlotSizeFallback.none))
+                .isEqualTo(new ConsecutiveId(0, 2));
     }
 
     @Test
@@ -456,7 +502,7 @@ class FreeIdScannerTest {
         assertThat(reuser.unreservedIds).isEqualTo(LongLists.mutable.of(0, 1, 2, 3, 4));
 
         // and when
-        scanner.tryLoadFreeIdsIntoCache(false, false, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(false, false, 0, NULL_CONTEXT);
         range.forEach(id -> assertThat(cache.takeOrDefault(-1)).isEqualTo(id));
     }
 
@@ -628,7 +674,7 @@ class FreeIdScannerTest {
             marker.markDeleted(idToMark);
             marker.markFree(idToMark);
         });
-        scanner.tryLoadFreeIdsIntoCache(true, true, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(true, true, 0, NULL_CONTEXT);
         scanner.queueWastedCachedId(id, 1);
 
         // when
@@ -736,7 +782,7 @@ class FreeIdScannerTest {
             assertThat(cursorTracer.hits()).isZero();
 
             freeIdsNotifier.incrementAndGet();
-            scanner.tryLoadFreeIdsIntoCache(false, false, cursorContext);
+            scanner.tryLoadFreeIdsIntoCache(false, false, 0, cursorContext);
 
             assertThat(cursorTracer.pins()).isOne();
             assertThat(cursorTracer.unpins()).isOne();
@@ -781,10 +827,11 @@ class FreeIdScannerTest {
 
         // when
         scanner.queueSkippedHighId(id, size);
-        scanner.tryLoadFreeIdsIntoCache(false, true, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(false, true, 0, NULL_CONTEXT);
 
         // then
-        assertThat(cache.takeOrDefault(NO_ID, size, NO_MONITOR, EMPTY_ID_RANGE_CONSUMER))
+        assertThat(cache.takeOrDefault(NO_ID, size, NO_MONITOR, EMPTY_ID_RANGE_CONSUMER, SlotSizeFallback.none)
+                        .id())
                 .isEqualTo(id);
     }
 
@@ -814,10 +861,11 @@ class FreeIdScannerTest {
         }
 
         assertThat(scanner.hasMoreFreeIds(false)).isTrue();
-        scanner.tryLoadFreeIdsIntoCache(true, true, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(true, true, 0, NULL_CONTEXT);
 
         // then
-        assertThat(cache.takeOrDefault(NO_ID, size, NO_MONITOR, EMPTY_ID_RANGE_CONSUMER))
+        assertThat(cache.takeOrDefault(NO_ID, size, NO_MONITOR, EMPTY_ID_RANGE_CONSUMER, SlotSizeFallback.none)
+                        .id())
                 .isEqualTo(id);
     }
 
@@ -830,7 +878,7 @@ class FreeIdScannerTest {
         }
 
         // when
-        scanner.tryLoadFreeIdsIntoCache(true, false, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(true, false, 0, NULL_CONTEXT);
 
         // then
         assertThat(scanner.hasMoreFreeIds(false)).isFalse();
@@ -848,7 +896,7 @@ class FreeIdScannerTest {
 
         // when
         scanner.clearCache(true, NULL_CONTEXT);
-        scanner.tryLoadFreeIdsIntoCache(true, false, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(true, false, 0, NULL_CONTEXT);
 
         // then
         assertThat(scanner.hasMoreFreeIds(false)).isFalse();
@@ -864,7 +912,7 @@ class FreeIdScannerTest {
         }
 
         // when
-        scanner.tryLoadFreeIdsIntoCache(true, false, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(true, false, 0, NULL_CONTEXT);
 
         // then
         assertThat(scanner.hasMoreFreeIds(false)).isFalse();
@@ -882,7 +930,7 @@ class FreeIdScannerTest {
 
         // when
         scanner.clearCache(true, NULL_CONTEXT);
-        scanner.tryLoadFreeIdsIntoCache(true, false, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(true, false, 0, NULL_CONTEXT);
 
         // then
         assertThat(scanner.hasMoreFreeIds(false)).isFalse();
@@ -897,7 +945,7 @@ class FreeIdScannerTest {
     void shouldAvoidUnnecessaryReserveAndUncacheWhenScanningMoreThanWhatFitsInCache() throws IOException {
         // given
         int[] slotSizes = {1, 2, 4, 8};
-        int cacheCapacity = 256;
+        int cacheCapacity = 512;
         Slot[] slots = slotDistribution(slotSizes).slots(cacheCapacity);
         var cache = new IdCache(slots);
         long generation = 1;
@@ -907,12 +955,12 @@ class FreeIdScannerTest {
                 marker.markDeletedAndFree(i * 2, 1);
             }
         }
-        scanner.tryLoadFreeIdsIntoCache(true, true, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(true, true, 0, NULL_CONTEXT);
         assertThat(reuser.reservedIds.size()).isEqualTo(slots[0].capacity());
         assertThat(reuser.unreservedIds.size()).isZero();
 
         // when
-        scanner.tryLoadFreeIdsIntoCache(true, true, NULL_CONTEXT);
+        scanner.tryLoadFreeIdsIntoCache(true, true, 0, NULL_CONTEXT);
 
         // then
         assertThat(reuser.reservedIds.size()).isEqualTo(slots[0].capacity());
@@ -953,11 +1001,11 @@ class FreeIdScannerTest {
     private void assertCacheHasIds(boolean exhaustive, Range... ranges) {
         for (Range range : ranges) {
             for (long id = range.fromId; id < range.toId; id++) {
-                assertThat(cache.takeOrDefault(-1)).isEqualTo(id);
+                assertThat(cache.takeOrDefault(NO_ID)).isEqualTo(id);
             }
         }
         if (exhaustive) {
-            assertThat(cache.takeOrDefault(-1)).isEqualTo(-1);
+            assertThat(cache.takeOrDefault(NO_ID)).isEqualTo(NO_ID);
         }
     }
 
@@ -1122,13 +1170,14 @@ class FreeIdScannerTest {
         }
 
         @Override
-        long takeOrDefault(
+        ConsecutiveId takeOrDefault(
                 long defaultValue,
                 int numberOfIds,
                 IndexedIdGenerator.Monitor monitor,
-                IdRangeConsumer wastedIdConsumer) {
+                IdRangeConsumer wastedIdConsumer,
+                SlotSizeFallback slotSizeFallback) {
             reachBarrier(QueueMethodControl.TAKE);
-            return super.takeOrDefault(defaultValue, numberOfIds, monitor, wastedIdConsumer);
+            return super.takeOrDefault(defaultValue, numberOfIds, monitor, wastedIdConsumer, slotSizeFallback);
         }
 
         @Override
