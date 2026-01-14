@@ -260,11 +260,11 @@ public enum ZippedStoreCommunity implements ZippedStore {
                     0,
                     0)),
 
-    REC_AF11_V5202509_EMPTY(
-            "record-aligned-1.1_V2025.09_empty_community.zip",
+    REC_AF11_V202511_EMPTY(
+            "record-aligned-1.1_V2025.11_empty_community.zip",
             new DbStatistics(
                     "record-aligned-1.1",
-                    KernelVersion.V2025_09,
+                    KernelVersion.V2025_11,
                     4,
                     COMMUNITY,
                     0,

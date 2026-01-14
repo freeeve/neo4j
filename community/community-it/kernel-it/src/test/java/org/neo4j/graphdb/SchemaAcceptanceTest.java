@@ -34,7 +34,6 @@ import static org.neo4j.graphdb.schema.Schema.IndexState.ONLINE;
 import static org.neo4j.graphdb.schema.Schema.IndexState.POPULATING;
 import static org.neo4j.internal.helpers.collection.Iterables.count;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
-import static org.neo4j.kernel.KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING;
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
 
 import java.nio.file.Path;
@@ -57,7 +56,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
-import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.exceptions.CypherExecutionException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.function.ThrowingFunction;
@@ -159,14 +157,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         };
         monitors.addMonitorListener(trappingMonitor);
         builder.setMonitors(monitors);
-        builder.setConfig(GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled, true)
-                .setConfig(
-                        GraphDatabaseInternalSettings.latest_kernel_version,
-                        VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING.version())
-                .setConfig(
-                        GraphDatabaseInternalSettings.latest_runtime_version,
-                        DbmsRuntimeVersion.fromKernelVersion(VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING)
-                                .getVersion());
+        builder.setConfig(GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled, true);
     }
 
     @BeforeEach

@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.Reparses
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
-import org.neo4j.dbms.database.DbmsRuntimeVersion
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.RuntimeUnsupportedException
@@ -39,7 +38,6 @@ import org.neo4j.graphdb.schema.IndexSettingImpl.VECTOR_DIMENSIONS
 import org.neo4j.graphdb.schema.IndexSettingImpl.VECTOR_SIMILARITY_FUNCTION
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.schema.AllIndexProviderDescriptors
-import org.neo4j.kernel.KernelVersion
 import org.neo4j.kernel.impl.api.index.IndexingService
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -72,13 +70,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     GraphDatabaseInternalSettings.graph_type_enabled -> java.lang.Boolean.TRUE,
     GraphDatabaseInternalSettings.dependent_constraints_enabled -> java.lang.Boolean.TRUE,
     GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints -> java.lang.Boolean.TRUE,
-    GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> java.lang.Boolean.TRUE,
-    GraphDatabaseInternalSettings.latest_kernel_version -> java.lang.Byte.valueOf(
-      KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING.version
-    ),
-    GraphDatabaseInternalSettings.latest_runtime_version -> Integer.valueOf(
-      DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion
-    )
+    GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> java.lang.Boolean.TRUE
   )
 
   // Index commands

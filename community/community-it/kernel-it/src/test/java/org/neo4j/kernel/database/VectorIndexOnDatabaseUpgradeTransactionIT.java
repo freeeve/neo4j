@@ -73,7 +73,7 @@ import org.neo4j.test.utils.TestDirectory;
 @TestDirectoryExtension
 class VectorIndexOnDatabaseUpgradeTransactionIT {
     // keep these for future testing purposes
-    private static final KernelVersion KERNEL_VERSION = KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING;
+    private static final KernelVersion KERNEL_VERSION = LatestVersions.LATEST_KERNEL_VERSION;
     private static final DbmsRuntimeVersion RUNTIME_VERSION = DbmsRuntimeVersion.fromKernelVersion(KERNEL_VERSION);
     private static final Tokens.Suppliers.Label LABELS = Tokens.Suppliers.UUID.LABEL;
     private static final Tokens.Suppliers.RelationshipType REL_TYPES = Tokens.Suppliers.UUID.RELATIONSHIP_TYPE;
@@ -245,7 +245,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
     @ParameterizedTest
     @MethodSource("multiTokenIndexVersions")
     void shouldBeBlockedFromCreatingVectorIndexWithMultiToken(VectorIndexVersion indexVersion, EntityType entityType) {
-        final KernelVersion previousVersion = KernelVersion.V2025_09;
+        final KernelVersion previousVersion = previousFrom(KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING);
         setup(previousVersion);
         assertThatThrownBy(() -> {
                     try (final Transaction tx = database.beginTx()) {
@@ -260,7 +260,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
                         "vector index is not supported in",
                         previousVersion.name(),
                         "Required version for operation is",
-                        indexVersion.minimumRequiredKernelVersion().name(),
+                        KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING.name(),
                         "Please upgrade DBMS");
     }
 
@@ -268,7 +268,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
     @MethodSource("multiTokenIndexVersions")
     void shouldBePossibleToCreateVectorIndexWithMultiTokenAfterUpgrade(
             VectorIndexVersion indexVersion, EntityType entityType) {
-        final KernelVersion previousVersion = KernelVersion.V2025_09;
+        final KernelVersion previousVersion = previousFrom(KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING);
         setup(previousVersion);
         UpgradeTestUtil.upgradeDatabase(dbms, database, previousVersion, KERNEL_VERSION);
 
@@ -361,7 +361,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
                     case V5_15 -> ZippedStoreCommunity.REC_AF11_V515_EMPTY;
                     case V5_22 -> ZippedStoreCommunity.REC_AF11_V522_EMPTY;
                     case V2025_08 -> ZippedStoreCommunity.REC_AF11_V5202508_EMPTY;
-                    case V2025_09 -> ZippedStoreCommunity.REC_AF11_V5202509_EMPTY;
+                    case V2025_11 -> ZippedStoreCommunity.REC_AF11_V202511_EMPTY;
                     default ->
                         throw InvalidArgumentException.internalError(
                                 this.getClass().getSimpleName(),

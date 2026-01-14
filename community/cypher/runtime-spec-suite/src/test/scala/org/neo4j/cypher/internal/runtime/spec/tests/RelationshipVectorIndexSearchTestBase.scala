@@ -42,14 +42,12 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.dbms.database.DbmsRuntimeVersion
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.graphdb.Relationship
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
-import org.neo4j.kernel.KernelVersion
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.DateTimeValue
 import org.neo4j.values.storable.DateValue
@@ -94,13 +92,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
 ) extends RuntimeTestSuite[CONTEXT](
       edition.copyWith(
         additionalConfigs =
-          GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> java.lang.Boolean.TRUE,
-        GraphDatabaseInternalSettings.latest_kernel_version -> java.lang.Byte.valueOf(
-          KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING.version
-        ),
-        GraphDatabaseInternalSettings.latest_runtime_version -> Integer.valueOf(
-          DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion
-        )
+          GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> java.lang.Boolean.TRUE
       ),
       runtime
     ) {

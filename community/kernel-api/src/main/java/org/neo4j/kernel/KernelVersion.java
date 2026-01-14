@@ -118,11 +118,10 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_DISTRIBUTED_CREATE_DATABASE_INTRODUCED = V2025_10;
     public static final KernelVersion VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED =
             V2026_01;
-    public static final KernelVersion VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING = GLORIOUS_FUTURE;
+    public static final KernelVersion VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING = V2026_01;
     // Keep updated each time there is an new schema rule added
     // related to IntegrityValidator
-    public static final KernelVersion LATEST_SCHEMA_CHANGE =
-            VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED;
+    public static final KernelVersion LATEST_SCHEMA_CHANGE = VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING;
 
     // All neo4j 5.0-5.6 members defaulted to this version when bootstrapping a rafted database
     public static final KernelVersion DEFAULT_BOOTSTRAP_VERSION = V5_0;
