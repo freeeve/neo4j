@@ -1439,6 +1439,21 @@ class MainIntegrationTest extends TestHarness {
     }
 
     @Test
+    void debugLogToFile() throws Exception {
+        final var tempFile = Files.createTempFile("temp-log", null);
+        buildTest()
+                .addArgs("-u", USER, "-p", PASSWORD, "--debug", tempFile.toString())
+                .userInputLines("return 1;", ":exit")
+                .run()
+                .assertSuccess();
+
+        assertFileContains(tempFile, "Executing cypher: return 1");
+        assertFileContains(tempFile, "org.neo4j.driver.internal.logging");
+
+        Files.delete(tempFile);
+    }
+
+    @Test
     void license() throws ArgumentParserException, IOException {
         buildTest()
                 .addArgs("-u", USER, "-p", PASSWORD)

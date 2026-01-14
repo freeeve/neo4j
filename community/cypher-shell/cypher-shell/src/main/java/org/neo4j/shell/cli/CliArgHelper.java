@@ -395,7 +395,7 @@ public class CliArgHelper {
                 .dest("change-password")
                 .help("Change the neo4j user password and exit.");
 
-        parser.addArgument("--log")
+        parser.addArgument("--log", "--debug")
                 .nargs("?")
                 .type(new LogHandlerType())
                 .dest("log-file")

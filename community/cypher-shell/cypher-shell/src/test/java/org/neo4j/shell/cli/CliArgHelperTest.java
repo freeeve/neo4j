@@ -109,6 +109,8 @@ class CliArgHelperTest extends LocaleDependentTestBase {
                 "--change-password",
                 "--log",
                 tempFile.toString(),
+                "--debug",
+                tempFile.toString(),
                 "--history",
                 "myhistfile",
                 "--notifications",
@@ -452,10 +454,25 @@ class CliArgHelperTest extends LocaleDependentTestBase {
     }
 
     @Test
+    void defaultEmptyDebugLogHandler() {
+        CliArgs arguments = parse("--debug");
+        assertThat(arguments.logHandler()).containsInstanceOf(ConsoleHandler.class);
+    }
+
+    @Test
     void fileLogHandler() throws IOException {
         final var dir = Files.createTempDirectory("temp-dir");
         final var file = new File(dir.toFile(), "shell.log");
         CliArgs arguments = parse("--log", file.getAbsolutePath());
+        assertThat(arguments.logHandler()).containsInstanceOf(FileHandler.class);
+        file.delete();
+    }
+
+    @Test
+    void fileDebugLogHandler() throws IOException {
+        final var dir = Files.createTempDirectory("temp-dir");
+        final var file = new File(dir.toFile(), "shell.log");
+        CliArgs arguments = parse("--debug", file.getAbsolutePath());
         assertThat(arguments.logHandler()).containsInstanceOf(FileHandler.class);
         file.delete();
     }
@@ -634,7 +651,8 @@ named arguments:
   -f FILE, --file FILE   Pass a file with  Cypher  statements  to  be  executed. After executing all
                          statements, Cypher Shell shuts down.
   --change-password      Change the neo4j user password and exit. (default: false)
-  --log [LOG-FILE]       Enable logging to the specified  file,  or  standard  error  if the file is
+  --log [LOG-FILE], --debug [LOG-FILE]
+                         Enable logging to the specified  file,  or  standard  error  if the file is
                          omitted.
   --history HISTORY-BEHAVIOUR
                          File path of a query and a  command history file, `in-memory` for in-memory
