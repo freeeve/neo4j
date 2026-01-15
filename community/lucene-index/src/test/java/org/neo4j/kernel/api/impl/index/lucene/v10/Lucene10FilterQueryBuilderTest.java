@@ -516,6 +516,26 @@ public class Lucene10FilterQueryBuilderTest {
                         keyIndex,
                         PropertyIndexQuery.range(1, asValue(LocalTime.of(10, 30, 45)), true, asValue('b'), true)))
                 .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("Expected the value 'b' to be of type LOCAL TIME")
+                .hasMessageContaining("was of type STRING")
+                .hasMessageContaining("""
+                    Status: 22G03
+                    Message:\s
+                    Subcondition: invalid value type
+                    Position:\s
+                    Caused by:   \s
+                        Status: 22N01\
+                    """);
+
+        assertThatThrownBy(() -> scoreForQuery(
+                        keyIndex,
+                        PropertyIndexQuery.range(
+                                1, asValue(new float[] {1, 2, 3}), true, asValue(new float[] {4, 5, 6}), true)))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining(
+                        "Message: Expected the value [1.0, 2.0, 3.0] to be of type INTEGER, FLOAT, STRING, BOOLEAN, "
+                                + "DATE, LOCAL TIME, ZONED TIME, LOCAL DATETIME, ZONED DATETIME or DURATION, but was "
+                                + "of type LIST<FLOAT>.")
                 .hasMessageContaining("""
                     Status: 22G03
                     Message:\s

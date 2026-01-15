@@ -20,13 +20,13 @@
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.EXISTS_KEY;
-import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 import org.apache.lucene.document.KeywordField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -63,7 +63,9 @@ import org.neo4j.values.storable.TemporalValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
+import org.neo4j.values.storable.ValueRepresentation;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.utils.ValueTypeNames;
 
 final class Lucene10FilterQueryBuilder {
 
@@ -156,9 +158,30 @@ final class Lucene10FilterQueryBuilder {
         };
     }
 
+    private static InvalidArgumentException typeUnexpected(Value value, Value withExpectedType) {
+        return InvalidArgumentException.invalidType(
+                value.prettyPrint(),
+                ValueTypeNames.nameOfType(value),
+                List.of(ValueTypeNames.nameOfType(withExpectedType)));
+    }
+
     private static InvalidArgumentException typeNotSupported(Value value) {
         return InvalidArgumentException.invalidType(
-                value.prettyPrint(), value.getTypeName(), List.of("NUMBER", "STRING", "BOOLEAN", "TEMPORAL"));
+                value.prettyPrint(),
+                ValueTypeNames.nameOfType(value),
+                Stream.of(
+                                ValueRepresentation.INT32,
+                                ValueRepresentation.FLOAT32,
+                                ValueRepresentation.UTF8_TEXT,
+                                ValueRepresentation.BOOLEAN,
+                                ValueRepresentation.DATE,
+                                ValueRepresentation.LOCAL_TIME,
+                                ValueRepresentation.ZONED_TIME,
+                                ValueRepresentation.LOCAL_DATE_TIME,
+                                ValueRepresentation.ZONED_DATE_TIME,
+                                ValueRepresentation.DURATION)
+                        .map(representation -> ValueTypeNames.ofRepresentation(representation, value))
+                        .toList());
     }
 
     private Query queryForNumericRangeFrom(
@@ -208,51 +231,53 @@ final class Lucene10FilterQueryBuilder {
         return anyQuery(longQuery, doubleQuery);
     }
 
+    ///  Simplify pattern matching of RangePredicate
+    private record RangeRecord(Value from, Value to) {
+        private RangeRecord {
+            // RangePredicate (possibly erroneously) can have mismatched value groups
+            // Double-check that, and
+            if (from.valueGroup() != ValueGroup.NO_VALUE
+                    && to.valueGroup() != ValueGroup.NO_VALUE
+                    && from.valueGroup() != to.valueGroup()) {
+                throw typeUnexpected(to, from);
+            }
+        }
+    }
+
     private Query queryForRange(int propertyIndex, RangePredicate<?> predicate) {
-        Value from = predicate.fromValue();
         boolean fromInclusive = predicate.fromInclusive();
-        Value to = predicate.toValue();
         boolean toInclusive = predicate.toInclusive();
-        if (from == NO_VALUE && to == NO_VALUE) {
-            return new MatchNoDocsQuery();
-        } else if (from == NO_VALUE) {
-            // range query in (-Infinity, to) or (-Infinity, to]
-            return rangeWithOpenStart(to, toInclusive, propertyIndex);
-        } else if (to == NO_VALUE) {
-            // range query in (from, Infinity) or [from, Infinity)
-            return rangeWithOpenEnd(from, fromInclusive, propertyIndex);
-        } else {
-            if (from instanceof BooleanValue bFrom && to instanceof BooleanValue bTo) {
-                return booleanRangeQuery(bFrom, fromInclusive, bTo, toInclusive, propertyIndex);
-            } else if (from instanceof NumberValue nFrom && to instanceof NumberValue nTo) {
-                return queryForNumericRangeFrom(propertyIndex, nFrom, fromInclusive, nTo, toInclusive);
-            } else if (from instanceof TemporalValue<?, ?> tvFrom && to instanceof TemporalValue<?, ?> tvTo) {
-                return temporalRangeQuery(
-                        tvFrom.valueGroup(),
-                        Lucene10ValueFields.storedFromTemporal(tvFrom),
+        return switch (new RangeRecord(predicate.fromValue(), predicate.toValue())) {
+            case RangeRecord(NoValue ignored, NoValue toNoValue) -> new MatchNoDocsQuery();
+            case RangeRecord(NoValue ignored, Value to) -> rangeWithOpenStart(to, toInclusive, propertyIndex);
+            case RangeRecord(Value from, NoValue ignored) -> rangeWithOpenEnd(from, fromInclusive, propertyIndex);
+            case RangeRecord(BooleanValue from, BooleanValue to) ->
+                booleanRangeQuery(from, fromInclusive, to, toInclusive, propertyIndex);
+            case RangeRecord(NumberValue from, NumberValue to) ->
+                queryForNumericRangeFrom(propertyIndex, from, fromInclusive, to, toInclusive);
+            case RangeRecord(TemporalValue<?, ?> from, TemporalValue<?, ?> to) ->
+                temporalRangeQuery(
+                        from.valueGroup(),
+                        Lucene10ValueFields.storedFromTemporal(from),
                         fromInclusive,
-                        Lucene10ValueFields.storedFromTemporal(tvTo),
+                        Lucene10ValueFields.storedFromTemporal(to),
                         toInclusive,
                         propertyIndex);
-            } else if (from instanceof TextValue sFrom && to instanceof TextValue sTo) {
-                return TermRangeQuery.newStringRange(
+            case RangeRecord(TextValue from, TextValue to) ->
+                TermRangeQuery.newStringRange(
                         vectorDocumentStructure.textValueKeyFor(propertyIndex),
-                        sFrom.stringValue(),
-                        sTo.stringValue(),
+                        from.stringValue(),
+                        to.stringValue(),
                         fromInclusive,
                         toInclusive);
-            } else if (from instanceof DurationValue dFrom && to instanceof DurationValue dTo) {
-                if (fromInclusive && toInclusive && dFrom.equals(dTo)) {
-                    return exactDurationQuery(dFrom, propertyIndex);
-                } else {
-                    return new MatchNoDocsQuery();
-                }
-
-            } else if (from == null || to == null) {
-                return null;
-            }
-            throw typeNotSupported(from);
-        }
+            case RangeRecord(DurationValue from, DurationValue to) ->
+                fromInclusive && toInclusive && from.equals(to)
+                        ? exactDurationQuery(from, propertyIndex)
+                        : new MatchNoDocsQuery();
+            case RangeRecord(Value from, Value ignored) when from == null -> null;
+            case RangeRecord(Value ignored, Value to) when to == null -> null;
+            case RangeRecord(Value from, Value ignored) -> throw typeNotSupported(from);
+        };
     }
 
     private List<Query> temporalRangeQueryUpperSubRange(
