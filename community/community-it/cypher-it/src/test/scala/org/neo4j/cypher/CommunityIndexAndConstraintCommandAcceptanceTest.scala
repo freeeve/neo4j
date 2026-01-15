@@ -69,8 +69,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
   override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
     GraphDatabaseInternalSettings.graph_type_enabled -> java.lang.Boolean.TRUE,
     GraphDatabaseInternalSettings.dependent_constraints_enabled -> java.lang.Boolean.TRUE,
-    GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints -> java.lang.Boolean.TRUE,
-    GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> java.lang.Boolean.TRUE
+    GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints -> java.lang.Boolean.TRUE
   )
 
   // Index commands

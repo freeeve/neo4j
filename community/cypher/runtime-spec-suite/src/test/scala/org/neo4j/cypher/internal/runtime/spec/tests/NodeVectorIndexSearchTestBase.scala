@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.runtime.spec.tests
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
@@ -83,10 +82,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](
-      edition.copyWith(
-        additionalConfigs =
-          GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> java.lang.Boolean.TRUE
-      ),
+      edition,
       runtime
     ) with QueryExpressionConstructionTestSupport {
 

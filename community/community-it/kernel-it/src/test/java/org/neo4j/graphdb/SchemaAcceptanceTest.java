@@ -55,7 +55,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.CypherExecutionException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.function.ThrowingFunction;
@@ -157,7 +156,6 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         };
         monitors.addMonitorListener(trappingMonitor);
         builder.setMonitors(monitors);
-        builder.setConfig(GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled, true);
     }
 
     @BeforeEach

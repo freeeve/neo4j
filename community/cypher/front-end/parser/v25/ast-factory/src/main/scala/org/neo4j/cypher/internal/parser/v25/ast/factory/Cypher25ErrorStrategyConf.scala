@@ -43,9 +43,7 @@ class Cypher25ErrorStrategyConf extends CypherErrorStrategy.Conf {
     Token.EPSILON,
     Cypher25Parser.SEMICOLON,
     // Feature flag based exclusions:
-    Cypher25Parser.DEFINE, // Feature flagged keyword, remove when DEFINE is released.
-    Cypher25Parser.SEARCH, // Feature flagged keyword, remove when SEARCH is released.
-    Cypher25Parser.SCORE // Feature flagged keyword, remove when SEARCH is released.
+    Cypher25Parser.DEFINE // Feature flagged keyword, remove when DEFINE is released.
   )
 
   override def customTokenDisplayNames: Map[Int, String] = Map(

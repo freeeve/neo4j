@@ -1360,7 +1360,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Internal
     @Description("Set this to enable the use of single stage filtering on vector indexes.")
     public static final Setting<Boolean> vector_single_stage_filtering_enabled = newBuilder(
-                    "internal.dbms.vector_single_stage_filtering_enabled", BOOL, false)
+                    "internal.dbms.vector_single_stage_filtering_enabled", BOOL, true)
             .immutable()
             .build();
 

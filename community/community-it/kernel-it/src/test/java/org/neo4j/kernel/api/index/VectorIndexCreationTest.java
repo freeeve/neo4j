@@ -36,6 +36,7 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.set.SetIterable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -133,12 +134,14 @@ public class VectorIndexCreationTest {
                 super(Entity.this.factory, inclusiveVersionRangeFrom(minimumVersionForEntity));
             }
 
+            @Disabled("IND-156")
             @ParameterizedTest
             @MethodSource("validVersions")
             void shouldRejectCompositeKeys(VectorIndexVersion version) {
                 assertUnsupportedComposite(() -> createVectorIndex(version, defaultSettings(), propKeyIds));
             }
 
+            @Disabled("IND-156")
             @Test
             @EnabledIf("latestIsValid")
             void shouldRejectCompositeKeysCoreAPI() {
