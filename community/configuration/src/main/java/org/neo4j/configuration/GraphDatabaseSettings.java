@@ -26,7 +26,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Map.entry;
 import static org.neo4j.configuration.Config.DEFAULT_CONFIG_DIR_NAME;
-import static org.neo4j.configuration.GraphDatabaseInternalSettings.enable_experimental_cypher_versions;
 import static org.neo4j.configuration.SettingConstraints.ABSOLUTE_PATH;
 import static org.neo4j.configuration.SettingConstraints.HOSTNAME_ONLY;
 import static org.neo4j.configuration.SettingConstraints.NO_ALL_INTERFACES_ADDRESS;
@@ -34,7 +33,6 @@ import static org.neo4j.configuration.SettingConstraints.any;
 import static org.neo4j.configuration.SettingConstraints.is;
 import static org.neo4j.configuration.SettingConstraints.min;
 import static org.neo4j.configuration.SettingConstraints.range;
-import static org.neo4j.configuration.SettingConstraints.valueDependency;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
 import static org.neo4j.configuration.SettingValueParsers.BYTES;
@@ -51,7 +49,6 @@ import static org.neo4j.configuration.SettingValueParsers.listOf;
 import static org.neo4j.configuration.SettingValueParsers.ofEnum;
 import static org.neo4j.configuration.SettingValueParsers.setOf;
 import static org.neo4j.configuration.connectors.ConnectorDefaults.SERVER_CONNECTOR_DEFAULTS;
-import static org.neo4j.configuration.helpers.CypherVersionClassification.experimentalVersions;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.io.ByteUnit.mebiBytes;
 
@@ -369,6 +366,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
     public enum CypherVersion {
         Cypher5("CYPHER_5"),
         Cypher25("CYPHER_25");
+        // Note, update org.neo4j.configuration.helpers.CypherVersionClassification if an experimental version is added.
 
         private final String versionName;
 
@@ -389,9 +387,12 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
                     "db.query.default_language",
                     ofEnum(GraphDatabaseSettings.CypherVersion.class),
                     CypherVersion.Cypher5)
-            // Note, this constraint is a no-op when there are no experimental versions,
-            // but kept to not have to implement this again when the next experimental version is added.
-            .addConstraint(valueDependency(experimentalVersions(), enable_experimental_cypher_versions))
+            // Warning! Previously we had the following constraint when introducing an experimental language version.
+            // .addConstraint(valueDependency(experimentalVersions(), enable_experimental_cypher_versions))
+            //
+            // Do not re-use this, it can cause classloading deadlocks.
+            // When the next experimental version is introduced you need to move the enable_experimental_cypher_versions
+            // to this class or eliminate the potential classloading deadlock in some other way.
             .build();
 
     @Description("Determines if Cypher will allow using file URLs when loading data using `LOAD CSV`. Setting this "

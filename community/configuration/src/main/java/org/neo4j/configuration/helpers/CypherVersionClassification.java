@@ -27,6 +27,8 @@ public class CypherVersionClassification {
 
     public static boolean isExperimental(GraphDatabaseSettings.CypherVersion version) {
         return switch (version) {
+            // Do you need to introduce an experimental version? Don't forget to add constraint to
+            // db.query.default_language.
             case Cypher5, Cypher25 -> false;
         };
     }
