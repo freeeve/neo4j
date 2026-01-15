@@ -58,14 +58,15 @@ public class GroupingRecoveryCleanupWorkCollector extends RecoveryCleanupWorkCol
     }
 
     @Override
-    public void init() {
-        scheduleJobs();
-    }
+    public void init() {}
 
     @Override
     public synchronized void add(CleanupJob job) {
         Preconditions.checkState(moreJobsAllowed, "Index clean jobs can't be added after collector start.");
         jobs.add(job);
+        if (handle == null) {
+            scheduleJob();
+        }
     }
 
     @Override
@@ -89,7 +90,7 @@ public class GroupingRecoveryCleanupWorkCollector extends RecoveryCleanupWorkCol
         }
     }
 
-    private void scheduleJobs() {
+    private void scheduleJob() {
         handle = jobScheduler.schedule(
                 group, JobMonitoringParams.systemJob(databaseName, "Index recovery clean up"), allJobs());
     }
@@ -99,7 +100,7 @@ public class GroupingRecoveryCleanupWorkCollector extends RecoveryCleanupWorkCol
             CleanupJob job = null;
             do {
                 try {
-                    job = jobs.poll(100, TimeUnit.MILLISECONDS);
+                    job = jobs.poll(5, TimeUnit.MILLISECONDS);
                     if (job != null) {
                         job.run(new CleanupJob.Executor() {
                             @Override

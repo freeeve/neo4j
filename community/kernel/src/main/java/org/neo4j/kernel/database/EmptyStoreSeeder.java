@@ -243,6 +243,11 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
             public int maxNumberOfWorkerThreads() {
                 return 1;
             }
+
+            @Override
+            public boolean sequentialBackgroundFlushing() {
+                return false;
+            }
         };
         return storageEngineFactory.batchImporter(
                 tempDatabaseLayout,
