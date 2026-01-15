@@ -1774,7 +1774,9 @@ object ProjectionClause {
     skip: Option[Skip],
     limit: Option[Limit],
     where: Option[Where]
-  )
+  ) {
+    def hasSubclause: Boolean = orderBy.isDefined || skip.isDefined || limit.isDefined || where.isDefined
+  }
 
   case class Elements(
     distinct: Boolean,

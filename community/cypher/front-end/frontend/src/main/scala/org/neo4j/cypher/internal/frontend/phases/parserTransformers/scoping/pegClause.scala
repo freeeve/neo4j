@@ -543,10 +543,10 @@ object pegClause {
     includedIncomingVariables: Set[LogicalVariable],
     incomingConstants: Set[LogicalVariable],
     clauseType: ClauseType,
-    isAggregating: Boolean
+    hasSideEffect: Boolean
   ): Set[LogicalVariable] = {
     val referencedInChildren = WorkingScope.referencedInChildren(children)
-    (clauseType, isAggregating) match {
+    (clauseType, hasSideEffect) match {
       case (_: WithType, false) => referencedInChildren
       case (_: WithType, true)  => referencedInChildren union includedIncomingVariables union incomingConstants
       case _                    => referencedInChildren union includedIncomingVariables
@@ -572,6 +572,7 @@ object pegClause {
 
     val (aggregatingItems, groupingItems) = items.partition(_.directlyContainsAggregate)
     val isAggregating = aggregatingItems.nonEmpty || distinct
+    val hasSideEffects = isAggregating || subclauses.hasSubclause
 
     val (itemIncoming, subclauseIncoming) =
       if (isAggregating)
@@ -589,7 +590,7 @@ object pegClause {
     val result = getProjectionResult(resultingVariables, clauseType)
     val declared = getProjectionDeclared(introducedVariables, clauseType)
     val referenced =
-      getProjectionReferenced(children, includedIncomingVariables, incoming.constants, clauseType, isAggregating)
+      getProjectionReferenced(children, includedIncomingVariables, incoming.constants, clauseType, hasSideEffects)
 
     StatementScope(astNode, incoming, referenced, declared, outgoing, result, children)
 

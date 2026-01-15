@@ -1873,7 +1873,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
                   |DELETE m
                   |RETURN n""".stripMargin
 
-    val plan = planner.plan(CypherVersion.Cypher25, query)
+    val plan = planner.plan(query)
 
     plan should equal(
       planner.planBuilder()
@@ -1889,9 +1889,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .apply()
         .|.cartesianProduct()
         .|.|.filter("NOT m:%") // Id(6)
-        .|.|.allNodeScan("m", "n") // Id(7)
+        .|.|.allNodeScan("m", "i", "n") // Id(7)
         .|.filter("n:$all([])", assertIsNode("n")) // Id(8)
-        .|.argument("n")
+        .|.argument("n", "i")
         .skip(0)
         .apply()
         .|.allNodeScan("n", "i") // Id(12)

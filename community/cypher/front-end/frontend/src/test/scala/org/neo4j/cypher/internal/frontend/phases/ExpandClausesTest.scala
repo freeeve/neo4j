@@ -1094,6 +1094,42 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
     )
   }
 
+  test("drops empty with * with incoming in single query") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      "WITH 1 AS x WITH * RETURN 1 AS x",
+      "WITH 1 AS x RETURN 1 AS x"
+    )
+  }
+
+  test("keeps with * with skip with incoming in single query") {
+    assertRewritten(
+      "WITH 1 AS x WITH * SKIP 0 RETURN 1 AS x",
+      "WITH 1 AS x WITH x SKIP 0 RETURN 1 AS x"
+    )
+  }
+
+  test("keeps with * with limit with incoming in single query") {
+    assertRewritten(
+      "WITH 1 AS x WITH * LIMIT 0 RETURN 1 AS x",
+      "WITH 1 AS x WITH x LIMIT 0 RETURN 1 AS x"
+    )
+  }
+
+  test("keeps with * with order by with incoming in single query") {
+    assertRewritten(
+      "WITH 1 AS x WITH * ORDER BY 0 RETURN 1 AS x",
+      "WITH 1 AS x WITH x ORDER BY 0 RETURN 1 AS x"
+    )
+  }
+
+  test("keeps with * with where with incoming in single query") {
+    assertRewritten(
+      "WITH 1 AS x WITH * WHERE true RETURN 1 AS x",
+      "WITH 1 AS x WITH x WHERE true RETURN 1 AS x"
+    )
+  }
+
   test("drops empty with * in subquery call") {
     assertRewritten(
       CypherVersion.Cypher25,

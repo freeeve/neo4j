@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
@@ -770,7 +769,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       innerEnd = "a",
       groupNodes = Set.empty,
       groupRelationships = Set(("r3", "r3"), ("r4", "r4")),
-      innerRelationships = Set("r4", "r3"),
+      innerRelationships = Set("r3", "r4"),
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
@@ -778,7 +777,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       accumulators = Set.empty
     )
 
-    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    val plan = planner.plan(query).stripProduceResults
     plan should equal(
       planner.subPlanBuilder()
         .apply()
@@ -794,7 +793,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         .|.|.filter(isRepeatTrailUnique("r4"))
         .|.|.expandAll("(c)-[r4]->(b)")
         .|.|.argument("c")
-        .|.nodeByLabelScan("anon_2", "N")
+        .|.nodeByLabelScan("anon_2", "N", "x")
         .skip(0)
         .allNodeScan("x")
         .build()
