@@ -1688,7 +1688,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     run(EMPTY_MAP, EMPTY_MAP) should beColumns("id1", "id2").withNoRows()
   }
 
-  test("should support exact composite query with one gap", Tags.NoSpdOverride) {
+  test("should support exact composite query with one gap") {
 
     // given
     givenGraph {
@@ -1772,7 +1772,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("id1", "id2", "id3").withNoRows()
   }
 
-  test("should support exact composite query with two gaps", Tags.NoSpdOverride) {
+  test("should support exact composite query with two gaps") {
 
     // given
     givenGraph {
@@ -1834,7 +1834,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     run(EMPTY_MAP) should beColumns("id1", "id2", "id3").withNoRows()
   }
 
-  test("should support exact composite query with just gaps", Tags.NoSpdOverride) {
+  test("should support exact composite query with just gaps") {
 
     // given
     givenGraph {
@@ -2068,7 +2068,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     })
   }
 
-  test("composite queries should find nodes with missing property", Tags.NoSpdOverride) {
+  test("composite queries should find nodes with missing property") {
 
     // given
     givenGraph {
@@ -2415,7 +2415,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     executeDurationQuery(between(gte(param("d1")), lte(param("d1")))) should beColumns("dur").withSingleRow(d1)
   }
 
-  test("should fail if filter type isn't supported", Tags.NoSpdOverride) {
+  test("should fail if filter type isn't supported") {
     givenGraph {
       nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
       val write = tx.kernelTransaction().dataWrite
