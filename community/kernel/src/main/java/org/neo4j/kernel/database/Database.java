@@ -32,6 +32,7 @@ import static org.neo4j.kernel.recovery.Recovery.context;
 import static org.neo4j.kernel.recovery.Recovery.validateStoreId;
 import static org.neo4j.scheduler.Group.INDEX_CLEANUP;
 import static org.neo4j.scheduler.Group.INDEX_CLEANUP_WORK;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -672,19 +673,34 @@ public class Database extends AbstractDatabase {
     @Override
     protected void postStartupInit() throws Exception {
         if (!storageExists) {
-            try (var tx = kernelModule
-                    .kernelAPI()
-                    .beginTransaction(KernelTransaction.Type.IMPLICIT, LoginContext.AUTH_DISABLED)) {
-                createLookupIndex(tx, EntityType.NODE);
-                createLookupIndex(tx, EntityType.RELATIONSHIP);
-                tx.commit();
-            }
-            checkpointAfterStartupInit();
-        } else if (checkIfTokenIndexesMissing()) {
-            internalLog.warn("No token lookup indexes found. Token lookup indexes improve the performance of "
-                    + "Cypher queries and the population of other indexes. Not having these indexes may lead to "
-                    + "severe performance degradation.");
+            createTokenIndexes();
+            return;
         }
+        if (checkIfTokenIndexesMissing()) {
+            var txIdStore = databaseDependencies.resolveDependency(TransactionIdStore.class);
+            long lastCommittedTxId = txIdStore.getLastCommittedTransactionId();
+
+            if (lastCommittedTxId > BASE_TX_ID || mode != HostedOnMode.SINGLE) {
+                internalLog.warn("No token lookup indexes found. Token lookup indexes improve the performance of "
+                        + "Cypher queries and the population of other indexes. Not having these indexes may lead to "
+                        + "severe performance degradation.");
+                return;
+            }
+            internalLog.info(
+                    "Previous database creation looks incomplete. Creating the missing token lookup indexes to complete database creation.");
+            createTokenIndexes();
+        }
+    }
+
+    private void createTokenIndexes() throws KernelException, IOException {
+        try (var tx = kernelModule
+                .kernelAPI()
+                .beginTransaction(KernelTransaction.Type.IMPLICIT, LoginContext.AUTH_DISABLED)) {
+            createLookupIndex(tx, EntityType.NODE);
+            createLookupIndex(tx, EntityType.RELATIONSHIP);
+            tx.commit();
+        }
+        checkpointAfterStartupInit();
     }
 
     private boolean checkIfTokenIndexesMissing() {
