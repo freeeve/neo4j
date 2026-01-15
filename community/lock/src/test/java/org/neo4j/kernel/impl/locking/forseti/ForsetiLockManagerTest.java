@@ -303,7 +303,7 @@ class ForsetiLockManagerTest {
                     .withAll(exclusiveLocks.keySet())
                     .withAll(sharedLocks.keySet())
                     .size();
-            var activeLocks = client.activeLocks();
+            var activeLocks = client.activeLocks(EmptyMemoryTracker.INSTANCE);
 
             assertThat(client.activeLockCount()).isEqualTo(totalLocks);
             assertThat(activeLocks).hasSize((int) client.activeLockCount());

@@ -19,4 +19,8 @@
  */
 package org.neo4j.lock;
 
-public record ActiveLock(ResourceType resourceType, LockType lockType, long transactionId, long resourceId) {}
+import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
+
+public record ActiveLock(ResourceType resourceType, LockType lockType, long transactionId, long resourceId) {
+    public static final long SHALLOW_SIZE = shallowSizeOfInstance(ActiveLock.class);
+}

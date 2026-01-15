@@ -146,8 +146,8 @@ public class MultiVersionLockManager implements LockManager {
         }
 
         @Override
-        public Collection<ActiveLock> activeLocks() {
-            return delegate.activeLocks();
+        public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
+            return delegate.activeLocks(memoryTracker);
         }
 
         @Override

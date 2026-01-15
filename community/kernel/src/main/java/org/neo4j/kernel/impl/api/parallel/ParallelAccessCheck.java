@@ -103,9 +103,9 @@ public class ParallelAccessCheck {
         }
 
         @Override
-        public Collection<ActiveLock> activeLocks() {
+        public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
             checkNotCypherWorkerThread();
-            return wrappedLockClient.activeLocks();
+            return wrappedLockClient.activeLocks(memoryTracker);
         }
 
         @Override

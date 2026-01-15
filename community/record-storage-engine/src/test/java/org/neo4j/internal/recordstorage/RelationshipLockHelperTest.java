@@ -207,7 +207,7 @@ class RelationshipLockHelperTest {
         RelationshipLockHelper.lockRelationshipsInOrder(
                 idsAsBatch(idsToDelete), 2, relRecords, locks, EmptyMemoryTracker.INSTANCE);
 
-        var activeLocks = locks.activeLocks();
+        var activeLocks = locks.activeLocks(EmptyMemoryTracker.INSTANCE);
         assertThat(activeLocks)
                 .hasSize(4)
                 .contains(new ActiveLock(ResourceType.RELATIONSHIP, LockType.EXCLUSIVE, -1, 1))

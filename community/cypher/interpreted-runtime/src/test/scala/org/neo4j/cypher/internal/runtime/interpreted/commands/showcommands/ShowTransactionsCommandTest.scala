@@ -150,7 +150,9 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(txHandle1.startTime()).thenReturn(500L)
     when(txHandle1.getMetaData).thenReturn(util.Collections.emptyMap())
     when(txHandle1.getStatusDetails).thenReturn("")
-    when(txHandle1.activeLocks()).thenAnswer(_ => util.Collections.emptyList())
+    when(txHandle1.activeLocks(org.neo4j.memory.EmptyMemoryTracker.INSTANCE)).thenAnswer(_ =>
+      util.Collections.emptyList()
+    )
     when(txHandle1.activeLockCount()).thenReturn(0L)
     when(txHandle1.transactionInitialisationTrace()).thenReturn(new TransactionInitializationTrace())
     when(txHandle1.terminationMark).thenReturn(
@@ -180,7 +182,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(txHandle2.startTime()).thenReturn(1500L)
     when(txHandle2.getMetaData).thenReturn(util.Collections.emptyMap())
     when(txHandle2.getStatusDetails).thenReturn("")
-    when(txHandle2.activeLocks()).thenAnswer(_ =>
+    when(txHandle2.activeLocks(org.neo4j.memory.EmptyMemoryTracker.INSTANCE)).thenAnswer(_ =>
       List[ActiveLock](new ActiveLock(ResourceType.LABEL, LockType.SHARED, 1L, 0L)).asJava
     )
     when(txHandle2.activeLockCount()).thenReturn(1L)
@@ -251,7 +253,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(txHandle3.startTime()).thenReturn(42L)
     when(txHandle3.getMetaData).thenReturn(Map[String, AnyRef]("key" -> "value").asJava)
     when(txHandle3.getStatusDetails).thenReturn("I'm a status detail string")
-    when(txHandle3.activeLocks()).thenAnswer(_ =>
+    when(txHandle3.activeLocks(org.neo4j.memory.EmptyMemoryTracker.INSTANCE)).thenAnswer(_ =>
       List[ActiveLock](
         new ActiveLock(ResourceType.INDEX_ENTRY, LockType.EXCLUSIVE, 0L, 1L),
         new ActiveLock(ResourceType.NODE, LockType.SHARED, 0L, 2L)
@@ -530,7 +532,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
 
     // When
-    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)
+    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -618,7 +620,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
 
     // When
-    val showTx = ShowTransactionsCommand(Left(List.empty), allColumns, List.empty, CypherVersion.Cypher25)
+    val showTx = ShowTransactionsCommand(Left(List.empty), allColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -769,7 +771,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
 
     // When
-    val showTx = ShowTransactionsCommand(Left(List(tx1)), defaultColumns, List.empty, CypherVersion.Cypher25)
+    val showTx = ShowTransactionsCommand(Left(List(tx1)), defaultColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -787,7 +789,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
 
     // When: given transactions not ordered by id
-    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)
+    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then: will collect the transactions by database
@@ -805,7 +807,8 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
 
     // When: given transactions not ordered by id
-    val showTx = ShowTransactionsCommand(Left(List(tx2, tx3, tx1)), defaultColumns, List.empty, CypherVersion.Cypher25)
+    val showTx =
+      ShowTransactionsCommand(Left(List(tx2, tx3, tx1)), defaultColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then: will collect the transactions by database
@@ -823,7 +826,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
 
     // When
     val showTx =
-      ShowTransactionsCommand(Left(List("unknown-transaction-1")), defaultColumns, List.empty, CypherVersion.Cypher25)
+      ShowTransactionsCommand(Left(List("unknown-transaction-1")), defaultColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -840,7 +843,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(txHandle1.isClosing).thenReturn(true)
 
     // When
-    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)
+    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -868,7 +871,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(dbCtxProvider.registeredDatabases).thenReturn(databaseMap)
 
     // When
-    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)
+    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -901,7 +904,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     })
 
     // When
-    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)
+    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -926,7 +929,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(securityContext.allowsAdminAction(any())).thenReturn(PermissionState.EXPLICIT_DENY)
 
     // When
-    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)
+    val showTx = ShowTransactionsCommand(Left(List.empty), defaultColumns, List.empty, CypherVersion.Cypher25)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -964,7 +967,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     )
 
     // When
-    val showTx = ShowTransactionsCommand(Left(List.empty), allColumns, yieldColumns, CypherVersion.Cypher25)
+    val showTx = ShowTransactionsCommand(Left(List.empty), allColumns, yieldColumns, CypherVersion.Cypher25)()
     val resultOriginal = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1000,7 +1003,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
 
     // When
-    val showTx = ShowTransactionsCommand(Left(List.empty), allColumns, List.empty, CypherVersion.Cypher5)
+    val showTx = ShowTransactionsCommand(Left(List.empty), allColumns, List.empty, CypherVersion.Cypher5)()
     val result = showTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then

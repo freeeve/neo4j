@@ -30,6 +30,7 @@ import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.LockType;
 import org.neo4j.lock.ResourceLocker;
 import org.neo4j.lock.ResourceType;
+import org.neo4j.memory.MemoryTracker;
 
 public class MultiversionResourceLocker implements ResourceLocker {
     private final ResourceLocker locks;
@@ -99,8 +100,8 @@ public class MultiversionResourceLocker implements ResourceLocker {
     }
 
     @Override
-    public Collection<ActiveLock> activeLocks() {
-        return locks.activeLocks();
+    public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
+        return locks.activeLocks(memoryTracker);
     }
 
     @Override

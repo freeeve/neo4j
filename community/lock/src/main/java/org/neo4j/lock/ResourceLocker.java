@@ -22,6 +22,7 @@ package org.neo4j.lock;
 import java.util.Collection;
 import java.util.Collections;
 import org.neo4j.kernel.impl.locking.LockAcquisitionTimeoutException;
+import org.neo4j.memory.MemoryTracker;
 
 /**
  * A {@link ResourceLocker} can acquire and release both exclusive and shared locks.
@@ -82,7 +83,7 @@ public interface ResourceLocker {
     /**
      * @return all locks that are "active", i.e. either locked or being awaited to be locked.
      */
-    Collection<ActiveLock> activeLocks();
+    Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker);
 
     /**
      * Checks whether or not this client currently owns the given lock.
@@ -121,7 +122,7 @@ public interface ResourceLocker {
         public void releaseShared(ResourceType resourceType, long... resourceIds) {}
 
         @Override
-        public Collection<ActiveLock> activeLocks() {
+        public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
             return Collections.emptyList();
         }
 

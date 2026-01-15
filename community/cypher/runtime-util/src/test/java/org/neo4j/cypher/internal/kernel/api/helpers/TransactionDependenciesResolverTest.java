@@ -48,6 +48,8 @@ import org.neo4j.lock.ActiveLock;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.LockType;
 import org.neo4j.lock.ResourceType;
+import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.time.Clocks;
 import org.neo4j.values.virtual.VirtualValues;
@@ -61,7 +63,8 @@ class TransactionDependenciesResolverTest {
 
         map.put(handle1, Optional.of(createQuerySnapshot(1)));
         map.put(handle2, Optional.of(createQuerySnapshot(2)));
-        TransactionDependenciesResolver resolver = new TransactionDependenciesResolver(map);
+        TransactionDependenciesResolver resolver =
+                new TransactionDependenciesResolver(map, EmptyMemoryTracker.INSTANCE);
 
         assertFalse(resolver.isBlocked(handle1));
         assertFalse(resolver.isBlocked(handle2));
@@ -76,7 +79,8 @@ class TransactionDependenciesResolverTest {
 
         map.put(handle1, Optional.of(createQuerySnapshot(1)));
         map.put(handle2, Optional.of(createQuerySnapshotWaitingForLock(2, SHARED, ResourceType.NODE, 1, 1)));
-        TransactionDependenciesResolver resolver = new TransactionDependenciesResolver(map);
+        TransactionDependenciesResolver resolver =
+                new TransactionDependenciesResolver(map, EmptyMemoryTracker.INSTANCE);
 
         assertFalse(resolver.isBlocked(handle1));
         assertTrue(resolver.isBlocked(handle2));
@@ -91,7 +95,8 @@ class TransactionDependenciesResolverTest {
 
         map.put(handle1, Optional.of(createQuerySnapshot(1)));
         map.put(handle2, Optional.of(createQuerySnapshotWaitingForLock(2, EXCLUSIVE, ResourceType.NODE, 1, 1)));
-        TransactionDependenciesResolver resolver = new TransactionDependenciesResolver(map);
+        TransactionDependenciesResolver resolver =
+                new TransactionDependenciesResolver(map, EmptyMemoryTracker.INSTANCE);
 
         assertFalse(resolver.isBlocked(handle1));
         assertTrue(resolver.isBlocked(handle2));
@@ -105,7 +110,8 @@ class TransactionDependenciesResolverTest {
 
         map.put(handle1, Optional.of(createQuerySnapshot(1)));
         map.put(handle2, Optional.of(createQuerySnapshot(2)));
-        TransactionDependenciesResolver resolver = new TransactionDependenciesResolver(map);
+        TransactionDependenciesResolver resolver =
+                new TransactionDependenciesResolver(map, EmptyMemoryTracker.INSTANCE);
 
         assertThat(resolver.describeBlockingTransactions(handle1)).isEmpty();
         assertThat(resolver.describeBlockingTransactions(handle2)).isEmpty();
@@ -120,7 +126,8 @@ class TransactionDependenciesResolverTest {
 
         map.put(handle1, Optional.of(createQuerySnapshot(1)));
         map.put(handle2, Optional.of(createQuerySnapshotWaitingForLock(2, SHARED, ResourceType.NODE, 1, 1)));
-        TransactionDependenciesResolver resolver = new TransactionDependenciesResolver(map);
+        TransactionDependenciesResolver resolver =
+                new TransactionDependenciesResolver(map, EmptyMemoryTracker.INSTANCE);
 
         assertThat(resolver.describeBlockingTransactions(handle1)).isEmpty();
         assertEquals("[transaction-3]", resolver.describeBlockingTransactions(handle2));
@@ -139,7 +146,8 @@ class TransactionDependenciesResolverTest {
         map.put(handle1, Optional.of(createQuerySnapshot(1)));
         map.put(handle2, Optional.of(createQuerySnapshotWaitingForLock(2, EXCLUSIVE, ResourceType.NODE, 5, 1)));
         map.put(handle3, Optional.of(createQuerySnapshotWaitingForLock(3, EXCLUSIVE, ResourceType.NODE, 6, 2)));
-        TransactionDependenciesResolver resolver = new TransactionDependenciesResolver(map);
+        TransactionDependenciesResolver resolver =
+                new TransactionDependenciesResolver(map, EmptyMemoryTracker.INSTANCE);
 
         assertThat(resolver.describeBlockingTransactions(handle1)).isEmpty();
         assertEquals("[transaction-4]", resolver.describeBlockingTransactions(handle2));
@@ -197,7 +205,7 @@ class TransactionDependenciesResolverTest {
         }
 
         @Override
-        public Collection<ActiveLock> activeLocks() {
+        public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
             return locks;
         }
 

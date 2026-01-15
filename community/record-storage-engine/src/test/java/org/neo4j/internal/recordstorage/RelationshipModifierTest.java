@@ -86,6 +86,7 @@ import org.neo4j.lock.ResourceLocker;
 import org.neo4j.lock.ResourceType;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.RelationshipDirection;
 import org.neo4j.storageengine.api.StorageLocks;
@@ -675,8 +676,8 @@ class RelationshipModifierTest {
         }
 
         @Override
-        public Collection<ActiveLock> activeLocks() {
-            return locker.activeLocks();
+        public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
+            return locker.activeLocks(memoryTracker);
         }
 
         @Override

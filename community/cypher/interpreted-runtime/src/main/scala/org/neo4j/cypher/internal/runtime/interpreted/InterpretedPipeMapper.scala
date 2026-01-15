@@ -1186,7 +1186,7 @@ case class InterpretedPipeMapper(
           s.defaultColumns,
           s.yieldColumns,
           cypherVersion
-        ))(id)
+        )(id))(id)
 
       case t: TerminateTransactions =>
         val newIds = t.ids match {

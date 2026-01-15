@@ -75,7 +75,7 @@ public class NoLocksClient implements LockManager.Client {
     }
 
     @Override
-    public Collection<ActiveLock> activeLocks() {
+    public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
         return Collections.emptyList();
     }
 

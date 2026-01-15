@@ -38,6 +38,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.query.ExecutingQuery;
 import org.neo4j.kernel.impl.api.transaction.trace.TransactionInitializationTrace;
 import org.neo4j.lock.ActiveLock;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.time.SystemNanoClock;
 
 /**
@@ -167,8 +168,8 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
     }
 
     @Override
-    public Collection<ActiveLock> activeLocks() {
-        return tx.activeLocks();
+    public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
+        return tx.activeLocks(memoryTracker);
     }
 
     @Override

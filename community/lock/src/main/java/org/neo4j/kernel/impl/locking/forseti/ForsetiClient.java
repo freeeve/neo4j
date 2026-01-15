@@ -615,16 +615,17 @@ public class ForsetiClient implements LockManager.Client {
     }
 
     @Override
-    public Collection<ActiveLock> activeLocks() {
+    public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
         // We're iterating the global map instead of the client local maps because this can be called from separate
         // threads
-        var locks = new ArrayList<ActiveLock>();
+        List<ActiveLock> locks = HeapTrackingCollections.newArrayList(memoryTracker);
         for (int typeId = 0; typeId < lockMaps.length; typeId++) {
             ResourceType resourceType = ResourceType.fromId(typeId);
             ConcurrentMap<Long, ForsetiLockManager.Lock> lockMap = lockMaps[typeId];
             if (lockMap != null) {
                 lockMap.forEach((resourceId, lock) -> {
                     if (lock.isOwnedBy(this)) {
+                        memoryTracker.allocateHeap(ActiveLock.SHALLOW_SIZE);
                         locks.add(new ActiveLock(resourceType, lock.type(), transactionId, resourceId));
                     }
                 });

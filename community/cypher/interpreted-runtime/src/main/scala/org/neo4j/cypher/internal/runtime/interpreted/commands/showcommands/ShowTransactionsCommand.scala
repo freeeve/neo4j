@@ -68,6 +68,7 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.helpers.TransactionDependenciesResolver
 import org.neo4j.internal.kernel.api.security.AdminActionOnResource
@@ -104,7 +105,7 @@ case class ShowTransactionsCommand(
   defaultColumns: List[CommandDefaultColumn],
   yieldColumns: List[CommandYieldColumn],
   cypherVersion: CypherVersion
-) extends Command(defaultColumns, yieldColumns) {
+)(val id: Id = Id.INVALID_ID) extends Command(defaultColumns, yieldColumns) {
   private val returnCypher5Values: Boolean = cypherVersion == CypherVersion.Cypher5
 
   private val needQueryColumns =
@@ -198,7 +199,9 @@ case class ShowTransactionsCommand(
         val (status, statusDetails) =
           if (requestedColumnsNames.contains(statusColumn) || requestedColumnsNames.contains(statusDetailsColumn)) {
             if (transactionDependenciesResolver == null) {
-              transactionDependenciesResolver = new TransactionDependenciesResolver(handleQuerySnapshotsMap)
+              val memoryTracker = state.memoryTrackerForOperatorProvider.memoryTrackerForOperator(id.x)
+              transactionDependenciesResolver =
+                new TransactionDependenciesResolver(handleQuerySnapshotsMap, memoryTracker)
             }
             getStatus(transaction, transactionDependenciesResolver)
           } else ("", "")

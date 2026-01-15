@@ -29,6 +29,7 @@ import org.neo4j.lock.ActiveLock;
 import org.neo4j.lock.ResourceType;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.txstate.validation.ValidationLockDumper;
 
 public class VerboseValidationLogDumper implements ValidationLockDumper {
@@ -40,8 +41,8 @@ public class VerboseValidationLogDumper implements ValidationLockDumper {
     }
 
     @Override
-    public void dumpLocks(LockManager.Client lockClient, int chunkNumber, long txId) {
-        try {
+    public void dumpLocks(LockManager.Client lockClient, int chunkNumber, long txId, MemoryTracker memoryTracker) {
+        try (MemoryTracker scopedTracker = memoryTracker.getScopedMemoryTracker()) {
             StringBuilder locksDumpBuilder = new StringBuilder();
             locksDumpBuilder
                     .append("Transaction sequence number: ")
@@ -51,7 +52,7 @@ public class VerboseValidationLogDumper implements ValidationLockDumper {
                     .append("(")
                     .append(chunkNumber)
                     .append(")");
-            var locks = lockClient.activeLocks();
+            var locks = lockClient.activeLocks(scopedTracker);
             if (locks.isEmpty()) {
                 locksDumpBuilder.append(" does not have any validation page locks.");
             } else {

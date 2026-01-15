@@ -1773,9 +1773,9 @@ public class KernelTransactionImplementation
      *
      * @return the locks held by this transaction.
      */
-    public Collection<ActiveLock> activeLocks() {
+    public Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker) {
         LockManager.Client locks = this.lockClient;
-        return locks == null ? Collections.emptyList() : locks.activeLocks();
+        return locks == null ? Collections.emptyList() : locks.activeLocks(memoryTracker);
     }
 
     @Override

@@ -35,19 +35,22 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.TreeSet;
-import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.kernel.api.KernelTransactionHandle;
 import org.neo4j.kernel.api.query.QuerySnapshot;
 import org.neo4j.lock.ActiveLock;
 import org.neo4j.lock.ResourceType;
+import org.neo4j.memory.MemoryTracker;
 
 public class TransactionDependenciesResolver {
     private final Map<KernelTransactionHandle, Optional<QuerySnapshot>> handleSnapshotsMap;
+    private final MemoryTracker memoryTracker;
     private final Map<KernelTransactionHandle, Set<KernelTransactionHandle>> directDependencies;
 
-    public TransactionDependenciesResolver(Map<KernelTransactionHandle, Optional<QuerySnapshot>> handleSnapshotsMap) {
+    public TransactionDependenciesResolver(
+            Map<KernelTransactionHandle, Optional<QuerySnapshot>> handleSnapshotsMap, MemoryTracker memoryTracker) {
         this.handleSnapshotsMap = handleSnapshotsMap;
+        this.memoryTracker = memoryTracker;
         this.directDependencies = initDirectDependencies();
     }
 
@@ -77,21 +80,20 @@ public class TransactionDependenciesResolver {
     private Map<KernelTransactionHandle, Set<KernelTransactionHandle>> initDirectDependencies() {
         Map<KernelTransactionHandle, Set<KernelTransactionHandle>> directDependencies = new HashMap<>();
 
-        Map<KernelTransactionHandle, Collection<ActiveLock>> transactionLocksMap =
-                handleSnapshotsMap.keySet().stream().collect(toMap(identity(), getTransactionLocks()));
-
-        for (Map.Entry<KernelTransactionHandle, Optional<QuerySnapshot>> entry : handleSnapshotsMap.entrySet()) {
-            Optional<QuerySnapshot> snapshot = entry.getValue();
-            if (snapshot.isPresent()) {
-                KernelTransactionHandle txHandle = entry.getKey();
-                evaluateDirectDependencies(directDependencies, transactionLocksMap, txHandle, snapshot.get());
+        try (MemoryTracker scopedMemoryTracker = memoryTracker.getScopedMemoryTracker()) {
+            Map<KernelTransactionHandle, Collection<ActiveLock>> transactionLocksMap =
+                    handleSnapshotsMap.keySet().stream()
+                            .collect(toMap(identity(), txHandle -> txHandle.activeLocks(scopedMemoryTracker)));
+            for (Map.Entry<KernelTransactionHandle, Optional<QuerySnapshot>> entry : handleSnapshotsMap.entrySet()) {
+                Optional<QuerySnapshot> snapshot = entry.getValue();
+                if (snapshot.isPresent()) {
+                    KernelTransactionHandle txHandle = entry.getKey();
+                    evaluateDirectDependencies(directDependencies, transactionLocksMap, txHandle, snapshot.get());
+                }
             }
         }
-        return directDependencies;
-    }
 
-    private static Function<KernelTransactionHandle, Collection<ActiveLock>> getTransactionLocks() {
-        return KernelTransactionHandle::activeLocks;
+        return directDependencies;
     }
 
     private static void evaluateDirectDependencies(

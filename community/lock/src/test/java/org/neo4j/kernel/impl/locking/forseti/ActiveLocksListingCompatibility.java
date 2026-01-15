@@ -48,7 +48,7 @@ abstract class ActiveLocksListingCompatibility extends LockCompatibilityTestSupp
         clientA.acquireExclusive(LockTracer.NONE, NODE, 1);
 
         assertEquals(1, clientA.activeLockCount());
-        var lock = clientA.activeLocks().iterator().next();
+        var lock = clientA.activeLocks(EmptyMemoryTracker.INSTANCE).iterator().next();
         assertEquals(15, lock.transactionId());
     }
 
@@ -140,7 +140,7 @@ abstract class ActiveLocksListingCompatibility extends LockCompatibilityTestSupp
         clientA.acquireShared(LockTracer.NONE, NODE, 3, 4, 5);
 
         // when
-        var locks = clientA.activeLocks();
+        var locks = clientA.activeLocks(EmptyMemoryTracker.INSTANCE);
 
         // then
         assertEquals(

@@ -30,6 +30,7 @@ import org.neo4j.kernel.api.query.ExecutingQuery;
 import org.neo4j.kernel.impl.api.TransactionExecutionStatistic;
 import org.neo4j.kernel.impl.api.transaction.trace.TransactionInitializationTrace;
 import org.neo4j.lock.ActiveLock;
+import org.neo4j.memory.MemoryTracker;
 
 /**
  * View of a {@link KernelTransaction} that provides a limited set of actions against the transaction.
@@ -144,7 +145,7 @@ public interface KernelTransactionHandle {
     /**
      * @return the lock requests granted for this transaction.
      */
-    Collection<ActiveLock> activeLocks();
+    Collection<ActiveLock> activeLocks(MemoryTracker memoryTracker);
 
     /**
      * @return the number of lock requests granted for this transaction.
