@@ -555,12 +555,15 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
           }
         } else incomingLayout.semanticContext
 
+        val incomingMapping: Map[LogicalVariable, AnonymizedVariable] =
+          if (preface.isEmpty || needsCollecting) collectedColumns else Map.empty
+
         val updatedLayout: Layout =
           incomingLayout
             .withIngress(ingress)
             .withMapping(returnsMapped)
             .inContext(updatedCtx)
-            .withIncomingMapping(collectedColumns)
+            .withIncomingMapping(incomingMapping)
             .withUtilityVariable(countVariable)
 
         val rewrittenQuery: Query = flattenQuery(ast, updatedLayout)

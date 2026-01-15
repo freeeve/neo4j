@@ -176,6 +176,11 @@ sealed trait Result {
     case TableResult(columns) => columns
     case _                    => Seq.empty
   }
+
+  def isTableResult: Boolean = this match {
+    case TableResult(_) => true
+    case _              => false
+  }
 }
 
 case class TableResult(columns: Seq[LogicalVariable]) extends Result {

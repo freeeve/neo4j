@@ -92,17 +92,27 @@ object pegStatement {
       case NextStatement(queries) =>
         val children = queries.foldLeft(Seq(WorkingScope.apriori(incoming))) {
           case (previous, query) =>
+
             val nextQuery = apply(query, previous.last.outgoing)
+            val intermediateOutgoing =
+              if (nextQuery.result.isTableResult)
+                incoming.replaceWith(nextQuery.outgoing.variables)
+              else
+                incoming.replaceWith(ScopeSurveyor.unitVariables)
+
             val connectingQuery =
               StatementScope(
                 astNode = Yield(ReturnItems(
                   FreeProjection,
                   nextQuery.result.getColumns.map(AliasedReturnItem(_))
                 )(query.position))(query.position),
-                incoming = incoming,
-                referenced = nextQuery.result.getColumns.toSet,
-                declared = Declarations(constants = Seq.empty, variables = nextQuery.result.getColumns),
-                outgoing = incoming.amendedWith(nextQuery.result.getColumns.toSet)
+                incoming = previous.last.outgoing,
+                referenced = nextQuery.result.getColumns.toSet filter nextQuery.incoming.allSymbols,
+                declared = Declarations(
+                  constants = Seq.empty,
+                  variables = nextQuery.result.getColumns
+                ),
+                outgoing = intermediateOutgoing
               )
 
             previous ++ Seq(nextQuery, connectingQuery)

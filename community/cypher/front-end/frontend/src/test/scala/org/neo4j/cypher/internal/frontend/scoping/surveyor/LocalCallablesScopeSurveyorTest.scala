@@ -797,7 +797,6 @@ class LocalCallablesScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedWorkingScope(
                 Ast("""YIELD four AS four""".stripMargin),
                 Incoming(localCallables = localCallables),
-                Referenced(Set("four")),
                 Declared(variables = Seq("four")),
                 Outgoing(variables = Set("four"), localCallables = localCallables)
               ),

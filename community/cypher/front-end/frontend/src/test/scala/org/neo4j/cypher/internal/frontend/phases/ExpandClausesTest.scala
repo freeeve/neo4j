@@ -845,6 +845,46 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
     )
   }
 
+  test("NEXT query with aggregation rewritten 3") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """
+      UNWIND [1,2,3] AS a
+      RETURN a
+
+      NEXT
+
+      {
+        UNWIND [1,2,3] AS x
+        RETURN COUNT(x) AS x
+        UNION ALL
+        UNWIND [1,2,3] AS x
+        RETURN SUM(x) AS x
+
+        NEXT
+
+        RETURN x
+      }
+      """.stripMargin,
+      """UNWIND [1, 2, 3] AS a
+        |WITH a AS a
+        |WITH count(*) AS `  UNNAMED0`
+        |CALL (`  UNNAMED0`) {
+        |  UNWIND range(0, `  UNNAMED0` - 1) AS `  UNNAMED1`
+        |  UNWIND [1, 2, 3] AS x
+        |  RETURN COUNT(x) AS x
+        |  UNION ALL
+        |  UNWIND range(0, `  UNNAMED0` - 1) AS `  UNNAMED1`
+        |  UNWIND [1, 2, 3] AS x
+        |  RETURN SUM(x) AS x
+        |}
+        |WITH x AS x
+        |RETURN x AS x""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
+    )
+  }
+
   test("Should not wrap on inner aggregation in subquery expression") {
     assertRewritten(
       CypherVersion.Cypher25,
@@ -4593,6 +4633,92 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |  }
         |  RETURN x AS x
         |}
+        |RETURN x AS x""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
+    )
+  }
+
+  test("NEXT query nesting 22") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """RETURN 5 AS x1
+        |
+        |NEXT
+        |
+        |RETURN 9 AS x1
+        |UNION
+        |{
+        |  RETURN 7 AS x1
+        |}
+        |
+        |NEXT
+        |
+        |{
+        |  RETURN *, count(*) AS x2
+        |
+        |  NEXT
+        |
+        |  RETURN 4 AS x
+        |}""".stripMargin,
+      """WITH 5 AS x1
+        |WITH count(*) AS `  UNNAMED0`
+        |CALL (`  UNNAMED0`) {
+        |  UNWIND range(0, `  UNNAMED0` - 1) AS `  UNNAMED1`
+        |  RETURN 9 AS `  UNNAMED2`
+        |  UNION
+        |  UNWIND range(0, `  UNNAMED0` - 1) AS `  UNNAMED1`
+        |  RETURN 7 AS `  UNNAMED2`
+        |}
+        |WITH `  UNNAMED2` AS x1
+        |WITH x1 AS x1, count(*) AS x2
+        |WITH 4 AS x
+        |RETURN x AS x""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
+    )
+  }
+
+  test("NEXT push variables correctly RETURN") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """RETURN 7 AS n
+        |
+        |NEXT
+        |
+        |RETURN 1 AS v
+        |
+        |NEXT
+        |
+        |RETURN DISTINCT *
+        |""".stripMargin,
+      """|WITH 7 AS n
+         |WITH 1 AS v
+         |RETURN DISTINCT v AS v""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
+    )
+  }
+
+  test("NEXT push variables correctly WITH") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """RETURN 7 AS n
+        |
+        |NEXT
+        |
+        |{
+        |  RETURN 1 AS v
+        |
+        |  NEXT
+        |
+        |  WITH DISTINCT *
+        |  RETURN 8 AS x
+        |}""".stripMargin,
+      """WITH 7 AS n
+        |WITH 1 AS v
+        |WITH DISTINCT v AS v
+        |WITH 8 AS x
         |RETURN x AS x""".stripMargin,
       additionalExpectedAstUpdates = withUpdate(),
       additionalActualAstCleanup = withUpdate()

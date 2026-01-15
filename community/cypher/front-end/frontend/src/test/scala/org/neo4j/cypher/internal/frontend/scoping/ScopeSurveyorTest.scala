@@ -100,7 +100,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ExpectedWorkingScope(
           Ast("YIELD a AS a"),
           Declared(variables = Seq("a")),
-          Referenced(Set("a")),
           Outgoing(variables = Set("a"))
         ),
         ExpectedWorkingScope(
@@ -445,7 +444,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ExpectedWorkingScope(
           Ast("YIELD a AS a"),
           Declared(variables = Seq("a")),
-          Referenced(Set("a")),
           Outgoing(variables = Set("a"))
         ),
         ExpectedWorkingScope(
@@ -471,8 +469,8 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ),
         ExpectedWorkingScope(
           Ast("YIELD b AS b"),
+          Incoming(variables = Set("a")),
           Declared(variables = Seq("b")),
-          Referenced(Set("b")),
           Outgoing(variables = Set("b"))
         ),
         ExpectedWorkingScope(
@@ -568,7 +566,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
             ExpectedWorkingScope(
               Ast("YIELD a AS a"),
               Incoming(constants = Set("x")),
-              Referenced(Set("a")),
               Declared(variables = Seq("a")),
               Outgoing(constants = Set("x"), variables = Set("a"))
             ),
@@ -722,7 +719,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ),
         ExpectedWorkingScope(
           Ast("YIELD a AS a"),
-          Referenced(Set("a")),
           Declared(variables = Seq("a")),
           Outgoing(variables = Set("a"))
         ),
@@ -873,7 +869,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ),
         ExpectedWorkingScope(
           Ast("YIELD y AS y"),
-          Referenced(Set("y")),
           Declared(variables = Seq("y")),
           Outgoing(variables = Set("y"))
         ),
@@ -988,7 +983,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ),
         ExpectedWorkingScope(
           Ast("YIELD y AS y"),
-          Referenced(Set("y")),
           Declared(variables = Seq("y")),
           Outgoing(variables = Set("y"))
         ),
@@ -4206,7 +4200,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedWorkingScope(
                 Ast("YIELD b AS b"),
                 Incoming(constants = Set("a")),
-                Referenced(Set("b")),
                 Declared(variables = Seq("b")),
                 Outgoing(constants = Set("a"), variables = Set("b"))
               ),
@@ -4308,7 +4301,6 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedWorkingScope(
                 Ast("YIELD y AS y"),
                 Incoming(constants = Set("x")),
-                Referenced(Set("y")),
                 Declared(variables = Seq("y")),
                 Outgoing(constants = Set("x"), variables = Set("y"))
               ),
