@@ -46,7 +46,7 @@ import org.neo4j.test.utils.TestDirectory;
 
 @PageCacheExtension
 @RandomSupportExtension
-public class GBPTreeWithUndefinedValuesTest {
+public class GBPTreeWithDeletedValuesTest {
 
     public static final int MAX_NUMBERS = 2000;
     public static final int WRITE_ROUNDS = 1000;
@@ -64,9 +64,9 @@ public class GBPTreeWithUndefinedValuesTest {
     RandomSupport randomSupport;
 
     @Test
-    void seekerShouldNotSeeUndefinedValues() throws IOException {
+    void seekerShouldNotSeeDeletedValues() throws IOException {
         try (var tree = makeTree(
-                new ConditionalReadLayoutFactory<>(GBPTreeWithUndefinedValuesTest::evenLong, MutableLong.class))) {
+                new ConditionalReadLayoutFactory<>(GBPTreeWithDeletedValuesTest::evenLong, MutableLong.class))) {
             var valueCount = 100;
             try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
                 for (int i = 0; i < valueCount; i++) {
@@ -78,14 +78,14 @@ public class GBPTreeWithUndefinedValuesTest {
                 while (seeker.next()) {
                     assertThat(seeker.value())
                             .is(new Condition<>(
-                                    GBPTreeWithUndefinedValuesTest::evenLong, "seeker should see only even values"));
+                                    GBPTreeWithDeletedValuesTest::evenLong, "seeker should see only even values"));
                 }
             }
         }
     }
 
     @Test
-    void seekerShouldSkipThroughUndefinedValuesGoingBackward() throws IOException {
+    void seekerShouldSkipThroughDeletedValuesGoingBackward() throws IOException {
         try (var tree = makeTree(new ConditionalReadLayoutFactory<>(m -> m.longValue() == 1, MutableLong.class))) {
             try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
                 for (int i = 0; i < MAX_NUMBERS; i++) {
@@ -103,7 +103,7 @@ public class GBPTreeWithUndefinedValuesTest {
     }
 
     @Test
-    void seekerShouldSkipThroughUndefinedValuesGoingBackwardBetweenValues() throws IOException {
+    void seekerShouldSkipThroughDeletedValuesGoingBackwardBetweenValues() throws IOException {
         try (var tree = makeTree(new ConditionalReadLayoutFactory<>(
                 m -> m.longValue() == 1 || m.longValue() == MAX_NUMBERS - 1, MutableLong.class))) {
             try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
@@ -124,7 +124,7 @@ public class GBPTreeWithUndefinedValuesTest {
     }
 
     @Test
-    void seekerShouldSkipThroughUndefinedValuesGoingForward() throws IOException {
+    void seekerShouldSkipThroughDeletedValuesGoingForward() throws IOException {
         try (var tree = makeTree(
                 new ConditionalReadLayoutFactory<>(m -> m.longValue() == MAX_NUMBERS - 1, MutableLong.class))) {
             try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
@@ -143,7 +143,7 @@ public class GBPTreeWithUndefinedValuesTest {
     }
 
     @Test
-    void seekerShouldSkipThroughUndefinedValuesGoingForwardBetweenValue() throws IOException {
+    void seekerShouldSkipThroughDeletedValuesGoingForwardBetweenValue() throws IOException {
         try (var tree = makeTree(new ConditionalReadLayoutFactory<>(
                 m -> m.longValue() == 1 || m.longValue() == MAX_NUMBERS - 1, MutableLong.class))) {
             try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
@@ -164,7 +164,7 @@ public class GBPTreeWithUndefinedValuesTest {
     }
 
     @Test
-    void seekerShouldSkipThroughAllUndefinedValuesGoingBackward() throws IOException {
+    void seekerShouldSkipThroughAllDeletedValuesGoingBackward() throws IOException {
         try (var tree = makeTree(new ConditionalReadLayoutFactory<>(alwaysFalse(), MutableLong.class))) {
             try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
                 for (int i = 0; i < MAX_NUMBERS; i++) {
@@ -180,7 +180,7 @@ public class GBPTreeWithUndefinedValuesTest {
     }
 
     @Test
-    void seekerShouldSkipThroughAllUndefinedValuesGoingForward() throws IOException {
+    void seekerShouldSkipThroughAllDeletedValuesGoingForward() throws IOException {
         try (var tree = makeTree(new ConditionalReadLayoutFactory<>(alwaysFalse(), MutableLong.class))) {
             try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
                 for (int i = 0; i < MAX_NUMBERS; i++) {
@@ -196,9 +196,9 @@ public class GBPTreeWithUndefinedValuesTest {
     }
 
     @Test
-    void overwriteUndefinedValue() throws IOException {
+    void overwriteDeletedValue() throws IOException {
         try (var tree = makeTree(
-                new ConditionalReadLayoutFactory<>(GBPTreeWithUndefinedValuesTest::evenLong, MutableLong.class))) {
+                new ConditionalReadLayoutFactory<>(GBPTreeWithDeletedValuesTest::evenLong, MutableLong.class))) {
             try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
                 writer.put(new MutableLong(0), new MutableLong(1));
             }
@@ -220,9 +220,9 @@ public class GBPTreeWithUndefinedValuesTest {
     }
 
     @Test
-    void removeUndefinedValue() throws IOException {
+    void removeDeletedValue() throws IOException {
         try (var tree = makeTree(
-                new ConditionalReadLayoutFactory<>(GBPTreeWithUndefinedValuesTest::evenLong, MutableLong.class))) {
+                new ConditionalReadLayoutFactory<>(GBPTreeWithDeletedValuesTest::evenLong, MutableLong.class))) {
             try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
                 writer.put(new MutableLong(0), new MutableLong(1));
             }
@@ -242,9 +242,9 @@ public class GBPTreeWithUndefinedValuesTest {
     }
 
     @Test
-    void concurrentReadWriteWithUndefinedValues() throws Throwable {
+    void concurrentReadWriteWithDeletedValues() throws Throwable {
         try (var tree = makeTree(
-                new ConditionalReadLayoutFactory<>(GBPTreeWithUndefinedValuesTest::overHalf, MutableLong.class))) {
+                new ConditionalReadLayoutFactory<>(GBPTreeWithDeletedValuesTest::overHalf, MutableLong.class))) {
 
             var race = new Race();
 
@@ -273,7 +273,7 @@ public class GBPTreeWithUndefinedValuesTest {
                         while (seeker.next()) {
                             assertThat(seeker.value())
                                     .is(new Condition<>(
-                                            GBPTreeWithUndefinedValuesTest::overHalf,
+                                            GBPTreeWithDeletedValuesTest::overHalf,
                                             "seeker should see only half of the values"));
                         }
                     } catch (IOException e) {
@@ -340,7 +340,7 @@ public class GBPTreeWithUndefinedValuesTest {
                                 CursorContext cursorContext)
                                 throws IOException {
                             super.keyValueAt(cursor, intoKey, intoValue, pos, cursorContext);
-                            intoValue.defined = predicate.test(vClass.cast(intoValue.value));
+                            intoValue.deleted = !predicate.test(vClass.cast(intoValue.value));
                         }
 
                         @Override
@@ -348,7 +348,7 @@ public class GBPTreeWithUndefinedValuesTest {
                                 PageCursor cursor, ValueHolder<VALUE> value, int pos, CursorContext cursorContext)
                                 throws IOException {
                             var valueHolder = super.valueAt(cursor, value, pos, cursorContext);
-                            valueHolder.defined = predicate.test(vClass.cast(value.value));
+                            valueHolder.deleted = !predicate.test(vClass.cast(value.value));
                             return valueHolder;
                         }
                     };

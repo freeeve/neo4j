@@ -731,7 +731,7 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         leafNode.valueAt(cursor, readValue, pos, cursorContext);
         int totalSpaceBefore = leafNode.totalSpaceOfKeyValue(key, readValue.value);
         var mergeResult = ValueMerger.MergeResult.REPLACED;
-        if (readValue.defined) {
+        if (!readValue.deleted) {
             mergeResult = valueMerger.merge(readKey, key, readValue.value, value);
             if (mergeResult == ValueMerger.MergeResult.UNCHANGED) {
                 return true;

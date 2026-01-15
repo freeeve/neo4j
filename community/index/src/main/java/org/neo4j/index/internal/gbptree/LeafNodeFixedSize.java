@@ -155,7 +155,7 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             throws IOException {
         cursor.setOffset(valueOffset(pos));
         layout.readValue(cursor, value.value, FIXED_SIZE_VALUE);
-        value.defined = true;
+        value.deleted = false;
         return value;
     }
 

@@ -131,7 +131,7 @@ public class TokenScanLayout extends Layout.Adapter<TokenScanKey, TokenScanValue
     }
 
     @Override
-    public boolean valueDefined(TokenScanValue value) {
-        return value.bits != 0L;
+    public boolean valueDeleted(TokenScanValue value) {
+        return value.bits == 0L;
     }
 }

@@ -112,12 +112,12 @@ class RootMappingLayout<ROOT_KEY> extends Layout.Adapter<ROOT_KEY, RootMappingLa
     }
 
     @Override
-    public boolean valueDefined(RootMappingValue rootMappingValue) {
-        return !rootMappingValue.deleted;
+    public boolean valueDeleted(RootMappingValue rootMappingValue) {
+        return rootMappingValue.deleted;
     }
 
     @Override
-    public void markValueUndefined(RootMappingValue value) {
+    public void markValueDeleted(RootMappingValue value) {
         value.deleted = true;
     }
 

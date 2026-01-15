@@ -165,7 +165,7 @@ public class SimpleLongLayout extends TestLayout<MutableLong, MutableLong> {
     }
 
     @Override
-    public boolean valueDefined(MutableLong value) {
-        return value.longValue() != 0L;
+    public boolean valueDeleted(MutableLong value) {
+        return value.longValue() == 0L;
     }
 }

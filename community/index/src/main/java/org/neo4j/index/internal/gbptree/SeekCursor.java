@@ -584,13 +584,13 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                     concurrentWriteHappened = cursor.shouldRetry();
                     if (!concurrentWriteHappened) {
                         cache.next();
-                        if (resultOnTrack && isValueDefined(cache.currentValue())) {
+                        if (resultOnTrack && isValueVisible(cache.currentValue())) {
                             return true;
                         }
                         if (insidePrevKey(cache.currentKey())) {
                             first = false;
                             resultOnTrack = true;
-                            if (isValueDefined(cache.currentValue())) {
+                            if (isValueVisible(cache.currentValue())) {
                                 return true;
                             }
                         } else {
@@ -1023,8 +1023,8 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
      * @return true if key-value pair at current cachedIndex should be visible by users of the seeker.
      * When at internal node, there are no values and all keys should be visible.
      */
-    private boolean isValueDefined(ValueHolder<VALUE> value) {
-        return isInternal || value.defined;
+    private boolean isValueVisible(ValueHolder<VALUE> value) {
+        return isInternal || !value.deleted;
     }
 
     /**
@@ -1164,7 +1164,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
     public VALUE value() {
         assertHasResult();
         var value = cache.currentValue();
-        assert value.defined;
+        assert !value.deleted;
         return value.value;
     }
 

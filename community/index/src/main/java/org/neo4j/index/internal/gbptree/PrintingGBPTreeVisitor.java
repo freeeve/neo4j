@@ -89,7 +89,7 @@ public class PrintingGBPTreeVisitor<ROOT_KEY, KEY, VALUE> extends GBPTreeVisitor
     @Override
     public void value(ValueHolder<VALUE> value) {
         if (printValues) {
-            out.print("=" + value.value + (value.defined ? "[D]" : "[U]"));
+            out.print("=" + value.value + (value.deleted ? "[D]" : ""));
         }
         out.print(" ");
     }
@@ -123,7 +123,7 @@ public class PrintingGBPTreeVisitor<ROOT_KEY, KEY, VALUE> extends GBPTreeVisitor
     @Override
     public void historicalValue(long version, ValueHolder<VALUE> value) {
         if (printHistory) {
-            out.print(" " + version + ":" + value.value + (value.defined ? "[D]" : "[U]"));
+            out.print(" " + version + ":" + value.value + (value.deleted ? "[D]" : ""));
         }
     }
 

@@ -30,19 +30,19 @@ import org.neo4j.io.pagecache.context.CursorContext;
  */
 public final class ValueHolder<VALUE> {
     public VALUE value;
-    public boolean defined;
+    public boolean deleted;
 
     public ValueHolder(VALUE value) {
-        this(value, false);
+        this(value, true);
     }
 
-    public ValueHolder(VALUE value, boolean defined) {
+    public ValueHolder(VALUE value, boolean deleted) {
         this.value = value;
-        this.defined = defined;
+        this.deleted = deleted;
     }
 
     @Override
     public String toString() {
-        return "(" + value + ", defined=" + defined + ")";
+        return "(" + value + ", deleted=" + deleted + ")";
     }
 }

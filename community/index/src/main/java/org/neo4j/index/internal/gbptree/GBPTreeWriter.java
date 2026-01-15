@@ -340,7 +340,7 @@ class GBPTreeWriter<K, V> implements Writer<K, V> {
         }
 
         checkOutOfBounds(cursor);
-        return result == InternalTreeLogic.RemoveResult.REMOVED && removedValue.defined ? removedValue.value : null;
+        return result == InternalTreeLogic.RemoveResult.REMOVED && !removedValue.deleted ? removedValue.value : null;
     }
 
     @Override

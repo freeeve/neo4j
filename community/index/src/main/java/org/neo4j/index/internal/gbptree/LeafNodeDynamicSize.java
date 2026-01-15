@@ -152,7 +152,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             throws IOException {
         placeCursorAtActualKey(cursor, pos);
 
-        intoValue.defined = true;
+        intoValue.deleted = false;
         long keyValueSize = readKeyValueSize(cursor);
         int keySize = extractKeySize(keyValueSize);
         int valueSize = extractValueSize(keyValueSize);
@@ -260,7 +260,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
         placeCursorAtActualKey(cursor, pos);
 
         // Read value
-        into.defined = true;
+        into.deleted = false;
         long keyValueSize = readKeyValueSize(cursor);
         int keySize = extractKeySize(keyValueSize);
         int valueSize = extractValueSize(keyValueSize);

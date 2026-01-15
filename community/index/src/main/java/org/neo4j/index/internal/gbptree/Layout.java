@@ -103,8 +103,8 @@ public interface Layout<KEY, VALUE> extends KeyLayout<KEY> {
      * When entry is deleted in the multiversion tree it is overridden with the result of {@link #newValue()} in initial state.
      * This method normally should return true for such values.
      */
-    default boolean valueDefined(VALUE value) {
-        return true;
+    default boolean valueDeleted(VALUE value) {
+        return false;
     }
 
     /**
@@ -112,7 +112,7 @@ public interface Layout<KEY, VALUE> extends KeyLayout<KEY> {
      * When entry is deleted in the versioned root layer, it needs to preserve the existing root pointer but also needs to mark value
      * as undefined to enable its removal during defragmentation.
      */
-    default void markValueUndefined(VALUE value) {}
+    default void markValueDeleted(VALUE value) {}
 
     /**
      * Adapter for {@link Layout}, which contains convenient standard implementations of some methods.
