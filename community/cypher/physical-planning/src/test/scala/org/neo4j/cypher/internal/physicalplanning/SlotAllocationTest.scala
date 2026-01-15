@@ -72,6 +72,7 @@ import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.LiveVariables
 import org.neo4j.cypher.internal.physicalplanning.PipelineBreakingPolicy.breakFor
@@ -792,6 +793,11 @@ class SlotAllocationTest extends CypherFunSuite with AstConstructionTestSupport 
         left = scan,
         right = projection,
         join = Equals(x, x)(InputPosition.NONE)
+      ),
+      ValueMergeJoin(
+        left = scan,
+        right = projection,
+        join = Equals(x, x)(InputPosition.NONE)
       )
     )
 
@@ -941,7 +947,8 @@ class SlotAllocationTest extends CypherFunSuite with AstConstructionTestSupport 
         CartesianProduct(lhs, rhs),
         NodeHashJoin(Set(varFor("x")), lhs, rhs),
         LeftOuterHashJoin(Set(varFor("x")), lhs, rhs),
-        ValueHashJoin(lhs, rhs, equals(varFor("x"), varFor("x")))
+        ValueHashJoin(lhs, rhs, equals(varFor("x"), varFor("x"))),
+        ValueMergeJoin(lhs, rhs, equals(varFor("x"), varFor("x")))
       )
 
     for (join <- joins) {

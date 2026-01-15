@@ -67,6 +67,7 @@ import org.neo4j.cypher.internal.logical.plans.NestedPlanGetByNameExpression
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.AcyclicPlans
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.SlotConfigurations
@@ -166,6 +167,15 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
           newPlan
 
         case plan @ ValueHashJoin(lhs, rhs, e @ Equals(lhsExp, rhsExp)) =>
+          val lhsRewriter =
+            rewriteCreator(slotConfigurations(lhs.id), plan, slotConfigurations, trailPlans, acyclicPlans)
+          val rhsRewriter =
+            rewriteCreator(slotConfigurations(rhs.id), plan, slotConfigurations, trailPlans, acyclicPlans)
+          val lhsExpAfterRewrite = lhsExp.endoRewrite(lhsRewriter)
+          val rhsExpAfterRewrite = rhsExp.endoRewrite(rhsRewriter)
+          plan.copy(join = Equals(lhsExpAfterRewrite, rhsExpAfterRewrite)(e.position))(SameId(plan.id))
+
+        case plan @ ValueMergeJoin(lhs, rhs, e @ Equals(lhsExp, rhsExp)) =>
           val lhsRewriter =
             rewriteCreator(slotConfigurations(lhs.id), plan, slotConfigurations, trailPlans, acyclicPlans)
           val rhsRewriter =

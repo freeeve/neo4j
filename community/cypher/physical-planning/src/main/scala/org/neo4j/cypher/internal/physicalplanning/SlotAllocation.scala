@@ -157,6 +157,7 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipVectorIndex
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.AcyclicPlans
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.ApplyPlans
@@ -596,6 +597,14 @@ class SingleQuerySlotAllocator private[physicalplanning] (
           TraverseChildren(Accumulator(doNotTraverseExpression = Some(rhsExpression))) // Only look at lhsExpression
 
       case ValueHashJoin(_, _, Equals(lhsExpression, _)) if !comingFromLeft =>
+        (_: Accumulator) =>
+          TraverseChildren(Accumulator(doNotTraverseExpression = Some(lhsExpression))) // Only look at rhsExpression
+
+      case ValueMergeJoin(_, _, Equals(_, rhsExpression)) if comingFromLeft =>
+        (_: Accumulator) =>
+          TraverseChildren(Accumulator(doNotTraverseExpression = Some(rhsExpression))) // Only look at lhsExpression
+
+      case ValueMergeJoin(_, _, Equals(lhsExpression, _)) if !comingFromLeft =>
         (_: Accumulator) =>
           TraverseChildren(Accumulator(doNotTraverseExpression = Some(lhsExpression))) // Only look at rhsExpression
 
@@ -1254,14 +1263,14 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         }
         result
 
-      case _: ValueHashJoin =>
+      case _: ValueHashJoin | _: ValueMergeJoin =>
         // A new pipeline is not strictly needed here unless we have batching/vectorization
         recordArgument(lp)
         rhs.addArgumentAliasesTo(lhs, argument.argumentSize)
         val result = breakingPolicy.invoke(lp, lhs, argument.slotConfiguration, applyPlans)
         // For the implementation of the slotted pipe to use array copy
         // it is very important that we add the slots in the same order
-        // Note, we can potentially carry discaded slots from rhs here to save memory
+        // Note, we can potentially carry discarded slots from rhs here to save memory
         rhs.keyedSlotsOrdered(skipFirst = argument.argumentSize).foreach {
           case SlotWithKeyAndAliases(VariableSlotKey(key), slot, aliases) =>
             result.add(key, slot)
