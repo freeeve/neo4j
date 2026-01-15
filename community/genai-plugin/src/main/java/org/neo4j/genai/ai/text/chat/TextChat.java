@@ -53,13 +53,13 @@ public class TextChat {
 
     @UserFunction(name = "ai.text.chat")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
-    @Description("Chat based on the specified prompt, optionally continuing a previous response.")
+    @Description("Chat based on the specified prompt, optionally continuing a previous interaction.")
     public Map<String, String> chat(
             @Name(value = "prompt", description = "The user message to send.") String prompt,
             @Name(
                             value = "chatId",
                             description =
-                                    "Previous chat id to continue the conversation. If this is the first message in the conversation, set to null.")
+                                    "Previous chat ID to continue the conversation. If this is the first message in the conversation, set it to null.")
                     String previousResponseId,
             @Name(value = "provider", description = PROVIDER_DESC) String providerName,
             @Sensitive @Name(value = "configuration", defaultValue = "{}", description = CONF_DESC)
@@ -93,7 +93,7 @@ public class TextChat {
             @Description("The returned response from the given provider.")
             String message,
 
-            @Description("The chat id that can be used to continue this conversation.")
+            @Description("The chat ID that can be used to continue this conversation.")
             String chatId) {}
 
     public interface Providers extends NamedProvider.Lookup<Provider> {
