@@ -35,6 +35,7 @@ import org.neo4j.internal.schema.IndexType;
 public class DatabaseIndexStats extends IndexMonitor.MonitorAdapter implements IndexCounters {
     private static class IndexTypeStats {
         final LongAdder queried = new LongAdder();
+        final LongAdder queriedWithFilter = new LongAdder();
         final LongAdder populated = new LongAdder();
         final LongAdder totalSize = new LongAdder();
     }
@@ -55,6 +56,11 @@ public class DatabaseIndexStats extends IndexMonitor.MonitorAdapter implements I
     }
 
     @Override
+    public long getQueryWithFilterCount(IndexType type) {
+        return stats.get(type).queriedWithFilter.longValue();
+    }
+
+    @Override
     public long getPopulationCount(IndexType type) {
         return stats.get(type).populated.longValue();
     }
@@ -64,8 +70,16 @@ public class DatabaseIndexStats extends IndexMonitor.MonitorAdapter implements I
         return stats.get(type).totalSize.longValue();
     }
 
-    public void reportQueryCount(IndexDescriptor descriptor, long queriesSinceLastReport) {
-        stats.get(descriptor.getIndexType()).queried.add(queriesSinceLastReport);
+    public void reportQueryCount(
+            IndexDescriptor descriptor, long queriesSinceLastReport, long queriesWithFilterSinceLastReport) {
+        IndexType type = descriptor.getIndexType();
+        IndexTypeStats statsByType = stats.get(type);
+        statsByType.queried.add(queriesSinceLastReport);
+
+        // only for vectors, save the LongAdder+0 cycles
+        if (type == IndexType.VECTOR) {
+            statsByType.queriedWithFilter.add(queriesWithFilterSinceLastReport);
+        }
     }
 
     @Override

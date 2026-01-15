@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.function.Function;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
+import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
@@ -68,12 +69,16 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
             PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         final var predicate = validateSingleQuery(constraints, predicates);
-        queryContext.monitor().queried(descriptor);
-        usageTracker.queried();
+        reportIndexQueriedWith(queryContext.monitor(), predicates);
 
         final var progressor = indexProgressor(queryFactory, constraints, client, predicates);
         final var needStoreFilter = needStoreFilter(predicate);
         client.initializeQuery(descriptor, progressor, false, needStoreFilter, constraints, predicate);
+    }
+
+    protected void reportIndexQueriedWith(IndexMonitor monitor, PropertyIndexQuery... predicates) {
+        monitor.queried(descriptor);
+        usageTracker.queried();
     }
 
     @Override

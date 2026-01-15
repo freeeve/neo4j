@@ -40,6 +40,7 @@ import org.neo4j.io.pagecache.PageCursor;
  *      {@link IndexStatisticsValue#INDEX_USAGE_LAST_READ},
  *      {@link IndexStatisticsValue#INDEX_USAGE_READ_COUNT}
  *      {@link IndexStatisticsValue#INDEX_USAGE_TRACKED_SINCE}
+ *      {@link IndexStatisticsValue#INDEX_USAGE_READ_WITH_FILTER_COUNT}
  */
 @SuppressWarnings({"NonFinalFieldReferenceInEquals", "NonFinalFieldReferencedInHashCode"})
 class IndexStatisticsKey implements Comparable<IndexStatisticsKey> {

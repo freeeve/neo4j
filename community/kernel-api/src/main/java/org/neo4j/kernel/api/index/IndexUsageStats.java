@@ -24,6 +24,7 @@ package org.neo4j.kernel.api.index;
  *
  * @param lastRead {@link System#currentTimeMillis()} of last query made to the index
  * @param readCount Number of read queries since {@link #trackedSince}
+ * @param readWithFilterCount Number of read queries with additional filters since {@link #trackedSince}
  * @param trackedSince {@link System#currentTimeMillis()} when tracking of usage in index started
  */
-public record IndexUsageStats(long lastRead, long readCount, long trackedSince) {}
+public record IndexUsageStats(long lastRead, long readCount, long readWithFilterCount, long trackedSince) {}

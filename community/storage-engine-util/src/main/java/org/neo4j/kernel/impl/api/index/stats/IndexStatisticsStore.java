@@ -164,11 +164,16 @@ public class IndexStatisticsStore extends LifecycleAdapter
         newValue.set(IndexStatisticsValue.INDEX_USAGE_LAST_READ, added.lastRead());
         newValue.set(IndexStatisticsValue.INDEX_USAGE_READ_COUNT, added.readCount());
         newValue.set(IndexStatisticsValue.INDEX_USAGE_TRACKED_SINCE, added.trackedSince());
+        newValue.set(IndexStatisticsValue.INDEX_USAGE_READ_WITH_FILTER_COUNT, added.readWithFilterCount());
         cache.compute(new IndexStatisticsKey(indexId, TYPE_USAGE), (key, currentValue) -> {
             if (currentValue != null) {
                 newValue.set(
                         IndexStatisticsValue.INDEX_USAGE_READ_COUNT,
                         added.readCount() + currentValue.get(IndexStatisticsValue.INDEX_USAGE_READ_COUNT));
+                newValue.set(
+                        IndexStatisticsValue.INDEX_USAGE_READ_WITH_FILTER_COUNT,
+                        added.readWithFilterCount()
+                                + currentValue.get(IndexStatisticsValue.INDEX_USAGE_READ_WITH_FILTER_COUNT));
                 newValue.set(
                         IndexStatisticsValue.INDEX_USAGE_TRACKED_SINCE,
                         Long.min(
@@ -202,6 +207,7 @@ public class IndexStatisticsStore extends LifecycleAdapter
                 stats -> new IndexUsageStats(
                         stats.get(IndexStatisticsValue.INDEX_USAGE_LAST_READ),
                         stats.get(IndexStatisticsValue.INDEX_USAGE_READ_COUNT),
+                        stats.get(IndexStatisticsValue.INDEX_USAGE_READ_WITH_FILTER_COUNT),
                         stats.get(IndexStatisticsValue.INDEX_USAGE_TRACKED_SINCE)));
     }
 
@@ -263,6 +269,7 @@ public class IndexStatisticsStore extends LifecycleAdapter
                                         key.getIndexId(),
                                         value.get(IndexStatisticsValue.INDEX_USAGE_LAST_READ),
                                         value.get(IndexStatisticsValue.INDEX_USAGE_READ_COUNT),
+                                        value.get(IndexStatisticsValue.INDEX_USAGE_READ_WITH_FILTER_COUNT),
                                         value.get(IndexStatisticsValue.INDEX_USAGE_TRACKED_SINCE));
                             default -> throw new IllegalArgumentException("Unknown key type for " + key);
                         }

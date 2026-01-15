@@ -24,6 +24,8 @@ import org.neo4j.internal.schema.IndexType;
 public interface IndexCounters {
     long getQueryCount(IndexType type);
 
+    long getQueryWithFilterCount(IndexType type);
+
     long getPopulationCount(IndexType type);
 
     long getTotalSize(IndexType type);

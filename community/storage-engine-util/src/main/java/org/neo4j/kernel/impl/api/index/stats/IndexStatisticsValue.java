@@ -33,6 +33,7 @@ class IndexStatisticsValue {
     static final int INDEX_USAGE_LAST_READ = 0;
     static final int INDEX_USAGE_READ_COUNT = 1;
     static final int INDEX_USAGE_TRACKED_SINCE = 2;
+    static final int INDEX_USAGE_READ_WITH_FILTER_COUNT = 3;
 
     final long[] data = new long[NUM_LONGS];
 

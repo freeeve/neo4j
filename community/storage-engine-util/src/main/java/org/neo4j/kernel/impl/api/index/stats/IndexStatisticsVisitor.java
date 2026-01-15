@@ -29,5 +29,6 @@ public interface IndexStatisticsVisitor {
     void visitSampleStatistics(
             long indexId, long sampleUniqueValues, long sampleSize, long updatesCount, long indexSize);
 
-    void visitUsageStatistics(long indexId, long lastUsedTime, long queryCount, long trackedSinceTime);
+    void visitUsageStatistics(
+            long indexId, long lastUsedTime, long queryCount, long queryWithFilterCount, long trackedSinceTime);
 }

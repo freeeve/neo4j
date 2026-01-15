@@ -26,7 +26,7 @@ import org.neo4j.kernel.api.index.IndexUsageStats;
  * and to later report those via {@link #getAndReset()}.
  */
 public interface IndexUsageTracking {
-    IndexUsageStats EMPTY_USAGE_STATS = new IndexUsageStats(0, 0, 0);
+    IndexUsageStats EMPTY_USAGE_STATS = new IndexUsageStats(0, 0, 0, 0);
 
     IndexUsageTracking NO_USAGE_TRACKING = new IndexUsageTracking() {
         @Override
@@ -36,9 +36,14 @@ public interface IndexUsageTracking {
 
         @Override
         public void queried() {}
+
+        @Override
+        public void queriedWithFilter() {}
     };
 
     IndexUsageStats getAndReset();
 
     void queried();
+
+    void queriedWithFilter();
 }

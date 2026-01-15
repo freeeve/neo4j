@@ -214,7 +214,7 @@ public class OnlineIndexProxy implements IndexProxy {
     public void reportUsageStatistics(IndexUsageStatsConsumer consumer) {
         final var descriptor = getDescriptor();
         final var stats = usageTracking.getAndReset();
-        indexCounters.reportQueryCount(descriptor, stats.readCount());
+        indexCounters.reportQueryCount(descriptor, stats.readCount(), stats.readWithFilterCount());
         consumer.addUsageStats(descriptor.getId(), stats);
     }
 

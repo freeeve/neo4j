@@ -295,7 +295,7 @@ class IndexStatisticsStoreTest {
     void shouldCacheUsageStatistics() {
         // given
         var indexId = 2L;
-        var usage = new IndexUsageStats(System.currentTimeMillis(), 123, System.currentTimeMillis() - 1000);
+        var usage = new IndexUsageStats(System.currentTimeMillis(), 123, 42, System.currentTimeMillis() - 1000);
         store.addUsageStats(indexId, usage);
 
         // when
@@ -310,7 +310,7 @@ class IndexStatisticsStoreTest {
     void shouldStoreSampleAndUsageStatistics() throws IOException {
         // given
         var indexId = 12345L;
-        var usage = new IndexUsageStats(System.currentTimeMillis(), 987654, System.currentTimeMillis() - 1000);
+        var usage = new IndexUsageStats(System.currentTimeMillis(), 987654, 123456, System.currentTimeMillis() - 1000);
         var sample = new IndexSample(10, 20, 30, 40);
         store.setSampleStats(indexId, sample);
         store.addUsageStats(indexId, usage);
@@ -329,7 +329,7 @@ class IndexStatisticsStoreTest {
     void shouldSetFirstTrackedTimeOnFirstUsageStatisticsUpdate() throws IOException {
         // given
         var indexId = 998L;
-        var firstUsage = new IndexUsageStats(System.currentTimeMillis(), 10, 1234567);
+        var firstUsage = new IndexUsageStats(System.currentTimeMillis(), 10, 0, 1234567);
 
         // when
         store.addUsageStats(indexId, firstUsage);
@@ -338,7 +338,7 @@ class IndexStatisticsStoreTest {
         assertThat(store.usageStats(indexId)).isEqualTo(firstUsage);
 
         // and when
-        var secondUsage = new IndexUsageStats(System.currentTimeMillis(), 5, 9999999);
+        var secondUsage = new IndexUsageStats(System.currentTimeMillis(), 5, 2, 9999999);
         store.addUsageStats(indexId, secondUsage);
 
         // then
@@ -353,10 +353,13 @@ class IndexStatisticsStoreTest {
         var indexId = 12345L;
         var lastUsedTime = System.currentTimeMillis();
         var trackedSinceTime = System.currentTimeMillis() - 1000;
-        var firstUsage = new IndexUsageStats(lastUsedTime, 987654, trackedSinceTime);
-        var secondUsage = new IndexUsageStats(lastUsedTime + 2000, 100, trackedSinceTime + 1000);
+        var firstUsage = new IndexUsageStats(lastUsedTime, 987654, 12345, trackedSinceTime);
+        var secondUsage = new IndexUsageStats(lastUsedTime + 2000, 100, 10, trackedSinceTime + 1000);
         var expectedUsage = new IndexUsageStats(
-                secondUsage.lastRead(), firstUsage.readCount() + secondUsage.readCount(), firstUsage.trackedSince());
+                secondUsage.lastRead(),
+                firstUsage.readCount() + secondUsage.readCount(),
+                firstUsage.readWithFilterCount() + secondUsage.readWithFilterCount(),
+                firstUsage.trackedSince());
 
         // When
         store.addUsageStats(indexId, firstUsage);
@@ -372,14 +375,17 @@ class IndexStatisticsStoreTest {
         var indexId = 12345L;
         var lastUsedTime = System.currentTimeMillis();
         var trackedSinceTime = System.currentTimeMillis() - 1000;
-        var firstUsage = new IndexUsageStats(lastUsedTime, 987654, trackedSinceTime);
+        var firstUsage = new IndexUsageStats(lastUsedTime, 987654, 12345, trackedSinceTime);
         store.addUsageStats(indexId, firstUsage);
 
         // When
         restartStore();
-        var secondUsage = new IndexUsageStats(lastUsedTime + 2000, 100, trackedSinceTime + 1000);
+        var secondUsage = new IndexUsageStats(lastUsedTime + 2000, 100, 10, trackedSinceTime + 1000);
         var expectedUsage = new IndexUsageStats(
-                secondUsage.lastRead(), firstUsage.readCount() + secondUsage.readCount(), firstUsage.trackedSince());
+                secondUsage.lastRead(),
+                firstUsage.readCount() + secondUsage.readCount(),
+                firstUsage.readWithFilterCount() + secondUsage.readWithFilterCount(),
+                firstUsage.trackedSince());
         store.addUsageStats(indexId, secondUsage);
 
         // Then
@@ -393,6 +399,7 @@ class IndexStatisticsStoreTest {
         var race = new Race();
         var sessionsPerThread = 10;
         var queriesPerSession = 10;
+        var queriesWithFilterPerSession = 2;
         var numThreads = 4;
         var expectedMinTimeMillis = new AtomicLong(Long.MAX_VALUE);
         var expectedMaxTimeMillis = new AtomicLong();
@@ -406,7 +413,9 @@ class IndexStatisticsStoreTest {
                         if (i == 0) {
                             expectedMinTimeMillis.updateAndGet(operand -> Long.min(time, operand));
                         }
-                        store.addUsageStats(indexId, new IndexUsageStats(time, queriesPerSession, time));
+                        store.addUsageStats(
+                                indexId,
+                                new IndexUsageStats(time, queriesPerSession, queriesWithFilterPerSession, time));
                     }
                     expectedMaxTimeMillis.updateAndGet(operand -> Long.max(myClockMillis.longValue(), operand));
                 }),
@@ -419,6 +428,8 @@ class IndexStatisticsStoreTest {
         var usageStats = store.usageStats(indexId);
         assertThat(usageStats.lastRead()).isEqualTo(expectedMaxTimeMillis.get());
         assertThat(usageStats.readCount()).isEqualTo(sessionsPerThread * queriesPerSession * numThreads);
+        assertThat(usageStats.readWithFilterCount())
+                .isEqualTo(sessionsPerThread * queriesWithFilterPerSession * numThreads);
         assertThat(usageStats.trackedSince()).isLessThan(usageStats.lastRead());
         assertThat(usageStats.trackedSince()).isEqualTo(expectedMinTimeMillis.get());
     }

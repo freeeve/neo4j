@@ -27,6 +27,7 @@ import org.neo4j.kernel.api.index.IndexUsageStats;
 public final class DefaultIndexUsageTracking implements IndexUsageTracking {
     private final long trackedSince;
     private final LongAdder readCount = new LongAdder();
+    private final LongAdder readWithFilter = new LongAdder();
     private final LongAccumulator lastRead = new LongAccumulator(Long::max, 0);
     private final Clock clock;
 
@@ -37,12 +38,19 @@ public final class DefaultIndexUsageTracking implements IndexUsageTracking {
 
     @Override
     public IndexUsageStats getAndReset() {
-        return new IndexUsageStats(lastRead.longValue(), readCount.sumThenReset(), trackedSince);
+        return new IndexUsageStats(
+                lastRead.longValue(), readCount.sumThenReset(), readWithFilter.sumThenReset(), trackedSince);
     }
 
     @Override
     public void queried() {
         readCount.increment();
         lastRead.accumulate(clock.millis());
+    }
+
+    @Override
+    public void queriedWithFilter() {
+        readWithFilter.increment();
+        queried();
     }
 }
