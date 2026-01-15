@@ -55,6 +55,33 @@ public class ThrowableWithPotentialGqlCauseAssert<SELF extends ThrowableWithPote
     }
 
     /**
+     * Use this instead of {@link ThrowableAssert#rootCause()} to assert on a root cause that is expected to also implement ErrorGqlStatusObject.
+     */
+    public GqlExceptionLikeAssert rootCauseWithGqlStatus() {
+        throwables.assertHasRootCause(info, actual);
+        var rootCause = org.assertj.core.util.Throwables.getRootCause(actual);
+        if (rootCause instanceof ErrorGqlStatusObject) {
+            return new GqlExceptionLikeAssert(asT(rootCause));
+        }
+        throw failure(
+                "Expected root cause to be a Throwable implementing ErrorGqlStatusObject, but was: %s", rootCause);
+    }
+
+    /**
+     * Use this instead of {@link ThrowableAssert#rootCause()} to assert on a root cause (or self if no root cause) that is expected to also implement ErrorGqlStatusObject.
+     * @see #rootCauseWithGqlStatus()
+     */
+    public GqlExceptionLikeAssert rootCauseOrSelfWithGqlStatus() {
+        var rootCause = org.assertj.core.util.Throwables.getRootCause(actual);
+        var throwable = rootCause != null ? rootCause : actual;
+        if (throwable instanceof ErrorGqlStatusObject) {
+            return new GqlExceptionLikeAssert(asT(throwable));
+        }
+        throw failure(
+                "Expected the root cause to be a Throwable implementing ErrorGqlStatusObject, but was: %s", throwable);
+    }
+
+    /**
      * Assert that the status of this Throwable is the expected status.
      * Assumes that the throwable implements Status.HasStatus, will throw an exception otherwise.
      */

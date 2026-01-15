@@ -449,7 +449,8 @@ public interface Status {
                 ClientError,
                 "A token name, such as a label, relationship type or property key, used is not valid. Tokens cannot "
                         + "be empty strings and cannot be null."),
-        TokenLengthError(ClientError, "A token name, such as a label, relationship type or property key is too long"),
+        TokenLengthError(ClientError, "A token name, such as a label, relationship type or property key is too long."),
+        SchemaRuleEntrySizeLimitError(ClientError, "A schema rule entry exceeded the maximum allowed size."),
 
         // client notifications
         HintedIndexNotFound(

@@ -3247,7 +3247,19 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "self-referencing in vector search",
             ErrorClassification.CLIENT_ERROR),
-
+    STATUS_42I76(
+            new GqlStatus("42I76"),
+            "The provided index or constraint { %s } { %s } ({ %s } bytes) exceeded limit of { %s } bytes.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.item,
+                GqlParams.StringParam.input,
+                GqlParams.NumberParam.bytes,
+                GqlParams.NumberParam.bytes
+            },
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "index or constraint value too long",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",

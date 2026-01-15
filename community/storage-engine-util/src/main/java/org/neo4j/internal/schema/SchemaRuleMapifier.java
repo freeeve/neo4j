@@ -38,6 +38,9 @@ import org.neo4j.internal.schema.constraints.PropertyTypeSet;
 import org.neo4j.internal.schema.constraints.RelationshipEndpointLabelConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.TypeConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.TypeRepresentation;
+import org.neo4j.string.UTF8;
+import org.neo4j.util.VisibleForTesting;
+import org.neo4j.values.storable.ByteArray;
 import org.neo4j.values.storable.IntArray;
 import org.neo4j.values.storable.LongValue;
 import org.neo4j.values.storable.StringArray;
@@ -57,7 +60,10 @@ public class SchemaRuleMapifier {
     private static final String PROP_SCHEMA_ENDPOINT_LABEL_ID = PROP_SCHEMA_RULE_PREFIX + "endpointLabelId";
     private static final String PROP_SCHEMA_NODE_LABEL_EXISTENCE_REQUIRED_LABEL_ID =
             PROP_SCHEMA_RULE_PREFIX + "requiredLabelId";
-    private static final String PROP_SCHEMA_RULE_NAME = PROP_SCHEMA_RULE_PREFIX + "name";
+
+    @VisibleForTesting
+    public static final String PROP_SCHEMA_RULE_NAME = PROP_SCHEMA_RULE_PREFIX + "name";
+
     private static final String PROP_OWNED_INDEX = PROP_SCHEMA_RULE_PREFIX + "ownedIndex";
     public static final String PROP_OWNING_CONSTRAINT = PROP_SCHEMA_RULE_PREFIX + "owningConstraint";
     private static final String PROP_INDEX_PROVIDER_NAME = PROP_SCHEMA_RULE_PREFIX + "indexProviderName";
@@ -74,6 +80,17 @@ public class SchemaRuleMapifier {
     private static final String PROP_INDEX_TYPE = PROP_SCHEMA_RULE_PREFIX + "indexType";
     private static final String PROP_CONSTRAINT_ALLOWED_TYPES = PROP_SCHEMA_RULE_PREFIX + "propertyType";
     private static final String PROP_INDEX_CONFIG_PREFIX = PROP_SCHEMA_RULE_PREFIX + "IndexConfig.";
+
+    /**
+     * Remove the {@link #PROP_SCHEMA_RULE_PREFIX} from a property name if it is prefixed
+     * @param property from which to potentially remove the prefix
+     * @return property name without prefix
+     */
+    public static String removePrefix(String property) {
+        return property.startsWith(PROP_SCHEMA_RULE_PREFIX)
+                ? property.substring(PROP_SCHEMA_RULE_PREFIX.length())
+                : property;
+    }
 
     /**
      * Turn a {@link SchemaRule} into a map-of-string-to-value representation.
@@ -261,10 +278,12 @@ public class SchemaRuleMapifier {
 
     private static String getString(String property, Map<String, Value> map) throws MalformedSchemaRuleException {
         Value value = map.get(property);
-        if (value instanceof TextValue textValue) {
-            return textValue.stringValue();
-        }
-        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, TextValue.class);
+        return switch (value) {
+            case TextValue textValue -> textValue.stringValue();
+            case ByteArray byteArray -> UTF8.decode(byteArray.asObject());
+            case null, default ->
+                throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, TextValue.class);
+        };
     }
 
     private static String[] getStringArray(String property, Map<String, Value> props)

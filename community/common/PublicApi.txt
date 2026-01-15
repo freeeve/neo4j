@@ -139,6 +139,7 @@ org.neo4j.kernel.api.exceptions.Status.Schema::RepeatedPropertyInCompositeSchema
 org.neo4j.kernel.api.exceptions.Status.Schema::RepeatedRelationshipTypeInSchema org.neo4j.kernel.api.exceptions.Status.Schema public static final
 org.neo4j.kernel.api.exceptions.Status.Schema::SchemaRuleAccessFailed org.neo4j.kernel.api.exceptions.Status.Schema public static final
 org.neo4j.kernel.api.exceptions.Status.Schema::SchemaRuleDuplicateFound org.neo4j.kernel.api.exceptions.Status.Schema public static final
+org.neo4j.kernel.api.exceptions.Status.Schema::SchemaRuleEntrySizeLimitError org.neo4j.kernel.api.exceptions.Status.Schema public static final
 org.neo4j.kernel.api.exceptions.Status.Schema::TokenLengthError org.neo4j.kernel.api.exceptions.Status.Schema public static final
 org.neo4j.kernel.api.exceptions.Status.Schema::TokenLimitReached org.neo4j.kernel.api.exceptions.Status.Schema public static final
 org.neo4j.kernel.api.exceptions.Status.Schema::TokenNameError org.neo4j.kernel.api.exceptions.Status.Schema public static final

@@ -78,29 +78,31 @@ class GqlStatusInfoCodesTest {
             final var keys = gqlCode.getStatusParameterKeys();
             final var keySet = new HashSet<>(keys);
             assertThat(gqlCode.parameterCount())
-                    .describedAs("Number of parameters needs to match the message template")
+                    .describedAs("%s: Number of parameters needs to match the message template", gqlCode.name())
                     .isEqualTo(gqlCode.messageFormatParameterCount());
 
             assertThat(keys)
                     .allSatisfy(key -> assertThat(key.name())
-                            .describedAs("Parameters must be a camelCase word (possibly containing numbers)")
+                            .describedAs(
+                                    "%s: Parameters must be a camelCase word (possibly containing numbers)",
+                                    gqlCode.name())
                             .matches("^[a-z][a-zA-Z0-9]*$"))
                     .hasSize(gqlCode.parameterCount());
 
             if (!keys.isEmpty()) {
                 assertThat(gqlCode.getMessage(allUniqueParams))
-                        .describedAs("Message should contain all expected parameters")
+                        .describedAs("%s: Message should contain all expected parameters", gqlCode.name())
                         .contains(filterValues(gqlCode, allUniqueParams, keySet::contains));
                 assertThat(gqlCode.getMessage(orderKeys(allUniqueParams, keys)))
-                        .describedAs("Message should contain all expected parameters")
+                        .describedAs("%s: Message should contain all expected parameters", gqlCode.name())
                         .contains(filterValues(gqlCode, allUniqueParams, keySet::contains));
             }
 
             assertThat(gqlCode.getMessage(allUniqueParams))
-                    .describedAs("Message should not contain unexpected parameters")
+                    .describedAs("%s: Message should not contain unexpected parameters", gqlCode.name())
                     .doesNotContain(filterValues(allUniqueParams, k -> !keySet.contains(k)));
             assertThat(gqlCode.getMessage(orderKeys(allUniqueParams, keys)))
-                    .describedAs("Message should not contain unexpected parameters")
+                    .describedAs("%s: Message should not contain unexpected parameters", gqlCode.name())
                     .doesNotContain(filterValues(allUniqueParams, k -> !keySet.contains(k)));
         }
     }
@@ -153,7 +155,8 @@ class GqlStatusInfoCodesTest {
             var trueSubs = gqlCode.getOffsets(template, GqlParams.substitution).length;
             if (numAlmostSubs != trueSubs)
                 fail(
-                        "Some substitution-patterns are faulty in some GqlStatusInfoCodes template(s), probably with a blankspace too few/many"); // I used this pattern: [^\{].%s.[^\}] to find faulty
+                        gqlCode.name()
+                                + ": Some substitution-patterns are faulty in some GqlStatusInfoCodes template(s), probably with a blankspace too few/many"); // I used this pattern: [^\{].%s.[^\}] to find faulty
         }
     }
 
