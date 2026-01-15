@@ -88,9 +88,12 @@ public class GenAiPluginExtension extends ExtensionFactory<GenAiPluginExtension.
 }
 
 final class ServiceLoadedGlobalProviders implements Supplier<GlobalProviders> {
+    private static final NamedProvider[] PROVIDERS =
+            Services.loadAll(NamedProvider.class).toArray(NamedProvider[]::new);
+
     @Override
     public GlobalProviders get() {
-        return GlobalProviders.from(Services.loadAll(NamedProvider.class).toArray(NamedProvider[]::new));
+        return GlobalProviders.from(PROVIDERS);
     }
 }
 
