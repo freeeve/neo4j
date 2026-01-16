@@ -19,6 +19,8 @@
  */
 package org.neo4j.storageengine.util;
 
+import static java.util.Collections.emptyIterator;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -130,18 +132,18 @@ public class IndexUpdatesWorkSync {
                 throw new IllegalStateException("Already applied");
             }
 
-            if (!parallelApply) {
-                addSingleUpdates();
-                apply = !updates.isEmpty()
-                        ? workSync.applyAsync(new IndexUpdatesWork(combinedUpdates(updates), cursorContext))
-                        : AsyncApply.EMPTY;
+            if (parallelApply) {
+                try {
+                    apply();
+                } catch (ExecutionException e) {
+                    throw wrapExecutionException(e);
+                }
                 return;
             }
-            try {
-                apply();
-            } catch (ExecutionException e) {
-                throw wrapExecutionException(e);
-            }
+            addSingleUpdates();
+            apply = updates.isEmpty()
+                    ? AsyncApply.EMPTY
+                    : workSync.applyAsync(new IndexUpdatesWork(combinedUpdates(updates), cursorContext));
         }
     }
 
@@ -179,7 +181,7 @@ public class IndexUpdatesWorkSync {
         return new NestingIterator<>(listNullingIterator(updates)) {
             @Override
             protected Iterator<T> createNestedIterator(List<T> list) {
-                return listNullingIterator(list);
+                return list == null ? emptyIterator() : listNullingIterator(list);
             }
         };
     }

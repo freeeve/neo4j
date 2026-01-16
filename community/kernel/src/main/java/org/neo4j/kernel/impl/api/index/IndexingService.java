@@ -669,11 +669,9 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
                     .groupBy(IndexEntryUpdate::indexKey)
                     .keyMultiValuePairsView()) {
                 var indexProxy = indexMapRef.getIndexProxy(entry.getOne());
-                if (indexProxy != null) {
-                    try (var updater = indexProxy.newUpdater(updateMode, cursorContext, true)) {
-                        for (var update : entry.getTwo()) {
-                            updater.process(update);
-                        }
+                try (var updater = indexProxy.newUpdater(updateMode, cursorContext, true)) {
+                    for (var update : entry.getTwo()) {
+                        updater.process(update);
                     }
                 }
             }
