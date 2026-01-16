@@ -65,7 +65,9 @@ class MigrateStoreCommandTest {
                                                     Configuration file with additional configuration.
                                --expand-commands    Allow command expansion in config value evaluation.
                                --force-btree-indexes-to-range
-                                                    Special option for automatically turning all BTREE
+                                                    (Deprecated and will be removed. This option was
+                                                      only applicable when migrating from v4 to v5.)
+                                                      Special option for automatically turning all BTREE
                                                       indexes/constraints into RANGE. Be aware that
                                                       RANGE indexes are not always the optimal
                                                       replacement of BTREEs and performance may be

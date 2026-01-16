@@ -108,6 +108,7 @@ import picocli.CommandLine.Parameters;
                 + "version of the target format.")
 public class MigrateStoreCommand extends AbstractAdminCommand {
     private static final String OPTION_PAGECACHE = "--pagecache";
+    private static final String OPTION_FORCE_BTREE = "--force-btree-indexes-to-range";
 
     @Parameters(
             arity = "1",
@@ -145,14 +146,16 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
     private long maxOffHeapMemory;
 
     @Option(
-            names = "--force-btree-indexes-to-range",
+            names = OPTION_FORCE_BTREE,
             fallbackValue = "true",
-            description = "Special option for automatically turning all BTREE indexes/constraints into RANGE. "
-                    + "Be aware that RANGE indexes are not always the optimal replacement of BTREEs "
-                    + "and performance may be affected while the new indexes are populated. "
-                    + "See the Neo4j v5 migration guide online for more information. "
-                    + "The newly created indexes will be populated in the background on the first database start up "
-                    + "following the migration and users should monitor the successful completion of that process.")
+            description =
+                    "(Deprecated and will be removed. This option was only applicable when migrating from v4 to v5.) "
+                            + "Special option for automatically turning all BTREE indexes/constraints into RANGE. "
+                            + "Be aware that RANGE indexes are not always the optimal replacement of BTREEs "
+                            + "and performance may be affected while the new indexes are populated. "
+                            + "See the Neo4j v5 migration guide online for more information. "
+                            + "The newly created indexes will be populated in the background on the first database start up "
+                            + "following the migration and users should monitor the successful completion of that process.")
     private boolean forceBtreeToRange;
 
     @Option(
@@ -186,6 +189,9 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
                     .printf(
                             "%s option is deprecated in favor of %s",
                             OPTION_PAGECACHE, MaxOffHeapMemoryConverter.OPTION_NAME);
+        }
+        if (forceBtreeToRange) {
+            ctx.err().printf("%s option is deprecated and will be removed.", OPTION_FORCE_BTREE);
         }
 
         Config config = buildConfig();
