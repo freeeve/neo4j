@@ -20,19 +20,35 @@
 package org.neo4j.kernel.api.exceptions.index;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.kernel.api.StatementConstants.NO_SUCH_NODE;
+import static org.neo4j.kernel.api.StatementConstants.NO_SUCH_RELATIONSHIP;
 
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaUserDescription;
-import org.neo4j.kernel.api.StatementConstants;
 import org.neo4j.test.InMemoryTokens;
+import org.neo4j.test.RandomSupport;
+import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
+import org.neo4j.values.storable.ValueType;
 import org.neo4j.values.storable.Values;
 
+@RandomSupportExtension
 class IndexEntryConflictExceptionTest {
+
+    @Inject
+    RandomSupport random;
+
     private static final int labelId = 1;
     private static final int typeId = 1;
     private static final Value value = Values.of("hi");
@@ -63,7 +79,7 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeEntryConflictsForOneNode() {
         LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema, 0L, StatementConstants.NO_SUCH_NODE, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
+                schema, 0L, NO_SUCH_NODE, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e).hasMessage("Node(0) already exists with label `Label[1]` and property `PropertyKey[2]` = 'hi'");
         assertThat(e.getUserMessage(tokens))
@@ -78,11 +94,7 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeAnonymousEntryConflictsForNewNodeUnknown() {
         LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema,
-                StatementConstants.NO_SUCH_NODE,
-                StatementConstants.NO_SUCH_NODE,
-                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
-                value);
+                schema, NO_SUCH_NODE, NO_SUCH_NODE, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e).hasMessage("A Node already exists with label `Label[1]` and property `PropertyKey[2]` = 'hi'");
         assertThat(e.getUserMessage(tokens))
@@ -97,7 +109,7 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeAnonymousEntryConflictsForNewNodeKnown() {
         LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema, StatementConstants.NO_SUCH_NODE, 0L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
+                schema, NO_SUCH_NODE, 0L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e)
                 .hasMessage(
@@ -150,7 +162,7 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeEntryConflictsForOneRel() {
         SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema, 0L, StatementConstants.NO_SUCH_RELATIONSHIP, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
+                schema, 0L, NO_SUCH_RELATIONSHIP, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e)
                 .hasMessage(
@@ -167,11 +179,7 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeAnonymousEntryConflictsForNewRelUnknown() {
         SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema,
-                StatementConstants.NO_SUCH_RELATIONSHIP,
-                StatementConstants.NO_SUCH_RELATIONSHIP,
-                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
-                value);
+                schema, NO_SUCH_RELATIONSHIP, NO_SUCH_RELATIONSHIP, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e)
                 .hasMessage(
@@ -188,7 +196,7 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeAnonymousEntryConflictsForNewRelKnown() {
         SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema, StatementConstants.NO_SUCH_RELATIONSHIP, 0L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
+                schema, NO_SUCH_RELATIONSHIP, 0L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e)
                 .hasMessage(
@@ -238,5 +246,71 @@ class IndexEntryConflictExceptionTest {
         assertThat(e.statusDescription())
                 .isEqualTo(
                         "error: data exception - index entry conflict. Index entry conflict: Both Relationship(0) and Relationship(1) have the type `RelationshipType[1]` and properties `PropertyKey[2]` = true, `PropertyKey[3]` = 'hi', `PropertyKey[4]` = '100%'.");
+    }
+
+    private static Stream<ValueType> allValueTypes() {
+        return Arrays.stream(ValueType.ALL_TYPES);
+    }
+
+    @ParameterizedTest
+    @MethodSource("allValueTypes")
+    void shouldParseToStringCorrectWithRegex(ValueType valueType) {
+        LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2);
+        Value value = random.nextValue(valueType);
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, 0L, 1L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
+        Pattern pattern = Pattern.compile(IndexEntryConflictException.INDEX_CONFLICT_REGEX);
+        Matcher matcher = pattern.matcher(e.toString());
+        assertThat(matcher.find()).isTrue();
+        assertThat(matcher.group(IndexEntryConflictException.EXISTING_ID)).isEqualTo("0");
+        assertThat(matcher.group(IndexEntryConflictException.ADDED_ID)).isEqualTo("1");
+        assertThat(matcher.group(IndexEntryConflictException.VALUE_GROUP)).contains(value.toString());
+    }
+
+    @Test
+    void shouldParseToStringWithManyValuesCorrectWithRegex() {
+        LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2, 3, 4, 5);
+        Value v1 = random.nextValue();
+        Value v2 = random.nextValue();
+        Value v3 = random.nextValue();
+        Value v4 = random.nextValue();
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, 0L, 1L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, v1, v2, v3, v4);
+        Pattern pattern = Pattern.compile(IndexEntryConflictException.INDEX_CONFLICT_REGEX);
+        Matcher matcher = pattern.matcher(e.toString());
+        assertThat(matcher.find()).isTrue();
+        assertThat(matcher.group(IndexEntryConflictException.EXISTING_ID)).isEqualTo("0");
+        assertThat(matcher.group(IndexEntryConflictException.ADDED_ID)).isEqualTo("1");
+        assertThat(matcher.group(IndexEntryConflictException.VALUE_GROUP))
+                .contains(v1.toString(), v2.toString(), v3.toString(), v4.toString());
+    }
+
+    @Test
+    void shouldParseToStringWithNoSuchEntityWithRegex() {
+        SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2);
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, NO_SUCH_RELATIONSHIP, NO_SUCH_RELATIONSHIP, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
+        Pattern pattern = Pattern.compile(IndexEntryConflictException.INDEX_CONFLICT_REGEX);
+        Matcher matcher = pattern.matcher(e.toString());
+        assertThat(matcher.find()).isTrue();
+        assertThat(Long.parseLong(matcher.group(IndexEntryConflictException.EXISTING_ID)))
+                .isEqualTo(NO_SUCH_RELATIONSHIP);
+        assertThat(Long.parseLong(matcher.group(IndexEntryConflictException.ADDED_ID)))
+                .isEqualTo(NO_SUCH_RELATIONSHIP);
+        assertThat(matcher.group(IndexEntryConflictException.VALUE_GROUP)).contains(value.toString());
+    }
+
+    @Test
+    void shouldParseToStringWithOtherRegexPatternsCorrectly() {
+        SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2);
+        Value value = Values.of("propertyValues=\"Test\n, addedEntityId=w93ung904, existingEntityId=3290 gngte");
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, 1, 0, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
+        Pattern pattern = Pattern.compile(IndexEntryConflictException.INDEX_CONFLICT_REGEX);
+        Matcher matcher = pattern.matcher(e.toString());
+        assertThat(matcher.find()).isTrue();
+        assertThat(matcher.group(IndexEntryConflictException.EXISTING_ID)).isEqualTo("1");
+        assertThat(matcher.group(IndexEntryConflictException.ADDED_ID)).isEqualTo("0");
+        assertThat(matcher.group(IndexEntryConflictException.VALUE_GROUP)).contains(value.toString());
     }
 }

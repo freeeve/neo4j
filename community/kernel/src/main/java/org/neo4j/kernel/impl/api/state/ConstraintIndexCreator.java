@@ -58,7 +58,7 @@ import org.neo4j.logging.InternalLogProvider;
 public class ConstraintIndexCreator {
     private final IndexingService indexingService;
     private final Supplier<Kernel> kernelSupplier;
-    private final InternalLog log;
+    protected final InternalLog log;
 
     public ConstraintIndexCreator(
             Supplier<Kernel> kernelSupplier, IndexingService indexingService, InternalLogProvider logProvider) {

@@ -39,12 +39,19 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
 
 public class IndexEntryConflictException extends KernelException {
-    private final SchemaDescriptor schemaDescriptor;
-    private final ValueTuple propertyValues;
-    private final long addedEntityId;
-    private final long existingEntityId;
+    protected final SchemaDescriptor schemaDescriptor;
+    protected final ValueTuple propertyValues;
+    protected final long addedEntityId;
+    protected final long existingEntityId;
 
-    private IndexEntryConflictException(
+    public static final String VALUE_GROUP = "values";
+    public static final String ADDED_ID = "addedId";
+    public static final String EXISTING_ID = "existingId";
+    public static final String INDEX_CONFLICT_REGEX =
+            "(?s)propertyValues=(?<%s>.*), addedEntityId=(?<%s>-?\\d+), existingEntityId=(?<%s>-?\\d+)"
+                    .formatted(VALUE_GROUP, ADDED_ID, EXISTING_ID);
+
+    protected IndexEntryConflictException(
             ErrorGqlStatusObject gqlStatusObject,
             SchemaDescriptor schemaDescriptor,
             long existingEntityId,
