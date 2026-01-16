@@ -398,7 +398,7 @@ public class SimpleRandomizedInput implements Input {
     }
 
     @Override
-    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException {
+    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads) {
         return Input.knownEstimates(nodeCount, relationshipCount, 0, 0, 0, 0, 0);
     }
 }

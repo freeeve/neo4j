@@ -622,7 +622,8 @@ public class ParquetInput implements Input {
     }
 
     @Override
-    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException {
+    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads)
+            throws IOException {
         // fly over node files
         long numberOfNodes = 0;
         long numberOfNodeProperties = 0;

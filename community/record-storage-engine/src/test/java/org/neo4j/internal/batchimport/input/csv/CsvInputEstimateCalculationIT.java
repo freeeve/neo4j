@@ -144,13 +144,15 @@ class CsvInputEstimateCalculationIT {
     void shouldCalculateCorrectEstimates() throws Exception {
         // given a couple of input files of various layouts
         Input input = generateData();
-        Input.Estimates estimates = input.validateAndEstimate(new PropertyValueRecordSizeCalculator(
-                defaultFormat().property().getRecordSize(NO_STORE_HEADER),
-                GraphDatabaseInternalSettings.string_block_size.defaultValue(),
-                0,
-                GraphDatabaseInternalSettings.array_block_size.defaultValue(),
-                0,
-                "db-format-2000"));
+        Input.Estimates estimates = input.validateAndEstimate(
+                new PropertyValueRecordSizeCalculator(
+                        defaultFormat().property().getRecordSize(NO_STORE_HEADER),
+                        GraphDatabaseInternalSettings.string_block_size.defaultValue(),
+                        0,
+                        GraphDatabaseInternalSettings.array_block_size.defaultValue(),
+                        0,
+                        "db-format-2000"),
+                PBI_CONFIG.maxNumberOfWorkerThreads());
 
         // when
         Config config = Config.defaults();
@@ -241,13 +243,15 @@ class CsvInputEstimateCalculationIT {
                 INSTANCE);
 
         // when
-        Input.Estimates estimates = input.validateAndEstimate(new PropertyValueRecordSizeCalculator(
-                defaultFormat().property().getRecordSize(NO_STORE_HEADER),
-                GraphDatabaseInternalSettings.string_block_size.defaultValue(),
-                0,
-                GraphDatabaseInternalSettings.array_block_size.defaultValue(),
-                0,
-                "db-format-2000"));
+        Input.Estimates estimates = input.validateAndEstimate(
+                new PropertyValueRecordSizeCalculator(
+                        defaultFormat().property().getRecordSize(NO_STORE_HEADER),
+                        GraphDatabaseInternalSettings.string_block_size.defaultValue(),
+                        0,
+                        GraphDatabaseInternalSettings.array_block_size.defaultValue(),
+                        0,
+                        "db-format-2000"),
+                PBI_CONFIG.maxNumberOfWorkerThreads());
 
         // then
         assertEquals(0, estimates.numberOfNodes());

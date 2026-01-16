@@ -143,7 +143,7 @@ import org.neo4j.values.storable.Values;
 @TestDirectoryExtension
 @RandomSupportExtension
 class CsvInputTest {
-
+    private static final int NUMBER_OF_ESTIMATE_THREADS = 4;
     private static final PropertySizeCalculator PROPERTY_SIZE_CALCULATOR = (values, cursorContext, memoryTracker) -> 0;
 
     @Inject
@@ -181,7 +181,7 @@ class CsvInputTest {
                 groups,
                 INSTANCE);
 
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -210,7 +210,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
@@ -240,7 +240,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator iterator = input.nodes(EMPTY).iterator()) {
             readNext(iterator);
@@ -286,7 +286,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -313,7 +313,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -349,7 +349,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN iterating over them, THEN the expected data should come out
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, "1", properties("name", "Jim", "kills", 10, "health", 100), labels());
@@ -382,7 +382,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 0L, properties("name", "First"), labels(addedLabels));
@@ -413,7 +413,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, 0L, 1L, defaultType, emptyMap());
@@ -444,7 +444,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -475,7 +475,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -506,7 +506,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -537,7 +537,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -569,7 +569,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -601,7 +601,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -632,7 +632,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -679,7 +679,7 @@ class CsvInputTest {
                 groups,
                 INSTANCE);
 
-        assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+        assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                 .isInstanceOf(InputException.class);
     }
 
@@ -703,7 +703,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -740,7 +740,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -774,7 +774,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -806,7 +806,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -842,7 +842,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -879,7 +879,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -925,7 +925,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -977,7 +977,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1010,7 +1010,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1049,7 +1049,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1166,7 +1166,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, group, 123L, properties("name", "one"), labels());
@@ -1199,7 +1199,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, startNodeGroup, 123L, endNodeGroup, 234L, "TYPE", properties());
@@ -1230,7 +1230,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             // THEN
@@ -1260,7 +1260,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("other", 10), labels("Person"));
@@ -1290,7 +1290,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, 1L, 2L, "KNOWS", properties("other", 10));
@@ -1319,7 +1319,7 @@ class CsvInputTest {
                 INSTANCE);
 
         // WHEN
-        assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+        assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                 .isInstanceOf(InputException.class)
                 .cause()
                 .isEqualTo(failure);
@@ -1344,7 +1344,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, emptyMap(), labels());
@@ -1373,7 +1373,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1404,7 +1404,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // THEN
         try (InputIterator nodes = input.nodes(collector).iterator()) {
             // THEN
@@ -1433,7 +1433,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
         // WHEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             readNext(relationships);
@@ -1461,7 +1461,7 @@ class CsvInputTest {
                             NO_MONITOR,
                             groups,
                             INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             fail("Should not parse");
         } catch (HeaderException e) {
             // then
@@ -1487,7 +1487,7 @@ class CsvInputTest {
                             NO_MONITOR,
                             groups,
                             INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             fail("Should not parse");
         } catch (HeaderException e) {
             // then
@@ -1514,7 +1514,7 @@ class CsvInputTest {
                             NO_MONITOR,
                             groups,
                             INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             fail("Should not validate");
         } catch (HeaderException e) {
             // then
@@ -1541,7 +1541,7 @@ class CsvInputTest {
                             NO_MONITOR,
                             groups,
                             INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             fail("Should not validate");
         } catch (HeaderException e) {
             // then
@@ -1580,7 +1580,7 @@ class CsvInputTest {
                         monitor,
                         groups,
                         INSTANCE)
-                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
 
         // then
         verify(monitor).duplicateSourceFile(sourceDescription);
@@ -1618,7 +1618,7 @@ class CsvInputTest {
                         monitor,
                         groups,
                         INSTANCE)
-                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
 
         // then
         verify(monitor).duplicateSourceFile(sourceDescription);
@@ -1668,7 +1668,7 @@ class CsvInputTest {
                         monitor,
                         groups,
                         INSTANCE)
-                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
 
         // then
         verify(monitor).duplicateSourceFile(sourceDescription);
@@ -1705,7 +1705,7 @@ class CsvInputTest {
                 monitor,
                 groups,
                 INSTANCE);
-        input.validateAndEstimate((values, NULL, INSTANCE) -> 1 /*doesn't quite matter*/);
+        input.validateAndEstimate((values, NULL, INSTANCE) -> 1 /*doesn't quite matter*/, NUMBER_OF_ESTIMATE_THREADS);
 
         // then
         verify(monitor, times(1)).typeNormalized("source1", "shortProp", "short", "long");
@@ -1724,8 +1724,10 @@ class CsvInputTest {
         Assertions.assertThat(Files.size(compressedFile)).isLessThan(Files.size(uncompressedFile));
 
         // WHEN
-        Input.Estimates uncompressedEstimates = calculateEstimatesOnSingleFileNodeData(idType, uncompressedFile);
-        Input.Estimates compressedEstimates = calculateEstimatesOnSingleFileNodeData(idType, compressedFile);
+        Input.Estimates uncompressedEstimates =
+                calculateEstimates(idType, NUMBER_OF_ESTIMATE_THREADS, List.of(uncompressedFile), emptyList());
+        Input.Estimates compressedEstimates =
+                calculateEstimates(idType, NUMBER_OF_ESTIMATE_THREADS, List.of(compressedFile), emptyList());
 
         // then
         assertEstimatesEquals(uncompressedEstimates, compressedEstimates, 0);
@@ -1740,8 +1742,10 @@ class CsvInputTest {
         Assertions.assertThat(Files.size(compressedFile)).isLessThan(Files.size(uncompressedFile));
 
         // WHEN
-        Input.Estimates uncompressedEstimates = calculateEstimatesOnSingleFileNodeData(idType, uncompressedFile);
-        Input.Estimates compressedEstimates = calculateEstimatesOnSingleFileNodeData(idType, compressedFile);
+        Input.Estimates uncompressedEstimates =
+                calculateEstimates(idType, NUMBER_OF_ESTIMATE_THREADS, List.of(uncompressedFile), emptyList());
+        Input.Estimates compressedEstimates =
+                calculateEstimates(idType, NUMBER_OF_ESTIMATE_THREADS, List.of(compressedFile), emptyList());
 
         // then the compressed and uncompressed should be _roughly_ equal. The thing with GZIP is that there's no
         // reliable way
@@ -1749,6 +1753,39 @@ class CsvInputTest {
         // doesn't do this
         // but instead tries to estimate its compression rate after reading a chunk of it
         assertEstimatesEquals(uncompressedEstimates, compressedEstimates, 0.01);
+    }
+
+    @Test
+    void shouldCalculateSameEstimatesUsingMultipleThreads() throws IOException {
+        // given
+        List<Path> nodeDataFiles = new ArrayList<>();
+        List<Path> relationshipDataFiles = new ArrayList<>();
+        nodeDataFiles.add(writeFile("node-header.csv", ":ID,:LABEL,name"));
+        relationshipDataFiles.add(writeFile("relationship-header.csv", ":START_ID,:TYPE,:END_ID,name"));
+        for (int f = 0, id = 0; f < 10; f++) {
+            List<String> nodeLines = new ArrayList<>();
+            for (int i = 0; i < 100; i++, id++) {
+                nodeLines.add(String.format("%d,Person,name%d", id, id));
+            }
+            nodeDataFiles.add(writeFile("node-data-" + f + ".csv", nodeLines.toArray(String[]::new)));
+
+            List<String> relationshipLines = new ArrayList<>();
+            for (int i = 0; i < 200; i++) {
+                relationshipLines.add(String.format("%d,KNOWS,%d,name%d", id, id + 1, id + 2));
+            }
+            relationshipDataFiles.add(
+                    writeFile("relationship-data-" + f + ".csv", relationshipLines.toArray(String[]::new)));
+        }
+
+        // when
+        var singleThreadedEstimates = calculateEstimates(INTEGER, 1, nodeDataFiles, relationshipDataFiles);
+        assertThat(singleThreadedEstimates)
+                .isEqualTo(new Input.Estimates(1000, 2000, 1000, 2000, 16890, 34200, 1000, false, false));
+        for (int i = 2; i < 6; i++) {
+            var parallelEstimates = calculateEstimates(INTEGER, i, nodeDataFiles, relationshipDataFiles);
+            // then
+            assertThat(parallelEstimates).isEqualTo(singleThreadedEstimates);
+        }
     }
 
     @Test
@@ -1781,7 +1818,7 @@ class CsvInputTest {
                         monitor,
                         groups,
                         INSTANCE)
-                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
 
         // then
         verify(monitor).noNodeLabelsSpecified(sourceDescription);
@@ -1817,7 +1854,7 @@ class CsvInputTest {
                         monitor,
                         groups,
                         INSTANCE)
-                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
 
         // then
         verify(monitor, never()).noNodeLabelsSpecified(sourceDescription);
@@ -1854,7 +1891,7 @@ class CsvInputTest {
                         monitor,
                         groups,
                         INSTANCE)
-                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
 
         // then
         verify(monitor).noRelationshipTypeSpecified(sourceDescription);
@@ -1891,7 +1928,7 @@ class CsvInputTest {
                         monitor,
                         groups,
                         INSTANCE)
-                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
 
         // then
         verify(monitor, never()).noRelationshipTypeSpecified(sourceDescription);
@@ -1915,7 +1952,7 @@ class CsvInputTest {
                             NO_MONITOR,
                             groups,
                             INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             fail("Should have failed");
         } catch (DuplicateHeaderException e) {
             // THEN
@@ -1941,7 +1978,7 @@ class CsvInputTest {
                             NO_MONITOR,
                             groups,
                             INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             fail("Should have failed");
         } catch (DuplicateHeaderException e) {
             // THEN
@@ -2087,7 +2124,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 testSpecificGroups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(EMPTY).iterator()) {
                 // then
                 assertNextNode(
@@ -2117,7 +2154,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 assertNextNode(
                         nodes,
@@ -2148,7 +2185,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> csvInput.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> csvInput.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Having multiple :ID columns requires idType: STRING");
         }
@@ -2171,7 +2208,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 assertNextNode(
                         nodes,
@@ -2198,7 +2235,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("There are multiple :ID columns, but they are referring to different groups");
         }
@@ -2229,7 +2266,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             // then
             try (var relationships = input.relationships(Collector.STRICT).iterator()) {
                 assertNextRelationship(
@@ -2273,7 +2310,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var relationships = input.relationships(Collector.STRICT).iterator()) {
                 assertNextRelationship(
                         relationships,
@@ -2312,7 +2349,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var relationships = input.relationships(Collector.STRICT).iterator()) {
                 assertNextRelationship(
                         relationships,
@@ -2351,7 +2388,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var relationships = input.relationships(Collector.STRICT).iterator()) {
                 assertNextRelationship(
                         relationships,
@@ -2381,7 +2418,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "There are multiple :START_ID columns, but they are referring to different groups");
@@ -2403,7 +2440,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "There are multiple :END_ID columns, but they are referring to different groups");
@@ -2425,7 +2462,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "There are 2 :START_ID columns for group 'g1', but 1 :START_ID columns is expected.");
@@ -2447,7 +2484,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "There are 2 :END_ID columns for group 'g1', but 1 :END_ID columns is expected.");
@@ -2478,7 +2515,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 assertNextNode(
                         nodes,
@@ -2519,7 +2556,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "There are 2 :START_ID columns for group 'g1', but 1 :START_ID columns is expected.");
@@ -2541,7 +2578,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "There are 2 :END_ID columns for group 'g1', but 1 :END_ID columns is expected.");
@@ -2564,7 +2601,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "There are 3 :START_ID columns for group 'g1', but 2 :START_ID columns is expected.");
@@ -2587,7 +2624,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "There are 3 :END_ID columns for group 'g1', but 2 :END_ID columns is expected.");
@@ -2624,7 +2661,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 assertNextNode(
                         nodes,
@@ -2684,7 +2721,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "How to refer to composite IDs (multiple :ID columns) from :START_ID/:END_ID must be consistent: "
@@ -2710,7 +2747,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "How to refer to composite IDs (multiple :ID columns) from :START_ID/:END_ID must be consistent: "
@@ -2734,7 +2771,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "How to refer to composite IDs (multiple :ID columns) from :START_ID/:END_ID must be consistent: "
@@ -2758,7 +2795,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(
                             "How to refer to composite IDs (multiple :ID columns) from :START_ID/:END_ID must be consistent: "
@@ -2783,7 +2820,7 @@ class CsvInputTest {
                                 NO_MONITOR,
                                 groups,
                                 INSTANCE)
-                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                 .isInstanceOf(InputException.class)
                 .hasMessageContaining("Cannot store composite IDs");
     }
@@ -2806,7 +2843,7 @@ class CsvInputTest {
                                 NO_MONITOR,
                                 groups,
                                 INSTANCE)
-                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("referring to different groups");
     }
@@ -2837,7 +2874,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertNextNode(nodes, globalGroup, "A", properties("p1", "abc"), Set.of("Test"), null);
@@ -2869,7 +2906,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertThat(readNext(nodes)).isTrue();
@@ -2898,7 +2935,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertThat(readNext(nodes)).isTrue();
@@ -2926,7 +2963,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertThat(readNext(nodes)).isTrue();
@@ -2971,13 +3008,19 @@ class CsvInputTest {
                 a.sizeOfRelationshipProperties() * errorMargin);
     }
 
-    private Input.Estimates calculateEstimatesOnSingleFileNodeData(IdType idType, Path nodeDataFile)
+    private Input.Estimates calculateEstimates(
+            IdType idType, int numberOfThreads, List<Path> nodeDataFiles, List<Path> relationshipDataFiles)
             throws IOException {
         Input input = new CsvInput(
-                dataIterable(
-                        config -> undecorated(() -> Readables.individualFiles(config, defaultCharset(), nodeDataFile))),
+                !nodeDataFiles.isEmpty()
+                        ? dataIterable(config -> undecorated(() -> Readables.individualFiles(
+                                config, defaultCharset(), nodeDataFiles.toArray(Path[]::new))))
+                        : emptyList(),
                 defaultFormatNodeFileHeader(),
-                emptyList(),
+                !relationshipDataFiles.isEmpty()
+                        ? dataIterable(config -> undecorated(() -> Readables.individualFiles(
+                                config, defaultCharset(), relationshipDataFiles.toArray(Path[]::new))))
+                        : emptyList(),
                 defaultFormatRelationshipFileHeader(),
                 idType,
                 COMMAS,
@@ -2986,8 +3029,10 @@ class CsvInputTest {
                 groups,
                 INSTANCE);
         // We don't care about correct value size calculation really, as long as it's consistent
-        return input.validateAndEstimate((values, tracer, memTracker) ->
-                Stream.of(values).mapToInt(v -> v.toString().length()).sum());
+        return input.validateAndEstimate(
+                (values, tracer, memTracker) ->
+                        Stream.of(values).mapToInt(v -> v.toString().length()).sum(),
+                numberOfThreads);
     }
 
     private Path compressWithZip(Path uncompressedFile) throws IOException {

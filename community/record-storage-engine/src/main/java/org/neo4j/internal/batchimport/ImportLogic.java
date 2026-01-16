@@ -181,8 +181,8 @@ public class ImportLogic implements Closeable {
         this.input = input;
         numberArrayFactory = auto(neoStore.fileSystem(), databaseDirectory, log);
         // Some temporary caches and indexes in the import
-        Input.Estimates inputEstimates =
-                input.validateAndEstimate(neoStore.getPropertyStore().newValueEncodedSizeCalculator());
+        Input.Estimates inputEstimates = input.validateAndEstimate(
+                neoStore.getPropertyStore().newValueEncodedSizeCalculator(), config.maxNumberOfWorkerThreads());
         cursorContext = contextFactory.create(ID_MAPPER_PREPARATION_TAG);
         inputIdLookup = new NodeInputIdPropertyLookup(
                 neoStore.getTemporaryPropertyStore(),

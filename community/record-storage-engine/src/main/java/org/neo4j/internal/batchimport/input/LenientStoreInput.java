@@ -125,7 +125,7 @@ public class LenientStoreInput implements Input {
     }
 
     @Override
-    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) {
+    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads) {
         long propertyStoreSize = storeSize(propertyStore) / 2
                 + storeSize(propertyStore.getStringStore()) / 2
                 + storeSize(propertyStore.getArrayStore()) / 2;

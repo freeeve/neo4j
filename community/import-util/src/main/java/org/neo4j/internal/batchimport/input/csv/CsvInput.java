@@ -24,6 +24,7 @@ import static org.neo4j.batchimport.api.input.Collector.EMPTY;
 import static org.neo4j.csv.reader.CharSeekers.charSeeker;
 import static org.neo4j.internal.batchimport.input.InputEntityDecorators.NO_DECORATOR;
 import static org.neo4j.internal.batchimport.input.csv.CsvInputIterator.extractHeader;
+import static org.neo4j.internal.helpers.Exceptions.throwIfInstanceOfOrUnchecked;
 import static org.neo4j.io.ByteUnit.mebiBytes;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.util.Preconditions.checkState;
@@ -38,6 +39,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.ToIntFunction;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.logging.log4j.util.TriConsumer;
@@ -66,6 +72,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.TokenConstants;
 import org.neo4j.util.Preconditions;
+import org.neo4j.util.concurrent.Futures;
 
 /**
  * Provides {@link Input} from data contained in tabular/csv form. Expects factories for instantiating
@@ -283,7 +290,8 @@ public class CsvInput implements Input {
     }
 
     @Override
-    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException {
+    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads)
+            throws IOException {
         final var seenSourceFiles = new HashSet<String>();
         // parse all node headers and remember all ID spaces
         final MutableBoolean nodesHasAction = new MutableBoolean();
@@ -337,7 +345,8 @@ public class CsvInput implements Input {
                 },
                 valueSizeCalculator,
                 node -> node.labels().length,
-                seenSourceFiles);
+                seenSourceFiles,
+                numberOfThreads);
 
         final MutableBoolean singleStartEndIdColumnRefersToCompositeId = new MutableBoolean(false);
         final MutableBoolean multipleStartEndIdColumnsRefersToCompositeId = new MutableBoolean(false);
@@ -399,20 +408,22 @@ public class CsvInput implements Input {
                 },
                 valueSizeCalculator,
                 entity -> 0,
-                seenSourceFiles);
+                seenSourceFiles,
+                numberOfThreads);
 
         this.delimitIds = hasCompositeIdColumns.isTrue() && singleStartEndIdColumnRefersToCompositeId.isFalse();
         this.hasBeenValidated = true;
 
-        final var propPreAllocAdditional = propertyPreAllocateRounding(nodeSample[2] + relationshipSample[2]) / 2;
+        final var propPreAllocAdditional =
+                propertyPreAllocateRounding(nodeSample.propertySize.get() + relationshipSample.propertySize.get()) / 2;
         return Input.knownEstimates(
-                nodeSample[0],
-                relationshipSample[0],
-                nodeSample[1],
-                relationshipSample[1],
-                nodeSample[2] + propPreAllocAdditional,
-                relationshipSample[2] + propPreAllocAdditional,
-                nodeSample[3],
+                nodeSample.entityCount.get(),
+                relationshipSample.entityCount.get(),
+                nodeSample.propertyCount.get(),
+                relationshipSample.propertyCount.get(),
+                nodeSample.propertySize.get() + propPreAllocAdditional,
+                relationshipSample.propertySize.get() + propPreAllocAdditional,
+                nodeSample.labelCount.get(),
                 nodesHasAction.isTrue(),
                 relationshipsHasAction.isTrue());
     }
@@ -450,20 +461,21 @@ public class CsvInput implements Input {
         }
     }
 
-    private long[] validateAndEstimate(
+    private Sample validateAndEstimate(
             Iterable<DataFactory> dataFactories,
             Header.Factory headerFactory,
             TriConsumer<Header, String, Boolean> headerChecker,
             PropertySizeCalculator valueSizeCalculator,
             ToIntFunction<InputEntity> additionalCalculator,
-            Set<String> seenSourceFiles)
+            Set<String> seenSourceFiles,
+            int numberOfThreads)
             throws IOException {
-        final var estimates = new long[4]; // [entity count, property count, property size, labels (for nodes only)]
-
-        try (var chunk = new CsvInputChunkProxy()) {
+        Sample sample = new Sample();
+        try (ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads)) {
             final var sampleConfig =
                     config.toBuilder().withReadIsForSampling(true).build();
-            var groupId = 0;
+            int groupId = 0;
+            List<Future<Void>> samplings = new ArrayList<>();
             for (var dataFactory : dataFactories) {
                 // one input group
                 groupId++;
@@ -472,7 +484,8 @@ public class CsvInput implements Input {
                 try (var decorator = data.decorator()) {
                     final var stream = data.stream();
                     while (stream.hasNext()) {
-                        try (var source = stream.next()) {
+                        var source = stream.next();
+                        try {
                             final var sourceDescription = source.sourceDescription();
                             if (!seenSourceFiles.add(sourceDescription)) {
                                 monitor.duplicateSourceFile(sourceDescription);
@@ -486,28 +499,44 @@ public class CsvInput implements Input {
                                 header = extractHeader(source, headerFactory, idType, sampleConfig, groups, monitor);
                                 headerChecker.accept(header, sourceDescription, decorator == NO_DECORATOR);
                             }
+                        } catch (Throwable t) {
+                            source.close();
+                            throw t;
+                        }
 
+                        int sampleGroupId = groupId;
+                        Header sampleHeader = header;
+                        samplings.add(executor.submit(() -> {
                             sample(
-                                    chunk,
                                     sampleConfig,
                                     source,
-                                    groupId,
-                                    header,
+                                    sampleGroupId,
+                                    sampleHeader,
                                     decorator,
                                     valueSizeCalculator,
                                     additionalCalculator,
-                                    estimates);
-                        }
+                                    sample);
+                            return null;
+                        }));
                     }
                 }
             }
+            try {
+                Futures.getAll(samplings);
+            } catch (ExecutionException e) {
+                // Futures.getAll might make a chain of multiple ExecutionException
+                ExecutionException actualExecutionException = e;
+                while (actualExecutionException.getCause() instanceof ExecutionException ee) {
+                    actualExecutionException = ee;
+                }
+                throwIfInstanceOfOrUnchecked(
+                        actualExecutionException.getCause(), IOException.class, RuntimeException::new);
+            }
         }
-
-        return estimates;
+        return sample;
     }
 
     private void sample(
-            CsvInputChunkProxy chunk,
             Configuration sampleConfig,
             CharReadable source,
             int groupId,
@@ -515,11 +544,12 @@ public class CsvInput implements Input {
             Decorator decorator,
             PropertySizeCalculator valueSizeCalculator,
             ToIntFunction<InputEntity> additionalCalculator,
-            long[] estimates)
+            Sample sample)
             throws IOException {
         // When sampling, we can set delimitIds=false,
         // since there is no checking of duplicates in this visitor.
-        try (var iterator = new CsvInputIterator(
+        try (source;
+                var iterator = new CsvInputIterator(
                         source,
                         decorator,
                         header,
@@ -530,7 +560,8 @@ public class CsvInput implements Input {
                         groupId,
                         autoSkipHeaders,
                         false);
-                var entity = new InputEntity()) {
+                var entity = new InputEntity();
+                var chunk = new CsvInputChunkProxy()) {
             var entities = 0;
             var properties = 0d;
             var propertySize = 0d;
@@ -547,10 +578,10 @@ public class CsvInput implements Input {
                 final var position = iterator.position();
                 final var actualFileSize = source.length() / iterator.compressionRatio();
                 final var entityCountInSource = ((actualFileSize / position) * entities);
-                estimates[0] += (long) entityCountInSource;
-                estimates[1] += (long) ((properties / entities) * entityCountInSource);
-                estimates[2] += (long) ((propertySize / entities) * entityCountInSource);
-                estimates[3] += (long) ((additional / entities) * entityCountInSource);
+                sample.entityCount.addAndGet((long) entityCountInSource);
+                sample.propertyCount.addAndGet((long) ((properties / entities) * entityCountInSource));
+                sample.propertySize.addAndGet((long) ((propertySize / entities) * entityCountInSource));
+                sample.labelCount.addAndGet((long) ((additional / entities) * entityCountInSource));
             }
         }
     }
@@ -704,6 +735,13 @@ public class CsvInput implements Input {
             out.printf(
                     "WARN: file group with header file %s specifies no relationship type, which could be a mistake%n",
                     sourceFile);
+        }
+    }
+
+    private record Sample(
+            AtomicLong entityCount, AtomicLong propertyCount, AtomicLong propertySize, AtomicLong labelCount) {
+        Sample() {
+            this(new AtomicLong(), new AtomicLong(), new AtomicLong(), new AtomicLong());
         }
     }
 }

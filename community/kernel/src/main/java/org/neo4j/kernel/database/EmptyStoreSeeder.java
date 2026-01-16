@@ -388,7 +388,8 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
         }
 
         @Override
-        public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException {
+        public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads)
+                throws IOException {
             return new Estimates(0, 0, 0, 0, 0, 0, 0, false, false);
         }
 

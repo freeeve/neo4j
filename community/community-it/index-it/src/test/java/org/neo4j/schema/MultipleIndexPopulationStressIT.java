@@ -470,7 +470,7 @@ class MultipleIndexPopulationStressIT {
         }
 
         @Override
-        public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) {
+        public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads) {
             long labelCount = nodeCount * TOKENS.length / 2;
             long nodePropCount = nodeCount * TOKENS.length / 2;
             long nodePropSize = nodePropCount * Long.BYTES;

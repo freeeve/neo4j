@@ -157,7 +157,7 @@ public class DataGeneratorInput implements Input {
     }
 
     @Override
-    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) {
+    public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads) {
         int sampleSize = 100;
         InputEntity[] nodeSample = sample(nodes(Collector.EMPTY), sampleSize);
         double labelsPerNodeEstimate = sampleLabels(nodeSample);

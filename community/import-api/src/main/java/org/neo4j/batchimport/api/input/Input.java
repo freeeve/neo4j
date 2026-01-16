@@ -104,10 +104,11 @@ public interface Input extends AutoCloseable {
      *     <li>that any header information is valid and consistent</li>
      * </ul>
      * @param valueSizeCalculator for calculating property sizes on disk.
+     * @param numberOfThreads number of threads to use for estimation, sampling and validation work.
      * @return {@link Estimates} for this input w/o reading through it entirely.
      * @throws IOException on I/O error.
      */
-    Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException;
+    Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads) throws IOException;
 
     /**
      * @return a {@link Map} where key is group name and value which {@link SchemaDescriptor index} it refers to.
@@ -168,7 +169,7 @@ public interface Input extends AutoCloseable {
             }
 
             @Override
-            public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) {
+            public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads) {
                 return estimates;
             }
 
@@ -249,8 +250,9 @@ public interface Input extends AutoCloseable {
         }
 
         @Override
-        public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException {
-            return delegate.validateAndEstimate(valueSizeCalculator);
+        public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads)
+                throws IOException {
+            return delegate.validateAndEstimate(valueSizeCalculator, numberOfThreads);
         }
 
         @Override
@@ -284,9 +286,10 @@ public interface Input extends AutoCloseable {
             private Input.Estimates estimates;
 
             @Override
-            public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException {
+            public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator, int numberOfThreads)
+                    throws IOException {
                 if (estimates == null) {
-                    estimates = super.validateAndEstimate(valueSizeCalculator);
+                    estimates = super.validateAndEstimate(valueSizeCalculator, numberOfThreads);
                 }
                 return estimates;
             }
