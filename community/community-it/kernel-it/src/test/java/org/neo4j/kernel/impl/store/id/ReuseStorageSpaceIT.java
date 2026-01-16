@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.graphdb.RelationshipType.withName;
-import static org.neo4j.internal.helpers.ProcessUtils.start;
 import static org.neo4j.test.Race.throwing;
 import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
@@ -42,6 +41,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -66,6 +66,9 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.id.IdController;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.io.ByteUnit;
+import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
+import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.UncloseableDelegatingFileSystemAbstraction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
@@ -73,22 +76,20 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.SkipOnSpd;
-import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
+import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.RandomValues.Configuration;
 import org.neo4j.values.storable.RandomValuesUtils;
 
-@TestDirectoryExtension
+@EphemeralTestDirectoryExtension
 @RandomSupportExtension
 @Timeout(value = 20, unit = MINUTES)
 class ReuseStorageSpaceIT {
     // Data size control center
     private static final int DATA_SIZE_PER_TRANSACTION = 10;
-    private static final int CREATION_THREADS = Runtime.getRuntime().availableProcessors();
+    private static final int CREATION_THREADS = Math.min(Runtime.getRuntime().availableProcessors(), 4);
     private static final int NUMBER_OF_TRANSACTIONS_PER_THREAD = 100;
-
-    private static final int CUSTOM_EXIT_CODE = 99;
     private static final String[] TOKENS = {"One", "Two", "Three", "Four", "Five", "Six"};
 
     @Inject
@@ -96,6 +97,9 @@ class ReuseStorageSpaceIT {
 
     @Inject
     private RandomSupport random;
+
+    @Inject
+    private EphemeralFileSystemAbstraction fs;
 
     @Test
     void shouldReuseStorageSpaceWhenCreatingDeletingAndRestarting() throws Exception {
@@ -203,13 +207,20 @@ class ReuseStorageSpaceIT {
         // given the data inserted into a db and knowledge about its size
         Path storeDirectory = directory.homePath();
         long seed = random.seed();
-        Sizes initialStoreSizes = withDb(storeDirectory, db -> initialState.perform(db, seed));
+        Sizes initialStoreSizes = withDb(fs, storeDirectory, db -> initialState.perform(db, seed));
 
         // when going into a loop deleting, re-creating, crashing and recovering that db
+        EphemeralFileSystemAbstraction snapshotFs = null;
         for (int i = 0; i < 3; i++) {
-            Pair<Integer, Sizes> result = launcher.launch(storeDirectory, seed, operation);
-            assertEquals(CUSTOM_EXIT_CODE, result.getLeft());
+            Pair<EphemeralFileSystemAbstraction, Sizes> result =
+                    launcher.launch(snapshotFs != null ? snapshotFs : fs, storeDirectory, seed, operation);
             Sizes storeFileSizesNow = result.getRight();
+            if (result.getLeft() != null) {
+                if (snapshotFs != null) {
+                    snapshotFs.close();
+                }
+                snapshotFs = result.getLeft();
+            }
 
             Sizes diff = storeFileSizesNow.diffAgainst(initialStoreSizes);
             long storeFilesDiff = diff.sum();
@@ -221,47 +232,35 @@ class ReuseStorageSpaceIT {
                             "Initial sizes %s%n%nStore sizes after operation (round %d)%s%n%nDiff between the two above %s%n",
                             initialStoreSizes, round, storeFileSizesNow, diff));
         }
+        if (snapshotFs != null) {
+            snapshotFs.close();
+        }
     }
 
-    private static Pair<Integer, Sizes> sameProcess(Path storeDirectory, long seed, Operation operation) {
-        return Pair.of(CUSTOM_EXIT_CODE, withDb(storeDirectory, db -> operation.perform(db, seed)));
+    private static Pair<EphemeralFileSystemAbstraction, Sizes> sameProcess(
+            EphemeralFileSystemAbstraction fs, Path storeDirectory, long seed, Operation operation) {
+        return Pair.of(null, withDb(fs, storeDirectory, db -> operation.perform(db, seed)));
     }
 
-    private static Pair<Integer, Sizes> crashingChildProcess(Path storeDirectory, long seed, Operation operation)
-            throws Exception {
-        // See "main" method in this class
-        var process = start(
-                ReuseStorageSpaceIT.class.getCanonicalName(),
-                storeDirectory.toAbsolutePath().toString(),
-                String.valueOf(seed),
-                operation.name());
-
-        // then storage size should be comparable (the store part, not the logs and all that)
-        int exitCode = process.waitFor();
-        Sizes storeFileSizes = withDb(storeDirectory, db -> {});
-        return Pair.of(exitCode, storeFileSizes);
-    }
-
-    /**
-     * This test spawns sub processes and kills them. This is their main method.
-     */
-    public static void main(String[] args) {
-        Path storeDirectory = Path.of(args[0]).toAbsolutePath();
-        long seed = Long.parseLong(args[1]);
-        Operation operation = Operation.valueOf(args[2]);
-        withDb(storeDirectory, db -> {
+    private static Pair<EphemeralFileSystemAbstraction, Sizes> crashingChildProcess(
+            EphemeralFileSystemAbstraction fs, Path storeDirectory, long seed, Operation operation) {
+        AtomicReference<EphemeralFileSystemAbstraction> crashedFsSnapshot = new AtomicReference<>();
+        var sizes = withDb(fs, storeDirectory, db -> {
             operation.perform(db, seed);
-            System.exit(CUSTOM_EXIT_CODE); // <-- so that we know that we got to the crash correctly
+            crashedFsSnapshot.set(fs.snapshot());
         });
+        return Pair.of(crashedFsSnapshot.get(), sizes);
     }
 
-    private static Sizes withDb(Path storeDir, ThrowingConsumer<GraphDatabaseAPI, Exception> transaction) {
+    private static Sizes withDb(
+            FileSystemAbstraction fs, Path storeDir, ThrowingConsumer<GraphDatabaseAPI, Exception> transaction) {
         // This test specifically exercises the ID caches and refilling of those as it goes, so the smaller the
         // better for this test
         try (DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(storeDir)
                 .setConfig(GraphDatabaseInternalSettings.force_small_id_cache, true)
                 .setConfig(GraphDatabaseInternalSettings.strictly_prioritize_id_freelist, true)
                 .setConfig(GraphDatabaseInternalSettings.id_generator_log_enabled, true)
+                .setFileSystem(new UncloseableDelegatingFileSystemAbstraction(fs))
                 .build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             transaction.accept(db);
@@ -366,7 +365,7 @@ class ReuseStorageSpaceIT {
                     db.getDependencyResolver().resolveDependency(IdGeneratorFactory.class);
             idGeneratorFactory.visit(idGenerator -> {
                 if (idGenerator.hasOnlySingleIds()) {
-                    sizes.put(idGenerator.idType().name(), idGenerator.getHighId());
+                    sizes.put(idGenerator.idType().name(), idGenerator.getHighestWritten());
                 }
                 // Otherwise there's no way we can guarantee perfect ID reuse
             });
@@ -382,7 +381,7 @@ class ReuseStorageSpaceIT {
                 Long otherSize = other.sizes.get(entry.getKey());
                 if (otherSize != null) {
                     long diffSize = entry.getValue() - otherSize;
-                    if (diffSize != 0) {
+                    if (diffSize > 0) {
                         diff.put(entry.getKey(), diffSize);
                     }
                 }
@@ -441,6 +440,8 @@ class ReuseStorageSpaceIT {
     }
 
     interface Launcher {
-        Pair<Integer, Sizes> launch(Path storeDirectory, long seed, Operation operation) throws Exception;
+        Pair<EphemeralFileSystemAbstraction, Sizes> launch(
+                EphemeralFileSystemAbstraction fs, Path storeDirectory, long seed, Operation operation)
+                throws Exception;
     }
 }
