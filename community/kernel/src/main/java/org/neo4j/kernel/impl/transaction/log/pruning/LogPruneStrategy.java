@@ -53,7 +53,7 @@ public interface LogPruneStrategy {
 
     record VersionRange(long fromInclusive, long toExclusive) {
 
-        boolean isNotEmpty() {
+        public boolean isNotEmpty() {
             return !(fromInclusive >= toExclusive);
         }
 
