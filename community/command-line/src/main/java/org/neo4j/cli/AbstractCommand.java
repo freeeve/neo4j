@@ -32,6 +32,7 @@ import java.util.concurrent.Callable;
 import org.neo4j.commandline.dbms.CannotWriteException;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.locker.Locker;
+import org.neo4j.kernel.api.exceptions.ConsoleFriendlyException;
 import org.neo4j.kernel.diagnostics.providers.SystemDiagnostics;
 import org.neo4j.kernel.internal.Version;
 import picocli.CommandLine.Command;
@@ -104,12 +105,21 @@ public abstract class AbstractCommand implements Callable<Integer> {
             Path problematicFile = findFileForPotentialPermissionProblems(e);
             problematicFile = problematicFile != null ? problematicFile : ctx.homeDir();
             collectAndPrintPermissionProblems(problematicFile);
+
+            // Handle stack printing before any exception pretty-printing so the user-friendly stuff is at the tail.
             if (verbose) {
                 e.printStackTrace(ctx.err());
+            }
+
+            if (ConsoleFriendlyException.willPrettyPrint(e)) {
+                ((ConsoleFriendlyException) e).prettyPrint(ctx.err(), "Command Failed");
             } else {
                 ctx.err().println(e.getMessage());
-                ctx.err().println("Run with '--verbose' for a more detailed error message.");
+                if (!verbose) {
+                    ctx.err().println("Run with '--verbose' for a more detailed error message.");
+                }
             }
+
             return e instanceof CommandFailedException cfe ? cfe.getExitCode() : ExitCode.FAIL;
         }
         return ExitCode.OK;

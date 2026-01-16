@@ -191,13 +191,11 @@ public class CheckCommand extends AbstractAdminCommand {
                 layout = CheckDatabase.selectAndExtract(
                         fs, source, database, logProvider, verbose, config, force, autoClosables);
             } catch (IOException e) {
-                throw new CommandFailedException(
-                        "Failed to prepare for consistency check: " + e.getMessage(), e, ExitCode.IOERR);
+                throw new CommandFailedException("Failed to prepare for consistency check", e, ExitCode.IOERR);
             } catch (UnsupportedOperationException e) {
                 throw new CommandFailedException(e.getMessage(), ExitCode.USAGE);
             } catch (Exception e) {
-                throw new CommandFailedException(
-                        "Failed to prepare for consistency check: " + e.getMessage(), e, ExitCode.SOFTWARE);
+                throw new CommandFailedException("Failed to prepare for consistency check", e, ExitCode.SOFTWARE);
             }
 
             try (var ignored = LockChecker.checkDatabaseLock(layout)) {
@@ -221,8 +219,7 @@ public class CheckCommand extends AbstractAdminCommand {
                     }
                     return result;
                 } catch (ConsistencyCheckIncompleteException e) {
-                    throw new CommandFailedException(
-                            "Consistency checking failed. " + e.getMessage(), e, ExitCode.SOFTWARE);
+                    throw new CommandFailedException("Consistency checking failed.", e, ExitCode.SOFTWARE);
                 }
 
             } catch (FileLockException e) {
@@ -238,7 +235,7 @@ public class CheckCommand extends AbstractAdminCommand {
         } catch (CommandFailedException e) {
             throw e;
         } catch (Exception e) {
-            throw new CommandFailedException("Consistency checking failed. " + e.getMessage(), e, ExitCode.SOFTWARE);
+            throw new CommandFailedException("Consistency checking failed. ", e, ExitCode.SOFTWARE);
         }
     }
 
@@ -275,8 +272,7 @@ public class CheckCommand extends AbstractAdminCommand {
         try {
             return isRecoveryRequired(fs, databaseLayout, additionalConfiguration, memoryTracker);
         } catch (Exception e) {
-            throw new CommandFailedException(
-                    "Failure when checking for recovery state: " + e.getMessage(), e, ExitCode.IOERR);
+            throw new CommandFailedException("Failure when checking for recovery state: ", e, ExitCode.IOERR);
         }
     }
 }

@@ -229,7 +229,7 @@ public class AuraClientTest {
         // when/then
         assertThrows(
                 CommandFailedException.class,
-                CoreMatchers.equalTo("Invalid username/password credentials"),
+                CoreMatchers.containsString("Invalid username/password credentials"),
                 () -> auraClient.authenticate(true));
     }
 

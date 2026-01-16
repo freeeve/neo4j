@@ -23,7 +23,6 @@ import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -208,7 +207,8 @@ public class LoadDumpExecutorTest {
             locker.checkLock();
             CommandFailedException commandFailed =
                     assertThrows(CommandFailedException.class, () -> execute("foo", archive, true));
-            assertEquals("The database is in use. Stop database 'foo' and try again.", commandFailed.getMessage());
+            assertThat(commandFailed.getMessage())
+                    .contains("The database is in use. Stop database 'foo' and try again.");
         }
     }
 

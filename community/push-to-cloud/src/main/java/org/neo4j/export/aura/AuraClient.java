@@ -240,11 +240,11 @@ public class AuraClient {
                 try {
                     sleeper.sleep(min(backoffFromRetryCount, DEFAULT_MAXIMUM_RETRY_BACKOFF_MILLIS));
                 } catch (InterruptedException ex) {
-                    throw new CommandFailedException(e.getMessage(), e);
+                    throw new CommandFailedException(e);
                 }
                 lastException = e;
             } catch (IOException e) {
-                throw new CommandFailedException(e.getMessage(), e);
+                throw new CommandFailedException(e);
             }
         }
 

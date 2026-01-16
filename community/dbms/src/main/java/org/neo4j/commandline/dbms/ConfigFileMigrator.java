@@ -124,7 +124,7 @@ public class ConfigFileMigrator {
             writeToFile(config, destinationConfigFile);
             validate(destinationConfigFile);
         } catch (ConfigurationException e) {
-            throw new CommandFailedException(e.getMessage(), e);
+            throw new CommandFailedException("Failed to migrate config file", e);
         }
     }
 

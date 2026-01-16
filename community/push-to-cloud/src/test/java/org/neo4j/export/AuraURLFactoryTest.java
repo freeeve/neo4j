@@ -16,6 +16,7 @@
  */
 package org.neo4j.export;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -41,7 +42,7 @@ public class AuraURLFactoryTest {
         CommandFailedException exception = assertThrows(
                 CommandFailedException.class, () -> auraURLFactory.buildConsoleURI("hello.local", devMode));
 
-        assertEquals("Invalid Bolt URI 'hello.local'", exception.getMessage());
+        assertThat(exception.getMessage()).contains("Invalid Bolt URI 'hello.local'");
     }
 
     @Test
@@ -54,7 +55,7 @@ public class AuraURLFactoryTest {
                 CommandFailedException.class,
                 () -> auraURLFactory.buildConsoleURI("neo4j+s://rogue-env.databases.neo4j-abc.io", devMode));
         // then
-        assertEquals("Invalid Bolt URI 'neo4j+s://rogue-env.databases.neo4j-abc.io'", exception.getMessage());
+        assertThat(exception.getMessage()).contains("Invalid Bolt URI 'neo4j+s://rogue-env.databases.neo4j-abc.io'");
     }
 
     @Test
@@ -122,7 +123,7 @@ public class AuraURLFactoryTest {
                 () -> auraURLFactory.buildConsoleURI("neo4j+s://rogue.env-orch-0001.neo4j.io", devMode));
 
         // then
-        assertEquals("Invalid Bolt URI 'neo4j+s://rogue.env-orch-0001.neo4j.io'", exception.getMessage());
+        assertThat(exception.getMessage()).contains("Invalid Bolt URI 'neo4j+s://rogue.env-orch-0001.neo4j.io'");
     }
 
     @Test
@@ -135,9 +136,9 @@ public class AuraURLFactoryTest {
                 () -> auraURLFactory.buildConsoleURI("neo4j+s://rogue.databases.neo4j.io", devMode));
 
         // then
-        assertEquals(
-                "Expected to find an environment running in dev mode in bolt URI: neo4j+s://rogue.databases.neo4j.io",
-                exception.getMessage());
+        assertThat(exception.getMessage())
+                .contains(
+                        "Expected to find an environment running in dev mode in bolt URI: neo4j+s://rogue.databases.neo4j.io");
     }
 
     @Test

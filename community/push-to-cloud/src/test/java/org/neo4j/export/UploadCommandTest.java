@@ -706,6 +706,7 @@ public class UploadCommandTest {
                 new FakeGCPUploadURLFactory(),
                 PushToCloudCLI.fakeCLI("neo4j", "abc", false));
         CommandLine.populateCommand(command, args);
+
         final var assertFailure = assertThatThrownBy(command::execute).isInstanceOf(CommandFailedException.class);
         assertFailure.hasMessageContaining("Could not find any archive files");
     }

@@ -70,9 +70,9 @@ public interface Collector extends AutoCloseable {
      */
     void collectSchemaCommandFailure(EntityType entityType, String failureMessage);
 
-    void collectOtherNodeViolation(String format, Object... parameters);
+    void collectOtherNodeViolation(String problem);
 
-    void collectOtherRelationshipViolation(String format, Object... parameters);
+    void collectOtherRelationshipViolation(String problem);
 
     long badEntries();
 
@@ -83,6 +83,23 @@ public interface Collector extends AutoCloseable {
      */
     @Override
     void close();
+
+    static String standardisedErrorMessage(String problem, String source, long line, String furtherDetails) {
+        return source != null
+                ? format("%s%n%s: line %d%n%s", problem, source, line, furtherDetails)
+                : format("%s%n%s", problem, furtherDetails);
+    }
+
+    static String illustrateRelationship(
+            Object startId, Group startIdGroup, Object type, Object endId, Group endIdGroup) {
+        return format(
+                "(%s%s)-[%s]->(%s%s)",
+                startId,
+                startIdGroup != null ? format(":%s", startIdGroup) : "",
+                type,
+                endId,
+                endIdGroup != null ? format(":%s", endIdGroup) : "");
+    }
 
     Collector EMPTY = new Collector() {
         @Override
@@ -136,10 +153,10 @@ public interface Collector extends AutoCloseable {
         public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {}
 
         @Override
-        public void collectOtherNodeViolation(String format, Object... parameters) {}
+        public void collectOtherNodeViolation(String problem) {}
 
         @Override
-        public void collectOtherRelationshipViolation(String format, Object... parameters) {}
+        public void collectOtherRelationshipViolation(String problem) {}
 
         @Override
         public boolean isCollectingBadRelationships() {
@@ -150,7 +167,8 @@ public interface Collector extends AutoCloseable {
     Collector STRICT = new Collector() {
         @Override
         public void collectExtraColumns(String source, long row, String value) {
-            throw new IllegalStateException(format("Bad extra column '%s' index:%d in '%s'", value, row, source));
+            throw new IllegalStateException(standardisedErrorMessage(
+                    "Extra column not present in header", source, row, format("Bad extra column value: '%s'", value)));
         }
 
         @Override
@@ -171,15 +189,19 @@ public interface Collector extends AutoCloseable {
                 Object specificValue,
                 String source,
                 long lineNumber) {
-            throw new IllegalStateException(format(
-                    "Bad relationship (%s:%s)-[%s]->(%s:%s) %s, index:%d in '%s'",
-                    startId, startIdGroup, type, endId, endIdGroup, specificValue, lineNumber, source));
+            throw new IllegalStateException(standardisedErrorMessage(
+                    "Bad relationship",
+                    source,
+                    lineNumber,
+                    format(
+                            "%s %s",
+                            illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup), specificValue)));
         }
 
         @Override
         public void collectDuplicateNode(Object id, long actualId, Group group, String source, long lineNumber) {
-            throw new IllegalStateException(format(
-                    "Bad duplicate node %s:%s id:%d, index:%d in '%s'", id, group, actualId, lineNumber, source));
+            throw new IllegalStateException(standardisedErrorMessage(
+                    "Duplicate node", source, lineNumber, format("%s:%s id:%d", id, group, actualId)));
         }
 
         @Override
@@ -191,14 +213,14 @@ public interface Collector extends AutoCloseable {
                 EntityType entityType,
                 String source,
                 long lineNumber) {
-            throw new IllegalStateException(format(
-                    "Bad %s with properties %s violating constraint %s id:%s, index:%d in '%s'",
-                    entityType == EntityType.NODE ? "node" : "relationship",
-                    properties,
-                    constraintDescription,
-                    id,
+            final String entityTypeString = entityType == EntityType.NODE ? "Node" : "Relationship";
+            throw new IllegalStateException(standardisedErrorMessage(
+                    format("%s would have violated a constraint", entityTypeString),
+                    source,
                     lineNumber,
-                    source));
+                    format(
+                            "%s with properties: %s, violating constraint: %s, id:%s",
+                            entityTypeString, properties, constraintDescription, id)));
         }
 
         @Override
@@ -212,17 +234,15 @@ public interface Collector extends AutoCloseable {
                 Group endIdGroup,
                 String source,
                 long lineNumber) {
-            throw new IllegalStateException(format(
-                    "Bad relationship (%s:%s)-[%s]->(%s:%s) with properties %s violating constraint %s, index:%d in '%s'",
-                    startId,
-                    startIdGroup,
-                    type,
-                    endId,
-                    endIdGroup,
-                    properties,
-                    constraintDescription,
+            throw new IllegalStateException(standardisedErrorMessage(
+                    "Relationship would have violated a constraint",
+                    source,
                     lineNumber,
-                    source));
+                    format(
+                            "%s, with properties: %s, violating constraint: %s",
+                            illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup),
+                            properties,
+                            constraintDescription)));
         }
 
         @Override
@@ -231,13 +251,13 @@ public interface Collector extends AutoCloseable {
         }
 
         @Override
-        public void collectOtherNodeViolation(String format, Object... parameters) {
-            throw new IllegalStateException(format(format, parameters));
+        public void collectOtherNodeViolation(String problem) {
+            throw new IllegalStateException(problem);
         }
 
         @Override
-        public void collectOtherRelationshipViolation(String format, Object... parameters) {
-            throw new IllegalStateException(format(format, parameters));
+        public void collectOtherRelationshipViolation(String problem) {
+            throw new IllegalStateException(problem);
         }
 
         @Override
@@ -290,10 +310,10 @@ public interface Collector extends AutoCloseable {
         public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {}
 
         @Override
-        public void collectOtherNodeViolation(String format, Object... parameters) {}
+        public void collectOtherNodeViolation(String problem) {}
 
         @Override
-        public void collectOtherRelationshipViolation(String format, Object... parameters) {}
+        public void collectOtherRelationshipViolation(String problem) {}
 
         @Override
         public long badEntries() {

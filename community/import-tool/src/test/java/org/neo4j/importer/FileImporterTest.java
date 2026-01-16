@@ -23,13 +23,13 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import blue.strategic.parquet.ParquetWriter;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -110,28 +110,22 @@ class FileImporterTest {
         Files.write(file, lines, Charset.defaultCharset());
         Path reportLocation = testDir.file("the_report");
 
-        var rawOut = new ByteArrayOutputStream();
-        var rawErr = new ByteArrayOutputStream();
         var dbConfig = dbConfig();
-        try (var out = new PrintStream(rawOut);
-                var err = new PrintStream(rawErr)) {
-            FileImporter.Builder csvImporterBuilder = importerBuilder()
-                    .withDatabaseConfig(Config.defaults(GraphDatabaseSettings.neo4j_home, testDir.homePath()))
-                    .withCsvConfig(Configuration.TABS)
-                    .withStdOut(new PrintStream(rawOut))
-                    .withStdErr(new PrintStream(rawErr))
-                    .withDatabaseConfig(dbConfig)
-                    .withReportFile(reportLocation.toAbsolutePath());
-            assertThatThrownBy(() -> csvImporterBuilder.build().doImport(fullImport()))
-                    .hasCauseInstanceOf(DirectoryNotEmptyException.class);
-            out.flush();
-            err.flush();
 
-            // Then
-            assertThat(rawErr.toString()).contains("Database already exist. Re-run with `--overwrite-destination`");
-            assertThatCode(() -> csvImporterBuilder.withForce(true).build().doImport(fullImport()))
-                    .doesNotThrowAnyException();
-        }
+        FileImporter.Builder csvImporterBuilder = importerBuilder()
+                .withDatabaseConfig(Config.defaults(GraphDatabaseSettings.neo4j_home, testDir.homePath()))
+                .withCsvConfig(Configuration.TABS)
+                .withDatabaseConfig(dbConfig)
+                .withReportFile(reportLocation.toAbsolutePath());
+        var e = assertThrows(
+                FileImporter.CsvImportException.class,
+                () -> csvImporterBuilder.build().doImport(fullImport()));
+
+        // Then
+        assertThat(e).hasCauseInstanceOf(DirectoryNotEmptyException.class);
+        assertThat(e.getMessage()).contains("Database already exist. Re-run with `--overwrite-destination`");
+        assertThatCode(() -> csvImporterBuilder.withForce(true).build().doImport(fullImport()))
+                .doesNotThrowAnyException();
     }
 
     @Test

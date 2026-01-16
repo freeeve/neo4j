@@ -99,6 +99,6 @@ class RelationshipImporterTest {
         }
 
         // then
-        assertThat(output.toString()).contains("1 (null)-[2]->null (null) is missing data");
+        assertThat(output.toString()).contains("(1)-[2]->(null) is missing data");
     }
 }

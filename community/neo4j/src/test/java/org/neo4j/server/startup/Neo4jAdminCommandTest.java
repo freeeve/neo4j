@@ -193,7 +193,6 @@ class Neo4jAdminCommandTest {
             if (fork.run(
                     () -> execute("dbms", "test-command", "--throw", "--verbose"), Map.of(CRASH_INFO_TIMEOUT, "60"))) {
                 assertThat(err.toString()).containsSubsequence("Full exception details written to:");
-                assertThat(err.toString()).contains(CommandFailedException.class.getName());
                 // but we do get the error message
                 assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
             }
@@ -220,9 +219,7 @@ class Neo4jAdminCommandTest {
                     },
                     Map.of(CRASH_INFO_TIMEOUT, "0"))) {
                 assertThat(err.toString()).containsSubsequence("Full exception details written to:");
-                // get the exception
-                assertThat(err.toString()).containsSubsequence(CommandFailedException.class.getName());
-                // and the expected error
+                // Get the expected error
                 assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
             }
         }
@@ -253,7 +250,6 @@ class Neo4jAdminCommandTest {
             if (fork.run(
                     () -> execute("dbms", "test-command", "--verbose", "--throw"), Map.of(CRASH_INFO_TIMEOUT, "0"))) {
                 assertThat(out.toString()).doesNotContain("Full exception details written to:");
-                assertThat(err.toString()).containsSubsequence(CommandFailedException.class.getName());
                 assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
                 assertThat(err.toString())
                         .containsSubsequence("Suppressed: java.io.IOException: Unable to write directory path");
@@ -486,7 +482,7 @@ class Neo4jAdminCommandTest {
         @Override
         protected void execute() {
             if (shouldThrow) {
-                throw new CommandFailedException(THROW_MSG);
+                throw new CommandFailedException(THROW_MSG, org.neo4j.cli.ExitCode.FAIL, false);
             }
             ctx.out().println(MSG);
             for (String param : allParameters) {

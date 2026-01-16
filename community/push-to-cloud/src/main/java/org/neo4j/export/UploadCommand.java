@@ -248,7 +248,7 @@ public class UploadCommand extends AbstractAdminCommand {
 
             uploader.process(auraClient);
         } catch (Exception e) {
-            throw new CommandFailedException(e.getMessage(), e);
+            throw new CommandFailedException("Upload command failed", e);
         }
     }
 

@@ -20,7 +20,6 @@
 package org.neo4j.commandline.dbms;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -186,9 +185,9 @@ class StoreInfoCommandTest {
             locker.checkLock();
             CommandLine.populateCommand(command, args(databasesRoot, true, "foo"));
             var exception = assertThrows(Exception.class, () -> command.execute());
-            assertEquals(
-                    "Failed to execute command as the database 'foo' is in use. Please stop it and try again.",
-                    exception.getMessage());
+            assertThat(exception.getMessage())
+                    .contains(
+                            "Failed to execute command as the database 'foo' is in use. Please stop it and try again.");
         }
     }
 

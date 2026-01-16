@@ -63,7 +63,7 @@ class ValidateConfigCommandTest {
         helper.result = ConfigValidationSummary.ValidationResult.ERRORS;
         assertThatThrownBy(command::execute)
                 .isInstanceOf(CommandFailedException.class)
-                .hasMessage("Configuration contains errors.");
+                .hasMessageContaining("Configuration contains errors.");
     }
 
     private static class TestConfigValidationHelper extends ConfigValidationHelper {

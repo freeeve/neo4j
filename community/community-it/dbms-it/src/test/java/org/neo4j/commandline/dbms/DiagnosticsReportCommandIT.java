@@ -350,9 +350,8 @@ class DiagnosticsReportCommandIT {
 
             CommandFailedException incorrectUsage =
                     assertThrows(CommandFailedException.class, diagnosticsReportCommand::execute);
-            assertEquals(
-                    "If you specify 'all' this has to be the only classifier. Found ['logs','tx'] as well.",
-                    incorrectUsage.getMessage());
+            assertThat(incorrectUsage.getMessage())
+                    .contains("If you specify 'all' this has to be the only classifier. Found ['logs','tx'] as well.");
         });
     }
 
@@ -363,7 +362,7 @@ class DiagnosticsReportCommandIT {
             DiagnosticsReportCommand diagnosticsReportCommand = populateCommand(ctx, args);
             CommandFailedException incorrectUsage =
                     assertThrows(CommandFailedException.class, diagnosticsReportCommand::execute);
-            assertEquals("Unknown classifier: invalid", incorrectUsage.getMessage());
+            assertThat(incorrectUsage.getMessage()).contains("Unknown classifier: invalid");
         });
     }
 

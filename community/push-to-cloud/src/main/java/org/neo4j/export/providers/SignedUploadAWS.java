@@ -85,7 +85,7 @@ public class SignedUploadAWS implements SignedUpload {
         try {
             upload(src);
         } catch (IOException e) {
-            throw new CommandFailedException(e.getMessage(), e);
+            throw new CommandFailedException("Failed to upload copy", e);
         }
     }
 

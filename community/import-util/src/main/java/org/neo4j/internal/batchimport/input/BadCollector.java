@@ -186,13 +186,13 @@ public final class BadCollector implements Collector {
     }
 
     @Override
-    public void collectOtherNodeViolation(String format, Object... parameters) {
-        collect(new OtherViolationReporter(EntityType.NODE, format, parameters));
+    public void collectOtherNodeViolation(String problem) {
+        collect(new OtherViolationReporter(EntityType.NODE, problem));
     }
 
     @Override
-    public void collectOtherRelationshipViolation(String format, Object... parameters) {
-        collect(new OtherViolationReporter(EntityType.RELATIONSHIP, format, parameters));
+    public void collectOtherRelationshipViolation(String problem) {
+        collect(new OtherViolationReporter(EntityType.RELATIONSHIP, problem));
     }
 
     @Override
@@ -301,13 +301,22 @@ public final class BadCollector implements Collector {
         private String getReportMessage(boolean missingData) {
             if (message == null) {
                 if (missingData) {
-                    message = format(
-                            "Invalid relationship in import data%n%s: line %d%n%s (%s)-[%s]->%s (%s) is missing data",
-                            source, lineNumber, startId, startIdGroup, type, endId, endIdGroup);
+                    message = Collector.standardisedErrorMessage(
+                            "Invalid relationship in import data",
+                            source,
+                            lineNumber,
+                            format(
+                                    "%s is missing data",
+                                    Collector.illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup)));
                 } else {
-                    message = format(
-                            "Invalid relationship in import data%n%s: line %d%n%s (%s)-[%s]->%s (%s) referring to missing node %s",
-                            source, lineNumber, startId, startIdGroup, type, endId, endIdGroup, specificValue);
+                    message = Collector.standardisedErrorMessage(
+                            "Invalid relationship in import data",
+                            source,
+                            lineNumber,
+                            format(
+                                    "%s referring to missing node %s",
+                                    Collector.illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup),
+                                    specificValue));
                 }
             }
             return message;
@@ -380,8 +389,11 @@ public final class BadCollector implements Collector {
 
         private String getReportMessage() {
             if (message == null) {
-                message =
-                        format("Extra column not present in header on line %d in %s with value %s", row, source, value);
+                message = Collector.standardisedErrorMessage(
+                        "Extra column not present in header",
+                        source,
+                        row,
+                        format("Bad extra column value: '%s'", value));
             }
             return message;
         }
@@ -416,15 +428,14 @@ public final class BadCollector implements Collector {
 
         @Override
         String message() {
-            return format(
-                    "%s %s (internal id %d) would have violated constraint:%s with properties:%s, index:%d in '%s'",
-                    entityType == EntityType.NODE ? "Node" : "Relationship",
-                    id,
-                    actualId,
-                    constraintDescription,
-                    properties,
+            final String entityTypeString = entityType == EntityType.NODE ? "Node" : "Relationship";
+            return Collector.standardisedErrorMessage(
+                    format("%s would have violated a constraint", entityTypeString),
+                    sourceDescription,
                     lineNumber,
-                    sourceDescription);
+                    format(
+                            "%s %s (internal id %d) would have violated constraint: %s, with properties: %s",
+                            entityTypeString, id, actualId, constraintDescription, properties));
         }
 
         @Override
@@ -468,17 +479,15 @@ public final class BadCollector implements Collector {
 
         @Override
         String message() {
-            return format(
-                    "%s%s-[%s]->%s%s would have violated constraint:%s with properties:%s, index:%d in '%s'",
-                    startId,
-                    startIdGroup != null ? " (" + startIdGroup + ")" : "",
-                    type,
-                    endId,
-                    endIdGroup != null ? " (" + endIdGroup + ")" : "",
-                    constraintDescription,
-                    properties,
+            return Collector.standardisedErrorMessage(
+                    "Relationship would have violated a constraint",
+                    sourceDescription,
                     lineNumber,
-                    sourceDescription);
+                    format(
+                            "%s would have violated constraint: %s, with properties:%s",
+                            Collector.illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup),
+                            constraintDescription,
+                            properties));
         }
 
         @Override
@@ -521,18 +530,16 @@ public final class BadCollector implements Collector {
     }
 
     private static class OtherViolationReporter extends ProblemReporter {
-        private final String format;
-        private final Object[] parameters;
+        private final String problem;
 
-        public OtherViolationReporter(EntityType entityType, String format, Object[] parameters) {
+        public OtherViolationReporter(EntityType entityType, String problem) {
             super(entityType == EntityType.NODE ? OTHER_NODE_VIOLATION : OTHER_RELATIONSHIP_VIOLATION);
-            this.format = format;
-            this.parameters = parameters;
+            this.problem = problem;
         }
 
         @Override
         String message() {
-            return format(format, parameters);
+            return problem;
         }
 
         @Override

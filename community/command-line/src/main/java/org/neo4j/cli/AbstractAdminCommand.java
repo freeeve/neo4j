@@ -45,6 +45,7 @@ import org.neo4j.configuration.connectors.HttpsConnector;
 import org.neo4j.configuration.helpers.DatabaseNamePattern;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.Neo4jLayout;
+import org.neo4j.kernel.api.exceptions.ConsoleFriendlyException;
 import org.neo4j.kernel.diagnostics.providers.SystemDiagnostics;
 import org.neo4j.kernel.internal.Version;
 import org.neo4j.logging.Level;
@@ -247,8 +248,15 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
                 exceptionLogger.info("This file is to aid Neo4j support.");
                 // log exception early in case there are issues with any of the extra info
                 exceptionLogger.error("Fatal exception thrown", ex);
-                ctx.err().println("Full exception details written to: " + exceptionFile);
-                ctx.err().println("Please provide this file if requesting neo4j support");
+                if (ConsoleFriendlyException.willPrettyPrint(ex)) {
+                    ((ConsoleFriendlyException) ex)
+                            .addSupplementaryMessage(format(
+                                    "Full exception details written to: %s%nPlease provide this file if requesting neo4j support",
+                                    exceptionFile));
+                } else {
+                    ctx.err().println("Full exception details written to: " + exceptionFile);
+                    ctx.err().println("Please provide this file if requesting neo4j support");
+                }
                 // Dump everything that might be useful later into the file
                 var runtime = ManagementFactory.getRuntimeMXBean();
                 exceptionLogger.info("Process Started at: " + Instant.ofEpochMilli(runtime.getStartTime()));

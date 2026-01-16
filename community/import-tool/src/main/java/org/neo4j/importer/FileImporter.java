@@ -21,7 +21,9 @@ package org.neo4j.importer;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
+import static org.apache.commons.lang3.exception.ExceptionUtils.getThrowableList;
 import static org.apache.commons.lang3.exception.ExceptionUtils.indexOfThrowable;
+import static org.apache.commons.lang3.exception.ExceptionUtils.indexOfType;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.duplication_user_messages;
 import static org.neo4j.configuration.GraphDatabaseSettings.db_temporal_timezone;
 import static org.neo4j.configuration.GraphDatabaseSettings.logs_directory;
@@ -98,10 +100,15 @@ import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 
 public class FileImporter {
+    public static final String DIVIDER = "-------------------------------------";
     public static final String DEFAULT_REPORT_FILE_NAME = "import.report";
     private static final DateTimeFormatter SPACELESS_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd.HH.mm.ss").withZone(ZoneId.systemDefault());
     private static final String DEFAULT_LOG_FILE_NAME_TEMPLATE = "neo4j-admin-import-%s.log";
+    private static final String MULTILINE_HINT = "Detected field which spanned multiple lines for an import where "
+            + "--multiline-fields=false. If you know that your input data "
+            + "include fields containing new-line characters then import with this option set to "
+            + "true.";
 
     private final DatabaseLayout databaseLayout;
     private final Config databaseConfig;
@@ -267,7 +274,7 @@ public class FileImporter {
                     numShards);
             success = true;
         } catch (Exception ex) {
-            throw andPrintError(databaseLayout.getDatabaseName(), ex, type.importType(), stdErr);
+            throw csvImportExceptionWrapped(databaseLayout.getDatabaseName(), ex, type.importType());
         } finally {
             long numberOfBadEntries = badCollector.badEntries();
             if (badTolerance != BadCollector.UNLIMITED_TOLERANCE && numberOfBadEntries > badTolerance) {
@@ -299,51 +306,53 @@ public class FileImporter {
     }
 
     /**
-     * Method name looks strange, but look at how it's used and you'll see why it's named like that.
+     * Wraps the provided exception in a {@link CsvImportException} which provides additional error information and
+     * traceability.
+     * <p>
+     * <b>Note:</b> Instances of {@link UnsupportedFormatException} are not wrapped, and are returned as is.
      *
      * @param databaseName the name of the database to receive the import data
      * @param e            the error that occurred
      * @param importType   the import type (ex. full/incremental/sharded)
-     * @param err          the error output stream
      */
-    private static RuntimeException andPrintError(
-            String databaseName, Exception e, String importType, PrintStream err) {
+    private static RuntimeException csvImportExceptionWrapped(String databaseName, Exception e, String importType) {
+        int relevantThrowableIndex;
         // List of common errors that can be explained to the user
         if (DuplicateInputIdException.class.equals(e.getClass())) {
-            err.println("Duplicate input ids that would otherwise clash can be put into separate id space.");
+            return new CsvImportException(
+                    "Duplicate input ids that would otherwise clash can be put into separate id space.", e);
         } else if (MissingRelationshipDataException.class.equals(e.getClass())) {
-            err.println("Relationship missing mandatory field");
+            return new CsvImportException("Relationship missing mandatory field", e);
         } else if (DirectoryNotEmptyException.class.equals(e.getClass())) {
-            err.println(
-                    "Database already exist. Re-run with `--overwrite-destination` to remove the database prior to import");
+            return new CsvImportException(
+                    "Database already exist. Re-run with `--overwrite-destination` to remove the database prior to import",
+                    e);
         } else if (FileLockException.class.equals(e.getClass())) {
             String string =
                     "%s can only be run against a database which is offline. The current state of database '%s' is online."
                             .formatted(importType, databaseName);
-            err.println(string);
+            return new CsvImportException(string, e);
+        } else if ((relevantThrowableIndex = indexOfType(e, InputException.class)) != -1) {
+            InputException ie = (InputException) getThrowableList(e).get(relevantThrowableIndex);
+            // Provide extra hint if causal chain contains IllegalMultilineFieldException (which is wrapped because it
+            // comes from the csv component, which has no access to InputException).
+            String message = indexOfThrowable(e, IllegalMultilineFieldException.class) != -1
+                    ? format("%s%n%n%s", MULTILINE_HINT, ie.getMessage())
+                    : ie.getMessage();
+            return new CsvImportException(message, ie);
+        } else if (e instanceof UnsupportedFormatException ufe) {
+            return ufe;
         }
-        // This type of exception is wrapped since our input code throws InputException consistently,
-        // and so IllegalMultilineFieldException comes from the csv component, which has no access to InputException
-        // therefore it's wrapped.
-        else if (indexOfThrowable(e, IllegalMultilineFieldException.class) != -1) {
-            err.println("Detected field which spanned multiple lines for an import where "
-                    + "--multiline-fields=false. If you know that your input data "
-                    + "include fields containing new-line characters then import with this option set to "
-                    + "true.");
-        } else if (indexOfThrowable(e, InputException.class) != -1) {
-            err.println("Error in input data");
-        } else if (e instanceof UnsupportedFormatException exception) {
-            err.println("Incremental import is not supported for a database with the format high_limit.");
-            return exception;
-        }
-        err.println();
-
         return new CsvImportException(e); // throw in order to have process exit with !0
     }
 
     static class CsvImportException extends RuntimeException {
         CsvImportException(Throwable cause) {
             super(cause);
+        }
+
+        CsvImportException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 

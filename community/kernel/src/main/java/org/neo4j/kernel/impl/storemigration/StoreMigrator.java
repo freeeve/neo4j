@@ -395,9 +395,10 @@ public class StoreMigrator {
             case UNSUPPORTED_MIGRATION_LIMITS ->
                 throw new UnableToMigrateException(
                         String.format(
-                                "Store migration from '%s' to '%s' not supported for this store",
+                                "Store migration from '%s' to '%s' not supported for this store%n%s",
                                 fromVersion.getStoreVersionUserString(),
-                                toVersion != null ? toVersion.getStoreVersionUserString() : formatToMigrateTo),
+                                toVersion != null ? toVersion.getStoreVersionUserString() : formatToMigrateTo,
+                                checkResult.cause().getMessage()),
                         checkResult.cause());
         };
     }

@@ -223,8 +223,8 @@ public class DumpCommand extends AbstractAdminCommand {
         } catch (IOException e) {
             throw new CommandFailedException(
                     format(
-                            "Unable to create default dumps directory at '%s': %s: %s",
-                            defaultDumpPath, e.getClass().getSimpleName(), e.getMessage()),
+                            "Unable to create default dumps directory at '%s': %s",
+                            defaultDumpPath, e.getClass().getSimpleName()),
                     e);
         }
         return defaultDumpPath;
@@ -292,7 +292,7 @@ public class DumpCommand extends AbstractAdminCommand {
                     format,
                     path -> oneOf(path, lockFile, quarantineMarkerFile));
         } catch (FileAlreadyExistsException e) {
-            throw new CommandFailedException("Archive already exists: " + e.getMessage(), e);
+            throw new CommandFailedException(format("Archive already exists: %s", e.getMessage()), e);
         } catch (NoSuchFileException e) {
             if (Paths.get(e.getMessage()).toAbsolutePath().equals(databasePath)) {
                 throw new CommandFailedException("Database does not exist: " + databaseLayout.getDatabaseName(), e);
@@ -330,12 +330,12 @@ public class DumpCommand extends AbstractAdminCommand {
         try {
             return isRecoveryRequired(fs, databaseLayout, additionalConfiguration, memoryTracker);
         } catch (Exception e) {
-            throw new CommandFailedException("Failure when checking for recovery state: '%s'." + e.getMessage(), e);
+            throw new CommandFailedException("Failure when checking for recovery state", e);
         }
     }
 
     private static void wrapIOException(IOException e) {
         throw new CommandFailedException(
-                format("Unable to dump database: %s: %s", e.getClass().getSimpleName(), e.getMessage()), e);
+                format("Unable to dump database%n%s: %s", e.getClass().getSimpleName(), e.getMessage()), e);
     }
 }

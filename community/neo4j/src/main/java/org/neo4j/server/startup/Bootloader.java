@@ -211,7 +211,8 @@ public abstract class Bootloader implements AutoCloseable {
             throw new CommandFailedException(
                     "Configuration contains errors. This validation can be performed again using '"
                             + ValidateConfigCommand.COMMAND + "'.",
-                    ExitCode.FAIL);
+                    ExitCode.FAIL,
+                    false);
         }
     }
 
@@ -253,9 +254,9 @@ public abstract class Bootloader implements AutoCloseable {
             return new FilteredConfig(builder.build(), filter);
         } catch (RuntimeException e) {
             if (additionalConfigs.isEmpty()) {
-                throw new CommandFailedException("Failed to read config " + mainConfFile + ": " + e.getMessage(), e);
+                throw new CommandFailedException("Failed to read config " + mainConfFile, e);
             } else {
-                throw new CommandFailedException("Failed to read config: " + e.getMessage(), e);
+                throw new CommandFailedException("Failed to read config", e);
             }
         }
     }

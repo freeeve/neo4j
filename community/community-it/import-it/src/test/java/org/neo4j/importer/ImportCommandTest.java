@@ -693,7 +693,7 @@ class ImportCommandTest {
                                         .toAbsolutePath()));
         assertTrue(ctx.outAsString().contains("IMPORT FAILED"));
         assertFalse(ctx.errAsString().contains(e.getClass().getName()));
-        assertTrue(e.getCause().getMessage().contains("Extra column not present in header on line"));
+        assertTrue(e.getCause().getMessage().contains("Extra column not present in header"));
     }
 
     @Test
@@ -724,7 +724,7 @@ class ImportCommandTest {
 
         // THEN
         String badContents = Files.readString(reportFile, Charset.defaultCharset());
-        assertTrue(badContents.contains("Extra column not present in header on line"));
+        assertTrue(badContents.contains("Extra column not present in header"));
     }
 
     @Test
@@ -1526,6 +1526,10 @@ class ImportCommandTest {
         var e = assertThrows(
                 CommandFailedException.class,
                 () -> runImport(ctx, "--nodes", data.toAbsolutePath().toString(), "--multiline-fields=false"));
+        // This happens at the end of the error handling process for all AbstractCommand calls (assuming exception
+        // extends ConsoleFriendlyException.
+        e.prettyPrint(ctx.err());
+
         // THEN
         assertThat(e.getCause()).isInstanceOf(CsvImportException.class).hasCauseInstanceOf(InputException.class);
         assertTrue(ctx.errAsString().contains("Detected field which spanned multiple lines"));
@@ -2837,7 +2841,7 @@ class ImportCommandTest {
                 // then
                 .rootCause()
                 .isInstanceOf(DuplicateInputIdException.class)
-                .hasMessageContaining("Id '1' is defined more than once in group 'GroupOne'");
+                .hasMessageContaining("'1' is defined more than once in group 'GroupOne'");
     }
 
     @ParameterizedTest

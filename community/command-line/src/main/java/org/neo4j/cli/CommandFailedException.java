@@ -19,7 +19,9 @@
  */
 package org.neo4j.cli;
 
-public class CommandFailedException extends RuntimeException {
+import org.neo4j.kernel.api.exceptions.ConsoleFriendlyException;
+
+public class CommandFailedException extends ConsoleFriendlyException {
     private static final int DEFAULT_ERROR_EXIT_CODE = ExitCode.FAIL;
 
     private final int exitCode;
@@ -29,7 +31,24 @@ public class CommandFailedException extends RuntimeException {
     }
 
     public CommandFailedException(String message, int exitCode) {
-        super(message);
+        this(message, exitCode, true);
+    }
+
+    public CommandFailedException(String message, int exitCode, boolean singleHandedlyOrganiseConsoleOutput) {
+        super(message, singleHandedlyOrganiseConsoleOutput);
+        this.exitCode = exitCode;
+    }
+
+    public CommandFailedException(Throwable cause) {
+        this(cause, DEFAULT_ERROR_EXIT_CODE);
+    }
+
+    public CommandFailedException(Throwable cause, int exitCode) {
+        this(cause, exitCode, true);
+    }
+
+    public CommandFailedException(Throwable cause, int exitCode, boolean singleHandedlyOrganiseConsoleOutput) {
+        super(cause, singleHandedlyOrganiseConsoleOutput);
         this.exitCode = exitCode;
     }
 
@@ -38,7 +57,12 @@ public class CommandFailedException extends RuntimeException {
     }
 
     public CommandFailedException(String message, Throwable cause, int exitCode) {
-        super(message, cause);
+        this(message, cause, exitCode, true);
+    }
+
+    public CommandFailedException(
+            String message, Throwable cause, int exitCode, boolean singleHandedlyOrganiseConsoleOutput) {
+        super(message, cause, singleHandedlyOrganiseConsoleOutput);
         this.exitCode = exitCode;
     }
 

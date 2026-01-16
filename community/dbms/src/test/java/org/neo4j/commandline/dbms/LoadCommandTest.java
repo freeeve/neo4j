@@ -20,7 +20,6 @@
 package org.neo4j.commandline.dbms;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -153,8 +152,8 @@ class LoadCommandTest {
         String dumpName = archive.resolve("foo.dump").toString();
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
-        assertEquals("Load failed for databases: 'foo'", commandFailed.getMessage());
-        assertEquals("No matching archives found", commandFailed.getCause().getMessage());
+        assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
+        assertThat(commandFailed.getMessage()).contains("No matching archives found");
     }
 
     @Test
@@ -165,8 +164,8 @@ class LoadCommandTest {
                 .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
-        assertEquals("Load failed for databases: 'foo'", commandFailed.getMessage());
-        assertEquals("Database already exists: foo", commandFailed.getCause().getMessage());
+        assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
+        assertThat(commandFailed.getMessage()).contains("Database already exists: foo");
     }
 
     @Test
@@ -177,10 +176,8 @@ class LoadCommandTest {
                 .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
-        assertEquals("Load failed for databases: 'foo'", commandFailed.getMessage());
-        assertEquals(
-                "You do not have permission to load the database 'foo'.",
-                commandFailed.getCause().getMessage());
+        assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
+        assertThat(commandFailed.getMessage()).contains("You do not have permission to load the database 'foo'.");
     }
 
     @Test
@@ -192,10 +189,8 @@ class LoadCommandTest {
                 .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
-        assertEquals("Load failed for databases: 'foo'", commandFailed.getMessage());
-        assertEquals(
-                "Unable to load database: FileSystemException: the-message",
-                commandFailed.getCause().getMessage());
+        assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
+        assertThat(commandFailed.getMessage()).contains("Unable to load database: FileSystemException: the-message");
     }
 
     @Test
@@ -206,7 +201,7 @@ class LoadCommandTest {
                 .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
-        assertEquals("Load failed for databases: 'foo'", commandFailed.getMessage());
+        assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
         assertThat(commandFailed.getCause().getMessage()).contains(archive.toString());
         assertThat(commandFailed.getCause().getMessage()).contains("valid Neo4j archive");
     }

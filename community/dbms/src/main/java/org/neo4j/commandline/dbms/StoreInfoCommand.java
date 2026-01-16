@@ -155,7 +155,7 @@ public class StoreInfoCommand extends AbstractAdminCommand {
         } catch (CommandFailedException e) {
             throw e;
         } catch (Exception e) {
-            throw new CommandFailedException(format("Failed to execute command: '%s'.", e.getMessage()), e);
+            throw new CommandFailedException("Failed to execute command", e);
         }
     }
 
@@ -229,7 +229,7 @@ public class StoreInfoCommand extends AbstractAdminCommand {
         } catch (CommandFailedException e) {
             throw e;
         } catch (Exception e) {
-            throw new CommandFailedException(format("Failed to execute command: '%s'.", e.getMessage()), e);
+            throw new CommandFailedException("Failed to execute command", e);
         }
     }
 
@@ -262,8 +262,7 @@ public class StoreInfoCommand extends AbstractAdminCommand {
                     memoryTracker,
                     EMPTY);
         } catch (Exception e) {
-            throw new CommandFailedException(
-                    format("Failed to execute command when checking for recovery state: '%s'.", e.getMessage()), e);
+            throw new CommandFailedException("Failed to execute command when checking for recovery state", e);
         }
     }
 
