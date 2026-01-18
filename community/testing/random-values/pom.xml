@@ -59,7 +59,7 @@
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-commons</artifactId>
-            <version>${junit.platform.version}</version>
+            <version>${junit.version}</version>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>

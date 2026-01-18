@@ -175,12 +175,11 @@
     <scala.binary.version>2.13</scala.binary.version>
     <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
     <scala.test.version>3.2.13</scala.test.version>
-    <asm.version>9.9</asm.version>
+    <asm.version>9.9.1</asm.version>
     <metrics.version>4.2.37</metrics.version>
     <scala.target.vm>${vm.target.version}</scala.target.vm>
     <jersey.version>2.46</jersey.version>
-    <junit.version>6.0.1</junit.version>
-    <junit.platform.version>6.0.1</junit.platform.version>
+    <junit.version>6.0.2</junit.version>
     <mockito.version>5.21.0</mockito.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
     <cucumber.version>7.33.0</cucumber.version>
@@ -191,36 +190,36 @@
     <!-- no more patch releases for jackson-annotations so different versioning from jackson -->
     <jackson.annotations.version>2.20</jackson.annotations.version>
     <amazon-sdk.version>1.12.791</amazon-sdk.version>
-    <awssdk.version>2.40.7</awssdk.version>
-    <awssdk-crt.version>0.41.0</awssdk-crt.version>
+    <awssdk.version>2.41.9</awssdk.version>
+    <awssdk-crt.version>0.42.2</awssdk-crt.version>
     <guava.version>33.5.0-jre</guava.version>
     <awaitility.version>4.3.0</awaitility.version>
     <log4j.version>2.25.3</log4j.version>
     <slf4j.version>2.0.17</slf4j.version>
-    <logback.version>1.5.22</logback.version>
+    <logback.version>1.5.24</logback.version>
     <neo4j-java-driver.version>6.0.2</neo4j-java-driver.version>
     <!-- there is a non-standard behaviour of map merge in the 13.0 version can't upgrade for now-->
     <eclipse-collections.version>11.1.0</eclipse-collections.version>
-    <parquet-floor.version>1.59</parquet-floor.version>
-    <parquet.version>1.16.0</parquet.version>
+    <parquet-floor.version>1.60</parquet-floor.version>
+    <parquet.version>1.17.0</parquet.version>
     <picocli.version>4.7.7</picocli.version>
     <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
     <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
     <antlr.version>4.13.2</antlr.version> <!-- You MUST re-generate the parsers after changing this value! -->
-    <error_prone.version>2.45.0</error_prone.version>
-    <protobuf.version>4.33.2</protobuf.version>
+    <error_prone.version>2.46.0</error_prone.version>
+    <protobuf.version>4.33.4</protobuf.version>
     <teavm.version>0.13.0</teavm.version>
     <javapoet.version>1.13.0</javapoet.version>
-    <grpc.version>1.77.0</grpc.version>
-    <testcontainers.version>2.0.2</testcontainers.version>
+    <grpc.version>1.78.0</grpc.version>
+    <testcontainers.version>2.0.3</testcontainers.version>
     <build-resources.version>2025.11.1</build-resources.version>
     <s3mock.version>4.11.0</s3mock.version>
     <shiro.version>2.0.6</shiro.version>
-    <cypherdsl.version>2025.2.1</cypherdsl.version>
+    <cypherdsl.version>2025.2.2</cypherdsl.version>
     <jsr305.version>3.0.2</jsr305.version>
     <json4s.version>3.6.11</json4s.version>
     <java-jwt.version>4.5.0</java-jwt.version>
-    <lz4.version>1.10.1</lz4.version>
+    <lz4.version>1.10.2</lz4.version>
     <dependency.analyze.failOnWarning>false</dependency.analyze.failOnWarning>
     <dependency.analyze.skip>false</dependency.analyze.skip>
   </properties>
@@ -1456,9 +1455,14 @@
       <dependency>
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-bom</artifactId>
-        <version>2024.0.10</version>
+        <version>2025.0.2</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.reactivestreams</groupId>
+        <artifactId>reactive-streams</artifactId>
+        <version>1.0.4</version>
       </dependency>
 
       <dependency>
@@ -1541,7 +1545,7 @@
       <dependency>
         <groupId>org.junit.platform</groupId>
         <artifactId>junit-platform-testkit</artifactId>
-        <version>${junit.platform.version}</version>
+        <version>${junit.version}</version>
         <scope>test</scope>
         <exclusions>
           <exclusion>
@@ -2150,7 +2154,7 @@
       <dependency>
         <groupId>net.bytebuddy</groupId>
         <artifactId>byte-buddy</artifactId>
-        <version>1.18.2</version>
+        <version>1.18.4</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>

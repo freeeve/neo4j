@@ -31,6 +31,7 @@ Apache Software License, Version 2.0
   Caffeine cache
   jansi
   Java Native Access
+  JSpecify annotations
   Neo4j Java Driver
   Netty/Buffer
   Netty/Codec/Base

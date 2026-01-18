@@ -17,7 +17,7 @@
     <properties>
         <moduleName>org.neo4j.genai</moduleName>
         <weaviate-client.version>5.5.0</weaviate-client.version>
-        <pinecone-client.version>6.0.0</pinecone-client.version>
+        <pinecone-client.version>6.1.0</pinecone-client.version>
         <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 

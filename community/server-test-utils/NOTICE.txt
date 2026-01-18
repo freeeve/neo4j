@@ -106,6 +106,7 @@ Apache Software License, Version 2.0
   jersey-inject-hk2
   Jettison
   Jetty :: Servlet API and Schemas for JPMS and OSGi
+  JSpecify annotations
   magnolia
   Neo4j Java Driver
   Netty/Buffer

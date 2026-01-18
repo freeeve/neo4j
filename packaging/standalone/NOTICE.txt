@@ -58,6 +58,7 @@ Apache Software License, Version 2.0
   grpc
   jansi
   Java Native Access
+  JSpecify annotations
   long
   Neo4j Bolt Connection (Bolt Provider reference impl)
   Neo4j Bolt Connection (Pooled Source impl)
