@@ -23,6 +23,8 @@ import java.util.function.UnaryOperator;
 import org.neo4j.function.ThrowingFunction;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.values.storable.Value;
 
 public class IndexMapReference implements IndexMapSnapshotProvider {
@@ -57,6 +59,15 @@ public class IndexMapReference implements IndexMapSnapshotProvider {
 
     Iterable<IndexProxy> getAllIndexProxies() {
         return indexMap.getAllIndexProxies();
+    }
+
+    IndexUpdater createIndexUpdater(
+            IndexDescriptor descriptor, IndexUpdateMode mode, CursorContext cursorContext, boolean parallel) {
+        IndexProxy indexProxy = indexMap.getIndexProxy(descriptor);
+        if (indexProxy == null) {
+            return null;
+        }
+        return indexProxy.newUpdater(mode, cursorContext, parallel);
     }
 
     IndexUpdaterMap createIndexUpdaterMap(IndexUpdateMode mode, boolean parallel) {

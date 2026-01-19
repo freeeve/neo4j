@@ -662,24 +662,27 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
             boolean parallel)
             throws KernelException {
         if (parallel) {
-            // For parallel updates split updates by index and for all updates for each index: open updater,
-            // apply updates and then close the updater. This removes a potential deadlock where open updaters
-            // may hold on to internal index btree node latches, causing deadlocks.
             for (var entry : LazyIterate.adapt(loop(updates))
                     .groupBy(IndexEntryUpdate::indexKey)
                     .keyMultiValuePairsView()) {
-                var indexProxy = indexMapRef.getIndexProxy(entry.getOne());
-                try (var updater = indexProxy.newUpdater(updateMode, cursorContext, true)) {
-                    for (var update : entry.getTwo()) {
-                        updater.process(update);
+                // For parallel updates split updates by index and for all updates for each index: open updater,
+                // apply updates and then close the updater. This removes a potential deadlock where open updaters
+                // may hold on to internal index btree node latches, causing deadlocks.
+                try (IndexUpdater updater =
+                        indexMapRef.createIndexUpdater(entry.getOne(), updateMode, cursorContext, true)) {
+                    if (updater != null) {
+                        for (var update : entry.getTwo()) {
+                            updater.process(update);
+                        }
                     }
                 }
             }
-        } else {
-            try (IndexUpdaterMap updaterMap = indexMapRef.createIndexUpdaterMap(updateMode, false)) {
-                for (var indexUpdate : loop(updates)) {
-                    processUpdate(updaterMap, indexUpdate, cursorContext);
-                }
+            return;
+        }
+
+        try (IndexUpdaterMap updaterMap = indexMapRef.createIndexUpdaterMap(updateMode, false)) {
+            for (var indexUpdate : loop(updates)) {
+                processUpdate(updaterMap, indexUpdate, cursorContext);
             }
         }
     }
