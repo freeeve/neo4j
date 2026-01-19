@@ -466,8 +466,8 @@ trait GraphCreation[CONTEXT <: RuntimeContext] {
       }
     }
 
-    val startMiddle = start.createRelationshipTo(middle, A)
-    val endMiddle = end.createRelationshipTo(middle, A)
+    val startMiddle = start.createRelationshipTo(middle, A) // 0
+    val endMiddle = end.createRelationshipTo(middle, A) // 1
 
     val sa1 = runtimeTestSupport.tx.createNode() // 3
     val sb1 = runtimeTestSupport.tx.createNode() // 4
@@ -476,20 +476,20 @@ trait GraphCreation[CONTEXT <: RuntimeContext] {
     val sc2 = runtimeTestSupport.tx.createNode() // 7
     val sc3 = runtimeTestSupport.tx.createNode() // 8
 
-    chain(A, start, sa1, middle)
-    chain(B, start, sb1, sb2, middle)
-    chain(A, middle, sc3, sc2, sc1, start)
+    chain(A, start, sa1, middle) // 2, 3
+    chain(B, start, sb1, sb2, middle) // 4, 5, 6
+    chain(A, middle, sc3, sc2, sc1, start) // 7, 8, 9, 10
 
-    val ea1 = runtimeTestSupport.tx.createNode()
-    val eb1 = runtimeTestSupport.tx.createNode()
-    val eb2 = runtimeTestSupport.tx.createNode()
-    val ec1 = runtimeTestSupport.tx.createNode()
-    val ec2 = runtimeTestSupport.tx.createNode()
-    val ec3 = runtimeTestSupport.tx.createNode()
+    val ea1 = runtimeTestSupport.tx.createNode() // 9
+    val eb1 = runtimeTestSupport.tx.createNode() // 10
+    val eb2 = runtimeTestSupport.tx.createNode() // 11
+    val ec1 = runtimeTestSupport.tx.createNode() // 12
+    val ec2 = runtimeTestSupport.tx.createNode() // 13
+    val ec3 = runtimeTestSupport.tx.createNode() // 14
 
-    chain(A, middle, ea1, end)
-    chain(B, middle, eb1, eb2, end)
-    chain(A, middle, ec1, ec2, ec3, end)
+    chain(A, middle, ea1, end) // 11, 12
+    chain(B, middle, eb1, eb2, end) // 13, 14, 15
+    chain(A, middle, ec1, ec2, ec3, end) // 16, 17, 18, 19
 
     SineGraph(start, middle, end, sa1, sb1, sb2, sc1, sc2, sc3, ea1, eb1, eb2, ec1, ec2, ec3, startMiddle, endMiddle)
   }

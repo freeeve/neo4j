@@ -275,6 +275,14 @@ class InterpretedVarExpandTrailTest
 class InterpretedVarExpandWalkTest
     extends VarLengthExpandTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT, TraversalPathMode.Walk)
 
+class InterpretedVarExpandAcyclicTest
+    extends VarLengthExpandTestBase(
+      COMMUNITY.EDITION,
+      CommunityInterpretedRuntime,
+      SIZE_HINT,
+      TraversalPathMode.Acyclic
+    )
+
 class InterpretedPruningVarExpandTrailTest
     extends PruningVarLengthExpandTestBase(
       COMMUNITY.EDITION,

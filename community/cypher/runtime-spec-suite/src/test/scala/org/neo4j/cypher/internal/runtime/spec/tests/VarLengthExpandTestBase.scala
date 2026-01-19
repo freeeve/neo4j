@@ -29,6 +29,9 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Acyclic
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint
@@ -54,6 +57,49 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
   sizeHint: Int,
   protected val traversalPathMode: TraversalPathMode
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
+
+  test("very simple var-length-expand") {
+    val (a, b, r, s) = givenGraph {
+      //    --[R]-->
+      // (:A)      (:B)
+      //    <--[S]--
+      val a = runtimeTestSupport.tx.createNode(Label.label("A"))
+      val b = runtimeTestSupport.tx.createNode(Label.label("B"))
+      val r = a.createRelationshipTo(b, RelationshipType.withName("R"))
+      val s = b.createRelationshipTo(a, RelationshipType.withName("S"))
+
+      (a, b, r, s)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x", "y", "r")
+      .expand("(x)-[r*1..3]->(y)", pathMode = traversalPathMode)
+      .nodeByLabelScan("x", "A")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    val expected =
+      traversalPathMode match {
+        case Walk =>
+          Seq(
+            Array(a, b, Array(r)), // a--b
+            Array(a, a, Array(r, s)), // a--b--a
+            Array(a, b, Array(r, s, r)) // a--b--a--b
+          )
+        case Trail =>
+          Seq(
+            Array(a, b, Array(r)), // a--b
+            Array(a, a, Array(r, s)) // a--b--a
+          )
+        case Acyclic =>
+          Seq(
+            Array(a, b, Array(r)) // a--b
+          )
+      }
+
+    runtimeResult should beColumns("x", "y", "r").withRows(inAnyOrder(expected))
+  }
 
   test("simple var-length-expand") {
     // given
@@ -153,6 +199,53 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       }
 
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
+  }
+
+  test("var-length-expand on a complex graph") {
+    // given
+    val g = givenGraph { complexGraph() }: @unchecked
+
+    // when
+    val pathPattern = traversalPathMode match {
+      case Walk    => "(x)-[r*..5]->(y)"
+      case Trail   => "(x)-[r*]->(y)"
+      case Acyclic => "(x)-[r*]->(y)"
+    }
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("y", "numY")
+      .aggregation(Seq("y AS y"), Seq("count(y) AS numY"))
+      .expand(pathPattern, pathMode = traversalPathMode)
+      .nodeByLabelScan("x", "START", IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = traversalPathMode match {
+      case Walk => Seq(
+          Array(g.n3, 21),
+          Array(g.n4, 18),
+          Array(g.n5, 18),
+          Array(g.n6, 6),
+          Array(g.n7, 6)
+        )
+      case Trail => Seq(
+          Array(g.n3, 9),
+          Array(g.n4, 12),
+          Array(g.n5, 24),
+          Array(g.n6, 12),
+          Array(g.n7, 12)
+        )
+      case Acyclic => Seq(
+          Array(g.n3, 3),
+          Array(g.n4, 6),
+          Array(g.n5, 6),
+          Array(g.n6, 6),
+          Array(g.n7, 6)
+        )
+    }
+
+    runtimeResult should beColumns("y", "numY").withRows(inAnyOrder(expected))
   }
 
   test("var-length-expand on lollipop graph") {
@@ -535,7 +628,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val pattern = traversalPathMode match {
       case TraversalPathMode.Walk    => "(y)<-[r*..10]-(x)"
       case TraversalPathMode.Trail   => "(y)<-[r*]-(x)"
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic => "(y)<-[r*]-(x)"
     }
 
     // when
@@ -559,7 +652,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val pattern = traversalPathMode match {
       case TraversalPathMode.Walk    => "(x)-[r*..5]-(y)"
       case TraversalPathMode.Trail   => "(x)-[r*]-(y)"
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic => "(x)-[r*]-(y)"
     }
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -582,7 +675,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val pattern = traversalPathMode match {
       case TraversalPathMode.Walk    => "(y)-[r*..5]-(x)"
       case TraversalPathMode.Trail   => "(y)-[r*]-(x)"
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic => "(y)-[r*]-(x)"
     }
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -594,13 +687,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, input)
 
     // then
-    val expected = traversalPathMode match {
-      case TraversalPathMode.Walk =>
-        paths.map(p => Array[Object](p.startNode, p.relationships(), p.endNode()))
-      case TraversalPathMode.Trail =>
-        paths.map(p => Array[Object](p.startNode, p.relationships(), p.endNode()))
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
-    }
+    val expected = paths.map(p => Array[Object](p.startNode, p.relationships(), p.endNode()))
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
   }
 
@@ -745,7 +832,23 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sa1),
           Array(g.end)
         )
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(g.sb1), // outgoing only
+          Array(g.sa1),
+          Array(g.middle),
+          Array(g.sb2),
+          Array(g.middle),
+          Array(g.sc3),
+          Array(g.ea1),
+          Array(g.eb1),
+          Array(g.ec1),
+          Array(g.sc1), // incoming only
+          Array(g.sc2),
+          Array(g.sb2), // mixed
+          Array(g.sa1),
+          Array(g.end)
+        )
 
     }
     runtimeResult should beColumns("y").withRows(expected)
@@ -836,7 +939,14 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc1),
           Array(g.sc2)
         )
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(g.sa1),
+          Array(g.sb1),
+          Array(g.sb2),
+          Array(g.sc1),
+          Array(g.sc2)
+        )
     }
     // then
     runtimeResult should beColumns("y").withRows(expected)
@@ -897,7 +1007,14 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc1),
           Array(g.sc2)
         )
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(g.sa1),
+          Array(g.sb1),
+          Array(g.sb2),
+          Array(g.sc1),
+          Array(g.sc2)
+        )
     }
     runtimeResult should beColumns("y").withRows(expected)
   }
@@ -1041,7 +1158,22 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.middle),
           Array(g.sc3)
         )
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(g.sa1),
+          Array(g.sb1),
+          Array(g.sc1),
+          Array(g.middle),
+          Array(g.sb2),
+          Array(g.sc2),
+          Array(g.ea1),
+          Array(g.eb1),
+          Array(g.ec1),
+          Array(g.sc3),
+          Array(g.sb2),
+          Array(g.middle),
+          Array(g.sc3)
+        )
     }
 
     // then
@@ -1081,7 +1213,11 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc2),
           Array(g.sb2)
         )
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(g.sc2),
+          Array(g.sb2)
+        )
     }
     runtimeResult should beColumns("y").withRows(expected)
   }
@@ -1469,7 +1605,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val pattern = traversalPathMode match {
       case TraversalPathMode.Walk    => s"(x)-[r*..${pathLength + 1}]->(y)"
       case TraversalPathMode.Trail   => "(x)-[r*]->(y)"
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic => "(x)-[r*]->(y)"
     }
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -1517,7 +1653,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val pattern = traversalPathMode match {
       case TraversalPathMode.Walk    => "(x)-[r*1..128]->(y)"
       case TraversalPathMode.Trail   => "(x)-[r*1..]->(y)"
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic => "(x)-[r*1..]->(y)"
     }
 
     // when
@@ -1546,7 +1682,15 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Object](fromNode, rels.asJava, toNode)
         }
         runtimeResult should beColumns("x", "r", "y").withRows(expected, listInAnyOrder = true)
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic =>
+        val expected = for {
+          turnPointNodeIndex <- 1 until nodeSize
+        } yield {
+          val rels = forwardRelationships.take(turnPointNodeIndex)
+          val toNode = nodes(turnPointNodeIndex)
+          Array[Object](fromNode, rels.asJava, toNode)
+        }
+        runtimeResult should beColumns("x", "r", "y").withRows(expected, listInAnyOrder = true)
     }
   }
 
@@ -1618,7 +1762,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val pattern = traversalPathMode match {
       case TraversalPathMode.Walk    => "(s)-[r*..3]-(t)"
       case TraversalPathMode.Trail   => "(s)-[r*]-(t)"
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic => "(s)-[r*]-(t)"
     }
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -1642,7 +1786,11 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(a, b),
           Array(a, c)
         ))
-      case TraversalPathMode.Acyclic => throw new NotImplementedError("Acyclic not supported here")
+      case TraversalPathMode.Acyclic =>
+        inAnyOrder(Seq(
+          Array(a, b),
+          Array(a, c)
+        ))
     }
 
     runtimeResult should beColumns("s", "t").withRows(expected)

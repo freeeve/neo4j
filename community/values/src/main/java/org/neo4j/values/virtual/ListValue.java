@@ -1137,6 +1137,14 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         }
     }
 
+    public ListValue slice() {
+        return slice(0L, intSize());
+    }
+
+    public ListValue slice(long fromInclusive) {
+        return slice(fromInclusive, intSize());
+    }
+
     public ListValue slice(long fromInclusive, long toExclusive) {
         long f = Math.max(fromInclusive, 0L);
         long t = Math.min(toExclusive, intSize());

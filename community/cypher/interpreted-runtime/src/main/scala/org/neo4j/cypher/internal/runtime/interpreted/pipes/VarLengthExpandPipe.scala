@@ -19,21 +19,17 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
-import org.neo4j.collection.trackable.HeapTrackingCollections
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
-import org.neo4j.cypher.internal.runtime.RelationshipContainer
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.VarLengthExpandPipe.projectBackwards
+import org.neo4j.cypher.internal.runtime.TraversalContainer
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.ParameterWrongTypeException
-import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.values.storable.Value
 import org.neo4j.values.virtual.VirtualNodeValue
-import org.neo4j.values.virtual.VirtualValues
 
 case class VarLengthExpandPipe(
   source: Pipe,
@@ -52,19 +48,19 @@ case class VarLengthExpandPipe(
 
   private val writer = (maybeRelName, maybeToName) match {
     case (Some(relName), Some(toName)) =>
-      (row: CypherRow, rels: RelationshipContainer, node: VirtualNodeValue) =>
-        rowFactory.copyWith(row, relName, rels.asList, toName, node)
+      (row: CypherRow, rels: TraversalContainer, node: VirtualNodeValue) =>
+        rowFactory.copyWith(row, relName, rels.relationshipsAsList, toName, node)
 
     case (None, Some(toName)) =>
-      (row: CypherRow, _: RelationshipContainer, node: VirtualNodeValue) =>
+      (row: CypherRow, _: TraversalContainer, node: VirtualNodeValue) =>
         rowFactory.copyWith(row, toName, node)
 
     case (Some(relName), None) =>
-      (row: CypherRow, rels: RelationshipContainer, _: VirtualNodeValue) =>
-        rowFactory.copyWith(row, relName, rels.asList)
+      (row: CypherRow, rels: TraversalContainer, _: VirtualNodeValue) =>
+        rowFactory.copyWith(row, relName, rels.relationshipsAsList)
 
     case (None, None) =>
-      (row: CypherRow, _: RelationshipContainer, _: VirtualNodeValue) =>
+      (row: CypherRow, _: TraversalContainer, _: VirtualNodeValue) =>
         rowFactory.copyWith(row)
 
   }
@@ -74,50 +70,10 @@ case class VarLengthExpandPipe(
     state: QueryState,
     maxDepth: Option[Int],
     row: CypherRow
-  ): ClosingIterator[(VirtualNodeValue, RelationshipContainer)] = {
+  ): ClosingIterator[(VirtualNodeValue, TraversalContainer)] = {
     val memoryTracker = state.memoryTrackerForOperatorProvider.memoryTrackerForOperator(id.x)
-    val stack = HeapTrackingCollections.newArrayDeque[(VirtualNodeValue, RelationshipContainer)](
-      EmptyMemoryTracker.INSTANCE
-    )
-    stack.push((node, RelationshipContainer.empty(memoryTracker, traversalPathMode, maybeRelName.isDefined)))
-
-    new ClosingIterator[(VirtualNodeValue, RelationshipContainer)] {
-      def next(): (VirtualNodeValue, RelationshipContainer) = {
-        val (node, rels) = stack.pop()
-        if (rels.size < maxDepth.getOrElse(Int.MaxValue) && filteringStep.filterNode(row, state, node)) {
-          val relationships = state.query.getRelationshipsForIds(node.id(), dir, types.types(state.query))
-
-          // relationships get immediately exhausted. Therefore we do not need a ClosingIterator here.
-          while (relationships.hasNext) {
-            val rel = VirtualValues.relationship(
-              relationships.next(),
-              relationships.startNodeId(),
-              relationships.endNodeId(),
-              relationships.typeId()
-            )
-            val otherNode = VirtualValues.node(relationships.otherNodeId(node.id()))
-            if (filteringStep.filterRelationship(row, state, rel, node, otherNode)) {
-              if (rels.canAdd(rel) && filteringStep.filterNode(row, state, otherNode)) {
-                stack.push((otherNode, rels.append(rel)))
-              }
-            }
-          }
-        }
-        val projectedRels = {
-          if (projectBackwards(dir, projectedDir)) {
-            rels.reverse
-          } else {
-            rels
-          }
-        }
-        rels.close()
-        (node, projectedRels)
-      }
-
-      def innerHasNext: Boolean = !stack.isEmpty
-
-      override protected[this] def closeMore(): Unit = stack.close()
-    }
+    VarLengthExpandIterator(maybeRelName.isDefined, dir, projectedDir, types, traversalPathMode, filteringStep)
+      .varLengthExpand(node, state, maxDepth, row, memoryTracker)
   }
 
   protected def internalCreateResults(
@@ -173,15 +129,5 @@ case class VarLengthExpandPipe(
           }
         case None => false
       }
-    }
-}
-
-object VarLengthExpandPipe {
-
-  def projectBackwards(dir: SemanticDirection, projectedDir: SemanticDirection): Boolean =
-    if (dir == SemanticDirection.BOTH) {
-      projectedDir == SemanticDirection.INCOMING
-    } else {
-      dir != projectedDir
     }
 }
