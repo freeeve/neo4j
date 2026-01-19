@@ -46,8 +46,9 @@ public enum LogFormat {
      * Total 16 bytes
      * - 8 bytes version
      * - 8 bytes last committed tx id
+     * Actual kernel version should be 2.3, but that is not in the code anymore.
      */
-    V6((byte) 6, 16, KernelVersion.V2_3, KernelVersion.V2_3, KernelVersion.V2_3, UNKNOWN_LOG_SEGMENT_SIZE) {
+    V6((byte) 6, 16, KernelVersion.V4_0, KernelVersion.V4_0, KernelVersion.V4_0, UNKNOWN_LOG_SEGMENT_SIZE) {
         @Override
         public LogHeader deserializeHeader(long logVersion, ByteBuffer buffer) {
             long previousCommittedTx = buffer.getLong();
@@ -93,7 +94,6 @@ public enum LogFormat {
             throw new UnsupportedOperationException("Cannot write log format V6");
         }
     },
-
     /**
      * Total 64 bytes
      * - 8 bytes version
@@ -567,7 +567,7 @@ public enum LogFormat {
 
     static {
         int biggestHeader = 0;
-        BY_VERSION_BYTE = new LogFormat[Byte.MAX_VALUE];
+        BY_VERSION_BYTE = new LogFormat[256];
         for (LogFormat format : LogFormat.values()) {
             BY_VERSION_BYTE[format.versionByte] = format;
             if (biggestHeader < format.headerSize) {
@@ -702,7 +702,7 @@ public enum LogFormat {
         LogFormat[] logFormats = LogFormat.values();
         Arrays.sort(logFormats, Comparator.comparingInt(LogFormat::getVersionByte));
         KernelVersion[] kernelVersions = KernelVersion.values();
-        Arrays.sort(kernelVersions, Comparator.comparingInt(KernelVersion::version));
+        Arrays.sort(kernelVersions, Comparator.comparingInt(KernelVersion::versionAsInt));
         int i = 0;
         for (KernelVersion kernelVersion : kernelVersions) {
             if (kernelVersion == KernelVersion.GLORIOUS_FUTURE) {

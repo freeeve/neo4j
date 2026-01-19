@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.V10;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.V6;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper.CHECKPOINT_FILE_PREFIX;
 import static org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper.DEFAULT_NAME;
@@ -38,16 +37,13 @@ import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT_PROVIDER;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
@@ -82,36 +78,6 @@ class TransactionLogFilesTest {
         // then
         final Path expected = createTransactionLogFile(databaseLayout, getVersionedLogFileName(version));
         assertEquals(expected, versionFileName);
-    }
-
-    @Test
-    void extractHeaderOf3_5Format() throws Exception {
-        LogFiles files = createLogFiles();
-
-        create3_5FileWithHeader(databaseLayout, "0", 0);
-        create3_5FileWithHeader(databaseLayout, "1", 1);
-        create3_5FileWithHeader(databaseLayout, "2", 2);
-
-        LogFile logFile = files.getLogFile();
-        var logHeader = logFile.extractHeader(0);
-        assertEquals(V6.getHeaderSize(), logHeader.getStartPosition().getByteOffset());
-        assertEquals(V6, logHeader.getLogFormatVersion());
-        assertEquals(
-                V6.getHeaderSize(), logFile.extractHeader(1).getStartPosition().getByteOffset());
-        assertEquals(
-                V6.getHeaderSize(), logFile.extractHeader(2).getStartPosition().getByteOffset());
-    }
-
-    @Test
-    void detectEntriesIn3_5Format() throws Exception {
-        LogFiles files = createLogFiles();
-
-        create3_5FileWithHeader(databaseLayout, "0", 0);
-        create3_5FileWithHeader(databaseLayout, "1", 10);
-
-        LogFile logFile = files.getLogFile();
-        assertFalse(logFile.hasAnyEntries(0));
-        assertTrue(logFile.hasAnyEntries(1));
     }
 
     @Test
@@ -280,31 +246,25 @@ class TransactionLogFilesTest {
     void envelopedFileWithZeroChecksumHasEntries() throws Exception {
         KernelVersion kernelVersion = VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
         LogFile logFile = createLogFiles(fixed(kernelVersion)).getLogFile();
+
+        int checksum = writeEntryAndGetChecksum(logFile, kernelVersion, 0);
+        int payload = adjustCRC32C(checksum, 0);
+        checksum = writeEntryAndGetChecksum(logFile, kernelVersion, payload);
+        assertThat(checksum).isEqualTo(0);
+
+        assertTrue(logFile.hasAnyEntries(1));
+    }
+
+    private int writeEntryAndGetChecksum(LogFile logFile, KernelVersion kernelVersion, int payload) throws IOException {
         try (PhysicalLogVersionedStoreChannel channel = logFile.createLogChannelForVersion(
                         1, () -> 1L, fixed(kernelVersion), BASE_TX_CHECKSUM, () -> V10);
                 EnvelopeWriteChannel envelopeWriteChannel = getEnvelopeChannel(channel)) {
-            // Some magic bytes that just happen to give a checksum of 0
-            byte[] bytes;
-            switch (kernelVersion) {
-                case GLORIOUS_FUTURE -> bytes = new byte[] {105, -62, -59, 21, 111, 23, 116, -69, 58, 63};
-                // Next few in the sequence
-                // version byte 25 => bytes = new byte[] {105, -62, -59, 21, 73, -10, -88, 39, 121, -110};
-                // version byte 26 => bytes = new byte[] {105, -62, -59, 21, 73, -10, 111, 63, -67, -53};
-                // version byte 27 => bytes = new byte[] {105, -62, -59, 21, 73, -10, -46, -56, -2, -4};
-                default ->
-                    throw new IllegalArgumentException(
-                            "Checksum magic not available for kernel version " + kernelVersion);
-            }
             envelopeWriteChannel.beginChecksumForWriting();
             envelopeWriteChannel.putVersion(kernelVersion.version());
             envelopeWriteChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
-            envelopeWriteChannel.put(bytes, bytes.length);
+            envelopeWriteChannel.putInt(payload);
             envelopeWriteChannel.endCurrentEntry();
-            assertThat(envelopeWriteChannel.currentChecksum()).isEqualTo(0);
-            envelopeWriteChannel.prepareForFlush();
-            assertThat(channel.size())
-                    .isGreaterThan(LogFormat.fromKernelVersion(kernelVersion).getHeaderSize());
-            assertTrue(logFile.hasAnyEntries(1));
+            return envelopeWriteChannel.currentChecksum();
         }
     }
 
@@ -319,20 +279,6 @@ class TransactionLogFilesTest {
                 LogEnvelopeHeader.UNSPECIFIED_TERM,
                 LogTracers.NULL,
                 LogRotation.NO_ROTATION);
-    }
-
-    private void create3_5FileWithHeader(DatabaseLayout databaseLayout, String version, int bytesOfData)
-            throws IOException {
-        try (StoreChannel storeChannel =
-                fileSystem.write(createTransactionLogFile(databaseLayout, getVersionedLogFileName(version)))) {
-            ByteBuffer byteBuffer =
-                    ByteBuffers.allocate(V6.getHeaderSize() + bytesOfData, ByteOrder.LITTLE_ENDIAN, INSTANCE);
-            while (byteBuffer.hasRemaining()) {
-                byteBuffer.put(V6.getVersionByte());
-            }
-            byteBuffer.flip();
-            storeChannel.writeAll(byteBuffer);
-        }
     }
 
     private static Path createTransactionLogFile(DatabaseLayout databaseLayout, String fileName) {
@@ -369,5 +315,53 @@ class TransactionLogFilesTest {
 
     private static String getVersionedLogFileName(String filename, String version) {
         return filename + "." + version;
+    }
+
+    /**
+     * Calculate the payload needed to generate a particular CRC32C.
+     *
+     * <pre>
+     *     We need to find a P that will satisfy
+     *     CRC(M || P) = target
+     *
+     *     Applying some GF(2^n) rules
+     *     CRC((M || 0000) XOR P) = target
+     *     CRC(M || 0000) XOR CRC(P) = target
+     *     CRC(P) = target XOR CRC(M || 0000) = K
+     *
+     *     We also know that
+     *     CRC(P) = P * x^32 mod crc-poly
+     *     P = K * inverse(x^32) mod crc-poly
+     *
+     *     We can pre-calculate the inverse of x^32 for the CRC32C polynomial
+     *     inverse(x^32) mod crc-poly = inverse(0x100000000) mod 0x11EDC6F41L = 0x7E6b086BL
+     *
+     *     And final formula is thus
+     *     K = target XOR CRC(M || 0000)
+     *     P = K * 0x7E6b086BL mod 0x11EDC6F41L
+     * </pre>
+     *
+     * @param currentCRC The crc of the payload with 4 trailing zero bytes.
+     * @param target The target crc.
+     * @return payload to replace the 4 zeroes at the end.
+     */
+    private static int adjustCRC32C(int currentCRC, long target) {
+        // Work with longs so we can do unsigned integer operations
+        long k = Long.reverse(target ^ Integer.toUnsignedLong(currentCRC)) >>> 32;
+        long multiply = gf2nMultiply(k, 0x7E6b086BL, 0x11EDC6F41L);
+        return (int) (Long.reverse(multiply) >>> 32);
+    }
+
+    private static long gf2nMultiply(long x, long y, long polynomial) {
+        long z = 0L;
+        while (y != 0L) {
+            z ^= x * (y & 1L);
+            y >>>= 1L;
+            x <<= 1L;
+            if (((x >>> 32) & 1L) != 0L) {
+                x ^= polynomial;
+            }
+        }
+        return z;
     }
 }

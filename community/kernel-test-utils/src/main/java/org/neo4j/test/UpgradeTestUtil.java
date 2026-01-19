@@ -134,7 +134,7 @@ public class UpgradeTestUtil {
                 .hasSizeGreaterThanOrEqualTo(2); // at least upgrade transaction and the triggering transaction
         assertThat(transactionVersions)
                 .isSortedAccordingTo(
-                        Comparator.comparingInt(KernelVersion::version)); // Sorted means everything is in order
+                        Comparator.comparingInt(KernelVersion::versionAsInt)); // Sorted means everything is in order
         assertThat(transactionVersions.getFirst()).isEqualTo(from); // First should be "from" version
         assertThat(transactionVersions.getLast()).isEqualTo(to); // And last the "to" version
 

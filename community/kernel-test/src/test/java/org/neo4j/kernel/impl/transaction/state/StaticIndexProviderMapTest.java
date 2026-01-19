@@ -227,10 +227,6 @@ class StaticIndexProviderMapTest {
         assertThat(map.getTokenIndexProvider(KernelVersion.V2025_04)).isEqualTo(provider525);
         assertThat(map.getTokenIndexProvider(KernelVersion.V2025_05)).isEqualTo(provider202505);
         assertThat(map.getTokenIndexProvider(KernelVersion.GLORIOUS_FUTURE)).isEqualTo(providerGF);
-
-        assertThatThrownBy(() -> map.getTokenIndexProvider(KernelVersion.V2_3))
-                .isInstanceOf(IndexProviderNotFoundException.class)
-                .hasMessageContaining("No provider for type LOOKUP and version KernelVersion{V2_3,");
     }
 
     private static <T extends IndexProvider> T mockProvider(Class<? extends T> clazz) {

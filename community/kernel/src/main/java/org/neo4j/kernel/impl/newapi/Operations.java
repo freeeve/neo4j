@@ -2006,8 +2006,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                                 "Neo4j. Please use a newer index provider.");
                     }
                     final KernelVersion minimumRequiredVersion = KernelVersion.getForVersion((byte) Math.max(
-                            KernelVersion.VERSION_VECTOR_2_INTRODUCED.version(),
-                            version.minimumRequiredKernelVersion().version()));
+                            KernelVersion.VERSION_VECTOR_2_INTRODUCED.versionAsInt(),
+                            version.minimumRequiredKernelVersion().versionAsInt()));
                     assertSupportedInVersion(
                             minimumRequiredVersion,
                             "Creating a relationship vector index with provider '%s'",

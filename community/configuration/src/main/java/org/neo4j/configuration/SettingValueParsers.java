@@ -145,6 +145,31 @@ public final class SettingValueParsers {
         }
     };
 
+    public static final SettingValueParser<Byte> UNSIGNED_BYTE = new SettingValueParser<>() {
+        @Override
+        public Byte parse(String value) {
+            try {
+                int number = Integer.parseInt(value.trim());
+                if (number < 0 || number > 255) {
+                    throw new IllegalArgumentException(format("'%d' must be between 0 and 255", number));
+                }
+                return (byte) number;
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(format("'%s' is not a valid byte value", value), e);
+            }
+        }
+
+        @Override
+        public Class<Byte> getType() {
+            return Byte.class;
+        }
+
+        @Override
+        public String getDescription() {
+            return "an unsigned byte";
+        }
+    };
+
     public static final SettingValueParser<Integer> INT = new SettingValueParser<>() {
         @Override
         public Integer parse(String value) {

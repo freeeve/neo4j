@@ -326,7 +326,7 @@ public class TransactionRecordState implements RecordState {
             MetaDataRecord before = new MetaDataRecord();
             before.initialize(true, upgrade.from().version());
             MetaDataRecord after = new MetaDataRecord();
-            long versionLong = upgrade.to().version();
+            long versionLong = upgrade.to().versionAsInt();
             versionLong |= ((long) upgrade.logFormatTo().getVersionByte()) << Byte.SIZE;
             after.initialize(true, versionLong);
             // This command will be the last one in the "old" version, indicating the switch and writing it to the

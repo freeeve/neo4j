@@ -289,7 +289,7 @@ class LogFormatSelectionIT {
         MapUtil.store(
                 Map.of(
                         GraphDatabaseInternalSettings.latest_kernel_version.name(),
-                        "" + KernelVersion.GLORIOUS_FUTURE.version(),
+                        "" + KernelVersion.GLORIOUS_FUTURE.versionAsInt(),
                         GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create.name(),
                         Boolean.toString(allowFormatSwitchOnUpgrade)),
                 config);
@@ -319,7 +319,7 @@ class LogFormatSelectionIT {
                         GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create.name(),
                         Boolean.toString(allowNewFormat),
                         GraphDatabaseInternalSettings.latest_kernel_version.name(),
-                        "" + KernelVersion.GLORIOUS_FUTURE.version(),
+                        "" + KernelVersion.GLORIOUS_FUTURE.versionAsInt(),
                         GraphDatabaseInternalSettings.latest_runtime_version.name(),
                         "" + DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion()),
                 dbConfig);

@@ -19,12 +19,15 @@
  */
 package org.neo4j.kernel;
 
+import static java.lang.Byte.compareUnsigned;
+import static java.lang.Byte.toUnsignedInt;
+import static org.neo4j.util.Preconditions.checkArgument;
+
 import java.util.List;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.internal.helpers.collection.ByteToEnum;
-import org.neo4j.util.Preconditions;
 
 /**
  * One version scheme to unify various internal versions into one with the intent of conceptual simplification and simplification of version bumping.
@@ -36,48 +39,44 @@ import org.neo4j.util.Preconditions;
  * and kernel will have a translation between the two.
  */
 public enum KernelVersion {
-    // Version V2_3 and V4_0 only here to keep support for old checkpoint records parsing.
-    // We do not support reading or writing anything else in those legacy formats.
-    V2_3((byte) -10), // 2.3 to 3.5.
-    V4_0((byte) 1), // 4.0 to 4.1. Added checksums to the log files.
-
-    V4_2((byte) 2), // 4.2+. Removed checkpoint entries.
+    // V4_0 only here to keep support for old checkpoint records parsing.
+    V4_0(1), // 4.0 to 4.1. Added checksums to the log files.
+    V4_2(2), // 4.2+. Removed checkpoint entries.
     // 4.3(some drop)+. Not a change to log entry format, but record storage engine log format change. Since record
-    // storage commands
-    // has no command version of their own it relies on a bump of the parser set version to distinguish between versions
-    // unfortunately.
-    // Also introduces token index and relationship property index features.
-    V4_3_D4((byte) 3),
-    V4_4((byte) 4), // 4.4. Introduces RANGE, POINT and TEXT index types.
-    V5_0((byte) 5), // 5.0.
-    V5_7((byte) 6), // 5.7. Introduces chunked transactions and relationship uniqueness/key constraints.
-    V5_8((byte) 7), // 5.8. Introduces index usage statistics and enrichment command.
-    V5_9((byte) 8), // 5.9. Introduces type constraints for single scalar types.
-    V5_10((byte) 9), // 5.10. Introduces block format and type constraints for unions and lists.
-    V5_11((byte) 10), // 5.11. Introduces specific add/remove commands, and the VECTOR index type.
-    V5_12((byte) 11), // 5.12. Introduces user metadata for CDC
-    V5_13((byte) 12), // 5.13.
-    V5_14((byte) 13), // 5.14.
-    V5_15((byte) 14), // 5.15. Changes around CDC logical keys
-    V5_18((byte) 15), // 5.18. Introduce vector-2.0 index provider
-    V5_19((byte) 16), // 5.19. Introduce commit timestamps to change identifiers
-    V5_20((byte) 17), // 5.20. Append index for commands, logs, checkpoint
-    V5_22((byte) 18), // 5.22. Checkpoint entry with the earliest not completed position
-    V5_23((byte) 19), // 5.23. Introduce quantization for vector index. Also partitions large int arrays in block format
-    V5_25((byte) 20), // 5.25. MVCC index commands schema rules. Also introduce token length limit.
-    V2025_04((byte) 21), // 2025_04. CDC ID switch to DB name instead of UUID
-    V2025_05((byte) 22), // 2025_05. New start entry serialization (without previous checksum)
-    V2025_07((byte) 23), // 2025_07. Block MVCC index commands
-    V2025_08((byte) 24), // 2025_08. No actual change; however, a new version enables rollout of envelopes for more DBs
-    V2025_09((byte) 25), // 2025_09. Introduced Lucene 10 and bumped the lucene index providers
-    V2025_10((byte) 26), // 2025_10. Introduce vector types, distributed database creation
-    V2025_11((byte) 27), // 2025_11. Before state serialization for block commands
-    V2026_01((byte) 28), // 2026_01. Introduce label existence and endpoint constraints
+    // storage commands has no command version of their own it relies on a bump of the parser set version to
+    // distinguish between versions unfortunately. Also introduces token index and relationship property index features.
+    V4_3_D4(3),
+    V4_4(4), // 4.4. Introduces RANGE, POINT and TEXT index types.
+    V5_0(5), // 5.0.
+    V5_7(6), // 5.7. Introduces chunked transactions and relationship uniqueness/key constraints.
+    V5_8(7), // 5.8. Introduces index usage statistics and enrichment command.
+    V5_9(8), // 5.9. Introduces type constraints for single scalar types.
+    V5_10(9), // 5.10. Introduces block format and type constraints for unions and lists.
+    V5_11(10), // 5.11. Introduces specific add/remove commands, and the VECTOR index type.
+    V5_12(11), // 5.12. Introduces user metadata for CDC
+    V5_13(12), // 5.13.
+    V5_14(13), // 5.14.
+    V5_15(14), // 5.15. Changes around CDC logical keys
+    V5_18(15), // 5.18. Introduce vector-2.0 index provider
+    V5_19(16), // 5.19. Introduce commit timestamps to change identifiers
+    V5_20(17), // 5.20. Append index for commands, logs, checkpoint
+    V5_22(18), // 5.22. Checkpoint entry with the earliest not completed position
+    V5_23(19), // 5.23. Introduce quantization for vector index. Also partitions large int arrays in block format
+    V5_25(20), // 5.25. MVCC index commands schema rules. Also introduce token length limit.
+    V2025_04(21), // 2025_04. CDC ID switch to DB name instead of UUID
+    V2025_05(22), // 2025_05. New start entry serialization (without previous checksum)
+    V2025_07(23), // 2025_07. Block MVCC index commands
+    V2025_08(24), // 2025_08. No actual change; however, a new version enables rollout of envelopes for more DBs
+    V2025_09(25), // 2025_09. Introduced Lucene 10 and bumped the lucene index providers
+    V2025_10(26), // 2025_10. Introduce vector types, distributed database creation
+    V2025_11(27), // 2025_11. Before state serialization for block commands
+    V2026_01(28), // 2026_01. Introduce label existence and endpoint constraints
 
     // An unreleased future version.
     // This version is meant to be used when developing a new feature
     // and it is not sure which version the feature will land in.
-    GLORIOUS_FUTURE(Byte.MAX_VALUE);
+    GLORIOUS_FUTURE(254);
+    // 255(or -1) is typically used as a non-existing value, so we don't use that here
 
     public static final KernelVersion EARLIEST = V4_2;
     // The latest version should be kept private to be able to override it from tests.
@@ -140,12 +139,31 @@ public enum KernelVersion {
         return version == null ? LATEST : KernelVersion.getForVersion(version);
     }
 
-    KernelVersion(byte version) {
-        this.version = version;
+    KernelVersion(int version) {
+        checkArgument((version & ~0xFF) == 0, "Byte overflow");
+        this.version = (byte) version;
     }
 
+    /**
+     * Get the byte representation of the kernel version.
+     * <p>
+     * <strong>
+     *   NOTE! Since this is signed it's not possible to compare based on it.
+     *   Use {@link #versionAsInt} if comparing is required.
+     * </strong>
+     * @return the byte representation of the kernel version.
+     */
     public byte version() {
         return this.version;
+    }
+
+    /**
+     * Get the integer representation of the kernel version.
+     * This can be used to compare different kernel versions lexicographically.
+     * @return the integer representation of the kernel version.
+     */
+    public int versionAsInt() {
+        return Byte.toUnsignedInt(this.version);
     }
 
     public boolean isLatest(Config config) {
@@ -153,43 +171,43 @@ public enum KernelVersion {
     }
 
     public boolean isGreaterThan(KernelVersion other) {
-        return version > other.version;
+        return isGreaterThan(other.version);
     }
 
     public boolean isGreaterThan(byte other) {
-        return version > other;
+        return compareUnsigned(version, other) > 0;
     }
 
     public boolean isLessThan(KernelVersion other) {
-        return version < other.version;
+        return isLessThan(other.version);
     }
 
     public boolean isLessThan(byte other) {
-        return version < other;
+        return compareUnsigned(version, other) < 0;
     }
 
     public boolean isAtLeast(KernelVersion other) {
-        return version >= other.version;
+        return compareUnsigned(version, other.version) >= 0;
     }
 
     @Override
     public String toString() {
-        return "KernelVersion{" + name() + ",version=" + version + '}';
+        return "KernelVersion{" + name() + ",version=" + toUnsignedInt(version) + '}';
     }
 
     public static KernelVersion getForVersion(byte version) {
         KernelVersion kernelVersion = VERSION_MAP.get(version);
         if (kernelVersion == null) {
             throw new IllegalArgumentException(
-                    "No matching " + KernelVersion.class.getSimpleName() + " for version " + version);
+                    "No matching " + KernelVersion.class.getSimpleName() + " for version " + toUnsignedInt(version));
         }
         return kernelVersion;
     }
 
     public static KernelVersion precedingVersion(KernelVersion kernelVersion) {
         int index = VERSIONS.indexOf(kernelVersion);
-        Preconditions.checkArgument(index != -1, "Unknown kernel version " + kernelVersion);
-        Preconditions.checkArgument(index > 0, "There's no kernel version preceding " + kernelVersion);
+        checkArgument(index != -1, "Unknown kernel version " + kernelVersion);
+        checkArgument(index > 0, "There's no kernel version preceding " + kernelVersion);
         return VERSIONS.get(index - 1);
     }
 }

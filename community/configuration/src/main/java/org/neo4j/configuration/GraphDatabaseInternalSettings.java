@@ -32,7 +32,6 @@ import static org.neo4j.configuration.SettingConstraints.range;
 import static org.neo4j.configuration.SettingConstraints.resolution;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
-import static org.neo4j.configuration.SettingValueParsers.BYTE;
 import static org.neo4j.configuration.SettingValueParsers.BYTES;
 import static org.neo4j.configuration.SettingValueParsers.CIDR_IP;
 import static org.neo4j.configuration.SettingValueParsers.DOUBLE;
@@ -41,6 +40,7 @@ import static org.neo4j.configuration.SettingValueParsers.INT;
 import static org.neo4j.configuration.SettingValueParsers.LONG;
 import static org.neo4j.configuration.SettingValueParsers.PATH;
 import static org.neo4j.configuration.SettingValueParsers.STRING;
+import static org.neo4j.configuration.SettingValueParsers.UNSIGNED_BYTE;
 import static org.neo4j.configuration.SettingValueParsers.listOf;
 import static org.neo4j.configuration.SettingValueParsers.ofEnum;
 import static org.neo4j.configuration.SettingValueParsers.setOf;
@@ -1550,8 +1550,9 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Internal
     @Description("Just to be used in tests: A way to set the latest kernel version. "
             + "Can be useful for writing upgrade tests for coming versions")
-    public static final Setting<Byte> latest_kernel_version =
-            newBuilder("internal.dbms.latest_kernel_version", BYTE, null).build();
+    public static final Setting<Byte> latest_kernel_version = newBuilder(
+                    "internal.dbms.latest_kernel_version", UNSIGNED_BYTE, null)
+            .build();
 
     @Internal
     @Description("Just to be used in tests: A way to make envelope log format the format on GLORIOUS_FUTURE.")

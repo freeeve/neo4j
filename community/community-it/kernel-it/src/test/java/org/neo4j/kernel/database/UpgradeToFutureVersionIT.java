@@ -167,7 +167,7 @@ class UpgradeToFutureVersionIT {
                 .cause()
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining(
-                        "Log file contains entries with prefix 127, and the highest supported Kernel Version is");
+                        "Log file contains entries with prefix 254, and the highest supported Kernel Version is");
     }
 
     @Test

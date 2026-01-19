@@ -30,7 +30,6 @@ public class LogEntrySerializationSets {
             new EnumMap<>(KernelVersion.class);
 
     static {
-        SERIALIZATION_SETS.put(KernelVersion.V2_3, new LogEntrySerializationSetV2_3());
         SERIALIZATION_SETS.put(KernelVersion.V4_0, new LogEntrySerializationSetV4_0());
         SERIALIZATION_SETS.put(KernelVersion.V4_2, new LogEntrySerializationSetV4_2());
         SERIALIZATION_SETS.put(KernelVersion.V4_3_D4, new LogEntrySerializationSetV4_2(KernelVersion.V4_3_D4));

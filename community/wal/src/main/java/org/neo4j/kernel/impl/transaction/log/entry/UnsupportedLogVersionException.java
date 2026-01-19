@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry;
 
+import static java.lang.Byte.toUnsignedInt;
+
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 
@@ -46,13 +48,13 @@ public class UnsupportedLogVersionException extends RuntimeException {
                     "Log file contains entries with prefix %d, and the highest supported Kernel Version is %s. This "
                             + "indicates that the log files originates from a newer version of neo4j, which we don't support "
                             + "downgrading from.",
-                    versionByte, binarySupportedKernelVersions);
+                    toUnsignedInt(versionByte), binarySupportedKernelVersions);
         } else {
             msg = String.format(
                     "Log file contains entries with prefix %d, and the lowest supported Kernel Version is %s. This "
                             + "indicates that the log files originates from an older version of neo4j, which we don't support "
                             + "migrations from.",
-                    versionByte, KernelVersion.EARLIEST);
+                    toUnsignedInt(versionByte), KernelVersion.EARLIEST);
         }
         return new UnsupportedLogVersionException(versionByte, msg);
     }
