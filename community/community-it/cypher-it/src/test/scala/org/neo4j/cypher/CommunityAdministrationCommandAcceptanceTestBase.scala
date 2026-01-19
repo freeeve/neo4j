@@ -34,7 +34,7 @@ abstract class CommunityAdministrationCommandAcceptanceTestBase extends Executio
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    selectDatabase(SYSTEM_DATABASE_NAME)
+    selectDatabase(SYSTEM_DATABASE_NAME, awaitSystemDatabase = false)
   }
 
   def assertFailure(command: String, errorMsg: String): Unit = {

@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContex
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionalContextWrapper
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.util.GraphDatabaseCypherTestService
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.Result
 import org.neo4j.kernel.DeadlockDetectedException
@@ -98,13 +99,8 @@ trait ExecutionEngineTestSupport extends ExecutionEngineHelper {
 
 object ExecutionEngineHelper {
 
-  def createEngine(db: GraphDatabaseService, logProvider: InternalLogProvider): ExecutionEngine = {
-    val service = new GraphDatabaseCypherService(db)
-    createEngine(service, logProvider)
-  }
-
-  def createEngine(db: GraphDatabaseService): ExecutionEngine = {
-    val service = new GraphDatabaseCypherService(db)
+  def createEngine(db: GraphDatabaseService, awaitSystemDatabase: Boolean): ExecutionEngine = {
+    val service = new GraphDatabaseCypherTestService(db, awaitSystemDatabase)
     createEngine(service, NullLogProvider.getInstance())
   }
 

@@ -22,7 +22,7 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.cypher.ExecutionEngineHelper.createEngine
-import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
+import org.neo4j.cypher.util.GraphDatabaseCypherTestService
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.FailedIndexException
 import org.neo4j.graphdb.Label
@@ -137,7 +137,7 @@ class IndexOpAcceptanceTest extends ExecutionEngineFunSuite with QueryStatistics
     dbFactory.addExtension(providerFactory)
     managementService = dbFactory.build()
     graphOps = managementService.database(DEFAULT_DATABASE_NAME)
-    graph = new GraphDatabaseCypherService(graphOps)
+    graph = new GraphDatabaseCypherTestService(graphOps, runOnSpd)
     eengine = createEngine(graph)
 
     execute("create (:Person {name:42})")

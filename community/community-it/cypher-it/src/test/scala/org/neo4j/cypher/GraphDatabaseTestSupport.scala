@@ -29,6 +29,7 @@ import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.util.GraphDatabaseCypherTestService
 import org.neo4j.dbms.api.DatabaseExistsException
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.dbms.api.DatabaseNotFoundException
@@ -103,6 +104,8 @@ trait GraphDatabaseTestSupport
   }
 
   def expectedShardCount: Int = 0
+
+  def runOnSpd: Boolean = false
 
   def databaseConfig(): Map[Setting[_], Object] = Map(
     GraphDatabaseSettings.transaction_timeout -> Duration.ofMinutes(15)
@@ -203,7 +206,7 @@ trait GraphDatabaseTestSupport
       graphOps = managementService.database(dbName)
     }
 
-    graph = new GraphDatabaseCypherService(graphOps)
+    graph = new GraphDatabaseCypherTestService(graphOps, runOnSpd)
     onNewGraphDatabase()
   }
 
@@ -257,7 +260,7 @@ trait GraphDatabaseTestSupport
   protected def startGraphDatabase(storeDir: Path): Unit = {
     managementService = graphDatabaseFactory(storeDir).impermanent().build()
     graphOps = managementService.database(DEFAULT_DATABASE_NAME)
-    graph = new GraphDatabaseCypherService(graphOps)
+    graph = new GraphDatabaseCypherTestService(graphOps, runOnSpd)
   }
 
   def waitForDatabase(name: String): Unit = {
@@ -274,10 +277,14 @@ trait GraphDatabaseTestSupport
     }
   }
 
-  def selectDatabase(name: String): Unit = {
+  def selectDatabase(name: String, awaitSystemDatabase: Boolean): Unit = {
     graphOps = managementService.database(name)
-    graph = new GraphDatabaseCypherService(graphOps)
+    graph = new GraphDatabaseCypherTestService(graphOps, awaitSystemDatabase)
     onSelectDatabase()
+  }
+
+  def selectDatabase(name: String): Unit = {
+    selectDatabase(name, runOnSpd)
   }
 
   final protected def graphDatabaseFactory(databaseRootDir: Path): TestDatabaseManagementServiceBuilder = {
@@ -590,7 +597,7 @@ trait GraphDatabaseTestSupport
       // a method for creating a DBMS that is overridden to return an enterprise DBMS in enterprise tests
       val dbms = createDatabaseFactory(path).build()
       val database = dbms.database(name)
-      query.withGraph(new GraphDatabaseCypherService(database))
+      query.withGraph(new GraphDatabaseCypherTestService(database, runOnSpd))
     }
   }
 }

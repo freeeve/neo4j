@@ -25,9 +25,9 @@ import org.mockito.Mockito.verify
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.cypher.ExecutionEngineHelper.createEngine
 import org.neo4j.cypher.internal.ExecutionEngine
-import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.javacompat.ResultSubscriber
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.util.GraphDatabaseCypherTestService
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.graphdb.Result.ResultRow
 import org.neo4j.kernel.GraphDatabaseQueryService
@@ -218,8 +218,9 @@ class QueryExecutionMonitorTest extends CypherFunSuite with GraphIcing with Grap
 
   override protected def beforeEach(): Unit = {
     databaseManagementService = new TestDatabaseManagementServiceBuilder().impermanent().build()
-    db = new GraphDatabaseCypherService(
-      databaseManagementService.database(DEFAULT_DATABASE_NAME)
+    db = new GraphDatabaseCypherTestService(
+      databaseManagementService.database(DEFAULT_DATABASE_NAME),
+      runOnSpd
     )
     monitor = mock[QueryExecutionMonitor]
     val monitors = db.getDependencyResolver.resolveDependency(classOf[Monitors])

@@ -25,10 +25,10 @@ import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.cypher_hints_error
 import org.neo4j.configuration.GraphDatabaseSettings.initial_default_database
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidReferenceStatus
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.cypher.util.GraphDatabaseCypherTestService
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.config.Setting
@@ -582,6 +582,9 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
       config.asJava
     ).setInternalLogProvider(logProvider).build()
     graphOps = managementService.database(SYSTEM_DATABASE_NAME)
-    graph = new GraphDatabaseCypherService(graphOps)
+
+    // We normally await the system database in tests where we are running SPD. It is not possible to run SPD in
+    // community and therefor we do not need to await.
+    graph = new GraphDatabaseCypherTestService(graphOps, false)
   }
 }

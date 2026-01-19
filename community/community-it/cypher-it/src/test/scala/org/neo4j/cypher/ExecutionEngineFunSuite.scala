@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.GqlStatusObject
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.graphdb.schema.IndexType
-import org.neo4j.kernel.impl.coreapi.TransactionImpl
 import org.neo4j.notifications.NotificationImplementation
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.Matcher
@@ -118,7 +117,7 @@ abstract class ExecutionEngineWithoutRestartFunSuite
     var nodeLookupIsMissing = true
     var relLookupIsMissing = true
     withTx { tx =>
-      val kernelApi = tx.asInstanceOf[TransactionImpl].kernelTransaction()
+      val kernelApi = tx.kernelTransaction()
       kernelApi.schemaRead().constraintsGetAll().asScala.foreach(p =>
         kernelApi.schemaWrite().constraintDrop(p.getName, true)
       )

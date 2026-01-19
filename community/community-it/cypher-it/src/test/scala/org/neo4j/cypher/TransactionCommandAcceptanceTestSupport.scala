@@ -24,7 +24,7 @@ import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.auth_enabled
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.RewindableExecutionResult
-import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
+import org.neo4j.cypher.util.GraphDatabaseCypherTestService
 import org.neo4j.graphdb.Result
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo.EMBEDDED_CONNECTION
@@ -313,7 +313,7 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
   }
 
   protected case class ThreadedTransaction(latch: DoubleLatch, database: String = DEFAULT_DATABASE_NAME) {
-    private val graphService = new GraphDatabaseCypherService(managementService.database(database))
+    private val graphService = new GraphDatabaseCypherTestService(managementService.database(database), runOnSpd)
 
     def execute(
       username: String,

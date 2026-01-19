@@ -23,6 +23,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.time.Duration;
 import java.util.concurrent.locks.LockSupport;
+import org.neo4j.common.SystemLastTransactionIdProvider;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
 import org.neo4j.kernel.database.AbstractDatabase;
