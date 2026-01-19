@@ -28,6 +28,7 @@ import static org.neo4j.batchimport.api.Configuration.DEFAULT;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.csv.reader.Configuration.COMMAS;
 import static org.neo4j.importer.FileImporter.DEFAULT_REPORT_FILE_NAME;
+import static org.neo4j.importer.FileImporter.FileInputType.NO_INPUT;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 import static picocli.CommandLine.Command;
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
@@ -106,6 +107,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.ITypeConverter;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.Parameters;
 
 @Command(
@@ -435,7 +437,6 @@ public class ImportCommand {
 
         @Option(
                 names = "--nodes",
-                required = true,
                 arity = "1..*",
                 converter = NodeFilesConverter.class,
                 paramLabel = "[<label>[:<label>]...=]<files>",
@@ -590,6 +591,14 @@ public class ImportCommand {
                             .withSchemaCommands(parseSchemaCommands(fileSystem, databaseConfig))
                             .withLogProvider(logProvider));
 
+                    if (isDistributedPropShard()) {
+                        // faking this because input will be ignored anyway since input SHOULD come from the graph shard
+                        this.fileInputType = NO_INPUT;
+                        // Guarantee no provided nodes or relationships are used on the prop shards
+                        nodes = Collections.emptyList();
+                        relationships = Collections.emptyList();
+                    }
+
                     FileImporter.FileInputType fileInputType = this.fileInputType;
                     for (var n : nodes) {
                         Path[] paths = n.toPaths(fileSystem, patternStyle);
@@ -599,7 +608,6 @@ public class ImportCommand {
                             fileInputType = resolveFileInputType(paths);
                         }
                     }
-
                     for (var r : relationships) {
                         importerBuilder.addRelationshipFiles(r.key, r.toPaths(fileSystem, patternStyle));
                     }
@@ -625,6 +633,14 @@ public class ImportCommand {
             }
         }
 
+        protected final void validateParameters() {
+            if (requiresNodeParameter()) {
+                if (nodes == null) {
+                    throw new ParameterException(spec.commandLine(), "Missing required option: '--nodes'");
+                }
+            }
+        }
+
         protected void preImport(SchemeFileSystemAbstraction fs) throws IOException {}
 
         protected void postImport(
@@ -635,6 +651,16 @@ public class ImportCommand {
                 throws IOException {}
 
         public abstract String importType();
+
+        public abstract boolean isDistributedGraphShard();
+
+        public abstract boolean isDistributedPropShard();
+
+        public boolean isDistributed() {
+            return isDistributedPropShard() || isDistributedGraphShard();
+        }
+
+        protected abstract boolean requiresNodeParameter();
 
         protected abstract String importFormat();
 
@@ -923,12 +949,28 @@ public class ImportCommand {
 
         @Override
         public void execute() throws Exception {
+            validateParameters();
             doExecute();
+        }
+
+        @Override
+        protected boolean requiresNodeParameter() {
+            return true;
         }
 
         @Override
         public String importType() {
             return "Full import";
+        }
+
+        @Override
+        public boolean isDistributedGraphShard() {
+            return false;
+        }
+
+        @Override
+        public boolean isDistributedPropShard() {
+            return false;
         }
 
         @Override

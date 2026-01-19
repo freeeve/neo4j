@@ -144,7 +144,6 @@ import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.utils.TestDirectory;
 import picocli.CommandLine;
-import picocli.CommandLine.MissingParameterException;
 import picocli.CommandLine.ParameterException;
 
 @Neo4jLayoutExtension
@@ -1260,7 +1259,7 @@ class ImportCommandTest {
 
         // WHEN
         var e = assertThrows(
-                MissingParameterException.class,
+                ParameterException.class,
                 () -> runImport(
                         "--relationships",
                         relationshipData(true, Configuration.COMMAS, nodeIds, TRUE, true)

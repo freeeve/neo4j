@@ -55,7 +55,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.Lists;
@@ -68,12 +67,14 @@ import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.cloud.storage.StorageUtils;
 import org.neo4j.configuration.Config;
 import org.neo4j.csv.reader.IllegalMultilineFieldException;
+import org.neo4j.importer.ImportCommand.Base;
 import org.neo4j.internal.batchimport.cache.idmapping.string.DuplicateInputIdException;
 import org.neo4j.internal.batchimport.input.BadCollector;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.internal.batchimport.input.MissingRelationshipDataException;
 import org.neo4j.internal.batchimport.input.csv.CsvInput;
+import org.neo4j.internal.batchimport.input.csv.CsvInput.PrintingMonitor;
 import org.neo4j.internal.batchimport.input.csv.DataFactory;
 import org.neo4j.internal.batchimport.input.parquet.ParquetInput;
 import org.neo4j.internal.batchimport.input.parquet.ParquetMonitor;
@@ -114,7 +115,7 @@ public class FileImporter {
     private final Config databaseConfig;
     private final StorageEngineFactory storageEngineFactory;
     private final org.neo4j.csv.reader.Configuration csvConfig;
-    private final org.neo4j.batchimport.api.Configuration importConfig;
+    private final Configuration importConfig;
     private final Path reportFile;
     private final IdType idType;
     private final Charset inputEncoding;
@@ -172,7 +173,7 @@ public class FileImporter {
         this.numShards = b.numShards;
     }
 
-    public void doImport(ImportCommand.Base type) throws IOException {
+    public void doImport(Base type) throws IOException {
         if (force) {
             fileSystem.deleteRecursively(
                     databaseLayout.databaseDirectory(), path -> !path.equals(databaseLayout.databaseLockFile()));
@@ -213,7 +214,7 @@ public class FileImporter {
                         idType,
                         csvConfig,
                         autoSkipHeaders,
-                        new CsvInput.PrintingMonitor(stdOut),
+                        new PrintingMonitor(stdOut),
                         new Groups(),
                         memoryTracker);
             case PARQUET -> {
@@ -229,10 +230,11 @@ public class FileImporter {
                 abortIfVectorsUnsupported(input);
                 yield input;
             }
+            case NO_INPUT -> null;
         };
     }
 
-    private void doImport(Input input, Collector badCollector, ImportCommand.Base type) {
+    private void doImport(Input input, Collector badCollector, Base type) {
         boolean success = false;
 
         printOverview();
@@ -453,7 +455,8 @@ public class FileImporter {
 
     public enum FileInputType {
         CSV,
-        PARQUET
+        PARQUET,
+        NO_INPUT
     }
 
     @SuppressWarnings("UnusedReturnValue")
@@ -638,7 +641,7 @@ public class FileImporter {
         }
 
         public Builder withSchemaCommands(List<SchemaCommand> schemaCommands) {
-            this.schemaCommands.addAll(Objects.requireNonNull(schemaCommands));
+            this.schemaCommands.addAll(requireNonNull(schemaCommands));
             return this;
         }
 
