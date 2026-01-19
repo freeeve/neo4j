@@ -71,15 +71,17 @@ public class RecoveryStartInformationProvider implements ThrowingSupplier<Recove
 
     private final LogFiles logFiles;
     private final Monitor monitor;
+    private final RecoveryPredicate recoveryPredicate;
 
-    RecoveryStartInformationProvider(LogFiles logFiles, Monitor monitor) {
+    RecoveryStartInformationProvider(LogFiles logFiles, Monitor monitor, RecoveryPredicate recoveryPredicate) {
         this.logFiles = logFiles;
         this.monitor = monitor;
+        this.recoveryPredicate = recoveryPredicate;
     }
 
     @Override
     public RecoveryStartInformation get() {
-        var logTailInformation = (LogTailInformation) logFiles.getTailMetadata();
+        var logTailInformation = (LogTailInformation) logFiles.getTailMetadata(recoveryPredicate.maxPosition());
         CheckpointInfo lastCheckPoint = logTailInformation.lastCheckPoint;
         long appendIndexAfterLastCheckPoint = logTailInformation.firstAppendIndexAfterLastCheckPoint;
 

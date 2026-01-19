@@ -310,6 +310,11 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     @Override
+    public LogTailMetadata getTailMetadata(LogPosition maxPosition) {
+        return logTailScanner.getTailMetadata(maxPosition);
+    }
+
+    @Override
     public Path getCurrentFile() throws IOException {
         return fileHelper.getFileForVersion(getCurrentLogVersion());
     }

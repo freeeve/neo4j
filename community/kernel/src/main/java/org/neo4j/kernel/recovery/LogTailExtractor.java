@@ -27,6 +27,7 @@ import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -40,13 +41,14 @@ public class LogTailExtractor {
     private final StorageEngineFactory storageEngineFactory;
     private final DatabaseTracers databaseTracers;
     private final boolean readOnly;
+    private final LogPosition maxPosition;
 
     public LogTailExtractor(
             FileSystemAbstraction fs,
             Config config,
             StorageEngineFactory storageEngineFactory,
             DatabaseTracers databaseTracers) {
-        this(fs, config, storageEngineFactory, databaseTracers, true);
+        this(fs, config, storageEngineFactory, databaseTracers, true, LogPosition.UNSPECIFIED);
     }
 
     public LogTailExtractor(
@@ -54,12 +56,14 @@ public class LogTailExtractor {
             Config config,
             StorageEngineFactory storageEngineFactory,
             DatabaseTracers databaseTracers,
-            boolean readOnly) {
+            boolean readOnly,
+            LogPosition maxPosition) {
         this.fs = fs;
         this.config = config;
         this.storageEngineFactory = storageEngineFactory;
         this.databaseTracers = databaseTracers;
         this.readOnly = readOnly;
+        this.maxPosition = maxPosition;
     }
 
     /**
@@ -68,7 +72,7 @@ public class LogTailExtractor {
     public LogTailMetadata getTailMetadata(DatabaseLayout databaseLayout, MemoryTracker memoryTracker)
             throws IOException {
         return buildLogFiles(databaseLayout, memoryTracker, KernelVersionProviders.latestFromConfig(config))
-                .getTailMetadata();
+                .getTailMetadata(maxPosition);
     }
 
     public LogTailMetadata getTailMetadata(
@@ -77,7 +81,7 @@ public class LogTailExtractor {
             KernelVersionProvider emptyLogsFallbackKernelVersionProvider)
             throws IOException {
         return buildLogFiles(databaseLayout, memoryTracker, emptyLogsFallbackKernelVersionProvider)
-                .getTailMetadata();
+                .getTailMetadata(maxPosition);
     }
 
     private LogFiles buildLogFiles(

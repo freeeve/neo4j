@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_BYTE_ARRAY;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -337,6 +338,91 @@ class DetachedLogTailScannerTest {
 
         // then
         assertLatestCheckPoint(true, true, txId, false, logTailInformation);
+    }
+
+    @ParameterizedTest
+    @MethodSource("params")
+    void twoLogFilesCheckPointTargetsPreviousMaxPositionAtCheckpoint(int startLogVersion, int endLogVersion)
+            throws Exception {
+        // given
+        long txId = BASE_APPEND_INDEX + 2;
+        PositionEntry position = position();
+
+        Map<Entry, LogPosition> positions = new HashMap<>();
+        logFile(start(txId - 1), commit(txId - 1), position).create(startLogVersion, positions);
+        logFile(start(txId), commit(txId)).create(startLogVersion + 1, positions);
+        logFile(checkPoint(position)).create(startLogVersion + 1, positions);
+
+        this.logFiles = createLogFiles();
+
+        // when
+        var logTailInformation = logFiles.getTailMetadata(positions.get(position));
+
+        // then
+        assertLatestCheckPoint(true, false, txId, false, logTailInformation);
+    }
+
+    @ParameterizedTest
+    @MethodSource("params")
+    void twoLogFilesCheckPointTargetsPreviousMaxPositionAfterCheckpoint(int startLogVersion, int endLogVersion)
+            throws Exception {
+        // given
+        long txId = BASE_APPEND_INDEX + 2;
+        PositionEntry position = position();
+        PositionEntry position2 = position();
+
+        Map<Entry, LogPosition> positions = new HashMap<>();
+        logFile(start(txId - 1), commit(txId - 1), position).create(startLogVersion, positions);
+        logFile(checkPoint(position)).create(startLogVersion + 1, positions);
+        logFile(start(txId), commit(txId), position2, start(txId + 1), commit(txId + 1))
+                .create(startLogVersion + 1, positions);
+
+        this.logFiles = createLogFiles();
+
+        // when
+        var logTailInformation = logFiles.getTailMetadata(positions.get(position2));
+
+        // then
+        assertLatestCheckPoint(true, true, txId, false, logTailInformation);
+    }
+
+    @ParameterizedTest
+    @MethodSource("params")
+    void twoLogFilesNoCheckPointMaxPosition(int startLogVersion, int endLogVersion) throws Exception {
+        // given
+        long txId = BASE_APPEND_INDEX + 2;
+        PositionEntry position = position();
+
+        Map<Entry, LogPosition> positions = new HashMap<>();
+        logFile(start(txId - 1), commit(txId - 1), position).create(startLogVersion, positions);
+        logFile(start(txId), commit(txId)).create(startLogVersion + 1, positions);
+
+        this.logFiles = createLogFiles();
+
+        // when
+        var logTailInformation = logFiles.getTailMetadata(positions.get(position));
+
+        // then
+        assertLatestCheckPoint(false, true, txId - 1, false, logTailInformation);
+    }
+
+    @ParameterizedTest
+    @MethodSource("params")
+    void twoLogFilesNoCheckPointMaxPositionBeforeFirstAvailablePos(int startLogVersion, int endLogVersion)
+            throws Exception {
+        // given
+        long txId = BASE_APPEND_INDEX + 2;
+        PositionEntry position = position();
+
+        Map<Entry, LogPosition> positions = new HashMap<>();
+        logFile(start(txId - 1), commit(txId - 1), position).create(startLogVersion, positions);
+        logFile(start(txId), commit(txId)).create(startLogVersion + 1, positions);
+
+        this.logFiles = createLogFiles();
+
+        // then
+        assertThatThrownBy(() -> logFiles.getTailMetadata(new LogPosition(0, 10)))
+                .hasMessageContaining("earlier than start position");
     }
 
     @ParameterizedTest

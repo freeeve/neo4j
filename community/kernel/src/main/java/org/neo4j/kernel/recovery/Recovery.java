@@ -101,6 +101,7 @@ import org.neo4j.kernel.impl.pagecache.ConfiguringPageCacheFactory;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
 import org.neo4j.kernel.impl.store.FileStoreProviderRegistry;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogicalTransactionStore;
@@ -252,8 +253,31 @@ public final class Recovery {
             MemoryTracker memoryTracker,
             DatabaseTracers databaseTracers)
             throws IOException {
-        RecoveryRequiredChecker requiredChecker =
-                new RecoveryRequiredChecker(fs, pageCache, config, storageEngineFactory, databaseTracers);
+        return isRecoveryRequired(
+                fs,
+                pageCache,
+                layout,
+                storageEngineFactory,
+                config,
+                logTailMetadata,
+                memoryTracker,
+                databaseTracers,
+                RecoveryPredicate.ALL);
+    }
+
+    public static boolean isRecoveryRequired(
+            FileSystemAbstraction fs,
+            PageCache pageCache,
+            DatabaseLayout layout,
+            StorageEngineFactory storageEngineFactory,
+            Config config,
+            Optional<LogTailMetadata> logTailMetadata,
+            MemoryTracker memoryTracker,
+            DatabaseTracers databaseTracers,
+            RecoveryPredicate recoveryPredicate)
+            throws IOException {
+        RecoveryRequiredChecker requiredChecker = new RecoveryRequiredChecker(
+                fs, pageCache, config, storageEngineFactory, databaseTracers, recoveryPredicate);
         final var databaseLayout = storageEngineFactory.formatSpecificDatabaseLayout(layout);
         return logTailMetadata.isPresent()
                 ? requiredChecker.isRecoveryRequiredAt(databaseLayout, logTailMetadata.get())
@@ -513,7 +537,8 @@ public final class Recovery {
                 databaseLayout,
                 storageEngineFactory,
                 memoryTracker,
-                emptyLogsFallbackKernelVersion));
+                emptyLogsFallbackKernelVersion,
+                recoveryPredicate.maxPosition()));
 
         if (!forceRunRecovery
                 && !isRecoveryRequired(
@@ -524,7 +549,8 @@ public final class Recovery {
                         config,
                         Optional.of(logTailMetadata),
                         memoryTracker,
-                        tracers)) {
+                        tracers,
+                        recoveryPredicate)) {
             return false;
         }
         var recoveryStartTime = Stopwatch.start();
@@ -839,9 +865,10 @@ public final class Recovery {
             DatabaseLayout databaseLayout,
             StorageEngineFactory storageEngineFactory,
             MemoryTracker memoryTracker,
-            KernelVersionProvider emptyLogsFallbackKernelVersion) {
+            KernelVersionProvider emptyLogsFallbackKernelVersion,
+            LogPosition maxPosition) {
         try {
-            return new LogTailExtractor(fs, config, storageEngineFactory, tracers, false)
+            return new LogTailExtractor(fs, config, storageEngineFactory, tracers, false, maxPosition)
                     .getTailMetadata(databaseLayout, memoryTracker, emptyLogsFallbackKernelVersion);
         } catch (IOException ioe) {
             throw new UncheckedIOException("Fail to load log tail.", ioe);
@@ -930,7 +957,8 @@ public final class Recovery {
                 log,
                 doParallelRecovery,
                 contextFactory,
-                storageFilesState);
+                storageFilesState,
+                recoveryPredicate);
         CorruptedLogsTruncator logsTruncator = new CorruptedLogsTruncator(
                 databaseLayout.databaseDirectory(), logFiles, fileSystemAbstraction, memoryTracker);
         var loggerPrintWriterAdaptor = new LoggerPrintWriterAdaptor(log, Level.INFO);

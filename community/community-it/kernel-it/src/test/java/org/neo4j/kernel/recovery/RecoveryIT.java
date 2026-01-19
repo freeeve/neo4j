@@ -141,12 +141,14 @@ import org.neo4j.kernel.impl.api.tracer.DefaultDatabaseTracer;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
+import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LoggingLogFileMonitor;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.DetachedCheckpointAppender;
+import org.neo4j.kernel.impl.transaction.log.checkpoint.LatestCheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -2317,17 +2319,16 @@ class RecoveryIT {
         LogPosition lastLogPosition = metadataProvider.getLastCommittedBatch().logPositionAfter();
         generateSomeData(db);
         managementService.shutdown();
-
-        removeFileWithCheckpoint();
-        assertTrue(isRecoveryRequired(layout));
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(layout, fileSystem);
 
         RecoveryCriteria recoveryCriteria = RecoveryCriteria.untilPosition(lastLogPosition);
+        RecoveryPredicate predicate = recoveryCriteria.toPredicate();
 
         Monitors monitors = new Monitors();
         monitors.addMonitorListener(new LoggingLogFileMonitor(logProvider.getLog(getClass())));
         Config config = Config.newBuilder().build();
         additionalConfiguration(config);
-        assertTrue(isRecoveryRequired(databaseLayout, config, EMPTY));
+        assertTrue(isRecoveryRequired(databaseLayout, config, predicate));
 
         Recovery.performRecovery(Recovery.contextWithNoLogTail(
                         fileSystem,
@@ -2339,7 +2340,7 @@ class RecoveryIT {
                         IOController.DISABLED,
                         logProvider,
                         LATEST_KERNEL_VERSION_PROVIDER)
-                .recoveryPredicate(recoveryCriteria.toPredicate())
+                .recoveryPredicate(predicate)
                 .monitors(monitors)
                 .startupChecker(RecoveryStartupChecker.EMPTY_CHECKER)
                 .clock(fakeClock)
@@ -2351,6 +2352,195 @@ class RecoveryIT {
         assertThat(tailMetadata.getLastCheckPoint().get().transactionLogPosition())
                 .isEqualTo(lastLogPosition);
         assertThat(tailMetadata.getLastCheckPoint().get().transactionId().id()).isEqualTo(originalLastCommitted);
+
+        assertFalse(isRecoveryRequired(databaseLayout, config, predicate));
+    }
+
+    @Test
+    void noRecoveryNeededWithLogPositionAtCheckpoint() throws Exception {
+        GraphDatabaseAPI db = createDatabase();
+        DatabaseLayout layout = db.databaseLayout();
+
+        generateSomeData(db);
+        CheckPointer checkPointer = db.getDependencyResolver().resolveDependency(CheckPointer.class);
+        checkPointer.forceCheckPoint(new SimpleTriggerInfo("My checkpoint"));
+        LatestCheckpointInfo latestCheckpointInfo = checkPointer.latestCheckPointInfo();
+        generateSomeData(db);
+        managementService.shutdown();
+
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(layout, fileSystem);
+        assertTrue(isRecoveryRequired(layout));
+
+        RecoveryCriteria recoveryCriteria =
+                RecoveryCriteria.untilPosition(latestCheckpointInfo.checkpointedLogPosition());
+        RecoveryPredicate predicate = recoveryCriteria.toPredicate();
+
+        Monitors monitors = new Monitors();
+        monitors.addMonitorListener(new LoggingLogFileMonitor(logProvider.getLog(getClass())));
+        Config config = Config.newBuilder().build();
+        additionalConfiguration(config);
+        assertFalse(isRecoveryRequired(databaseLayout, config, predicate));
+
+        assertFalse(performRecovery(Recovery.contextWithNoLogTail(
+                        fileSystem,
+                        pageCache,
+                        EMPTY,
+                        config,
+                        databaseLayout,
+                        INSTANCE,
+                        IOController.DISABLED,
+                        logProvider,
+                        LATEST_KERNEL_VERSION_PROVIDER)
+                .recoveryPredicate(predicate)
+                .monitors(monitors)
+                .startupChecker(RecoveryStartupChecker.EMPTY_CHECKER)
+                .clock(fakeClock)
+                .rollbackIncompleteTransactions(false)));
+    }
+
+    @Test
+    void shouldHandleRecoveryWithLogPositionIfUnstableTail() throws Exception {
+        // Nothing after the maxposition should ever be read, even in logtail reading because after that
+        // position the log is not stable and could be truncated during recovery is running.
+        // Let's destroy the tail a bit after maxposition and see that everything still works.
+
+        GraphDatabaseAPI db = createDatabase();
+        DatabaseLayout layout = db.databaseLayout();
+
+        generateSomeData(db);
+        CheckPointer checkPointer = db.getDependencyResolver().resolveDependency(CheckPointer.class);
+        checkPointer.forceCheckPoint(new SimpleTriggerInfo("My checkpoint"));
+        LatestCheckpointInfo latestCheckpointInfo = checkPointer.latestCheckPointInfo();
+
+        FlushableLogPositionAwareChannel channel = db.getDependencyResolver()
+                .resolveDependency(LogFiles.class)
+                .getLogFile()
+                .getTransactionLogWriter()
+                .getChannel();
+        channel.beginChecksumForWriting();
+        channel.putVersion(LATEST_KERNEL_VERSION.version());
+        channel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+        // something that can not be read without error
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.putChecksum();
+        channel.prepareForFlush().flush();
+
+        managementService.shutdown();
+
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(layout, fileSystem);
+
+        RecoveryCriteria recoveryCriteria =
+                RecoveryCriteria.untilPosition(latestCheckpointInfo.checkpointedLogPosition());
+        RecoveryPredicate predicate = recoveryCriteria.toPredicate();
+
+        Monitors monitors = new Monitors();
+        monitors.addMonitorListener(new LoggingLogFileMonitor(logProvider.getLog(getClass())));
+        Config config = Config.newBuilder().build();
+        additionalConfiguration(config);
+        assertFalse(isRecoveryRequired(databaseLayout, config, predicate));
+
+        assertFalse(performRecovery(Recovery.contextWithNoLogTail(
+                        fileSystem,
+                        pageCache,
+                        EMPTY,
+                        config,
+                        databaseLayout,
+                        INSTANCE,
+                        IOController.DISABLED,
+                        logProvider,
+                        LATEST_KERNEL_VERSION_PROVIDER)
+                .recoveryPredicate(predicate)
+                .monitors(monitors)
+                .startupChecker(RecoveryStartupChecker.EMPTY_CHECKER)
+                .clock(fakeClock)
+                .rollbackIncompleteTransactions(false)));
+    }
+
+    @Test
+    void shouldHandleRecoveryWithLogPositionIfUnstableTailWithoutCheckpoints() throws Exception {
+        // Nothing after the maxposition should ever be read, even in logtail reading because after that
+        // position the log is not stable and could be truncated during recovery is running.
+        // Let's destroy the tail a bit after maxposition and see that everything still works.
+
+        GraphDatabaseAPI db = createDatabase();
+        DatabaseLayout layout = db.databaseLayout();
+
+        generateSomeData(db);
+
+        FlushableLogPositionAwareChannel channel = db.getDependencyResolver()
+                .resolveDependency(LogFiles.class)
+                .getLogFile()
+                .getTransactionLogWriter()
+                .getChannel();
+        LogPosition position = channel.getCurrentLogPosition();
+        channel.beginChecksumForWriting();
+        channel.putVersion(LATEST_KERNEL_VERSION.version());
+        channel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+        // something that can not be read without error
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.put((byte) 3);
+        channel.putChecksum();
+        channel.prepareForFlush().flush();
+
+        managementService.shutdown();
+
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(layout, fileSystem);
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(layout, fileSystem);
+
+        RecoveryCriteria recoveryCriteria = RecoveryCriteria.untilPosition(position);
+        RecoveryPredicate predicate = recoveryCriteria.toPredicate();
+
+        Monitors monitors = new Monitors();
+        monitors.addMonitorListener(new LoggingLogFileMonitor(logProvider.getLog(getClass())));
+        Config config = Config.newBuilder().build();
+        additionalConfiguration(config);
+        assertTrue(isRecoveryRequired(databaseLayout, config, predicate));
+
+        assertTrue(performRecovery(Recovery.contextWithNoLogTail(
+                        fileSystem,
+                        pageCache,
+                        EMPTY,
+                        config,
+                        databaseLayout,
+                        INSTANCE,
+                        IOController.DISABLED,
+                        logProvider,
+                        LATEST_KERNEL_VERSION_PROVIDER)
+                .recoveryPredicate(predicate)
+                .monitors(monitors)
+                .startupChecker(RecoveryStartupChecker.EMPTY_CHECKER)
+                .clock(fakeClock)
+                .rollbackIncompleteTransactions(false)));
+    }
+
+    @Test
+    void recoveryUntilPositionNotAllowedToPointBeforeLatestCheckpoint() {
+        GraphDatabaseAPI db = createDatabase();
+
+        CheckPointer checkPointer = db.getDependencyResolver().resolveDependency(CheckPointer.class);
+        LatestCheckpointInfo latestCheckpointInfo = checkPointer.latestCheckPointInfo();
+        LogPosition positionBeforeCheckpoint = latestCheckpointInfo.checkpointedLogPosition();
+
+        generateSomeData(db);
+        managementService.shutdown();
+
+        RecoveryCriteria recoveryCriteria = RecoveryCriteria.untilPosition(positionBeforeCheckpoint);
+        RecoveryPredicate predicate = recoveryCriteria.toPredicate();
+
+        assertThrows(RuntimeException.class, () -> isRecoveryRequired(databaseLayout, defaults(), predicate));
     }
 
     private void prepareEmptyZeroedLogFile(Path victimFilePath) throws IOException {
@@ -2502,6 +2692,20 @@ class RecoveryIT {
 
     private boolean isRecoveryRequired(DatabaseLayout layout, Config config, DatabaseTracers tracers) throws Exception {
         return Recovery.isRecoveryRequired(fileSystem, pageCache, layout, config, Optional.empty(), INSTANCE, tracers);
+    }
+
+    private boolean isRecoveryRequired(DatabaseLayout layout, Config config, RecoveryPredicate recoveryPredicate)
+            throws Exception {
+        return Recovery.isRecoveryRequired(
+                fileSystem,
+                pageCache,
+                layout,
+                StorageEngineFactory.selectStorageEngine(fileSystem, databaseLayout, config),
+                config,
+                Optional.empty(),
+                INSTANCE,
+                DatabaseTracers.EMPTY,
+                recoveryPredicate);
     }
 
     private int countCheckPointsInTransactionLogs() throws IOException {

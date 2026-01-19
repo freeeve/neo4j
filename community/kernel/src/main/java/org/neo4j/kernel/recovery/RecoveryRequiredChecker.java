@@ -45,10 +45,12 @@ class RecoveryRequiredChecker {
             PageCache pageCache,
             Config config,
             StorageEngineFactory storageEngineFactory,
-            DatabaseTracers databaseTracers) {
+            DatabaseTracers databaseTracers,
+            RecoveryPredicate recoveryPredicate) {
         this.fs = fs;
         this.pageCache = pageCache;
-        this.logTailExtractor = new LogTailExtractor(fs, config, storageEngineFactory, databaseTracers);
+        this.logTailExtractor = new LogTailExtractor(
+                fs, config, storageEngineFactory, databaseTracers, true, recoveryPredicate.maxPosition());
         this.storageEngineFactory = storageEngineFactory;
     }
 

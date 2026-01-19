@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointAppender;
 import org.neo4j.kernel.impl.transaction.log.files.RotatableFile;
@@ -66,6 +67,11 @@ public interface CheckpointFile extends Lifecycle, VersionedFile, RotatableFile 
      * @return Information about log tail: records after checkpoint, missing logs etc
      */
     LogTailMetadata getTailMetadata();
+
+    /**
+     * Like {@link CheckpointFile#getTailMetadata()} but only checks up to maxPosition of the transaction log file.
+     */
+    LogTailMetadata getTailMetadata(LogPosition maxPosition);
 
     /**
      * @return checkpoint file that is currently used to store checkpoints into

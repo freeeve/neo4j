@@ -48,6 +48,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -311,6 +312,141 @@ class RecoveryRequiredCheckerTest {
         }
     }
 
+    @Test
+    void recoveryRequiredWithMaxLogPositionIfNoCheckpointAtMaxLogPosition() throws Exception {
+        LogPosition logPositionAfterCheckpoint;
+        var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build();
+        try {
+            var db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+
+            databaseLayout = db.databaseLayout();
+            var dependencyResolver = db.getDependencyResolver();
+            storageEngineFactory = dependencyResolver.resolveDependency(StorageEngineFactory.class);
+            var logFiles = dependencyResolver.resolveDependency(LogFiles.class);
+            var checkPointer = dependencyResolver.resolveDependency(CheckPointer.class);
+
+            checkPointer.forceCheckPoint(new SimpleTriggerInfo("Test"));
+
+            try (Transaction tx = db.beginTx()) {
+                tx.createNode();
+                tx.commit();
+            }
+
+            logPositionAfterCheckpoint =
+                    logFiles.logMetadataProvider().getLastClosedTransaction().logPosition();
+        } finally {
+            managementService.shutdown();
+        }
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
+
+        try (PageCache pageCache = pageCacheExtension.getPageCache(fileSystem)) {
+            RecoveryRequiredChecker checker = new RecoveryRequiredChecker(
+                    fileSystem,
+                    pageCache,
+                    Config.defaults(),
+                    storageEngineFactory,
+                    DatabaseTracers.EMPTY,
+                    RecoveryPredicate.untilPosition(logPositionAfterCheckpoint));
+            assertTrue(checker.isRecoveryRequiredAt(databaseLayout, INSTANCE));
+        }
+    }
+
+    @Test
+    void recoveryNotRequiredWhenAtMaxLogPosition() throws Exception {
+        CheckpointInfo latestCheckpoint;
+        var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build();
+        try {
+            var db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+
+            databaseLayout = db.databaseLayout();
+            var dependencyResolver = db.getDependencyResolver();
+            storageEngineFactory = dependencyResolver.resolveDependency(StorageEngineFactory.class);
+            var logFiles = dependencyResolver.resolveDependency(LogFiles.class);
+            var checkPointer = dependencyResolver.resolveDependency(CheckPointer.class);
+
+            try (Transaction tx = db.beginTx()) {
+                tx.createNode();
+                tx.commit();
+            }
+
+            checkPointer.forceCheckPoint(new SimpleTriggerInfo("Test"));
+
+            latestCheckpoint =
+                    logFiles.getCheckpointFile().findLatestCheckpoint().orElseThrow();
+
+            try (Transaction tx = db.beginTx()) {
+                tx.createNode();
+                tx.commit();
+            }
+
+        } finally {
+            managementService.shutdown();
+        }
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
+
+        try (PageCache pageCache = pageCacheExtension.getPageCache(fileSystem)) {
+            RecoveryRequiredChecker checker = new RecoveryRequiredChecker(
+                    fileSystem,
+                    pageCache,
+                    Config.defaults(),
+                    storageEngineFactory,
+                    DatabaseTracers.EMPTY,
+                    RecoveryPredicate.untilPosition(latestCheckpoint.transactionLogPosition()));
+            assertFalse(checker.isRecoveryRequiredAt(databaseLayout, INSTANCE));
+        }
+    }
+
+    @Test
+    void recoveryRequiredWhenCheckpointAtMaxLogPositionButSeveralStoreFilesAreMissing() throws Exception {
+        CheckpointInfo latestCheckpoint;
+        var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build();
+        try {
+            var db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+
+            databaseLayout = db.databaseLayout();
+            var dependencyResolver = db.getDependencyResolver();
+            storageEngineFactory = dependencyResolver.resolveDependency(StorageEngineFactory.class);
+            var logFiles = dependencyResolver.resolveDependency(LogFiles.class);
+            var checkPointer = dependencyResolver.resolveDependency(CheckPointer.class);
+
+            try (Transaction tx = db.beginTx()) {
+                tx.createNode();
+                tx.commit();
+            }
+
+            checkPointer.forceCheckPoint(new SimpleTriggerInfo("Test"));
+
+            latestCheckpoint =
+                    logFiles.getCheckpointFile().findLatestCheckpoint().orElseThrow();
+
+            try (Transaction tx = db.beginTx()) {
+                tx.createNode();
+                tx.commit();
+            }
+
+        } finally {
+            managementService.shutdown();
+        }
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
+
+        try (PageCache pageCache = pageCacheExtension.getPageCache(fileSystem)) {
+            RecoveryRequiredChecker checker = new RecoveryRequiredChecker(
+                    fileSystem,
+                    pageCache,
+                    Config.defaults(),
+                    storageEngineFactory,
+                    DatabaseTracers.EMPTY,
+                    RecoveryPredicate.untilPosition(latestCheckpoint.transactionLogPosition()));
+            assertFalse(checker.isRecoveryRequiredAt(databaseLayout, INSTANCE));
+
+            fileSystem.deleteFileOrThrow(databaseLayout.pathForStore(CommonDatabaseStores.COUNTS));
+            fileSystem.deleteFileOrThrow(databaseLayout.pathForStore(CommonDatabaseStores.SCHEMAS));
+            fileSystem.deleteFileOrThrow(databaseLayout.pathForStore(CommonDatabaseStores.RELATIONSHIP_TYPE_TOKENS));
+
+            assertTrue(checker.isRecoveryRequiredAt(databaseLayout, INSTANCE));
+        }
+    }
+
     private void recoverBrokenStoreWithConfig(Config config) throws IOException {
         try (EphemeralFileSystemAbstraction ephemeralFs = createSomeDataAndCrash(storeDir, config);
                 PageCache pageCache = pageCacheExtension.getPageCache(ephemeralFs)) {
@@ -358,7 +494,8 @@ class RecoveryRequiredCheckerTest {
             PageCache pageCache,
             StorageEngineFactory storageEngineFactory,
             Config config) {
-        return new RecoveryRequiredChecker(fileSystem, pageCache, config, storageEngineFactory, DatabaseTracers.EMPTY);
+        return new RecoveryRequiredChecker(
+                fileSystem, pageCache, config, storageEngineFactory, DatabaseTracers.EMPTY, RecoveryPredicate.ALL);
     }
 
     private EphemeralFileSystemAbstraction createSomeDataAndCrash(Path store, Config config) throws IOException {

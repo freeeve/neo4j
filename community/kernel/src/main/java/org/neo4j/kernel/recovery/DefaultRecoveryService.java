@@ -72,7 +72,8 @@ public class DefaultRecoveryService implements RecoveryService {
             InternalLog log,
             boolean doParallelRecovery,
             CursorContextFactory contextFactory,
-            StoreFileChecker storeFileChecker) {
+            StoreFileChecker storeFileChecker,
+            RecoveryPredicate recoveryPredicate) {
         this.storageEngine = storageEngine;
         this.transactionIdStore = transactionIdStore;
         this.logicalTransactionStore = logicalTransactionStore;
@@ -84,7 +85,8 @@ public class DefaultRecoveryService implements RecoveryService {
         this.doParallelRecovery = doParallelRecovery;
         this.contextFactory = contextFactory;
         this.storeFileChecker = storeFileChecker;
-        this.recoveryStartInformationProvider = new RecoveryStartInformationProvider(logFiles, monitor);
+        this.recoveryStartInformationProvider =
+                new RecoveryStartInformationProvider(logFiles, monitor, recoveryPredicate);
     }
 
     @Override

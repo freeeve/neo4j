@@ -114,6 +114,10 @@ public class DetachedLogTailScanner {
     }
 
     public LogTailInformation findLogTail() {
+        return findLogTail(LogPosition.UNSPECIFIED);
+    }
+
+    public LogTailInformation findLogTail(LogPosition maxPosition) {
         LogFile logFile = logFiles.getLogFile();
         LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
         long highestLogVersion = logRangeInfo.highestVersion();
@@ -121,13 +125,13 @@ public class DetachedLogTailScanner {
         try {
             var lastAccessibleCheckpoint = checkpointFile.findLatestCheckpoint();
             if (lastAccessibleCheckpoint.isEmpty()) {
-                return noCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion);
+                return noCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion, maxPosition);
             }
             var checkpoint = lastAccessibleCheckpoint.get();
             verifyCheckpointPosition(checkpoint.channelPositionAfterCheckpoint());
             // found checkpoint pointing to existing position in existing log file
-            if (isValidCheckpoint(logFile, checkpoint)) {
-                return validCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion, checkpoint);
+            if (isValidCheckpoint(logFile, checkpoint, maxPosition)) {
+                return validCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion, checkpoint, maxPosition);
             }
             if (failOnCorruptedLogFiles) {
                 var exceptionMessage = format(
@@ -142,27 +146,35 @@ public class DetachedLogTailScanner {
             ListIterator<CheckpointInfo> reverseCheckpoints = checkpointInfos.listIterator(checkpointInfos.size() - 1);
             while (reverseCheckpoints.hasPrevious()) {
                 CheckpointInfo previousCheckpoint = reverseCheckpoints.previous();
-                if (isValidCheckpoint(logFile, previousCheckpoint)) {
-                    return validCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion, previousCheckpoint);
+                if (isValidCheckpoint(logFile, previousCheckpoint, maxPosition)) {
+                    return validCheckpointLogTail(
+                            logFile, highestLogVersion, lowestLogVersion, previousCheckpoint, maxPosition);
                 }
             }
             // we did not find any valid, we need to restore from the start if possible
-            return noCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion);
+            return noCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion, maxPosition);
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
     }
 
     private LogTailInformation validCheckpointLogTail(
-            LogFile logFile, long highestLogVersion, long lowestLogVersion, CheckpointInfo checkpoint)
+            LogFile logFile,
+            long highestLogVersion,
+            long lowestLogVersion,
+            CheckpointInfo checkpoint,
+            LogPosition maxPosition)
             throws IOException {
 
         LogPosition transactionLogPosition = checkpoint.transactionLogPosition();
-        var postCheckPointInfo = getPostCheckpointInfo(logFile, checkpoint.kernelVersion(), transactionLogPosition);
+        var postCheckPointInfo =
+                getPostCheckpointInfo(logFile, checkpoint.kernelVersion(), transactionLogPosition, maxPosition);
         LogFormat logFormatVersion = checkpointFile
                 .extractHeader(checkpoint.checkpointEntryPosition().getLogVersion())
                 .getLogFormatVersion();
         return new LogTailInformation(
+                // Consensus index exist in checkpoint from before recovery could be restricted to
+                // position, so no need to check position in this one
                 loadConsensusIndexIfNeeded(logFile, checkpoint),
                 checkpoint.olderTransactionRecoveryRequired() || postCheckPointInfo.isPresent(),
                 postCheckPointInfo.appendIndex(),
@@ -183,13 +195,15 @@ public class DetachedLogTailScanner {
     }
 
     private PostCheckpointInfo getPostCheckpointInfo(
-            LogFile logFile, KernelVersion kernelVersion, LogPosition logPosition) throws IOException {
+            LogFile logFile, KernelVersion kernelVersion, LogPosition logPosition, LogPosition maxPosition)
+            throws IOException {
         return kernelVersion.isAtLeast(VERSION_APPEND_INDEX_INTRODUCED)
-                ? getAppendIndexPostCheckPointInfo(logFile, logPosition)
+                ? getAppendIndexPostCheckPointInfo(logFile, logPosition, maxPosition)
                 : getLegacyPostCheckPointInfo(logFile, logPosition).toPostCheckpointInfo();
     }
 
-    private LogTailInformation noCheckpointLogTail(LogFile logFile, long highestLogVersion, long lowestLogVersion)
+    private LogTailInformation noCheckpointLogTail(
+            LogFile logFile, long highestLogVersion, long lowestLogVersion, LogPosition maxPosition)
             throws IOException {
         var logPosition = LogPosition.UNSPECIFIED;
         var kernelVersion = EARLIEST;
@@ -203,7 +217,13 @@ public class DetachedLogTailScanner {
             }
         }
 
-        var entries = getPostCheckpointInfo(logFile, kernelVersion, logPosition);
+        if (maxPosition != LogPosition.UNSPECIFIED && logPosition != null && maxPosition.isBefore(logPosition)) {
+            throw new IllegalStateException(
+                    "Requested maxPosition (%s) for logtail is not allowed to be earlier than start position (%s)"
+                            .formatted(maxPosition, logPosition));
+        }
+
+        var entries = getPostCheckpointInfo(logFile, kernelVersion, logPosition, maxPosition);
         var startPosition = getLogStartPosition(logFile, lowestLogVersion);
         var logFileVersion =
                 entries.kernelVersion == NO_ENTRY ? EARLIEST : KernelVersion.getForVersion(entries.kernelVersion);
@@ -238,9 +258,16 @@ public class DetachedLogTailScanner {
      * Valid checkpoint points to valid location in a file, which exists and header store id matches with checkpoint store id.
      * Otherwise, checkpoint is not considered valid, and we need to recover.
      */
-    private boolean isValidCheckpoint(LogFile logFile, CheckpointInfo checkpointInfo) throws IOException {
+    private boolean isValidCheckpoint(LogFile logFile, CheckpointInfo checkpointInfo, LogPosition maxPosition)
+            throws IOException {
         LogPosition logPosition = checkpointInfo.transactionLogPosition();
         long logVersion = logPosition.getLogVersion();
+        if (maxPosition != LogPosition.UNSPECIFIED && maxPosition.isBefore(logPosition)) {
+            throw new IllegalStateException(
+                    "Requested maxPosition (%s) for logtail is not allowed to be earlier than latest checkpoint (%s)"
+                            .formatted(maxPosition, checkpointInfo));
+        }
+
         if (!logFile.versionExists(logVersion)) {
             return false;
         }
@@ -316,8 +343,8 @@ public class DetachedLogTailScanner {
         return new LegacyPostCheckpointInfo(start, commit, chunkEnd, corruptedTransactionLogs);
     }
 
-    private PostCheckpointInfo getAppendIndexPostCheckPointInfo(LogFile logFile, LogPosition logPosition)
-            throws IOException {
+    private PostCheckpointInfo getAppendIndexPostCheckPointInfo(
+            LogFile logFile, LogPosition logPosition, LogPosition maxPosition) throws IOException {
         boolean corruptedTransactionLogs = false;
         LogPosition lookupPosition = null;
         if (logPosition != LogPosition.UNSPECIFIED) {
@@ -337,7 +364,9 @@ public class DetachedLogTailScanner {
                     try (var reader = logFile.getReader(lookupPosition, readerBridge);
                             var cursor = new LogEntryCursor(logEntryReader, reader)) {
                         LogPosition position;
-                        if (cursor.next()) {
+                        if ((maxPosition == LogPosition.UNSPECIFIED
+                                        || reader.getCurrentLogPosition().isBefore(maxPosition))
+                                && cursor.next()) {
                             var logEntry = (AbstractVersionAwareLogEntry) cursor.get();
                             return switch (logEntry) {
                                 case LogEntryStart startEntry ->
@@ -364,11 +393,16 @@ public class DetachedLogTailScanner {
                         }
                         position = reader.getCurrentLogPosition();
                         corruptedTransactionLogs = logEntryReader.hasBrokenLastEntry();
-                        if (!corruptedTransactionLogs) {
+                        if (!corruptedTransactionLogs
+                                && (maxPosition == LogPosition.UNSPECIFIED
+                                        || maxPosition.getLogVersion() != position.getLogVersion())) {
                             verifyReaderPosition(position.getLogVersion(), position);
                         }
                     }
                     logVersion++;
+                    if (maxPosition != LogPosition.UNSPECIFIED && logVersion > maxPosition.getLogVersion()) {
+                        break;
+                    }
                 }
             } catch (Error | ClosedByInterruptException e) {
                 // These should not be parsing errors
@@ -590,6 +624,14 @@ public class DetachedLogTailScanner {
         }
 
         return logTail;
+    }
+
+    // Note that this one does not cache the tail (unless position UNSPECIFIED)
+    public LogTailMetadata getTailMetadata(LogPosition maxPosition) {
+        if (maxPosition == LogPosition.UNSPECIFIED) {
+            return getTailMetadata();
+        }
+        return findLogTail(maxPosition);
     }
 
     private static String dumpBufferToString(ByteBuffer byteBuffer) {
