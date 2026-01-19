@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.store.cursor;
 
 import static org.neo4j.util.FeatureToggles.flag;
 
-import java.util.function.Consumer;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -97,19 +96,6 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
 
     private PageCursor[] createEmptyCursorArray() {
         return new PageCursor[numTypes];
-    }
-
-    public void visit(Consumer<PageCursor> procedure) {
-        visit(procedure, cursorsByType);
-        visit(procedure, noCurrentTransactionCursorsByType);
-    }
-
-    private void visit(Consumer<PageCursor> procedure, PageCursor[] cursors) {
-        for (var pageCursor : cursors) {
-            if (pageCursor != null) {
-                procedure.accept(pageCursor);
-            }
-        }
     }
 
     protected static void checkReadCursor(PageCursor pageCursor, int type, String prefix) {
