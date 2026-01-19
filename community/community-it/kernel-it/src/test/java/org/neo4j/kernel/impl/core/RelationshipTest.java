@@ -32,7 +32,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.graphdb.RelationshipType.withName;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.neo4j.exceptions.KernelException;
@@ -59,15 +58,15 @@ public class RelationshipTest extends EntityTest {
     RandomSupport random;
 
     @Override
-    protected long createEntity(Transaction tx) {
+    protected String createEntity(Transaction tx) {
         return tx.createNode()
                 .createRelationshipTo(tx.createNode(), withName("FOO"))
-                .getId();
+                .getElementId();
     }
 
     @Override
-    protected Entity lookupEntity(Transaction transaction, long id) {
-        return transaction.getRelationshipById(id);
+    protected Entity lookupEntity(Transaction transaction, String id) {
+        return transaction.getRelationshipByElementId(id);
     }
 
     @Test
@@ -96,16 +95,12 @@ public class RelationshipTest extends EntityTest {
 
     @Test
     void shouldPrintCypherEsqueRelationshipToString() {
-        // GIVEN
-        Node start;
-        Node end;
         RelationshipType type = RelationshipType.withName("NICE");
-        Relationship relationship;
         try (Transaction tx = db.beginTx()) {
             // GIVEN
-            start = tx.createNode();
-            end = tx.createNode();
-            relationship = start.createRelationshipTo(end, type);
+            Node start = tx.createNode();
+            Node end = tx.createNode();
+            Relationship relationship = start.createRelationshipTo(end, type);
             tx.commit();
 
             // WHEN
@@ -143,7 +138,7 @@ public class RelationshipTest extends EntityTest {
     void createDropRelationshipLongStringProperty(TestInfo testInfo) {
         Label markerLabel = Label.label("marker_" + testInfo.getTestMethod());
         String testPropertyKey = "testProperty";
-        String propertyValue = RandomStringUtils.randomAscii(255);
+        String propertyValue = random.nextAsciiStringOfLength(255);
 
         String relationshipId;
         try (Transaction tx = db.beginTx()) {
@@ -212,22 +207,23 @@ public class RelationshipTest extends EntityTest {
     @Test
     void shouldBeAbleToForceTypeChangeOfProperty() {
         // Given
-        Relationship relationship;
+        String relationshipId;
         try (Transaction tx = db.beginTx()) {
-            relationship = tx.createNode().createRelationshipTo(tx.createNode(), withName("R"));
+            Relationship relationship = tx.createNode().createRelationshipTo(tx.createNode(), withName("R"));
+            relationshipId = relationship.getElementId();
             relationship.setProperty("prop", 1337);
             tx.commit();
         }
 
         // When
         try (Transaction tx = db.beginTx()) {
-            tx.getRelationshipById(relationship.getId()).setProperty("prop", 1337.0);
+            tx.getRelationshipByElementId(relationshipId).setProperty("prop", 1337.0);
             tx.commit();
         }
 
         // Then
         try (Transaction tx = db.beginTx()) {
-            assertThat(tx.getRelationshipById(relationship.getId()).getProperty("prop"))
+            assertThat(tx.getRelationshipByElementId(relationshipId).getProperty("prop"))
                     .isInstanceOf(Double.class);
         }
     }

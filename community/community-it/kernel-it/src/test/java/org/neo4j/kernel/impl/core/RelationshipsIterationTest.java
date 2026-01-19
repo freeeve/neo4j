@@ -78,9 +78,9 @@ class RelationshipsIterationTest {
 
     @Nested
     abstract class RelationshipTraversalCursorReuseMustNotFalselyMatchRelationships {
-        long matchingFirst;
-        long notMatching;
-        long matchingSecond;
+        String matchingFirst;
+        String notMatching;
+        String matchingSecond;
 
         @BeforeEach
         void setUp() {
@@ -88,9 +88,9 @@ class RelationshipsIterationTest {
                 Node first = tx.createNode();
                 Node unrelated = tx.createNode();
                 Node second = tx.createNode();
-                matchingFirst = first.getId();
-                notMatching = unrelated.getId();
-                matchingSecond = second.getId();
+                matchingFirst = first.getElementId();
+                notMatching = unrelated.getElementId();
+                matchingSecond = second.getElementId();
                 first.createRelationshipTo(second, typeA);
                 first.createRelationshipTo(second, typeB);
                 first.createRelationshipTo(unrelated, typeC);
@@ -98,8 +98,8 @@ class RelationshipsIterationTest {
                 tx.commit();
             }
             try (Transaction tx = db.beginTx()) {
-                Node first = tx.getNodeById(matchingFirst);
-                Node second = tx.getNodeById(matchingSecond);
+                Node first = tx.getNodeByElementId(matchingFirst);
+                Node second = tx.getNodeByElementId(matchingSecond);
                 first.createRelationshipTo(second, typeA);
                 first.createRelationshipTo(second, typeB);
                 tx.commit();
@@ -476,9 +476,9 @@ class RelationshipsIterationTest {
 
         private void check(Check check) {
             try (Transaction tx = db.beginTx()) {
-                Node first = tx.getNodeById(matchingFirst);
-                Node unrelated = tx.getNodeById(notMatching);
-                Node second = tx.getNodeById(matchingSecond);
+                Node first = tx.getNodeByElementId(matchingFirst);
+                Node unrelated = tx.getNodeByElementId(notMatching);
+                Node second = tx.getNodeByElementId(matchingSecond);
                 check.check(first, unrelated, second);
             }
         }
@@ -505,7 +505,7 @@ class RelationshipsIterationTest {
         void setUp() {
             super.setUp();
             try (Transaction tx = db.beginTx()) {
-                Node first = tx.getNodeById(matchingFirst);
+                Node first = tx.getNodeByElementId(matchingFirst);
                 for (int i = 0; i < DENSE_NODE_THRESHOLD; i++) {
                     first.createRelationshipTo(first, typeX);
                 }
@@ -521,7 +521,7 @@ class RelationshipsIterationTest {
         void setUp() {
             super.setUp();
             try (Transaction tx = db.beginTx()) {
-                Node second = tx.getNodeById(matchingSecond);
+                Node second = tx.getNodeByElementId(matchingSecond);
                 for (int i = 0; i < DENSE_NODE_THRESHOLD; i++) {
                     second.createRelationshipTo(second, typeX);
                 }
@@ -537,7 +537,7 @@ class RelationshipsIterationTest {
         void setUp() {
             super.setUp();
             try (Transaction tx = db.beginTx()) {
-                Node unrelated = tx.getNodeById(notMatching);
+                Node unrelated = tx.getNodeByElementId(notMatching);
                 for (int i = 0; i < DENSE_NODE_THRESHOLD; i++) {
                     unrelated.createRelationshipTo(unrelated, typeX);
                 }

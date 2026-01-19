@@ -93,14 +93,14 @@ public class KernelTransactionTimeoutMonitorIT {
         AtomicBoolean nodeLockAcquired = new AtomicBoolean();
         AtomicBoolean lockerDone = new AtomicBoolean();
         BinaryLatch lockerPause = new BinaryLatch();
-        long nodeId;
+        String nodeId;
         try (Transaction tx = database.beginTx()) {
-            nodeId = tx.createNode().getId();
+            nodeId = tx.createNode().getElementId();
             tx.commit();
         }
         Future<?> locker = executor.submit(() -> {
             try (Transaction tx = database.beginTx()) {
-                Node node = tx.getNodeById(nodeId);
+                Node node = tx.getNodeByElementId(nodeId);
                 tx.acquireReadLock(node);
                 nodeLockAcquired.set(true);
                 lockerPause.await();
@@ -119,7 +119,7 @@ public class KernelTransactionTimeoutMonitorIT {
         // Yet we should be able to proceed and grab the locks they once held
         try (Transaction tx = database.beginTx()) {
             // Write-locking is only possible if their shared lock was released
-            tx.acquireWriteLock(tx.getNodeById(nodeId));
+            tx.acquireWriteLock(tx.getNodeByElementId(nodeId));
             tx.commit();
         }
         // No exception from our lock client being stopped (e.g. we ended up blocked for too long) or from timeout

@@ -49,34 +49,35 @@ public class TransactionCountingStateVisitorTraceIT {
 
     private static final Label marker = Label.label("marker");
     private static final Label label = Label.label("label");
-    private long sourceNodeId;
-    private long relationshipId;
+    private String sourceNodeId;
+    private String relationshipId;
 
     @BeforeEach
     void setUp() {
         try (Transaction transaction = database.beginTx()) {
             var source = transaction.createNode(marker, label);
-            sourceNodeId = source.getId();
+            sourceNodeId = source.getElementId();
             var destination = transaction.createNode();
             var relationship = source.createRelationshipTo(destination, withName("any"));
-            relationshipId = relationship.getId();
+            relationshipId = relationship.getElementId();
             transaction.commit();
         }
     }
 
     @Test
     void traceDeletedRelationshipPageCacheAccess() throws KernelException {
-        traceStateWithChanges(tx -> tx.getRelationshipById(relationshipId).delete());
+        traceStateWithChanges(
+                tx -> tx.getRelationshipByElementId(relationshipId).delete());
     }
 
     @Test
     void traceNodeLabelChangesPageCacheAccess() throws KernelException {
-        traceStateWithChanges(tx -> tx.getNodeById(sourceNodeId).removeLabel(marker));
+        traceStateWithChanges(tx -> tx.getNodeByElementId(sourceNodeId).removeLabel(marker));
     }
 
     @Test
     void traceDeletedNodePageCacheAccess() throws KernelException {
-        traceStateWithChanges(tx -> tx.getNodeById(sourceNodeId).delete());
+        traceStateWithChanges(tx -> tx.getNodeByElementId(sourceNodeId).delete());
     }
 
     private void traceStateWithChanges(Consumer<Transaction> transactionalOperation) throws KernelException {

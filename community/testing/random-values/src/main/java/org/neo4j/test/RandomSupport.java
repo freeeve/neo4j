@@ -196,6 +196,10 @@ public class RandomSupport {
         return nextAsciiTextValue().stringValue();
     }
 
+    public String nextAsciiStringOfLength(int length) {
+        return randoms.nextAsciiTextValue(length, length).stringValue();
+    }
+
     private TextValue nextAsciiTextValue() {
         return randoms.nextAsciiTextValue();
     }

@@ -33,9 +33,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,8 +50,6 @@ import java.util.function.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.description.Description;
-import org.eclipse.collections.api.set.primitive.MutableLongSet;
-import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
@@ -144,23 +144,23 @@ class ReuseStorageSpaceIT {
             // given
             GraphDatabaseAPI db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             int numNodes = 40_000;
-            MutableLongSet nodeIds = createNodes(db, numNodes);
+            Set<String> nodeIds = createNodes(db, numNodes);
             try (Transaction tx = db.beginTx()) {
-                nodeIds.forEach(nodeId -> tx.getNodeById(nodeId).delete());
+                nodeIds.forEach(nodeId -> tx.getNodeByElementId(nodeId).delete());
                 tx.commit();
             }
             db.getDependencyResolver().resolveDependency(IdController.class).maintenance();
 
             // First create 40,000 nodes, then delete them, ensure ID maintenance has run and allocate concurrently
             int numThreads = 4;
-            Collection<Callable<MutableLongSet>> allocators = new ArrayList<>();
+            Collection<Callable<Set<String>>> allocators = new ArrayList<>();
             for (int i = 0; i < numThreads; i++) {
                 allocators.add(() -> createNodes(db, numNodes / numThreads));
             }
             try (ExecutorService executor = Executors.newFixedThreadPool(numThreads)) {
-                List<Future<MutableLongSet>> results = executor.invokeAll(allocators);
-                MutableLongSet reallocatedNodeIds = LongSets.mutable.withInitialCapacity(numNodes);
-                for (Future<MutableLongSet> result : results) {
+                List<Future<Set<String>>> results = executor.invokeAll(allocators);
+                Set<String> reallocatedNodeIds = new HashSet<>(numNodes);
+                for (Future<Set<String>> result : results) {
                     reallocatedNodeIds.addAll(result.get());
                 }
                 assertThat(reallocatedNodeIds)
@@ -170,19 +170,19 @@ class ReuseStorageSpaceIT {
         }
     }
 
-    private Description diff(MutableLongSet nodeIds, MutableLongSet reallocatedNodeIds) {
+    private Description diff(Set<String> nodeIds, Set<String> reallocatedNodeIds) {
         return new Description() {
             @Override
             public String value() {
                 StringBuilder builder = new StringBuilder();
                 nodeIds.forEach(nodeId -> {
                     if (!reallocatedNodeIds.contains(nodeId)) {
-                        builder.append(format("%n<%d", nodeId));
+                        builder.append(format("%n<%s", nodeId));
                     }
                 });
                 reallocatedNodeIds.forEach(nodeId -> {
                     if (!nodeIds.contains(nodeId)) {
-                        builder.append(format("%n>%d", nodeId));
+                        builder.append(format("%n>%s", nodeId));
                     }
                 });
                 return builder.toString();
@@ -190,12 +190,12 @@ class ReuseStorageSpaceIT {
         };
     }
 
-    private MutableLongSet createNodes(GraphDatabaseAPI db, int numNodes) {
-        MutableLongSet nodeIds = LongSets.mutable.withInitialCapacity(numNodes);
+    private Set<String> createNodes(GraphDatabaseAPI db, int numNodes) {
+        Set<String> nodeIds = new HashSet<>(numNodes);
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < numNodes; i++) {
                 Node node = tx.createNode();
-                nodeIds.add(node.getId());
+                nodeIds.add(node.getElementId());
             }
             tx.commit();
         }

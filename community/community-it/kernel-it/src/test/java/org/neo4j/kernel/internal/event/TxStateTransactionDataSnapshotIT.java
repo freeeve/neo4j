@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.internal.event;
 
-import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.graphdb.RelationshipType.withName;
@@ -37,14 +36,20 @@ import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension
+@RandomSupportExtension
 class TxStateTransactionDataSnapshotIT {
     @Inject
     private GraphDatabaseAPI database;
+
+    @Inject
+    private RandomSupport random;
 
     private long emptySnapshotSize;
 
@@ -56,18 +61,18 @@ class TxStateTransactionDataSnapshotIT {
     @Test
     @SkipOnSpd(reason = "Properties read from store will be null for graph shard, resulting in less memory tracked")
     void countRemovedNodeWithPropertiesInTransactionStateSnapshot() {
-        long nodeIdToDelete;
+        String nodeIdToDelete;
         int attachedPropertySize = (int) ByteUnit.mebiBytes(1);
         try (Transaction transaction = database.beginTx()) {
             var node = transaction.createNode(label("label1"), label("label2"));
-            node.setProperty("a", randomAscii(attachedPropertySize));
-            node.setProperty("b", randomAscii(attachedPropertySize));
-            nodeIdToDelete = node.getId();
+            node.setProperty("a", random.nextAsciiStringOfLength(attachedPropertySize));
+            node.setProperty("b", random.nextAsciiStringOfLength(attachedPropertySize));
+            nodeIdToDelete = node.getElementId();
             transaction.commit();
         }
 
         try (Transaction transaction = database.beginTx()) {
-            transaction.getNodeById(nodeIdToDelete).delete();
+            transaction.getNodeByElementId(nodeIdToDelete).delete();
 
             var kernelTransaction = getKernelTransaction(transaction);
             var transactionState = kernelTransaction.txState();
@@ -93,7 +98,7 @@ class TxStateTransactionDataSnapshotIT {
     @Test
     @SkipOnSpd(reason = "Properties read from store will be null for graph shard, resulting in less memory tracked")
     void countRemovedRelationshipsWithPropertiesInTransactionStateSnapshot() {
-        List<Long> relationshipsIdToDelete;
+        List<String> relationshipsIdToDelete;
         int attachedPropertySize = (int) ByteUnit.mebiBytes(1);
         try (Transaction transaction = database.beginTx()) {
             var start = transaction.createNode();
@@ -101,11 +106,11 @@ class TxStateTransactionDataSnapshotIT {
             var relationship1 = start.createRelationshipTo(end, withName("type1"));
             var relationship2 = start.createRelationshipTo(end, withName("type2"));
 
-            relationship1.setProperty("a", randomAscii(attachedPropertySize));
-            relationship2.setProperty("a", randomAscii(attachedPropertySize));
-            relationship2.setProperty("b", randomAscii(attachedPropertySize));
+            relationship1.setProperty("a", random.nextAsciiStringOfLength(attachedPropertySize));
+            relationship2.setProperty("a", random.nextAsciiStringOfLength(attachedPropertySize));
+            relationship2.setProperty("b", random.nextAsciiStringOfLength(attachedPropertySize));
 
-            relationshipsIdToDelete = List.of(relationship1.getId(), relationship2.getId());
+            relationshipsIdToDelete = List.of(relationship1.getElementId(), relationship2.getElementId());
             transaction.commit();
         }
 
@@ -113,7 +118,7 @@ class TxStateTransactionDataSnapshotIT {
 
         try (Transaction transaction = database.beginTx()) {
             relationshipsIdToDelete.forEach(
-                    id -> transaction.getRelationshipById(id).delete());
+                    id -> transaction.getRelationshipByElementId(id).delete());
 
             var kernelTransaction = getKernelTransaction(transaction);
             var transactionState = kernelTransaction.txState();
@@ -138,7 +143,7 @@ class TxStateTransactionDataSnapshotIT {
     @Test
     @SkipOnSpd(reason = "Properties read from store will be null for graph shard, resulting in less memory tracked")
     void countChangedNodeInTransactionStateSnapshot() {
-        long nodeIdToChange;
+        String nodeIdToChange;
         int attachedPropertySize = (int) ByteUnit.mebiBytes(1);
         int doublePropertySize = attachedPropertySize * 2;
         Label label1 = label("label1");
@@ -148,16 +153,16 @@ class TxStateTransactionDataSnapshotIT {
 
         try (Transaction transaction = database.beginTx()) {
             var node = transaction.createNode(label1, label2);
-            node.setProperty(property, randomAscii(attachedPropertySize));
-            node.setProperty(doubleProperty, randomAscii(doublePropertySize));
-            nodeIdToChange = node.getId();
+            node.setProperty(property, random.nextAsciiStringOfLength(attachedPropertySize));
+            node.setProperty(doubleProperty, random.nextAsciiStringOfLength(doublePropertySize));
+            nodeIdToChange = node.getElementId();
             transaction.commit();
         }
 
         try (Transaction transaction = database.beginTx()) {
-            var node = transaction.getNodeById(nodeIdToChange);
+            var node = transaction.getNodeByElementId(nodeIdToChange);
             node.removeLabel(label1);
-            node.setProperty(doubleProperty, randomAscii(attachedPropertySize));
+            node.setProperty(doubleProperty, random.nextAsciiStringOfLength(attachedPropertySize));
             node.removeProperty(property);
             node.addLabel(Label.label("newLabel"));
 
@@ -185,7 +190,7 @@ class TxStateTransactionDataSnapshotIT {
     @Test
     @SkipOnSpd(reason = "Properties read from store will be null for graph shard, resulting in less memory tracked")
     void countChangedRelationshipInTransactionStateSnapshot() {
-        long relationshipIdToChange;
+        String relationshipIdToChange;
         int attachedPropertySize = (int) ByteUnit.mebiBytes(1);
         int doublePropertySize = attachedPropertySize * 2;
         final String property = "a";
@@ -195,15 +200,15 @@ class TxStateTransactionDataSnapshotIT {
             var start = transaction.createNode();
             var end = transaction.createNode();
             var relationship = start.createRelationshipTo(end, withName("relType"));
-            relationship.setProperty(property, randomAscii(attachedPropertySize));
-            relationship.setProperty(doubleProperty, randomAscii(doublePropertySize));
-            relationshipIdToChange = relationship.getId();
+            relationship.setProperty(property, random.nextAsciiStringOfLength(attachedPropertySize));
+            relationship.setProperty(doubleProperty, random.nextAsciiStringOfLength(doublePropertySize));
+            relationshipIdToChange = relationship.getElementId();
             transaction.commit();
         }
 
         try (Transaction transaction = database.beginTx()) {
-            var relationship = transaction.getRelationshipById(relationshipIdToChange);
-            relationship.setProperty(doubleProperty, randomAscii(attachedPropertySize));
+            var relationship = transaction.getRelationshipByElementId(relationshipIdToChange);
+            relationship.setProperty(doubleProperty, random.nextAsciiStringOfLength(attachedPropertySize));
             relationship.removeProperty(property);
 
             var kernelTransaction = getKernelTransaction(transaction);

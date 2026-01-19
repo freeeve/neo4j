@@ -61,10 +61,14 @@ class TestNeo4jApiExceptions {
     @Test
     void testNotInTransactionException() {
         Node node1 = tx.createNode();
+        String node1Id = node1.getElementId();
         node1.setProperty("test", 1);
         Node node2 = tx.createNode();
+        String node2Id = node2.getElementId();
         Node node3 = tx.createNode();
+        String node3Id = node3.getElementId();
         Relationship rel = node1.createRelationshipTo(node2, MyRelTypes.TEST);
+        String relId = rel.getElementId();
         rel.setProperty("test", 11);
         commit();
         assertThrows(NotInTransactionException.class, () -> node1.createRelationshipTo(node2, MyRelTypes.TEST));
@@ -74,15 +78,15 @@ class TestNeo4jApiExceptions {
         assertThrows(NotInTransactionException.class, rel::delete);
 
         newTransaction();
-        var testNode = tx.getNodeById(node1.getId());
-        var testRelationship = tx.getRelationshipById(rel.getId());
-        assertEquals(((Number) testNode.getProperty("test")).intValue(), 1);
-        assertEquals(((Number) testRelationship.getProperty("test")).intValue(), 11);
+        var testNode = tx.getNodeByElementId(node1Id);
+        var testRelationship = tx.getRelationshipByElementId(relId);
+        assertEquals(1, ((Number) testNode.getProperty("test")).intValue());
+        assertEquals(11, ((Number) testRelationship.getProperty("test")).intValue());
         assertEquals(testRelationship, testNode.getSingleRelationship(MyRelTypes.TEST, Direction.OUTGOING));
         testNode.delete();
-        tx.getNodeById(node2.getId()).delete();
+        tx.getNodeByElementId(node2Id).delete();
         testRelationship.delete();
-        tx.getNodeById(node3.getId()).delete();
+        tx.getNodeByElementId(node3Id).delete();
 
         // Finally
         rollback();
@@ -93,14 +97,14 @@ class TestNeo4jApiExceptions {
         Node node1 = tx.createNode();
         Node node2 = tx.createNode();
         Relationship rel = node1.createRelationshipTo(node2, MyRelTypes.TEST);
-        long nodeId = node1.getId();
-        long relId = rel.getId();
+        String nodeId = node1.getElementId();
+        String relId = rel.getElementId();
         rel.delete();
         node2.delete();
         node1.delete();
         newTransaction();
-        assertThrows(NotFoundException.class, () -> tx.getNodeById(nodeId));
-        assertThrows(NotFoundException.class, () -> tx.getRelationshipById(relId));
+        assertThrows(NotFoundException.class, () -> tx.getNodeByElementId(nodeId));
+        assertThrows(NotFoundException.class, () -> tx.getRelationshipByElementId(relId));
 
         // Finally
         rollback();

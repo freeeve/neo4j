@@ -252,9 +252,9 @@ class TransactionEventsIT {
             for (int i = 0; i < handlers.length; i++) {
                 handlers[i] = new CountingTransactionEventListener();
             }
-            long relNodeId;
+            String relNodeId;
             try (Transaction tx = db.beginTx()) {
-                relNodeId = tx.createNode().getId();
+                relNodeId = tx.createNode().getElementId();
                 tx.commit();
             }
             Future<?> nodeCreator = executor.submit(() -> {
@@ -279,7 +279,7 @@ class TransactionEventsIT {
                     startLatch.await();
                     for (int i = 0; i < 1_000; i++) {
                         try (Transaction tx = db.beginTx()) {
-                            Node relNode = tx.getNodeById(relNodeId);
+                            Node relNode = tx.getNodeByElementId(relNodeId);
                             relNode.createRelationshipTo(relNode, relationshipType);
                             if (ThreadLocalRandom.current().nextBoolean()) {
                                 tx.commit();

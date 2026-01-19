@@ -20,7 +20,7 @@
 package org.neo4j.internal.indexcommand.encode;
 
 import static java.time.ZoneOffset.UTC;
-import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
+import static org.apache.commons.lang3.RandomStringUtils.secure;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -92,18 +92,18 @@ class ValueStreamTest {
                 Values.longValue(Long.MAX_VALUE),
                 Values.floatValue(123.123f),
                 Values.doubleValue(123.123),
-                Values.stringValue(randomAscii(4)),
-                Values.stringValue(randomAscii(14)),
-                Values.stringValue(randomAscii(24)),
-                Values.stringValue(randomAscii(48)),
-                Values.stringValue(randomAscii(96)),
-                Values.stringValue(randomAscii(188)),
-                Values.utf8Value(randomAscii(4)),
-                Values.utf8Value(randomAscii(14)),
-                Values.utf8Value(randomAscii(24)),
-                Values.utf8Value(randomAscii(48)),
-                Values.utf8Value(randomAscii(96)),
-                Values.utf8Value(randomAscii(188)),
+                Values.stringValue(secure().nextAscii(4)),
+                Values.stringValue(secure().nextAscii(14)),
+                Values.stringValue(secure().nextAscii(24)),
+                Values.stringValue(secure().nextAscii(48)),
+                Values.stringValue(secure().nextAscii(96)),
+                Values.stringValue(secure().nextAscii(188)),
+                Values.utf8Value(secure().nextAscii(4)),
+                Values.utf8Value(secure().nextAscii(14)),
+                Values.utf8Value(secure().nextAscii(24)),
+                Values.utf8Value(secure().nextAscii(48)),
+                Values.utf8Value(secure().nextAscii(96)),
+                Values.utf8Value(secure().nextAscii(188)),
                 Values.temporalValue(LocalDate.parse("2021-10-01")),
                 Values.temporalValue(LocalDateTime.parse("2021-10-01T10:15")),
                 Values.temporalValue(ZonedDateTime.parse("2021-10-01T10:15+01:00[Europe/Stockholm]")),

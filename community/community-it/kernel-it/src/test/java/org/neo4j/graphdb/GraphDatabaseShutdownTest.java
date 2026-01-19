@@ -84,9 +84,10 @@ public class GraphDatabaseShutdownTest {
     @Test
     void shouldBeAbleToShutdownWhenThereAreTransactionsWaitingForLocks() {
         // GIVEN
-        final Node node;
+        final String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            Node node = tx.createNode();
+            nodeId = node.getElementId();
             tx.commit();
         }
 
@@ -97,7 +98,7 @@ public class GraphDatabaseShutdownTest {
         // one thread locks previously created node and initiates graph db shutdown
         Future<Void> shutdownFuture = t2.executeDontWait(() -> {
             try (Transaction tx = db.beginTx()) {
-                tx.getNodeById(node.getId()).addLabel(label("ABC"));
+                tx.getNodeByElementId(nodeId).addLabel(label("ABC"));
                 nodeLockedLatch.countDown();
 
                 // Wait for T3 to start waiting for this node write lock
@@ -117,7 +118,7 @@ public class GraphDatabaseShutdownTest {
                 nodeLockedLatch.await();
 
                 // T2 awaits this thread to get into a waiting state for this node write lock
-                tx.getNodeById(node.getId()).addLabel(label("DEF"));
+                tx.getNodeByElementId(nodeId).addLabel(label("DEF"));
 
                 shutdownCalled.await();
                 tx.commit();

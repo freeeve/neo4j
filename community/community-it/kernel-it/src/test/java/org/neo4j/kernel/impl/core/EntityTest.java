@@ -62,9 +62,9 @@ public abstract class EntityTest {
 
     protected AssertableLogProvider logProvider = new AssertableLogProvider();
 
-    protected abstract long createEntity(Transaction tx);
+    protected abstract String createEntity(Transaction tx);
 
-    protected abstract Entity lookupEntity(Transaction transaction, long id);
+    protected abstract Entity lookupEntity(Transaction transaction, String id);
 
     @AfterEach
     void tearDown() {
@@ -102,7 +102,7 @@ public abstract class EntityTest {
             Long.MAX_VALUE - 11
         });
 
-        long containerId;
+        String containerId;
 
         try (Transaction tx = db.beginTx()) {
             containerId = createEntity(tx);

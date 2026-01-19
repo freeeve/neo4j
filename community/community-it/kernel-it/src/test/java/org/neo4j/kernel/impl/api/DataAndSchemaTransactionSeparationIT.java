@@ -77,14 +77,14 @@ class DataAndSchemaTransactionSeparationIT {
     @Test
     void shouldNotAllowRelationshipCreationInSchemaTransaction() {
         // given
-        Pair<Node, Node> nodes;
+        Pair<String, String> nodeIds;
         try (var transaction = db.beginTx()) {
-            nodes = aPairOfNodes().apply(transaction);
+            nodeIds = aPairOfNodes().apply(transaction);
             transaction.commit();
         }
         // then
         try (var transaction = db.beginTx()) {
-            expectFailureAfterSchemaOperation(relate(nodes)).apply(transaction);
+            expectFailureAfterSchemaOperation(relate(nodeIds)).apply(transaction);
         }
     }
 
@@ -92,20 +92,20 @@ class DataAndSchemaTransactionSeparationIT {
     @SuppressWarnings("unchecked")
     void shouldNotAllowPropertyWritesInSchemaTransaction() {
         // given
-        Pair<Node, Node> nodes;
+        Pair<String, String> nodeIds;
         try (var transaction = db.beginTx()) {
-            nodes = aPairOfNodes().apply(transaction);
+            nodeIds = aPairOfNodes().apply(transaction);
             transaction.commit();
         }
-        Relationship relationship;
+        String relationshipId;
         try (var tx = db.beginTx()) {
-            relationship = relate(nodes).apply(tx);
+            relationshipId = relate(nodeIds).apply(tx);
             tx.commit();
         }
         // when
         for (Function<Transaction, ?> operation : new Function[] {
-            propertyWrite(Node.class, nodes.first(), "key1", "value1"),
-            propertyWrite(Relationship.class, relationship, "key1", "value1"),
+            propertyWrite(Node.class, nodeIds.first(), "key1", "value1"),
+            propertyWrite(Relationship.class, relationshipId, "key1", "value1"),
         }) {
             // then
             try (var transaction = db.beginTx()) {
@@ -118,30 +118,28 @@ class DataAndSchemaTransactionSeparationIT {
     @SuppressWarnings("unchecked")
     void shouldAllowPropertyReadsInSchemaTransaction() {
         // given
-        Pair<Node, Node> nodes;
+        Pair<String, String> nodeIds;
         try (var transaction = db.beginTx()) {
-            nodes = aPairOfNodes().apply(transaction);
+            nodeIds = aPairOfNodes().apply(transaction);
             transaction.commit();
         }
-        Relationship relationship;
+        String relationshipId;
         try (var tx = db.beginTx()) {
-            relationship = relate(nodes).apply(tx);
+            relationshipId = relate(nodeIds).apply(tx);
             tx.commit();
         }
         try (var tx = db.beginTx()) {
-            var node = tx.getNodeById(nodes.first().getId());
-            propertyWrite(Node.class, node, "key1", "value1").apply(tx);
+            propertyWrite(Node.class, nodeIds.first(), "key1", "value1").apply(tx);
             tx.commit();
         }
         try (var tx = db.beginTx()) {
-            propertyWrite(Relationship.class, tx.getRelationshipById(relationship.getId()), "key1", "value1")
-                    .apply(tx);
+            propertyWrite(Relationship.class, relationshipId, "key1", "value1").apply(tx);
             tx.commit();
         }
 
         // when
         for (Function<Transaction, ?> operation : new Function[] {
-            propertyRead(Node.class, nodes.first(), "key1"), propertyRead(Relationship.class, relationship, "key1"),
+            propertyRead(Node.class, nodeIds.first(), "key1"), propertyRead(Relationship.class, relationshipId, "key1"),
         }) {
             // then
             try (var transaction = db.beginTx()) {
@@ -155,40 +153,42 @@ class DataAndSchemaTransactionSeparationIT {
     }
 
     private static <T extends Entity> Function<Transaction, Object> propertyRead(
-            Class<T> type, final T entity, final String key) {
+            Class<T> type, final String entityId, final String key) {
         return new FailureRewrite<>(type.getSimpleName() + ".getProperty()") {
             @Override
             Object perform(Transaction transaction) {
-                if (entity instanceof Node) {
-                    return transaction.getNodeById(entity.getId()).getProperty(key);
+                if (type.getSimpleName().equals(Node.class.getSimpleName())) {
+                    return transaction.getNodeByElementId(entityId).getProperty(key);
                 } else {
-                    return transaction.getRelationshipById(entity.getId()).getProperty(key);
+                    return transaction.getRelationshipByElementId(entityId).getProperty(key);
                 }
             }
         };
     }
 
     private static <T extends Entity> Function<Transaction, Void> propertyWrite(
-            Class<T> type, final T entity, final String key, final Object value) {
+            Class<T> type, final String entityId, final String key, final Object value) {
         return new FailureRewrite<>(type.getSimpleName() + ".setProperty()") {
             @Override
             Void perform(Transaction transaction) {
-                if (entity instanceof Node) {
-                    transaction.getNodeById(entity.getId()).setProperty(key, value);
+                if (type.getSimpleName().equals(Node.class.getSimpleName())) {
+                    transaction.getNodeByElementId(entityId).setProperty(key, value);
                 } else {
-                    transaction.getRelationshipById(entity.getId()).setProperty(key, value);
+                    transaction.getRelationshipByElementId(entityId).setProperty(key, value);
                 }
                 return null;
             }
         };
     }
 
-    private static Function<Transaction, Pair<Node, Node>> aPairOfNodes() {
-        return tx -> Pair.of(tx.createNode(), tx.createNode());
+    private static Function<Transaction, Pair<String, String>> aPairOfNodes() {
+        return tx -> Pair.of(tx.createNode().getElementId(), tx.createNode().getElementId());
     }
 
-    private static Function<Transaction, Relationship> relate(final Pair<Node, Node> nodes) {
-        return tx -> tx.getNodeById(nodes.first().getId()).createRelationshipTo(nodes.other(), withName("RELATED"));
+    private static Function<Transaction, String> relate(final Pair<String, String> nodeIds) {
+        return tx -> tx.getNodeByElementId(nodeIds.first())
+                .createRelationshipTo(tx.getNodeByElementId(nodeIds.other()), withName("RELATED"))
+                .getElementId();
     }
 
     private abstract static class FailureRewrite<T> implements Function<Transaction, T> {

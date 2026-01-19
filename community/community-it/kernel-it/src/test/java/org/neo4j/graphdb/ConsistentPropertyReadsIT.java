@@ -43,16 +43,17 @@ class ConsistentPropertyReadsIT {
     @Test
     void shouldReadConsistentPropertyValues() throws Throwable {
         // GIVEN
-        var nodes = new Node[10];
+        var nodeIds = new String[10];
         var keys = new String[] {"1", "2", "3"};
         var values = new String[] {
             longString('a'), longString('b'), longString('c'),
         };
         try (var tx = db.beginTx()) {
-            for (var i = 0; i < nodes.length; i++) {
-                nodes[i] = tx.createNode();
+            for (var i = 0; i < nodeIds.length; i++) {
+                Node node = tx.createNode();
+                nodeIds[i] = node.getElementId();
                 for (String key : keys) {
-                    nodes[i].setProperty(key, values[0]);
+                    node.setProperty(key, values[0]);
                 }
             }
             tx.commit();
@@ -64,14 +65,14 @@ class ConsistentPropertyReadsIT {
         var race = new Race().withEndCondition(() -> updatesDone.get() > 1_000 && readsDone.get() > 100_000);
         race.addContestants(numUpdaters, () -> {
             var random = ThreadLocalRandom.current();
-            var node = nodes[random.nextInt(nodes.length)];
+            var nodeId = nodeIds[random.nextInt(nodeIds.length)];
             var key = keys[random.nextInt(keys.length)];
             try (var tx = db.beginTx()) {
-                tx.getNodeById(node.getId()).removeProperty(key);
+                tx.getNodeByElementId(nodeId).removeProperty(key);
                 tx.commit();
             }
             try (var tx = db.beginTx()) {
-                tx.getNodeById(node.getId()).setProperty(key, values[random.nextInt(values.length)]);
+                tx.getNodeByElementId(nodeId).setProperty(key, values[random.nextInt(values.length)]);
                 tx.commit();
             }
             updatesDone.incrementAndGet();
@@ -81,7 +82,7 @@ class ConsistentPropertyReadsIT {
         race.addContestants(numReaders, () -> {
             var random = ThreadLocalRandom.current();
             try (var tx = db.beginTx()) {
-                var value = (String) tx.getNodeById(nodes[random.nextInt(nodes.length)].getId())
+                var value = (String) tx.getNodeByElementId(nodeIds[random.nextInt(nodeIds.length)])
                         .getProperty(keys[random.nextInt(keys.length)], null);
                 assertTrue(value == null || ArrayUtil.contains(values, value), value);
                 tx.commit();

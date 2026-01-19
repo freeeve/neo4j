@@ -34,7 +34,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.neo4j.exceptions.KernelException;
@@ -64,20 +63,20 @@ public class NodeEntityTest extends EntityTest {
     RandomSupport random;
 
     @Override
-    protected long createEntity(Transaction tx) {
-        return tx.createNode().getId();
+    protected String createEntity(Transaction tx) {
+        return tx.createNode().getElementId();
     }
 
     @Override
-    protected Entity lookupEntity(Transaction transaction, long id) {
-        return transaction.getNodeById(id);
+    protected Entity lookupEntity(Transaction transaction, String id) {
+        return transaction.getNodeByElementId(id);
     }
 
     @Test
     void createDropNodeLongStringProperty(TestInfo testInfo) {
         Label markerLabel = Label.label("marker_" + testInfo.getTestMethod());
         String testPropertyKey = "testProperty";
-        String propertyValue = RandomStringUtils.randomAscii(255);
+        String propertyValue = random.nextAsciiStringOfLength(255);
 
         try (Transaction tx = db.beginTx()) {
             Node node = tx.createNode(markerLabel);
@@ -138,9 +137,9 @@ public class NodeEntityTest extends EntityTest {
     @Test
     void deletionOfSameNodeTwiceInOneTransactionShouldNotRollbackIt() {
         // Given
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            nodeId = tx.createNode().getElementId();
             tx.commit();
         }
 
@@ -148,9 +147,9 @@ public class NodeEntityTest extends EntityTest {
         Exception exceptionThrownBySecondDelete = null;
 
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).delete();
+            tx.getNodeByElementId(nodeId).delete();
             try {
-                tx.getNodeById(node.getId()).delete();
+                tx.getNodeByElementId(nodeId).delete();
             } catch (Exception e) {
                 exceptionThrownBySecondDelete = e;
             }
@@ -162,7 +161,7 @@ public class NodeEntityTest extends EntityTest {
 
         assertThrows(NotFoundException.class, () -> {
             try (Transaction tx = db.beginTx()) {
-                tx.getNodeById(node.getId()); // should throw NotFoundException
+                tx.getNodeByElementId(nodeId); // should throw NotFoundException
                 tx.commit();
             }
         });
@@ -171,20 +170,21 @@ public class NodeEntityTest extends EntityTest {
     @Test
     void deletionOfAlreadyDeletedNodeShouldThrow() {
         // Given
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            nodeId = tx.createNode().getElementId();
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).delete();
+            tx.getNodeByElementId(nodeId).delete();
             tx.commit();
         }
 
         // When
         assertThrows(NotFoundException.class, () -> {
             try (Transaction tx = db.beginTx()) {
-                tx.getNodeById(node.getId()).delete(); // should throw NotFoundException as this node is already deleted
+                tx.getNodeByElementId(nodeId)
+                        .delete(); // should throw NotFoundException as this node is already deleted
                 tx.commit();
             }
         });
@@ -196,10 +196,10 @@ public class NodeEntityTest extends EntityTest {
         try (ExecutorService executor = Executors.newFixedThreadPool(2, named("Test-executor-thread"))) {
             final int propertiesCount = 100;
 
-            final long nodeId;
+            final String nodeId;
             try (Transaction tx = db.beginTx()) {
                 Node node = tx.createNode();
-                nodeId = node.getId();
+                nodeId = node.getElementId();
                 for (int i = 0; i < propertiesCount; i++) {
                     node.setProperty("property-" + i, i);
                 }
@@ -215,7 +215,7 @@ public class NodeEntityTest extends EntityTest {
                     int propertyKey = 0;
                     while (propertyKey < propertiesCount) {
                         try (Transaction tx = db.beginTx()) {
-                            Node node = tx.getNodeById(nodeId);
+                            Node node = tx.getNodeByElementId(nodeId);
                             for (int i = 0; i < 10 && propertyKey < propertiesCount; i++, propertyKey++) {
                                 node.setProperty(
                                         "property-" + propertyKey,
@@ -230,7 +230,7 @@ public class NodeEntityTest extends EntityTest {
             };
             Runnable reader = () -> {
                 try (Transaction tx = db.beginTx()) {
-                    Node node = tx.getNodeById(nodeId);
+                    Node node = tx.getNodeByElementId(nodeId);
                     awaitLatch(start);
                     while (!writerDone.get()) {
                         int size = node.getAllProperties().size();
@@ -253,7 +253,7 @@ public class NodeEntityTest extends EntityTest {
             try (Transaction tx = db.beginTx()) {
                 assertEquals(
                         propertiesCount,
-                        tx.getNodeById(nodeId).getAllProperties().size());
+                        tx.getNodeByElementId(nodeId).getAllProperties().size());
                 tx.commit();
             }
         }
@@ -262,22 +262,23 @@ public class NodeEntityTest extends EntityTest {
     @Test
     void shouldBeAbleToForceTypeChangeOfProperty() {
         // Given
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            Node node = tx.createNode();
+            nodeId = node.getElementId();
             node.setProperty("prop", 1337);
             tx.commit();
         }
 
         // When
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).setProperty("prop", 1337.0);
+            tx.getNodeByElementId(nodeId).setProperty("prop", 1337.0);
             tx.commit();
         }
 
         // Then
         try (Transaction tx = db.beginTx()) {
-            assertThat(tx.getNodeById(node.getId()).getProperty("prop")).isInstanceOf(Double.class);
+            assertThat(tx.getNodeByElementId(nodeId).getProperty("prop")).isInstanceOf(Double.class);
         }
     }
 

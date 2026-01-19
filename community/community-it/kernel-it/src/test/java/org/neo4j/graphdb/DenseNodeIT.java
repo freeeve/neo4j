@@ -42,16 +42,17 @@ class DenseNodeIT {
     @Test
     void testBringingNodeOverDenseThresholdIsConsistent() {
         // GIVEN
-        Node root;
+        String rootId;
         try (Transaction tx = db.beginTx()) {
-            root = tx.createNode();
+            Node root = tx.createNode();
+            rootId = root.getElementId();
             createRelationshipsOnNode(tx, root, 40);
             tx.commit();
         }
 
         // WHEN
         try (Transaction tx = db.beginTx()) {
-            root = tx.getNodeById(root.getId());
+            Node root = tx.getNodeByElementId(rootId);
             createRelationshipsOnNode(tx, root, 60);
 
             // THEN
@@ -66,7 +67,7 @@ class DenseNodeIT {
         }
 
         try (Transaction tx = db.beginTx()) {
-            root = tx.getNodeById(root.getId());
+            Node root = tx.getNodeByElementId(rootId);
 
             assertEquals(100, root.getDegree());
             assertEquals(100, root.getDegree(Direction.OUTGOING));
@@ -82,15 +83,16 @@ class DenseNodeIT {
     @Test
     void deletingRelationshipsFromDenseNodeIsConsistent() {
         // GIVEN
-        Node root;
+        String rootId;
         try (Transaction tx = db.beginTx()) {
-            root = tx.createNode();
+            Node root = tx.createNode();
+            rootId = root.getElementId();
             createRelationshipsOnNode(tx, root, 100);
             tx.commit();
         }
 
         try (Transaction tx = db.beginTx()) {
-            root = tx.getNodeById(root.getId());
+            Node root = tx.getNodeByElementId(rootId);
             deleteRelationshipsFromNode(root, 80);
 
             assertEquals(20, root.getDegree());
@@ -100,7 +102,7 @@ class DenseNodeIT {
         }
 
         try (Transaction tx = db.beginTx()) {
-            root = tx.getNodeById(root.getId());
+            Node root = tx.getNodeByElementId(rootId);
             assertEquals(20, root.getDegree());
             assertEquals(20, root.getDegree(Direction.OUTGOING));
             assertEquals(0, root.getDegree(Direction.INCOMING));
@@ -111,10 +113,11 @@ class DenseNodeIT {
     @Test
     void movingBilaterallyOfTheDenseNodeThresholdIsConsistent() {
         // GIVEN
-        Node root;
+        String rootId;
         // WHEN
         try (Transaction tx = db.beginTx()) {
-            root = tx.createNode();
+            Node root = tx.createNode();
+            rootId = root.getElementId();
             createRelationshipsOnNode(tx, root, 100);
             deleteRelationshipsFromNode(root, 80);
 
@@ -127,7 +130,7 @@ class DenseNodeIT {
 
         // THEN
         try (Transaction tx = db.beginTx()) {
-            root = tx.getNodeById(root.getId());
+            Node root = tx.getNodeByElementId(rootId);
             assertEquals(20, root.getDegree());
             assertEquals(20, root.getDegree(Direction.OUTGOING));
             assertEquals(0, root.getDegree(Direction.INCOMING));
@@ -138,19 +141,21 @@ class DenseNodeIT {
     @Test
     void testBringingTwoConnectedNodesOverDenseThresholdIsConsistent() {
         // GIVEN
-        Node source;
-        Node sink;
+        String sourceId;
+        String sinkId;
         try (Transaction tx = db.beginTx()) {
-            source = tx.createNode();
-            sink = tx.createNode();
+            Node source = tx.createNode();
+            sourceId = source.getElementId();
+            Node sink = tx.createNode();
+            sinkId = sink.getElementId();
             createRelationshipsBetweenNodes(source, sink, 40);
             tx.commit();
         }
 
         // WHEN
         try (Transaction tx = db.beginTx()) {
-            source = tx.getNodeById(source.getId());
-            sink = tx.getNodeById(sink.getId());
+            Node source = tx.getNodeByElementId(sourceId);
+            Node sink = tx.getNodeByElementId(sinkId);
             createRelationshipsBetweenNodes(source, sink, 60);
 
             // THEN
@@ -173,8 +178,8 @@ class DenseNodeIT {
         }
 
         try (Transaction tx = db.beginTx()) {
-            source = tx.getNodeById(source.getId());
-            sink = tx.getNodeById(sink.getId());
+            Node source = tx.getNodeByElementId(sourceId);
+            Node sink = tx.getNodeByElementId(sinkId);
 
             assertEquals(100, source.getDegree());
             assertEquals(100, source.getDegree(Direction.OUTGOING));
@@ -198,29 +203,31 @@ class DenseNodeIT {
     @Test
     void shouldBeAbleToCreateRelationshipsInEmptyDenseNode() {
         // GIVEN
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            Node node = tx.createNode();
+            nodeId = node.getElementId();
             createRelationshipsBetweenNodes(node, tx.createNode(), denseNodeThreshold(db) + 1);
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            long nodeId = node.getId();
-            Iterables.forEach(tx.getNodeById(nodeId).getRelationships(), Relationship::delete);
+            Iterables.forEach(tx.getNodeByElementId(nodeId).getRelationships(), Relationship::delete);
             tx.commit();
         }
 
         // WHEN
-        Relationship rel;
+        String relId;
         try (Transaction tx = db.beginTx()) {
-            rel = tx.getNodeById(node.getId()).createRelationshipTo(tx.createNode(), MyRelTypes.TEST);
+            relId = tx.getNodeByElementId(nodeId)
+                    .createRelationshipTo(tx.createNode(), MyRelTypes.TEST)
+                    .getElementId();
             tx.commit();
         }
 
         try (Transaction tx = db.beginTx()) {
             // THEN
-            node = tx.getNodeById(node.getId());
-            rel = tx.getRelationshipById(rel.getId());
+            Node node = tx.getNodeByElementId(nodeId);
+            Relationship rel = tx.getRelationshipByElementId(relId);
             assertEquals(rel, single(node.getRelationships()));
             tx.commit();
         }

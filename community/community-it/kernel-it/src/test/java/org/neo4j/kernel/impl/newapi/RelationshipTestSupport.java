@@ -43,7 +43,7 @@ class RelationshipTestSupport {
     private RelationshipTestSupport() {}
 
     static void someGraph(GraphDatabaseService graphDb) {
-        Relationship dead;
+        String deadRelId;
         try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
             Node a = tx.createNode(), b = tx.createNode(), c = tx.createNode(), d = tx.createNode();
 
@@ -54,7 +54,8 @@ class RelationshipTestSupport {
 
             tx.createNode().createRelationshipTo(a, withName("BETA"));
             a.createRelationshipTo(tx.createNode(), withName("BETA"));
-            dead = a.createRelationshipTo(tx.createNode(), withName("BETA"));
+            deadRelId =
+                    a.createRelationshipTo(tx.createNode(), withName("BETA")).getElementId();
             a.createRelationshipTo(tx.createNode(), withName("BETA"));
 
             Node clump = tx.createNode();
@@ -72,7 +73,7 @@ class RelationshipTestSupport {
         }
 
         try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
-            dead = tx.getRelationshipById(dead.getId());
+            Relationship dead = tx.getRelationshipByElementId(deadRelId);
             Node node = dead.getEndNode();
             dead.delete();
             node.delete();
