@@ -187,6 +187,17 @@ public class TextChatTest implements GenAITestExtension {
     }
 
     @Test
+    void openAiIncompleteResponseYieldsReason() {
+        final var query = """
+                WITH { token: 'dummy-openai-token-fail', model: 'gpt-5' } AS conf
+                RETURN ai.text.chat('Fail!',  'prev_1234', 'openai', conf) AS result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Request to OpenAI failed due to: content_filter");
+    }
+
+    @Test
     void openAIWithConfigSetBaseURL() {
         GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost");
         final var query1 = """

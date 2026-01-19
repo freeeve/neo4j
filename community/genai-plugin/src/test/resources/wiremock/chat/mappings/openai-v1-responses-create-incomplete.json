@@ -1,0 +1,35 @@
+{
+  "request": {
+    "urlPath": "/v1/responses",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-openai-token-fail"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "previous_response_id": "prev_1234",
+          "model": "gpt-5",
+          "input": [
+            {
+              "role": "user",
+              "content": "Fail!"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "openai-v1-responses-create-incomplete.json"
+  }
+}

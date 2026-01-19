@@ -77,6 +77,11 @@ public interface OpenAiChatBase<PARAMS> extends TextChat.Provider.Implementation
                 .filter(c -> "output_text".equals(c.type()))
                 .map(ResponseModel.Content::text)
                 .toList();
+        if (messages.isEmpty() && response.incomplete_details() != null) {
+            final var reason = response.incomplete_details().get("reason");
+            throw new MalformedGenAIResponseException(
+                    "Request to OpenAI failed due to: " + (reason == null ? "an unknown reason." : reason));
+        }
         return new ParsedResponse(response.id(), messages);
     }
 
@@ -108,6 +113,7 @@ public interface OpenAiChatBase<PARAMS> extends TextChat.Provider.Implementation
         @JsonIgnoreProperties(ignoreUnknown = true)
         record Response(
                 @JsonProperty(required = true) String id,
-                @JsonProperty(required = true) List<Output> output) {}
+                @JsonProperty(required = true) List<Output> output,
+                @JsonProperty("incomplete_details") Map<String, String> incomplete_details) {}
     }
 }
