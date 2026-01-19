@@ -77,8 +77,18 @@ abstract class TestDirectoryExtensionTestSupport {
         }
 
         @Override
+        Class<? extends DirectoryExtensionLifecycleVerificationTest.AfterEachTestFail> getPerTestAfterEachClass() {
+            return DirectoryExtensionLifecycleVerificationTest.WithRealFs.PerClassAfterEachTest.class;
+        }
+
+        @Override
         Class<? extends DirectoryExtensionLifecycleVerificationTest.SecondTestFailTest> getPerMethodClass() {
             return DirectoryExtensionLifecycleVerificationTest.WithRealFs.PerMethodTest.class;
+        }
+
+        @Override
+        Class<? extends DirectoryExtensionLifecycleVerificationTest.AfterEachTestFail> getPerMethodAfterEachClass() {
+            return DirectoryExtensionLifecycleVerificationTest.WithRealFs.PerMethodAfterEachTest.class;
         }
 
         @Test
@@ -110,8 +120,18 @@ abstract class TestDirectoryExtensionTestSupport {
         }
 
         @Override
+        Class<? extends DirectoryExtensionLifecycleVerificationTest.AfterEachTestFail> getPerTestAfterEachClass() {
+            return DirectoryExtensionLifecycleVerificationTest.WithEphemeralFs.PerClassAfterEachTest.class;
+        }
+
+        @Override
         Class<? extends DirectoryExtensionLifecycleVerificationTest.SecondTestFailTest> getPerMethodClass() {
             return DirectoryExtensionLifecycleVerificationTest.WithEphemeralFs.PerMethodTest.class;
+        }
+
+        @Override
+        Class<? extends DirectoryExtensionLifecycleVerificationTest.AfterEachTestFail> getPerMethodAfterEachClass() {
+            return DirectoryExtensionLifecycleVerificationTest.WithEphemeralFs.PerMethodAfterEachTest.class;
         }
     }
 
@@ -168,6 +188,22 @@ abstract class TestDirectoryExtensionTestSupport {
     }
 
     @Test
+    void failedTestAfterEachShouldKeepDirectoryInPerClassLifecycle() {
+        List<Pair<Path, Boolean>> pairs = executeAndReturnCreatedFiles(getPerTestAfterEachClass(), 1);
+        for (var pair : pairs) {
+            assertThat(pair.first()).exists();
+        }
+    }
+
+    @Test
+    void failedTestAfterEachShouldKeepDirectoryInPerMethodLifecycle() {
+        List<Pair<Path, Boolean>> pairs = executeAndReturnCreatedFiles(getPerMethodAfterEachClass(), 1);
+        for (var pair : pairs) {
+            assertThat(pair.first()).exists();
+        }
+    }
+
+    @Test
     void failedTestShouldNotKeepDirectoryInPerMethodLifecycle() {
         List<Pair<Path, Boolean>> pairs = executeAndReturnCreatedFiles(getPerMethodClass(), 6);
         for (var pair : pairs) {
@@ -209,7 +245,12 @@ abstract class TestDirectoryExtensionTestSupport {
 
     abstract Class<? extends DirectoryExtensionLifecycleVerificationTest.SecondTestFailTest> getPerTestClass();
 
+    abstract Class<? extends DirectoryExtensionLifecycleVerificationTest.AfterEachTestFail> getPerTestAfterEachClass();
+
     abstract Class<? extends DirectoryExtensionLifecycleVerificationTest.SecondTestFailTest> getPerMethodClass();
+
+    abstract Class<? extends DirectoryExtensionLifecycleVerificationTest.AfterEachTestFail>
+            getPerMethodAfterEachClass();
 
     protected void execute(String testName, TestExecutionListener... testExecutionListeners) {
         LauncherDiscoveryRequest discoveryRequest = LauncherDiscoveryRequestBuilder.request()

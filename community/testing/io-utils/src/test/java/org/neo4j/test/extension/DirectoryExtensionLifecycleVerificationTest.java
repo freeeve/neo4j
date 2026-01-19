@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -72,8 +73,16 @@ abstract class DirectoryExtensionLifecycleVerificationTest {
         class PerClassTest extends SecondTestFailTest {}
 
         @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        class PerClassAfterEachTest extends AfterEachTestFail {}
+
+        @Nested
         @TestInstance(TestInstance.Lifecycle.PER_METHOD)
         class PerMethodTest extends SecondTestFailTest {}
+
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_METHOD)
+        class PerMethodAfterEachTest extends AfterEachTestFail {}
     }
 
     @EphemeralTestDirectoryExtension
@@ -83,8 +92,16 @@ abstract class DirectoryExtensionLifecycleVerificationTest {
         class PerClassTest extends SecondTestFailTest {}
 
         @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        class PerClassAfterEachTest extends AfterEachTestFail {}
+
+        @Nested
         @TestInstance(TestInstance.Lifecycle.PER_METHOD)
         class PerMethodTest extends SecondTestFailTest {}
+
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_METHOD)
+        class PerMethodAfterEachTest extends AfterEachTestFail {}
     }
 
     @Test
@@ -134,31 +151,50 @@ abstract class DirectoryExtensionLifecycleVerificationTest {
 
         @Test
         void createAFileAndThenPass() {
-            createFileSaveAndFailIfNeeded(Boolean.FALSE);
+            createFileSaveAndFailIfNeeded(false);
         }
 
         @Test
         void createAFileAndThenFail() {
-            createFileSaveAndFailIfNeeded(Boolean.TRUE);
+            createFileSaveAndFailIfNeeded(true);
         }
 
         @Test
         void createAnotherFileAndThenPass() {
-            createFileSaveAndFailIfNeeded(Boolean.FALSE);
+            createFileSaveAndFailIfNeeded(false);
         }
 
         @ValueSource(booleans = {false, true, false})
         @ParameterizedTest
         void createFileSaveAndFailIfNeeded(Boolean fail) {
-            var filename = UUID.randomUUID().toString();
-            var file = testDirectory.createFile(filename);
-            List<Pair<Path, Boolean>> pairs = ExecutionSharedContext.getValue(CREATED_TEST_FILE_PAIRS_KEY);
-            pairs = pairs == null ? new ArrayList<>() : pairs;
-            pairs.add(Pair.of(file, fail));
-            ExecutionSharedContext.setValue(CREATED_TEST_FILE_PAIRS_KEY, pairs);
-            if (fail) {
-                fail();
-            }
+            DirectoryExtensionLifecycleVerificationTest.createFileSaveAndFailIfNeeded(fail, testDirectory);
+        }
+    }
+
+    static class AfterEachTestFail {
+        @Inject
+        TestDirectory testDirectory;
+
+        @AfterEach
+        void tearDown() {
+            fail();
+        }
+
+        @Test
+        void createAFileAndThenPass() {
+            createFileSaveAndFailIfNeeded(false, testDirectory);
+        }
+    }
+
+    private static void createFileSaveAndFailIfNeeded(boolean fail, TestDirectory testDirectory) {
+        var filename = UUID.randomUUID().toString();
+        var file = testDirectory.createFile(filename);
+        List<Pair<Path, Boolean>> pairs = ExecutionSharedContext.getValue(CREATED_TEST_FILE_PAIRS_KEY);
+        pairs = pairs == null ? new ArrayList<>() : pairs;
+        pairs.add(Pair.of(file, fail));
+        ExecutionSharedContext.setValue(CREATED_TEST_FILE_PAIRS_KEY, pairs);
+        if (fail) {
+            fail();
         }
     }
 

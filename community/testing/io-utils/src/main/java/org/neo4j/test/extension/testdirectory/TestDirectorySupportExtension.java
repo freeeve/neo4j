@@ -79,6 +79,8 @@ public class TestDirectorySupportExtension extends StatefulFieldExtension<TestDi
     public void afterEach(ExtensionContext context) {
         if (getLifecycle(context) == PER_METHOD) {
             cleanUp(context);
+        } else if (context.getExecutionException().isPresent()) {
+            getTestDirectoryStore(context).put(FAILURE_MARKER, TRUE);
         }
     }
 
