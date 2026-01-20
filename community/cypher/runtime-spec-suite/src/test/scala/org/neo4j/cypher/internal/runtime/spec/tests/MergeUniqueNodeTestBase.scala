@@ -166,33 +166,6 @@ abstract class MergeUniqueNodeTestBase[CONTEXT <: RuntimeContext](
     ).withNoUpdates()
   }
 
-  test("should exact seek nodes of a locking composite unique index with properties") {
-    val nodes = givenGraph {
-      uniqueNodeIndex(IndexType.RANGE, "Honey", "prop1", "prop2")
-      nodeGraph(5, "Milk")
-      nodePropertyGraph(
-        sizeHint,
-        {
-          case i if i % 10 == 0 => Map("prop1" -> i, "prop2" -> s"$i")
-        },
-        "Honey"
-      )
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("x")
-      .filter("true")
-      .nodeIndexOperator("x:Honey(prop1 = 20, prop2 = '20')", unique = true)
-      .build(readOnly = false)
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    val expected = nodes(20)
-    runtimeResult should beColumns("x").withSingleRow(expected).withLocks((SHARED, INDEX_ENTRY), (SHARED, LABEL))
-  }
-
   test("should support composite unique index and unique locking") {
     val nodes = givenGraph {
       uniqueNodeIndex(IndexType.RANGE, "Honey", "prop", "prop2")
@@ -439,6 +412,91 @@ abstract class MergeUniqueNodeTestBase[CONTEXT <: RuntimeContext](
     queryProfile.operatorProfile(1).dbHits() shouldBe 0
   }
 
+  test("should only create one node for non-composite mergeUnique") {
+    givenGraph {
+      uniqueNodeIndex(IndexType.RANGE, "Honey", "prop1")
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .apply()
+      .|.mergeUniqueNode("x", "Honey", Seq("prop1" -> "1"))
+      .unwind("range(1, 100) AS i")
+      .argument()
+      .build(readOnly = false)
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withRows(rowCount(100)).withStatistics(
+      nodesCreated = 1,
+      labelsAdded = 1,
+      propertiesSet = 1
+    )
+  }
+
+  test("should only create one node for multi-property composite mergeUnique") {
+    givenGraph {
+      uniqueNodeIndex(IndexType.RANGE, "Honey", "prop1", "prop2", "prop3", "prop4", "prop5")
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .apply()
+      .|.mergeUniqueNode(
+        "x",
+        "Honey",
+        Seq("prop1" -> "1", "prop2" -> "2", "prop3" -> "3", "prop4" -> "4", "prop5" -> "5")
+      )
+      .unwind("range(1, 100) AS i")
+      .argument()
+      .build(readOnly = false)
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withRows(rowCount(100)).withStatistics(
+      nodesCreated = 1,
+      labelsAdded = 1,
+      propertiesSet = 5
+    )
+  }
+
+  test("should not create existing nodes for composite") {
+    givenGraph {
+      uniqueNodeIndex(IndexType.RANGE, "Honey", "prop1", "prop2", "prop3", "prop4", "prop5")
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .apply()
+      .|.mergeUniqueNode(
+        "x",
+        "Honey",
+        Seq("prop1" -> "i[0]", "prop2" -> "i[1]", "prop3" -> "i[2]", "prop4" -> "i[3]", "prop5" -> "i[4]")
+      )
+      .input(variables = Seq("i"))
+      .build(readOnly = false)
+
+    // Create all combinations where prop1 can have two values, prop2 three values, etc, so there should be 2 * 3 * 4 * 5 * 6 = 720 unique combinations,
+    // but with lots of duplicate entries. Use a fixed seed, just in the very unlikely case we don't generate all the 720 combinations for some seed.
+    val random = new Random(11)
+    val inputs = (1 to 10000).map(_ =>
+      Array[Any](Array(random.nextInt(2), random.nextInt(3), random.nextInt(4), random.nextInt(5), random.nextInt(6)))
+    )
+
+    val runtimeResult = execute(logicalQuery, runtime, inputValues(inputs: _*))
+
+    // then
+    runtimeResult should beColumns("x").withRows(rowCount(10000)).withStatistics(
+      nodesCreated = 720,
+      labelsAdded = 720,
+      propertiesSet = 720 * 5
+    )
+  }
 }
 
 object MergeUniqueNodeTestBase

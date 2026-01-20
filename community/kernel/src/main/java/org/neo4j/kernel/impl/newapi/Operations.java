@@ -380,22 +380,29 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
 
         node = internalNodeCreateWithLabels(commandCreationContext, labels, null);
-        for (PropertyIndexQuery.ExactPredicate predicate : predicates) {
+        int[] allPropertyKeys = new int[predicates.length];
+        for (int i = 0; i < predicates.length; i++) {
+            PropertyIndexQuery.ExactPredicate predicate = predicates[i];
             int propertyKey = predicate.propertyKeyId();
+            allPropertyKeys[i] = propertyKey;
             Value value = predicate.value();
             // adding of new property
             ktx.securityAuthorizationHandler()
                     .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, labelSet, propertyKey);
             boolean hasRelatedSchema = storageReader.hasRelatedSchema(labels, propertyKey, NODE);
-            if (hasRelatedSchema && wasFiltered) {
-                checkUniquenessConstraints(node, propertyKey, value, labels, EMPTY_INT_ARRAY);
-            }
-            // We are holding an exclusive index lock, we just checked that there wasn't any matching node and have
-            // just created the node, so we can't violate any uniqueness constraints at this point.
-            ktx.txState().nodeDoAddProperty(node, propertyKey, value);
             if (hasRelatedSchema) {
-                updater.onPropertyAdd(localNodeCursor, localPropertyCursor, labels, propertyKey, new int[] {}, value);
+                // We are holding an exclusive index lock, we just checked that there wasn't any matching node and have
+                // just created the node, so we can't violate any uniqueness constraints at this point. Except for the
+                // case if the node was filtered out, probably due to RBAC, in that case the node might actually exist
+                // so we must check so we don't invalidate uniqueness constraints.
+                int[] existingProperties = i == 0 ? EMPTY_INT_ARRAY : Arrays.copyOfRange(allPropertyKeys, 0, i);
+                if (wasFiltered) {
+                    checkUniquenessConstraints(node, propertyKey, value, labels, existingProperties);
+                }
+                updater.onPropertyAdd(
+                        localNodeCursor, localPropertyCursor, labels, propertyKey, existingProperties, value);
             }
+            ktx.txState().nodeDoAddProperty(node, propertyKey, value);
         }
         if (!onCreateProperties.isEmpty()) {
             // we could probably do a bit better here since we know the node was just created,
