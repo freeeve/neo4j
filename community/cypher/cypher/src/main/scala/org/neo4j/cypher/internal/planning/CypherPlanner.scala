@@ -203,6 +203,12 @@ sealed trait CypherPlanner {
     parsedQuery: BaseState,
     parsingNotifications: Set[InternalNotification]
   ): Unit
+
+  @VisibleForTesting
+  def astCacheSize: Int
+
+  @VisibleForTesting
+  def getFromAstCache(astKey: AstCache.Key): Option[CypherQueryCaches.AstCache.Value]
 }
 
 object DefaultCypherPlanner {
@@ -860,6 +866,16 @@ final class TransformingPlanner private[planning] (
         names += name
     }
     (names.distinct, mapBuilder.build())
+  }
+
+  @VisibleForTesting
+  def astCacheSize: Int = {
+    caches.astCache.asMap().size()
+  }
+
+  @VisibleForTesting
+  def getFromAstCache(astKey: AstCache.Key): Option[CypherQueryCaches.AstCache.Value] = {
+    caches.astCache.get(astKey)
   }
 }
 

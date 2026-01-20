@@ -74,9 +74,11 @@ class CompilerLibrary(factory: CompilerFactory, executionEngineProvider: () => E
     parsedQuery: BaseState,
     parsingNotifications: Set[InternalNotification]
   ): Unit = {
-    compilers.values().forEach {
+    val key = CompilerKey(preParsedQuery.options.queryOptions.planner, preParsedQuery.options.queryOptions.runtime)
+    compilers.get(key) match {
       case c: CypherCurrentCompiler[_] => c.insertIntoCache(preParsedQuery, params, parsedQuery, parsingNotifications)
-      case _                           =>
+      case null => // key is not in compilers (it might be the first query executed on a non-default runtime/planner combination)
+      case _ => // compiler is not a CypherCurrentCompiler
     }
   }
 
