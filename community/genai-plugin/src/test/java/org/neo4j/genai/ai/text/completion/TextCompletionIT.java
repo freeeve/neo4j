@@ -220,40 +220,6 @@ class TextCompletionIT {
     @Nested
     @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.ACCESS_KEY_ENV, matches = ".*")
     @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.SECRET_ACCESS_KEY_ENV, matches = ".*")
-    class BedrockTitan extends TextCompletionITBase {
-
-        @Override
-        String provider() {
-            return "bedrock-titan";
-        }
-
-        @Override
-        Map<String, Object> params() {
-            return Map.of(
-                    "key",
-                    System.getenv(Tokens.Bedrock.ACCESS_KEY_ENV),
-                    "secret",
-                    System.getenv(Tokens.Bedrock.SECRET_ACCESS_KEY_ENV));
-        }
-
-        @Override
-        List<String> confRequired() {
-            return List.of(
-                    "{ model: 'amazon.titan-text-lite-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret }",
-                    "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-text-lite-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret }");
-        }
-
-        @Override
-        List<String> confWithVendorOptions() {
-            return List.of(
-                    "{ model: 'amazon.titan-text-lite-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }",
-                    "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-text-lite-v1', region: 'us-east-1', accessKeyId: $key, secretAccessKey: $secret, vendorOptions: { textGenerationConfig: { maxTokenCount: 1024 } } }");
-        }
-    }
-
-    @Nested
-    @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.ACCESS_KEY_ENV, matches = ".*")
-    @EnabledIfEnvironmentVariable(named = Tokens.Bedrock.SECRET_ACCESS_KEY_ENV, matches = ".*")
     class BedrockConverse extends TextCompletionITBase {
 
         private final String chatHistory = """

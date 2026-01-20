@@ -31,6 +31,7 @@ import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
 import org.neo4j.util.VisibleForTesting;
 
+@Deprecated
 @ServiceProvider
 public class BedrockTitan extends BedrockBase {
     public BedrockTitan() {}
