@@ -26,6 +26,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.neo4j.graphdb.NotInTransactionException;
+import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -174,7 +176,11 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
 
     @Override
     public long activeLockCount() {
-        return tx.lockClient().activeLockCount();
+        try {
+            return tx.lockClient().activeLockCount();
+        } catch (NotInTransactionException | TransactionTerminatedException e) {
+            return 0L;
+        }
     }
 
     @Override
