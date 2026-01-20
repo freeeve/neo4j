@@ -29,6 +29,8 @@ import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
+import org.neo4j.cypher.internal.runtime.KernelAPISupport.impossibleExactValue
+import org.neo4j.cypher.internal.runtime.KernelAPISupport.isImpossibleIndexQuery
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
@@ -204,8 +206,9 @@ object NodeVectorIndexSearchPipe {
       case Some(SingleQueryExpression(expression)) =>
         checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
         makeValueNeoSafe.safeOrEmpty(expression(row, state)) match {
-          case Some(value) => Array(nearestPredicate, PropertyIndexQuery.exact(properties(1), value))
-          case None        =>
+          case Some(value) if !impossibleExactValue(value) =>
+            Array(nearestPredicate, PropertyIndexQuery.exact(properties(1), value))
+          case _ =>
             // empty means no possible results
             Array.empty
         }
@@ -219,7 +222,7 @@ object NodeVectorIndexSearchPipe {
               properties(1)
             )
             // empty means no possible results
-            if (inner.isEmpty) {
+            if (inner.isEmpty || inner.exists(isImpossibleIndexQuery)) {
               Array.empty
             } else {
               nearestPredicate +: inner
@@ -264,9 +267,9 @@ object NodeVectorIndexSearchPipe {
       inner(i - 1) match {
         case SingleQueryExpression(expression) =>
           makeValueNeoSafe.safeOrEmpty(expression(row, state)) match {
-            case Some(value) =>
+            case Some(value) if !impossibleExactValue(value) =>
               predicates(i) = PropertyIndexQuery.exact(properties(i), value)
-            case None =>
+            case _ =>
               return Array.empty
           }
 
@@ -278,7 +281,7 @@ object NodeVectorIndexSearchPipe {
                 properties(i)
               )
               // empty means no possible results
-              if (inner.isEmpty) {
+              if (inner.isEmpty || inner.exists(isImpossibleIndexQuery)) {
                 return Array.empty
               } else if (inner.length == 1) {
                 predicates(i) = inner.head
