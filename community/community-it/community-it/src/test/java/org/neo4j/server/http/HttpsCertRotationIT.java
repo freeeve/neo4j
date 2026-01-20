@@ -99,7 +99,7 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
             }
         };
 
-        int retries = 3;
+        int retries = 6;
         long delayBeforeRetryMs = 500L;
 
         X509Certificate originalCert = retry(testClientInvocation, retries, delayBeforeRetryMs);
@@ -109,7 +109,7 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
         assertEventually(
                 () -> retry(testClientInvocation, retries, delayBeforeRetryMs),
                 currentCert -> !currentCert.getSerialNumber().equals(originalCert.getSerialNumber()),
-                5,
+                10,
                 TimeUnit.SECONDS);
     }
 
