@@ -58,8 +58,7 @@ object CacheCountsTestSupport {
     discards: Long = 0,
     compilations: Long = 0,
     compilationsWithExpressionCodeGen: Long = 0,
-    awaits: Long = 0,
-    codeGenByteCodeSize: Long = 0
+    awaits: Long = 0
   ) {
 
     def -(that: CacheCounts): CacheCounts = {
@@ -71,8 +70,7 @@ object CacheCountsTestSupport {
         discards = discards - that.discards,
         compilations = compilations - that.compilations,
         compilationsWithExpressionCodeGen = compilationsWithExpressionCodeGen - that.compilationsWithExpressionCodeGen,
-        awaits = awaits - that.awaits,
-        codeGenByteCodeSize = codeGenByteCodeSize - that.codeGenByteCodeSize
+        awaits = awaits - that.awaits
       )
     }
 
@@ -84,10 +82,6 @@ object CacheCountsTestSupport {
   object CacheCounts {
 
     def fromMetrics(metrics: CacheMetrics): CacheCounts = {
-      val codeGenSize = metrics match {
-        case codeGenMetrics: CacheMetrics.CodeGen => codeGenMetrics.getCodeGenByteCodeSize
-        case _                                    => 0
-      }
       CacheCounts(
         hits = metrics.getHits,
         misses = metrics.getMisses,
@@ -97,8 +91,7 @@ object CacheCountsTestSupport {
         compilations =
           metrics.getCompiled - metrics.getCompiledWithExpressionCodeGen, // avoid double-counting getCompiledWithExpressionCodeGen
         compilationsWithExpressionCodeGen = metrics.getCompiledWithExpressionCodeGen,
-        awaits = metrics.getAwaits,
-        codeGenByteCodeSize = codeGenSize
+        awaits = metrics.getAwaits
       )
     }
   }
