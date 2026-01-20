@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
@@ -38,12 +37,8 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
-import org.neo4j.cypher.internal.util.topDown
-
-import scala.util.matching.Regex
 
 case class SurveyorNameGenerator() extends AnonymousVariableNameGenerator {
   private var counter = 0
@@ -81,12 +76,6 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState]
   val unitVariables: Set[LogicalVariable] = Set.empty[LogicalVariable]
   val noLocalCallables: Set[LocalCallableScopeSignature] = Set.empty[LocalCallableScopeSignature]
 
-  private val namespacing: Regex = """[ ]{2}(.*)@\d+""".r
-
-  private val removeNamespacing: Rewriter = Rewriter.lift {
-    case v @ Variable(namespacing(varName)) => v.copy(name = varName)(v.position, v.isIsolated)
-  }
-
   override def process(from: BaseState, context: BaseContext): BaseState =
     if (from.maybeScopeState.isEmpty || from.statement != from.scopeState().workingScope.astNode)
       from.withScopeState(runFromState(from, context))
@@ -102,10 +91,9 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState]
     semanticFeatures: Seq[SemanticFeature]
   ): ScopeState = {
     val anonVarGen = SurveyorNameGenerator()
-    val cleanStatement = statement.endoRewrite(topDown(removeNamespacing))
 
     val workingContextOfStatement = scope(
-      cleanStatement,
+      statement,
       RegularContext.unit,
       PegContext(
         anonVarGen,
