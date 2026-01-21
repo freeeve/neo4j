@@ -5156,6 +5156,17 @@ case class RepeatAcyclic(
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)
 
+  /**
+   * Used to order inner nodes when converting to physical plan, since the inner nodes array
+   * of the physical operator assumes the inner start node is at the first position.
+   *
+   * @param node logical node variable
+   */
+  def orderInnerNode(node: LogicalVariable): Int =
+    if (reverseGroupVariableProjections) {
+      if (innerEnd == node) 0 else 1
+    } else if (innerStart == node) 0 else 1
+
   override def withVariableGroupings(
     nodeVariableGroupings: Set[VariableGrouping],
     relationshipVariableGroupings: Set[VariableGrouping]

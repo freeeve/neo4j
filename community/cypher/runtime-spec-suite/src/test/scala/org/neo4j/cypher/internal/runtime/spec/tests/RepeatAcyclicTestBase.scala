@@ -75,6 +75,67 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
   protected val sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
 
+  test("basic case with reversed innerNodes Set order (previous bug)") {
+    val (n1, n2, n3, _, r12, r23, _) = smallChainGraph
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r", "path")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatAcyclic(acyclicParameters =
+        AcyclicParameters(
+          min = 0,
+          max = Limited(2),
+          start = "me",
+          end = "you",
+          innerStart = "a_inner",
+          innerEnd = "b_inner",
+          groupNodes = Set(("b_inner", "b"), ("a_inner", "a")),
+          innerNodes = Set("b_inner", "a_inner"), // Previously only worked if a_inner was first
+          previouslyBoundNodes = Set("me"),
+          previouslyBoundNodeGroups = Set(),
+          groupRelationships = Set(("r_inner", "r")),
+          innerRelationships = Set("r_inner"),
+          previouslyBoundRelationships = Set(),
+          previouslyBoundRelationshipGroups = Set(),
+          reverseGroupVariableProjections = false,
+          expansionMode = ExpandAll,
+          accumulators = Set.empty
+        )
+      )
+      .|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
+      Seq(
+        Array(
+          n1,
+          n1,
+          emptyList(),
+          emptyList(),
+          emptyList(),
+          pathReference(Array(n1.getId), Array.empty[Long])
+        ),
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId))),
+        Array(
+          n1,
+          n3,
+          listOf(n1, n2),
+          listOf(n2, n3),
+          listOf(r12, r23),
+          pathReference(Array(n1.getId, n2.getId, n3.getId), Array(r12.getId, r23.getId))
+        )
+      )
+    ))
+
+  }
+
   test("should respect upper limit") {
     // (n1:START) → (n2) → (n3) → (n4)
     val (n1, n2, n3, _, r12, r23, _) = smallChainGraph

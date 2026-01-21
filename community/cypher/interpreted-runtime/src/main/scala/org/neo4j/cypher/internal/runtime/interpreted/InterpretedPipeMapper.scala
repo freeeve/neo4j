@@ -2303,7 +2303,7 @@ case class InterpretedPipeMapper(
           )
         )(id = id)
 
-      case RepeatAcyclic(
+      case repeat @ RepeatAcyclic(
           _,
           _,
           repetition,
@@ -2344,7 +2344,7 @@ case class InterpretedPipeMapper(
           groupRelationships,
           RepeatPipe.AcyclicModeConstraint(
             innerRelationships.map(_.name).toArray,
-            innerNodes.map(_.name).toArray,
+            innerNodes.toArray.sortBy(repeat.orderInnerNode).map(_.name), // ensure node to skip is first
             previouslyBoundRelationships.map(_.name),
             previouslyBoundRelationshipGroups.map(_.name),
             previouslyBoundNodes.map(_.name),

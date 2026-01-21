@@ -2143,7 +2143,7 @@ class SlottedPipeMapper(
       case AssertSameRelationship(relationship, _, _) =>
         AssertSameRelationshipSlottedPipe(lhs, rhs, relationship.name, slots(relationship).slot)(id = id)
 
-      case RepeatAcyclic(
+      case repeat @ RepeatAcyclic(
           _,
           _,
           repetition,
@@ -2169,6 +2169,7 @@ class SlottedPipeMapper(
         }
         val rhsSlots = slotConfigs(rhs.id)
         val lhsSlots = slotConfigs(lhs.id)
+
         RepeatSlottedPipe(
           lhs,
           rhs,
@@ -2184,7 +2185,7 @@ class SlottedPipeMapper(
             innerRelationships.map(r => rhsSlots(r).slot).toArray,
             previouslyBoundRelationships.map(r => lhsSlots(r).slot).toArray,
             previouslyBoundRelationshipGroups.map(r => lhsSlots(r).slot).toArray,
-            innerNodes.map(n => rhsSlots(n).slot).toArray,
+            innerNodes.toArray.sortBy(repeat.orderInnerNode).map(n => rhsSlots(n).slot), // ensure node to skip is first
             previouslyBoundNodes.map(n => lhsSlots(n).slot).toArray,
             previouslyBoundNodeGroups.map(n => lhsSlots(n).slot).toArray
           ),
