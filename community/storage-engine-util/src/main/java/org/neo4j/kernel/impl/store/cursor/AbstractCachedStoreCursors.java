@@ -19,8 +19,10 @@
  */
 package org.neo4j.kernel.impl.store.cursor;
 
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.neo4j.util.FeatureToggles.flag;
 
+import java.util.Arrays;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -33,8 +35,8 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
     protected CursorContext cursorContext;
     private final int numTypes;
 
-    private PageCursor[] cursorsByType;
-    private PageCursor[] noCurrentTransactionCursorsByType;
+    private final PageCursor[] cursorsByType;
+    private final PageCursor[] noCurrentTransactionCursorsByType;
 
     public AbstractCachedStoreCursors(CursorContext cursorContext, int numTypes) {
         this.cursorContext = cursorContext;
@@ -52,19 +54,22 @@ public abstract class AbstractCachedStoreCursors implements StoreCursors {
     protected void resetCursors() {
         reset(cursorsByType);
         reset(noCurrentTransactionCursorsByType);
-        cursorsByType = createEmptyCursorArray();
-        noCurrentTransactionCursorsByType = createEmptyCursorArray();
     }
 
     private void reset(PageCursor[] cursors) {
+        boolean clearCursors = false;
         for (int i = 0; i < cursors.length; i++) {
             PageCursor pageCursor = cursors[i];
             if (pageCursor != null) {
+                clearCursors = true;
                 if (CHECK_READ_CURSORS) {
-                    checkReadCursor(pageCursor, i, "");
+                    checkReadCursor(pageCursor, i, EMPTY);
                 }
                 pageCursor.close();
             }
+        }
+        if (clearCursors) {
+            Arrays.fill(cursors, null);
         }
     }
 
