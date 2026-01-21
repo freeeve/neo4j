@@ -229,7 +229,7 @@ class SchemaRuleCommandTest {
         after.setCreated();
 
         SchemaRuleCommand command = new SchemaRuleCommand(serialization, before, after, rule);
-        InMemoryClosableChannel buffer = new InMemoryClosableChannel((int) ByteUnit.kibiBytes(5));
+        InMemoryClosableChannel buffer = new InMemoryClosableChannel((int) ByteUnit.kibiBytes(12));
         when(neoStores.getSchemaStore()).thenReturn(schemaStore);
 
         // WHEN

@@ -28,6 +28,8 @@ import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.internal.schema.constraints.IndexBackedConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
 import org.neo4j.internal.schema.constraints.SchemaValueType;
+import org.neo4j.io.ByteUnit;
+import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.ValueGroup;
@@ -97,14 +99,20 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
     }
 
     public SchemaRule nextSchemaRule() {
+        boolean generateLargeName = rng.nextFloat() < 0.1f;
+        String name = generateLargeName ? nextVeryLargeName() : nextName();
+        return nextSchemaRule(name);
+    }
+
+    private SchemaRule nextSchemaRule(String name) {
         if (rng.nextBoolean()) {
-            return nextIndex();
+            return nextIndex(name);
         } else {
-            return nextConstraint();
+            return nextConstraint(name);
         }
     }
 
-    public IndexDescriptor nextIndex() {
+    public IndexDescriptor nextIndex(String name) {
         int choice = rng.nextInt(4);
         SchemaDescriptor schema =
                 switch (choice) {
@@ -121,7 +129,7 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
         IndexProviderDescriptor providerDescriptor = new IndexProviderDescriptor(nextName(), nextName());
         prototype = prototype.withIndexProvider(providerDescriptor);
 
-        prototype = prototype.withName(nextName());
+        prototype = prototype.withName(name);
         if (schema.isSemanticSearchSchemaDescriptor()) {
             IndexType indexType = IndexType.FULLTEXT;
             prototype = prototype.withIndexType(indexType);
@@ -145,76 +153,44 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
         return nextRuleId();
     }
 
-    public ConstraintDescriptor nextConstraint() {
+    public ConstraintDescriptor nextConstraint(String name) {
         long ruleId = nextRuleIdForConstraint();
-        int choice = rng.nextInt(12);
-        return switch (choice) {
-            case 0 ->
-                ConstraintDescriptorFactory.existsForSchema(nextRelationshipSchema(), rng.nextBoolean())
-                        .withId(ruleId)
-                        .withName(nextName());
-            case 1 ->
-                ConstraintDescriptorFactory.existsForSchema(nextNodeSchema(), rng.nextBoolean())
-                        .withId(ruleId)
-                        .withName(nextName());
-            case 2 ->
-                ConstraintDescriptorFactory.uniqueForSchema(nextNodeSchema())
-                        .withId(ruleId)
-                        .withName(nextName());
-            case 3 ->
-                ConstraintDescriptorFactory.uniqueForSchema(nextNodeSchema())
-                        .withId(ruleId)
-                        .withOwnedIndexId(existingIndexId())
-                        .withName(nextName());
-            case 4 ->
-                ConstraintDescriptorFactory.keyForSchema(nextNodeSchema())
-                        .withId(ruleId)
-                        .withName(nextName());
-            case 5 ->
-                ConstraintDescriptorFactory.keyForSchema(nextNodeSchema())
-                        .withId(ruleId)
-                        .withOwnedIndexId(existingIndexId())
-                        .withName(nextName());
-            case 6 ->
-                ConstraintDescriptorFactory.keyForSchema(nextRelationshipSchema())
-                        .withId(ruleId)
-                        .withName(nextName());
-            case 7 ->
-                ConstraintDescriptorFactory.keyForSchema(nextRelationshipSchema())
-                        .withId(ruleId)
-                        .withOwnedIndexId(existingIndexId())
-                        .withName(nextName());
-            case 8 ->
-                ConstraintDescriptorFactory.uniqueForSchema(nextRelationshipSchema())
-                        .withId(ruleId)
-                        .withName(nextName());
-            case 9 ->
-                ConstraintDescriptorFactory.uniqueForSchema(nextRelationshipSchema())
-                        .withId(ruleId)
-                        .withOwnedIndexId(existingIndexId())
-                        .withName(nextName());
-            case 10 ->
-                ConstraintDescriptorFactory.typeForSchema(
-                                nextRelationshipSchema(), randomAllowedTypes(), rng.nextBoolean())
-                        .withId(ruleId)
-                        .withName(nextName());
-            case 11 ->
-                ConstraintDescriptorFactory.typeForSchema(nextNodeSchema(), randomAllowedTypes(), rng.nextBoolean())
-                        .withId(ruleId)
-                        .withName(nextName());
-            case 12 ->
-                ConstraintDescriptorFactory.relationshipEndpointLabelForRelType(
+        int choice = rng.nextInt(14);
+        ConstraintDescriptor constraint =
+                switch (choice) {
+                    case 0 -> ConstraintDescriptorFactory.existsForSchema(nextRelationshipSchema(), rng.nextBoolean());
+                    case 1 -> ConstraintDescriptorFactory.existsForSchema(nextNodeSchema(), rng.nextBoolean());
+                    case 2 -> ConstraintDescriptorFactory.uniqueForSchema(nextNodeSchema());
+                    case 3 ->
+                        ConstraintDescriptorFactory.uniqueForSchema(nextNodeSchema())
+                                .withOwnedIndexId(existingIndexId());
+                    case 4 -> ConstraintDescriptorFactory.keyForSchema(nextNodeSchema());
+                    case 5 ->
+                        ConstraintDescriptorFactory.keyForSchema(nextNodeSchema())
+                                .withOwnedIndexId(existingIndexId());
+                    case 6 -> ConstraintDescriptorFactory.keyForSchema(nextRelationshipSchema());
+                    case 7 ->
+                        ConstraintDescriptorFactory.keyForSchema(nextRelationshipSchema())
+                                .withOwnedIndexId(existingIndexId());
+                    case 8 -> ConstraintDescriptorFactory.uniqueForSchema(nextRelationshipSchema());
+                    case 9 ->
+                        ConstraintDescriptorFactory.uniqueForSchema(nextRelationshipSchema())
+                                .withOwnedIndexId(existingIndexId());
+                    case 10 ->
+                        ConstraintDescriptorFactory.typeForSchema(
+                                nextRelationshipSchema(), randomAllowedTypes(), rng.nextBoolean());
+                    case 11 ->
+                        ConstraintDescriptorFactory.typeForSchema(
+                                nextNodeSchema(), randomAllowedTypes(), rng.nextBoolean());
+                    case 12 ->
+                        ConstraintDescriptorFactory.relationshipEndpointLabelForRelType(
                                 nextRelationshipTypeId(),
                                 nextLabelId(),
-                                rng.nextBoolean() ? EndpointType.START : EndpointType.END)
-                        .withId(ruleId)
-                        .withName(nextName());
-            case 13 ->
-                ConstraintDescriptorFactory.nodeLabelExistenceForLabel(nextLabelId(), nextLabelId())
-                        .withId(ruleId)
-                        .withName(nextName());
-            default -> throw new RuntimeException("Bad constraint choice: " + choice);
-        };
+                                rng.nextBoolean() ? EndpointType.START : EndpointType.END);
+                    case 13 -> ConstraintDescriptorFactory.nodeLabelExistenceForLabel(nextLabelId(), nextLabelId());
+                    default -> throw new RuntimeException("Bad constraint choice: " + choice);
+                };
+        return constraint.withId(ruleId).withName(name);
     }
 
     private PropertyTypeSet randomAllowedTypes() {
@@ -261,6 +237,11 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
                 || name.contains("\0")
                 || name.contains("`")); // Avoid generating empty names.
         return name;
+    }
+
+    public String nextVeryLargeName() {
+        int size = Math.toIntExact(PageCache.PAGE_SIZE + ByteUnit.bytes(128)); // little over a page
+        return values.nextAlphaNumericTextValue(size, size).stringValue();
     }
 
     public int nextLabelId() {
