@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.memory.MemoryTracker;
@@ -61,8 +62,7 @@ public interface IdController extends Lifecycle {
         }
     }
 
-    @FunctionalInterface
-    interface TransactionIdVisibilityBoundary {
+    interface TransactionIdVisibilityBoundary extends OldestTransactionIdFactory {
         long oldestObservableHorizon();
     }
 

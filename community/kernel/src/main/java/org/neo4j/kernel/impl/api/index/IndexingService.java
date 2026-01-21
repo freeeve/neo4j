@@ -131,6 +131,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     private static final String INDEX_SERVICE_INDEX_CLOSING_TAG = "indexServiceIndexClosing";
     private static final String INIT_TAG = "Initialize IndexingService";
     private static final String START_TAG = "Start index population";
+    private static final String INDEXING_SERVICE_START_TAG = "Indexing service start";
 
     private final IndexSamplingController samplingController;
     private final IndexProxyCreator indexProxyCreator;
@@ -301,99 +302,106 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     @Override
     public void start() throws Exception {
         state = State.STARTING;
-        // Recovery will not do refresh (update read views) while applying recovered transactions and instead
-        // do it at one point after recovery... i.e. here
-        indexMapRef.indexMapSnapshot().forEachIndexProxy(indexProxyOperation("refresh", IndexProxy::refresh));
+        try (CursorContext cursorContext = contextFactory.create(INDEXING_SERVICE_START_TAG)) {
+            if (multiversion) {
+                cursorContext
+                        .getVersionContext()
+                        .initWrite(cursorContext.getVersionContext().lastClosedTransactionId());
+            }
+            // Recovery will not do refresh (update read views) while applying recovered transactions and instead
+            // do it at one point after recovery... i.e. here
+            indexMapRef.indexMapSnapshot().forEachIndexProxy(indexProxyOperation("refresh", IndexProxy::refresh));
 
-        final MutableLongObjectMap<IndexDescriptor> rebuildingDescriptors = new LongObjectHashMap<>();
-        indexMapRef.modify(indexMap -> {
-            var stopwatch = Stopwatch.start();
-            Map<InternalIndexState, List<IndexLogRecord>> indexStates = new EnumMap<>(InternalIndexState.class);
+            final MutableLongObjectMap<IndexDescriptor> rebuildingDescriptors = new LongObjectHashMap<>();
+            indexMapRef.modify(indexMap -> {
+                var stopwatch = Stopwatch.start();
+                Map<InternalIndexState, List<IndexLogRecord>> indexStates = new EnumMap<>(InternalIndexState.class);
 
-            // Find all indexes that are not already online, do not require rebuilding, and create them
-            indexMap.forEachIndexProxy((indexId, proxy) -> {
-                InternalIndexState state = proxy.getState();
-                IndexDescriptor descriptor = proxy.getDescriptor();
-                IndexLogRecord indexLogRecord = new IndexLogRecord(descriptor);
-                indexStates
-                        .computeIfAbsent(state, internalIndexState -> new ArrayList<>())
-                        .add(indexLogRecord);
-                internalLog.debug(indexStateInfo("start", state, descriptor));
-                switch (state) {
-                    case ONLINE, FAILED -> proxy.start();
-                    case POPULATING ->
-                        // Remember for rebuilding right below in this method
-                        rebuildingDescriptors.put(indexId, descriptor);
-                    default -> throw new IllegalStateException("Unknown state: " + state);
-                }
+                // Find all indexes that are not already online, do not require rebuilding, and create them
+                indexMap.forEachIndexProxy((indexId, proxy) -> {
+                    InternalIndexState state = proxy.getState();
+                    IndexDescriptor descriptor = proxy.getDescriptor();
+                    IndexLogRecord indexLogRecord = new IndexLogRecord(descriptor);
+                    indexStates
+                            .computeIfAbsent(state, internalIndexState -> new ArrayList<>())
+                            .add(indexLogRecord);
+                    internalLog.debug(indexStateInfo("start", state, descriptor));
+                    switch (state) {
+                        case ONLINE, FAILED -> proxy.start();
+                        case POPULATING ->
+                            // Remember for rebuilding right below in this method
+                            rebuildingDescriptors.put(indexId, descriptor);
+                        default -> throw new IllegalStateException("Unknown state: " + state);
+                    }
+                });
+                logIndexStateSummary("start", indexStates, indexMap.size(), stopwatch.elapsed());
+
+                dontRebuildIndexesInReadOnlyMode(rebuildingDescriptors);
+                // Drop placeholder proxies for indexes that need to be rebuilt
+                dropRecoveringIndexes(indexMap, rebuildingDescriptors.keySet());
+                // Rebuild indexes by recreating and repopulating them
+                populateIndexesOfAllTypes(rebuildingDescriptors, indexMap, cursorContext);
+
+                return indexMap;
             });
-            logIndexStateSummary("start", indexStates, indexMap.size(), stopwatch.elapsed());
 
-            dontRebuildIndexesInReadOnlyMode(rebuildingDescriptors);
-            // Drop placeholder proxies for indexes that need to be rebuilt
-            dropRecoveringIndexes(indexMap, rebuildingDescriptors.keySet());
-            // Rebuild indexes by recreating and repopulating them
-            populateIndexesOfAllTypes(rebuildingDescriptors, indexMap);
+            samplingController.recoverIndexSamples();
+            samplingController.start();
 
-            return indexMap;
-        });
+            indexDropController.start();
 
-        samplingController.recoverIndexSamples();
-        samplingController.start();
+            // So at this point we've started population of indexes that needs to be rebuilt in the background.
+            // Indexes backing uniqueness constraints are normally built within the transaction creating the constraint
+            // and so we shouldn't leave such indexes in a populating state after recovery.
+            // This is why we now go and wait for those indexes to be fully populated.
+            rebuildingDescriptors.forEachKeyValue((indexId, index) -> {
+                if (!index.isUnique()) {
+                    // It's not a uniqueness constraint, so don't wait for it to be rebuilt
+                    return;
+                }
 
-        indexDropController.start();
+                IndexProxy proxy;
+                try {
+                    proxy = getIndexProxy(index);
+                } catch (IndexNotFoundKernelException e) {
+                    throw new IllegalStateException(
+                            "What? This index was seen during recovery just now, why isn't it available now?", e);
+                }
 
-        // So at this point we've started population of indexes that needs to be rebuilt in the background.
-        // Indexes backing uniqueness constraints are normally built within the transaction creating the constraint
-        // and so we shouldn't leave such indexes in a populating state after recovery.
-        // This is why we now go and wait for those indexes to be fully populated.
-        rebuildingDescriptors.forEachKeyValue((indexId, index) -> {
-            if (!index.isUnique()) {
-                // It's not a uniqueness constraint, so don't wait for it to be rebuilt
-                return;
-            }
+                if (proxy.getDescriptor().getOwningConstraintId().isEmpty()) {
+                    // Even though this is an index backing a uniqueness constraint, the uniqueness constraint wasn't
+                    // created
+                    // so there's no gain in waiting for this index.
+                    return;
+                }
 
-            IndexProxy proxy;
-            try {
-                proxy = getIndexProxy(index);
-            } catch (IndexNotFoundKernelException e) {
-                throw new IllegalStateException(
-                        "What? This index was seen during recovery just now, why isn't it available now?", e);
-            }
+                monitor.awaitingPopulationOfRecoveredIndex(index);
+                awaitOnlineAfterRecovery(proxy);
+            });
 
-            if (proxy.getDescriptor().getOwningConstraintId().isEmpty()) {
-                // Even though this is an index backing a uniqueness constraint, the uniqueness constraint wasn't
-                // created
-                // so there's no gain in waiting for this index.
-                return;
-            }
-
-            monitor.awaitingPopulationOfRecoveredIndex(index);
-            awaitOnlineAfterRecovery(proxy);
-        });
-
-        final var usageReportFrequency = config.get(GraphDatabaseInternalSettings.index_usage_report_frequency);
-        usageReportJob = jobScheduler.scheduleRecurring(
-                Group.STORAGE_MAINTENANCE,
-                this::reportUsageStatistics,
-                usageReportFrequency.toSeconds(),
-                usageReportFrequency.toSeconds(),
-                TimeUnit.SECONDS);
-
-        final var totalSizeReportFrequency =
-                config.get(GraphDatabaseInternalSettings.index_total_size_report_frequency);
-        if (!totalSizeReportFrequency.isZero()) {
-            totalSizeReportJob = jobScheduler.scheduleRecurring(
-                    Group.FILE_IO_HELPER,
-                    this::reportTotalSizeStatistics,
-                    totalSizeReportFrequency.toSeconds(),
-                    totalSizeReportFrequency.toSeconds(),
+            final var usageReportFrequency = config.get(GraphDatabaseInternalSettings.index_usage_report_frequency);
+            usageReportJob = jobScheduler.scheduleRecurring(
+                    Group.STORAGE_MAINTENANCE,
+                    this::reportUsageStatistics,
+                    usageReportFrequency.toSeconds(),
+                    usageReportFrequency.toSeconds(),
                     TimeUnit.SECONDS);
+
+            final var totalSizeReportFrequency =
+                    config.get(GraphDatabaseInternalSettings.index_total_size_report_frequency);
+            if (!totalSizeReportFrequency.isZero()) {
+                totalSizeReportJob = jobScheduler.scheduleRecurring(
+                        Group.FILE_IO_HELPER,
+                        this::reportTotalSizeStatistics,
+                        totalSizeReportFrequency.toSeconds(),
+                        totalSizeReportFrequency.toSeconds(),
+                        TimeUnit.SECONDS);
+            }
+
+            state = State.RUNNING;
+
+            startEventuallyConsistentFulltextIndexRefreshThread();
         }
-
-        state = State.RUNNING;
-
-        startEventuallyConsistentFulltextIndexRefreshThread();
     }
 
     /**
@@ -451,7 +459,9 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     }
 
     private void populateIndexesOfAllTypes(
-            MutableLongObjectMap<IndexDescriptor> rebuildingDescriptors, IndexMap indexMap) {
+            MutableLongObjectMap<IndexDescriptor> rebuildingDescriptors,
+            IndexMap indexMap,
+            CursorContext cursorContext) {
         Map<IndexPopulationCategory, MutableLongObjectMap<IndexDescriptor>> rebuildingDescriptorsByType =
                 new HashMap<>();
         for (var descriptor : rebuildingDescriptors) {
@@ -464,8 +474,8 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
         for (var descriptorToPopulate : rebuildingDescriptorsByType.entrySet()) {
             // NULL_CONTEXT is ok here, it is used to check horizon before population,
             // and as this happens during database start we already know that there are no prior transactions
-            var populationJob = newIndexPopulationJob(
-                    descriptorToPopulate.getKey().entityType(), SYSTEM, CursorContext.NULL_CONTEXT);
+            var populationJob =
+                    newIndexPopulationJob(descriptorToPopulate.getKey().entityType(), SYSTEM, cursorContext);
             populate(descriptorToPopulate.getValue(), indexMap, populationJob);
         }
     }
@@ -902,7 +912,8 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
                 config,
                 transactionVisibilityProvider,
                 monitor,
-                cursorContext);
+                cursorContext,
+                multiversion);
         return new IndexPopulationJob(
                 multiPopulator,
                 monitor,

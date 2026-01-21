@@ -268,6 +268,11 @@ class BufferingIdGeneratorFactoryTest {
         public long oldestObservableHorizon() {
             return 9;
         }
+
+        @Override
+        public long oldestTransactionId() {
+            return 9;
+        }
     }
 
     private static class MockedIdGeneratorFactory implements IdGeneratorFactory {

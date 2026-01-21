@@ -27,6 +27,7 @@ import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_MONITOR;
 import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
+import static org.neo4j.io.pagecache.context.OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
 import static org.neo4j.test.Race.throwing;
 
 import java.util.ArrayList;
@@ -101,7 +102,7 @@ class LargeFreelistCreationDeletionIT {
                     true,
                     true)) {
                 // Make sure ID cache is filled so that initial allocations won't slide highId unnecessarily.
-                freelist.maintenance(NULL_CONTEXT);
+                freelist.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
 
                 Race race = new Race();
                 WorkSync<IndexedIdGenerator, Ids> workSync = new WorkSync<>(freelist);

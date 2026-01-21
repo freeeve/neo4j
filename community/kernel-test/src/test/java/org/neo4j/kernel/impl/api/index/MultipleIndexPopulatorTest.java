@@ -126,7 +126,8 @@ class MultipleIndexPopulatorTest {
                 Config.defaults(),
                 EMPTY_VISIBILITY_PROVIDER,
                 IndexMonitor.NO_MONITOR,
-                NULL_CONTEXT);
+                NULL_CONTEXT,
+                false);
     }
 
     @Test

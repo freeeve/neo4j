@@ -19,11 +19,13 @@
  */
 package org.neo4j.internal.id.indexed;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.VersionContext;
@@ -71,6 +73,26 @@ class LockedPagesTest {
         assertFalse(lockedPages.add(1, context));
         assertFalse(lockedPages.add(1, releaseContext));
         assertTrue(lockedPages.add(1, postReleaseContext));
+    }
+
+    @Test
+    void releaseOldEntriesOnMaintenance() {
+        var accessibleLockMap = new ConcurrentHashMap<Long, Long>();
+        LockedPages lockedPages = new LockedPages(accessibleLockMap);
+        lockedPages.add(1, cursorContext(30, 31));
+        lockedPages.add(2, cursorContext(35, 36));
+
+        lockedPages.remove(1, cursorContext(32, 33));
+        lockedPages.remove(2, cursorContext(36, 37));
+
+        lockedPages.maintenance(() -> 5);
+        assertThat(accessibleLockMap).hasSize(2);
+
+        lockedPages.maintenance(() -> 34);
+        assertThat(accessibleLockMap).hasSize(1);
+
+        lockedPages.maintenance(() -> 38);
+        assertThat(accessibleLockMap).isEmpty();
     }
 
     // remove

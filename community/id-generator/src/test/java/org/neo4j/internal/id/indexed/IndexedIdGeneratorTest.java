@@ -65,6 +65,7 @@ import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
+import static org.neo4j.io.pagecache.context.OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
 import static org.neo4j.test.Race.throwing;
 
 import java.io.IOException;
@@ -129,6 +130,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCacheOpenOptions;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -222,7 +224,7 @@ class IndexedIdGeneratorTest {
         markFree(id);
 
         // when
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
         long nextTimeId = idGenerator.nextId(NULL_CONTEXT);
 
         // then
@@ -243,7 +245,7 @@ class IndexedIdGeneratorTest {
         markFree(id);
 
         // then
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
         long reusedId = idGenerator.nextId(NULL_CONTEXT);
         assertEquals(id, reusedId);
     }
@@ -272,7 +274,7 @@ class IndexedIdGeneratorTest {
         markDeleted(secondId, secondSize);
         markFree(firstId, firstSize);
         markFree(secondId, secondSize);
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
 
         // then
         assertThat(idGenerator
@@ -852,7 +854,7 @@ class IndexedIdGeneratorTest {
             verify(monitor, never()).markedAsFree(allocatedHighId, 1);
         }
 
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
         long reusedId = idGenerator.nextId(NULL_CONTEXT);
         verify(monitor).allocatedFromReused(reusedId, 1);
         idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
@@ -918,7 +920,7 @@ class IndexedIdGeneratorTest {
             idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
             markDeleted(1);
             idGenerator.clearCache(true, NULL_CONTEXT);
-            idGenerator.maintenance(cursorContext);
+            idGenerator.maintenance(cursorContext, EMPTY_OLDEST_ID_FACTORY);
 
             var cursorTracer = cursorContext.getCursorTracer();
             assertThat(cursorTracer.hits()).isOne();
@@ -962,7 +964,7 @@ class IndexedIdGeneratorTest {
 
             markDeleted(1);
             markFree(1);
-            idGenerator.maintenance(NULL_CONTEXT);
+            idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
             idGenerator.clearCache(true, cursorContext);
 
             assertThat(cursorTracer.pins()).isEqualTo(2);
@@ -983,7 +985,7 @@ class IndexedIdGeneratorTest {
             assertThat(cursorTracer.unpins()).isZero();
             assertThat(cursorTracer.hits()).isZero();
 
-            idGenerator.maintenance(cursorContext);
+            idGenerator.maintenance(cursorContext, EMPTY_OLDEST_ID_FACTORY);
 
             assertThat(cursorTracer.pins()).isZero();
             assertThat(cursorTracer.unpins()).isZero();
@@ -991,7 +993,7 @@ class IndexedIdGeneratorTest {
 
             markDeleted(1);
             idGenerator.clearCache(true, NULL_CONTEXT);
-            idGenerator.maintenance(cursorContext);
+            idGenerator.maintenance(cursorContext, EMPTY_OLDEST_ID_FACTORY);
 
             assertThat(cursorTracer.pins()).isOne();
             assertThat(cursorTracer.unpins()).isOne();
@@ -1153,14 +1155,14 @@ class IndexedIdGeneratorTest {
         try (OtherThreadExecutor t2 = new OtherThreadExecutor("T2");
                 OtherThreadExecutor t3 = new OtherThreadExecutor("T3")) {
             Future<Object> t2Future = t2.executeDontWait(() -> {
-                idGenerator.maintenance(NULL_CONTEXT);
+                idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
                 return null;
             });
             barrier.await();
 
             // check that a maintenance call blocks
             Future<Object> t3Future = t3.executeDontWait(() -> {
-                idGenerator.maintenance(NULL_CONTEXT);
+                idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
                 return null;
             });
             t3.waitUntilWaiting(details -> details.isAt(FreeIdScanner.class, "tryLoadFreeIdsIntoCache"));
@@ -1324,7 +1326,7 @@ class IndexedIdGeneratorTest {
             race.addContestants(2, freer(allocations, expectedInUse));
             race.addContestant(throwing(() -> {
                 Thread.sleep(ThreadLocalRandom.current().nextInt(500));
-                clusteredIdGenerator.maintenance(NULL_CONTEXT);
+                clusteredIdGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
             }));
             race.addContestant(throwing(() -> {
                 Thread.sleep(ThreadLocalRandom.current().nextInt(500));
@@ -1699,9 +1701,9 @@ class IndexedIdGeneratorTest {
         }
 
         @Override
-        public void maintenance(CursorContext cursorContext) {
+        public void maintenance(CursorContext cursorContext, OldestTransactionIdFactory oldestTransactionIdFactory) {
             for (var member : members) {
-                member.maintenance(cursorContext);
+                member.maintenance(cursorContext, oldestTransactionIdFactory);
             }
         }
 
@@ -1800,7 +1802,7 @@ class IndexedIdGeneratorTest {
         idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
         var id = idGenerator.nextId(NULL_CONTEXT);
         markUnallocated(id);
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
 
         // when
         var idAfterUnallocated = idGenerator.nextId(NULL_CONTEXT);
@@ -1818,7 +1820,7 @@ class IndexedIdGeneratorTest {
         var otherId = idGenerator.nextId(NULL_CONTEXT);
         markUsed(otherId);
         markUnallocated(id);
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
 
         // when
         var idAfterUnallocated = idGenerator.nextId(NULL_CONTEXT);
@@ -1840,10 +1842,10 @@ class IndexedIdGeneratorTest {
         markUsed(id3);
         markDeleted(id2);
         markFree(id2);
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
         assertThat(idGenerator.nextId(NULL_CONTEXT)).isEqualTo(id2);
         markUnallocated(id2);
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
 
         // when
         var idAfterUnallocated = idGenerator.nextId(NULL_CONTEXT);
@@ -1904,13 +1906,13 @@ class IndexedIdGeneratorTest {
         markDeleted(id3);
         assertThat(idGenerator.getUnusedIdCount()).isEqualTo(2);
 
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
         assertThat(idGenerator.getUnusedIdCount()).isEqualTo(2);
         assertThat(idGenerator.nextId(NULL_CONTEXT)).isEqualTo(id2);
 
         markUnallocated(id2);
         assertThat(idGenerator.getUnusedIdCount()).isEqualTo(2);
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
 
         var idAfterUnallocated = idGenerator.nextId(NULL_CONTEXT);
         assertThat(idAfterUnallocated).isEqualTo(id2);
@@ -1974,7 +1976,7 @@ class IndexedIdGeneratorTest {
                 marker.markDeletedAndFree(id, slotSizes[i % slotSizes.length]);
             }
         }
-        idGenerator.maintenance(NULL_CONTEXT);
+        idGenerator.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
 
         reset(monitor);
         for (var i = 0; i < slotSizes.length; i++) {

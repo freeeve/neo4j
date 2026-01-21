@@ -946,7 +946,8 @@ class IndexPopulationJobTest {
                 Config.defaults(),
                 EMPTY_VISIBILITY_PROVIDER,
                 NO_MONITOR,
-                CursorContext.NULL_CONTEXT);
+                CursorContext.NULL_CONTEXT,
+                false);
         IndexPopulationJob job = new IndexPopulationJob(
                 multiPopulator,
                 NO_MONITOR,
@@ -1032,7 +1033,8 @@ class IndexPopulationJobTest {
                     Config.defaults(),
                     EMPTY_VISIBILITY_PROVIDER,
                     NO_MONITOR,
-                    CursorContext.NULL_CONTEXT);
+                    CursorContext.NULL_CONTEXT,
+                    false);
         }
 
         @Override

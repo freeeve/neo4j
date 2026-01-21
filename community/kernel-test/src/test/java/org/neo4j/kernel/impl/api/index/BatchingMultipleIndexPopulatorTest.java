@@ -111,7 +111,8 @@ public class BatchingMultipleIndexPopulatorTest {
                 Config.defaults(GraphDatabaseInternalSettings.index_population_queue_threshold, 5),
                 EMPTY_VISIBILITY_PROVIDER,
                 IndexMonitor.NO_MONITOR,
-                CursorContext.NULL_CONTEXT);
+                CursorContext.NULL_CONTEXT,
+                false);
 
         IndexPopulator populator = addPopulator(batchingPopulator, index1);
         IndexUpdater updater = mock(IndexUpdater.class);
@@ -153,7 +154,8 @@ public class BatchingMultipleIndexPopulatorTest {
                 Config.defaults(GraphDatabaseInternalSettings.index_population_queue_threshold, 2),
                 EMPTY_VISIBILITY_PROVIDER,
                 IndexMonitor.NO_MONITOR,
-                CursorContext.NULL_CONTEXT);
+                CursorContext.NULL_CONTEXT,
+                false);
 
         IndexPopulator populator1 = addPopulator(batchingPopulator, index1);
         IndexUpdater updater1 = mock(IndexUpdater.class);
@@ -202,7 +204,8 @@ public class BatchingMultipleIndexPopulatorTest {
                 Config.defaults(),
                 EMPTY_VISIBILITY_PROVIDER,
                 IndexMonitor.NO_MONITOR,
-                CursorContext.NULL_CONTEXT);
+                CursorContext.NULL_CONTEXT,
+                false);
 
         IndexPopulator populator1 = addPopulator(batchingPopulator, index1);
         IndexPopulator populator42 = addPopulator(batchingPopulator, index42);
@@ -239,7 +242,8 @@ public class BatchingMultipleIndexPopulatorTest {
                         Config.defaults(GraphDatabaseInternalSettings.index_population_batch_max_byte_size, 1L),
                         EMPTY_VISIBILITY_PROVIDER,
                         IndexMonitor.NO_MONITOR,
-                        CursorContext.NULL_CONTEXT);
+                        CursorContext.NULL_CONTEXT,
+                        false);
 
                 populator = addPopulator(batchingPopulator, index1);
                 List<IndexEntryUpdate> expected = forUpdates(index1, update1, update2);

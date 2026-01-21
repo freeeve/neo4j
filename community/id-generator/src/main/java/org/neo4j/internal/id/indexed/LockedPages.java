@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
 import org.neo4j.io.pagecache.context.VersionContext;
 
 public class LockedPages {
@@ -61,11 +62,8 @@ public class LockedPages {
         pageIds.forEach(id -> lockedPageRanges.replace(id, boundary));
     }
 
-    public void maintenance(CursorContext cursorContext) {
-        lockedPageRanges
-                .values()
-                .removeIf(
-                        boundary -> boundary < cursorContext.getVersionContext().oldestVisibleTransactionNumber());
+    public void maintenance(OldestTransactionIdFactory oldestTransactionIdFactory) {
+        lockedPageRanges.values().removeIf(boundary -> boundary < oldestTransactionIdFactory.oldestTransactionId());
     }
 
     private static long boundary(CursorContext context) {
@@ -83,6 +81,6 @@ public class LockedPages {
         public void remove(long pageId, CursorContext context) {}
 
         @Override
-        public void maintenance(CursorContext cursorContext) {}
+        public void maintenance(OldestTransactionIdFactory oldestTransactionIdFactory) {}
     }
 }

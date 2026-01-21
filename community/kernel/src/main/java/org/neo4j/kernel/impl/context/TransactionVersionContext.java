@@ -119,6 +119,7 @@ public class TransactionVersionContext implements VersionContext {
 
     @Override
     public long oldestVisibleTransactionNumber() {
+        assert initializedForWrite();
         return oldestTransactionId;
     }
 

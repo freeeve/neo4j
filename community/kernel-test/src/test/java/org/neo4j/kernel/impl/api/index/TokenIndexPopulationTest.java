@@ -111,7 +111,8 @@ class TokenIndexPopulationTest {
                 Config.defaults(),
                 EMPTY_VISIBILITY_PROVIDER,
                 IndexMonitor.NO_MONITOR,
-                CursorContext.NULL_CONTEXT);
+                CursorContext.NULL_CONTEXT,
+                false);
     }
 
     @Test

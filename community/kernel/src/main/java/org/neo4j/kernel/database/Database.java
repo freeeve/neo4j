@@ -483,7 +483,7 @@ public class Database extends AbstractDatabase {
                 databaseLayout.file(PAGED_ID_BUFFER_FILE_NAME),
                 databaseConfig,
                 () -> kernelModule.kernelTransactions().get(),
-                () -> kernelModule.transactionMonitor().oldestObservableHorizon(),
+                new IdControllerVisibilityBoundary(),
                 s -> kernelModule.kernelTransactions().eligibleForFreeing(s),
                 otherDatabaseMemoryTracker,
                 readOnlyDatabaseChecker);
@@ -1398,6 +1398,18 @@ public class Database extends AbstractDatabase {
         @Override
         public long youngestObservableHorizon() {
             return kernelModule.transactionMonitor().youngestObservableHorizon();
+        }
+    }
+
+    private class IdControllerVisibilityBoundary implements IdController.TransactionIdVisibilityBoundary {
+        @Override
+        public long oldestObservableHorizon() {
+            return kernelModule.transactionMonitor().oldestObservableHorizon();
+        }
+
+        @Override
+        public long oldestTransactionId() {
+            return kernelModule.transactionMonitor().oldestVisibleClosedTransactionId();
         }
     }
 }

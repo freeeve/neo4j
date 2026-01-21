@@ -29,6 +29,7 @@ import org.neo4j.internal.id.range.PageIdRange;
 import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.impl.index.schema.ConsistencyCheckable;
 
@@ -129,7 +130,7 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
      *
      * @param cursorContext underlying page cursor context
      */
-    void maintenance(CursorContext cursorContext);
+    void maintenance(CursorContext cursorContext, OldestTransactionIdFactory oldestTransactionIdFactory);
 
     /**
      * Starts the id generator, signaling that the database has entered normal operations mode.
@@ -437,8 +438,8 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         }
 
         @Override
-        public void maintenance(CursorContext cursorContext) {
-            delegate.maintenance(cursorContext);
+        public void maintenance(CursorContext cursorContext, OldestTransactionIdFactory oldestTransactionIdFactory) {
+            delegate.maintenance(cursorContext, oldestTransactionIdFactory);
         }
 
         @Override

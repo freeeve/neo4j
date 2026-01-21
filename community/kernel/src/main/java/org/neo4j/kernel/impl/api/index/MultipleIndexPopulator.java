@@ -26,6 +26,7 @@ import static org.neo4j.internal.schema.IndexType.LOOKUP;
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
 import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.kernel.impl.api.index.IndexPopulationFailure.failure;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -82,7 +83,6 @@ import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
-import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.Value;
 
@@ -159,6 +159,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
     private final IndexMonitor monitor;
     private final AtomicBoolean populationJobStopped = new AtomicBoolean(false);
     private final long transactionIdCreatedIndexes;
+    private final boolean multiversion;
     private volatile long populationHorizon;
 
     public MultipleIndexPopulator(
@@ -175,7 +176,8 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             Config config,
             TransactionVisibilityProvider transactionVisibilityProvider,
             IndexMonitor monitor,
-            CursorContext cursorContextOfIndexCreator) {
+            CursorContext cursorContextOfIndexCreator,
+            boolean multiversion) {
         this.storeView = storeView;
         this.contextFactory = contextFactory;
         this.cursorContext = contextFactory.create(MULTIPLE_INDEX_POPULATOR_TAG);
@@ -199,6 +201,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         this.monitor = monitor;
         this.transactionIdCreatedIndexes =
                 cursorContextOfIndexCreator.getVersionContext().committingTransactionId();
+        this.multiversion = multiversion;
         this.populationHorizon = Long.MAX_VALUE;
     }
 
@@ -607,7 +610,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         private final IndexProxyStrategy indexProxyStrategy;
         private boolean populationOngoing = true;
         private final ReentrantLock populatorLock = new ReentrantLock();
-        private long highestClosedTxAtPopulationStart = TransactionIdStore.BASE_TX_ID;
+        private long highestClosedTxAtPopulationStart = BASE_TX_ID;
 
         IndexPopulation(IndexPopulator populator, IndexProxyStrategy indexProxyStrategy, FlippableIndexProxy flipper) {
             this.populator = populator;
@@ -742,6 +745,9 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
                         }
                     };
 
+            if (multiversion) {
+                cursorContext.getVersionContext().initWrite(transactionIdCreatedIndexes);
+            }
             populator.scanCompleted(phaseTracker, populationWorkScheduler, cursorContext);
         }
 

@@ -88,7 +88,17 @@ class BufferedIdControllerTest {
                 testDirectory.file("buffer"),
                 globalConfig,
                 () -> new IdController.TransactionSnapshot(10, 0, 0),
-                () -> 9,
+                new IdController.TransactionIdVisibilityBoundary() {
+                    @Override
+                    public long oldestObservableHorizon() {
+                        return 9;
+                    }
+
+                    @Override
+                    public long oldestTransactionId() {
+                        return 9;
+                    }
+                },
                 s -> true,
                 EmptyMemoryTracker.INSTANCE,
                 writable());
@@ -139,7 +149,7 @@ class BufferedIdControllerTest {
     }
 
     @RepeatedTest(10)
-    void concurrentMaintanenceAndClose() throws Throwable {
+    void concurrentMaintenanceAndClose() throws Throwable {
         var race = new Race();
         var pageCacheTracer = new DefaultPageCacheTracer();
         var contextFactory = new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER);
@@ -179,7 +189,7 @@ class BufferedIdControllerTest {
     }
 
     @Test
-    void maintanenceAfterClose() throws Throwable {
+    void maintenanceAfterClose() throws Throwable {
         var pageCacheTracer = new DefaultPageCacheTracer();
         var contextFactory = new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER);
         setUp(contextFactory, fs);
@@ -211,7 +221,7 @@ class BufferedIdControllerTest {
     }
 
     @Test
-    void maintanenceWithAdversary() throws Throwable {
+    void maintenanceWithAdversary() throws Throwable {
         var adversary = new MethodGuardedAdversary(
                 new CountingAdversary(1, false),
                 DiskBufferedIds.class.getDeclaredMethod(

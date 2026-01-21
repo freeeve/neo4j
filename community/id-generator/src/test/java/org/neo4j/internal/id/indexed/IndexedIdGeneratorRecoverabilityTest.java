@@ -31,6 +31,7 @@ import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_MONITOR;
 import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
+import static org.neo4j.io.pagecache.context.OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
 import static org.neo4j.test.utils.PageCacheConfig.config;
 
 import java.io.IOException;
@@ -164,7 +165,7 @@ class IndexedIdGeneratorRecoverabilityTest {
             freelist.start(NO_FREE_IDS, NULL_CONTEXT);
             markFree(freelist, id1, id2);
 
-            freelist.maintenance(NULL_CONTEXT);
+            freelist.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
             final ImmutableLongSet reused =
                     LongSets.immutable.of(freelist.nextId(NULL_CONTEXT), freelist.nextId(NULL_CONTEXT));
             assertThat(reused).isEqualTo(LongSets.immutable.of(id1, id2));
@@ -266,7 +267,7 @@ class IndexedIdGeneratorRecoverabilityTest {
 
             // Normal operations
             markFree(freelist, id);
-            freelist.maintenance(NULL_CONTEXT);
+            freelist.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
             long idAfterRecovery = freelist.nextId(NULL_CONTEXT);
             assertEquals(id, idAfterRecovery);
             markUsed(freelist, id);
@@ -287,7 +288,7 @@ class IndexedIdGeneratorRecoverabilityTest {
             // And as an extra measure of verification
             markFree(freelist, id);
             MutableLongSet expected = LongSets.mutable.with(id, neighbourId);
-            freelist.maintenance(NULL_CONTEXT);
+            freelist.maintenance(NULL_CONTEXT, EMPTY_OLDEST_ID_FACTORY);
             assertTrue(expected.remove(freelist.nextId(NULL_CONTEXT)));
             assertTrue(expected.remove(freelist.nextId(NULL_CONTEXT)));
             assertTrue(expected.isEmpty());

@@ -23,6 +23,7 @@ import static org.neo4j.internal.id.DiskBufferedIds.DEFAULT_SEGMENT_SIZE;
 import static org.neo4j.internal.id.IdGenerator.NOOP_MARKER;
 import static org.neo4j.internal.id.IdUtils.idFromCombinedId;
 import static org.neo4j.internal.id.IdUtils.numberOfIdsFromCombinedId;
+import static org.neo4j.io.pagecache.context.OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -144,7 +145,9 @@ public class BufferingIdGeneratorFactory extends AbstractBufferingIdGeneratorFac
         } finally {
             bufferReadLock.unlock();
         }
-        overriddenIdGenerators.values().forEach(generator -> generator.maintenance(cursorContext));
+        overriddenIdGenerators
+                .values()
+                .forEach(generator -> generator.maintenance(cursorContext, EMPTY_OLDEST_ID_FACTORY));
     }
 
     private void collectAndOffloadBufferedIds(boolean blocking) {

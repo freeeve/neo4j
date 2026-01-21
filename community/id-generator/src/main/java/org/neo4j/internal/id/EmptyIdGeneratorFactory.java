@@ -39,6 +39,7 @@ import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 
 public class EmptyIdGeneratorFactory implements IdGeneratorFactory {
@@ -157,9 +158,7 @@ public class EmptyIdGeneratorFactory implements IdGeneratorFactory {
         }
 
         @Override
-        public void maintenance(CursorContext cursorContext) {
-            // nothing
-        }
+        public void maintenance(CursorContext cursorContext, OldestTransactionIdFactory oldestTransactionIdFactory) {}
 
         @Override
         public void start(FreeIds freeIdsForRebuild, CursorContext cursorContext) {
