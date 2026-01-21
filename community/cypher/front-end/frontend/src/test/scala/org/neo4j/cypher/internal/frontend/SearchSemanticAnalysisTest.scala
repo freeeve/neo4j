@@ -814,9 +814,6 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       "time('10:10:10+01:00')",
       "localdatetime('2018-03-30T10:10:10')",
       "time({hour: 6, minute: 41, second: 23, timezone:'+01:00'})",
-      // Duration is invalid for range predicates.
-      // But the function is not resolved until after the semantic check.
-      // Therefore, it will pass here and fail at runtime.
       "duration('PT2H20M')",
       "null",
       "1000 * 2 - 1",
@@ -861,7 +858,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
 
     for {
       (value, actualType) <- invalidValues
-      operator <- operators.filterNot(x => x.equals("="))
+      operator <- operators
     } yield {
       test(
         s"""MATCH (m:Movie {title:'Matrix, The'})
@@ -883,6 +880,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
                 "FLOAT",
                 "INTEGER",
                 "STRING",
+                "DURATION",
                 "DATE",
                 "ZONED TIME",
                 "LOCAL TIME",
@@ -894,50 +892,8 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
               6,
               23 + operator.length
             ),
-            s"Type mismatch: expected Boolean, Float, Integer, String, Date, Time, LocalTime, LocalDateTime or DateTime but was $actualType",
-            InputPosition(149 + optionalLength + operator.length, 6, 23 + operator.length)
-          )
-        )
-      }
-    }
-
-    for {
-      (value, actualType) <- invalidValues
-    } yield {
-      test(
-        s"""MATCH (m:Movie {title:'Matrix, The'})
-           |${maybeOptional}MATCH (movie: Movie)
-           |  SEARCH movie IN (
-           |    VECTOR INDEX moviePlots
-           |    FOR m.embedding
-           |    WHERE movie.prop = $value
-           |    LIMIT 5
-           |  )
-           |RETURN movie.title AS title
-           |""".stripMargin
-      ) {
-        runSearchWithRewriter().hasErrors(
-          SemanticError(
-            GqlHelper.getGql42001_22NB1(
-              java.util.List.of(
-                "BOOLEAN",
-                "FLOAT",
-                "INTEGER",
-                "STRING",
-                "DURATION",
-                "DATE",
-                "ZONED TIME",
-                "LOCAL TIME",
-                "LOCAL DATETIME",
-                "ZONED DATETIME"
-              ),
-              actualType.toUpperCase,
-              150 + optionalLength,
-              6,
-              24
-            ),
             s"Type mismatch: expected Boolean, Float, Integer, String, Duration, Date, Time, LocalTime, LocalDateTime or DateTime but was $actualType",
-            InputPosition(150 + optionalLength, 6, 24)
+            InputPosition(149 + optionalLength + operator.length, 6, 23 + operator.length)
           )
         )
       }

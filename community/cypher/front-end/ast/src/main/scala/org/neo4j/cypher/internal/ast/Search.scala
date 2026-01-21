@@ -187,9 +187,8 @@ case class Search(
       rhs: Expression,
       filterExpression: VectorFilterExpression
     ): CheckedVectorFilterExpression = {
-      val isEquality = filterExpression.isInstanceOf[VectorFilterExpression.Equality]
       CheckedVectorFilterExpression(
-        checkWhereVariable(variable) chain checkRhs(rhs, isEquality),
+        checkWhereVariable(variable) chain checkRhs(rhs),
         Seq(filterExpression)
       )
     }
@@ -214,10 +213,10 @@ case class Search(
       SemanticError.singleStageWithInvalidVariable(variable.name, bindingVariable.name, variable.position)
     }
 
-  private def checkRhs(rhs: Expression, equality: Boolean): SemanticCheck =
-    checkRhsType(rhs, equality)
+  private def checkRhs(rhs: Expression): SemanticCheck =
+    checkRhsType(rhs)
 
-  private def checkRhsType(rhs: Expression, equality: Boolean): SemanticCheck = {
+  private def checkRhsType(rhs: Expression): SemanticCheck = {
     val validTypes = CTInteger
       .union(CTFloat)
       .union(CTBoolean)
@@ -227,14 +226,9 @@ case class Search(
       .union(CTLocalDateTime)
       .union(CTLocalTime)
       .union(CTTime)
+      .union(CTDuration)
 
-    SemanticExpressionCheck.simple(rhs) chain {
-      if (equality) {
-        expectTypeWithoutCoercion(validTypes.union(CTDuration), rhs)
-      } else {
-        expectTypeWithoutCoercion(validTypes, rhs)
-      }
-    }
+    SemanticExpressionCheck.simple(rhs) chain expectTypeWithoutCoercion(validTypes, rhs)
   }
 
   /*
