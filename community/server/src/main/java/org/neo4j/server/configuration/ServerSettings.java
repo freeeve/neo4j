@@ -20,17 +20,20 @@
 package org.neo4j.server.configuration;
 
 import static java.util.Collections.emptyList;
+import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.configuration.SettingConstraints.range;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
 import static org.neo4j.configuration.SettingValueParsers.DURATION;
 import static org.neo4j.configuration.SettingValueParsers.INT;
 import static org.neo4j.configuration.SettingValueParsers.NORMALIZED_RELATIVE_URI;
+import static org.neo4j.configuration.SettingValueParsers.PATH;
 import static org.neo4j.configuration.SettingValueParsers.STRING;
 import static org.neo4j.configuration.SettingValueParsers.listOf;
 import static org.neo4j.configuration.SettingValueParsers.setOfEnums;
 
 import java.net.URI;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
@@ -273,5 +276,13 @@ public class ServerSettings implements SettingsDeclaration {
     @Description("Clacks module names")
     public static final Setting<String> clacks_names = newBuilder(
                     "internal.dbms.clacks_names", STRING, "Richard Macaskill")
+            .build();
+
+    @Internal
+    @Description("The location of the browser zip file to be hosted")
+    public static final Setting<Path> browser_zip_path = newBuilder(
+                    "internal.dbms.browser_zip_location", PATH, Path.of("web", "neo4j-browser.zip"))
+            .setDependency(neo4j_home)
+            .immutable()
             .build();
 }

@@ -87,7 +87,8 @@ public class CommunityNeoWebServer extends AbstractNeoWebServer {
                 serverModules.add(new ThirdPartyJAXRSModule(webServer, config, userLogProvider));
             }
             if (enabledModules.contains(ConfigurableServerModules.BROWSER)) {
-                serverModules.add(new Neo4jBrowserModule(webServer));
+                var browserZip = config.get(ServerSettings.browser_zip_path).toString();
+                serverModules.add(new Neo4jBrowserModule(webServer, browserZip));
             }
             if (enabledModules.contains(ConfigurableServerModules.QUERY_API_ENDPOINTS)) {
                 serverModules.add(new QueryModule(webServer, config, metricsMonitor));

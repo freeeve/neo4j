@@ -25,7 +25,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -45,6 +46,7 @@ import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.server.RequestLog;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.MovedContextHandler;
 import org.eclipse.jetty.session.SessionHandler;
@@ -84,7 +86,7 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
     private ServerConnector httpConnector;
     private ServerConnector httpsConnector;
 
-    private final Map<String, String> staticContent = new HashMap<>();
+    private final Map<String, StaticContent> staticContent = new HashMap<>();
     private final Map<String, JaxRsServletHolderFactory> jaxRsServletHolderFactories = new HashMap<>();
     private final List<FilterDefinition> filters = new ArrayList<>();
 
@@ -278,12 +280,12 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
     }
 
     @Override
-    public void addStaticContent(String contentLocation, String serverMountPoint) {
+    public void addStaticContent(StaticContent contentLocation, String serverMountPoint) {
         staticContent.put(serverMountPoint, contentLocation);
     }
 
     @Override
-    public void removeStaticContent(String contentLocation, String serverMountPoint) {
+    public void removeStaticContent(String serverMountPoint) {
         staticContent.remove(serverMountPoint);
     }
 
@@ -367,16 +369,31 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
     }
 
     private void loadStaticContent(String mountPoint) {
-        String contentLocation = staticContent.get(mountPoint);
+        var staticContent = this.staticContent.get(mountPoint);
         try {
             final WebAppContext staticContext = new WebAppContext();
             staticContext.setServer(getJetty());
-            staticContext.setContextPath(mountPoint);
             staticContext.setInitParameter("org.eclipse.jetty.servlet.Default.dirAllowed", "false");
-            URL resourceLoc = getClass().getClassLoader().getResource(contentLocation);
-            if (resourceLoc != null) {
-                URL url = resourceLoc.toURI().toURL();
-                final Resource resource = ResourceFactory.root().newResource(url);
+            Resource resource = null;
+
+            switch (staticContent.type()) {
+                case JAR -> {
+                    staticContext.setContextPath("/");
+                    var jarFile = Path.of(staticContent.location()).toAbsolutePath();
+                    if (Files.exists(jarFile)) {
+                        resource = ResourceFactory.root().newResource("jar:" + jarFile.toUri() + "!/");
+                    }
+                }
+                case CLASSPATH -> {
+                    var resourceLoc = getClass().getClassLoader().getResource(staticContent.location());
+                    if (resourceLoc != null) {
+                        resource = ResourceFactory.root().newResource(resourceLoc);
+                        staticContext.setContextPath(mountPoint);
+                    }
+                }
+            }
+
+            if (resource != null) {
                 staticContext.setBaseResource(resource);
 
                 addFiltersTo(staticContext);
@@ -385,11 +402,14 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
                         "/*",
                         EnumSet.of(DispatcherType.REQUEST, DispatcherType.FORWARD));
 
-                handlers.addHandler(staticContext);
+                var contextHandler = new ContextHandler();
+                contextHandler.setContextPath(mountPoint);
+                contextHandler.setHandler(staticContext);
+
+                handlers.addHandler(contextHandler);
             }
         } catch (Exception e) {
             log.error("Unknown error loading static content", e);
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
