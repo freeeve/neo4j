@@ -245,7 +245,8 @@ object DefaultCypherPlanner {
     databaseReferenceRepository = databaseReferenceRepository,
     schemaCommandRuntime = schemaCommandRuntime,
     internalNotificationStats = internalNotificationStats,
-    internalUsageStats = internalUsageStats
+    internalUsageStats = internalUsageStats,
+    supportsFingerprint = true
   )
 
   def withTransformers(
@@ -261,7 +262,8 @@ object DefaultCypherPlanner {
     databaseReferenceRepository: DatabaseReferenceRepository,
     schemaCommandRuntime: SchemaCommandRuntime,
     internalNotificationStats: InternalNotificationStats,
-    internalUsageStats: InternalUsageStats
+    internalUsageStats: InternalUsageStats,
+    supportsFingerprint: Boolean
   ): TransformingPlanner = new TransformingPlanner(
     transformers = transformers,
     parsingConfig = parsingConfig,
@@ -275,7 +277,8 @@ object DefaultCypherPlanner {
     databaseReferenceRepository = databaseReferenceRepository,
     schemaCommandRuntime = schemaCommandRuntime,
     internalNotificationStats = internalNotificationStats,
-    internalUsageStats = internalUsageStats
+    internalUsageStats = internalUsageStats,
+    supportsFingerprint = supportsFingerprint
   )
 }
 
@@ -405,7 +408,8 @@ final class TransformingPlanner private[planning] (
   databaseReferenceRepository: DatabaseReferenceRepository,
   schemaCommandRuntime: SchemaCommandRuntime,
   internalNotificationStats: InternalNotificationStats,
-  internalUsageStats: InternalUsageStats
+  internalUsageStats: InternalUsageStats,
+  supportsFingerprint: Boolean
 ) extends CypherPlanner {
   private val caches = new queryCaches.CypherPlannerCaches()
   private val monitors: Monitors = WrappedMonitors(kernelMonitors)
@@ -845,9 +849,6 @@ final class TransformingPlanner private[planning] (
               )
           }
         }
-      case runtime if runtime.getClass.getName == "com.neo4j.graphengine.cypher.runtime.GraphEngineRuntime" =>
-        // TODO We can't call `PlanFingerprint.take` in this path because it fails. Not sure this is the best solution.
-        (FineToReuse, shouldBeCached)
       case _ if logicalPlanState.logicalPlan.isInstanceOf[SchemaLogicalPlan] =>
         // _ is a FallbackRuntime mostly, which may or may not contain an instance of SchemaCommandRuntime, so we have to
         // pass the right one in.
@@ -860,6 +861,8 @@ final class TransformingPlanner private[planning] (
           }
           throw CantCompileQueryException.commandUnsupportedInCommunityEdition(name)
         }
+      case _ if !supportsFingerprint =>
+        (FineToReuse, shouldBeCached)
       case _ =>
         val fingerprint = PlanFingerprint.take(
           clock,
