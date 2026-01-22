@@ -275,6 +275,7 @@ import org.neo4j.cypher.internal.ast.RemoteAliasCredentials
 import org.neo4j.cypher.internal.ast.RemoteAliasStoredCredentials
 import org.neo4j.cypher.internal.ast.Remove
 import org.neo4j.cypher.internal.ast.RemoveAuth
+import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.RemoveHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.RemoveItem
 import org.neo4j.cypher.internal.ast.RemoveLabelAction
@@ -306,6 +307,7 @@ import org.neo4j.cypher.internal.ast.SetAuthAction
 import org.neo4j.cypher.internal.ast.SetClause
 import org.neo4j.cypher.internal.ast.SetDatabaseAccessAction
 import org.neo4j.cypher.internal.ast.SetDatabaseDefaultLanguageAction
+import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
@@ -1729,11 +1731,13 @@ class AstGenerator(
     labels <- oneOrMore(_labelName)
     dynamicLabels <- oneOrMore(_expression)
     property <- _property
+    dynamicProperty <- _containerIndex
     expression <- _expression
     containsIs <- boolean
     item <- oneOf(
       SetLabelItem(variable, labels, dynamicLabels, containsIs)(pos),
       SetPropertyItem(property, expression)(pos),
+      SetDynamicPropertyItem(dynamicProperty, expression)(pos),
       SetExactPropertiesFromMapItem(variable, expression)(pos),
       SetIncludingPropertiesFromMapItem(variable, expression)(pos)
     )
@@ -1745,9 +1749,11 @@ class AstGenerator(
     dynamicLabels <- oneOrMore(_expression)
     containsIs <- boolean
     property <- _property
+    dynamicProperty <- _containerIndex
     item <- oneOf(
       RemoveLabelItem(variable, labels, dynamicLabels, containsIs)(pos),
-      RemovePropertyItem(property)
+      RemovePropertyItem(property)(pos),
+      RemoveDynamicPropertyItem(dynamicProperty)(pos)
     )
   } yield item
 

@@ -185,7 +185,7 @@ class MiscParserTest extends AstParsingTestBase {
 
     "REMOVE map.node.property" should parseTo[Clause](
       Remove(Seq(
-        RemovePropertyItem(chainedProperties)
+        RemovePropertyItem(chainedProperties)(pos)
       ))(pos)
     )
   }

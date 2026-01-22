@@ -200,7 +200,8 @@ public class CompletionEngine {
             rulesDefiningOrUsingVariables.addAll(List.of(
                     Cypher25Parser.RULE_pattern,
                     Cypher25Parser.RULE_nodePattern,
-                    Cypher25Parser.RULE_relationshipPattern));
+                    Cypher25Parser.RULE_relationshipPattern,
+                    Cypher25Parser.RULE_variable));
             var ignoreFromLexer = Set.of(
                     Cypher25Lexer.DECIMAL_DOUBLE,
                     Cypher25Lexer.UNSIGNED_DECIMAL_INTEGER,

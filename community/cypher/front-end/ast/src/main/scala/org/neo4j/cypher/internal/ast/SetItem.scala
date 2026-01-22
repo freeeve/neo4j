@@ -100,12 +100,13 @@ case class SetDynamicPropertyItem(dynamicPropertyLookup: ContainerIndex, express
       SemanticExpressionCheck.simple(expression) chain
       SemanticExpressionCheck.expectType(CTNode.covariant | CTRelationship.covariant, dynamicPropertyLookup.expr)
 
-  override def mapExpressions(f: Expression => Expression): SetItem = {
-    copy(
-      f(dynamicPropertyLookup).asInstanceOf[ContainerIndex],
-      f(expression)
-    )(this.position)
-  }
+  override def mapExpressions(f: Expression => Expression): SetItem = copy(
+    dynamicPropertyLookup = dynamicPropertyLookup.copy(
+      expr = f(dynamicPropertyLookup.expr),
+      idx = f(dynamicPropertyLookup.idx)
+    )(dynamicPropertyLookup.position),
+    expression = f(expression)
+  )(this.position)
 }
 
 case class SetPropertyItems(map: Expression, items: Seq[(PropertyKeyName, Expression)])(val position: InputPosition)

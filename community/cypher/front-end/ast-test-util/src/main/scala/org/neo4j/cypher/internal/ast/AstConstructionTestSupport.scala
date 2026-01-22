@@ -1467,7 +1467,7 @@ trait AstConstructionTestSupport {
     RemoveLabelItem(varFor(node), labels.map(label => LabelName(label)(pos)), dynamicLabels, containsIs)(pos)
 
   def removePropertyItem(map: String, propertyName: String): RemovePropertyItem =
-    RemovePropertyItem(Property(varFor(map, pos), PropertyKeyName(propertyName)(pos))(pos))
+    RemovePropertyItem(Property(varFor(map, pos), PropertyKeyName(propertyName)(pos))(pos))(pos)
 
   def finish(): Finish = Finish()(pos)
 

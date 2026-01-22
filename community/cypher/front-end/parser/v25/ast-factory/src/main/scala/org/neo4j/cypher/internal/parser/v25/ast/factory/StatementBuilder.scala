@@ -110,6 +110,7 @@ import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LabelName
+import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Namespace
@@ -153,6 +154,7 @@ import java.util.stream.Collectors
 
 import scala.collection.immutable.ArraySeq
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 trait StatementBuilder extends Cypher25ParserListener {
 
@@ -434,11 +436,6 @@ trait StatementBuilder extends Cypher25ParserListener {
 
   final override def exitSetItem(ctx: Cypher25Parser.SetItemContext): Unit = {
     ctx.ast = ctx match {
-      case _: Cypher25Parser.SetPropContext =>
-        SetPropertyItem(ctxChild(ctx, 0).ast(), ctxChild(ctx, 2).ast())(pos(ctx))
-      case _: Cypher25Parser.SetDynamicPropContext =>
-        val dynamicProp = ctxChild(ctx, 0).ast[ContainerIndex]()
-        SetDynamicPropertyItem(dynamicProp, ctxChild(ctx, 2).ast())(dynamicProp.position)
       case _: Cypher25Parser.SetPropsContext =>
         SetExactPropertiesFromMapItem(ctxChild(ctx, 0).ast(), ctxChild(ctx, 2).ast(), rhsMustBeMap = true)(pos(ctx))
       case _: Cypher25Parser.AddPropContext =>
@@ -449,6 +446,25 @@ trait StatementBuilder extends Cypher25ParserListener {
       case _: Cypher25Parser.SetLabelsIsContext =>
         val (labels, dynamicLabels) = astChild[(Seq[LabelName], Seq[Expression])](ctx, 1)
         SetLabelItem(ctxChild(ctx, 0).ast(), labels, dynamicLabels, containsIs = true)(pos(ctx))
+      case _: Cypher25Parser.SetPropContext =>
+        ctxChild(ctx, 0).ast[Expression]() match {
+          case lp: LogicalProperty => SetPropertyItem(lp, ctxChild(ctx, 2).ast())(pos(ctx))
+          case dp: ContainerIndex  => SetDynamicPropertyItem(dp, ctxChild(ctx, 2).ast())(pos(ctx))
+          case ex =>
+            val inputPosition = ex.position
+            val gql = GqlHelper.getGql42001_42I06(
+              "none property access expression",
+              List("static property access", "dynamic property access").asJava,
+              inputPosition.offset,
+              inputPosition.line,
+              inputPosition.column
+            )
+            throw exceptionFactory.syntaxException(
+              gql,
+              s"Invalid input none property access expression, expected: static property access or dynamic property access.",
+              inputPosition
+            )
+        }
       case _ => throw new IllegalStateException(s"Unexpected context $ctx")
     }
   }
@@ -461,16 +477,31 @@ trait StatementBuilder extends Cypher25ParserListener {
 
   final override def exitRemoveItem(ctx: Cypher25Parser.RemoveItemContext): Unit = {
     ctx.ast = ctx match {
-      case r: Cypher25Parser.RemovePropContext =>
-        RemovePropertyItem(ctxChild(r, 0).ast())
-      case r: Cypher25Parser.RemoveDynamicPropContext =>
-        RemoveDynamicPropertyItem(ctxChild(r, 0).ast())
-      case r: Cypher25Parser.RemoveLabelsContext =>
+      case _: Cypher25Parser.RemoveLabelsContext =>
         val (labels, dynamicLabels) = astChild[(Seq[LabelName], Seq[Expression])](ctx, 1)
-        RemoveLabelItem(ctxChild(r, 0).ast(), labels, dynamicLabels, containsIs = false)(pos(ctx))
-      case r: Cypher25Parser.RemoveLabelsIsContext =>
+        RemoveLabelItem(ctxChild(ctx, 0).ast(), labels, dynamicLabels, containsIs = false)(pos(ctx))
+      case _: Cypher25Parser.RemoveLabelsIsContext =>
         val (labels, dynamicLabels) = astChild[(Seq[LabelName], Seq[Expression])](ctx, 1)
-        RemoveLabelItem(ctxChild(r, 0).ast(), labels, dynamicLabels, containsIs = true)(pos(ctx))
+        RemoveLabelItem(ctxChild(ctx, 0).ast(), labels, dynamicLabels, containsIs = true)(pos(ctx))
+      case _: Cypher25Parser.RemovePropContext =>
+        ctxChild(ctx, 0).ast[Expression]() match {
+          case lp: LogicalProperty => RemovePropertyItem(lp)(pos(ctx))
+          case dp: ContainerIndex  => RemoveDynamicPropertyItem(dp)(pos(ctx))
+          case ex =>
+            val inputPosition = ex.position
+            val gql = GqlHelper.getGql42001_42I06(
+              "none property access expression",
+              List("static property access", "dynamic property access").asJava,
+              inputPosition.offset,
+              inputPosition.line,
+              inputPosition.column
+            )
+            throw exceptionFactory.syntaxException(
+              gql,
+              s"Invalid input none property access expression, expected: static property access or dynamic property access.",
+              inputPosition
+            )
+        }
       case _ => throw new IllegalStateException(s"Unexpected context $ctx")
     }
   }

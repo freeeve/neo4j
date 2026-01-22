@@ -210,10 +210,6 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_property -> exitProperty((Cypher25Parser.PropertyContext) ctx);
             case Cypher25Parser.RULE_dynamicProperty ->
                 exitDynamicProperty((Cypher25Parser.DynamicPropertyContext) ctx);
-            case Cypher25Parser.RULE_propertyExpression ->
-                exitPropertyExpression((Cypher25Parser.PropertyExpressionContext) ctx);
-            case Cypher25Parser.RULE_dynamicPropertyExpression ->
-                exitDynamicPropertyExpression((Cypher25Parser.DynamicPropertyExpressionContext) ctx);
             case Cypher25Parser.RULE_expression1 -> exitExpression1((Cypher25Parser.Expression1Context) ctx);
             case Cypher25Parser.RULE_literal -> exitLiteral((Cypher25Parser.LiteralContext) ctx);
             case Cypher25Parser.RULE_caseExpression -> exitCaseExpression((Cypher25Parser.CaseExpressionContext) ctx);

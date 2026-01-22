@@ -53,12 +53,12 @@ case object ReplaceLiteralDynamicPropertyLookups extends Step with DefaultPostCo
         Property(expr, PropertyKeyName(lit.value)(lit.position))(dynamicPropertyLookup.position),
         expression
       )(dP.position)
-    case _ @RemoveDynamicPropertyItem(
+    case dP @ RemoveDynamicPropertyItem(
         dynamicPropertyLookup @ ContainerIndex(expr, lit: StringLiteral)
       ) =>
       RemovePropertyItem(
         Property(expr, PropertyKeyName(lit.value)(lit.position))(dynamicPropertyLookup.position)
-      )
+      )(dP.position)
     case index @ ContainerIndex(expr, lit: StringLiteral) =>
       Property(expr, PropertyKeyName(lit.value)(lit.position))(index.position)
   })

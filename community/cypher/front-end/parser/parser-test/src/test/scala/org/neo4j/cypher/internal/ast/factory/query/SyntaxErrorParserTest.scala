@@ -87,8 +87,22 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   }
   test("insert") { invalid("", "'('", 6) }
   test("delete") { invalid("", "an expression", 6) }
-  test("set") { invalid("", "an expression", 3) }
-  test("remove") { invalid("", "an expression", 6) }
+
+  test("set") {
+    invalid({
+      case Cypher5 => ("", "an expression", 3)
+      // ≥ Cypher25
+      case _ => ("", "a variable name or an expression", 3)
+    })
+  }
+
+  test("remove") {
+    invalid({
+      case Cypher5 => ("", "an expression", 6)
+      // ≥ Cypher25
+      case _ => ("", "a variable name or an expression", 6)
+    })
+  }
 
   test("with") {
     invalid({

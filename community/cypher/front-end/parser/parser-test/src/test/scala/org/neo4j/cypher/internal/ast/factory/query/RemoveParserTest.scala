@@ -136,34 +136,182 @@ class RemoveParserTest extends AstParsingTestBase {
     parsesTo[Clause](
       remove(
         Seq(
-          RemovePropertyItem(prop(prop(varFor("map"), "n"), "prop"))
+          RemovePropertyItem(prop(prop(varFor("map"), "n"), "prop"))(pos)
         )
       )
     )
   }
 
+  test("REMOVE list[0].prop") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '.': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 15 (offset: 14))
+            |"REMOVE list[0].prop"
+            |               ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          remove(
+            Seq(
+              RemovePropertyItem(prop(index(varFor("list"), 0), "prop"))(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("REMOVE list[0].n[1].prop") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '.': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 15 (offset: 14))
+            |"REMOVE list[0].n[1].prop"
+            |               ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          remove(
+            Seq(
+              RemovePropertyItem(prop(index(prop(index(varFor("list"), 0), "n"), 1), "prop"))(pos)
+            )
+          )
+        )
+    }
+  }
+
   test("REMOVE map[prop]") {
-    parsesTo[Clause](
+    parsesToWith[Clause](
       remove(
         Seq(
-          RemoveDynamicPropertyItem(containerIndex(varFor("map"), varFor("prop")))
+          RemoveDynamicPropertyItem(containerIndex(varFor("map"), varFor("prop")))(pos)
         )
-      )
+      ),
+      comparePositions = false
     )
+  }
+
+  test("REMOVE map.field[\"prop\"]") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '[': expected an expression, ',', '.', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 17 (offset: 16))
+            |"REMOVE map.field["prop"]"
+            |                 ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          remove(
+            Seq(
+              RemoveDynamicPropertyItem(containerIndex(prop(varFor("map"), "field"), literalString("prop")))(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("REMOVE list[0][\"prop\"]") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '[': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 15 (offset: 14))
+            |"REMOVE list[0]["prop"]"
+            |               ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          remove(
+            Seq(
+              RemoveDynamicPropertyItem(containerIndex(index(varFor("list"), 0), literalString("prop")))(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("REMOVE list[0][\"n\"][1][\"prop\"]") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '[': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 15 (offset: 14))
+            |"REMOVE list[0]["n"][1]["prop"]"
+            |               ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          remove(
+            Seq(
+              RemoveDynamicPropertyItem(
+                containerIndex(
+                  index(containerIndex(index(varFor("list"), 0), literalString("n")), 1),
+                  literalString("prop")
+                )
+              )(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("REMOVE list[0..1][\"prop\"]") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '..': expected an expression or ']' (line 1, column 14 (offset: 13))
+            |"REMOVE list[0..1]["prop"]"
+            |              ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          remove(
+            Seq(
+              RemoveDynamicPropertyItem(
+                containerIndex(sliceFull(varFor("list"), literalInt(0), literalInt(1)), literalString("prop"))
+              )(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("REMOVE list[0..1]") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '..': expected an expression or ']' (line 1, column 14 (offset: 13))
+            |"REMOVE list[0..1]"
+            |              ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.withSyntaxError(
+          """Invalid input none property access expression, expected: static property access or dynamic property access. (line 1, column 12 (offset: 11))
+            |"REMOVE list[0..1]"
+            |            ^""".stripMargin
+        )
+    }
+  }
+
+  test("REMOVE 123") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '': expected '.' or '[' (line 1, column 11 (offset: 10))
+            |"REMOVE 123"
+            |           ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.withSyntaxError(
+          """Invalid input none property access expression, expected: static property access or dynamic property access. (line 1, column 8 (offset: 7))
+            |"REMOVE 123"
+            |        ^""".stripMargin
+        )
+    }
   }
 
   test("REMOVE (CASE WHEN true THEN r END).name") {
     parsesTo[Clause](
       remove(
         Seq(
-          RemovePropertyItem(prop(caseExpression((literalBoolean(true), varFor("r"))), "name"))
+          RemovePropertyItem(prop(caseExpression((literalBoolean(true), varFor("r"))), "name"))(pos)
         )
       )
     )
   }
 
   test("REMOVE (CASE WHEN true THEN r END)[toUpper(\"prop\")]") {
-    parsesTo[Clause](
+    parsesToWith[Clause](
       remove(
         Seq(
           RemoveDynamicPropertyItem(
@@ -171,14 +319,15 @@ class RemoveParserTest extends AstParsingTestBase {
               caseExpression((literalBoolean(true), varFor("r"))),
               function("toUpper", literalString("prop"))
             )
-          )
+          )(pos)
         )
-      )
+      ),
+      comparePositions = false
     )
   }
 
   test("REMOVE (listOfNodes[0])[toUpper(\"prop\")]") {
-    parsesTo[Clause](
+    parsesToWith[Clause](
       remove(
         Seq(
           RemoveDynamicPropertyItem(
@@ -186,23 +335,55 @@ class RemoveParserTest extends AstParsingTestBase {
               containerIndex(varFor("listOfNodes"), 0),
               function("toUpper", literalString("prop"))
             )
-          )
+          )(pos)
         )
-      )
+      ),
+      comparePositions = false
     )
   }
 
+  test("REMOVE listOfNodes[0].prop") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '.': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 22 (offset: 21))
+            |"REMOVE listOfNodes[0].prop"
+            |                      ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          remove(
+            Seq(
+              RemovePropertyItem(
+                prop(
+                  containerIndex(varFor("listOfNodes"), 0),
+                  "prop"
+                )
+              )(pos)
+            )
+          )
+        )
+    }
+  }
+
   test("REMOVE listOfNodes[0][toUpper(\"prop\")]") {
-    parseIn[Statements] {
-      case Cypher5 => _.withMessage(
-          """Invalid input '[': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 22 (offset: 21))
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '[': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 22 (offset: 21))
             |"REMOVE listOfNodes[0][toUpper("prop")]"
             |                      ^""".stripMargin
         )
-      case _ => _.withMessage(
-          """Invalid input '[': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 22 (offset: 21))
-            |"REMOVE listOfNodes[0][toUpper("prop")]"
-            |                      ^""".stripMargin
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          remove(
+            Seq(
+              RemoveDynamicPropertyItem(
+                containerIndex(
+                  containerIndex(varFor("listOfNodes"), 0),
+                  function("toUpper", literalString("prop"))
+                )
+              )(pos)
+            )
+          )
         )
     }
   }
@@ -271,19 +452,35 @@ class RemoveParserTest extends AstParsingTestBase {
   }
 
   test("REMOVE :A") {
-    failsParsing[Statements].withMessage(
-      """Invalid input ':': expected an expression (line 1, column 8 (offset: 7))
-        |"REMOVE :A"
-        |        ^""".stripMargin
-    )
+    parsesIn[Clause] {
+      case Cypher5 => _.withMessage(
+          """Invalid input ':': expected an expression (line 1, column 8 (offset: 7))
+            |"REMOVE :A"
+            |        ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.withMessage(
+          """Invalid input ':': expected a variable name or an expression (line 1, column 8 (offset: 7))
+            |"REMOVE :A"
+            |        ^""".stripMargin
+        )
+    }
   }
 
   test("REMOVE IS A") {
-    failsParsing[Statements].withMessage(
-      """Invalid input 'A': expected an expression, '.', ':', 'IS' or '[' (line 1, column 11 (offset: 10))
-        |"REMOVE IS A"
-        |           ^""".stripMargin
-    )
+    parsesIn[Clause] {
+      case Cypher5 => _.withMessage(
+          """Invalid input 'A': expected an expression, '.', ':', 'IS' or '[' (line 1, column 11 (offset: 10))
+            |"REMOVE IS A"
+            |           ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.withMessage(
+          """Invalid input none property access expression, expected: static property access or dynamic property access. (line 1, column 8 (offset: 7))
+            |"REMOVE IS A"
+            |        ^""".stripMargin
+        )
+    }
   }
 
   // Dynamic Labels

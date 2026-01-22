@@ -92,6 +92,7 @@ import org.neo4j.cypher.internal.expressions.AnonymousPatternPart
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
+import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Namespace
@@ -330,7 +331,7 @@ trait StatementBuilder extends Cypher5ParserListener {
         SetPropertyItem(ctxChild(ctx, 0).ast(), ctxChild(ctx, 2).ast())(pos(ctx))
       case _: Cypher5Parser.SetDynamicPropContext =>
         val dynamicProp = ctxChild(ctx, 0).ast[ContainerIndex]()
-        SetDynamicPropertyItem(dynamicProp, ctxChild(ctx, 2).ast())(dynamicProp.position)
+        SetDynamicPropertyItem(dynamicProp, ctxChild(ctx, 2).ast())(pos(ctx))
       case _: Cypher5Parser.SetPropsContext =>
         SetExactPropertiesFromMapItem(ctxChild(ctx, 0).ast(), ctxChild(ctx, 2).ast())(pos(ctx))
       case _: Cypher5Parser.AddPropContext =>
@@ -354,9 +355,9 @@ trait StatementBuilder extends Cypher5ParserListener {
   final override def exitRemoveItem(ctx: Cypher5Parser.RemoveItemContext): Unit = {
     ctx.ast = ctx match {
       case r: Cypher5Parser.RemovePropContext =>
-        RemovePropertyItem(ctxChild(r, 0).ast())
+        RemovePropertyItem(ctxChild(r, 0).ast[LogicalProperty]())(pos(ctx))
       case r: Cypher5Parser.RemoveDynamicPropContext =>
-        RemoveDynamicPropertyItem(ctxChild(r, 0).ast())
+        RemoveDynamicPropertyItem(ctxChild(r, 0).ast[ContainerIndex]())(pos(ctx))
       case r: Cypher5Parser.RemoveLabelsContext =>
         val (labels, dynamicLabels) = astChild[(Seq[LabelName], Seq[Expression])](ctx, 1)
         RemoveLabelItem(ctxChild(r, 0).ast(), labels, dynamicLabels, containsIs = false)(pos(ctx))

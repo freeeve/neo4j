@@ -37,9 +37,8 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.util.InputPosition
-import org.scalatest.LoneElement
 
-class ParserPositionTest extends AstParsingTestBase with LoneElement {
+class ParserPositionTest extends AstParsingTestBase {
 
   test("MATCH (n) RETURN n.prop") {
     parses[Statements].withPositionOf[Property](InputPosition(18, 1, 19))

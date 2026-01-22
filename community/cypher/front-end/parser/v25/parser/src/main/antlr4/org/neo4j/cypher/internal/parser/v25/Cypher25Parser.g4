@@ -206,12 +206,11 @@ setClause
    ;
 
 setItem
-   : propertyExpression EQ expression        # SetProp
-   | dynamicPropertyExpression EQ expression # SetDynamicProp
-   | variable EQ expression                  # SetProps
-   | variable PLUSEQUAL expression           # AddProp
-   | variable nodeLabels                     # SetLabels
-   | variable nodeLabelsIs                   # SetLabelsIs
+   : variable EQ expression         # SetProps
+   | variable PLUSEQUAL expression  # AddProp
+   | variable nodeLabels            # SetLabels
+   | variable nodeLabelsIs          # SetLabelsIs
+   | expression2 EQ expression      # SetProp
    ;
 
 removeClause
@@ -219,10 +218,9 @@ removeClause
    ;
 
 removeItem
-   : propertyExpression         # RemoveProp
-   | dynamicPropertyExpression  # RemoveDynamicProp
-   | variable nodeLabels        # RemoveLabels
-   | variable nodeLabelsIs      # RemoveLabelsIs
+   : variable nodeLabels    # RemoveLabels
+   | variable nodeLabelsIs  # RemoveLabelsIs
+   | expression2            # RemoveProp
    ;
 
 deleteClause
@@ -602,14 +600,6 @@ property
 
 dynamicProperty
    : LBRACKET expression RBRACKET
-   ;
-
-propertyExpression
-   : expression1 property+
-   ;
-
-dynamicPropertyExpression
-   : expression1 dynamicProperty
    ;
 
 expression1

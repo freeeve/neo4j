@@ -520,6 +520,18 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42I06(
+            String input, List<String> expectedList, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I04)
+                        .atPosition(offset, line, column)
+                        .withParam(GqlParams.StringParam.input, input)
+                        .withParam(GqlParams.ListParam.valueList, expectedList)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42I07(
             String valueType, String input, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)

@@ -40,7 +40,7 @@ class ReplaceLiteralDynamicPropertyLookupsTest extends CypherFunSuite with AstCo
   }
 
   test("Replaces REMOVE dynamic property lookups") {
-    val input: ASTNode = RemoveDynamicPropertyItem(containerIndex(varFor("a"), literalString("name")))
+    val input: ASTNode = RemoveDynamicPropertyItem(containerIndex(varFor("a"), literalString("name")))(pos)
     val output: ASTNode = removePropertyItem("a", "name")
 
     ReplaceLiteralDynamicPropertyLookups.instance(input) should equal(output)
@@ -59,7 +59,7 @@ class ReplaceLiteralDynamicPropertyLookupsTest extends CypherFunSuite with AstCo
   }
 
   test("Does not replaces non-literal REMOVE dynamic property lookups") {
-    val input: ASTNode = RemoveDynamicPropertyItem(containerIndex(varFor("a"), varFor("prop")))
+    val input: ASTNode = RemoveDynamicPropertyItem(containerIndex(varFor("a"), varFor("prop")))(pos)
 
     ReplaceLiteralDynamicPropertyLookups.instance(input) should equal(input)
   }

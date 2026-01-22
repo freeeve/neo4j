@@ -269,10 +269,6 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitDynamicProperty(Cypher25Parser.DynamicPropertyContext ctx);
 
-    void exitPropertyExpression(Cypher25Parser.PropertyExpressionContext ctx);
-
-    void exitDynamicPropertyExpression(Cypher25Parser.DynamicPropertyExpressionContext ctx);
-
     void exitExpression1(Cypher25Parser.Expression1Context ctx);
 
     void exitLiteral(Cypher25Parser.LiteralContext ctx);

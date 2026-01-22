@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetPropertyItem
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.symbols.CTAny
 
@@ -205,14 +206,170 @@ class SetParserTest extends AstParsingTestBase {
     )
   }
 
+  test("SET list[0].prop = 1") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '.': expected '=' (line 1, column 12 (offset: 11))
+            |"SET list[0].prop = 1"
+            |            ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          set_(
+            Seq(
+              SetPropertyItem(prop(index(varFor("list"), 0), "prop"), literalInt(1))(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("SET list[0].n[1].prop = 1") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '.': expected '=' (line 1, column 12 (offset: 11))
+            |"SET list[0].n[1].prop = 1"
+            |            ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          set_(
+            Seq(
+              SetPropertyItem(prop(index(prop(index(varFor("list"), 0), "n"), 1), "prop"), literalInt(1))(pos)
+            )
+          )
+        )
+    }
+  }
+
   test("SET map[\"prop\"] = 1") {
-    parsesTo[Clause](
+    parsesToWith[Clause](
       set_(
         Seq(
           SetDynamicPropertyItem(containerIndex(varFor("map"), literalString("prop")), literalInt(1))(pos)
         )
-      )
+      ),
+      comparePositions = false
     )
+  }
+
+  test("SET map.field[\"prop\"] = 1") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '[': expected an expression, '.' or '=' (line 1, column 14 (offset: 13))
+            |"SET map.field["prop"] = 1"
+            |              ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          set_(
+            Seq(
+              SetDynamicPropertyItem(
+                containerIndex(prop(varFor("map"), "field"), literalString("prop")),
+                literalInt(1)
+              )(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("SET list[0][\"prop\"] = 1") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '[': expected '=' (line 1, column 12 (offset: 11))
+            |"SET list[0]["prop"] = 1"
+            |            ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          set_(
+            Seq(
+              SetDynamicPropertyItem(
+                containerIndex(index(varFor("list"), 0), literalString("prop")),
+                literalInt(1)
+              )(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("SET list[0][\"n\"][1][\"prop\"] = 1") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '[': expected '=' (line 1, column 12 (offset: 11))
+            |"SET list[0]["n"][1]["prop"] = 1"
+            |            ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          set_(
+            Seq(
+              SetDynamicPropertyItem(
+                containerIndex(
+                  index(containerIndex(index(varFor("list"), 0), literalString("n")), 1),
+                  literalString("prop")
+                ),
+                literalInt(1)
+              )(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("SET list[0..1][\"prop\"] = 1") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '..': expected an expression or ']' (line 1, column 11 (offset: 10))
+            |"SET list[0..1]["prop"] = 1"
+            |           ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          set_(
+            Seq(
+              SetDynamicPropertyItem(
+                containerIndex(sliceFull(varFor("list"), literalInt(0), literalInt(1)), literalString("prop")),
+                literalInt(1)
+              )(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test("SET list[0..1] = 1") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '..': expected an expression or ']' (line 1, column 11 (offset: 10))
+            |"SET list[0..1] = 1"
+            |           ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.withSyntaxError(
+          """Invalid input none property access expression, expected: static property access or dynamic property access. (line 1, column 9 (offset: 8))
+            |"SET list[0..1] = 1"
+            |         ^""".stripMargin
+        )
+    }
+  }
+
+  test("SET 123 = 1") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '=': expected '.' or '[' (line 1, column 9 (offset: 8))
+            |"SET 123 = 1"
+            |         ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.withSyntaxError(
+          """Invalid input none property access expression, expected: static property access or dynamic property access. (line 1, column 5 (offset: 4))
+            |"SET 123 = 1"
+            |     ^""".stripMargin
+        )
+    }
   }
 
   test("SET (CASE WHEN true THEN r END).name = 'neo4j'") {
@@ -228,7 +385,7 @@ class SetParserTest extends AstParsingTestBase {
   }
 
   test("SET (CASE WHEN true THEN r END)[toUpper(\"prop\")] = 'neo4j'") {
-    parsesTo[Clause](
+    parsesToWith[Clause](
       set_(
         Seq(
           SetDynamicPropertyItem(
@@ -241,18 +398,19 @@ class SetParserTest extends AstParsingTestBase {
             pos
           )
         )
-      )
+      ),
+      comparePositions = false
     )
   }
 
-  test("SET (listOfNodes[0])[toUpper(\"prop\")] = 'neo4j'") {
+  test("SET (listOfNodes[0]).prop = 'neo4j'") {
     parsesTo[Clause](
       set_(
         Seq(
-          SetDynamicPropertyItem(
-            containerIndex(
+          SetPropertyItem(
+            prop(
               containerIndex(varFor("listOfNodes"), 0),
-              function("toUpper", literalString("prop"))
+              "prop"
             ),
             literalString("neo4j")
           )(
@@ -263,28 +421,88 @@ class SetParserTest extends AstParsingTestBase {
     )
   }
 
+  test("SET listOfNodes[0].prop = 'neo4j'") {
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '.': expected '=' (line 1, column 19 (offset: 18))
+            |"SET listOfNodes[0].prop = 'neo4j'"
+            |                   ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          set_(
+            Seq(
+              SetPropertyItem(
+                prop(
+                  containerIndex(varFor("listOfNodes"), 0),
+                  "prop"
+                ),
+                literalString("neo4j")
+              )(
+                pos
+              )
+            )
+          )
+        )
+    }
+  }
+
   test("SET listOfNodes[0][toUpper(\"prop\")] = 'neo4j'") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '[': expected '=' (line 1, column 19 (offset: 18))
-        |"SET listOfNodes[0][toUpper("prop")] = 'neo4j'"
-        |                   ^""".stripMargin
-    )
+    parsesIn[Clause] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '[': expected '=' (line 1, column 19 (offset: 18))
+            |"SET listOfNodes[0][toUpper("prop")] = 'neo4j'"
+            |                   ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.toAst(
+          set_(
+            Seq(
+              SetDynamicPropertyItem(
+                containerIndex(
+                  containerIndex(varFor("listOfNodes"), 0),
+                  function("toUpper", literalString("prop"))
+                ),
+                literalString("neo4j")
+              )(
+                pos
+              )
+            )
+          )
+        )
+    }
   }
 
   test("SET :A") {
-    failsParsing[Statements].withMessage(
-      """Invalid input ':': expected an expression (line 1, column 5 (offset: 4))
-        |"SET :A"
-        |     ^""".stripMargin
-    )
+    parsesIn[Clause] {
+      case Cypher5 => _.withMessage(
+          """Invalid input ':': expected an expression (line 1, column 5 (offset: 4))
+            |"SET :A"
+            |     ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.withMessage(
+          """Invalid input ':': expected a variable name or an expression (line 1, column 5 (offset: 4))
+            |"SET :A"
+            |     ^""".stripMargin
+        )
+    }
   }
 
   test("SET IS A") {
-    failsParsing[Statements].withMessage(
-      """Invalid input 'A': expected an expression, '+=', '.', ':', '=', 'IS' or '[' (line 1, column 8 (offset: 7))
-        |"SET IS A"
-        |        ^""".stripMargin
-    )
+    parsesIn[Clause] {
+      case Cypher5 => _.withMessage(
+          """Invalid input 'A': expected an expression, '+=', '.', ':', '=', 'IS' or '[' (line 1, column 8 (offset: 7))
+            |"SET IS A"
+            |        ^""".stripMargin
+        )
+      // ≥ Cypher 25
+      case _ => _.withMessage(
+          """Invalid input 'A': expected an expression, '+=', ':', '=' or 'IS' (line 1, column 8 (offset: 7))
+            |"SET IS A"
+            |        ^""".stripMargin
+        )
+    }
   }
 
   // Invalid mix of colon conjunction and IS, this will be disallowed in semantic checking

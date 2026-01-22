@@ -402,6 +402,40 @@ class PrettifierIT extends AbstractPrettifierTest {
     "match (n) SET n:Label, n.prop = 1" ->
       """MATCH (n)
         |SET n:Label, n.prop = 1""".stripMargin,
+    FailsInCypher5(
+      """MATCH (n:N) WITH collect(n) AS ns SET ns[0].num = 1""".stripMargin,
+      """MATCH (n:N)
+        |WITH collect(n) AS ns
+        |SET (ns[0]).num = 1""".stripMargin
+    ),
+    FailsInCypher5(
+      """MATCH (n:N) WITH collect(n) AS ns SET ns[0]["num"] = 1""".stripMargin,
+      """MATCH (n:N)
+        |WITH collect(n) AS ns
+        |SET (ns[0])["num"] = 1""".stripMargin
+    ),
+    """MATCH (n:N) WITH {a: a, b: b} AS map SET map.a.num = 1""".stripMargin ->
+      """MATCH (n:N)
+        |WITH {a: a, b: b} AS map
+        |SET (map.a).num = 1""".stripMargin,
+    FailsInCypher5(
+      """MATCH (n:N) WITH {a: a, b: b} AS map SET map["a"].num = 1""".stripMargin,
+      """MATCH (n:N)
+        |WITH {a: a, b: b} AS map
+        |SET (map["a"]).num = 1""".stripMargin
+    ),
+    FailsInCypher5(
+      """MATCH (n:N) WITH {a: a, b: b} AS map SET map.a["num"] = 1""".stripMargin,
+      """MATCH (n:N)
+        |WITH {a: a, b: b} AS map
+        |SET (map.a)["num"] = 1""".stripMargin
+    ),
+    FailsInCypher5(
+      """MATCH (n:N) WITH {a: a, b: b} AS map SET map["a"]["num"] = 1""".stripMargin,
+      """MATCH (n:N)
+        |WITH {a: a, b: b} AS map
+        |SET (map["a"])["num"] = 1""".stripMargin
+    ),
     "match (n) REMOVE n:A   :$(B):   $(  1 + 1  + \"2\")  :D" ->
       """MATCH (n)
         |REMOVE n:A:$(B):$((1 + 1) + "2"):D""".stripMargin,
@@ -426,6 +460,40 @@ class PrettifierIT extends AbstractPrettifierTest {
     "match (n) SET n[\"prop\" +     \"2\"]    =    2" ->
       """MATCH (n)
         |SET n["prop" + "2"] = 2""".stripMargin,
+    FailsInCypher5(
+      """MATCH (n:N) WITH collect(n) AS ns REMOVE ns[0].num""".stripMargin,
+      """MATCH (n:N)
+        |WITH collect(n) AS ns
+        |REMOVE (ns[0]).num""".stripMargin
+    ),
+    FailsInCypher5(
+      """MATCH (n:N) WITH collect(n) AS ns REMOVE ns[0]["num"]""".stripMargin,
+      """MATCH (n:N)
+        |WITH collect(n) AS ns
+        |REMOVE (ns[0])["num"]""".stripMargin
+    ),
+    """MATCH (n:N) WITH {a: a, b: b} AS map REMOVE map.a.num""".stripMargin ->
+      """MATCH (n:N)
+        |WITH {a: a, b: b} AS map
+        |REMOVE (map.a).num""".stripMargin,
+    FailsInCypher5(
+      """MATCH (n:N) WITH {a: a, b: b} AS map REMOVE map["a"].num""".stripMargin,
+      """MATCH (n:N)
+        |WITH {a: a, b: b} AS map
+        |REMOVE (map["a"]).num""".stripMargin
+    ),
+    FailsInCypher5(
+      """MATCH (n:N) WITH {a: a, b: b} AS map REMOVE map.a["num"]""".stripMargin,
+      """MATCH (n:N)
+        |WITH {a: a, b: b} AS map
+        |REMOVE (map.a)["num"]""".stripMargin
+    ),
+    FailsInCypher5(
+      """MATCH (n:N) WITH {a: a, b: b} AS map REMOVE map["a"]["num"]""".stripMargin,
+      """MATCH (n:N)
+        |WITH {a: a, b: b} AS map
+        |REMOVE (map["a"])["num"]""".stripMargin
+    ),
     "match (n) DELETE n" ->
       """MATCH (n)
         |DELETE n""".stripMargin,
