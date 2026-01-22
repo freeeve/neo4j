@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.DatabaseName
+import org.neo4j.cypher.internal.ast.DatabaseScope
 import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.ExecutableBy
 import org.neo4j.cypher.internal.ast.FreeProjection
@@ -65,6 +66,7 @@ import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowDatabase
+import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.ShowFunctionType
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexType
@@ -556,16 +558,25 @@ trait DdlShowBuilder extends Cypher25ParserListener {
 
   override def exitShowDatabase(ctx: Cypher25Parser.ShowDatabaseContext): Unit = {
     val dbName = ctx.symbolicAliasNameOrParameter()
-    val dbScope =
+    val dbScope = {
       if (dbName != null) SingleNamedDatabaseScope(dbName.ast[DatabaseName]())(pos(ctx))
       else if (ctx.HOME() != null) HomeDatabaseScope()(pos(ctx))
       else if (ctx.DEFAULT() != null) DefaultDatabaseScope()(pos(ctx))
       else AllDatabasesScope()(pos(ctx))
-    ctx.ast = ShowDatabase(
-      dbScope,
-      astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()),
-      cypher5ColumnsOnly = false
-    )(pos(ctx.getParent))
+    }
+    if (!semanticFeatures.contains(SemanticFeature.ShowDatabaseInterpretedRuntime)) {
+      ctx.ast = ShowDatabase(
+        dbScope,
+        astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()),
+        cypher5ColumnsOnly = false
+      )(pos(ctx.getParent))
+    } else {
+      ctx.ast = decomposeYield(astOpt(ctx.showCommandYield()))
+        .buildShowDatabases(
+          dbScope,
+          pos(ctx.getParent)
+        )
+    }
   }
 
   final override def exitShowAliases(
@@ -681,6 +692,18 @@ object DdlShowBuilder {
       )
     }
 
+    def buildShowDatabases(dbScope: DatabaseScope, position: InputPosition): Seq[Clause] = {
+      buildClauses(
+        ShowDatabasesClause(
+          dbScope,
+          where,
+          yieldedItems,
+          yieldAll,
+          yieldClause.map(turnYieldToWith)
+        )(position)
+      )
+    }
+
     private def buildClauses(cmdClause: Clause): Seq[Clause] = {
       ArraySeq.from(
         Seq(cmdClause) ++ returnClause ++ composableClauses.getOrElse(Seq.empty)
@@ -701,5 +724,6 @@ object DdlShowBuilder {
         withType = ParsedAsYield
       )(yieldClause.position)
     }
+
   }
 }

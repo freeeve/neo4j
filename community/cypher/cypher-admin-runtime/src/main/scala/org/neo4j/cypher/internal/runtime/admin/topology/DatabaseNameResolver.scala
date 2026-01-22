@@ -17,12 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.administration.topology
+package org.neo4j.cypher.internal.runtime.admin.topology
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.ParameterName
+import org.neo4j.cypher.internal.ast.ParameterProvider
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
@@ -32,7 +33,6 @@ import org.neo4j.kernel.database.DatabaseReferenceImpl
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.kernel.database.NormalizedDatabaseName
-import org.neo4j.values.virtual.MapValue
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.SetHasAsScala
@@ -41,7 +41,7 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
 
   private[topology] def resolveDatabaseNameToReference(
     namedDatabase: DatabaseName,
-    params: MapValue,
+    params: ParameterProvider,
     cypherVersion: CypherVersion
   ): (Set[DatabaseReference], Set[InternalNotification]) = {
     val databaseReferences = referenceResolver.getAllDatabaseReferences.asScala

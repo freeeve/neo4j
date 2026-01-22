@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.PreParser;
-import org.neo4j.cypher.internal.ast.AdministrationCommand;
 import org.neo4j.cypher.internal.ast.CatalogName;
 import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.compiler.CypherParsing;
@@ -191,7 +190,9 @@ public class QueryProcessorImpl implements QueryProcessor {
                 cancellationChecker,
                 sessionDatabase,
                 shadowedFunctions);
+        var statementType = StatementType.of(parsedQuery.statement(), resolver);
         var catalogInfo = resolveCatalogInfo(
+                statementType,
                 parsedQuery.statement(),
                 sessionDatabase.isComposite(),
                 databaseContextProvider.databaseIdRepository(),
@@ -199,7 +200,6 @@ public class QueryProcessorImpl implements QueryProcessor {
 
         var rewrittenQueryText = rewriteQueryText(parsedQuery, preParsedQuery.options(), cancellationChecker);
         var maybeExtractedParams = formatMaybeExtractedParams(parsedQuery);
-        var statementType = StatementType.of(parsedQuery.statement(), resolver);
         var parsingNotifications = CollectionConverters.asJava(notificationLogger.notifications());
 
         return new ProcessedQueryInfoCache.Value(
@@ -213,8 +213,12 @@ public class QueryProcessorImpl implements QueryProcessor {
     }
 
     private TargetService.CatalogInfo resolveCatalogInfo(
-            Statement statement, boolean targetsComposite, DatabaseIdRepository databaseIdRepository, Query query) {
-        if (statement instanceof AdministrationCommand) {
+            StatementType statementType,
+            Statement statement,
+            boolean targetsComposite,
+            DatabaseIdRepository databaseIdRepository,
+            Query query) {
+        if (statementType.statementType().equals(StatementType.AdminCommand())) {
             return new TargetService.SingleQueryCatalogInfo(Optional.of(SYSTEM_DATABASE_CATALOG_NAME), true);
         }
 

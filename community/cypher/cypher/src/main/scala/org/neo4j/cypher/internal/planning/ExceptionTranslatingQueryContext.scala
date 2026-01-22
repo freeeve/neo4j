@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.runtime.ReadQueryContext
 import org.neo4j.cypher.internal.runtime.RelationshipOperations
 import org.neo4j.cypher.internal.runtime.RelationshipReadOperations
 import org.neo4j.cypher.internal.runtime.ResourceManager
+import org.neo4j.cypher.internal.runtime.admin.topology.ShowDatabaseService
 import org.neo4j.cypher.internal.runtime.interpreted.DelegatingQueryTransactionalContext
 import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
@@ -552,6 +553,9 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
     new ExceptionTranslatingQueryContext(inner.contextWithNewTransaction())
 
   override def systemGraph: GraphDatabaseService = translateException(tokenNameLookup, inner.systemGraph)
+
+  override def getShowDatabaseService: ShowDatabaseService =
+    translateException(tokenNameLookup, inner.getShowDatabaseService)
 
   override def jobScheduler: JobScheduler = translateException(tokenNameLookup, inner.jobScheduler)
 

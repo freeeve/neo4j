@@ -23,13 +23,10 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.administration.DatabaseListParameterTransformerFunction.detailLevels
 import org.neo4j.cypher.internal.administration.ShowDatabaseExecutionPlanner.accessibleDbsKey
-import org.neo4j.cypher.internal.administration.topology.DatabaseDetailsMapper
-import org.neo4j.cypher.internal.administration.topology.ShowDatabaseResult
-import org.neo4j.cypher.internal.administration.topology.ShowDatabaseService
-import org.neo4j.cypher.internal.administration.topology.ShowDatabaseServiceContext
 import org.neo4j.cypher.internal.ast.DatabaseScope
 import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
+import org.neo4j.cypher.internal.ast.MapBasedParameterProvider
 import org.neo4j.cypher.internal.ast.ShowDatabase.DATABASE_ID_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_COMMITTED_TX_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.REPLICATION_LAG_COL
@@ -41,10 +38,16 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.procs.ParameterTransformer.ParameterTransformerOutput
 import org.neo4j.cypher.internal.procs.ParameterTransformerFunction
+import org.neo4j.cypher.internal.runtime.admin.topology.DatabaseDetailsMapper
+import org.neo4j.cypher.internal.runtime.admin.topology.ShowDatabaseResult
+import org.neo4j.cypher.internal.runtime.admin.topology.ShowDatabaseServiceContext
+import org.neo4j.cypher.internal.runtime.admin.topology.TransactionBoundShowDatabaseService
 import org.neo4j.dbms.database.TopologyInfoService
 import org.neo4j.graphdb.Transaction
 import org.neo4j.internal.kernel.api.security.SecurityContext
+import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.kernel.database.DefaultDatabaseResolver
+import org.neo4j.kernel.impl.coreapi.InternalTransaction
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.VirtualValues
@@ -52,8 +55,9 @@ import org.neo4j.values.virtual.VirtualValues
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class DatabaseListParameterTransformerFunction(
-  showDatabaseService: ShowDatabaseService,
+  referenceRepository: DatabaseReferenceRepository,
   defaultDatabaseResolver: DefaultDatabaseResolver,
+  infoService: TopologyInfoService,
   maybeYield: Option[Yield],
   verbose: Boolean,
   scope: DatabaseScope,
@@ -66,24 +70,31 @@ class DatabaseListParameterTransformerFunction(
     systemParams: MapValue,
     userParams: MapValue
   ): ParameterTransformerOutput = {
-    val defaultDatabase = defaultDatabaseResolver.defaultDatabase(null)
-    val homeDatabase = defaultDatabaseResolver.defaultDatabase(securityContext.subject().executingUser())
     val showDatabaseServiceContext = ShowDatabaseServiceContext(
-      transaction,
       securityContext,
       context.runtimeContext.cypherVersion,
       detailLevels(verbose, maybeYield)
+    )
+    val showDatabaseService = new TransactionBoundShowDatabaseService(
+      transaction.asInstanceOf[InternalTransaction],
+      referenceRepository,
+      defaultDatabaseResolver,
+      infoService
     )
 
     val (databaseDetails, notifications): (Seq[ShowDatabaseResult], Set[InternalNotification]) = scope match {
       case _: DefaultDatabaseScope => (showDatabaseService.getDefaultDatabase(showDatabaseServiceContext), Set.empty)
       case _: HomeDatabaseScope    => (showDatabaseService.getHomeDatabase(showDatabaseServiceContext), Set.empty)
       case namedDatabaseScope: SingleNamedDatabaseScope =>
-        showDatabaseService.getSingleNamedDatabase(namedDatabaseScope.database, userParams, showDatabaseServiceContext)
+        showDatabaseService.getSingleNamedDatabase(
+          namedDatabaseScope.database,
+          MapBasedParameterProvider(userParams),
+          showDatabaseServiceContext
+        )
       case _ => (showDatabaseService.getAllDatabases(showDatabaseServiceContext), Set.empty)
     }
 
-    val dbMetadata = databaseDetails.map(DatabaseDetailsMapper.toMapValue(_, defaultDatabase, homeDatabase))
+    val dbMetadata = databaseDetails.map(DatabaseDetailsMapper.toMapValue)
     (
       safeMergeParameters(
         systemParams,

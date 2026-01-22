@@ -50,6 +50,7 @@ import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.gqlstatus.GqlHelper
+import org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME
 
 sealed trait QueryUtils {
 
@@ -300,6 +301,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       checkNoCallInTransactionsAfterWriteClause(clauses) chain
       checkInputDataStream(clauses) chain
       checkUsePosition() chain
+      checkUseForRoutedSystemCommand() chain
       recordCurrentScope(this)
 
   override def semanticCheck: SemanticCheck =
@@ -696,6 +698,17 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       case useGraph: UseGraph => useGraph
     }.foldSemanticCheck { clause =>
       error(SemanticError.invalidPlacementOfUseClauseVerboseLegacyMsg(clause.position))
+    }
+  }
+
+  private def checkUseForRoutedSystemCommand(): SemanticCheck = {
+    // For backward compatibility, SHOW DATBASES is routed to system if it is standalone, but we don't want to allow it to be routed anywhere else,
+    // as this could allow it to get routed to a remote alias.
+    partitionedClauses match {
+      case SingleQuery.PartitionedClauses(Some(use), _, _, (_: CommandClauseRouteToSystem) :: _)
+        if use.graphReference.print != SYSTEM_DATABASE_NAME =>
+        SemanticError.useClauseWithAdministrationCommand(use.position)
+      case _ => success
     }
   }
 

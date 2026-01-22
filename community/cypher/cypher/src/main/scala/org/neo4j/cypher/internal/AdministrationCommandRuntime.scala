@@ -24,6 +24,7 @@ import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.ExternalAuth
 import org.neo4j.cypher.internal.ast.HomeDatabaseAction
+import org.neo4j.cypher.internal.ast.MapBasedParameterProvider
 import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.NativeAuth
 import org.neo4j.cypher.internal.ast.ParameterName
@@ -805,7 +806,7 @@ object AdministrationCommandRuntime {
           wasParameter = true,
           (_, params) => {
             val (namespace, name, displayName, quotedDisplayName) =
-              pn.getNameParts(params, DEFAULT_NAMESPACE, emulateGetNameFields)
+              pn.getNameParts(MapBasedParameterProvider(params), DEFAULT_NAMESPACE, emulateGetNameFields)
             params.updatedWith(
               internalKey(nameKey + "_namespace"),
               Values.utf8Value(valueMapper(namespace.getOrElse(DEFAULT_NAMESPACE)))
@@ -820,7 +821,7 @@ object AdministrationCommandRuntime {
 
   def runtimeStringValue(field: DatabaseName, params: MapValue): String = field match {
     case n: NamespacedName => n.toString
-    case ParameterName(p)  => runtimeStringValue(p.name, params, prettyPrint = false)
+    case pn: ParameterName => runtimeStringValue(pn.parameter.name, params, prettyPrint = false)
   }
 
   def runtimeStringValue(

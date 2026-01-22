@@ -198,6 +198,7 @@ import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowDatabase
+import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexesClause
 import org.neo4j.cypher.internal.ast.ShowPrivilegeCommands
@@ -1139,6 +1140,7 @@ case class Prettifier(
       case s: ShowTransactionsClause      => asString(s)
       case t: TerminateTransactionsClause => asString(t)
       case s: ShowSettingsClause          => asString(s)
+      case s: ShowDatabasesClause         => asString(s)
       case s: SetClause                   => asString(s)
       case r: Remove                      => asString(r)
       case d: Delete                      => asString(d)
@@ -1486,6 +1488,17 @@ case class Prettifier(
       s"${s.name}$names$where$yielded"
     }
 
+    def asString(s: ShowDatabasesClause): String = {
+      val ind = indented()
+      val optionalName = s.dbScope match {
+        case SingleNamedDatabaseScope(dbName) => s" ${Prettifier.escapeName(dbName)}"
+        case _                                => ""
+      }
+      val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
+      val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
+      s"${s.name}$optionalName$where$yielded"
+    }
+
     private def namesAsString(ids: Either[List[String], Expression]): String = ids match {
       case Left(s)  => if (s.nonEmpty) s.map(id => expr.quote(id)).mkString(" ", ", ", "") else ""
       case Right(e) => s" ${expr(e)}"
@@ -1826,7 +1839,7 @@ object Prettifier {
     case NamespacedName(names, Some(namespace)) =>
       backtickEmpty(namespace) + "." + backtickEmpty(names.mkString("."))
     case NamespacedName(names, None) => backtickEmpty(names.mkString("."))
-    case ParameterName(p)            => "$" + backtickEmpty(p.name)
+    case pn: ParameterName           => "$" + backtickEmpty(pn.parameter.name)
   }
 
   val escapeName: PartialFunction[Expression, String] = {

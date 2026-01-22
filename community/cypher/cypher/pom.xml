@@ -326,6 +326,11 @@
       <artifactId>neo4j-cypher-runtime-util</artifactId>
       <version>${project.version}</version>
     </dependency>
+      <dependency>
+          <groupId>org.neo4j</groupId>
+          <artifactId>neo4j-cypher-admin-runtime</artifactId>
+          <version>${project.version}</version>
+      </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-cypher-interpreted-runtime</artifactId>

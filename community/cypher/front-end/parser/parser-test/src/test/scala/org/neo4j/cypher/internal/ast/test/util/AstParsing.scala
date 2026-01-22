@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.UseGraph
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseFailure
@@ -194,7 +195,7 @@ object Parsers {
 
   private val factories = Map[ParserInTest, ParserFactory](
     Cypher5 -> Cypher5Factory,
-    Cypher25 -> Cypher25Factory
+    Cypher25 -> new Cypher25Factory()
   )
 
   private def from[T <: ASTNode](f: ParserFactory => Parser[T]): Parsers[T] =
@@ -232,10 +233,10 @@ object Parsers {
     override def quantifiedPath(): Parser[QuantifiedPath] = parse(_.parenthesizedPath())
   }
 
-  private object Cypher25Factory extends ParserFactory {
+  class Cypher25Factory(semanticFeatures: Seq[SemanticFeature] = Seq.empty) extends ParserFactory {
 
     private def parse[T <: ASTNode](f: Cypher25Parser => AstRuleCtx): Parser[T] = (cypher: String) => {
-      new Cypher25AstParser(cypher, Neo4jCypherExceptionFactory(cypher, None), None, Seq()).parse(f)
+      new Cypher25AstParser(cypher, Neo4jCypherExceptionFactory(cypher, None), None, semanticFeatures).parse(f)
     }
     override def statements(): Parser[Statements] = parse(_.statements())
     override def statement(): Parser[Statement] = parse(_.statement())

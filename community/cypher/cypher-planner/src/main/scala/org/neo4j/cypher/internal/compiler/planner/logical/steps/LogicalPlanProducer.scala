@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.Hint
 import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
+import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexesClause
 import org.neo4j.cypher.internal.ast.ShowProceduresClause
@@ -274,6 +275,7 @@ import org.neo4j.cypher.internal.logical.plans.SetRelationshipPropertiesFromMap
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperty
 import org.neo4j.cypher.internal.logical.plans.ShowConstraints
 import org.neo4j.cypher.internal.logical.plans.ShowCurrentGraphType
+import org.neo4j.cypher.internal.logical.plans.ShowDatabases
 import org.neo4j.cypher.internal.logical.plans.ShowFunctions
 import org.neo4j.cypher.internal.logical.plans.ShowIndexes
 import org.neo4j.cypher.internal.logical.plans.ShowProcedures
@@ -3151,6 +3153,12 @@ case class LogicalPlanProducer(
         val (relevantVariables, showColumns, yieldColumns) =
           removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
         ShowSettings(s.names, showColumns, yieldColumns, s.yieldAll, relevantVariables, inner.availableSymbols)
+      // System database only commands
+      case s: ShowDatabasesClause =>
+        val (relevantVariables, showColumns, yieldColumns) =
+          removeUnneededVariables(s.unfilteredColumns.columns, s.yieldItems)
+        ShowDatabases(s.dbScope, showColumns, yieldColumns, s.yieldAll, relevantVariables, inner.availableSymbols)
+
     }
     val annotatedPlan = annotate(plan, solved, ProvidedOrder.empty, CachedProperties.empty, context)
 

@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
+import org.neo4j.cypher.internal.runtime.admin.topology.ShowDatabaseService
 import org.neo4j.cypher.internal.runtime.cursors.ExpressionCursors
 import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
@@ -349,6 +350,8 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
   def providedLanguageFunctions: Seq[FunctionInformation]
 
   def getConfig: Config
+
+  def getShowDatabaseService: ShowDatabaseService
 
   def entityTransformer: EntityTransformer
 

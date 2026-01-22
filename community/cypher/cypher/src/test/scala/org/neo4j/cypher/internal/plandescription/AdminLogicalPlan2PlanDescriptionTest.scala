@@ -58,6 +58,7 @@ import org.neo4j.cypher.internal.ast.RelationshipQualifier
 import org.neo4j.cypher.internal.ast.RemoteAliasStoredCredentials
 import org.neo4j.cypher.internal.ast.RemoveAuth
 import org.neo4j.cypher.internal.ast.Restrict
+import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.ShowProceduresClause
 import org.neo4j.cypher.internal.ast.ShowUserAction
 import org.neo4j.cypher.internal.ast.ShowUsersPrivileges
@@ -164,6 +165,22 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       attach(
         AllowedNonAdministrationCommands(
           SingleQuery(Seq(ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(pos)))(pos)
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        AllowedNonAdministrationCommands(
+          SingleQuery(Seq(ShowDatabasesClause(
+            AllDatabasesScope()(pos),
+            None,
+            List.empty,
+            yieldAll = false,
+            None
+          )(pos)))(pos)
         ),
         1.0
       ),

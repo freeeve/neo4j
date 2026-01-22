@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.RelationshipOperations
 import org.neo4j.cypher.internal.runtime.RelationshipReadOperations
 import org.neo4j.cypher.internal.runtime.ResourceManager
+import org.neo4j.cypher.internal.runtime.admin.topology.ShowDatabaseService
 import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
 import org.neo4j.graphdb.Entity
@@ -775,6 +776,8 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
   override def addStatistics(statistics: QueryStatistics): Unit = inner.addStatistics(statistics)
 
   override def systemGraph: GraphDatabaseService = inner.systemGraph
+
+  override def getShowDatabaseService: ShowDatabaseService = inner.getShowDatabaseService
 
   override def jobScheduler: JobScheduler = inner.jobScheduler
 

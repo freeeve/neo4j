@@ -129,7 +129,8 @@ case class FabricFrontEnd(
           GraphDatabaseInternalSettings.cypher_enable_local_callables -> SemanticFeature.LocalCallables.productPrefix,
           GraphDatabaseInternalSettings.cypher_enable_scope_queries -> SemanticFeature.ScopeQueries.productPrefix,
           GraphDatabaseInternalSettings.cypher_disable_reworked_rewriters -> SemanticFeature.DisableReworkedRewriters.productPrefix,
-          GraphDatabaseInternalSettings.attribute_based_access_control -> SemanticFeature.AttributeBasedAccessControl.productPrefix
+          GraphDatabaseInternalSettings.attribute_based_access_control -> SemanticFeature.AttributeBasedAccessControl.productPrefix,
+          GraphDatabaseInternalSettings.cypher_show_database_interpreted_runtime -> SemanticFeature.ShowDatabaseInterpretedRuntime.productPrefix
         )
     ) ++ Seq(MultipleGraphs, UseAsMultipleGraphsSelector)
 

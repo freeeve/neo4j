@@ -1358,6 +1358,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Execute SHOW DATABASE on the interpreted runtime instead of the admin runtime")
+    public static final Setting<Boolean> cypher_show_database_interpreted_runtime = newBuilder(
+                    "internal.dbms.cypher_show_database_interpreted", BOOL, true)
+            .build();
+
+    @Internal
     @Description("Set this to enable the use of single stage filtering on vector indexes.")
     public static final Setting<Boolean> vector_single_stage_filtering_enabled = newBuilder(
                     "internal.dbms.vector_single_stage_filtering_enabled", BOOL, true)

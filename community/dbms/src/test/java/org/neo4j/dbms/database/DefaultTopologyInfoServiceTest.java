@@ -135,9 +135,9 @@ class DefaultTopologyInfoServiceTest {
         assertThat(systemDetails.statusMessage()).isEmpty();
         assertThat(systemDetails.role()).hasValue(ROLE_PRIMARY);
         assertThat(systemDetails.writer()).isTrue();
-        assertThat(systemDetails.requestedPrimariesCount()).isOne();
+        assertThat(systemDetails.requestedPrimariesCount()).isNull();
         assertThat(systemDetails.actualPrimariesCount()).isOne();
-        assertThat(systemDetails.requestedSecondariesCount()).isZero();
+        assertThat(systemDetails.requestedSecondariesCount()).isNull();
         assertThat(systemDetails.actualSecondariesCount()).isZero();
         assertThat(systemDetails.type()).isEqualTo(TYPE_SYSTEM);
         assertThat(systemDetails.namedDatabaseId()).isEqualTo(NAMED_SYSTEM_DATABASE_ID);
@@ -163,9 +163,9 @@ class DefaultTopologyInfoServiceTest {
         assertThat(userDetails.statusMessage()).isEmpty();
         assertThat(userDetails.role()).hasValue(ROLE_PRIMARY);
         assertThat(userDetails.writer()).isTrue();
-        assertThat(userDetails.requestedPrimariesCount()).isOne();
+        assertThat(userDetails.requestedPrimariesCount()).isNull();
         assertThat(userDetails.actualPrimariesCount()).isOne();
-        assertThat(userDetails.requestedSecondariesCount()).isZero();
+        assertThat(userDetails.requestedSecondariesCount()).isNull();
         assertThat(userDetails.actualSecondariesCount()).isZero();
         assertThat(userDetails.type()).isEqualTo(TYPE_STANDARD);
         assertThat(userDetails.namedDatabaseId()).isEqualTo(databaseId);

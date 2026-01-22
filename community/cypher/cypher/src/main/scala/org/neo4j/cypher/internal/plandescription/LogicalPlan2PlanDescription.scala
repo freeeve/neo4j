@@ -21,12 +21,17 @@ package org.neo4j.cypher.internal.plandescription
 
 import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.CreateConstraintType
+import org.neo4j.cypher.internal.ast.DatabaseScope
+import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.ExecutableBy
+import org.neo4j.cypher.internal.ast.HomeDatabaseScope
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.OptionsParam
+import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
@@ -276,6 +281,7 @@ import org.neo4j.cypher.internal.logical.plans.SetRelationshipPropertiesFromMap
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperty
 import org.neo4j.cypher.internal.logical.plans.ShowConstraints
 import org.neo4j.cypher.internal.logical.plans.ShowCurrentGraphType
+import org.neo4j.cypher.internal.logical.plans.ShowDatabases
 import org.neo4j.cypher.internal.logical.plans.ShowFunctions
 import org.neo4j.cypher.internal.logical.plans.ShowIndexes
 import org.neo4j.cypher.internal.logical.plans.ShowProcedures
@@ -1922,6 +1928,25 @@ case class LogicalPlan2PlanDescription(
           "ShowSettings",
           children,
           Seq(Details(pretty"$namesDescription, $colsDescription")),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      // System database only commands
+      case s: ShowDatabases =>
+        val colsDescription = commandColumnInfo(s.yieldColumns, s.yieldAll)
+        val scopeDescription: PartialFunction[DatabaseScope, PrettyString] = {
+          case AllDatabasesScope()          => pretty"allDatabases"
+          case DefaultDatabaseScope()       => pretty"defaultDatabase"
+          case HomeDatabaseScope()          => pretty"homeDatabase"
+          case SingleNamedDatabaseScope(db) => pretty"database(${asPrettyString(db.asCanonicalStringVal)})"
+        }
+        PlanDescriptionImpl(
+          id,
+          "ShowDatabases",
+          children,
+          Seq(Details(pretty"${scopeDescription(s.dbScope)}, $colsDescription")),
           variables,
           withRawCardinalities,
           withDistinctness

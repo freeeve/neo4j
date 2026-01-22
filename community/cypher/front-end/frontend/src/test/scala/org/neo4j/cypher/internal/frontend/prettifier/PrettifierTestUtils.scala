@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowDatabaseInterpretedRuntime
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.parser.ast.AstParser
 import org.neo4j.cypher.internal.parser.v25.Cypher25ParserUtil
@@ -151,7 +152,12 @@ trait PrettifierTestUtils extends Matchers {
 
   private def parseAndClearCache(cypherVersion: CypherVersion, query: String): Statement = {
     val parser: AstParser =
-      AstParserFactory(cypherVersion)(query, Neo4jCypherExceptionFactory(query, None), None, Seq())
+      AstParserFactory(cypherVersion)(
+        query,
+        Neo4jCypherExceptionFactory(query, None),
+        None,
+        Seq(ShowDatabaseInterpretedRuntime)
+      )
     val statement = parser.singleStatement()
 
     // Clear the parser DFA cache occasionally to not go OOM but not too often as it makes the test slower

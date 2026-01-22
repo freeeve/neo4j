@@ -53,6 +53,7 @@ import org.neo4j.cypher.internal.runtime.ReadQueryContext
 import org.neo4j.cypher.internal.runtime.RelationshipValueHit
 import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.internal.runtime.ThreadSafeResourceManager
+import org.neo4j.cypher.internal.runtime.admin.topology.ShowDatabaseService
 import org.neo4j.cypher.internal.runtime.cursors.ValuedNodeIndexCursor
 import org.neo4j.cypher.internal.runtime.cursors.ValuedRelationshipIndexCursor
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
@@ -1893,6 +1894,13 @@ private[internal] class TransactionBoundReadQueryContext(
   override def systemGraph: GraphDatabaseService = {
     transactionalContext.graph.getDependencyResolver.resolveDependency(classOf[DatabaseManagementService]).database(
       SYSTEM_DATABASE_NAME
+    )
+  }
+
+  override def getShowDatabaseService: ShowDatabaseService = {
+    ShowDatabaseService.create(
+      transactionalContext.kernelTransaction.internalTransaction(),
+      transactionalContext.graph.getDependencyResolver
     )
   }
 

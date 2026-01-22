@@ -28,7 +28,6 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.administration.ShowDatabaseExecutionPlanner.accessibleDbsKey
-import org.neo4j.cypher.internal.administration.topology.ShowDatabaseService
 import org.neo4j.cypher.internal.ast.DatabaseScope
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ShowDatabase.ACCESS_COL
@@ -51,7 +50,6 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_STOP_TIME_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.NAME_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.OPTIONS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.PROPERTY_SHARDS_COL
-import org.neo4j.cypher.internal.ast.ShowDatabase.PROPERTY_SHARD_REPLICA_ROLE
 import org.neo4j.cypher.internal.ast.ShowDatabase.REPLICATION_LAG_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.REQUESTED_PRIMARIES_COUNT_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL
@@ -71,8 +69,6 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_CREATED_AT_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_PRIMARIES_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_SECONDARIES_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STARTED_AT_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STATUS_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STOPPED_AT_PROPERTY
@@ -80,7 +76,6 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTY_SHARD
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.kernel.database.DatabaseReferenceRepository
@@ -97,12 +92,6 @@ case class ShowDatabasesExecutionPlanner(
   private val infoService = resolver.resolveDependency(classOf[TopologyInfoService])
   private val referenceResolver = resolver.resolveDependency(classOf[DatabaseReferenceRepository])
 
-  private val showDatabaseService = new ShowDatabaseService(
-    referenceResolver,
-    defaultDatabaseResolver,
-    infoService
-  )
-
   def planShowDatabases(
     scope: DatabaseScope,
     verbose: Boolean,
@@ -117,12 +106,12 @@ case class ShowDatabasesExecutionPlanner(
       if (verbose) {
         val defaultLanguage = translateDefaultLanguagePropertyToShowOutput("d")
         s""", props.$DATABASE_ID_COL as $DATABASE_ID_COL,
-           |CASE WHEN d:$PROPERTY_SHARD THEN null ELSE props.$CURRENT_PRIMARIES_COUNT_COL END as $CURRENT_PRIMARIES_COUNT_COL,
-           |CASE WHEN d:$PROPERTY_SHARD THEN null ELSE props.$CURRENT_SECONDARIES_COUNT_COL END as $CURRENT_SECONDARIES_COUNT_COL,
-           |CASE WHEN d:$PROPERTY_SHARD THEN props.$CURRENT_SECONDARIES_COUNT_COL ELSE null END as $CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL,
-           |CASE WHEN d:$PROPERTY_SHARD THEN null ELSE d.$DATABASE_PRIMARIES_PROPERTY END as $REQUESTED_PRIMARIES_COUNT_COL,
-           |CASE WHEN d:$PROPERTY_SHARD THEN null ELSE d.$DATABASE_SECONDARIES_PROPERTY  END as $REQUESTED_SECONDARIES_COUNT_COL,
-           |CASE WHEN d:$PROPERTY_SHARD THEN d.$DATABASE_SECONDARIES_PROPERTY ELSE null END as $REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL,
+           |props.$CURRENT_PRIMARIES_COUNT_COL as $CURRENT_PRIMARIES_COUNT_COL,
+           |props.$CURRENT_SECONDARIES_COUNT_COL AS $CURRENT_SECONDARIES_COUNT_COL,
+           |props.$CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL as $CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL,
+           |props.$REQUESTED_PRIMARIES_COUNT_COL AS $REQUESTED_PRIMARIES_COUNT_COL,
+           |props.$REQUESTED_SECONDARIES_COUNT_COL AS $REQUESTED_SECONDARIES_COUNT_COL,
+           |props.$REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL  as $REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL,
            |props.$LAST_COMMITTED_TX_COL as $LAST_COMMITTED_TX_COL,
            |props.$REPLICATION_LAG_COL as $REPLICATION_LAG_COL,
            |props.$SHARD_TX_LAG_COL as $SHARD_TX_LAG_COL,
@@ -169,7 +158,7 @@ case class ShowDatabasesExecutionPlanner(
            |props.$CONSTITUENTS_COL as $CONSTITUENTS_COL,
            |props.$ACCESS_COL as $ACCESS_COL,
            |props.$ADDRESS_COL as $ADDRESS_COL,
-           |CASE WHEN d:$PROPERTY_SHARD THEN '$PROPERTY_SHARD_REPLICA_ROLE' ELSE props.$ROLE_COL END as $ROLE_COL,
+           |props.$ROLE_COL as $ROLE_COL,
            |props.$WRITER_COL as $WRITER_COL,
            | // serverID needs to be part of the grouping key here as it is guaranteed to be different on different servers
            |props.$SERVER_ID_COL as $SERVER_ID_COL,
@@ -206,8 +195,9 @@ case class ShowDatabasesExecutionPlanner(
       query,
       VirtualValues.EMPTY_MAP,
       parameterTransformer = new DatabaseListParameterTransformerFunction(
-        showDatabaseService,
+        referenceResolver,
         defaultDatabaseResolver,
+        infoService,
         yields,
         verbose,
         scope,

@@ -21,6 +21,38 @@ import org.neo4j.cypher.internal.ast.ASTSlicingPhrase.checkExpressionIsStaticInt
 import org.neo4j.cypher.internal.ast.ASTSlicingPhrase.checkExpressionIsStaticNumber
 import org.neo4j.cypher.internal.ast.Match.hintPrettifier
 import org.neo4j.cypher.internal.ast.ReturnItems.ReturnVariables
+import org.neo4j.cypher.internal.ast.ShowDatabase.ACCESS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.ADDRESS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.ALIASES_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.CONSTITUENTS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.CREATION_TIME_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_PRIMARIES_COUNT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_SECONDARIES_COUNT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_STATUS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.DATABASE_ID_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.DEFAULT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.DEFAULT_LANGUAGE_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.GRAPH_SHARDS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.HOME_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_COMMITTED_TX_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_START_TIME_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_STOP_TIME_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.NAME_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.OPTIONS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.PROPERTY_SHARDS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.REPLICATION_LAG_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.REQUESTED_PRIMARIES_COUNT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.REQUESTED_SECONDARIES_COUNT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.REQUESTED_STATUS_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.ROLE_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.SERVER_ID_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.SHARD_TX_LAG_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.STATUS_MSG_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.STORE_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.TYPE_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.WRITER_COL
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.connectedComponents.RichConnectedComponent
@@ -2643,6 +2675,7 @@ sealed trait CommandClauseWithNames extends CommandClause {
 // - at least one CommandClauseAllowedOnSystem clause
 sealed trait ClauseAllowedOnSystem
 sealed trait CommandClauseAllowedOnSystem extends ClauseAllowedOnSystem
+sealed trait CommandClauseRouteToSystem extends CommandClauseAllowedOnSystem
 
 case class ShowIndexesClause(
   briefIndexColumns: List[ShowAndTerminateColumn],
@@ -3332,6 +3365,111 @@ object ShowSettingsClause {
       defaultCols,
       defaultCols ++ verboseCols,
       names,
+      where,
+      yieldItems,
+      yieldAll,
+      yieldWith
+    )(position)
+  }
+}
+
+// System graph only commands
+
+case class ShowDatabasesClause(
+  dbScope: DatabaseScope,
+  briefDatabaseColumns: List[ShowAndTerminateColumn],
+  allDatabaseColumns: List[ShowAndTerminateColumn],
+  where: Option[Where],
+  yieldItems: List[CommandResultItem],
+  yieldAll: Boolean,
+  yieldWith: Option[With]
+)(val position: InputPosition) extends CommandClause with CommandClauseRouteToSystem {
+
+  override def name: String = dbScope match {
+    case _: SingleNamedDatabaseScope                   => "SHOW DATABASE"
+    case _: AllDatabasesScope | _: NamedDatabasesScope => "SHOW DATABASES"
+    case _: DefaultDatabaseScope                       => "SHOW DEFAULT DATABASE"
+    case _: HomeDatabaseScope                          => "SHOW HOME DATABASE"
+  }
+
+  private val useAllColumns = yieldItems.nonEmpty || yieldAll
+
+  val originalColumns: List[ShowAndTerminateColumn] =
+    if (useAllColumns) allDatabaseColumns else briefDatabaseColumns
+
+  private val briefColumns = briefDatabaseColumns.map(c => ShowColumn(c.name, c.cypherType)(position))
+  private val allColumns = allDatabaseColumns.map(c => ShowColumn(c.name, c.cypherType)(position))
+
+  val unfilteredColumns: DefaultOrAllShowColumns =
+    DefaultOrAllShowColumns(useAllColumns, briefColumns, allColumns)
+
+  override def moveWhereToProjection: CommandClause = copy(where = None)(position)
+  override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
+
+  override def getClauseWithoutSubclauses: CommandClause =
+    copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+}
+
+object ShowDatabasesClause {
+
+  def apply(
+    dbScope: DatabaseScope,
+    where: Option[Where],
+    yieldItems: List[CommandResultItem],
+    yieldAll: Boolean,
+    yieldWith: Option[With]
+  )(position: InputPosition): ShowDatabasesClause = {
+
+    // (column, brief)
+    val cols: List[(ShowAndTerminateColumn, Boolean)] = List(
+      (ShowAndTerminateColumn(NAME_COL), true),
+      (ShowAndTerminateColumn(TYPE_COL), true),
+      (ShowAndTerminateColumn(ALIASES_COL, CTList(CTString)), true),
+      (ShowAndTerminateColumn(ACCESS_COL), true),
+      (ShowAndTerminateColumn(DATABASE_ID_COL), false),
+      (ShowAndTerminateColumn(SERVER_ID_COL), false),
+      (ShowAndTerminateColumn(ADDRESS_COL), true),
+      (ShowAndTerminateColumn(ROLE_COL), true),
+      (ShowAndTerminateColumn(WRITER_COL, CTBoolean), true),
+      (ShowAndTerminateColumn(REQUESTED_STATUS_COL), true),
+      (ShowAndTerminateColumn(CURRENT_STATUS_COL), true),
+      (ShowAndTerminateColumn(STATUS_MSG_COL), true)
+    ) ++ (dbScope match {
+      case _: DefaultDatabaseScope => List.empty
+      case _: HomeDatabaseScope    => List.empty
+      case _ =>
+        List(
+          (ShowAndTerminateColumn(DEFAULT_COL, CTBoolean), true),
+          (ShowAndTerminateColumn(HOME_COL, CTBoolean), true)
+        )
+    }) ++ List(
+      (ShowAndTerminateColumn(CURRENT_PRIMARIES_COUNT_COL, CTInteger), false),
+      (ShowAndTerminateColumn(CURRENT_SECONDARIES_COUNT_COL, CTInteger), false),
+      (ShowAndTerminateColumn(CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL, CTInteger), false),
+      (ShowAndTerminateColumn(REQUESTED_PRIMARIES_COUNT_COL, CTInteger), false),
+      (ShowAndTerminateColumn(REQUESTED_SECONDARIES_COUNT_COL, CTInteger), false),
+      (ShowAndTerminateColumn(REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL, CTInteger), false),
+      (ShowAndTerminateColumn(CREATION_TIME_COL, CTDateTime), false),
+      (ShowAndTerminateColumn(LAST_START_TIME_COL, CTDateTime), false),
+      (ShowAndTerminateColumn(LAST_STOP_TIME_COL, CTDateTime), false),
+      (ShowAndTerminateColumn(STORE_COL), false),
+      (ShowAndTerminateColumn(LAST_COMMITTED_TX_COL, CTInteger), false),
+      (ShowAndTerminateColumn(REPLICATION_LAG_COL, CTInteger), false),
+      (ShowAndTerminateColumn(SHARD_TX_LAG_COL, CTInteger), false),
+      (ShowAndTerminateColumn(CONSTITUENTS_COL, CTList(CTString)), true),
+      (ShowAndTerminateColumn(GRAPH_SHARDS_COL, CTList(CTString)), false),
+      (ShowAndTerminateColumn(PROPERTY_SHARDS_COL, CTList(CTString)), false),
+      (ShowAndTerminateColumn(DEFAULT_LANGUAGE_COL), false),
+      (ShowAndTerminateColumn(OPTIONS_COL, CTMap), false)
+    )
+
+    val briefCols = cols.collect { case (col, true) => col }
+    val allCols = cols.collect { case (col, _) => col }
+
+    ShowDatabasesClause(
+      dbScope,
+      briefCols,
+      allCols,
       where,
       yieldItems,
       yieldAll,

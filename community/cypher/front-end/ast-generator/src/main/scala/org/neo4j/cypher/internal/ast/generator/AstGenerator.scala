@@ -330,6 +330,7 @@ import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowDatabase
+import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexAction
 import org.neo4j.cypher.internal.ast.ShowIndexType
@@ -2550,6 +2551,7 @@ class AstGenerator(
     } else {
       oneOf(
         _showIndexes,
+        _showDatabaseNew,
         _showConstraints,
         _showCurrentGraphType,
         _showProcedures,
@@ -3872,6 +3874,38 @@ class AstGenerator(
     yields <- _eitherYieldOrWhere
   } yield ShowDatabase(scope, yields, usesCypher5)(pos)
 
+  def _showDatabaseNew: Gen[SingleQuery] = for {
+    dbName <- _databaseName
+    use <- option(_use)
+    scope <- oneOf(
+      SingleNamedDatabaseScope(dbName)(pos),
+      AllDatabasesScope()(pos),
+      DefaultDatabaseScope()(pos),
+      HomeDatabaseScope()(pos)
+    )
+    yields <- _eitherYieldOrWhere
+    yieldAll <- boolean
+  } yield {
+    val showClauses = yields match {
+      case Some(Right(w)) =>
+        Seq(ShowDatabasesClause(scope, Some(w), List.empty, yieldAll = false, None)(pos))
+      case Some(Left((y, r))) =>
+        val (w, yi) = turnYieldToWith(y)
+        Seq(ShowDatabasesClause(scope, None, yi, yieldAll = false, Some(w))(pos)) ++ r
+      case _ if yieldAll =>
+        Seq(ShowDatabasesClause(
+          scope,
+          None,
+          List.empty,
+          yieldAll = true,
+          Some(getFullWithStarFromYield)
+        )(pos))
+      case _ =>
+        Seq(ShowDatabasesClause(scope, None, List.empty, yieldAll = false, None)(pos))
+    }
+    SingleQuery(use.map(u => u +: showClauses).getOrElse(showClauses))(pos)
+  }
+
   def _createDatabase: Gen[CreateDatabase] = for {
     dbName <- _databaseNameNoNamespace
     ifExistsDo <- _ifExistsDo
@@ -3941,15 +3975,19 @@ class AstGenerator(
     wait <- _waitUntilComplete
   } yield StopDatabase(dbName, wait)(pos)
 
-  def _multiDatabaseCommand: Gen[AdministrationCommand] = oneOf(
-    _showDatabase,
-    _createDatabase,
-    _createCompositeDatabase,
-    _dropDatabase,
-    _alterDatabase,
-    _startDatabase,
-    _stopDatabase
-  )
+  def _multiDatabaseCommand: Gen[AdministrationCommand] = for {
+    cypher5cmds <- oneOf(
+      _showDatabase,
+      _createDatabase,
+      _createCompositeDatabase,
+      _dropDatabase,
+      _alterDatabase,
+      _startDatabase,
+      _stopDatabase
+    )
+    cypher25cmds <-
+      oneOf(_createDatabase, _createCompositeDatabase, _dropDatabase, _alterDatabase, _startDatabase, _stopDatabase)
+  } yield if (usesCypher5) cypher5cmds else cypher25cmds
 
   def _access: Gen[Access] = for {
     access <- oneOf(ReadOnlyAccess, ReadWriteAccess)

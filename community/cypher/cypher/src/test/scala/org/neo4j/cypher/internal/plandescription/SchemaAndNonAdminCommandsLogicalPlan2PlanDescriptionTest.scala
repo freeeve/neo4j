@@ -22,14 +22,18 @@ package org.neo4j.cypher.internal.plandescription
 import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AllConstraints
+import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.AllExistsConstraints
 import org.neo4j.cypher.internal.ast.AllFunctions
 import org.neo4j.cypher.internal.ast.AllIndexes
 import org.neo4j.cypher.internal.ast.BuiltInFunctions
 import org.neo4j.cypher.internal.ast.CurrentUser
+import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.FulltextIndexes
+import org.neo4j.cypher.internal.ast.HomeDatabaseScope
 import org.neo4j.cypher.internal.ast.KeyConstraints
 import org.neo4j.cypher.internal.ast.LookupIndexes
+import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NodeAllExistsConstraints
 import org.neo4j.cypher.internal.ast.NodeKey
@@ -55,6 +59,7 @@ import org.neo4j.cypher.internal.ast.RelationshipKey
 import org.neo4j.cypher.internal.ast.RelationshipPropertyExistence
 import org.neo4j.cypher.internal.ast.RelationshipPropertyType
 import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
+import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
 import org.neo4j.cypher.internal.ast.TextIndexes
 import org.neo4j.cypher.internal.ast.UniqueConstraints
 import org.neo4j.cypher.internal.ast.User
@@ -97,6 +102,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipElementTypeReferenceB
 import org.neo4j.cypher.internal.logical.plans.RelationshipElementTypeReferenceByLabel
 import org.neo4j.cypher.internal.logical.plans.ShowConstraints
 import org.neo4j.cypher.internal.logical.plans.ShowCurrentGraphType
+import org.neo4j.cypher.internal.logical.plans.ShowDatabases
 import org.neo4j.cypher.internal.logical.plans.ShowFunctions
 import org.neo4j.cypher.internal.logical.plans.ShowIndexes
 import org.neo4j.cypher.internal.logical.plans.ShowProcedures
@@ -5238,6 +5244,95 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         "TerminateTransactions",
         Seq.empty,
         Seq(details("allColumns, transactions(123)")),
+        Set("xxx", "yyy")
+      )
+    )
+  }
+
+  test("ShowDatabases") {
+    val defaultColumns = List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"))
+    val defaultVariables: Set[LogicalVariable] = Set(varFor("xxx"), varFor("yyy"))
+
+    assertGood(
+      attach(
+        ShowDatabases(
+          AllDatabasesScope()(pos),
+          defaultColumns,
+          List.empty,
+          yieldAll = true,
+          defaultVariables,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowDatabases",
+        Seq.empty,
+        Seq(details("allDatabases, allColumns")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowDatabases(
+          HomeDatabaseScope()(pos),
+          defaultColumns,
+          List.empty,
+          yieldAll = false,
+          defaultVariables,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowDatabases",
+        Seq.empty,
+        Seq(details("homeDatabase, defaultColumns")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowDatabases(
+          DefaultDatabaseScope()(pos),
+          defaultColumns,
+          List.empty,
+          yieldAll = true,
+          defaultVariables,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowDatabases",
+        Seq.empty,
+        Seq(details("defaultDatabase, allColumns")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowDatabases(
+          SingleNamedDatabaseScope(NamespacedName("neo4j")(pos))(pos),
+          defaultColumns,
+          List(CommandYieldColumn("xxx", "xxx"), CommandYieldColumn("yyy", "zzz")),
+          yieldAll = false,
+          defaultVariables,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowDatabases",
+        Seq.empty,
+        Seq(details("database(neo4j), columns(xxx, yyy AS zzz)")),
         Set("xxx", "yyy")
       )
     )

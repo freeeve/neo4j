@@ -19,10 +19,13 @@
  */
 package org.neo4j.cypher.internal.logical.plans
 
+import org.neo4j.cypher.internal.ast.DatabaseScope
 import org.neo4j.cypher.internal.ast.ExecutableBy
+import org.neo4j.cypher.internal.ast.ParameterName
 import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowFunctionType
 import org.neo4j.cypher.internal.ast.ShowIndexType
+import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.util.attribution.IdGen
@@ -194,6 +197,35 @@ case class ShowSettings(
 
   override def usedVariables: Set[LogicalVariable] = names.map(_.dependencies).getOrElse(Set.empty)
 }
+
+// System database only commands
+
+case class ShowDatabases(
+  dbScope: DatabaseScope,
+  defaultColumns: List[CommandDefaultColumn],
+  yieldColumns: List[CommandYieldColumn],
+  yieldAll: Boolean,
+  columnVariables: Set[LogicalVariable],
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+  override def commandDescription: String = "SHOW DATABASES"
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowDatabases =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): ShowDatabases =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def usedVariables: Set[LogicalVariable] = dbScope match {
+    case SingleNamedDatabaseScope(ParameterName(p)) => p.dependencies
+    case _                                          => Set.empty
+  }
+}
+
+// Column classes
 
 case class CommandDefaultColumn(name: String, cypherType: CypherType)
 case class CommandYieldColumn(originalName: String, aliasedName: String)

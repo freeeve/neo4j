@@ -45,6 +45,7 @@ import org.neo4j.cypher.internal.runtime.QueryTransactionalContext
 import org.neo4j.cypher.internal.runtime.RelationshipOperations
 import org.neo4j.cypher.internal.runtime.RelationshipReadOperations
 import org.neo4j.cypher.internal.runtime.ResourceManager
+import org.neo4j.cypher.internal.runtime.admin.topology.ShowDatabaseService
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.memory.NoOpMemoryTrackerForOperatorProvider
 import org.neo4j.cypher.internal.runtime.memory.NoOpQueryMemoryTracker
@@ -741,6 +742,8 @@ object StaticEvaluation {
     override def close(): Unit = notAvailable()
 
     override def systemGraph: GraphDatabaseService = notAvailable()
+
+    override def getShowDatabaseService: ShowDatabaseService = notAvailable()
 
     override def jobScheduler: JobScheduler = notAvailable()
 

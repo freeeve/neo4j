@@ -27,6 +27,7 @@
         <module>cypher-planner</module>
         <module>planner-spi</module>
         <module>cypher</module>
+        <module>cypher-admin-runtime</module>
         <module>cypher-logical-plans</module>
         <module>front-end</module>
         <module>runtime-util</module>

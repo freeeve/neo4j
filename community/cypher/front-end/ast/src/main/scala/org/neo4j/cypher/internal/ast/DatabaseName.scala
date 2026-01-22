@@ -17,10 +17,12 @@
 package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.exceptions.ParameterWrongTypeException
+import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.TextValue
 import org.neo4j.values.virtual.MapValue
 
@@ -61,15 +63,16 @@ object NamespacedName {
   def apply(name: String)(pos: InputPosition): NamespacedName = NamespacedName(List(name), None)(pos)
 }
 
-case class ParameterName(parameter: Parameter)(val position: InputPosition) extends DatabaseName {
+case class ParameterName(expression: Expression)(val position: InputPosition) extends DatabaseName {
+  lazy val parameter: Parameter = expression.asInstanceOf[Parameter]
   override def asLegacyName: Either[String, Parameter] = Right(parameter)
 
   def getNameParts(
-    params: MapValue,
+    params: ParameterProvider,
     defaultNamespace: String,
     emulateGetNameFields: Boolean = false
   ): (Option[String], String, String, String) = {
-    val paramValue = params.get(parameter.name)
+    val paramValue = params.get(expression)
     if (!paramValue.isInstanceOf[TextValue]) {
       throw ParameterWrongTypeException.expectedParameterToBeString42N51(
         false,
@@ -102,5 +105,16 @@ case class ParameterName(parameter: Parameter)(val position: InputPosition) exte
         (Some(nameParts(0)), nameParts.tail.mkString("."), displayName, quotedDisplayName)
       }
     }
+  }
+}
+
+trait ParameterProvider {
+  val get: PartialFunction[Expression, AnyValue]
+}
+
+case class MapBasedParameterProvider(mapValue: MapValue) extends ParameterProvider {
+
+  override val get: PartialFunction[Expression, AnyValue] = {
+    case p: Parameter => mapValue.get(p.name)
   }
 }

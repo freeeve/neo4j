@@ -18,15 +18,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.neo4j.cypher.internal.administration.topology
+package org.neo4j.cypher.internal.runtime.admin.topology
 
-import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.common.DependencyResolver
 import org.neo4j.cypher.internal.ast.DatabaseName
+import org.neo4j.cypher.internal.ast.ParameterProvider
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.dbms.database.DatabaseDetails
 import org.neo4j.dbms.database.DatabaseDetails.STATUS_MIXED
 import org.neo4j.dbms.database.TopologyInfoService
-import org.neo4j.graphdb.Transaction
 import org.neo4j.internal.kernel.api.security.SecurityContext
 import org.neo4j.kernel.database.DatabaseId
 import org.neo4j.kernel.database.DatabaseIdFactory
@@ -37,7 +37,7 @@ import org.neo4j.kernel.database.DatabaseReferenceImpl.GraphShard
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.kernel.database.DefaultDatabaseResolver
 import org.neo4j.kernel.database.NamedDatabaseId
-import org.neo4j.values.virtual.MapValue
+import org.neo4j.kernel.impl.coreapi.InternalTransaction
 
 import java.util.UUID
 
@@ -48,27 +48,40 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SetHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.jdk.OptionConverters.RichOption
+import scala.util.Using
 
-case class ShowDatabaseServiceContext(
-  transaction: Transaction,
-  securityContext: SecurityContext,
-  cypherVersion: CypherVersion,
-  detailLevel: TopologyInfoService.RequestedExtras
-)
+trait ShowDatabaseService {
+  def getAllDatabases(context: ShowDatabaseServiceContext): Seq[ShowDatabaseResult]
 
-case class ShowDatabaseResult(
-  details: DatabaseDetails,
-  constituents: Seq[String],
-  aliases: Seq[String],
-  graphShards: Option[Seq[String]],
-  propertyShards: Option[Seq[String]] = None
-)
+  def getHomeDatabase(context: ShowDatabaseServiceContext): Seq[ShowDatabaseResult]
 
-class ShowDatabaseService(
+  def getDefaultDatabase(context: ShowDatabaseServiceContext): Seq[ShowDatabaseResult]
+
+  def getSingleNamedDatabase(
+    name: DatabaseName,
+    params: ParameterProvider,
+    context: ShowDatabaseServiceContext
+  ): (Seq[ShowDatabaseResult], Set[InternalNotification])
+}
+
+object ShowDatabaseService {
+
+  def create(transaction: InternalTransaction, dependencyResolver: DependencyResolver): ShowDatabaseService = {
+    new TransactionBoundShowDatabaseService(
+      transaction,
+      dependencyResolver.resolveDependency(classOf[DatabaseReferenceRepository]),
+      dependencyResolver.resolveDependency(classOf[DefaultDatabaseResolver]),
+      dependencyResolver.resolveDependency(classOf[TopologyInfoService])
+    )
+  }
+}
+
+class TransactionBoundShowDatabaseService(
+  transaction: InternalTransaction,
   referenceResolver: DatabaseReferenceRepository,
   defaultDatabaseResolver: DefaultDatabaseResolver,
   infoService: TopologyInfoService
-) {
+) extends ShowDatabaseService {
   private val nameResolver = new DatabaseNameResolver(referenceResolver)
 
   def getAllDatabases(context: ShowDatabaseServiceContext): Seq[ShowDatabaseResult] = {
@@ -93,7 +106,7 @@ class ShowDatabaseService(
 
   def getSingleNamedDatabase(
     name: DatabaseName,
-    params: MapValue,
+    params: ParameterProvider,
     context: ShowDatabaseServiceContext
   ): (Seq[ShowDatabaseResult], Set[InternalNotification]) = {
     val (references, notifications) = nameResolver.resolveDatabaseNameToReference(name, params, context.cypherVersion)
@@ -104,6 +117,8 @@ class ShowDatabaseService(
     filteredReferences: Set[DatabaseReference],
     context: ShowDatabaseServiceContext
   ): Seq[ShowDatabaseResult] = {
+    val defaultDatabase = defaultDatabaseResolver.defaultDatabase(null)
+    val homeDatabase = defaultDatabaseResolver.defaultDatabase(context.securityContext.subject().executingUser())
     val allReferences = sortAliases(referenceResolver.getAllDatabaseReferences.asScala)
 
     val filteredReferencesWithShards: Set[DatabaseReference] = filteredReferences.flatMap {
@@ -115,7 +130,12 @@ class ShowDatabaseService(
     }
 
     val allDbInfos: Set[ShowDatabaseResult] =
-      lookupDbInfos(allReferences.view.filterKeys(filteredReferencesWithShards.contains), context)
+      lookupDbInfos(
+        allReferences.view.filterKeys(filteredReferencesWithShards.contains),
+        defaultDatabase,
+        homeDatabase,
+        context
+      )
 
     val accessibleDatabases = filteredReferences.collect {
       case db
@@ -144,15 +164,18 @@ class ShowDatabaseService(
           (STATUS_MIXED, statusMessage)
         }
 
-        graphShardInfos.map(databaseInfo =>
+        graphShardInfos.map(databaseInfo => {
+          val d = databaseDetailsForSPD(databaseInfo.details, status, statusMessage, spdId)
           ShowDatabaseResult(
-            databaseDetailsForSPD(databaseInfo.details, status, statusMessage, spdId),
+            d,
+            d.namedDatabaseId().name().equals(defaultDatabase),
+            d.namedDatabaseId().name().equals(homeDatabase),
             Seq.empty,
             allReferences(ref).map(_.name()),
             Some(Seq(ref.graphShard().name())),
             Some(ref.graphShard().propertyShards().asScala.map { case (_, propShard) => propShard.name() }.toSeq)
           )
-        )
+        })
     }.toList.flatten
 
     spdMetadata ++ allDbInfos.filter(info => accessibleDatabases.contains(info.details.namedDatabaseId())).toSeq
@@ -194,6 +217,8 @@ class ShowDatabaseService(
 
   private def lookupDbInfos(
     dbsToLookup: MapView[DatabaseReference, Seq[DatabaseReference]],
+    defaultDatabase: String,
+    homeDatabase: String,
     context: ShowDatabaseServiceContext
   ): Set[ShowDatabaseResult] = {
 
@@ -227,15 +252,25 @@ class ShowDatabaseService(
         )
     }.toMap[NamedDatabaseId, DatabaseLinks]
 
-    val details = infoService.databases(
-      context.transaction,
-      dbids.keySet.asJava,
-      context.detailLevel
-    )
+    val details = Using.resource(transaction.overrideWith(SecurityContext.AUTH_DISABLED)) { _ =>
+      infoService.databases(
+        transaction,
+        dbids.keySet.asJava,
+        context.detailLevel
+      )
+    }
 
     details.asScala.map(d => {
       val DatabaseLinks(constituents, aliases, graphShards, propertyShards) = dbids(d.namedDatabaseId())
-      ShowDatabaseResult(d, constituents, aliases, graphShards, propertyShards)
+      ShowDatabaseResult(
+        d,
+        d.namedDatabaseId().name().equals(defaultDatabase),
+        d.namedDatabaseId().name().equals(homeDatabase),
+        constituents,
+        aliases,
+        graphShards,
+        propertyShards
+      )
     })
   }.toSet
 
