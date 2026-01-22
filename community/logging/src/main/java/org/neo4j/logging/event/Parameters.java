@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * This class is used by the {@link LoggingDebugEventPublisher} for parameter logging. Because some maps in
+ * This class is used by the {@link LoggingEventPublisher} for parameter logging. Because some maps in
  * java does not allow null as values, this if for example true for the most convenient map {@link Map#of()}, there
  * is a risk of the event publisher throwing {@link NullPointerException}. It would be unexpected and unacceptable
- * for the {@link DebugEventPublisher} to throw on null values.
+ * for the {@link EventPublisher} to throw on null values.
  */
 public class Parameters {
 

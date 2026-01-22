@@ -20,7 +20,7 @@
 package org.neo4j.logging.event;
 
 /**
- * Eache event published by {@link DebugEventPublisher} requires a {@link Type}.
+ * Eache event published by {@link EventPublisher} requires a {@link Type}.
  * <p>
  * {@link Type#Begin} Used to signal the start of a process that will publish multiple events.
  * <p>

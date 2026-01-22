@@ -19,9 +19,9 @@
  */
 package org.neo4j.logging.event;
 
-public interface DebugEventPublisher {
+public interface EventPublisher {
 
-    DebugEventPublisher NO_OP = new DebugEventPublisher() {
+    EventPublisher NO_OP = new EventPublisher() {
         @Override
         public void publish(Type type, String message, Parameters parameters) {}
 
@@ -37,7 +37,7 @@ public interface DebugEventPublisher {
      * @return A stateful {@link CappedDebugEventPublisher} intended to be used where event publishing may be spammy. For
      * example in loops.
      */
-    default DebugEventPublisher capped(EventsFilter filter) {
+    default EventPublisher capped(EventsFilter filter) {
         return CappedDebugEventPublisher.capped(this, filter);
     }
 }

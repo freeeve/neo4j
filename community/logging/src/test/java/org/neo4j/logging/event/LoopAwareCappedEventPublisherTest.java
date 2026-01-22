@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-class LoopAwareCappedDebugEventPublisherTest {
+class LoopAwareCappedEventPublisherTest {
 
     private static final int MAXIMUM_LOG_INTERVAL = 5;
     private static final String MESSAGE_1 = "Some message";
@@ -40,7 +40,7 @@ class LoopAwareCappedDebugEventPublisherTest {
     private static final String MESSAGE_3 = "A third message!";
     private static final String MESSAGE_4 = "This is too many messages";
 
-    private final DebugEventPublisher mockPublisher = mock(DebugEventPublisher.class);
+    private final EventPublisher mockPublisher = mock(EventPublisher.class);
 
     private final LoopAwareCappedDebugEventPublisher publisher =
             new LoopAwareCappedDebugEventPublisher(mockPublisher, MAXIMUM_LOG_INTERVAL);

@@ -25,21 +25,21 @@ import org.neo4j.logging.internal.LogService;
 import org.neo4j.logging.internal.PrefixedLogProvider;
 import org.neo4j.util.VisibleForTesting;
 
-class LoggingDebugEventPublisher implements DebugEventPublisher {
+class LoggingEventPublisher implements EventPublisher {
     private final Log debugLog;
 
-    LoggingDebugEventPublisher(InternalLogProvider logProvider, ComponentNamespace component) {
+    LoggingEventPublisher(InternalLogProvider logProvider, ComponentNamespace component) {
         var prefixLogProvider = new PrefixedLogProvider(logProvider, "Event");
         this.debugLog = prefixLogProvider.getLog(component.getName());
     }
 
-    LoggingDebugEventPublisher(LogService logService, ComponentNamespace component) {
+    LoggingEventPublisher(LogService logService, ComponentNamespace component) {
         var prefixLogger = new PrefixedLogProvider(logService.getInternalLogProvider(), "Event");
         this.debugLog = prefixLogger.getLog(component.getName());
     }
 
     @VisibleForTesting
-    LoggingDebugEventPublisher(Log log) {
+    LoggingEventPublisher(Log log) {
         this.debugLog = log;
     }
 

@@ -28,14 +28,14 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.neo4j.logging.Log;
 
-class CappedDebugEventPublisherTest {
+class CappedEventPublisherTest {
 
     private final Log log = mock(Log.class);
 
     @Test
     void shouldRespectMiscFilter() {
         var filterResult = new LinkedList<>(List.of(true, false, true));
-        var publisher = CappedDebugEventPublisher.capped(new LoggingDebugEventPublisher(log), filterResult::poll);
+        var publisher = CappedDebugEventPublisher.capped(new LoggingEventPublisher(log), filterResult::poll);
 
         publisher.publish(Type.Info, "first");
         publisher.publish(Type.Warn, "second");

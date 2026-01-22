@@ -19,16 +19,16 @@
  */
 package org.neo4j.logging.event;
 
-class CappedDebugEventPublisher implements DebugEventPublisher {
-    private final DebugEventPublisher delegate;
+class CappedDebugEventPublisher implements EventPublisher {
+    private final EventPublisher delegate;
     private final EventsFilter filter;
 
-    private CappedDebugEventPublisher(DebugEventPublisher delegate, EventsFilter filter) {
+    private CappedDebugEventPublisher(EventPublisher delegate, EventsFilter filter) {
         this.delegate = delegate;
         this.filter = filter;
     }
 
-    static CappedDebugEventPublisher capped(DebugEventPublisher delegate, EventsFilter filter) {
+    static CappedDebugEventPublisher capped(EventPublisher delegate, EventsFilter filter) {
         return new CappedDebugEventPublisher(delegate, filter);
     }
 

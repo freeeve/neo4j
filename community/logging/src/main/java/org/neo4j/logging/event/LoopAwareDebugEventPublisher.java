@@ -22,7 +22,7 @@ package org.neo4j.logging.event;
 /**
  * An event publisher that is used to publish events from a loop, and so is interested when a loop completes.
  */
-public interface LoopAwareDebugEventPublisher extends DebugEventPublisher {
+public interface LoopAwareDebugEventPublisher extends EventPublisher {
     /**
      * Let the publisher know the current loop has completed.
      */

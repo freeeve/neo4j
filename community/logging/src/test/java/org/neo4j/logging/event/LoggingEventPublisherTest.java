@@ -26,14 +26,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.logging.Log;
 
-class LoggingDebugEventPublisherTest {
+class LoggingEventPublisherTest {
 
     private final Log log = mock(Log.class);
 
     @ParameterizedTest
     @EnumSource(Type.class)
     void shouldLogEventAndMessage(Type type) {
-        var publisher = new LoggingDebugEventPublisher(log);
+        var publisher = new LoggingEventPublisher(log);
         publisher.publish(type, "hello");
         switch (type) {
             case Begin, Finish -> verify(log).info("%s - %s %s", type, "hello", Parameters.EMPTY);
@@ -46,7 +46,7 @@ class LoggingDebugEventPublisherTest {
     @ParameterizedTest
     @EnumSource(Type.class)
     void shouldLogEventAndMessageAndParams(Type type) {
-        var publisher = new LoggingDebugEventPublisher(log);
+        var publisher = new LoggingEventPublisher(log);
         var parameters = Parameters.of("param", 1);
         publisher.publish(type, "hello", parameters);
         switch (type) {

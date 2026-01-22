@@ -43,15 +43,15 @@ class LoggingEventPublisherFactoryTest {
 
     @Test
     void shouldCreateLogForNamespece() {
-        LoggingEventPublisherFactory.debugLogEventPublisher(logProvider, TEST_NAMESPACE);
+        LoggingEventPublisherFactory.eventLogger(logProvider, TEST_NAMESPACE);
         verify(logProvider).getLog(TEST_NAMESPACE.getName());
     }
 
     @Test
     void logLinesShouldBeIdenticalIfSameNamespace() {
 
-        var eventPublisher1 = LoggingEventPublisherFactory.debugLogEventPublisher(logProvider, TEST_NAMESPACE);
-        var eventPublisher2 = LoggingEventPublisherFactory.debugLogEventPublisher(logProvider, TEST_NAMESPACE);
+        var eventPublisher1 = LoggingEventPublisherFactory.eventLogger(logProvider, TEST_NAMESPACE);
+        var eventPublisher2 = LoggingEventPublisherFactory.eventLogger(logProvider, TEST_NAMESPACE);
 
         eventPublisher1.publish(Type.Info, "hello", Parameters.of("param", TEST_NAMESPACE));
         eventPublisher2.publish(Type.Info, "hello", Parameters.of("param", TEST_NAMESPACE));

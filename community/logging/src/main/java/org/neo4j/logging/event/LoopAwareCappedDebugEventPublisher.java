@@ -36,15 +36,14 @@ import java.util.List;
  */
 public class LoopAwareCappedDebugEventPublisher implements LoopAwareDebugEventPublisher {
 
-    private final DebugEventPublisher delegate;
+    private final EventPublisher delegate;
     private final int maximumNumberOfLoopsWithoutPassingOnEvent;
 
     private List<Event> lastLoggedLoop = null;
     private List<Event> currentLoop = new ArrayList<>();
     private int loopsWithNoChange = 0;
 
-    public LoopAwareCappedDebugEventPublisher(
-            DebugEventPublisher delegate, int maximumNumberOfLoopsWithoutPassingOnEvent) {
+    public LoopAwareCappedDebugEventPublisher(EventPublisher delegate, int maximumNumberOfLoopsWithoutPassingOnEvent) {
         this.delegate = delegate;
         this.maximumNumberOfLoopsWithoutPassingOnEvent = maximumNumberOfLoopsWithoutPassingOnEvent;
     }
@@ -107,7 +106,7 @@ public class LoopAwareCappedDebugEventPublisher implements LoopAwareDebugEventPu
     }
 
     private record Event(Type type, String message, Parameters parameters) {
-        void apply(DebugEventPublisher publisher) {
+        void apply(EventPublisher publisher) {
             if (parameters == null) {
                 publisher.publish(type, message);
             } else {
