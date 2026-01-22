@@ -324,7 +324,8 @@ object LogicalPlanStringTest {
       "mkString",
       "className",
       "solvedString",
-      "solvedStringSuffix"
+      "solvedStringSuffix",
+      "planDescriptionDetails"
     )
   }
 }

@@ -129,16 +129,19 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
       val converters = new ExpressionConverters(mainConverter, fallbackConverters: _*)
 
       val queryIndexRegistrator = new QueryIndexRegistrator(context.schemaRead)
-      val fallback = getFallbackPipeMapper(InterpretedPipeMapper(
-        context.cypherVersion,
-        query.readOnly,
-        converters,
-        context.tokenContext,
-        queryIndexRegistrator,
-        context.anonymousVariableNameGenerator,
-        context.isCommunity,
-        physicalPlan.parameterMapping
-      )(query.semanticTable))
+      val fallback = getFallbackPipeMapper(
+        InterpretedPipeMapper(
+          context.cypherVersion,
+          query.readOnly,
+          converters,
+          context.tokenContext,
+          queryIndexRegistrator,
+          context.anonymousVariableNameGenerator,
+          context.isCommunity,
+          physicalPlan.parameterMapping
+        )(query.semanticTable),
+        physicalPlan
+      )
       val pipeBuilder = new SlottedPipeMapper(
         fallback,
         converters,
@@ -205,7 +208,8 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
   }
 
   // Method to be able to wrap the fallback from enterprise
-  protected def getFallbackPipeMapper(initialFallback: PipeMapper): PipeMapper = initialFallback
+  protected def getFallbackPipeMapper(initialFallback: PipeMapper, physicalPlan: PhysicalPlan): PipeMapper =
+    initialFallback
 }
 
 object SlottedRuntime {

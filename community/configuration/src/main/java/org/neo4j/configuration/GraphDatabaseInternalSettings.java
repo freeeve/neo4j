@@ -1900,6 +1900,19 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Enable Graph Engine")
+    public static final Setting<Boolean> graph_engine_enabled =
+            newBuilder("internal.graphengine.enabled", BOOL, false).immutable().build();
+
+    @Internal
+    @Description("Graph Engine configuration home directory")
+    public static final Setting<Path> graph_engine_home = newBuilder(
+                    "internal.graphengine.home", PATH, Path.of("graph-engine"))
+            .setDependency(GraphDatabaseSettings.neo4j_home)
+            .immutable()
+            .build();
+
+    @Internal
     @Description("Set a custom URL endpoint for reporting fleet management data")
     public static final Setting<String> fleet_management_api_base_url =
             newBuilder("internal.dbms.fleet_manager.base_url", STRING, null).build();

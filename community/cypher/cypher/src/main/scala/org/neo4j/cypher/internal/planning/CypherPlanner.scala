@@ -247,6 +247,36 @@ object DefaultCypherPlanner {
     internalNotificationStats = internalNotificationStats,
     internalUsageStats = internalUsageStats
   )
+
+  def withTransformers(
+    transformers: TransformingPlanner.Transformers[PlannerContext],
+    parsingConfig: CypherParsingConfig,
+    plannerConfig: CypherPlannerConfiguration,
+    clock: Clock,
+    kernelMonitors: monitoring.Monitors,
+    log: InternalLog,
+    securityLog: AbstractSecurityLog,
+    queryCaches: CypherQueryCaches,
+    plannerOption: CypherPlannerOption,
+    databaseReferenceRepository: DatabaseReferenceRepository,
+    schemaCommandRuntime: SchemaCommandRuntime,
+    internalNotificationStats: InternalNotificationStats,
+    internalUsageStats: InternalUsageStats
+  ): TransformingPlanner = new TransformingPlanner(
+    transformers = transformers,
+    parsingConfig = parsingConfig,
+    plannerConfig = plannerConfig,
+    clock = clock,
+    kernelMonitors = kernelMonitors,
+    log = log,
+    securityLog = securityLog,
+    queryCaches = queryCaches,
+    plannerOption = plannerOption,
+    databaseReferenceRepository = databaseReferenceRepository,
+    schemaCommandRuntime = schemaCommandRuntime,
+    internalNotificationStats = internalNotificationStats,
+    internalUsageStats = internalUsageStats
+  )
 }
 
 object TransformingPlanner {
@@ -328,7 +358,7 @@ object TransformingPlanner {
     case _ => Volcano
   }
 
-  sealed trait Transformers[Context <: BaseContext] {
+  trait Transformers[Context <: BaseContext] {
 
     /** Normalize a parsed statement, usually to prepare for caching. */
     def normalizeQuery: Transformer[Context, BaseState, BaseState]
@@ -338,7 +368,7 @@ object TransformingPlanner {
     def plan(context: Context): Transformer[Context, BaseState, LogicalPlanState]
   }
 
-  private[planning] object DefaultTransformers extends Transformers[PlannerContext] {
+  object DefaultTransformers extends Transformers[PlannerContext] {
     override def normalizeQuery: Transformer[PlannerContext, BaseState, BaseState] = prepareForCaching
 
     override def plan(context: PlannerContext): Transformer[PlannerContext, BaseState, LogicalPlanState] = {
@@ -353,7 +383,7 @@ object TransformingPlanner {
     }
   }
 
-  private[planning] object SystemCommandTransformers extends Transformers[PlannerContext] {
+  object SystemCommandTransformers extends Transformers[PlannerContext] {
     override def normalizeQuery: Transformer[PlannerContext, BaseState, BaseState] = prepareForCaching
 
     override def plan(context: PlannerContext): Transformer[PlannerContext, BaseState, LogicalPlanState] =
@@ -815,6 +845,9 @@ final class TransformingPlanner private[planning] (
               )
           }
         }
+      case runtime if runtime.getClass.getName == "com.neo4j.graphengine.cypher.runtime.GraphEngineRuntime" =>
+        // TODO We can't call `PlanFingerprint.take` in this path because it fails. Not sure this is the best solution.
+        (FineToReuse, shouldBeCached)
       case _ if logicalPlanState.logicalPlan.isInstanceOf[SchemaLogicalPlan] =>
         // _ is a FallbackRuntime mostly, which may or may not contain an instance of SchemaCommandRuntime, so we have to
         // pass the right one in.

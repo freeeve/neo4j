@@ -172,6 +172,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
+import org.neo4j.cypher.internal.logical.plans.ForeignLeafPlan
 import org.neo4j.cypher.internal.logical.plans.FusedMerge
 import org.neo4j.cypher.internal.logical.plans.GraphType.graphTypeDropInfo
 import org.neo4j.cypher.internal.logical.plans.GraphType.graphTypeInfoForPlan
@@ -1954,6 +1955,17 @@ case class LogicalPlan2PlanDescription(
 
       case SystemProcedureCall(procedureName, _, _, _, _) =>
         PlanDescriptionImpl(id, procedureName, Seq.empty, Seq.empty, variables, withRawCardinalities, withDistinctness)
+
+      case ForeignLeafPlan(_, externalPlan, _) =>
+        PlanDescriptionImpl(
+          id,
+          "External",
+          Seq.empty,
+          Seq(Details(asPrettyString.raw(externalPlan.planDescriptionDetails))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
 
       case x => throw InternalException.internalError(
           this.getClass.getSimpleName,

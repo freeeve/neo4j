@@ -6471,3 +6471,26 @@ case class SimulatedSelection(override val source: LogicalPlan, selectivity: Dou
 
   override val distinctness: Distinctness = source.distinctness
 }
+
+/** Component of a [[ForeignLeafPlan]] that is not implemented as part of the regular Cypher stack. */
+trait ExternalLogicalPlan {
+  def planDescriptionDetails: String
+}
+
+/** Generic plan for reading data from an external (foreign) data source. */
+case class ForeignLeafPlan(
+  projections: Seq[LogicalVariable],
+  externalPlan: ExternalLogicalPlan,
+  override val argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends LogicalLeafPlan(idGen) {
+  override def usedVariables: Set[LogicalVariable] = Set.empty // TODO ?
+  override def localAvailableSymbols: Set[LogicalVariable] = argumentIds ++ projections
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds -- argsToExclude)
+  override def removeArgumentIds(): LogicalLeafPlan = copy(argumentIds = Set.empty)
+  override val distinctness: Distinctness = NotDistinct
+}

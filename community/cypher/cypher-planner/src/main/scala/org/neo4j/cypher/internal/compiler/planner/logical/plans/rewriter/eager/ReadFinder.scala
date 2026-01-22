@@ -113,6 +113,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
+import org.neo4j.cypher.internal.logical.plans.ForeignLeafPlan
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
 import org.neo4j.cypher.internal.logical.plans.Input
 import org.neo4j.cypher.internal.logical.plans.IntersectionNodeByLabelsScan
@@ -1131,7 +1132,8 @@ object ReadFinder {
         _: CommandLogicalPlan |
         _: LogicalLeafPlanExtension |
         _: LogicalPlanExtension |
-        _: TestOnlyPlan =>
+        _: TestOnlyPlan |
+        _: ForeignLeafPlan =>
         throw new IllegalStateException(s"Unsupported plan in eagerness analysis: $plan")
     }
 

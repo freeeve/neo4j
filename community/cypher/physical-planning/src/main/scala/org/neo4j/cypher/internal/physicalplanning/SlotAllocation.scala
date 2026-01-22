@@ -75,6 +75,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
+import org.neo4j.cypher.internal.logical.plans.ForeignLeafPlan
 import org.neo4j.cypher.internal.logical.plans.FusedMerge
 import org.neo4j.cypher.internal.logical.plans.InjectCompilationError
 import org.neo4j.cypher.internal.logical.plans.Input
@@ -815,6 +816,9 @@ class SingleQuerySlotAllocator private[physicalplanning] (
           slots.newLong(v, nullableInput || nullable, CTRelationship)
         for (v <- variables)
           slots.newReference(v, nullableInput || nullable, CTAny)
+
+      case ForeignLeafPlan(projections, _, _) =>
+        projections.foreach(variable => slots.newReference(variable, nullable = true, typ = CTAny))
 
       case p => throw SlotAllocationFailed.internalError(this.getClass.getSimpleName, s"Don't know how to handle $p")
     }
