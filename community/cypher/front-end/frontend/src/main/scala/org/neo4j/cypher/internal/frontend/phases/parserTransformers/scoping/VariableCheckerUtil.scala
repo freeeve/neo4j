@@ -46,7 +46,7 @@ trait VariableCheckerUtil {
   protected type VariableCheck = PartialFunction[(Acc, WorkingScope), Acc]
 
   sealed trait ReturnContext
-  private case object Unopinionated extends ReturnContext
+  case object Unopinionated extends ReturnContext
   sealed trait Opinionated extends ReturnContext { val constants: Set[LogicalVariable] }
   case class SubqueryExpression(override val constants: Set[LogicalVariable]) extends Opinionated
   case class NextStatement(override val constants: Set[LogicalVariable]) extends Opinionated
@@ -182,7 +182,7 @@ trait VariableCheckerUtil {
     object SubqueryExpr {
 
       def unapply(acc: Acc): Option[Acc] = acc match {
-        case Acc(SubqueryExpression(_), _, _, _) => Some((acc))
+        case Acc(SubqueryExpression(_), _, _, _) => Some(acc)
         case _                                   => None
       }
 

@@ -16,277 +16,332 @@
  */
 package org.neo4j.cypher.internal.frontend.scoping.checker
 
-import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.frontend.scoping.VariableCheckingTestSuite
+import org.neo4j.cypher.internal.frontend.scoping.E42I58
+import org.neo4j.cypher.internal.frontend.scoping.Passes
+import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
+import org.neo4j.cypher.internal.frontend.scoping.Versioned.passesBeforeCypher25
 
 /**
  * Test for 42I58 - Invalid Entity Reference
  */
-class GQL_42I58_InvalidEntityReference extends VariableCheckingTestSuite {
+class GQL_42I58_InvalidEntityReference extends VariableCheckingWithLocalCallablesTestSuite {
+  VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
-  test("""CREATE (a)-[:REL]->(b {prop: a.prop})""") {
-    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
+  override def testCases(): Seq[TestQuery] = testCasesCreate ++ testCasesInsert ++ testCasesMerge
 
-  test("""CREATE (b)-[:A]->()-[:B]->({x: b.p}), (a)""") {
-    errorAllVersions("42I58", "Entity, 'b', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE ({x: b.p})-[:A]->()-[:B]->(b), (a)""") {
-    errorAllVersions("42I58", "Entity, 'b', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (a)-[r:REL]->(b {prop: r.prop})""") {
-    errorAllVersions("42I58", "Entity, 'r', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (n:$(n.prop) {prop:5})""") {
-    errorAllVersions("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE ()-[r:$(r.prop) {prop:5}]->()""") {
-    errorAllVersions("42I58", "Entity, 'r', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (n)-[r:R {p: 1}]->({p: r.p})
-         |RETURN n""".stripMargin) {
-    errorAllVersions("42I58", "Entity, 'r', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (n {p: 1})-[:R]->({p: n.p})
-         |RETURN n""".stripMargin) {
-    errorAllVersions("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (n {p: n.p})-[:R]->({p: 1})
-         |RETURN n""".stripMargin) {
-    errorAllVersions("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (n {p: 1})-[:R]->(:$all("A" + n.p) {p: 1})""".stripMargin) {
-    errorAllVersions("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
-  }
-
-  test("""INSERT (a)-[:REL]->(b {prop: a.prop})""") {
-    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  test("""INSERT (a)-[r:REL]->(b {prop: r.prop})""") {
-    errorAllVersions("42I58", "Entity, 'r', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (x) CREATE (a)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})""") {
-    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (x) CREATE (a)-[r:R {prop: EXISTS { (a)-[r2]->(c) }}]->(b)""") {
-    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (x) CREATE (a), (a1)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})""") {
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""CREATE (x) CREATE (a), (a1)-[r:R {prop: EXISTS { (a)-[r2]->(c) }}]->(b)""") {
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  // Reference between different patterns
-
-  test("""CREATE (a), (b {prop: a.prop})""") {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""CREATE (a)-[r:REL]->(b), (c {prop: r.prop})""") {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'r', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""CREATE (a:A), (a)-[r:R {p: a.q}]->(b:B {p: a.q})
-         |RETURN a""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""CREATE (a:A {p: 2})-[r:R {p: 1}]->(b:B {p: 1}), (c:C)-[s:S {p: a.p+b.p+r.p}]->(d:D)
-         |RETURN a""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""CREATE (n {p: 1}), ({p: n.p})
-         |RETURN n""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'n', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""CREATE (n)-[r:R {p: 1}]->(), ({p: r.p})
-         |RETURN n""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'r', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""CREATE p = (n)-[r:R {p: 1}]->(), ({p: length(p)})
-         |RETURN n""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'p', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""CREATE (a {prop: 1}), ({prop: a.prop})""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""CREATE (b {prop: a.prop}), (a)""") {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE (b {prop: EXISTS {(a)-->()}}), (a)""") {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  test("""CREATE ()-[:A]->()-[:B]->({x: a.p}), (a)""") {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  test("""MATCH (n) CREATE ()-[:A {p: n.p}]->(n)-[:B]->({x: a.p}), (a)""") {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  for {
-    scalaSubquery <- Seq(
-      "EXISTS { MATCH (c) WHERE c.prop = a.prop }",
-      "COUNT { MATCH (c) WHERE c.prop = a.prop }",
-      "COLLECT { MATCH (c) WHERE c.prop = a.prop RETURN c }"
+  private def testCasesCreate = Seq(
+    // Reference with same path patterns
+    TestQuery(
+      """CREATE (a)-[:REL]->(b {prop: a.prop})""",
+      E42I58("a"),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (b)-[:A]->()-[:B]->({x: b.p}), (a)""",
+      E42I58("b"),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE ({x: b.p})-[:A]->()-[:B]->(b), (a)""",
+      E42I58("b"),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (a)-[r:REL]->(b {prop: r.prop})""",
+      E42I58("r"),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (n:$(n.prop) {prop:5})""",
+      E42I58("n"),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE ()-[r:$(r.prop) {prop:5}]->()""",
+      E42I58("r"),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (n)-[r:R {p: 1}]->({p: r.p})
+        |RETURN n""".stripMargin,
+      E42I58("r"),
+      Seq("n")
+    ),
+    TestQuery(
+      """CREATE (n {p: 1})-[:R]->({p: n.p})
+        |RETURN n""".stripMargin,
+      E42I58("n"),
+      Seq("n")
+    ),
+    TestQuery(
+      """CREATE (n {p: n.p})-[:R]->({p: 1})
+        |RETURN n""".stripMargin,
+      E42I58("n"),
+      Seq("n")
+    ),
+    TestQuery(
+      """CREATE (n {p: 1})-[:R]->(:$all("A" + n.p) {p: 1})""".stripMargin,
+      E42I58("n"),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (a:A), (a)-[r:R {p: a.t}]->(b:B {p: a.q})
+        |RETURN a""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq("a")
+    ),
+    TestQuery(
+      """CREATE (a:A {p: 1})-[r:R {p: 1}]->(b:B {p: 1}), (c:C)-[s:S {p: a.p+b.p+r.p}]->(d:D)
+        |RETURN a""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq("a")
+    ),
+    TestQuery(
+      """INSERT (a)-[:REL]->(b {prop: a.prop})""".stripMargin,
+      E42I58("a"),
+      Seq.empty
+    ),
+    TestQuery(
+      """INSERT (a)-[r:REL]->(b {prop: r.prop})""".stripMargin,
+      E42I58("r"),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (n {prop: EXISTS{ MATCH (n) RETURN n.prop}})""".stripMargin,
+      E42I58("n"),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (x) CREATE (a)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})""".stripMargin,
+      E42I58("a"),
+      Seq.empty
+    ),
+    TestQuery(
+      """MATCH (prev)
+        |WITH prev, 5 AS five
+        |MERGE (prev)-[r:R]->(a)-[r2:R {p:r.p}]->(b)""".stripMargin,
+      passesBeforeCypher25(E42I58("r")),
+      Seq.empty
     )
-    (patternA, patternB) = ("(a {prop: true})", s"(b {prop: $scalaSubquery})")
-    pattern <- Seq(
-      s"$patternA, $patternB",
-      s"$patternB, $patternA"
-    )
-  } {
-    test(s"""CREATE $pattern""") {
-      errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  ) ++ (
+    for {
+      scalaSubquery <- Seq(
+        "EXISTS { MATCH (c) WHERE c.prop = a.prop }",
+        "COUNT { MATCH (c) WHERE c.prop = a.prop }",
+        "COLLECT { MATCH (c) WHERE c.prop = a.prop RETURN c }"
+      )
+      (patternA, patternB) = ("(a {prop: true})", s"(b {prop: $scalaSubquery})")
+      pattern <- Seq(
+        s"$patternA, $patternB",
+        s"$patternB, $patternA"
+      )
+    } yield {
+      TestQuery(
+        s"""CREATE $pattern""".stripMargin,
+        E42I58("a"),
+        Seq.empty
+      )
     }
-  }
-
-  // INSERT
-
-  test("""INSERT (a), (b {prop: a.prop})""") {
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""INSERT (a)-[r:REL]->(b), (c {prop: r.prop})""") {
-    error("42I58", "Entity, 'r', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""INSERT (a:A), (a)-[r:R {p: a.q}]->(b:B {p: a.q})
-         |RETURN a""".stripMargin) {
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""INSERT (a:A {p: 2})-[r:R {p: 1}]->(b:B {p: 1}), (c:C)-[s:S {p: a.p+b.p+r.p}]->(d:D)
-         |RETURN a""".stripMargin) {
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""INSERT (n {p: 1}), ({p: n.p})
-         |RETURN n""".stripMargin) {
-    error("42I58", "Entity, 'n', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""INSERT (n)-[r:R {p: 1}]->(), ({p: r.p})
-         |RETURN n""".stripMargin) {
-    error("42I58", "Entity, 'r', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""INSERT (a {prop: 1}), ({prop: a.prop})""".stripMargin) {
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.", CypherVersion.Cypher25)
-  }
-
-  test("""INSERT (x) INSERT (a)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})""") {
-    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  test("""INSERT (x) INSERT (a)-[r:R {prop: EXISTS { (a)-[r2]->(c) }}]->(b)""") {
-    errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  for {
-    scalaSubquery <- Seq(
-      "EXISTS { MATCH (c) WHERE c.prop = a.prop }",
-      "COUNT { MATCH (c) WHERE c.prop = a.prop }",
-      "COLLECT { MATCH (c) WHERE c.prop = a.prop RETURN c }"
+  ) ++ Seq(
+    // Reference between different path patterns
+    TestQuery(
+      """CREATE (a), (b {prop: a.prop})""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (a)-[r:REL]->(b), (c {prop: r.prop})""".stripMargin,
+      passesBeforeCypher25(E42I58("r")),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (a:A), (a)-[r:R {p: a.q}]->(b:B {p: a.q})
+        |RETURN a""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq("a")
+    ),
+    TestQuery(
+      """CREATE (a:A {p: 2})-[r:R {p: 1}]->(b:B {p: 1}), (c:C)-[s:S {p: a.p+b.p+r.p}]->(d:D)
+        |RETURN a""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq("a")
+    ),
+    TestQuery(
+      """CREATE (n {p: 1}), ({p: n.p})
+        |RETURN n""".stripMargin,
+      passesBeforeCypher25(E42I58("n")),
+      Seq("n")
+    ),
+    TestQuery(
+      """CREATE (n)-[r:R {p: 1}]->(), ({p: r.p})
+        |RETURN n""".stripMargin,
+      passesBeforeCypher25(E42I58("r")),
+      Seq("n")
+    ),
+    TestQuery(
+      """CREATE p = (n)-[r:R {p: 1}]->(), ({p: length(p)})
+        |RETURN n""".stripMargin,
+      passesBeforeCypher25(E42I58("p")),
+      Seq("n")
+    ),
+    TestQuery(
+      """CREATE (a {prop: 1}), ({prop: a.prop})""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (b {prop: a.prop}), (a)""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (b {prop: EXISTS {(a)-->()}}), (a)""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE ()-[:A]->()-[:B]->({x: a.p}), (a)""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """MATCH (n)
+        |CREATE ()-[:A {p: n.p}]->(n)-[:B]->({x: a.p}), (a)""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (x) CREATE (a), (a1)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """CREATE (x) CREATE (a), (a1)-[r:R {prop: EXISTS { (a)-[r2]->(c) }}]->(b)""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
     )
-    (patternA, patternB) = ("(a {prop: true})", s"(b {prop: $scalaSubquery})")
-    pattern <- Seq(
-      s"$patternA, $patternB",
-      s"$patternB, $patternA"
+  )
+
+  private def testCasesInsert = Seq(
+    TestQuery(
+      """INSERT (a), (b {prop: a.prop})""".stripMargin,
+      ignoreBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """INSERT (a)-[r:REL]->(b), (c {prop: r.prop})""".stripMargin,
+      ignoreBeforeCypher25(E42I58("r")),
+      Seq.empty
+    ),
+    TestQuery(
+      """INSERT (a:A), (a)-[r:R {p: a.q}]->(b:B {p: a.q})
+        |RETURN a""".stripMargin,
+      ignoreBeforeCypher25(E42I58("a")),
+      Seq("a")
+    ),
+    TestQuery(
+      """INSERT (a:A {p: 2})-[r:R {p: 1}]->(b:B {p: 1}), (c:C)-[s:S {p: a.p+b.p+r.p}]->(d:D)
+        |RETURN a""".stripMargin,
+      ignoreBeforeCypher25(E42I58("a")),
+      Seq("a")
+    ),
+    TestQuery(
+      """INSERT (n {p: 1}), ({p: n.p})
+        |RETURN n""".stripMargin,
+      ignoreBeforeCypher25(E42I58("n")),
+      Seq("n")
+    ),
+    TestQuery(
+      """INSERT (n)-[r:R {p: 1}]->(), ({p: r.p})
+        |RETURN n""".stripMargin,
+      ignoreBeforeCypher25(E42I58("r")),
+      Seq("n")
+    ),
+    TestQuery(
+      """INSERT (a {prop: 1}), ({prop: a.prop})""".stripMargin,
+      ignoreBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """INSERT (x) INSERT (a)-[r:R]->(b {prop: EXISTS { (a)-[r2]->(c) }})""".stripMargin,
+      ignoreBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """INSERT (x) INSERT (a)-[r:R {prop: EXISTS { (a)-[r2]->(c) }}]->(b)""".stripMargin,
+      ignoreBeforeCypher25(E42I58("a")),
+      Seq.empty
     )
-  } {
-    test(s"""INSERT $pattern""") {
-      errorAllVersions("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
+  ) ++ (
+    for {
+      scalaSubquery <- Seq(
+        "EXISTS { MATCH (c) WHERE c.prop = a.prop }",
+        "COUNT { MATCH (c) WHERE c.prop = a.prop }",
+        "COLLECT { MATCH (c) WHERE c.prop = a.prop RETURN c }"
+      )
+      (patternA, patternB) = ("(a {prop: true})", s"(b {prop: $scalaSubquery})")
+      pattern <- Seq(
+        s"$patternA, $patternB",
+        s"$patternB, $patternA"
+      )
+    } yield {
+      TestQuery(
+        s"""INSERT $pattern""".stripMargin,
+        ignoreBeforeCypher25(E42I58("a")),
+        Seq.empty
+      )
     }
-  }
-
-  // MERGE
-
-  test("""MERGE (a {prop:'p'})-[:T]->(b {prop:a.prop})""") {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  test("""MERGE (n)-[r:R {p: 1}]->({p: r.p})
-         |RETURN n""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'r', cannot be created and referenced in the same clause.")
-  }
-
-  test("""MERGE (n {p: 1})-[:R]->({p: n.p})
-         |RETURN n""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
-  }
-
-  test("""MERGE (n {p: 1})-[:R]->(:$all("A" + n.p) {p: 1})""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'n', cannot be created and referenced in the same clause.")
-  }
-
-  test("""MERGE (prev)-[r:R {p: a.p}]->(a)""".stripMargin) {
-    passes(CypherVersion.Cypher5)
-    error("42I58", "Entity, 'a', cannot be created and referenced in the same clause.")
-  }
-
-  test("""INSERT (n {prop: true IN [n IN [false] | n]})""") {
-    passes()
-  }
-
-  test("""INSERT (n {prop: reduce(n = 1, x in [1,2] | n + x)})""") {
-    passes()
-  }
-
-  test("""INSERT (n {prop: reduce(x = 1, n in [1,2] | n + x)})""") {
-    passes()
-  }
-
-  test("""INSERT (n {prop: true IN [x IN [false] | n]})""") {
-    error(
-      "42I58",
-      "error: syntax error or access rule violation - invalid entity reference. Entity, 'n', cannot be created and referenced in the same clause."
+  ) ++ Seq(
+    // with nested variables
+    TestQuery(
+      """INSERT (n {prop: true IN [x IN [false] | n]})""".stripMargin,
+      ignoreBeforeCypher25(E42I58("n")),
+      Seq.empty
+    ),
+    TestQuery(
+      """INSERT (n {prop: true IN [n IN [false] | n]})""".stripMargin,
+      ignoreBeforeCypher25(Passes),
+      Seq.empty
+    ),
+    TestQuery(
+      """INSERT (n {prop: reduce(n = 1, x in [1,2] | n + x)})""".stripMargin,
+      ignoreBeforeCypher25(Passes),
+      Seq.empty
+    ),
+    TestQuery(
+      """INSERT (n {prop: reduce(x = 1, n in [1,2] | n + x)})""".stripMargin,
+      ignoreBeforeCypher25(Passes),
+      Seq.empty
     )
-  }
+  )
 
-  test("""CREATE (n {prop: EXISTS{ MATCH (n) RETURN n.prop}})""") {
-    error(
-      "42I58",
-      "error: syntax error or access rule violation - invalid entity reference. Entity, 'n', cannot be created and referenced in the same clause."
+  private def testCasesMerge = Seq(
+    TestQuery(
+      """MERGE (a {prop:'p'})-[:T]->(b {prop:a.prop})""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
+    ),
+    TestQuery(
+      """MERGE (n)-[r:R {p: 1}]->({p: r.p})
+        |RETURN n""".stripMargin,
+      passesBeforeCypher25(E42I58("r")),
+      Seq("n")
+    ),
+    TestQuery(
+      """MERGE (n {p: 1})-[:R]->({p: n.p})
+        |RETURN n""".stripMargin,
+      passesBeforeCypher25(E42I58("n")),
+      Seq("n")
+    ),
+    TestQuery(
+      """MERGE (n {p: 1})-[:R]->(:$all("A" + n.p) {p: 1})""".stripMargin,
+      passesBeforeCypher25(E42I58("n")),
+      Seq.empty
+    ),
+    TestQuery(
+      """MERGE (prev)-[r:R {p: a.p}]->(a)""".stripMargin,
+      passesBeforeCypher25(E42I58("a")),
+      Seq.empty
     )
-  }
-
+  )
 }

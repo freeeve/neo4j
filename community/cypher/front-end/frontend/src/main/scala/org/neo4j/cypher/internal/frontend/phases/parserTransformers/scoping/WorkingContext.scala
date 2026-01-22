@@ -115,7 +115,7 @@ sealed trait RegularContext extends WorkingContext {
     if (existingVariables.nonEmpty) {
       newVariables.collect {
         case variable if existingVariables contains variable =>
-          errorFunc.apply(variable.name, variable.position)
+          errorFunc(variable.name, variable.position)
       }.toSeq
     } else {
       Seq.empty
@@ -129,7 +129,7 @@ sealed trait RegularContext extends WorkingContext {
     if (newVariables.nonEmpty) {
       newVariables.collect {
         case variable if newVariables.exists(v => v.name == variable.name && v.position != variable.position) =>
-          errorFunc.apply(variable.name, variable.position)
+          errorFunc(variable.name, variable.position)
       }
     } else {
       Seq.empty

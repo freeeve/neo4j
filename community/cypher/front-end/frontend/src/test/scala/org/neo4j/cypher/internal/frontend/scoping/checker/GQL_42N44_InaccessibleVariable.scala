@@ -16,351 +16,310 @@
  */
 package org.neo4j.cypher.internal.frontend.scoping.checker
 
-import org.neo4j.cypher.internal.frontend.scoping.VariableCheckingTestSuite
+import org.neo4j.cypher.internal.frontend.scoping.E42N44
+import org.neo4j.cypher.internal.frontend.scoping.Passes
+import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 
 /**
- * Test for 42I58 - Invalid Entity Reference
- *
+ * Test for 42I58 - Inaccessible Variable
  */
-class GQL_42N44_InaccessibleVariable extends VariableCheckingTestSuite {
+class GQL_42N44_InaccessibleVariable extends VariableCheckingWithLocalCallablesTestSuite {
+  VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
-  // Aggregation
+  override def testCases(): Seq[TestQuery] = Seq(
+    // Negative tests
 
-  test(
-    """UNWIND [1, 2, 3] AS x
-      |RETURN SUM(x) AS s ORDER BY x ASCENDING""".stripMargin
-  ) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `x` declared before the RETURN clause when using `DISTINCT` or an aggregation."
+    // Aggregation
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |RETURN SUM(x) AS s ORDER BY x ASCENDING""".stripMargin,
+      E42N44("x", "RETURN"),
+      Seq("s")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |RETURN n.name, SUM(n.age) ORDER BY n""".stripMargin,
+      E42N44("n", "RETURN"),
+      Seq("`n.name`", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |RETURN n.name, SUM(n.age) ORDER BY n.name, n""".stripMargin,
+      E42N44("n", "RETURN"),
+      Seq("`n.name`", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |RETURN n.name, SUM(n.age) ORDER BY n.name, n.age""".stripMargin,
+      E42N44("n", "RETURN"),
+      Seq("`n.name`", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |CALL (n) {
+        |  WITH n AS m
+        |  RETURN SUM(n.age) AS ages ORDER BY m.name
+        |}
+        |RETURN n, ages""".stripMargin,
+      E42N44("m", "RETURN"),
+      Seq("n", "ages")
+    ),
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |WITH SUM(x) AS s ORDER BY x ASCENDING
+        |RETURN s""".stripMargin,
+      E42N44("x", "WITH"),
+      Seq("s")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |WITH n.name AS m, SUM(n.age) AS sum ORDER BY n
+        |RETURN m, sum""".stripMargin,
+      E42N44("n", "WITH"),
+      Seq("m", "sum")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |CALL (n) {
+        |  WITH n AS m
+        |  WITH SUM(n.age) AS ages ORDER BY m.name
+        |  RETURN ages
+        |}
+        |RETURN n, ages""".stripMargin,
+      E42N44("m", "WITH"),
+      Seq("n", "ages")
+    ),
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |WITH SUM(x) AS s WHERE x = 1
+        |RETURN s""".stripMargin,
+      E42N44("x", "WITH"),
+      Seq("s")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |WITH n.name AS m, SUM(n.age) AS sum WHERE n.rate = 1
+        |RETURN m, sum""".stripMargin,
+      E42N44("n", "WITH"),
+      Seq("m", "sum")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |CALL (n) {
+        |  WITH n AS m
+        |  WITH SUM(n.age) AS ages WHERE m.name = "a"
+        |  RETURN ages
+        |}
+        |RETURN n, ages""".stripMargin,
+      E42N44("m", "WITH"),
+      Seq("n", "ages")
+    ),
+    TestQuery(
+      """WITH 10 AS a
+        |UNWIND [1, 2, 3] AS x
+        |RETURN a, SUM(x / a) + a * 5 AS s
+        |  ORDER BY s * MAX(a * x) - a ASCENDING""".stripMargin,
+      E42N44("x", "RETURN"),
+      Seq("a", "`SUM(x / a) + a * 5`")
+    ),
+
+    // Distinct
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |RETURN DISTINCT s ORDER BY x ASCENDING""".stripMargin,
+      E42N44("x", "RETURN"),
+      Seq("s")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |RETURN DISTINCT n.name ORDER BY n""".stripMargin,
+      E42N44("n", "RETURN"),
+      Seq("`n.name`")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |CALL (n) {
+        |  WITH n AS m
+        |  RETURN DISTINCT n.age AS ages ORDER BY m.name
+        |}
+        |RETURN n, ages""".stripMargin,
+      E42N44("m", "RETURN"),
+      Seq("n", "ages")
+    ),
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |WITH DISTINCT s ORDER BY x ASCENDING
+        |RETURN s""".stripMargin,
+      E42N44("x", "WITH"),
+      Seq("s")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |WITH DISTINCT n.name AS m ORDER BY n
+        |RETURN m""".stripMargin,
+      E42N44("n", "WITH"),
+      Seq("m")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |CALL (n) {
+        |  WITH n AS m
+        |  WITH DISTINCT n.age AS ages ORDER BY m.name
+        |  RETURN ages
+        |}
+        |RETURN n, ages""".stripMargin,
+      E42N44("m", "WITH"),
+      Seq("n", "ages")
+    ),
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |WITH DISTINCT s WHERE x = 1
+        |RETURN s""".stripMargin,
+      E42N44("x", "WITH"),
+      Seq("s")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |WITH DISTINCT n.name AS m WHERE n.age = 1
+        |RETURN m""".stripMargin,
+      E42N44("n", "WITH"),
+      Seq("m")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |CALL (n) {
+        |  WITH n AS m
+        |  WITH DISTINCT n.age AS ages WHERE m.name = "a"
+        |  RETURN ages
+        |}
+        |RETURN n, ages""".stripMargin,
+      E42N44("m", "WITH"),
+      Seq("n", "ages")
+    ),
+    TestQuery(
+      """MATCH (a:A)
+        |WITH a, a.num + a.num2 AS sum
+        |WITH a.num2 % 3 AS mod, min(sum) AS min
+        |  ORDER BY sum(sum)
+        |  LIMIT 2
+        |RETURN mod, min""".stripMargin,
+      E42N44("sum", "WITH"),
+      Seq("mod", "min")
+    ),
+
+    // Positive tests
+    TestQuery(
+      """MATCH (n)
+        |RETURN n, SUM(n.age) ORDER BY n""".stripMargin,
+      Passes,
+      Seq("n", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """WITH 1 AS m
+        |MATCH (n)
+        |RETURN m AS w, n, SUM(n.age) ORDER BY m""".stripMargin,
+      Passes,
+      Seq("w", "n", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """WITH 1 AS m
+        |MATCH (n)
+        |RETURN m AS w, n, SUM(n.age) ORDER BY w""".stripMargin,
+      Passes,
+      Seq("w", "n", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |RETURN *, SUM(n.age) ORDER BY n""".stripMargin,
+      Passes,
+      Seq("n", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |RETURN *, 1 AS n, SUM(n.age) ORDER BY n""".stripMargin,
+      Passes,
+      Seq("n", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |RETURN n, SUM(n.age) ORDER BY n.name""".stripMargin,
+      Passes,
+      Seq("n", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |RETURN SUM(x) AS x
+        |  ORDER BY x ASCENDING""".stripMargin,
+      Passes,
+      Seq("x")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |CALL (n) {
+        |  RETURN n AS m, SUM(n.age) AS ages ORDER BY n.name
+        |}
+        |RETURN n, ages""".stripMargin,
+      Passes,
+      Seq("n", "ages")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |CALL (n) {
+        |  RETURN SUM(n.age) AS ages ORDER BY n.name
+        |}
+        |RETURN n, ages""".stripMargin,
+      Passes,
+      Seq("n", "ages")
+    ),
+    TestQuery(
+      """WITH 1 AS x WHERE x = 1 RETURN x""".stripMargin,
+      Passes,
+      Seq("x")
+    ),
+    TestQuery(
+      """WITH 1 AS x ORDER BY x RETURN x""".stripMargin,
+      Passes,
+      Seq("x")
+    ),
+    TestQuery(
+      """RETURN 1 AS x ORDER BY x RETURN x""".stripMargin,
+      Passes,
+      Seq("x")
+    ),
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |RETURN SUM(x) AS s ORDER BY s ASCENDING""".stripMargin,
+      Passes,
+      Seq("s")
+    ),
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |RETURN SUM(x) AS s ORDER BY SUM(x) ASCENDING""".stripMargin,
+      Passes,
+      Seq("s")
+    ),
+    TestQuery(
+      """UNWIND [1,2,3] AS b
+        |UNWIND [0,1] AS a
+        |FILTER a <> b
+        |WITH a, SUM(b) AS sumB WHERE 1 + SUM(b) > 5
+        |RETURN *""".stripMargin,
+      ignoreBeforeCypher25(Passes),
+      Seq("a", "sumB")
+    ),
+    TestQuery(
+      """MATCH (n)
+        |RETURN n.name, SUM(n.age) ORDER BY n.name""".stripMargin,
+      Passes,
+      Seq("`n.name`", "`SUM(n.age)`")
+    ),
+    TestQuery(
+      """MATCH p = ()-[r:R]->(n:L)
+        |WITH DISTINCT p
+        |  WHERE COUNT{ MATCH (n) WITH p AS a } >= 0
+        |RETURN p""".stripMargin,
+      Passes,
+      Seq("p")
     )
-  }
-
-  test("""MATCH (n)
-         |RETURN n.name, SUM(n.age) ORDER BY n""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `n` declared before the RETURN clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |RETURN n.name, SUM(n.age) ORDER BY n.name, n""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `n` declared before the RETURN clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |RETURN n.name, SUM(n.age) ORDER BY n.name, n.age""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `n` declared before the RETURN clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |CALL (n) {
-         |  WITH n AS m
-         |  RETURN SUM(n.age) AS ages ORDER BY m.name
-         |}
-         |RETURN n, ages""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `m` declared before the RETURN clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test(
-    """UNWIND [1, 2, 3] AS x
-      |WITH SUM(x) AS s ORDER BY x ASCENDING
-      |RETURN s""".stripMargin
-  ) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `x` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |WITH n.name AS m, SUM(n.age) AS sum ORDER BY n
-         |RETURN m, sum""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `n` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |CALL (n) {
-         |  WITH n AS m
-         |  WITH SUM(n.age) AS ages ORDER BY m.name
-         |  RETURN ages
-         |}
-         |RETURN n, ages""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `m` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test(
-    """UNWIND [1, 2, 3] AS x
-      |WITH SUM(x) AS s WHERE x = 1
-      |RETURN s""".stripMargin
-  ) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `x` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |WITH n.name AS m, SUM(n.age) AS sum WHERE n.rate = 1
-         |RETURN m, sum""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `n` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |CALL (n) {
-         |  WITH n AS m
-         |  WITH SUM(n.age) AS ages WHERE m.name = "a"
-         |  RETURN ages
-         |}
-         |RETURN n, ages""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `m` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test(
-    """WITH 10 AS a
-      |UNWIND [1, 2, 3] AS x
-      |RETURN a, SUM(x / a) + a * 5 AS s
-      |  ORDER BY s * MAX(a * x) - a ASCENDING""".stripMargin
-  ) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `x` declared before the RETURN clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  // Distinct
-
-  test(
-    """UNWIND [1, 2, 3] AS x
-      |RETURN DISTINCT s ORDER BY x ASCENDING""".stripMargin
-  ) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `x` declared before the RETURN clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |RETURN DISTINCT n.name ORDER BY n""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `n` declared before the RETURN clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |CALL (n) {
-         |  WITH n AS m
-         |  RETURN DISTINCT n.age AS ages ORDER BY m.name
-         |}
-         |RETURN n, ages""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `m` declared before the RETURN clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test(
-    """UNWIND [1, 2, 3] AS x
-      |WITH DISTINCT s ORDER BY x ASCENDING
-      |RETURN s""".stripMargin
-  ) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `x` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |WITH DISTINCT n.name AS m ORDER BY n
-         |RETURN m""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `n` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |CALL (n) {
-         |  WITH n AS m
-         |  WITH DISTINCT n.age AS ages ORDER BY m.name
-         |  RETURN ages
-         |}
-         |RETURN n, ages""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `m` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test(
-    """UNWIND [1, 2, 3] AS x
-      |WITH DISTINCT s WHERE x = 1
-      |RETURN s""".stripMargin
-  ) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `x` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |WITH DISTINCT n.name AS m WHERE n.age = 1
-         |RETURN m""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `n` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (n)
-         |CALL (n) {
-         |  WITH n AS m
-         |  WITH DISTINCT n.age AS ages WHERE m.name = "a"
-         |  RETURN ages
-         |}
-         |RETURN n, ages""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `m` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-
-  test("""MATCH (a:A)
-         |WITH a, a.num + a.num2 AS sum
-         |WITH a.num2 % 3 AS mod, min(sum) AS min
-         |  ORDER BY sum(sum)
-         |  LIMIT 2
-         |RETURN mod, min""".stripMargin) {
-    errorAllVersions(
-      "42N44",
-      "It is not possible to access the variable `sum` declared before the WITH clause when using `DISTINCT` or an aggregation."
-    )
-  }
-  // Positive tests
-
-  test("""MATCH (n)
-         |RETURN n, SUM(n.age) ORDER BY n""".stripMargin) {
-    passes()
-  }
-
-  test("""WITH 1 AS m
-         |MATCH (n)
-         |RETURN m AS w, n, SUM(n.age) ORDER BY m""".stripMargin) {
-    passes()
-  }
-
-  test("""WITH 1 AS m
-         |MATCH (n)
-         |RETURN m AS w, n, SUM(n.age) ORDER BY w""".stripMargin) {
-    passes()
-  }
-
-  test("""MATCH (n)
-         |RETURN *, SUM(n.age) ORDER BY n""".stripMargin) {
-    passes()
-  }
-
-  test("""MATCH (n)
-         |RETURN *, 1 AS n, SUM(n.age) ORDER BY n""".stripMargin) {
-    passes()
-  }
-
-  test("""MATCH (n)
-         |RETURN n, SUM(n.age) ORDER BY n.name""".stripMargin) {
-    passes()
-  }
-
-  test("""UNWIND [1, 2, 3] AS x
-         |RETURN SUM(x) AS x
-         |  ORDER BY x ASCENDING""".stripMargin) {
-    passes()
-  }
-
-  test("""MATCH (n)
-         |CALL (n) {
-         |  RETURN n AS m, SUM(n.age) AS ages ORDER BY n.name
-         |}
-         |RETURN n, ages""".stripMargin) {
-    passes()
-  }
-
-  test("""MATCH (n)
-         |CALL (n) {
-         |  RETURN SUM(n.age) AS ages ORDER BY n.name
-         |}
-         |RETURN n, ages""".stripMargin) {
-    passes()
-  }
-
-  test("WITH 1 AS x WHERE x = 1 RETURN x") {
-    passes()
-  }
-
-  test("WITH 1 AS x ORDER BY x RETURN x") {
-    passes()
-  }
-
-  test("RETURN 1 AS x ORDER BY x RETURN x") {
-    passes()
-  }
-
-  test(
-    """UNWIND [1, 2, 3] AS x
-      |RETURN SUM(x) AS s ORDER BY s ASCENDING""".stripMargin
-  ) {
-    passes()
-  }
-
-  test(
-    """UNWIND [1, 2, 3] AS x
-      |RETURN SUM(x) AS s ORDER BY SUM(x) ASCENDING""".stripMargin
-  ) {
-    passes()
-  }
-
-  test(
-    """UNWIND [1,2,3] AS b
-      |UNWIND [0,1] AS a
-      |FILTER a <> b
-      |WITH a, SUM(b) AS sumB WHERE 1 + SUM(b) > 5
-      |RETURN *""".stripMargin
-  ) {
-    passes()
-  }
-
-  test("""MATCH (n)
-         |RETURN n.name, SUM(n.age) ORDER BY n.name""".stripMargin) {
-    passes()
-  }
-
-  test("""MATCH p = ()-[r:R]->(n:L)
-         |WITH DISTINCT p
-         |  WHERE COUNT{ MATCH (n) WITH p AS a } >= 0
-         |RETURN p""".stripMargin) {
-    passes()
-  }
-
+  )
 }

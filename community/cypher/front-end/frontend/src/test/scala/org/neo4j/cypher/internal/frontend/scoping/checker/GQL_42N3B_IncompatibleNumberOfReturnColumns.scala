@@ -16,36 +16,33 @@
  */
 package org.neo4j.cypher.internal.frontend.scoping.checker
 
-import org.neo4j.cypher.internal.frontend.scoping.E42N29
+import org.neo4j.cypher.internal.frontend.scoping.E42N3B
+import org.neo4j.cypher.internal.frontend.scoping.Passes
 import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
-import org.neo4j.cypher.internal.frontend.scoping.Versioned.passesCypher25Onwards
 
 /**
- * Test for 42N29 - Unbound Variables In Pattern Expression
+ * Test for 42N39 - Incompatible Number Of Return Columns
  */
-class GQL_42N29_UnboundVariablesInPatternExpression extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42N3B_IncompatibleNumberOfReturnColumns extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = Seq(
     // Negative tests
     TestQuery(
-      """MATCH (a:A)
-        |LET hasNeighbor = (a)-->(b)
-        |RETURN a, hasNeighbor""".stripMargin,
-      ignoreBeforeCypher25(E42N29("b")),
-      Seq("a", "hasNeighbor")
+      """WHEN true THEN RETURN 1 AS x, 2 AS y
+        |WHEN false THEN RETURN 2 AS x
+        |ELSE RETURN 2 AS x, 3 AS y""".stripMargin,
+      ignoreBeforeCypher25(E42N3B),
+      Seq("x", "y")
     ),
+
+    // Positive tests
     TestQuery(
-      """MATCH (n)
-        |RETURN (n)-[:T]->(b)""".stripMargin,
-      E42N29("b"),
-      Seq("`(n)-[:T]->(b)`")
-    ),
-    TestQuery(
-      """MATCH (where :Node) WHERE ( WHERE { } )-->()
-        |RETURN 1""".stripMargin,
-      passesCypher25Onwards(E42N29("WHERE")),
-      Seq("`1`")
+      """WHEN true THEN RETURN 1 AS x, 2 AS y
+        |WHEN false THEN RETURN 2 AS x, 1 AS y
+        |ELSE RETURN 2 AS x, 3 AS y""".stripMargin,
+      ignoreBeforeCypher25(Passes),
+      Seq("x", "y")
     )
   )
 }

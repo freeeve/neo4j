@@ -20,7 +20,9 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CreateOrInsert
+import org.neo4j.cypher.internal.ast.Foreach
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
+import org.neo4j.cypher.internal.ast.LocalCallableDefinition
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.ProjectionClause
@@ -69,11 +71,14 @@ case class VariableChecker(
     case (acc, Scope.Clause.Declaring(astNode, incoming, Declarations(constants, variables, _), children))
       if !(constants.isEmpty && variables.isEmpty) =>
       // redeclaration of constants
-      val redeclarationOfConstants =
-        incoming.checkIfVariablesAreAlreadyDeclaredAsConstant(
-          (constants ++ variables).toSet,
-          acc.scopeContext.isInstanceOf[SubqueryExpression]
-        )
+      val redeclarationOfConstants = astNode match {
+        case _: Foreach => Seq.empty // historically, the FOREACH iteration variable is allowed to shadow
+        case _ =>
+          incoming.checkIfVariablesAreAlreadyDeclaredAsConstant(
+            (constants ++ variables).toSet,
+            acc.scopeContext.isInstanceOf[SubqueryExpression]
+          )
+      }
       // redeclaration of variables
       val redeclarationOfVariables = astNode match {
         case _: CommandClause =>
@@ -350,6 +355,14 @@ case class VariableChecker(
             trunkAcc.errors ++ tailAcc.errors
           ))
         })
+    case s @ StatementScope(_: LocalCallableDefinition, _, _, _, _, _, _) => acc =>
+        updateAccAndTraverse(acc, s)(_acc => {
+          TraverseChildrenNewAccForSiblings(
+            _acc.inReturnContext(Unopinionated),
+            acc => acc.inReturnContext(_acc.scopeContext)
+          )
+        })
+
     case s @ StatementScope(c: CreateOrInsert, _, _, declared, _, _, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc =>
           TraverseChildrenNewAccForSiblings(

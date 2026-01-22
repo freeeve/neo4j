@@ -206,7 +206,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
 
   private val prettifier: Prettifier = Prettifier(ExpressionStringifier())
 
-  def prettify(astNode: ASTNode): String = (astNode match {
+  def prettify(astNode: ASTNode): String = astNode match {
     case s: Statement               => prettifier.asString(s)
     case d: LocalCallableDefinition => prettifier.asString(d)
     case c: Clause                  => prettifier.asString(SingleQuery(Seq(c))(InputPosition.NONE))
@@ -222,7 +222,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     case cqb @ ConditionalQueryBranch(None, _) =>
       prettifier.asString(ConditionalQueryWhen(Seq(), Some(cqb))(InputPosition.NONE))
     case x => x.toString
-  })
+  }
 
   private def whitespaceNormalization(cypher: String): String =
     cypher.trim.replaceAll("\\s+", " ")
@@ -551,10 +551,38 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
-  def passes(version: CypherVersion): Unit = passes(Array(version))
+  def passes(version: CypherVersion): Unit = pass(testName, version)
 
-  def passes(versions: Array[CypherVersion] = Array(CypherVersion.Cypher25), withRewriting: Boolean = true): Unit = {
-    val query = testName
+  def passesExceptIn(excludedVersion: CypherVersion): Unit =
+    passExceptIn(testName, excludedVersion)
+
+  def passes(): Unit =
+    pass(testName, Array(CypherVersion.Cypher25), withRewriting = true)
+
+  def passes(withRewriting: Boolean): Unit =
+    pass(testName, Array(CypherVersion.Cypher25), withRewriting)
+
+  def passes(versions: Array[CypherVersion]): Unit =
+    pass(testName, versions, withRewriting = true)
+
+  def passes(versions: Array[CypherVersion], withRewriting: Boolean): Unit =
+    pass(testName, versions, withRewriting)
+
+  def pass(query: String, version: CypherVersion): Unit = pass(query, versions = Array(version))
+
+  def passExceptIn(query: String, excludedVersion: CypherVersion): Unit =
+    pass(query, versions = CypherVersion.values().filter(_ != excludedVersion), withRewriting = true)
+
+  def pass(query: String): Unit =
+    pass(query, Array(CypherVersion.Cypher25), withRewriting = true)
+
+  def pass(query: String, withRewriting: Boolean): Unit =
+    pass(query, Array(CypherVersion.Cypher25), withRewriting)
+
+  def pass(query: String, versions: Array[CypherVersion]): Unit =
+    pass(query, versions, withRewriting = true)
+
+  def pass(query: String, versions: Array[CypherVersion], withRewriting: Boolean): Unit = {
     val rewriteOptions = if (withRewriting) Seq(false, true) else Seq(false)
     versions.foreach(version => {
       rewriteOptions.foreach(rewrite => {
@@ -592,24 +620,89 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     })
   }
 
-  def errorAllVersions(
+  def errorsInAllVersions(
     expectedGqlStatusCode: String,
     msgContains: String
-  ): Unit = error(expectedGqlStatusCode, msgContains, versions = CypherVersion.values())
+  ): Unit = errorInAllVersions(testName, expectedGqlStatusCode, msgContains)
 
-  def error(
+  def errorsExceptIn(
+    gqlError: GqlError,
+    excludedVersion: CypherVersion
+  ): Unit = errorsExceptIn(gqlError.num, gqlError.msg, excludedVersion)
+
+  def errorsExceptIn(
+    expectedGqlStatusCode: String,
+    msgContains: String,
+    excludedVersion: CypherVersion
+  ): Unit = errorExceptIn(testName, expectedGqlStatusCode, msgContains, excludedVersion)
+
+  def errors(
     expectedGqlStatusCode: String,
     msgContains: String,
     version: CypherVersion
-  ): Unit = error(expectedGqlStatusCode, msgContains, Array(version))
+  ): Unit = error(testName, expectedGqlStatusCode, msgContains, version)
 
-  def error(
+  def errors(
+    expectedGqlStatusCode: String,
+    msgContains: String
+  ): Unit = error(testName, expectedGqlStatusCode, msgContains, versions = Array(CypherVersion.Cypher25))
+
+  def errors(
     expectedGqlStatusCode: String,
     msgContains: String,
-    versions: Array[CypherVersion] = Array(CypherVersion.Cypher25)
-  ): Unit = {
-    val query = testName
+    versions: Array[CypherVersion]
+  ): Unit = error(testName, expectedGqlStatusCode, msgContains, versions)
 
+  def errorInAllVersions(
+    query: String,
+    expectedGqlStatusCode: String,
+    msgContains: String
+  ): Unit = error(query, expectedGqlStatusCode, msgContains, versions = CypherVersion.values())
+
+  def errorExceptIn(
+    query: String,
+    gqlError: GqlError,
+    excludedVersion: CypherVersion
+  ): Unit = error(query, gqlError.num, gqlError.msg, versions = CypherVersion.values().filter(_ != excludedVersion))
+
+  def errorExceptIn(
+    query: String,
+    expectedGqlStatusCode: String,
+    msgContains: String,
+    excludedVersion: CypherVersion
+  ): Unit =
+    error(query, expectedGqlStatusCode, msgContains, versions = CypherVersion.values().filter(_ != excludedVersion))
+
+  def error(
+    query: String,
+    expectedGqlStatusCode: String,
+    msgContains: String,
+    version: CypherVersion
+  ): Unit = error(query, expectedGqlStatusCode, msgContains, versions = Array(version))
+
+  def error(
+    query: String,
+    gqlError: GqlError,
+    version: CypherVersion
+  ): Unit = error(query, gqlError.num, gqlError.msg, versions = Array(version))
+
+  def error(
+    query: String,
+    gqlError: GqlError
+  ): Unit = error(query, gqlError.num, gqlError.msg, versions = Array(CypherVersion.Cypher25))
+
+  def error(
+    query: String,
+    gqlError: GqlError,
+    versions: Array[CypherVersion]
+  ): Unit = error(query, gqlError.num, gqlError.msg, versions)
+
+  def error(
+    query: String,
+    expectedGqlStatusCode: String,
+    msgContains: String,
+    versions: Array[CypherVersion]
+  ): Unit = {
     @tailrec
     def findGqlStatus(gqlStatusObject: ErrorGqlStatusObject): Option[ErrorGqlStatusObject] = gqlStatusObject match {
       case gqlStatusObject if gqlStatusObject.gqlStatus() == expectedGqlStatusCode => Some(gqlStatusObject)
@@ -672,6 +765,32 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       }
     })
   }
+
+  def check(outcome: Outcome): Unit =
+    check(testName, outcome, CypherVersion.values())
+
+  def check(outcome: Outcome, versions: Array[CypherVersion]): Unit =
+    check(testName, outcome, versions)
+
+  def check(query: String, outcome: Outcome): Unit =
+    check(query, outcome, CypherVersion.values())
+
+  def check(query: String, outcome: Outcome, versions: Array[CypherVersion]): Unit =
+    outcome match {
+      case Ignore      => ()
+      case Passes      => pass(query, versions)
+      case e: GqlError => error(query, e, versions)
+      case Versioned(default, cases @ _*) =>
+        val versionsWithExceptions = cases.map(_._1).distinct
+        val versionsForDefault = versions.filterNot(v => versionsWithExceptions contains v)
+        check(query, default, versionsForDefault)
+        for {
+          (v, o) <- cases
+          if versions contains v
+        } {
+          check(query, o, Array(v))
+        }
+    }
 
   def hasScope(
     expected: ExpectedWorkingScope,
