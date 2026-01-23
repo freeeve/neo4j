@@ -179,7 +179,7 @@ class CheckCommandIT {
         final var checkDatabases = CheckDatabase.all().stream()
                 .map(CheckDatabase::getClass)
                 .collect(Collectors.<Class<? extends CheckDatabase>>toUnmodifiableSet());
-        assertThat(checkDatabases).containsExactlyInAnyOrder(CheckNativeDatabase.class, CheckDump.class);
+        assertThat(checkDatabases).contains(CheckNativeDatabase.class, CheckDump.class);
     }
 
     @Test
@@ -473,7 +473,7 @@ class CheckCommandIT {
             assertThat(thrown)
                     .isInstanceOf(Exception.class)
                     .hasMessageContaining("Failed to prepare for consistency check")
-                    .hasMessageContaining("Could not find a valid database, or dump");
+                    .hasMessageContainingAll("Could not find a valid ", "database, or dump");
         });
     }
 

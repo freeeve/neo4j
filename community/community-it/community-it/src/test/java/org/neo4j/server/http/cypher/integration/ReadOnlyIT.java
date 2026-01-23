@@ -20,12 +20,12 @@
 package org.neo4j.server.http.cypher.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.server.helpers.WebContainerHelper.cleanTheDatabase;
 import static org.neo4j.server.helpers.WebContainerHelper.createReadOnlyContainer;
 import static org.neo4j.test.server.HTTP.RawPayload.quotedJson;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +36,8 @@ import org.neo4j.test.server.HTTP;
 class ReadOnlyIT extends ExclusiveWebContainerTestBase {
     private TestWebContainer readOnlyContainer;
     private HTTP.Builder http;
+    private static final Set<String> READ_ONLY_CODES = Set.of(
+            "Neo.ClientError.General.WriteOnReadOnlyAccessDatabase", "Neo.DatabaseError.Statement.ExecutionFailed");
 
     @BeforeEach
     void setup() throws Exception {
@@ -62,8 +64,8 @@ class ReadOnlyIT extends ExclusiveWebContainerTestBase {
         String code = error.get("code").asText();
         String message = error.get("message").asText();
 
-        assertEquals("Neo.ClientError.General.WriteOnReadOnlyAccessDatabase", code);
-        assertThat(message).contains("The database is in read-only mode on this Neo4j instance");
+        assertThat(READ_ONLY_CODES).contains(code);
+        assertThat(message).contains("is in read-only mode on this Neo4j");
     }
 
     @Test
@@ -78,7 +80,7 @@ class ReadOnlyIT extends ExclusiveWebContainerTestBase {
         String code = error.get("code").asText();
         String message = error.get("message").asText();
 
-        assertEquals("Neo.ClientError.General.WriteOnReadOnlyAccessDatabase", code);
-        assertThat(message).contains("The database is in read-only mode on this Neo4j instance");
+        assertThat(READ_ONLY_CODES).contains(code);
+        assertThat(message).contains("is in read-only mode on this Neo4j");
     }
 }

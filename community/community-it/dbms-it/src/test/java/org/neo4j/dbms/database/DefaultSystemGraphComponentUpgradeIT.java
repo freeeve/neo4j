@@ -31,6 +31,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPER
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
 import static org.neo4j.io.ByteUnit.kibiBytes;
+import static org.neo4j.test.extension.SkipOnSpd.Note.irrelevant;
 
 import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.AfterEach;
@@ -51,10 +52,12 @@ import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
+@SkipOnSpd(notes = irrelevant, reason = "Enterprise system db upgrade path is different")
 class DefaultSystemGraphComponentUpgradeIT {
     @Inject
     private TestDirectory testDirectory;

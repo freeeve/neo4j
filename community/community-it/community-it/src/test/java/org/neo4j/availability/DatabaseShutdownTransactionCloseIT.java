@@ -22,6 +22,7 @@ package org.neo4j.availability;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.neo4j.kernel.api.KernelTransaction.Monitor.withBeforeApply;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -44,6 +45,7 @@ import org.neo4j.kernel.impl.api.ShutdownTransactionMonitor;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension
 public class DatabaseShutdownTransactionCloseIT {
@@ -58,6 +60,7 @@ public class DatabaseShutdownTransactionCloseIT {
     DatabaseMonitors databaseMonitors;
 
     @Test
+    @SkipOnSpd(notes = incompatible, reason = "Shutdown kills the property shards, making the TX unable to complete")
     void ableToCloseTransactionAfterShutdownStarted() throws InterruptedException {
         CountDownLatch shutdownLatch = new CountDownLatch(1);
         CountDownLatch transactionCompleted = new CountDownLatch(1);
