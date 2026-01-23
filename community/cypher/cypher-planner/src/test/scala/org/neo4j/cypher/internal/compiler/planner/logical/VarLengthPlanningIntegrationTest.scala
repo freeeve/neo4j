@@ -818,4 +818,23 @@ class VarLengthPlanningIntegrationTest
         .build()
     )
   }
+
+  test("should plan varExpand with bounds greater than Int.MaxValue") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 100)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .setRelationshipCardinality("(:A)-[]->()", 1000)
+      .build()
+
+    for (bound <- Seq(Long.MaxValue, 19999999999L, 99999999999L)) withClue(bound) {
+      val query = s"MATCH (a:A)-[r*$bound]->(b) RETURN a"
+      val plan = planner.plan(query).stripProduceResults
+      plan shouldEqual planner.subPlanBuilder()
+        .filter(s"size(r) >= $bound")
+        .expand(s"(a)-[r*${Int.MaxValue}..]->()")
+        .nodeByLabelScan("a", "A")
+        .build()
+    }
+  }
 }

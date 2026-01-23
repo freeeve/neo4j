@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.SimplePattern
+import org.neo4j.cypher.internal.expressions.StringDecimalInteger
 import org.neo4j.cypher.internal.ir.ExhaustivePathPattern
 import org.neo4j.cypher.internal.ir.PatternLength
 import org.neo4j.cypher.internal.ir.PatternRelationship
@@ -106,11 +107,22 @@ object SimplePatternConverters {
 
   private[converters] def convertRelationshipLength(relationshipLength: Option[Option[Range]]): PatternLength =
     relationshipLength match {
-      case Some(Some(Range(Some(left), Some(right)))) => VarPatternLength(left.value.toInt, Some(right.value.toInt))
-      case Some(Some(Range(Some(left), None)))        => VarPatternLength(left.value.toInt, None)
-      case Some(Some(Range(None, Some(right))))       => VarPatternLength(1, Some(right.value.toInt))
-      case Some(Some(Range(None, None)))              => VarPatternLength.unlimited
-      case Some(None)                                 => VarPatternLength.unlimited
-      case None                                       => SimplePatternLength
+      case Some(Some(Range(Some(left), Some(right)))) =>
+        VarPatternLength(convertLowerBound(left), convertUpperBound(right))
+      case Some(Some(Range(Some(left), None)))  => VarPatternLength(convertLowerBound(left), None)
+      case Some(Some(Range(None, Some(right)))) => VarPatternLength(1, convertUpperBound(right))
+      case Some(Some(Range(None, None)))        => VarPatternLength.unlimited
+      case Some(None)                           => VarPatternLength.unlimited
+      case None                                 => SimplePatternLength
     }
+
+  private def convertLowerBound(x: StringDecimalInteger): Int = {
+    if (x.value <= Int.MaxValue) x.value.toInt
+    else Int.MaxValue
+  }
+
+  private def convertUpperBound(x: StringDecimalInteger): Option[Int] = {
+    Option.when(x.value <= Int.MaxValue)(x.value.toInt)
+  }
+
 }

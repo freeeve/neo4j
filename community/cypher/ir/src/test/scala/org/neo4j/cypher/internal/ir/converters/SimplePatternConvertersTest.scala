@@ -193,4 +193,21 @@ class SimplePatternConvertersTest extends CypherFunSuite with AstConstructionTes
   test("relationship length: []") {
     convertRelationshipLength(None) shouldEqual SimplePatternLength
   }
+
+  test("relationship length: [*Int.MaxValue+1..]") {
+    convertRelationshipLength(Some(Some(range(Some(Int.MaxValue.toLong + 1), None)))) shouldEqual
+      VarPatternLength(Int.MaxValue, None)
+  }
+
+  test("relationship length: [*..Int.MaxValue+1]") {
+    convertRelationshipLength(Some(Some(range(None, Some(Int.MaxValue.toLong + 1))))) shouldEqual
+      VarPatternLength(1, None)
+  }
+
+  test("relationship length: [*Int.MaxValue+10..Int.MaxValue+20]") {
+    convertRelationshipLength(Some(Some(range(
+      Some(Int.MaxValue.toLong + 10),
+      Some(Int.MaxValue.toLong + 20)
+    )))) shouldEqual VarPatternLength(Int.MaxValue, None)
+  }
 }

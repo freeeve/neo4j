@@ -380,7 +380,7 @@ trait AstConstructionTestSupport {
   def literalInt(value: Long, position: InputPosition): SignedDecimalIntegerLiteral =
     SignedDecimalIntegerLiteral(value.toString)(position.withInputLength(value.toString.length))
 
-  def literalUnsignedInt(intValue: Int): PathLengthQuantifier =
+  def literalUnsignedInt(intValue: Long): PathLengthQuantifier =
     PathLengthQuantifier(intValue.toString)(pos)
 
   def literalFloat(floatValue: Double): DecimalDoubleLiteral =
@@ -1629,7 +1629,7 @@ trait AstConstructionTestSupport {
   ): Yield =
     Yield(returnItems, orderBy, skip, limit, where)(pos)
 
-  def range(lower: Option[Int], upper: Option[Int]): Range =
+  def range(lower: Option[Long], upper: Option[Long]): Range =
     Range(lower.map(literalUnsignedInt), upper.map(literalUnsignedInt))(pos)
 
   def point(x: Double, y: Double): Expression =
