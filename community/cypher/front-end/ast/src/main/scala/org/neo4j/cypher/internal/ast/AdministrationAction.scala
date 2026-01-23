@@ -191,7 +191,7 @@ case object CreateAuthRuleAction extends AuthRuleManagementAction("CREATE AUTH R
 
 case object DropAuthRuleAction extends AuthRuleManagementAction("DROP AUTH RULE")
 
-case object AllAuthRuleActions extends RoleManagementAction("AUTH RULE MANAGEMENT")
+case object AllAuthRuleActions extends AuthRuleManagementAction("AUTH RULE MANAGEMENT")
 
 abstract class DatabaseManagementAction(override val name: String) extends DbmsAction(name)
 
