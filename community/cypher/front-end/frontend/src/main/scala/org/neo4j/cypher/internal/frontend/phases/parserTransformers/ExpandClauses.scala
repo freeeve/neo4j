@@ -90,6 +90,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.Condition
+import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 import org.neo4j.cypher.internal.util.topDown
 
@@ -217,9 +218,13 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
       semanticContext: SemanticContext,
       referencedByQuery: Set[LogicalVariable]
     ) {
+      def ensureUniqueIds: Rewriter = bottomUp(Rewriter.lift { case v: LogicalVariable => v.copyId })
+
       def pushUse(maybeUse: Option[UseGraph]): Layout = copy(use = if (maybeUse.isDefined) maybeUse else use)
       def consumeLayout: Layout = copy(use = None, ingress = Seq.empty, utilityVariable = None)
       def withIngress(ingress: Seq[Clause]): Layout = copy(ingress = ingress)
+
+      def getIngress: Seq[Clause] = ingress.endoRewrite(ensureUniqueIds)
 
       def resultMapping: Map[LogicalVariable, LogicalVariable] = semanticContext.mappedReturns
       def withMapping(resultMapping: Map[LogicalVariable, LogicalVariable]): Layout = {
@@ -312,9 +317,9 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
         val rewrittenClauses = singleQuery.clauses.map(_.endoRewrite(rewriter(consumeLayout)))
 
         val adaptedClauses = if (singleQuery.partitionedClauses.initialGraphSelection.isDefined) {
-          Seq(rewrittenClauses.head) ++ ingress ++ rewrittenClauses.tail
+          Seq(rewrittenClauses.head) ++ getIngress ++ rewrittenClauses.tail
         } else {
-          use.toSeq ++ ingress ++ rewrittenClauses
+          use.toSeq ++ getIngress ++ rewrittenClauses
         }
 
         val lastClause = (semanticContext, adaptedClauses.last) match {
@@ -369,10 +374,10 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
               distinct = false,
               IndexedSeq(
                 SignedDecimalIntegerLiteral("0")(pos.zeroLength),
-                Subtract(countVariable.get.copyId, SignedDecimalIntegerLiteral("1")(pos.zeroLength))(pos)
+                Subtract(countVariable.get, SignedDecimalIntegerLiteral("1")(pos.zeroLength))(pos)
               )
             )(pos),
-            index.copyId
+            index
           )(pos)
 
           val accessedItems =
@@ -382,7 +387,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
                   ContainerIndex(anonymized.outgoing.copyId, index.copyId)(pos),
                   SignedDecimalIntegerLiteral("0")(pos.zeroLength)
                 )(pos),
-                original.copyId
+                original
               )(pos)
             }
 
@@ -527,7 +532,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
           else getNextPreface(collectedColumns, countVariable, willBeExpanded(ast), ast.position)
 
         val ingress: Seq[Clause] =
-          if (incomingLayout.ingress.nonEmpty) incomingLayout.ingress
+          if (incomingLayout.ingress.nonEmpty) incomingLayout.getIngress
           else getNextIngress(collectedColumns, countVariable, ast.position)
 
         // If returned columns exists in incoming symbols we need to anonymize the result columns
@@ -540,7 +545,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
                   vr,
                   if (resultColumns.exists(incomingSymbols) && willBeWrapped)
                     Variable(anonVarNameGen.nextName, ast.position)
-                  else vr
+                  else vr.copyId
                 )
               ).toMap
           }
@@ -587,7 +592,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
         val getExpandedAST: Seq[Clause] = rewrittenQuery match {
           case sq: SingleQuery if !willBeWrapped => preface ++ sq.clauses ++ postface
           case q: Query =>
-            preface ++ Seq(ScopeClauseSubqueryCall(q, imports.map(_.copyId).toSeq)(q.position)) ++ postface
+            preface ++ Seq(ScopeClauseSubqueryCall(q, imports.toSeq)(q.position)) ++ postface
         }
 
         val resultingLayout =
@@ -724,7 +729,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
           case (_, true)                           => Some(defaultPostface)
         }
 
-        SingleQuery(incomingLayout.ingress ++ preface ++ Seq(subquery) ++ postface)(ast.position)
+        SingleQuery(incomingLayout.getIngress ++ preface ++ Seq(subquery) ++ postface)(ast.position)
       }
     }
 
@@ -754,7 +759,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
           val imports: Seq[LogicalVariable] = scopeState.getReferenced(ast).toSeq
 
           val expandedQuery =
-            layoutWithUse.ingress ++ Seq(ScopeClauseSubqueryCall(
+            layoutWithUse.getIngress ++ Seq(ScopeClauseSubqueryCall(
               innerRewritten,
               imports
             )(ast.position)) :+ postface
@@ -941,7 +946,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
       })
 
     // Cypher 5 requires a WITH clause between clauses in some cases so the query is not possible to fully cleanup.
-    def cleanupCypher5: Rewriter = Rewriter.lift({ case lv: LogicalVariable => lv.copyId })
+    def cleanupCypher5: Rewriter = Rewriter.noop
 
     def cleanup: Rewriter = Rewriter.lift({
       case ex: ExistsExpression =>
@@ -953,8 +958,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
         cnt.copy(query =
           subqueryExpressionCleanup(cnt.query)
         )(cnt.position, cnt.computedIntroducedVariables, cnt.computedScopeDependencies)
-      case sq: SingleQuery     => sq.copy(clauseCleanup(sq.clauses))(sq.position)
-      case lv: LogicalVariable => lv.copyId
+      case sq: SingleQuery => sq.copy(clauseCleanup(sq.clauses))(sq.position)
     })
 
     version match {
