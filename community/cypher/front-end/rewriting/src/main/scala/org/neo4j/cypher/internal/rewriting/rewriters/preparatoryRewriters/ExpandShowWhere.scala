@@ -53,7 +53,7 @@ case object ExpandShowWhere extends Step with DefaultPostCondition with Preparat
     // move freestanding WHERE to YIELD * WHERE and add default columns to the YIELD
     case s @ ShowDatabase(_, Some(Right(where)), _) =>
       s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
-    case s @ ShowRoles(_, _, Some(Right(where)), _) =>
+    case s @ ShowRoles(_, _, _, Some(Right(where)), _) =>
       s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
     case s @ ShowPrivileges(_, Some(Right(where)), _) =>
       s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
@@ -76,7 +76,7 @@ case object ExpandShowWhere extends Step with DefaultPostCondition with Preparat
     case s @ ShowDatabase(_, Some(Left((yieldClause, returnClause))), _)
       if yieldClause.returnItems.includeExisting || returnClause.exists(_.returnItems.includeExisting) =>
       s.copy(yieldOrWhere = addDefaultColumns(yieldClause, returnClause, s.defaultColumnNames))(s.position)
-    case s @ ShowRoles(_, _, Some(Left((yieldClause, returnClause))), _)
+    case s @ ShowRoles(_, _, _, Some(Left((yieldClause, returnClause))), _)
       if yieldClause.returnItems.includeExisting || returnClause.exists(_.returnItems.includeExisting) =>
       s.copy(yieldOrWhere = addDefaultColumns(yieldClause, returnClause, s.defaultColumnNames))(s.position)
     case s @ ShowPrivileges(_, Some(Left((yieldClause, returnClause))), _)

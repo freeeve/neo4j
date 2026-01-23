@@ -2620,6 +2620,34 @@ class PrettifierIT extends AbstractPrettifierTest {
         |    SKIP 1
         |    LIMIT 1
         |    WHERE member = "neo4j"""".stripMargin,
+    FailsInCypher5("Show Roles with auth rules", "SHOW ALL ROLES WITH AUTH RULES"),
+    FailsInCypher5(
+      "Show roles with auth rules where authRule = 'rule'",
+      """SHOW ALL ROLES WITH AUTH RULES
+        |  WHERE authRule = "rule"""".stripMargin
+    ),
+    FailsInCypher5(
+      "Show roles with auth rules YIELD * where authRule = 'rule' Return *",
+      """SHOW ALL ROLES WITH AUTH RULES
+        |  YIELD *
+        |    WHERE authRule = "rule"
+        |  RETURN *""".stripMargin
+    ),
+    FailsInCypher5(
+      "Show roles with auth rules YIELD * Return DISTINCT authRule, role",
+      """SHOW ALL ROLES WITH AUTH RULES
+        |  YIELD *
+        |  RETURN DISTINCT authRule, role""".stripMargin
+    ),
+    FailsInCypher5(
+      "show roles with auth rules yield authRule order by authRule skip 1 limit 1 where authRule='rule'",
+      """SHOW ALL ROLES WITH AUTH RULES
+        |  YIELD authRule
+        |    ORDER BY authRule ASCENDING
+        |    SKIP 1
+        |    LIMIT 1
+        |    WHERE authRule = "rule"""".stripMargin
+    ),
     "Show Populated Roles" ->
       "SHOW POPULATED ROLES",
     "Show Populated roles where role = 'admin'" ->
@@ -2662,6 +2690,34 @@ class PrettifierIT extends AbstractPrettifierTest {
         |    SKIP 1
         |    LIMIT 1
         |    WHERE member = "neo4j"""".stripMargin,
+    FailsInCypher5("Show Populated Roles with auth rules", "SHOW POPULATED ROLES WITH AUTH RULES"),
+    FailsInCypher5(
+      "Show Populated roles with auth rules where authRule = 'rule'",
+      """SHOW POPULATED ROLES WITH AUTH RULES
+        |  WHERE authRule = "rule"""".stripMargin
+    ),
+    FailsInCypher5(
+      "Show populated roles with auth rules YIELD * where role = 'admin' Return *",
+      """SHOW POPULATED ROLES WITH AUTH RULES
+        |  YIELD *
+        |    WHERE role = "admin"
+        |  RETURN *""".stripMargin
+    ),
+    FailsInCypher5(
+      "Show populated roles with auth rules YIELD * Return DISTINCT authRule, role",
+      """SHOW POPULATED ROLES WITH AUTH RULES
+        |  YIELD *
+        |  RETURN DISTINCT authRule, role""".stripMargin
+    ),
+    FailsInCypher5(
+      "show Populated roles with auth rules yield authRule order by authRule skip 1 limit 1 where authRule='role'",
+      """SHOW POPULATED ROLES WITH AUTH RULES
+        |  YIELD authRule
+        |    ORDER BY authRule ASCENDING
+        |    SKIP 1
+        |    LIMIT 1
+        |    WHERE authRule = "role"""".stripMargin
+    ),
     "create role abc" ->
       "CREATE ROLE abc",
     "create role $abc" ->

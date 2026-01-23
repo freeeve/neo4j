@@ -717,6 +717,7 @@ final case class UserOptions(
 
 final case class ShowRoles(
   withUsers: Boolean,
+  withAuthRules: Boolean,
   showAll: Boolean,
   override val yieldOrWhere: YieldOrWhere,
   override val defaultColumnSet: List[ShowColumn]
@@ -734,11 +735,21 @@ final case class ShowRoles(
 
 object ShowRoles {
 
-  def apply(withUsers: Boolean, showAll: Boolean, yieldOrWhere: YieldOrWhere)(position: InputPosition): ShowRoles = {
+  def apply(
+    withUsers: Boolean,
+    withAuthRules: Boolean,
+    showAll: Boolean,
+    yieldOrWhere: YieldOrWhere
+  )(position: InputPosition): ShowRoles = {
     val allColumns =
       if (withUsers) List(
         (ShowColumn(Variable("role")(position, Variable.isIsolatedDefault), CTString, "role"), true),
         (ShowColumn(Variable("member")(position, Variable.isIsolatedDefault), CTString, "member"), true),
+        (ShowColumn(Variable("immutable")(position, Variable.isIsolatedDefault), CTBoolean, "immutable"), false)
+      )
+      else if (withAuthRules) List(
+        (ShowColumn(Variable("role")(position, Variable.isIsolatedDefault), CTString, "role"), true),
+        (ShowColumn(Variable("authRule")(position, Variable.isIsolatedDefault), CTString, "authRule"), true),
         (ShowColumn(Variable("immutable")(position, Variable.isIsolatedDefault), CTBoolean, "immutable"), false)
       )
       else List(
@@ -746,7 +757,7 @@ object ShowRoles {
         (ShowColumn(Variable("immutable")(position, Variable.isIsolatedDefault), CTBoolean, "immutable"), false)
       )
     val columns = DefaultOrAllShowColumns(allColumns, yieldOrWhere).columns
-    ShowRoles(withUsers, showAll, yieldOrWhere, columns)(position)
+    ShowRoles(withUsers, withAuthRules, showAll, yieldOrWhere, columns)(position)
   }
 }
 

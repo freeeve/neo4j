@@ -486,10 +486,12 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
       case sr: ShowRoles =>
         val assertAllowed =
           if (sr.withUsers) plans.AssertAllowedDbmsActions(None, Seq(ShowRoleAction, ShowUserAction))
+          else if (sr.withAuthRules) plans.AssertAllowedDbmsActions(None, Seq(ShowRoleAction, ShowAuthRuleAction))
           else plans.AssertAllowedDbmsActions(ShowRoleAction)
         Some(plans.ShowRoles(
           assertAllowed,
           withUsers = sr.withUsers,
+          withAuthRules = sr.withAuthRules,
           showAll = sr.showAll,
           sr.defaultColumnNames.map(varFor),
           sr.yields,

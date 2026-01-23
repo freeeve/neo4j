@@ -492,7 +492,8 @@ trait DdlShowBuilder extends Cypher5ParserListener {
   ): Unit = {
     ctx.ast = ShowRoles(
       ctx.WITH() != null,
-      ctx.POPULATED() == null,
+      withAuthRules = false,
+      showAll = ctx.POPULATED() == null,
       astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield())
     )(pos(ctx))
   }

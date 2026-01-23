@@ -134,6 +134,7 @@ case class CheckNativeAuthentication()(implicit idGen: IdGen) extends SecurityAd
 case class ShowRoles(
   source: PrivilegePlan,
   withUsers: Boolean,
+  withAuthRules: Boolean,
   showAll: Boolean,
   override val returnColumns: List[LogicalVariable],
   yields: Option[Yield],

@@ -132,6 +132,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
     result match {
       case ShowRoles(
           false,
+          false,
           true,
           Some(Left((
             Yield(

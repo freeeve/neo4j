@@ -1445,7 +1445,7 @@ renameRole
    ;
 
 showRoles
-   : (ALL | POPULATED)? roleToken (WITH (USER | USERS))? showCommandYield?
+   : (ALL | POPULATED)? roleToken (WITH (USER | USERS | authRuleKeywords))? showCommandYield?
    ;
 
 grantRole

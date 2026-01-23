@@ -467,8 +467,15 @@ trait DdlShowBuilder extends Cypher25ParserListener {
   final override def exitShowRoles(
     ctx: Cypher25Parser.ShowRolesContext
   ): Unit = {
+    val (withUsers, withAuthRules) =
+      if (ctx.WITH() != null)
+        if (ctx.USER() != null || ctx.USERS() != null) (true, false)
+        else (false, true)
+      else (false, false)
+
     ctx.ast = ShowRoles(
-      ctx.WITH() != null,
+      withUsers,
+      withAuthRules,
       ctx.POPULATED() == null,
       astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield())
     )(pos(ctx))
