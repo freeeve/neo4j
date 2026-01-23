@@ -1633,7 +1633,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       """MATCH ANY SHORTEST (u:User) ((b)-[r]-(c) WHERE r.prop < c.prop)* (d)
         |RETURN *""".stripMargin
     def relPredicate(rel: LogicalVariable) =
-      lessThan(prop(varFor("anon_0"), "prop"), prop(TraversalEndpoint(varFor("anon_1"), To), "prop"))
+      lessThan(prop(varFor("r"), "prop"), prop(TraversalEndpoint(varFor("anon_0"), To), "prop"))
     val nfa = new TestNFABuilder(0, "u")
       .addTransition(0, 1, "(u) (b)")
       .addTransition(0, 3, "(u) (d)")
@@ -2839,8 +2839,8 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val query = "MATCH ANY SHORTEST ((u:User)((n)-[r]->(m))+(v)-[r2]-(w) WHERE v.prop > r2.prop + w.prop) RETURN *"
 
     def relPredicate(rel: LogicalVariable) = greaterThan(
-      prop(TraversalEndpoint(varFor("anon_1"), From), "prop"),
-      add(prop("anon_0", "prop"), prop(TraversalEndpoint(varFor("anon_2"), To), "prop"))
+      prop(TraversalEndpoint(varFor("anon_0"), From), "prop"),
+      add(prop("r2", "prop"), prop(TraversalEndpoint(varFor("anon_1"), To), "prop"))
     )
 
     val nfa = new TestNFABuilder(0, "u")

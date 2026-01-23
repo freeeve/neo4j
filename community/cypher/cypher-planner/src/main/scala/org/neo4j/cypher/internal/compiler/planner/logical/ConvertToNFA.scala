@@ -206,7 +206,6 @@ object ConvertToNFA {
         case (SemanticDirection.INCOMING, true)  => (Some(targetVariable), Some(sourceVariable))
         case (SemanticDirection.INCOMING, false) => (Some(sourceVariable), Some(targetVariable))
       }
-      val anonymousRelationshipVariable = varFor(anonymousVariableNameGenerator.nextName)
 
       def rewrite(expression: Expression): Expression =
         expression.endoRewrite(topDown(Rewriter.lift {
@@ -226,7 +225,7 @@ object ConvertToNFA {
               startNode = sourceVariable,
               globalRelationshipVariable = relationshipVariable,
               endNode = targetVariable,
-              perIterationRelationshipVariable = anonymousRelationshipVariable,
+              perIterationRelationshipVariable = relationshipVariable,
               nameGenerator = anonymousVariableNameGenerator,
               isDirected = false
             )))

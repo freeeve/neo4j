@@ -27,8 +27,12 @@ import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.STRINGIFIER
 
 /**
  * This expression resolves to a node reference during certain relationship traversals
- * (VarExpand and Shortest, for example). The End field refers to which node of the relationship should be returned,
+ * (VarExpand and Shortest, for example). The `endpoint` field refers to which node of the relationship should be returned,
  * relative to the direction of traversal (note: not related to the direction of the relationship itself).
+ *
+ * The tempVar variable will be resolved as an Expression Variable at runtime; when we traverse a relationship with a
+ * predicate, and that predicate contains a TraversalEndpoint, we will choose either the source or destination node of the
+ * relationship to stash in the Expression Variable before we evaluate the predicate.
  */
 case class TraversalEndpoint(tempVar: LogicalVariable, endpoint: Endpoint) extends RuntimeExpression {
   def isConstantForQuery: Boolean = false
