@@ -21,6 +21,11 @@ package org.neo4j.internal.kernel.api;
 
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
+import org.neo4j.kernel.api.StatementConstants;
+import org.neo4j.storageengine.api.Degrees;
+import org.neo4j.storageengine.api.PropertySelection;
+import org.neo4j.storageengine.api.Reference;
+import org.neo4j.storageengine.api.RelationshipSelection;
 import org.neo4j.values.storable.Value;
 
 /**
@@ -53,6 +58,7 @@ import org.neo4j.values.storable.Value;
  * </code></pre>
  */
 public interface NodeValueIndexCursor extends NodeIndexCursor, ValueIndexCursor {
+
     class Empty extends DoNothingCloseListenable implements NodeValueIndexCursor {
 
         @Override
@@ -60,7 +66,80 @@ public interface NodeValueIndexCursor extends NodeIndexCursor, ValueIndexCursor 
 
         @Override
         public long nodeReference() {
-            return -1L;
+            return StatementConstants.NO_SUCH_NODE;
+        }
+
+        @Override
+        public TokenSet labels() {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public TokenSet labelsIgnoringTxStateSetRemove() {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public boolean hasLabel(int label) {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public boolean hasLabel() {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public void relationships(RelationshipTraversalCursor relationships, RelationshipSelection selection) {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public boolean supportsFastRelationshipsTo() {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public void relationshipsTo(
+                RelationshipTraversalCursor relationships,
+                RelationshipSelection selection,
+                long neighbourNodeReference) {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public long relationshipsReference() {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public boolean supportsFastDegreeLookup() {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public int[] relationshipTypes() {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public Degrees degrees(RelationshipSelection selection) {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public int degree(RelationshipSelection selection) {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public boolean readFromStore() {
+            return false;
         }
 
         @Override
@@ -103,6 +182,20 @@ public interface NodeValueIndexCursor extends NodeIndexCursor, ValueIndexCursor 
 
         @Override
         public void removeTracer() {}
+
+        @Override
+        public void properties(PropertyCursor cursor, PropertySelection selection) {
+            throw notReadFromStore();
+        }
+
+        @Override
+        public Reference propertiesReference() {
+            throw notReadFromStore();
+        }
+
+        private IllegalStateException notReadFromStore() {
+            throw new IllegalStateException("Node hasn't been read from store");
+        }
     }
 
     NodeValueIndexCursor EMPTY = new Empty();

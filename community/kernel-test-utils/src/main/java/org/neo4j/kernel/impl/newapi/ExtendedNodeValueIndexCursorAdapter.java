@@ -24,12 +24,19 @@ import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
+import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.Read;
+import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
+import org.neo4j.internal.kernel.api.TokenSet;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.AccessModeProvider;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
+import org.neo4j.storageengine.api.Degrees;
+import org.neo4j.storageengine.api.PropertySelection;
+import org.neo4j.storageengine.api.Reference;
+import org.neo4j.storageengine.api.RelationshipSelection;
 import org.neo4j.values.storable.Value;
 
 public class ExtendedNodeValueIndexCursorAdapter extends DefaultCloseListenable
@@ -103,11 +110,96 @@ public class ExtendedNodeValueIndexCursorAdapter extends DefaultCloseListenable
 
     @Override
     public void setTracer(KernelReadTracer tracer) {
-        throw new UnsupportedOperationException("not implemented");
+        throw notImplemented();
     }
 
     @Override
     public void removeTracer() {
-        throw new UnsupportedOperationException("not implemented");
+        throw notImplemented();
+    }
+
+    @Override
+    public TokenSet labels() {
+        throw notImplemented();
+    }
+
+    @Override
+    public TokenSet labelsIgnoringTxStateSetRemove() {
+        throw notImplemented();
+    }
+
+    @Override
+    public boolean hasLabel(int label) {
+        throw notImplemented();
+    }
+
+    @Override
+    public boolean hasLabel() {
+        throw notImplemented();
+    }
+
+    @Override
+    public void relationships(RelationshipTraversalCursor relationships, RelationshipSelection selection) {
+        throw notImplemented();
+    }
+
+    @Override
+    public boolean supportsFastRelationshipsTo() {
+        throw notImplemented();
+    }
+
+    @Override
+    public void relationshipsTo(
+            RelationshipTraversalCursor relationships, RelationshipSelection selection, long neighbourNodeReference) {
+        throw notImplemented();
+    }
+
+    @Override
+    public long relationshipsReference() {
+        throw notImplemented();
+    }
+
+    @Override
+    public boolean supportsFastDegreeLookup() {
+        throw notImplemented();
+    }
+
+    @Override
+    public int[] relationshipTypes() {
+        throw notImplemented();
+    }
+
+    @Override
+    public Degrees degrees(RelationshipSelection selection) {
+        throw notImplemented();
+    }
+
+    @Override
+    public int degree(RelationshipSelection selection) {
+        throw notImplemented();
+    }
+
+    @Override
+    public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+        throw notImplemented();
+    }
+
+    @Override
+    public boolean readFromStore() {
+        throw notImplemented();
+    }
+
+    @Override
+    public void properties(PropertyCursor cursor, PropertySelection selection) {
+        throw notImplemented();
+    }
+
+    @Override
+    public Reference propertiesReference() {
+        throw notImplemented();
+    }
+
+    private static UnsupportedOperationException notImplemented() {
+        return new UnsupportedOperationException("not implemented");
     }
 }

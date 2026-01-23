@@ -58,6 +58,7 @@ import org.neo4j.internal.kernel.api.SchemaWrite
 import org.neo4j.internal.kernel.api.Token
 import org.neo4j.internal.kernel.api.TokenRead
 import org.neo4j.internal.kernel.api.TokenReadSession
+import org.neo4j.internal.kernel.api.TokenSet
 import org.neo4j.internal.kernel.api.TokenWrite
 import org.neo4j.internal.kernel.api.Write
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException
@@ -90,8 +91,10 @@ import org.neo4j.logging.InternalLogProvider
 import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.scheduler.JobScheduler
+import org.neo4j.storageengine.api.Degrees
 import org.neo4j.storageengine.api.PropertySelection
 import org.neo4j.storageengine.api.Reference
+import org.neo4j.storageengine.api.RelationshipSelection
 import org.neo4j.util.VisibleForTesting
 import org.neo4j.values.AnyValue
 import org.neo4j.values.ElementIdMapper
@@ -936,10 +939,11 @@ trait CloseableResource extends AutoCloseable {
 }
 
 object NodeValueHit {
-  val EMPTY = new NodeValueHit(NO_SUCH_NODE, null, null)
+  val EMPTY = new NodeValueHit(NO_SUCH_NODE, null, null, null)
 }
 
-class NodeValueHit(val nodeId: Long, val values: Array[Value], read: Read) extends DefaultCloseListenable
+class NodeValueHit(val nodeId: Long, val values: Array[Value], read: Read, cursor: NodeValueIndexCursor)
+    extends DefaultCloseListenable
     with NodeValueIndexCursor {
 
   private var _next = nodeId != -1L
@@ -971,6 +975,43 @@ class NodeValueHit(val nodeId: Long, val values: Array[Value], read: Read) exten
   // this cursor doesn't need tracing since all values has already been read.
   override def setTracer(tracer: KernelReadTracer): Unit = {}
   override def removeTracer(): Unit = {}
+
+  override def readFromStore(): Boolean = cursor.readFromStore()
+
+  override def labels(): TokenSet = cursor.labels()
+
+  override def labelsIgnoringTxStateSetRemove(): TokenSet = cursor.labelsIgnoringTxStateSetRemove()
+
+  override def hasLabel(label: Int): Boolean = cursor.hasLabel(label)
+
+  override def hasLabel: Boolean = cursor.hasLabel
+
+  override def relationships(relationships: RelationshipTraversalCursor, selection: RelationshipSelection): Unit =
+    cursor.relationships(relationships, selection)
+
+  override def supportsFastRelationshipsTo(): Boolean = cursor.supportsFastRelationshipsTo()
+
+  override def relationshipsTo(
+    relationships: RelationshipTraversalCursor,
+    selection: RelationshipSelection,
+    neighbourNodeReference: Long
+  ): Unit = cursor.relationshipsTo(relationships, selection, neighbourNodeReference)
+
+  override def relationshipsReference(): Long = cursor.relationshipsReference()
+
+  override def supportsFastDegreeLookup(): Boolean = cursor.supportsFastDegreeLookup()
+
+  override def relationshipTypes(): Array[Int] = cursor.relationshipTypes()
+  override def degrees(selection: RelationshipSelection): Degrees = cursor.degrees(selection)
+
+  override def degree(selection: RelationshipSelection): Int = cursor.degree(selection)
+
+  override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+    cursor.degreeWithMax(maxDegree, selection)
+
+  override def properties(propertyCursor: PropertyCursor, selection: PropertySelection): Unit =
+    cursor.properties(propertyCursor, selection)
+  override def propertiesReference(): Reference = cursor.propertiesReference()
 }
 
 object RelationshipValueHit {

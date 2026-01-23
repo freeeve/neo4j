@@ -21,6 +21,13 @@ package org.neo4j.internal.kernel.api.helpers;
 
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
+import org.neo4j.internal.kernel.api.PropertyCursor;
+import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
+import org.neo4j.internal.kernel.api.TokenSet;
+import org.neo4j.storageengine.api.Degrees;
+import org.neo4j.storageengine.api.PropertySelection;
+import org.neo4j.storageengine.api.Reference;
+import org.neo4j.storageengine.api.RelationshipSelection;
 
 public class StubNodeValueIndexCursor extends StubEntityValueIndexCursor implements NodeValueIndexCursor {
 
@@ -30,5 +37,88 @@ public class StubNodeValueIndexCursor extends StubEntityValueIndexCursor impleme
     @Override
     public long nodeReference() {
         return reference();
+    }
+
+    @Override
+    public TokenSet labels() {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public TokenSet labelsIgnoringTxStateSetRemove() {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public boolean hasLabel(int label) {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public boolean hasLabel() {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public void relationships(RelationshipTraversalCursor relationships, RelationshipSelection selection) {}
+
+    @Override
+    public boolean supportsFastRelationshipsTo() {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public void relationshipsTo(
+            RelationshipTraversalCursor relationships, RelationshipSelection selection, long neighbourNodeReference) {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public long relationshipsReference() {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public boolean supportsFastDegreeLookup() {
+        return false;
+    }
+
+    @Override
+    public int[] relationshipTypes() {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public Degrees degrees(RelationshipSelection selection) {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public int degree(RelationshipSelection selection) {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public boolean readFromStore() {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public void properties(PropertyCursor cursor, PropertySelection selection) {
+        throw unsupportedOperation();
+    }
+
+    @Override
+    public Reference propertiesReference() {
+        throw unsupportedOperation();
+    }
+
+    private UnsupportedOperationException unsupportedOperation() {
+        return new UnsupportedOperationException("StubNodeValueIndexCursor does not support NodeCursorOperations");
     }
 }

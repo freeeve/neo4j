@@ -1180,7 +1180,7 @@ private[internal] class TransactionBoundReadQueryContext(
           NodeValueHit.EMPTY
         } else {
           val values = queries.map(_.value()).toArray
-          new NodeValueHit(resultNodeId, values, reads())
+          new NodeValueHit(resultNodeId, values, reads(), cursor)
         }
       }
     } finally {

@@ -38,7 +38,14 @@ import org.neo4j.internal.kernel.api.DefaultCloseListenable
 import org.neo4j.internal.kernel.api.KernelReadTracer
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
+import org.neo4j.internal.kernel.api.PropertyCursor
 import org.neo4j.internal.kernel.api.PropertyIndexQuery
+import org.neo4j.internal.kernel.api.RelationshipTraversalCursor
+import org.neo4j.internal.kernel.api.TokenSet
+import org.neo4j.storageengine.api.Degrees
+import org.neo4j.storageengine.api.PropertySelection
+import org.neo4j.storageengine.api.Reference
+import org.neo4j.storageengine.api.RelationshipSelection
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.stringValue
@@ -94,7 +101,7 @@ trait IndexMockingHelp extends CypherFunSuite with ImplicitDummyPos {
   }
 
   protected def nodeValueHit(nodeValue: VirtualNodeValue, values: Object*): NodeValueHit =
-    new NodeValueHit(nodeValue.id, values.map(Values.of).toArray, null)
+    new NodeValueHit(nodeValue.id, values.map(Values.of).toArray, null, null)
 
   protected def cachedProperty(node: String, property: PropertyKeyToken): CachedProperty =
     CachedProperty(
@@ -148,5 +155,46 @@ trait IndexMockingHelp extends CypherFunSuite with ImplicitDummyPos {
     override def setTracer(tracer: KernelReadTracer): Unit = throw new UnsupportedOperationException("not implemented")
 
     override def removeTracer(): Unit = throw new UnsupportedOperationException("not implemented")
+
+    override def readFromStore(): Boolean = throw new UnsupportedOperationException("not implemented")
+
+    override def labels(): TokenSet = throw new UnsupportedOperationException("not implemented")
+
+    override def labelsIgnoringTxStateSetRemove(): TokenSet = throw new UnsupportedOperationException("not implemented")
+
+    override def hasLabel(label: Int): Boolean = throw new UnsupportedOperationException("not implemented")
+
+    override def hasLabel: Boolean = throw new UnsupportedOperationException("not implemented")
+
+    override def relationships(relationships: RelationshipTraversalCursor, selection: RelationshipSelection): Unit =
+      throw new UnsupportedOperationException("not implemented")
+
+    override def supportsFastRelationshipsTo(): Boolean = throw new UnsupportedOperationException("not implemented")
+
+    override def relationshipsTo(
+      relationships: RelationshipTraversalCursor,
+      selection: RelationshipSelection,
+      neighbourNodeReference: Long
+    ): Unit = throw new UnsupportedOperationException("not implemented")
+
+    override def relationshipsReference(): Long = throw new UnsupportedOperationException("not implemented")
+
+    override def supportsFastDegreeLookup(): Boolean = throw new UnsupportedOperationException("not implemented")
+
+    override def relationshipTypes(): Array[Int] = throw new UnsupportedOperationException("not implemented")
+
+    override def degrees(selection: RelationshipSelection): Degrees =
+      throw new UnsupportedOperationException("not implemented")
+
+    override def degree(selection: RelationshipSelection): Int =
+      throw new UnsupportedOperationException("not implemented")
+
+    override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+      throw new UnsupportedOperationException("not implemented")
+
+    override def properties(cursor: PropertyCursor, selection: PropertySelection): Unit =
+      throw new UnsupportedOperationException("not implemented")
+
+    override def propertiesReference(): Reference = throw new UnsupportedOperationException("not implemented")
   }
 }

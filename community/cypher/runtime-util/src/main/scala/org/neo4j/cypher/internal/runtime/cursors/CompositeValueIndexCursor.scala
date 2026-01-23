@@ -21,8 +21,10 @@ package org.neo4j.cypher.internal.runtime.cursors
 
 import org.neo4j.internal.kernel.api._
 import org.neo4j.io.IOUtils
+import org.neo4j.storageengine.api.Degrees
 import org.neo4j.storageengine.api.PropertySelection
 import org.neo4j.storageengine.api.Reference
+import org.neo4j.storageengine.api.RelationshipSelection
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values.COMPARATOR
 
@@ -132,6 +134,45 @@ private class UnorderedNodeCursor(cursors: Array[NodeValueIndexCursor])
   override def nodeReference(): Long = current.nodeReference()
 
   override protected def innerNext(cursor: NodeValueIndexCursor): Boolean = cursor.next()
+
+  override def readFromStore(): Boolean = current.readFromStore()
+
+  override def labels(): TokenSet = current.labels()
+
+  override def labelsIgnoringTxStateSetRemove(): TokenSet = current.labelsIgnoringTxStateSetRemove()
+
+  override def hasLabel(label: Int): Boolean = current.hasLabel(label)
+
+  override def hasLabel: Boolean = current.hasLabel
+
+  override def relationships(relationships: RelationshipTraversalCursor, selection: RelationshipSelection): Unit =
+    current.relationships(relationships, selection)
+
+  override def supportsFastRelationshipsTo(): Boolean = current.supportsFastRelationshipsTo()
+
+  override def relationshipsTo(
+    relationships: RelationshipTraversalCursor,
+    selection: RelationshipSelection,
+    neighbourNodeReference: Long
+  ): Unit = current.relationshipsTo(relationships, selection, neighbourNodeReference)
+
+  override def relationshipsReference(): Long = current.relationshipsReference()
+
+  override def supportsFastDegreeLookup(): Boolean = current.supportsFastDegreeLookup()
+
+  override def relationshipTypes(): Array[Int] = current.relationshipTypes()
+
+  override def degrees(selection: RelationshipSelection): Degrees = current.degrees(selection)
+
+  override def degree(selection: RelationshipSelection): Int = current.degree(selection)
+
+  override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+    current.degreeWithMax(maxDegree, selection)
+
+  override def properties(cursor: PropertyCursor, selection: PropertySelection): Unit =
+    current.properties(cursor, selection)
+
+  override def propertiesReference(): Reference = current.propertiesReference()
 }
 
 private class UnorderedRelationshipCursor(cursors: Array[RelationshipValueIndexCursor])
@@ -223,6 +264,46 @@ private class MergeSortNodeCursor(cursors: Array[NodeValueIndexCursor], ordering
   override def node(cursor: NodeCursor): Unit = current.node(cursor)
   override def nodeReference(): Long = current.nodeReference()
   override protected def innerNext(cursor: NodeValueIndexCursor): Boolean = cursor.next()
+
+  override def readFromStore(): Boolean = current.readFromStore()
+
+  override def labels(): TokenSet = current.labels()
+
+  override def labelsIgnoringTxStateSetRemove(): TokenSet = current.labelsIgnoringTxStateSetRemove()
+
+  override def hasLabel(label: Int): Boolean = current.hasLabel(label)
+
+  override def hasLabel: Boolean = current.hasLabel
+
+  override def relationships(relationships: RelationshipTraversalCursor, selection: RelationshipSelection): Unit =
+    current.relationships(relationships, selection)
+
+  override def supportsFastRelationshipsTo(): Boolean = current.supportsFastRelationshipsTo()
+
+  override def relationshipsTo(
+    relationships: RelationshipTraversalCursor,
+    selection: RelationshipSelection,
+    neighbourNodeReference: Long
+  ): Unit = current.relationshipsTo(relationships, selection, neighbourNodeReference)
+
+  override def relationshipsReference(): Long = current.relationshipsReference()
+
+  override def supportsFastDegreeLookup(): Boolean = current.supportsFastDegreeLookup()
+
+  override def relationshipTypes(): Array[Int] = current.relationshipTypes()
+
+  override def degrees(selection: RelationshipSelection): Degrees = current.degrees(selection)
+
+  override def degree(selection: RelationshipSelection): Int = current.degree(selection)
+
+  override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+    current.degreeWithMax(maxDegree, selection)
+
+  override def properties(cursor: PropertyCursor, selection: PropertySelection): Unit =
+    current.properties(cursor, selection)
+
+  override def propertiesReference(): Reference = current.propertiesReference()
+
 }
 
 private class MergeSortRelationshipCursor(

@@ -23,6 +23,13 @@ import org.neo4j.internal.kernel.api.DefaultCloseListenable
 import org.neo4j.internal.kernel.api.KernelReadTracer
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
+import org.neo4j.internal.kernel.api.PropertyCursor
+import org.neo4j.internal.kernel.api.RelationshipTraversalCursor
+import org.neo4j.internal.kernel.api.TokenSet
+import org.neo4j.storageengine.api.Degrees
+import org.neo4j.storageengine.api.PropertySelection
+import org.neo4j.storageengine.api.Reference
+import org.neo4j.storageengine.api.RelationshipSelection
 import org.neo4j.values.storable.Value
 
 class ValuedNodeIndexCursor(val inner: NodeValueIndexCursor, values: Array[Value]) extends DefaultCloseListenable
@@ -49,4 +56,46 @@ class ValuedNodeIndexCursor(val inner: NodeValueIndexCursor, values: Array[Value
   override def setTracer(tracer: KernelReadTracer): Unit = inner.setTracer(tracer)
 
   override def removeTracer(): Unit = inner.removeTracer()
+
+  override def readFromStore(): Boolean = inner.readFromStore()
+
+  override def labels(): TokenSet = inner.labels()
+
+  override def labelsIgnoringTxStateSetRemove(): TokenSet = inner.labelsIgnoringTxStateSetRemove()
+
+  override def hasLabel(label: Int): Boolean = inner.hasLabel(label)
+
+  override def hasLabel: Boolean = inner.hasLabel
+
+  override def labelsAndProperties(propertyCursor: PropertyCursor, selection: PropertySelection): TokenSet =
+    inner.labelsAndProperties(propertyCursor, selection)
+
+  override def relationships(relationships: RelationshipTraversalCursor, selection: RelationshipSelection): Unit =
+    inner.relationships(relationships, selection)
+
+  override def supportsFastRelationshipsTo(): Boolean = inner.supportsFastRelationshipsTo()
+
+  override def relationshipsTo(
+    relationships: RelationshipTraversalCursor,
+    selection: RelationshipSelection,
+    neighbourNodeReference: Long
+  ): Unit = inner.relationshipsTo(relationships, selection, neighbourNodeReference)
+
+  override def relationshipsReference(): Long = inner.relationshipsReference()
+
+  override def supportsFastDegreeLookup(): Boolean = inner.supportsFastDegreeLookup()
+
+  override def relationshipTypes(): Array[Int] = inner.relationshipTypes()
+
+  override def degrees(selection: RelationshipSelection): Degrees = inner.degrees(selection)
+
+  override def degree(selection: RelationshipSelection): Int = inner.degree(selection)
+
+  override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+    inner.degreeWithMax(maxDegree, selection)
+
+  override def properties(cursor: PropertyCursor, selection: PropertySelection): Unit =
+    inner.properties(cursor, selection)
+
+  override def propertiesReference(): Reference = inner.propertiesReference()
 }
