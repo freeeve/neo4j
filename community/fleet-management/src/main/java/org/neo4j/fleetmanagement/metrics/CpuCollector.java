@@ -38,6 +38,9 @@ public class CpuCollector implements ICollector {
         }
     }
 
+    @Override
+    public void start() {}
+
     private final OperatingSystemMXBean operatingSystemMXBean;
 
     public CpuCollector() {

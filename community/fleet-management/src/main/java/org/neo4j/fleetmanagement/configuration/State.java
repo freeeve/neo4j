@@ -34,21 +34,18 @@ public class State {
     public static final String ROTATING_TOKEN_CHANGE = "rotatingToken";
     public static final String TOPOLOGY_INITIALIZED = "topologyInitialized";
 
-    private static State instance;
-
-    public static synchronized State getInstance() {
-        if (instance == null) {
-            instance = new State();
-        }
-        return instance;
-    }
-
-    private State() {
+    public State() {
         this.changeSupport = new PropertyChangeSupport(this);
     }
 
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         changeSupport.addPropertyChangeListener(listener);
+    }
+
+    public void removePropertyChangeListeners() {
+        for (var listener : changeSupport.getPropertyChangeListeners()) {
+            changeSupport.removePropertyChangeListener(listener);
+        }
     }
 
     public void setActive(boolean active) {

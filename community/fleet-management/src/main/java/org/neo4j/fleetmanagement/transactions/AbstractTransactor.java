@@ -43,11 +43,16 @@ public abstract class AbstractTransactor {
     public static final String TOKEN_ROTATION_STATE_INDICATOR = "ROTATING";
     protected DatabaseManagementService databaseManagementService;
     protected Log log;
+    protected final State state;
 
     private VersionAndEdition versionAndEdition;
 
     private final CachedMethod<Server.License> bloomLicenseCache = new CachedMethod<>();
     private final CachedMethod<Server.License> gdsLicenseCache = new CachedMethod<>();
+
+    protected AbstractTransactor(State state) {
+        this.state = state;
+    }
 
     public void init(DatabaseManagementService databaseManagementService) {
         this.databaseManagementService = databaseManagementService;
@@ -182,7 +187,7 @@ public abstract class AbstractTransactor {
             maybeNode.ifPresent(Node::delete);
             tx.commit();
 
-            State.getInstance().setActive(false);
+            this.state.setActive(false);
         });
     }
 

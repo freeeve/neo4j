@@ -41,8 +41,9 @@ public class TopologyService extends AbstractReportingService {
             FileSystemAbstraction fs,
             ITransactor transactor,
             ServerIdentity serverIdentity,
-            Upstream upstream) {
-        super(transactor, upstream);
+            Upstream upstream,
+            State state) {
+        super(transactor, upstream, state);
         this.topologyMapper = new TopologyMapper(config, fs, transactor, serverIdentity);
     }
 

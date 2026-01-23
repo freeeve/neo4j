@@ -47,12 +47,15 @@ public class Neo4jMetricsCollector implements ICollector, PropertyChangeListener
     private final Configuration configuration;
     private final String query;
 
-    public Neo4jMetricsCollector(Config config) {
-        configuration = Configuration.getInstance();
-        this.configuration.addPropertyChangeListener(this);
+    public Neo4jMetricsCollector(Config config, Configuration configuration) {
+        this.configuration = configuration;
         jmxMetricSpecifications = new HashMap<>();
         updateJmxMetricSpecifications(configuration.getMetrics());
         query = String.format("%s.metrics:*", getMetricsPrefix(config));
+    }
+
+    public void start() {
+        configuration.addPropertyChangeListener(this);
     }
 
     private static String getMetricsPrefixConfiguration() {

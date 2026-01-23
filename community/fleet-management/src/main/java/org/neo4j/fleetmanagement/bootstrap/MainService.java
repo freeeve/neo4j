@@ -71,7 +71,9 @@ public class MainService implements PropertyChangeListener {
             ClusterSync clusterSync,
             ScheduledExecutorService scheduler,
             ConnectService connectService,
-            PingService pingService) {
+            PingService pingService,
+            State state,
+            Configuration configuration) {
         this.userLog = Logger.getNeo4jLogger();
         this.fleetManagerLog = Logger.getFleetManagerLogger();
         this.topologyService = topologyService;
@@ -80,9 +82,9 @@ public class MainService implements PropertyChangeListener {
         this.clusterSync = clusterSync;
         this.scheduler = scheduler;
         this.connectService = connectService;
-        this.configuration = Configuration.getInstance();
+        this.configuration = configuration;
 
-        this.state = State.getInstance();
+        this.state = state;
         this.jobHandles = new CopyOnWriteArrayList<>();
     }
 
@@ -92,6 +94,7 @@ public class MainService implements PropertyChangeListener {
         }
         this.state.addPropertyChangeListener(this);
         this.configuration.addPropertyChangeListener(this);
+        this.metricsService.start();
 
         this.connectServiceTask = new ConnectService.ConnectServiceTask(state, clusterSync, connectService);
         this.connectServiceTaskHandle =
@@ -104,6 +107,7 @@ public class MainService implements PropertyChangeListener {
             this.connectServiceTaskHandle = null;
         }
         stopReportingTasks();
+        this.configuration.removePropertyChangeListeners();
         if (state.isConnected()) {
             this.connectService.disconnect("Service is stopped");
         }

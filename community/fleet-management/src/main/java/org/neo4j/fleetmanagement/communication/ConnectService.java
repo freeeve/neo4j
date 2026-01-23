@@ -47,11 +47,13 @@ public class ConnectService extends BaseService {
             FileSystemAbstraction fs,
             ITransactor transactor,
             ServerIdentity serverIdentity,
-            Upstream upstream) {
-        super(transactor);
+            Upstream upstream,
+            State state,
+            Configuration configuration) {
+        super(transactor, state);
         this.topologyMapper = new TopologyMapper(config, fs, transactor, serverIdentity);
         this.upstream = upstream;
-        this.configuration = Configuration.getInstance();
+        this.configuration = configuration;
     }
 
     private synchronized void ensureConnected() {

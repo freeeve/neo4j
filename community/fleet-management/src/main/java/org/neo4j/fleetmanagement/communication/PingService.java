@@ -45,10 +45,12 @@ public class PingService extends AbstractReportingService {
             FileSystemAbstraction fs,
             ITransactor transactor,
             Upstream upstream,
-            ServerIdentity serverIdentity) {
-        super(transactor, upstream);
+            ServerIdentity serverIdentity,
+            State state,
+            Configuration configuration) {
+        super(transactor, upstream, state);
         this.topologyMapper = new TopologyMapper(config, fs, transactor, serverIdentity);
-        this.configuration = Configuration.getInstance();
+        this.configuration = configuration;
     }
 
     @Override

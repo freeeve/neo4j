@@ -27,6 +27,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.fleetmanagement.communication.model.Neo4jConfigMessage;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
+import org.neo4j.fleetmanagement.configuration.Configuration;
 import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.topology.Neo4jConfigMapper;
 import org.neo4j.fleetmanagement.topology.TopologyMapper;
@@ -38,13 +39,22 @@ public class ConfigService extends AbstractReportingService implements PropertyC
     private final ITransactor transactor;
     private final ServerIdentity serverIdentity;
 
-    public ConfigService(ITransactor transactor, ServerIdentity serverIdentity, Upstream upstream, Config config) {
-        super(transactor, upstream);
-        this.neo4jConfigMapper = new Neo4jConfigMapper(config);
+    public ConfigService(
+            ITransactor transactor,
+            ServerIdentity serverIdentity,
+            Upstream upstream,
+            Config config,
+            State state,
+            Configuration configuration) {
+        super(transactor, upstream, state);
+        this.neo4jConfigMapper = new Neo4jConfigMapper(config, configuration);
         this.transactor = transactor;
         this.serverIdentity = serverIdentity;
-        var state = State.getInstance();
+    }
+
+    public void start() {
         state.addPropertyChangeListener(this);
+        this.neo4jConfigMapper.start();
     }
 
     @Override

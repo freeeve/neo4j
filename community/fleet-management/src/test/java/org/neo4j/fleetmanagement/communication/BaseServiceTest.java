@@ -35,6 +35,7 @@ import org.neo4j.logging.Log;
 
 class BaseServiceTest {
     private BaseService baseService;
+    private State state;
 
     private ITransactor mockTransactor;
 
@@ -49,8 +50,8 @@ class BaseServiceTest {
     @BeforeEach
     public void setup() {
         mockTransactor = Mockito.mock(ITransactor.class);
-
-        baseService = Mockito.spy(new BaseService(mockTransactor));
+        state = new State();
+        baseService = Mockito.spy(new BaseService(mockTransactor, state));
     }
 
     @AfterEach
@@ -96,36 +97,34 @@ class BaseServiceTest {
         var tokenRotationErr = "{\"code\": 1000, \"message\": \"Token needs rotation\"}";
         baseService.handleErrorResponse(errMsgPrefix, 401, tokenRotationErr.getBytes());
         Mockito.verify(mockTransactor).rotateToken();
-        assertTrue(State.getInstance().isRotatingToken());
+        assertTrue(state.isRotatingToken());
 
         // token expired
         var tokenExpiredErr = "{\"code\": 1001, \"message\": \"Token expired\"}";
         baseService.handleErrorResponse(errMsgPrefix, 401, tokenExpiredErr.getBytes());
         Mockito.verify(mockTransactor).deleteToken();
         Mockito.verify(mockLog).error(Mockito.anyString());
-        assertFalse(State.getInstance().isConnected());
+        assertFalse(state.isConnected());
         assertEquals(
                 "Fleet management token is permanently expired - register a new one to resume operation",
-                State.getInstance().getConnectionMessage());
+                state.getConnectionMessage());
 
         // token revoked
         var tokenRevokedErr = "{\"code\": 1002, \"message\": \"Token revoked\"}";
         baseService.handleErrorResponse(errMsgPrefix, 401, tokenRevokedErr.getBytes());
         Mockito.verify(mockTransactor, Mockito.times(2)).deleteToken();
         Mockito.verify(mockLog, Mockito.times(2)).error(Mockito.anyString());
-        assertFalse(State.getInstance().isConnected());
+        assertFalse(state.isConnected());
         assertEquals(
                 "Fleet management token is revoked - register a new one to resume operation",
-                State.getInstance().getConnectionMessage());
+                state.getConnectionMessage());
 
         // access denied
         var accessDeniedErr = "{\"code\": 1003, \"message\": \"Access denied\"}";
         baseService.handleErrorResponse(errMsgPrefix, 401, accessDeniedErr.getBytes());
         Mockito.verify(mockTransactor, Mockito.times(3)).deleteToken();
         Mockito.verify(mockLog, Mockito.times(3)).error(Mockito.anyString());
-        assertFalse(State.getInstance().isConnected());
-        assertEquals(
-                "Fleet management access denied - check your permissions",
-                State.getInstance().getConnectionMessage());
+        assertFalse(state.isConnected());
+        assertEquals("Fleet management access denied - check your permissions", state.getConnectionMessage());
     }
 }

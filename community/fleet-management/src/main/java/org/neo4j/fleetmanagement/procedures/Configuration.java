@@ -52,6 +52,12 @@ public class Configuration {
     public ITransactor transactor;
 
     @Context
+    public State state;
+
+    @Context
+    public org.neo4j.fleetmanagement.configuration.Configuration configuration;
+
+    @Context
     public Log log;
 
     public static class Result {
@@ -118,7 +124,6 @@ public class Configuration {
     @Admin
     @Description("Add a token for authenticating to Neo4j Fleet Management")
     public Stream<Result> registerToken(@Name(value = "token") String token) {
-        var state = State.getInstance();
         var active = transactor.getTokenStatus();
         var connected = state.isConnected();
 
@@ -211,7 +216,7 @@ public class Configuration {
                     maybeNode.ifPresent(Node::delete);
                     tx.commit();
 
-                    State.getInstance().setActive(false);
+                    this.state.setActive(false);
                     return Stream.of(new Result("Fleet management has been disabled"));
                 },
                 e -> {
@@ -226,7 +231,6 @@ public class Configuration {
     @Admin
     @Description("Check the status of fleet management")
     public Stream<StatusResult> status() {
-        var state = State.getInstance();
         var active = transactor.getTokenStatus();
         var connected = state.isConnected();
         String errorMessage;
@@ -244,7 +248,6 @@ public class Configuration {
     @Admin
     @Description("Restart fleet management")
     public Stream<Result> restart() {
-        var state = State.getInstance();
         var hasToken = transactor.getTokenStatus();
         var connected = state.isConnected();
 
@@ -254,7 +257,7 @@ public class Configuration {
                 state.setDisconnected("Disconnecting before restarting fleet management");
             }
 
-            State.getInstance().setActive(true);
+            state.setActive(true);
             return Stream.of(new Result("Fleet management is restarting"));
         } else {
             return Stream.of(new Result("Register a token to enable Fleet Management"));

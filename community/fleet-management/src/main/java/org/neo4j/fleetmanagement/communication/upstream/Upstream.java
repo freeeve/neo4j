@@ -60,15 +60,17 @@ public class Upstream {
     private long generatedAt;
 
     private final Log userLog;
+    private final State state;
 
     private volatile String apiToken;
 
-    public Upstream(ITransactor transactor, Log userLog, Config config) {
+    public Upstream(ITransactor transactor, Log userLog, Config config, State state) {
         var customBaseUrl = config.get(GraphDatabaseInternalSettings.fleet_management_api_base_url);
         this.baseUrl = Objects.requireNonNullElse(customBaseUrl, "https://fleet-management-api.neo4j.io/api/v1");
 
         this.transactor = transactor;
         this.userLog = userLog;
+        this.state = state;
     }
 
     public void setToken(String token) throws IOException {
@@ -84,7 +86,7 @@ public class Upstream {
     }
 
     private String getToken() {
-        if (State.getInstance().isActive()
+        if (this.state.isActive()
                 && (this.apiToken == null || this.generatedAt + maxTokenAge < System.currentTimeMillis())) {
             generateToken();
         }

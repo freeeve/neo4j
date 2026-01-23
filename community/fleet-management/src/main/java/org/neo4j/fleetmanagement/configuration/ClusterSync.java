@@ -25,15 +25,17 @@ import org.neo4j.fleetmanagement.transactions.ITransactor;
 public class ClusterSync {
     private final ITransactor transactor;
     private final Upstream upstream;
+    private final State state;
 
-    public ClusterSync(ITransactor transactor, Upstream upstream) {
+    public ClusterSync(ITransactor transactor, Upstream upstream, State state) {
         this.transactor = transactor;
         this.upstream = upstream;
+        this.state = state;
     }
 
     public void run() {
-        State.getInstance().setActive(this.transactor.getTokenStatus());
-        State.getInstance().setRotatingToken(this.transactor.getTokenRotationStatus());
+        this.state.setActive(this.transactor.getTokenStatus());
+        this.state.setRotatingToken(this.transactor.getTokenRotationStatus());
         syncToken();
     }
 

@@ -28,6 +28,7 @@ import org.neo4j.fleetmanagement.communication.model.DataPoint;
 import org.neo4j.fleetmanagement.communication.model.MetricsMessage;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
+import org.neo4j.fleetmanagement.configuration.Configuration;
 import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.metrics.MetricsCollection;
 import org.neo4j.fleetmanagement.topology.TopologyMapper;
@@ -38,11 +39,21 @@ public class MetricsService extends AbstractReportingService {
 
     private final MetricsCollection metricsCollection;
 
-    public MetricsService(ITransactor transactor, ServerIdentity serverIdentity, Upstream upstream, Config config) {
-        super(transactor, upstream);
+    public MetricsService(
+            ITransactor transactor,
+            ServerIdentity serverIdentity,
+            Upstream upstream,
+            Config config,
+            State state,
+            Configuration configuration) {
+        super(transactor, upstream, state);
 
-        this.metricsCollection = new MetricsCollection(config);
+        this.metricsCollection = new MetricsCollection(config, configuration);
         this.serverIdentity = serverIdentity;
+    }
+
+    public void start() {
+        this.metricsCollection.start();
     }
 
     public void report() {

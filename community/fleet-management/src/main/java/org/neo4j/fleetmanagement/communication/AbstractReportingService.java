@@ -23,13 +23,14 @@ import static org.neo4j.fleetmanagement.communication.Helpers.responseOk;
 
 import java.io.IOException;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
+import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.transactions.ITransactor;
 
 public abstract class AbstractReportingService extends BaseService {
     protected final Upstream upstream;
 
-    protected AbstractReportingService(ITransactor transactor, Upstream upstream) {
-        super(transactor);
+    protected AbstractReportingService(ITransactor transactor, Upstream upstream, State state) {
+        super(transactor, state);
         this.upstream = upstream;
     }
 

@@ -25,6 +25,7 @@ import java.util.Map;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.identity.ServerIdentity;
+import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.topology.model.Database;
 import org.neo4j.fleetmanagement.topology.model.GraphCount;
 import org.neo4j.fleetmanagement.topology.model.Server;
@@ -41,15 +42,15 @@ public class Transactor implements ITransactor {
         this.editionTransactor = null;
     }
 
-    public Transactor(DbmsInfo dbmsInfo, ServerIdentity serverIdentity) {
+    public Transactor(DbmsInfo dbmsInfo, ServerIdentity serverIdentity, State state) {
         if (dbmsInfo == null) {
             throw new IllegalArgumentException("dbmsInfo cannot be null");
         }
 
         if (dbmsInfo.equals(DbmsInfo.ENTERPRISE)) {
-            editionTransactor = new EnterpriseTransactor();
+            editionTransactor = new EnterpriseTransactor(state);
         } else if (dbmsInfo.equals(DbmsInfo.COMMUNITY)) {
-            editionTransactor = new CommunityTransactor(serverIdentity);
+            editionTransactor = new CommunityTransactor(serverIdentity, state);
         } else {
             throw new IllegalArgumentException("unsupported dbms edition: " + dbmsInfo);
         }

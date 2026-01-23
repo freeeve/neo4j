@@ -29,12 +29,17 @@ import org.neo4j.fleetmanagement.metrics.MemoryCollector;
 import org.neo4j.fleetmanagement.metrics.model.MetricsDefinition;
 
 public class MetricNamesSupplier implements Supplier<List<String>> {
+    private static org.neo4j.fleetmanagement.configuration.Configuration configuration;
+
+    public static void setConfiguration(org.neo4j.fleetmanagement.configuration.Configuration configuration) {
+        MetricNamesSupplier.configuration = configuration;
+    }
 
     @Override
     public List<String> get() {
-        org.neo4j.fleetmanagement.configuration.Configuration configuration =
-                org.neo4j.fleetmanagement.configuration.Configuration.getInstance();
-        if (configuration.getMetrics() == null || configuration.getMetrics().isEmpty()) {
+        if (configuration == null
+                || configuration.getMetrics() == null
+                || configuration.getMetrics().isEmpty()) {
             return List.of();
         }
         List<String> neo4jMetrics = configuration.getMetrics().stream()

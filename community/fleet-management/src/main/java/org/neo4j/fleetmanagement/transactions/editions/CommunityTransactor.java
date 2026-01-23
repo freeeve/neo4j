@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.neo4j.dbms.identity.ServerIdentity;
+import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.topology.model.Database;
 import org.neo4j.fleetmanagement.topology.model.Server;
 import org.neo4j.fleetmanagement.transactions.AbstractTransactor;
@@ -39,8 +40,8 @@ import org.neo4j.graphdb.Result;
 public class CommunityTransactor extends AbstractTransactor implements ITransactor {
     private final ServerIdentity serverIdentity;
 
-    public CommunityTransactor(ServerIdentity serverIdentity) {
-        super();
+    public CommunityTransactor(ServerIdentity serverIdentity, State state) {
+        super(state);
         this.serverIdentity = serverIdentity;
     }
 

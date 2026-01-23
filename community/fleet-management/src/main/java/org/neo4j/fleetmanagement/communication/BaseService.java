@@ -35,12 +35,12 @@ public class BaseService {
 
     protected final State state;
 
-    public BaseService(ITransactor transactor) {
+    public BaseService(ITransactor transactor, State state) {
         this.objectMapper = new ObjectMapper();
         this.transactor = transactor;
         this.userLog = Logger.getNeo4jLogger();
         this.fleetManagerLog = Logger.getFleetManagerLogger();
-        this.state = State.getInstance();
+        this.state = state;
     }
 
     void handleErrorResponse(String errMsgPrefix, int responseCode, byte[] responseBody) {
@@ -77,7 +77,7 @@ public class BaseService {
     private void handleValidErrorResponse(String errMsgPrefix, ErrorResponse errorResponse) {
         ErrorCode code = errorResponse.code();
         if (code == ErrorCode.TOKEN_ROTATION_DUE) {
-            if (!State.getInstance().isRotatingToken()) {
+            if (!this.state.isRotatingToken()) {
                 this.userLog.info(errMsgPrefix + " - " + errorResponse);
                 this.state.setDisconnected(code.getStatusMessage());
                 this.transactor.rotateToken();

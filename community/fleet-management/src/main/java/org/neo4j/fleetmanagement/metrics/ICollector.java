@@ -25,4 +25,6 @@ import org.neo4j.fleetmanagement.communication.model.DataPoint;
 
 public interface ICollector {
     void collect(Map<String, List<DataPoint>> data);
+
+    void start();
 }

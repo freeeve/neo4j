@@ -38,21 +38,18 @@ public class Configuration {
     public static final String NEO4J_CONFIGS_CHANGE = "neo4jConfigs";
     public static final String TASK_REPORTING_INTERVAL_CHANGE = "taskReportingInterval";
 
-    private static Configuration instance;
-
-    public static synchronized Configuration getInstance() {
-        if (instance == null) {
-            instance = new Configuration();
-        }
-        return instance;
-    }
-
-    private Configuration() {
+    public Configuration() {
         this.changeSupport = new PropertyChangeSupport(this);
     }
 
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         changeSupport.addPropertyChangeListener(listener);
+    }
+
+    public void removePropertyChangeListeners() {
+        for (var listener : changeSupport.getPropertyChangeListeners()) {
+            changeSupport.removePropertyChangeListener(listener);
+        }
     }
 
     public void setMetrics(List<MetricsDefinition> metrics) {

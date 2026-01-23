@@ -24,12 +24,16 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class Neo4jConfigNamesSupplier implements Supplier<List<String>> {
+    private static org.neo4j.fleetmanagement.configuration.Configuration configuration;
+
+    public static void setConfiguration(org.neo4j.fleetmanagement.configuration.Configuration configuration) {
+        Neo4jConfigNamesSupplier.configuration = configuration;
+    }
 
     @Override
     public List<String> get() {
-        org.neo4j.fleetmanagement.configuration.Configuration configuration =
-                org.neo4j.fleetmanagement.configuration.Configuration.getInstance();
-        if (configuration.getNeo4jConfigKeyGlobs() == null
+        if (configuration == null
+                || configuration.getNeo4jConfigKeyGlobs() == null
                 || configuration.getNeo4jConfigKeyGlobs().isEmpty()) {
             return List.of();
         }

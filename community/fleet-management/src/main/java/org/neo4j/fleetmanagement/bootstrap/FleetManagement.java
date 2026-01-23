@@ -20,6 +20,8 @@
 package org.neo4j.fleetmanagement.bootstrap;
 
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -33,9 +35,12 @@ import org.neo4j.fleetmanagement.communication.PingService;
 import org.neo4j.fleetmanagement.communication.TopologyService;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
-import org.neo4j.fleetmanagement.procedures.Configuration;
+import org.neo4j.fleetmanagement.configuration.Configuration;
+import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.procedures.DebugLogging;
 import org.neo4j.fleetmanagement.procedures.Documentation;
+import org.neo4j.fleetmanagement.procedures.MetricNamesSupplier;
+import org.neo4j.fleetmanagement.procedures.Neo4jConfigNamesSupplier;
 import org.neo4j.fleetmanagement.transactions.ITransactor;
 import org.neo4j.fleetmanagement.utils.Logger;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -49,6 +54,10 @@ public class FleetManagement extends LifecycleAdapter {
     private ITransactor transactor;
     private MainService mainService;
     private Log log;
+    private ScheduledExecutorService scheduler;
+    private State state;
+    private Configuration configuration;
+    private ConfigService configService;
 
     public FleetManagement(
             LogService logService,
@@ -68,17 +77,23 @@ public class FleetManagement extends LifecycleAdapter {
             var neo4jLog = logService.getUserLog(FleetManagement.class);
             Logger.initLogger(neo4jLog);
             this.log = Logger.getNeo4jLogger();
+            this.state = new State();
+            this.configuration = new Configuration();
+            MetricNamesSupplier.setConfiguration(this.configuration);
+            Neo4jConfigNamesSupplier.setConfiguration(this.configuration);
             // Need to explicitly specify constructor arg types because reflection will not pick the interface type
             this.transactor = Reflection.getConstructorOfImplementationOf(
-                            ITransactor.class, DbmsInfo.class, ServerIdentity.class)
-                    .newInstance(dbmsInfo, serverIdentity);
+                            ITransactor.class, DbmsInfo.class, ServerIdentity.class, State.class)
+                    .newInstance(dbmsInfo, serverIdentity, this.state);
             this.transactor.init(databaseManagementService);
             globalProcedures.registerComponent(ITransactor.class, ctx -> this.transactor, true);
+            globalProcedures.registerComponent(State.class, ctx -> this.state, true);
+            globalProcedures.registerComponent(Configuration.class, ctx -> this.configuration, true);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-        var scheduler = Executors.newScheduledThreadPool(1, runnable -> {
+        scheduler = Executors.newScheduledThreadPool(1, runnable -> {
             var thread = Executors.defaultThreadFactory().newThread(runnable);
             thread.setName("neo4j.FleetManagement");
             thread.setUncaughtExceptionHandler((t, e) -> Logger.getFleetManagerLogger()
@@ -87,14 +102,18 @@ public class FleetManagement extends LifecycleAdapter {
             return thread;
         });
 
-        var upstream = new Upstream(this.transactor, this.log, config);
-        var connectService = new ConnectService(config, fs, this.transactor, serverIdentity, upstream);
-        var reportingService = new TopologyService(config, fs, this.transactor, serverIdentity, upstream);
-        var metricsService = new MetricsService(this.transactor, serverIdentity, upstream, config);
-        new ConfigService(this.transactor, serverIdentity, upstream, config);
-        var pingService = new PingService(config, fs, this.transactor, upstream, serverIdentity);
+        var upstream = new Upstream(this.transactor, this.log, config, this.state);
+        var connectService = new ConnectService(
+                config, fs, this.transactor, serverIdentity, upstream, this.state, this.configuration);
+        var reportingService = new TopologyService(config, fs, this.transactor, serverIdentity, upstream, this.state);
+        var metricsService =
+                new MetricsService(this.transactor, serverIdentity, upstream, config, this.state, this.configuration);
+        this.configService =
+                new ConfigService(this.transactor, serverIdentity, upstream, config, this.state, this.configuration);
+        var pingService =
+                new PingService(config, fs, this.transactor, upstream, serverIdentity, this.state, this.configuration);
 
-        var clusterSync = new ClusterSync(this.transactor, upstream);
+        var clusterSync = new ClusterSync(this.transactor, upstream, this.state);
 
         this.mainService = new MainService(
                 this.transactor,
@@ -104,10 +123,12 @@ public class FleetManagement extends LifecycleAdapter {
                 clusterSync,
                 scheduler,
                 connectService,
-                pingService);
+                pingService,
+                this.state,
+                this.configuration);
 
         try {
-            globalProcedures.registerProcedure(Configuration.class);
+            globalProcedures.registerProcedure(org.neo4j.fleetmanagement.procedures.Configuration.class);
             globalProcedures.registerProcedure(DebugLogging.class);
             globalProcedures.registerProcedure(Documentation.class);
         } catch (KernelException e) {
@@ -120,6 +141,7 @@ public class FleetManagement extends LifecycleAdapter {
         if (mainService == null) {
             return;
         }
+        configService.start();
         mainService.start();
     }
 
@@ -128,6 +150,22 @@ public class FleetManagement extends LifecycleAdapter {
         if (mainService == null) {
             return;
         }
+        state.removePropertyChangeListeners();
         mainService.stop();
+    }
+
+    @Override
+    public void shutdown() {
+        if (mainService == null) {
+            return;
+        }
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

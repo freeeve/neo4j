@@ -24,12 +24,20 @@ import java.util.List;
 import java.util.Map;
 import org.neo4j.configuration.Config;
 import org.neo4j.fleetmanagement.communication.model.DataPoint;
+import org.neo4j.fleetmanagement.configuration.Configuration;
 
 public class MetricsCollection {
     private final List<ICollector> collectors;
 
-    public MetricsCollection(Config config) {
-        this.collectors = List.of(new CpuCollector(), new MemoryCollector(), new Neo4jMetricsCollector(config));
+    public MetricsCollection(Config config, Configuration configuration) {
+        this.collectors =
+                List.of(new CpuCollector(), new MemoryCollector(), new Neo4jMetricsCollector(config, configuration));
+    }
+
+    public void start() {
+        for (ICollector collector : collectors) {
+            collector.start();
+        }
     }
 
     public Map<String, List<DataPoint>> collect() {

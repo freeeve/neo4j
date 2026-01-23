@@ -40,12 +40,15 @@ public class Neo4jConfigMapper implements PropertyChangeListener {
     private final Configuration configuration;
     private List<Pattern> neo4jConfigs;
 
-    public Neo4jConfigMapper(Config config) {
-        this.configuration = Configuration.getInstance();
-        this.configuration.addPropertyChangeListener(this);
+    public Neo4jConfigMapper(Config config, Configuration configuration) {
+        this.configuration = configuration;
         this.config = config;
         neo4jConfigs = List.of();
         updateNeo4jConfigs(configuration.getNeo4jConfigKeyGlobs());
+    }
+
+    public void start() {
+        configuration.addPropertyChangeListener(this);
     }
 
     public Map<String, Object> mapConfig() {

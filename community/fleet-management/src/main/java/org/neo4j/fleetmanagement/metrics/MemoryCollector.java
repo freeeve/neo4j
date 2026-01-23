@@ -52,6 +52,9 @@ public class MemoryCollector implements ICollector {
     }
 
     @Override
+    public void start() {}
+
+    @Override
     public void collect(Map<String, List<DataPoint>> data) {
         var heap = this.memoryMXBean.getHeapMemoryUsage().getUsed();
         var nonHeap = this.memoryMXBean.getNonHeapMemoryUsage().getUsed();
