@@ -177,11 +177,6 @@
       <artifactId>neo4j-cypher-logical-plans</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-jdbc-value-mapper</artifactId>
-      <version>${project.version}</version>
-    </dependency>
 
     <!-- neo4j testing -->
 
@@ -238,12 +233,6 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.xerial</groupId>
-      <artifactId>sqlite-jdbc</artifactId>
-      <version>3.51.1.0</version>
-      <scope>test</scope>
-    </dependency>
 
     <!-- other -->
     <dependency>
@@ -275,7 +264,6 @@
                 <ignoredUnusedDeclaredDependency>org.scalatest:*</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>co.helmethair:scalatest-junit-runner</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.junit.jupiter:junit-jupiter</ignoredUnusedDeclaredDependency>
-                <ignoredUnusedDeclaredDependency>org.xerial:sqlite-jdbc</ignoredUnusedDeclaredDependency>
                 <!-- Not sure why this is needed, module fails to compile without this dependency. -->
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-logical-plan-builder
                 </ignoredUnusedDeclaredDependency>
