@@ -51,6 +51,7 @@ import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageFileSelection;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
@@ -97,6 +98,10 @@ class MissingStoreFilesRecoveryIT {
         }
     }
 
+    @SkipOnSpd(
+            reason =
+                    "Cluster simply cannot handle starting a db w/o tx logs - see ClusterIllegalSeedingIT#shouldFailToStartReadReplicaWithNoLogsButStandaloneShouldPass",
+            notes = {SkipOnSpd.Note.incompatible})
     @Test
     void databaseStartFailingOnMissingFilesAndMissedTxLogs() throws IOException {
         Path[] storeFiles = getStoreFiles(databaseLayout);

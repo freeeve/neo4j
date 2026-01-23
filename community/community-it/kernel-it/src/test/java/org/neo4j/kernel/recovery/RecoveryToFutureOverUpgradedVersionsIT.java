@@ -70,7 +70,17 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.UpgradeTestUtil;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
+@SkipOnSpd(
+        reason =
+                "There are some tests in here that are green on SPD, but that's just a happy accident. Generically:"
+                        + " for system db having a cluster running has the automatic SystemGraphAutoUpgrader topology maintenance job"
+                        + " that will upgrade the system db to what is configured in the last startup, which is GLORIOUS_FUTURE."
+                        + " For non-system db the way of removing a checkpoint directly from the file on disk doesn't quite work for a SPD cluster."
+                        + " And even if taking care of those issues then cluster seems to just work differently regarding figuring out"
+                        + " kernel version for a db that needs to be recovered... and for some reason the Neo4j product is fine with this discrepancy.",
+        notes = {SkipOnSpd.Note.incompatible})
 @Neo4jLayoutExtension
 class RecoveryToFutureOverUpgradedVersionsIT {
     @Inject

@@ -226,9 +226,21 @@ public class TxLogValidationUtils {
             CommandReaderFactory commandReaderFactory,
             int expectedNbrCheckpoints)
             throws IOException {
+        LogReadResult read = countReadableCheckpoints(
+                checkpointFile, logVersion, bridge, expectedKernelVersion, commandReaderFactory);
+        assertThat(read.count).isEqualTo(expectedNbrCheckpoints);
+        return read.checksum;
+    }
+
+    public static LogReadResult countReadableCheckpoints(
+            CheckpointFile checkpointFile,
+            long logVersion,
+            LogVersionBridge bridge,
+            KernelVersion expectedKernelVersion,
+            CommandReaderFactory commandReaderFactory)
+            throws IOException {
         int nbrCheckpoints = 0;
         int checksum;
-
         try (ReadableLogChannel reader = checkpointFile.getReader(
                 checkpointFile.extractHeader(logVersion).getStartPosition(), bridge)) {
             LogEntryReader entryReader = new VersionAwareLogEntryReader(
@@ -240,12 +252,15 @@ public class TxLogValidationUtils {
             while ((entry = entryReader.readLogEntry(reader)) != null) {
                 LogEntryDetachedCheckpointV5_22 logEntry =
                         assertInstanceOf(LogEntryDetachedCheckpointV5_22.class, entry);
-                assertThat(logEntry.kernelVersion()).isEqualTo(expectedKernelVersion);
+                if (expectedKernelVersion != null) {
+                    assertThat(logEntry.kernelVersion()).isEqualTo(expectedKernelVersion);
+                }
                 nbrCheckpoints++;
             }
             checksum = reader.getChecksum();
         }
-        assertThat(nbrCheckpoints).isEqualTo(expectedNbrCheckpoints);
-        return checksum;
+        return new LogReadResult(nbrCheckpoints, checksum);
     }
+
+    public record LogReadResult(int count, int checksum) {}
 }

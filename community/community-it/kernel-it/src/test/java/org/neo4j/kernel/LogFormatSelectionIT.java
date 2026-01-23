@@ -188,6 +188,11 @@ class LogFormatSelectionIT {
         checkLogFormatOfLatestFiles(logFiles, expectedFormat);
     }
 
+    @SkipOnSpd(
+            reason =
+                    "Cluster startup/recovery doesn't seem to handle missing tx logs, even if told that it's OK. See ClusterIllegalSeedingIT#shouldFailToStartReadReplicaWithNoLogsButStandaloneShouldPass."
+                            + " To start with, the recovery facade for cluster members runs recovery with an explicit THROWING_PROVIDER_RECOVERY.",
+            notes = {SkipOnSpd.Note.notSupported})
     @ParameterizedTest
     @MethodSource("formatSwitchAllowedAndDbName")
     void startUpWithoutLogFiles(String dbName, boolean allowFormatSwitchOnUpgrade) throws IOException {

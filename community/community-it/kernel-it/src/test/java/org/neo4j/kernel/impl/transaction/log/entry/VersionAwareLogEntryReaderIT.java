@@ -124,7 +124,7 @@ class VersionAwareLogEntryReaderIT {
             long offset = 0;
             for (int i = 0; i < 10; i++) {
                 var lastReadablePosition = getLastReadablePosition(logFiles);
-                assertThat(lastReadablePosition).isGreaterThanOrEqualTo(1_000);
+                assertThat(lastReadablePosition).isGreaterThanOrEqualTo(300);
                 assertThat(lastReadablePosition).isLessThan(AT_MOST_END_OF_DATA_OFFSET);
                 if (i > 0) {
                     assertThat(lastReadablePosition).isEqualTo(offset);

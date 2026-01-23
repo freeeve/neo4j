@@ -36,6 +36,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")
 public class GraphDatabaseServiceTest {
@@ -71,6 +72,10 @@ public class GraphDatabaseServiceTest {
         assertThrows(DatabaseShutdownException.class, () -> database.beginTx());
     }
 
+    @SkipOnSpd(
+            reason = "When running in SPD/cluster we get a ReplicationStoppedException instead. "
+                    + "If/when cluster changes this behaviour we could enable this test again.",
+            notes = {SkipOnSpd.Note.temporary})
     @Test
     void givenDatabaseAndStartedTxWhenShutdownThenWaitForTxToFinish() throws Exception {
         Barrier.Control barrier = new Barrier.Control();

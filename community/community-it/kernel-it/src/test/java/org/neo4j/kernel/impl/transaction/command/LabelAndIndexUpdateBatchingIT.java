@@ -46,6 +46,7 @@ import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 
 /**
  * This test is for an issue with transaction batching where there would be a batch of transactions
@@ -56,6 +57,10 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
  * the batch state, to be applied at the end of the batch. Hence, the node would be forgotten when the
  * index was being built.
  */
+@SkipOnSpd(
+        reason =
+                "This test is specific to how a tx applier works for a storage engine and doesn't need to be run in a SPD setup",
+        notes = {SkipOnSpd.Note.incompatible})
 class LabelAndIndexUpdateBatchingIT {
     private static final String PROPERTY_KEY = "key";
     private static final Label LABEL = Label.label("label");

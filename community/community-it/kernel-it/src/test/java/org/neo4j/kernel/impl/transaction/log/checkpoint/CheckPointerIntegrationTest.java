@@ -233,6 +233,8 @@ class CheckPointerIntegrationTest {
 
         // when
         DatabaseManagementService managementService = databaseManagementServiceBuilder.build();
+        int initialCheckpoints = checkPointsInTxLog(managementService.database(DEFAULT_DATABASE_NAME))
+                .size();
         managementService.shutdown();
         managementService = databaseManagementServiceBuilder.build();
         managementService.shutdown();
@@ -241,7 +243,7 @@ class CheckPointerIntegrationTest {
         managementService = builder.build();
         try {
             var checkpoints = checkPointsInTxLog(managementService.database(DEFAULT_DATABASE_NAME));
-            assertEquals(3, checkpoints.size());
+            assertEquals(initialCheckpoints + 2, checkpoints.size());
         } finally {
             managementService.shutdown();
         }

@@ -91,6 +91,7 @@ import org.neo4j.procedure.builtin.TransactionId;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.util.concurrent.BinaryLatch;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.Values;
@@ -274,6 +275,10 @@ class Neo4jTransactionalContextIT {
         assertThat(snapshot.pageFaults()).isEqualTo(outerFaults + innerFaults);
     }
 
+    @SkipOnSpd(
+            reason = "Test assumes capturing of page hits/faults for commit too, whereas transaction in clustering"
+                    + " are applied by replicated applier after rafted, using a different thread",
+            notes = {SkipOnSpd.Note.incompatible})
     @Test
     void
             contextWithNewTransactionExecutingQueryShouldSumUpPageHitsFaultsFromInnerAndOuterTransactionsAlsoWhenCommitted() {
@@ -324,6 +329,10 @@ class Neo4jTransactionalContextIT {
         assertThat(pageHits).isGreaterThanOrEqualTo(numInnerContexts / 2);
     }
 
+    @SkipOnSpd(
+            reason = "Test assumes capturing of page hits/faults for commit too, whereas transaction in clustering"
+                    + " are applied by replicated applier after rafted, using a different thread",
+            notes = {SkipOnSpd.Note.incompatible})
     @Test
     void
             contextWithNewTransactionKernelStatisticsProviderShouldOnlySeePageHitsFaultsFromCurrentTransactionsAndInnerTransactionCommitsInPROFILE() {
