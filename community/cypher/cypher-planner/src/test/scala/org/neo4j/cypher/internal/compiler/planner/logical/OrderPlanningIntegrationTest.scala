@@ -3258,4 +3258,41 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .nodeByLabelScan("a", "A")
       .build()
   }
+
+  test("should prefer a label scan on the first column of ORDER BY with additional interesting order from DISTINCT") {
+    val planner = super.plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 200)
+      .setLabelCardinality("B", 200)
+      .setRelationshipCardinality("()-[]->()", 400)
+      .setRelationshipCardinality("(:A)-[]->()", 200)
+      .setRelationshipCardinality("(:B)-[]->()", 200)
+      .setRelationshipCardinality("()-[]->(:A)", 200)
+      .setRelationshipCardinality("()-[]->(:B)", 200)
+      .build()
+
+    val query =
+      """MATCH (a:A)-[r*2..3]-(b:B)
+        |RETURN DISTINCT a, b
+        |""".stripMargin
+
+    val planOrderByAB = planner.plan(query + " ORDER BY a, b").stripProduceResults
+    val planOrderByBA = planner.plan(query + " ORDER BY b, a").stripProduceResults
+
+    planOrderByAB shouldEqual planner.subPlanBuilder()
+      .partialSort(Seq("a ASC"), Seq("b ASC"))
+      .orderedDistinct(Seq("a"), "a AS a", "b AS b")
+      .filter("b:B")
+      .pruningVarExpand("(a)-[*2..3]-(b)")
+      .nodeByLabelScan("a", "A", IndexOrderAscending)
+      .build()
+
+    planOrderByBA shouldEqual planner.subPlanBuilder()
+      .partialSort(Seq("b ASC"), Seq("a ASC"))
+      .orderedDistinct(Seq("b"), "a AS a", "b AS b")
+      .filter("a:A")
+      .pruningVarExpand("(b)-[*2..3]-(a)")
+      .nodeByLabelScan("b", "B", IndexOrderAscending)
+      .build()
+  }
 }

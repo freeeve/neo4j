@@ -88,12 +88,12 @@ case class InterestingOrderSelectorHeuristic(
   interestingOrderConfig: InterestingOrderConfig
 ) extends SelectorHeuristic {
 
-  final override def tieBreaker(plan: LogicalPlan): Int =
-    context.staticComponents.planningAttributes.providedOrders.get(
-      plan.id
-    ).satisfiesAnyInterestingOrder(interestingOrderConfig.orderToSolve)
+  final override def tieBreaker(plan: LogicalPlan): Int = {
+    val providedOrder = context.staticComponents.planningAttributes.providedOrders.get(plan.id)
+    providedOrder.satisfiesAnyInterestingOrder(interestingOrderConfig.orderToSolve.asInteresting)
       .foldLeft(0) { (acc, order) =>
         acc + order.satisfiedPrefix.size
       }
+  }
 
 }
