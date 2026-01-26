@@ -170,7 +170,7 @@
     <lucene.version>10.3.2</lucene.version>
     <bouncycastle.version>1.83</bouncycastle.version>
     <jetty.version>12.0.25</jetty.version>
-    <scala-maven-plugin.version>4.9.6</scala-maven-plugin.version>
+    <scala-maven-plugin.version>4.9.9</scala-maven-plugin.version>
     <scala.version>2.13.17</scala.version>
     <scala.binary.version>2.13</scala.binary.version>
     <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
