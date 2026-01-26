@@ -281,6 +281,16 @@ public class RandomSupport {
         return randoms.nextValue();
     }
 
+    public Value nextValueNotMatching(Value valueToExclude) {
+        var candidate = randoms.nextValue();
+        if (candidate.equals(valueToExclude)) {
+            var suitableTypes = RandomValues.excluding(
+                    ValueType.ALL_TYPES, t -> t.extremeValues()[0].isSameValueTypeAs(valueToExclude));
+            return randoms.nextValueOfTypes(suitableTypes);
+        }
+        return candidate;
+    }
+
     public Value nextValue(ValueType type) {
         return randoms.nextValueOfType(type);
     }
