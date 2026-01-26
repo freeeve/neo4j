@@ -850,10 +850,6 @@ final class MuninnPagedFile implements PagedFile, Flushable {
             } catch (Exception ioe) {
                 submitEvent.setException(ioe);
                 throw ioe;
-            } finally {
-                for (int i = 0; i < pagesToFlush; i++) {
-                    unlockFlush(pages[i], flushStamps[i], false);
-                }
             }
         }
     }
