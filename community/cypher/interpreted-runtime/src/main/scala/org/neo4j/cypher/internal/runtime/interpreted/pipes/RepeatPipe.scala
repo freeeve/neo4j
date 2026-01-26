@@ -276,24 +276,13 @@ case class RepeatPipe(
         val innerNodesArray = acyclicState.constraint.innerNodes
 
         var allNodesUnique = true
-        if (reverseGroupVariableProjections) {
-          var i = innerNodesArray.length - 1;
-          while (allNodesUnique && i >= 0) {
-            val n = innerNodesArray(i)
-            allNodesUnique = newNodes.add(
-              castOrFail[VirtualNodeValue](row.getByName(n)).id()
-            ) || i == innerNodesArray.length - 1 // allow start node to already be seen
-            i -= 1
-          }
-        } else {
-          var i = 0
-          while (allNodesUnique && i < innerNodesArray.length) {
-            val n = innerNodesArray(i)
-            allNodesUnique = newNodes.add(
-              castOrFail[VirtualNodeValue](row.getByName(n)).id()
-            ) || i == 0 // allow start node to already be seen
-            i += 1
-          }
+        var i = 1
+        while (allNodesUnique && i < innerNodesArray.length) {
+          val n = innerNodesArray(i)
+          allNodesUnique = newNodes.add(
+            castOrFail[VirtualNodeValue](row.getByName(n)).id()
+          )
+          i += 1
         }
 
         val newRelationships = HeapTrackingCollections.newLongSet(
@@ -303,7 +292,7 @@ case class RepeatPipe(
         val innerRelationshipsArray = acyclicState.constraint.innerRelationships
 
         var allRelationshipsUnique = true
-        var i = 0
+        i = 0
         while (i < innerRelationshipsArray.length) {
           val r = innerRelationshipsArray(i)
           allRelationshipsUnique = newRelationships.add(castOrFail[VirtualRelationshipValue](row.getByName(r)).id())

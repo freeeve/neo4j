@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.RepeatAcyclicTestBase.`(me)(
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatAcyclicTestBase.`(middle) [(c)-[r2]->(d:LOOP)]{0, *} (end:LOOP)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatAcyclicTestBase.`(start:START) [()-[]->(:MIDDLE)]{1, 1} (firstMiddle:MIDDLE)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatAcyclicTestBase.`(you) [(b)<-[r]-(a)]{0, *} (me)`
+import org.neo4j.cypher.internal.runtime.spec.tests.RepeatAcyclicTestBase.`(you) [(b)<-[r]-(a)]{0, 2} (me)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatAcyclicTestBase.`(you) [(c)-[rr]->(d)]{0,1} (other)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatAcyclicTestBase.`(you) [(c)-[rr]->(d)]{0,2} (other)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatAcyclicTestBase.`(you) [(c)-[rr]->(d)]{1,2} (other)`
@@ -81,31 +82,12 @@ abstract class RepeatAcyclicTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("me", "you", "a", "b", "r", "path")
       .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
-      .repeatAcyclic(acyclicParameters =
-        AcyclicParameters(
-          min = 0,
-          max = Limited(2),
-          start = "me",
-          end = "you",
-          innerStart = "a_inner",
-          innerEnd = "b_inner",
-          groupNodes = Set(("b_inner", "b"), ("a_inner", "a")),
-          innerNodes = Set("b_inner", "a_inner"), // Previously only worked if a_inner was first
-          previouslyBoundNodes = Set("me"),
-          previouslyBoundNodeGroups = Set(),
-          groupRelationships = Set(("r_inner", "r")),
-          innerRelationships = Set("r_inner"),
-          previouslyBoundRelationships = Set(),
-          previouslyBoundRelationshipGroups = Set(),
-          reverseGroupVariableProjections = false,
-          expansionMode = ExpandAll,
-          accumulators = Set.empty
-        )
-      )
-      .|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
-      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
-      .|.argument("me", "a_inner")
-      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .filter("me:START")
+      .repeatAcyclic(`(you) [(b)<-[r]-(a)]{0, 2} (me)`)
+      .|.filter(isRepeatAcyclic("a_inner"), "NOT a_inner = b_inner")
+      .|.expandAll("(b_inner)<-[r_inner]-(a_inner)")
+      .|.argument("you", "b_inner")
+      .allNodeScan("you")
       .build()
 
     // when
@@ -2721,7 +2703,28 @@ object RepeatAcyclicTestBase {
       innerEnd = "a_inner",
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
       innerNodes = Set("a_inner", "b_inner"),
-      previouslyBoundNodes = Set(),
+      previouslyBoundNodes = Set("you"),
+      previouslyBoundNodeGroups = Set(),
+      groupRelationships = Set(("r_inner", "r")),
+      innerRelationships = Set("r_inner"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = true,
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
+    )
+
+  val `(you) [(b)<-[r]-(a)]{0, 2} (me)`: AcyclicParameters =
+    AcyclicParameters(
+      min = 0,
+      max = Limited(2),
+      start = "you",
+      end = "me",
+      innerStart = "b_inner",
+      innerEnd = "a_inner",
+      groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
+      innerNodes = Set("b_inner", "a_inner"),
+      previouslyBoundNodes = Set("you"),
       previouslyBoundNodeGroups = Set(),
       groupRelationships = Set(("r_inner", "r")),
       innerRelationships = Set("r_inner"),
@@ -5323,7 +5326,7 @@ trait OrderedAcyclicTestBase[CONTEXT <: RuntimeContext] {
       .produceResults("me", "you", "a", "b", "r")
       .filter("me:START")
       .repeatAcyclic(`(you) [(b)<-[r]-(a)]{0, *} (me)`).withLeveragedOrder()
-      .|.filter("NOT a_inner = b_inner", isRepeatAcyclic("b_inner"))
+      .|.filter("NOT a_inner = b_inner", isRepeatAcyclic("a_inner"))
       .|.expandAll("(b_inner)<-[r_inner]-(a_inner)")
       .|.argument("you", "b_inner")
       .sort("foo ASC")
