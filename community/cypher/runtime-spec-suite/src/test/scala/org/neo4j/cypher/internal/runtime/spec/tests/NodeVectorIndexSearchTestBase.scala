@@ -1982,7 +1982,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     })
   }
 
-  test("should support composite combined exact and range filters", Tags.NoSpdOverride) {
+  test("should support composite combined exact and range filters") {
 
     // given
     givenGraph {
@@ -2153,7 +2153,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     )
   }
 
-  test("should support existence query", Tags.NoSpdOverride) {
+  test("should support existence query") {
 
     // given
     val nodes = ArrayBuffer.empty[Node]
@@ -2195,7 +2195,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
     ) should beColumns("n").withRows(singleColumn(nodes))
   }
 
-  test("should support composite existence query", Tags.NoSpdOverride) {
+  test("should support composite existence query") {
 
     // given
     val nodes = ArrayBuffer.empty[Node]

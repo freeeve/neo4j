@@ -922,7 +922,6 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
     for (
       comparison <- Seq(
         "<> 8",
-        "IS NOT NULL",
         """STARTS WITH "A""""
       )
     ) {
@@ -946,6 +945,20 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
           )
         )
       }
+    }
+
+    test(
+      s"""${maybeOptional}MATCH (movie: Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    WHERE movie.year IS NOT NULL
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |""".stripMargin
+    ) {
+      runSearch().hasNoErrors
     }
 
     // Tests for MATCH restrictions

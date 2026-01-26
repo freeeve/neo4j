@@ -16,9 +16,10 @@
  */
 package org.neo4j.cypher.internal.expressions
 
+import org.neo4j.cypher.internal.util.InputPosition
+
 sealed trait VectorFilterExpression {
   val propertyName: String
-  val rhs: Expression
 }
 
 object VectorFilterExpression {
@@ -51,6 +52,10 @@ object VectorFilterExpression {
     rhs: Expression
   ) extends VectorFilterExpression
 
+  case class Exists(
+    propertyName: String
+  ) extends VectorFilterExpression
+
   def unapply(expression: Expression): Option[(LogicalVariable, Expression, VectorFilterExpression)] =
     expression match {
       case GreaterThan(Property(variable: LogicalVariable, PropertyKeyName(propName)), rhs) =>
@@ -65,6 +70,8 @@ object VectorFilterExpression {
         Some((variable, rhs, Equality(propName, rhs)))
       case In(Property(variable: LogicalVariable, PropertyKeyName(propName)), ListLiteral(Seq(rhs))) =>
         Some((variable, rhs, Equality(propName, rhs)))
+      case IsNotNull(Property(variable: LogicalVariable, PropertyKeyName(propName))) =>
+        Some((variable, Null()(InputPosition.NONE), Exists(propName)))
       case _ =>
         None
     }

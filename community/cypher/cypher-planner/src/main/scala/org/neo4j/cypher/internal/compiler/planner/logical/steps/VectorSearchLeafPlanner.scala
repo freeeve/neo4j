@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
+import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.HalfOpenSeekRange
 import org.neo4j.cypher.internal.logical.plans.InclusiveBound
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
@@ -443,6 +444,7 @@ object VectorSearchLeafPlanner {
     filterExpression: VectorFilterExpression
   ): QueryExpression[Expression] = filterExpression match {
     case VectorFilterExpression.Equality(_, expression) => SingleQueryExpression(expression)
+    case VectorFilterExpression.Exists(_)               => ExistenceQueryExpression()
     case expr: SeekRangeVectorFilterExpression =>
       RangeQueryExpression(InequalitySeekRangeWrapper(
         seekRangeFromFilterExpression(expr)
