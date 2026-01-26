@@ -72,7 +72,7 @@ public class LogTailExtractor {
     public LogTailMetadata getTailMetadata(DatabaseLayout databaseLayout, MemoryTracker memoryTracker)
             throws IOException {
         return buildLogFiles(databaseLayout, memoryTracker, KernelVersionProviders.latestFromConfig(config))
-                .getTailMetadata(maxPosition);
+                .getTailMetadata();
     }
 
     public LogTailMetadata getTailMetadata(
@@ -81,7 +81,7 @@ public class LogTailExtractor {
             KernelVersionProvider emptyLogsFallbackKernelVersionProvider)
             throws IOException {
         return buildLogFiles(databaseLayout, memoryTracker, emptyLogsFallbackKernelVersionProvider)
-                .getTailMetadata(maxPosition);
+                .getTailMetadata();
     }
 
     private LogFiles buildLogFiles(
@@ -99,6 +99,7 @@ public class LogTailExtractor {
                 .withDatabaseTracers(databaseTracers)
                 .withStorageEngineFactory(storageEngineFactory)
                 .withNoInit()
+                .withTailReadingMaxPosition(maxPosition)
                 .build();
     }
 }

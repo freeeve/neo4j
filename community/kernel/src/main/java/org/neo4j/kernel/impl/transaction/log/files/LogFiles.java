@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.transaction.log.files;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
@@ -48,8 +47,4 @@ public interface LogFiles extends Lifecycle {
     boolean isLogFile(Path path);
 
     LogTailMetadata getTailMetadata();
-
-    // Like getTailMetadata but maximum reading to maxPosition.
-    // Note that maxPosition needs to be at or after the last checkpoint.
-    LogTailMetadata getTailMetadata(LogPosition maxPosition);
 }

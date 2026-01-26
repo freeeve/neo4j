@@ -89,7 +89,11 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     private volatile boolean started;
     private volatile TransactionLogFilesProviders transactionLogFilesProviders;
 
-    public CheckpointLogFile(LogFiles logFiles, TransactionLogFilesContext context, LogTailMetadata externalLogTail) {
+    public CheckpointLogFile(
+            LogFiles logFiles,
+            TransactionLogFilesContext context,
+            LogTailMetadata externalLogTail,
+            LogPosition tailReadingMaxPosition) {
         this.context = context;
         this.logFiles = logFiles;
         this.rotationsSize = context.getCheckpointRotationThreshold();
@@ -97,7 +101,8 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
                 TransactionLogFilesHelper.forCheckpoints(context.getFileSystem(), logFiles.logFilesDirectory());
         this.channelAllocator = new CheckpointLogChannelAllocator(context, fileHelper);
         this.monitor = context.getMonitors().newMonitor(LogTailScannerMonitor.class);
-        this.logTailScanner = new DetachedLogTailScanner(logFiles, context, this, monitor, externalLogTail);
+        this.logTailScanner =
+                new DetachedLogTailScanner(logFiles, context, this, monitor, externalLogTail, tailReadingMaxPosition);
         this.log = context.getLogProvider().getLog(getClass());
         this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
     }
@@ -307,11 +312,6 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     @Override
     public LogTailMetadata getTailMetadata() {
         return logTailScanner.getTailMetadata();
-    }
-
-    @Override
-    public LogTailMetadata getTailMetadata(LogPosition maxPosition) {
-        return logTailScanner.getTailMetadata(maxPosition);
     }
 
     @Override

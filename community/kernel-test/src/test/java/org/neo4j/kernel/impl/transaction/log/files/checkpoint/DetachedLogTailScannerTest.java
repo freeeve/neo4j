@@ -353,10 +353,10 @@ class DetachedLogTailScannerTest {
         logFile(start(txId), commit(txId)).create(startLogVersion + 1, positions);
         logFile(checkPoint(position)).create(startLogVersion + 1, positions);
 
-        this.logFiles = createLogFiles();
+        this.logFiles = createLogFiles(positions.get(position));
 
         // when
-        var logTailInformation = logFiles.getTailMetadata(positions.get(position));
+        var logTailInformation = logFiles.getTailMetadata();
 
         // then
         assertLatestCheckPoint(true, false, txId, false, logTailInformation);
@@ -377,10 +377,10 @@ class DetachedLogTailScannerTest {
         logFile(start(txId), commit(txId), position2, start(txId + 1), commit(txId + 1))
                 .create(startLogVersion + 1, positions);
 
-        this.logFiles = createLogFiles();
+        this.logFiles = createLogFiles(positions.get(position2));
 
         // when
-        var logTailInformation = logFiles.getTailMetadata(positions.get(position2));
+        var logTailInformation = logFiles.getTailMetadata();
 
         // then
         assertLatestCheckPoint(true, true, txId, false, logTailInformation);
@@ -397,10 +397,10 @@ class DetachedLogTailScannerTest {
         logFile(start(txId - 1), commit(txId - 1), position).create(startLogVersion, positions);
         logFile(start(txId), commit(txId)).create(startLogVersion + 1, positions);
 
-        this.logFiles = createLogFiles();
+        this.logFiles = createLogFiles(positions.get(position));
 
         // when
-        var logTailInformation = logFiles.getTailMetadata(positions.get(position));
+        var logTailInformation = logFiles.getTailMetadata();
 
         // then
         assertLatestCheckPoint(false, true, txId - 1, false, logTailInformation);
@@ -418,10 +418,8 @@ class DetachedLogTailScannerTest {
         logFile(start(txId - 1), commit(txId - 1), position).create(startLogVersion, positions);
         logFile(start(txId), commit(txId)).create(startLogVersion + 1, positions);
 
-        this.logFiles = createLogFiles();
-
         // then
-        assertThatThrownBy(() -> logFiles.getTailMetadata(new LogPosition(0, 10)))
+        assertThatThrownBy(() -> createLogFiles(new LogPosition(0, 10)))
                 .hasMessageContaining("earlier than start position");
     }
 
@@ -921,7 +919,15 @@ class DetachedLogTailScannerTest {
         return createLogFiles(LATEST_KERNEL_VERSION);
     }
 
+    LogFiles createLogFiles(LogPosition maxPosition) throws IOException {
+        return createLogFiles(LATEST_KERNEL_VERSION, maxPosition);
+    }
+
     LogFiles createLogFiles(KernelVersion kernelVersion) throws IOException {
+        return createLogFiles(kernelVersion, LogPosition.UNSPECIFIED);
+    }
+
+    LogFiles createLogFiles(KernelVersion kernelVersion, LogPosition maxPosition) throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
         return LogFilesBuilder.writeableBuilder(
                         databaseLayout, fs, fixed(kernelVersion), () -> LogFormat.fromKernelVersion(kernelVersion))
@@ -931,6 +937,7 @@ class DetachedLogTailScannerTest {
                 .withStoreId(storeId)
                 .withLogProvider(logProvider)
                 .withConfig(Config.defaults(fail_on_corrupted_log_files, false))
+                .withTailReadingMaxPosition(maxPosition)
                 .build();
     }
 

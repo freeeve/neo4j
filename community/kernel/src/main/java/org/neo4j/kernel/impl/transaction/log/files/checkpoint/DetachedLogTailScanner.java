@@ -90,6 +90,7 @@ public class DetachedLogTailScanner {
     private final FileSystemAbstraction fileSystem;
     private final KernelVersionProvider fallbackKernelVersionProvider;
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
+    private final LogPosition maxPosition;
     private final LogFormatVersionProvider fallbackLogFormatVersionProvider;
 
     private LogTailMetadata logTail;
@@ -99,7 +100,8 @@ public class DetachedLogTailScanner {
             TransactionLogFilesContext context,
             CheckpointFile checkpointFile,
             LogTailScannerMonitor monitor,
-            LogTailMetadata externalLogTail) {
+            LogTailMetadata externalLogTail,
+            LogPosition tailReadingMaxPosition) {
         this.logFiles = logFiles;
         this.commandReaderFactory = context.getCommandReaderFactory();
         this.memoryTracker = context.getMemoryTracker();
@@ -111,13 +113,10 @@ public class DetachedLogTailScanner {
         this.logTail = externalLogTail;
         this.monitor = monitor;
         this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
+        this.maxPosition = tailReadingMaxPosition;
     }
 
     public LogTailInformation findLogTail() {
-        return findLogTail(LogPosition.UNSPECIFIED);
-    }
-
-    public LogTailInformation findLogTail(LogPosition maxPosition) {
         LogFile logFile = logFiles.getLogFile();
         LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
         long highestLogVersion = logRangeInfo.highestVersion();
@@ -624,14 +623,6 @@ public class DetachedLogTailScanner {
         }
 
         return logTail;
-    }
-
-    // Note that this one does not cache the tail (unless position UNSPECIFIED)
-    public LogTailMetadata getTailMetadata(LogPosition maxPosition) {
-        if (maxPosition == LogPosition.UNSPECIFIED) {
-            return getTailMetadata();
-        }
-        return findLogTail(maxPosition);
     }
 
     private static String dumpBufferToString(ByteBuffer byteBuffer) {

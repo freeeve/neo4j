@@ -23,6 +23,7 @@ import java.util.function.IntSupplier;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
@@ -38,4 +39,5 @@ public record TransactionLogFilesOverrides(
         KernelVersionProvider kernelVersionProvider,
         LogTailMetadata externalLogTail,
         boolean noInit,
-        boolean notStartable) {}
+        boolean notStartable,
+        LogPosition tailReadingMaxPosition) {}

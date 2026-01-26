@@ -24,7 +24,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
 import org.neo4j.internal.helpers.ArrayUtil;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointLogFile;
@@ -52,7 +51,8 @@ public class TransactionLogFiles extends LifecycleAdapter implements LogFiles {
             Path logsDirectory, TransactionLogFilesContext context, TransactionLogFilesOverrides overrides) {
         this.logsDirectory = logsDirectory;
         this.logFile = new TransactionLogFile(this, context);
-        this.checkpointLogFile = new CheckpointLogFile(this, context, overrides.externalLogTail());
+        this.checkpointLogFile =
+                new CheckpointLogFile(this, context, overrides.externalLogTail(), overrides.tailReadingMaxPosition());
         this.overrides = overrides;
         if (!overrides.noInit()) {
             LogTailMetadata tailMetadata = checkpointLogFile.getTailMetadata();
@@ -121,11 +121,6 @@ public class TransactionLogFiles extends LifecycleAdapter implements LogFiles {
     @Override
     public LogTailMetadata getTailMetadata() {
         return checkpointLogFile.getTailMetadata();
-    }
-
-    @Override
-    public LogTailMetadata getTailMetadata(LogPosition maxPosition) {
-        return checkpointLogFile.getTailMetadata(maxPosition);
     }
 
     @Override

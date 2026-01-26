@@ -957,8 +957,7 @@ public final class Recovery {
                 log,
                 doParallelRecovery,
                 contextFactory,
-                storageFilesState,
-                recoveryPredicate);
+                storageFilesState);
         CorruptedLogsTruncator logsTruncator = new CorruptedLogsTruncator(
                 databaseLayout.databaseDirectory(), logFiles, fileSystemAbstraction, memoryTracker);
         var loggerPrintWriterAdaptor = new LoggerPrintWriterAdaptor(log, Level.INFO);

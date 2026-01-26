@@ -45,6 +45,7 @@ import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.entry.LogSegments;
 import org.neo4j.logging.InternalLogProvider;
@@ -106,6 +107,7 @@ public class LogFilesBuilder {
     private boolean readOnlyLogs;
     private boolean noInit;
     private boolean turnOffPreallocation;
+    private LogPosition tailReadingMaxPosition = LogPosition.UNSPECIFIED;
 
     private LogFilesBuilder() {}
 
@@ -293,6 +295,14 @@ public class LogFilesBuilder {
         return this;
     }
 
+    /**
+     * If the logfiles have a moving tail and should only be evaluated up to a specific position.
+     */
+    public LogFilesBuilder withTailReadingMaxPosition(LogPosition maxPosition) {
+        this.tailReadingMaxPosition = maxPosition;
+        return this;
+    }
+
     public LogFiles build() throws IOException {
         TransactionLogFilesContext filesContext = buildContext();
         TransactionLogFilesOverrides overrides = buildOverrides();
@@ -317,7 +327,8 @@ public class LogFilesBuilder {
                 kernelVersionProvider,
                 externalLogTail,
                 noInit,
-                noInit || fileBasedOperationsOnly || readOnlyLogs);
+                noInit || fileBasedOperationsOnly || readOnlyLogs,
+                tailReadingMaxPosition);
     }
 
     TransactionLogFilesContext buildContext() {
