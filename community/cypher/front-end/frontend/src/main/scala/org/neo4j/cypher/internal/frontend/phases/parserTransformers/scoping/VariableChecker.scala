@@ -168,6 +168,20 @@ case class VariableChecker(
       ).toSeq)
   }
 
+  private val localCallableAlreadyDefined: VariableCheck = {
+    case (
+        acc,
+        Scope.Definition.LocalCallable(name)
+      ) =>
+      val isError = acc.definedLocalCallableNames.exists(_.fullNameEqual(name))
+      val accum = acc.withDefinedLocalCallableName(name)
+      if (isError) {
+        accum(SemanticError.localCallableAlreadyDefined(name.fullName, name.position))
+      } else {
+        accum
+      }
+  }
+
   private val statementChecks: Seq[VariableCheck] =
     Seq(
       redeclarationOfVariable,
@@ -175,7 +189,8 @@ case class VariableChecker(
       incompatibleReturnColumns,
       invalidUseOfReturnStar,
       variableNotDefinedInScopeClause,
-      invalidEntityReferenceInUpdatingClause
+      invalidEntityReferenceInUpdatingClause,
+      localCallableAlreadyDefined
     )
 
   private val unboundVariablesInPatternExpression: VariableCheck = {
@@ -328,7 +343,7 @@ case class VariableChecker(
 
   private def collectSemanticErrors(workingScope: WorkingScope) = workingScope.folder.treeFold(Acc.init) {
     case s @ ExpressionScope(_: IterableExpression, _, _, d, _) => {
-      case acc @ Acc(_, dCtx: DeclaringContext, _, _) if dCtx.declared.nonEmpty =>
+      case acc @ Acc(_, dCtx: DeclaringContext, _, _, _) if dCtx.declared.nonEmpty =>
         updateAccAndTraverse(acc, s)(_acc =>
           TraverseChildrenNewAccForSiblings(
             _acc.inVariableContext(dCtx.updateDeclared(d.constants.toSet)),
@@ -347,11 +362,13 @@ case class VariableChecker(
     case s @ StatementScope(_: NextStatement, in, _, _, _, _, children) => acc =>
         updateAccAndTraverse(acc, s)(_acc => {
           val trunkAcc = folderWorkingScopes(_acc.inReturnContext(NextStatement(in.constants)), children.dropRight(1))
-          val tailAcc = folderWorkingScopes(_acc, children.tail)
+          val tailAcc =
+            folderWorkingScopes(_acc.withDefinedLocalCallableNames(trunkAcc.definedLocalCallableNames), children.tail)
           SkipChildren(Acc(
             tailAcc.scopeContext,
             tailAcc.variableContext,
             tailAcc.projectionContext,
+            tailAcc.definedLocalCallableNames,
             trunkAcc.errors ++ tailAcc.errors
           ))
         })

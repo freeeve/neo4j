@@ -2336,6 +2336,17 @@ object SemanticError {
       position
     )
   }
+
+  def localCallableAlreadyDefined(
+    name: String,
+    position: InputPosition
+  ): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I77(name, position.offset, position.line, position.column),
+      s"Local procedure $name is already defined",
+      position
+    )
+  }
 }
 
 final case class FeatureError(

@@ -37,7 +37,7 @@ trait VariableCheckingWithLocalCallablesTestSuite extends VariableCheckingTestSu
       SurroundGivenQueriesWithLocalCallablesDefinition.sample(
         tcs,
         VariableCheckingWithLocalCallablesTestSuite.getAllTestCases,
-        Math.max(5, Math.round(tcs.size / 0.5f))
+        Math.max(3, 5 * Math.round(Math.log(tcs.size.toDouble)).toInt)
       )
     }
   } {

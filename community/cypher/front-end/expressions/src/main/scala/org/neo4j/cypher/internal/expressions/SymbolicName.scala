@@ -42,6 +42,8 @@ sealed trait CallableName extends SymbolicName {
   def name: String
 
   def fullName: String = namespace.parts.map(_ + ".").mkString("", "", name)
+
+  def fullNameEqual(that: CallableName): Boolean = name == that.name && namespace == that.namespace
 }
 
 object CallableName {

@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CreateOrInsert
+import org.neo4j.cypher.internal.ast.LocalCallableDefinition
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Return
@@ -28,6 +29,7 @@ import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.expressions.CallableName
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
@@ -97,6 +99,7 @@ trait VariableCheckerUtil {
     scopeContext: ReturnContext,
     variableContext: VariableContext,
     projectionContext: ProjectionContext,
+    definedLocalCallableNames: Set[CallableName],
     errors: Set[SemanticError]
   ) {
     def apply(errors: Iterable[SemanticError]): Acc = copy(errors = this.errors ++ errors)
@@ -105,6 +108,12 @@ trait VariableCheckerUtil {
     def inVariableContext(context: VariableContext): Acc = copy(variableContext = context)
     def inMatchingPattern: Acc = copy(variableContext = variableContext.inMatch)
     def inProjectionContext(context: ProjectionContext): Acc = copy(projectionContext = context)
+
+    def withDefinedLocalCallableName(name: CallableName): Acc =
+      copy(definedLocalCallableNames = this.definedLocalCallableNames + name)
+
+    def withDefinedLocalCallableNames(names: Set[CallableName]): Acc =
+      copy(definedLocalCallableNames = this.definedLocalCallableNames union names)
 
     def withPatternVariables(vars: Set[LogicalVariable], inRelationship: Boolean = false): Acc =
       variableContext match {
@@ -120,12 +129,12 @@ trait VariableCheckerUtil {
   }
 
   case object Acc {
-    def init: Acc = Acc(Unopinionated, Default, NonAggregating, Set.empty)
+    def init: Acc = Acc(Unopinionated, Default, NonAggregating, Set.empty, Set.empty)
 
     object InRelationshipChain {
 
       def unapply(acc: Acc): Option[Acc] = acc match {
-        case Acc(_, UpdatingPattern(_, _, _, false), _, _) =>
+        case Acc(_, UpdatingPattern(_, _, _, false), _, _, _) =>
           Some(acc)
         case _ => None
       }
@@ -134,8 +143,8 @@ trait VariableCheckerUtil {
     object UpdatingContext {
 
       def unapply(acc: Acc): Option[Acc] = acc match {
-        case Acc(_, UpdatingPattern(_, _, _, _), _, _) => Some(acc)
-        case _                                         => None
+        case Acc(_, UpdatingPattern(_, _, _, _), _, _, _) => Some(acc)
+        case _                                            => None
       }
     }
 
@@ -143,10 +152,10 @@ trait VariableCheckerUtil {
 
       def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable], Set[LogicalVariable], CreateOrInsert, Boolean)] =
         acc match {
-          case Acc(returnContext, MatchingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _) =>
+          case Acc(returnContext, MatchingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _, _) =>
             val inScalarSubquery = returnContext.isInstanceOf[SubqueryExpression]
             Some((acc, topo, patternVariables, c, inScalarSubquery))
-          case Acc(returnContext, UpdatingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _) =>
+          case Acc(returnContext, UpdatingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _, _) =>
             val inScalarSubquery = returnContext.isInstanceOf[SubqueryExpression]
             Some((acc, topo, patternVariables, c, inScalarSubquery))
           case _ => None
@@ -156,25 +165,25 @@ trait VariableCheckerUtil {
     object MergePattern {
 
       def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable], Merge)] = acc match {
-        case Acc(_, MatchingPattern(topo, _, merge: Merge, _), _, _) => Some((acc, topo, merge))
-        case Acc(_, UpdatingPattern(topo, _, merge: Merge, _), _, _) => Some((acc, topo, merge))
-        case _                                                       => None
+        case Acc(_, MatchingPattern(topo, _, merge: Merge, _), _, _, _) => Some((acc, topo, merge))
+        case Acc(_, UpdatingPattern(topo, _, merge: Merge, _), _, _, _) => Some((acc, topo, merge))
+        case _                                                          => None
       }
     }
 
     object Aggregation {
 
       def unapply(acc: Acc): Option[(Acc, String, Set[LogicalVariable])] = acc match {
-        case Acc(_, _, Aggregating(clause, incomingToClause), _) => Some((acc, clause, incomingToClause))
-        case _                                                   => None
+        case Acc(_, _, Aggregating(clause, incomingToClause), _, _) => Some((acc, clause, incomingToClause))
+        case _                                                      => None
       }
     }
 
     object Opinionated {
 
       def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable])] = acc match {
-        case Acc(o: Opinionated, _, _, _) => Some((acc, o.constants))
-        case _                            => None
+        case Acc(o: Opinionated, _, _, _, _) => Some((acc, o.constants))
+        case _                               => None
       }
 
     }
@@ -182,8 +191,8 @@ trait VariableCheckerUtil {
     object SubqueryExpr {
 
       def unapply(acc: Acc): Option[Acc] = acc match {
-        case Acc(SubqueryExpression(_), _, _, _) => Some(acc)
-        case _                                   => None
+        case Acc(SubqueryExpression(_), _, _, _, _) => Some(acc)
+        case _                                      => None
       }
 
     }
@@ -231,6 +240,26 @@ trait VariableCheckerUtil {
           }
 
       }
+    }
+
+    /**
+     * Definition scopes
+     */
+
+    object Definition {
+
+      object LocalCallable {
+
+        def unapply(scope: WorkingScope)
+          : Option[CallableName] =
+          scope match {
+            case StatementScope(lcd: LocalCallableDefinition, _, _, _, _, _, _) =>
+              Some(lcd.name)
+            case _ => None
+          }
+
+      }
+
     }
 
     /**

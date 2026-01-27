@@ -3260,6 +3260,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "index or constraint value too long",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I77(
+            new GqlStatus("42I77"),
+            "Local callable { %s } is already defined.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "local callable already defined",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",

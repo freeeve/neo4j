@@ -124,3 +124,10 @@ case class E42I58(variable: String) extends GqlError {
   override val msg: String =
     s"Entity, '$variable', cannot be created and referenced in the same clause."
 }
+
+case class E42I77(name: String) extends GqlError {
+  override val num: String = "42I77"
+
+  override val msg: String =
+    s"Local callable $name() is already defined."
+}
