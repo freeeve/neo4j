@@ -231,6 +231,7 @@ import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.ast.OrderBy
+import org.neo4j.cypher.internal.ast.OrderByOrPaginationWithType
 import org.neo4j.cypher.internal.ast.ParameterName
 import org.neo4j.cypher.internal.ast.ParsedAsFilter
 import org.neo4j.cypher.internal.ast.ParsedAsLet
@@ -1809,7 +1810,7 @@ class AstGenerator(
     variable <- _variable
     expression <- _expression
     updates <- oneOrMore(_clause)
-  } yield Foreach(variable, expression, updates)(pos)
+  } yield Foreach(variable, expression, updateWithClauseWhenReparsingWouldChangeAstAndPrettifying(updates))(pos)
 
   def _loadCsv: Gen[LoadCSV] = for {
     withHeaders <- boolean
@@ -1997,10 +1998,36 @@ class AstGenerator(
     }
   }
 
+  private def updateWithClauseWhenReparsingWouldChangeAstAndPrettifying(clauses: List[Clause]): List[Clause] = {
+    // Generating an ast with a With parsed as yield or a default With followed by any
+    // With parsed as OrderBy, Skip or Limit will then be prettified and reparsed into a single With
+    // where the order by/skip/limit is part of the default/yield With instead
+    // which then fails the round trip check (as that get different indentations when prettified again)
+    // For example:
+    // SingleQuery(Seq(
+    //   With(ReturnItems(AdditiveProjection, List.empty)(pos), DefaultWith)(pos),
+    //   With(distinct = false, ReturnItems(AdditiveProjection, List.empty)(pos), Some(OrderBy(List(AscSortItem(True()(pos))(pos)))(pos)), None, None, None, ParsedAsOrderBy)(pos))
+    // )(pos)
+    // |WITH *
+    // |ORDER BY true ASCENDING
+    // becomes
+    // SingleQuery(Seq(
+    //   With(distinct = false, ReturnItems(AdditiveProjection, List.empty)(pos), Some(OrderBy(List(AscSortItem(True()(pos))(pos)))(pos)), None, None, None, DefaultWith)(pos))
+    // )(pos)
+    // |WITH *
+    // |  ORDER BY true ASCENDING
+    clauses.foldLeft[List[Clause]](List.empty) {
+      case (init :+ (w1: With), w2: With)
+        if w1.withType == DefaultWith && w2.withType.isInstanceOf[OrderByOrPaginationWithType] =>
+        init :+ w1 :+ w2.copy(withType = DefaultWith)(w2.position)
+      case (cs, c) => cs :+ c
+    }
+  }
+
   def _singleQuery: Gen[SingleQuery] = for {
     s <- choose(1, 1)
     clauses <- listOfN(s, _clause)
-  } yield SingleQuery(clauses)(pos)
+  } yield SingleQuery(updateWithClauseWhenReparsingWouldChangeAstAndPrettifying(clauses))(pos)
 
   def _union: Gen[Union] = for {
     lhs <- _unionArgument
