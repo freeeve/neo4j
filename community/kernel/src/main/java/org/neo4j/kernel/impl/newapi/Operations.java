@@ -2033,6 +2033,19 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 assertSupportedInVersion(
                         KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING,
                         "Creating a single stage filtering vector index");
+
+                // todo: investigate incorporating capability into VectorIndexVersion
+                //       and potentially also expose in IndexCapability
+                final IndexProviderDescriptor descriptor = prototype.getIndexProvider();
+                final VectorIndexVersion version = VectorIndexVersion.fromDescriptor(descriptor);
+                final VectorIndexVersion minimumRequiredVersion = VectorIndexVersion.latestSupportedVersion(
+                        KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING);
+                if (version.compareTo(minimumRequiredVersion) < 0) {
+                    throw InvalidArgumentException.unsupportedOperation(
+                            "Creating a single stage filtering vector index with provider '%s'"
+                                    .formatted(descriptor.name()),
+                            "Neo4j. Please use a newer index provider.");
+                }
             } else {
                 throw InvalidArgumentException.unsupportedOperation(
                         "A composite " + indexType.name() + " index", "Neo4j");

@@ -85,7 +85,7 @@ class IntegrityValidator {
                     }
                 }
 
-                if ((schema.getEntityTokenIds().length > 1 || (schema.getPropertyIds().length > 1))
+                if ((schema.getEntityTokenIds().length > 1 || schema.getPropertyIds().length > 1)
                         && kernelVersion.isLessThan(VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING)) {
                     throw upgradeNeededForSchemaRule(
                             schemaType, index, kernelVersion, VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING);
