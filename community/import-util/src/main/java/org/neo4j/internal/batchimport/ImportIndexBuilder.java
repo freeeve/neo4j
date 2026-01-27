@@ -382,6 +382,9 @@ public class ImportIndexBuilder implements Closeable {
                                 configuration.maxNumberOfWorkerThreads(),
                                 workScheduler.jobScheduler(),
                                 ProgressListener.NONE);
+                        // Force so that other index accessors, e.g. in `SpdPropertyShardImportServer`
+                        // see the latest changes.
+                        builder.accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
                     }
                 }
                 progress.add(1);
@@ -410,7 +413,10 @@ public class ImportIndexBuilder implements Closeable {
         return ids;
     }
 
-    public Optional<IndexAccessor> openIndexAccessor(long indexId) throws IOException {
+    /**
+     * Opens the accessor for the temp index for the given index ID.
+     */
+    public Optional<IndexAccessor> openTempIndexAccessor(long indexId) throws IOException {
         var descriptor = indexDescriptor(indexId);
         if (descriptor.isEmpty()) {
             return Optional.empty();
@@ -425,6 +431,16 @@ public class ImportIndexBuilder implements Closeable {
                         openOptions,
                         indexingBehaviour);
         return Optional.of(accessor);
+    }
+
+    /**
+     * Opens the accessor for the target index for the given index.
+     */
+    public IndexAccessor openTargetIndexAccessor(IndexDescriptor index) {
+        // We want to get an accessor without touching the index builders.
+        // Even if we have an index builder that has an accessor, returning it here
+        // would mean it gets closed too early when the caller closes the accessor.
+        return constructIndexAccessor(index);
     }
 
     public Optional<IndexDescriptor> indexDescriptor(long indexId) {

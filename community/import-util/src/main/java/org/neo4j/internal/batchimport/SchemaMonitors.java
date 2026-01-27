@@ -54,7 +54,12 @@ public interface SchemaMonitors extends Closeable {
         }
 
         @Override
-        public Optional<IndexAccessor> openIndexAccessor(long indexId) {
+        public Optional<IndexAccessor> openTempIndexAccessor(long indexId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<IndexAccessor> openTargetIndexAccessor(long indexId) {
             return Optional.empty();
         }
 
@@ -97,7 +102,20 @@ public interface SchemaMonitors extends Closeable {
 
     Optional<IndexDescriptor> indexDescriptor(long indexId);
 
-    Optional<IndexAccessor> openIndexAccessor(long indexId) throws IOException;
+    /**
+     * Opens the index accessor for the "temp" index with the given id.
+     * In `ImportIndexBuilder` the "temp" index is the one holding all new data until it gets merged into the target index.
+     * This should return a non-empty accessor if we have had any new data for this index during the import.
+     */
+    Optional<IndexAccessor> openTempIndexAccessor(long indexId) throws IOException;
+
+    /**
+     * Opens the index accessor for the target index with the given id.
+     * In `ImportIndexBuilder` the target index is the one that will hold all data after the import is done.
+     * It also contains all data prior to the import.
+     * This should never return an empty accessor expect for {@link #NO_SCHEMA}.
+     */
+    Optional<IndexAccessor> openTargetIndexAccessor(long indexId);
 
     SchemaMonitor newMonitor(int workerId);
 }

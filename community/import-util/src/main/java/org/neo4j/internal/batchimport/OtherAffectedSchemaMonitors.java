@@ -157,8 +157,13 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
     }
 
     @Override
-    public Optional<IndexAccessor> openIndexAccessor(long indexId) throws IOException {
-        return indexBuilder.openIndexAccessor(indexId);
+    public Optional<IndexAccessor> openTempIndexAccessor(long indexId) throws IOException {
+        return indexBuilder.openTempIndexAccessor(indexId);
+    }
+
+    @Override
+    public Optional<IndexAccessor> openTargetIndexAccessor(long indexId) {
+        return Optional.of(indexBuilder.openTargetIndexAccessor(schemaCache.getIndex(indexId)));
     }
 
     @Override
@@ -261,7 +266,9 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             // TODO can we make this general assumption here? It's probably good because the splitting of
             //  uniqueness index updates to just do the ADD part is _also_ in this monitor.
             if (indexUpdate.indexKey().isUnique() && indexUpdate.updateMode() == UpdateMode.CHANGED) {
-                indexUpdate = asRemoval(indexUpdate);
+                var valueUpdate = (ValueIndexEntryUpdate) indexUpdate;
+                indexUpdate = EagerValueIndexEntryUpdate.remove(
+                        indexUpdate.getEntityId(), indexUpdate.indexKey(), valueUpdate.beforeValues());
             }
 
             indexBuilder.add(indexUpdate);
@@ -337,7 +344,8 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
                 }
                 if (failed) {
                     for (var updateToUndo : appliedAdditions) {
-                        boolean removed = indexBuilder.addDirect(asRemoval(updateToUndo));
+                        boolean removed = indexBuilder.addDirect(EagerValueIndexEntryUpdate.remove(
+                                updateToUndo.getEntityId(), updateToUndo.indexKey(), updateToUndo.values()));
                         assert removed;
                     }
                     return false;
@@ -346,12 +354,6 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
                 }
             }
             return true;
-        }
-
-        private EagerValueIndexEntryUpdate asRemoval(IndexEntryUpdate update) {
-            var valueUpdate = (ValueIndexEntryUpdate) update;
-            return EagerValueIndexEntryUpdate.remove(
-                    update.getEntityId(), update.indexKey(), valueUpdate.beforeValues());
         }
 
         private EagerValueIndexEntryUpdate constructIndexUpdate(Entity entity, IndexDescriptor index) {
