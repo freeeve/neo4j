@@ -1000,7 +1000,7 @@ public class KernelRead implements Read {
 
     public void release() {
         // Note: This only clears the caches, and does in fact not close the objects
-        valueIndexReaderCache.close();
-        tokenIndexReaderCache.close();
+        try (valueIndexReaderCache;
+                tokenIndexReaderCache) {}
     }
 }

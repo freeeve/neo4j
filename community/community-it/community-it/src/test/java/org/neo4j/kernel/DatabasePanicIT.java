@@ -22,6 +22,7 @@ package org.neo4j.kernel;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME;
 import static org.neo4j.test.assertion.Assert.assertEventually;
 
@@ -51,10 +52,12 @@ public class DatabasePanicIT {
     private TestDirectory testDirectory;
 
     private DatabaseManagementService managementService;
+    private GraphDatabaseService db;
 
     @BeforeEach
     void setUp() {
         managementService = new TestDatabaseManagementServiceBuilder(testDirectory.homePath()).build();
+        db = managementService.database(DEFAULT_DATABASE_NAME);
     }
 
     @AfterEach
@@ -64,13 +67,12 @@ public class DatabasePanicIT {
 
     @Test
     void databasePanicNotification() throws DatabaseExistsException {
-        var panicListener = new PanicDatabaseEventListener("neo4j");
+        var panicListener = new PanicDatabaseEventListener(db.databaseName());
         managementService.registerDatabaseEventListener(panicListener);
 
         assertFalse(panicListener.isPanic());
 
-        getDatabaseHealth(managementService.database("neo4j"))
-                .panic(new IllegalStateException("Whoops, something went wrong here."));
+        getDatabaseHealth(db).panic(new IllegalStateException("Whoops, something went wrong here."));
         assertTrue(panicListener.isPanic());
 
         assertShowDatabases();
@@ -80,17 +82,23 @@ public class DatabasePanicIT {
         assertEventually(
                 () -> managementService
                         .database(SYSTEM_DATABASE_NAME)
-                        .executeTransactionally("SHOW DATABASE neo4j", Map.of(), rawResult -> {
+                        .executeTransactionally("SHOW DATABASE `" + db.databaseName() + "`", Map.of(), rawResult -> {
                             var resultRows = Iterators.asList(rawResult);
                             assertEquals(1, resultRows.size());
                             var resultRow = resultRows.get(0);
                             return new DatabaseStatus(
-                                    (String) resultRow.get("currentStatus"), (String) resultRow.get("statusMessage"));
+                                    (String) resultRow.get("type"), (String) resultRow.get("currentStatus"), (String)
+                                            resultRow.get("statusMessage"));
                         }),
-                databaseStatus -> databaseStatus.currentStatus().equals("online")
-                        && databaseStatus.statusMessage().equals("Whoops, something went wrong here."),
-                30,
-                TimeUnit.SECONDS);
+                this::expectedStatus,
+                1,
+                TimeUnit.MINUTES);
+    }
+
+    private boolean expectedStatus(DatabaseStatus databaseStatus) {
+        String expectedStatus = databaseStatus.type().equals("standard") ? "online" : "quarantined";
+        return databaseStatus.currentStatus().equals(expectedStatus)
+                && databaseStatus.statusMessage().equals("Whoops, something went wrong here.");
     }
 
     private static Panic getDatabaseHealth(GraphDatabaseService service) {
@@ -117,5 +125,5 @@ public class DatabasePanicIT {
         }
     }
 
-    private record DatabaseStatus(String currentStatus, String statusMessage) {}
+    private record DatabaseStatus(String type, String currentStatus, String statusMessage) {}
 }

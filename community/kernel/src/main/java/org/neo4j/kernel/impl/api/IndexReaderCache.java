@@ -29,7 +29,7 @@ import org.neo4j.kernel.api.index.IndexReader;
 /**
  * Cache which maps IndexDescriptors to IndexReaders. This is intended for reusing IndexReaders during a transaction.
  */
-public class IndexReaderCache<T extends IndexReader> {
+public class IndexReaderCache<T extends IndexReader> implements AutoCloseable {
     private final Map<IndexDescriptor, T> indexReaders;
     private final ThrowingFunction<IndexDescriptor, T, IndexNotFoundKernelException> indexSupplier;
 
@@ -47,6 +47,7 @@ public class IndexReaderCache<T extends IndexReader> {
         return reader;
     }
 
+    @Override
     public void close() {
         if (indexReaders.isEmpty()) {
             return;

@@ -44,6 +44,7 @@ import static org.neo4j.kernel.impl.index.schema.Types.SIZE_STRING_LENGTH;
 import static org.neo4j.kernel.impl.index.schema.Types.SIZE_ZONED_DATE_TIME;
 import static org.neo4j.kernel.impl.index.schema.Types.SIZE_ZONED_TIME;
 import static org.neo4j.test.TestLabels.LABEL_ONE;
+import static org.neo4j.test.extension.SkipOnSpd.Note.temporary;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,6 +78,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomSupportExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.tags.MultiVersionedTag;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValuesUtils;
@@ -84,6 +86,7 @@ import org.neo4j.values.storable.VectorValue;
 
 @Neo4jLayoutExtension
 @RandomSupportExtension
+@SkipOnSpd(notes = temporary, reason = "SPD does not (yet?) support custom page sizes through distributed db creation")
 public class RangeIndexKeySizeValidationIT {
     private static final String[] PROP_KEYS = new String[] {"prop0", "prop1", "prop2", "prop3", "prop4"};
     private static final int PAGE_SIZE_8K = (int) ByteUnit.kibiBytes(8);
