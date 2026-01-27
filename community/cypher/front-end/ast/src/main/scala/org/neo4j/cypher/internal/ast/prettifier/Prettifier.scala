@@ -337,22 +337,31 @@ case class Prettifier(
 
   def prettifySetItems(setItems: Seq[SetItem]): String = {
     val items = setItems.map {
-      case SetPropertyItem(prop, exp)        => s"${expr(prop)} = ${expr(exp)}"
-      case SetDynamicPropertyItem(prop, exp) => s"${expr(prop)} = ${expr(exp)}"
+      case SetPropertyItem(prop, exp) =>
+        s"${expr(prop, shouldBacktickEmpty = true)} = ${expr(exp, shouldBacktickEmpty = true)}"
+      case SetDynamicPropertyItem(prop, exp) =>
+        s"${expr(prop, shouldBacktickEmpty = true)} = ${expr(exp, shouldBacktickEmpty = true)}"
       case SetPropertyItems(entity, items) =>
-        items.map(i => s"${expr(entity)}.${i._1.name} = ${expr(i._2)}").mkString(", ")
+        items
+          .map(i =>
+            s"${expr(entity, shouldBacktickEmpty = true)}.${backtickEmpty(i._1.name)} = ${expr(i._2, shouldBacktickEmpty = true)}"
+          )
+          .mkString(", ")
       case SetLabelItem(variable, labels, dynamicLabels, false) => labelsString(variable, labels, dynamicLabels)
       case SetLabelItem(variable, labels, dynamicLabels, true)  => isLabelsString(variable, labels, dynamicLabels)
-      case SetIncludingPropertiesFromMapItem(variable, exp, _)  => s"${expr(variable)} += ${expr(exp)}"
-      case SetExactPropertiesFromMapItem(variable, exp, _)      => s"${expr(variable)} = ${expr(exp)}"
+      case SetIncludingPropertiesFromMapItem(variable, exp, _) =>
+        s"${expr(variable, shouldBacktickEmpty = true)} += ${expr(exp, shouldBacktickEmpty = true)}"
+      case SetExactPropertiesFromMapItem(variable, exp, _) =>
+        s"${expr(variable, shouldBacktickEmpty = true)} = ${expr(exp, shouldBacktickEmpty = true)}"
     }
     items.mkString(", ")
   }
 
   def prettifyRemoveItems(removeItems: Seq[RemoveItem]): String = {
     val items = removeItems.map {
-      case RemovePropertyItem(prop)                                => s"${expr(prop)}"
-      case RemoveDynamicPropertyItem(dynamicPropertyLookup)        => s"${expr(dynamicPropertyLookup)}"
+      case RemovePropertyItem(prop) => s"${expr(prop, shouldBacktickEmpty = true)}"
+      case RemoveDynamicPropertyItem(dynamicPropertyLookup) =>
+        s"${expr(dynamicPropertyLookup, shouldBacktickEmpty = true)}"
       case RemoveLabelItem(variable, labels, dynamicLabels, false) => labelsString(variable, labels, dynamicLabels)
       case RemoveLabelItem(variable, labels, dynamicLabels, true)  => isLabelsString(variable, labels, dynamicLabels)
     }
@@ -1081,7 +1090,9 @@ case class Prettifier(
           val useStr = use.map(asString(_) ++ " ").getOrElse("")
           useStr ++ Seq(s"$INDENT{", indented().query(innerQuery), s"$INDENT}").mkString(NL)
         case ConditionalQueryWhen(branches, default) =>
-          (branches.map(b => s"${INDENT}WHEN ${b.predicate.fold("N/A")(expr(_))} THEN ${query(b.query).trim}") ++
+          (branches.map(b =>
+            s"${INDENT}WHEN ${b.predicate.fold("N/A")(expr(_, shouldBacktickEmpty = true))} THEN ${query(b.query).trim}"
+          ) ++
             default.map(d => s"${INDENT}ELSE ${query(d.query).trim}")).mkString(NL)
         case NextStatement(queries) =>
           queries.map(query).mkString(s"$NL$NL${INDENT}NEXT$NL$NL")
@@ -1091,7 +1102,7 @@ case class Prettifier(
       }
 
     def asString(lfs: LocalFieldSignature): String = {
-      val defaultStr = lfs.default.map(d => s" = ${expr(d)}").getOrElse("")
+      val defaultStr = lfs.default.map(d => s" = ${expr(d, shouldBacktickEmpty = true)}").getOrElse("")
       val typeStr = lfs.typ.map(t => s" :: ${t.description}").getOrElse("")
       s"${lfs.name}$typeStr$defaultStr"
     }
@@ -1099,17 +1110,17 @@ case class Prettifier(
     def asString(lcd: LocalCallableDefinition): String = {
       val ldStr = lcd match {
         case LocalProcedureDefinition(name, inputSignature, outputSignature, procedureBody) =>
-          val procedureName = expr(name)
+          val procedureName = expr(name, shouldBacktickEmpty = true)
           val in = inputSignature.map(asString).mkString("(", ", ", ")")
           val out = outputSignature.map(_.map(asString).mkString(" :: (", ", ", ")")).getOrElse("")
           val body = s"{$NL${indented().query(procedureBody)}$NL$INDENT}"
           s"PROCEDURE $procedureName$in$out $body"
         case LocalFunctionDefinition(name, inputSignature, outputSignature, functionBody) =>
-          val functionName = expr(name)
+          val functionName = expr(name, shouldBacktickEmpty = true)
           val in = inputSignature.map(asString).mkString("(", ", ", ")")
           val out = outputSignature.map(t => s" :: ${t.description}").getOrElse("")
           val body = functionBody match {
-            case ExpressionBody(ex) => s"= ${expr(ex)}"
+            case ExpressionBody(ex) => s"= ${expr(ex, shouldBacktickEmpty = true)}"
             case QueryBody(qu)      => s"{$NL${indented().query(qu)}$NL$INDENT}"
           }
           s"FUNCTION $functionName$in$out $body"
@@ -1159,7 +1170,7 @@ case class Prettifier(
       u.graphReference match {
         case GraphDirectReference(catalogName) => s"${INDENT}USE ${catalogName.asCanonicalNameString}"
         case GraphFunctionReference(functionInvocation: FunctionInvocation, _) =>
-          s"${INDENT}USE ${expr(functionInvocation)}"
+          s"${INDENT}USE ${expr(functionInvocation, shouldBacktickEmpty = true)}"
       }
     }
 
@@ -1186,24 +1197,25 @@ case class Prettifier(
       val optional = if (c.optional) "OPTIONAL " else ""
       val inTxParams = c.inTransactionsParameters.map(asString).getOrElse("")
       s"""$INDENT${optional}CALL (${if (c.isImportingAll) "*"
-        else c.importedVariables.map(expr(_)).mkString("", ",", "")}) {
+        else c.importedVariables.map(expr(_, shouldBacktickEmpty = true)).mkString("", ",", "")}) {
          |${indented().query(c.innerQuery)}
          |$INDENT}$inTxParams""".stripMargin
     }
 
     def asString(ip: InTransactionsParameters): String = {
       val ofRows = ip.batchParams.map(_.batchSize) match {
-        case Some(size) => " OF " + expr(size) + " ROWS"
+        case Some(size) => " OF " + expr(size, shouldBacktickEmpty = true) + " ROWS"
         case None       => ""
       }
       val concurrency = ip.concurrencyParams match {
-        case Some(InTransactionsConcurrencyParameters(Some(explicit))) => " " + expr(explicit) + " CONCURRENT"
-        case Some(InTransactionsConcurrencyParameters(None))           => " CONCURRENT"
-        case None                                                      => ""
+        case Some(InTransactionsConcurrencyParameters(Some(explicit))) =>
+          " " + expr(explicit, shouldBacktickEmpty = true) + " CONCURRENT"
+        case Some(InTransactionsConcurrencyParameters(None)) => " CONCURRENT"
+        case None                                            => ""
       }
       val retryParameters = ip.errorParams.map(_.retryParameters.map(_.timeout)) match {
         case Some(Some(Some(timeout))) =>
-          " " + expr(timeout) + " SECONDS"
+          " " + expr(timeout, shouldBacktickEmpty = true) + " SECONDS"
         case _ => ""
       }
       val onError = ip.errorParams.map(_.behaviour) match {
@@ -1216,14 +1228,14 @@ case class Prettifier(
         case None                           => ""
       }
       val reportStatus = ip.reportParams.map(_.reportAs) match {
-        case Some(statusVar) => s" REPORT STATUS AS ${backtick(statusVar.name)}"
+        case Some(statusVar) => s" REPORT STATUS AS ${backtickEmpty(statusVar.name)}"
         case None            => ""
       }
       s" IN$concurrency TRANSACTIONS$ofRows$onError$reportStatus"
     }
 
     def asString(w: Where): String =
-      s"${INDENT}WHERE ${expr(w.expression)}"
+      s"${INDENT}WHERE ${expr(w.expression, shouldBacktickEmpty = true)}"
 
     def asString(s: Search): String = {
 
@@ -1233,10 +1245,10 @@ case class Prettifier(
 
       val maybeWhere = s.where.map(w => s"$INDENT${asString(w)}").map(asNewLine).getOrElse("")
 
-      s"""${INDENT}SEARCH ${s.bindingVariable.name} IN (
+      s"""${INDENT}SEARCH ${backtickEmpty(s.bindingVariable.name)} IN (
          |$INDENT${INDENT}VECTOR INDEX $indexName
-         |$INDENT${INDENT}FOR ${expr(s.embedding)}$maybeWhere
-         |$INDENT${INDENT}LIMIT ${expr(s.limit.expression)}
+         |$INDENT${INDENT}FOR ${expr(s.embedding, shouldBacktickEmpty = true)}$maybeWhere
+         |$INDENT${INDENT}LIMIT ${expr(s.limit.expression, shouldBacktickEmpty = true)}
          |$INDENT)$maybeScore""".stripMargin
     }
 
@@ -1251,34 +1263,34 @@ case class Prettifier(
               case UsingPointIndexType => "POINT INDEX "
             },
             if (s == SeekOnly) "SEEK " else "",
-            expr(v),
+            expr(v, shouldBacktickEmpty = true),
             ":",
-            expr(l),
-            ps.map(expr(_)).mkString("(", ",", ")")
+            expr(l, shouldBacktickEmpty = true),
+            ps.map(expr(_, shouldBacktickEmpty = true)).mkString("(", ",", ")")
           ).mkString
 
         case UsingScanHint(v, l) => Seq(
             s"${INDENT}USING SCAN ",
-            expr(v),
+            expr(v, shouldBacktickEmpty = true),
             ":",
-            expr(l)
+            expr(l, shouldBacktickEmpty = true)
           ).mkString
 
         case UsingJoinHint(vs) => Seq(
             s"${INDENT}USING JOIN ON ",
-            vs.map(expr(_)).toIterable.mkString(", ")
+            vs.map(expr(_, shouldBacktickEmpty = true)).toIterable.mkString(", ")
           ).mkString
 
         // Note: This hint cannot be written in Cypher.
         case UsingStatefulShortestPathAll(vs) => Seq(
             s"${INDENT}USING SSP_ALL ON ",
-            vs.map(expr(_)).toIterable.mkString(", ")
+            vs.map(expr(_, shouldBacktickEmpty = true)).toIterable.mkString(", ")
           ).mkString
 
         // Note: This hint cannot be written in Cypher.
         case UsingStatefulShortestPathInto(vs) => Seq(
             s"${INDENT}USING SSP_INTO ON ",
-            vs.map(expr(_)).toIterable.mkString(", ")
+            vs.map(expr(_, shouldBacktickEmpty = true)).toIterable.mkString(", ")
           ).mkString
       }
     }
@@ -1296,25 +1308,25 @@ case class Prettifier(
     }
 
     def asString(o: Skip): String =
-      s"$INDENT${o.name} ${expr(o.expression)}"
+      s"$INDENT${o.name} ${expr(o.expression, shouldBacktickEmpty = true)}"
 
     def asString(o: Limit): String =
-      s"${INDENT}LIMIT ${expr(o.expression)}"
+      s"${INDENT}LIMIT ${expr(o.expression, shouldBacktickEmpty = true)}"
 
     def asString(o: OrderBy): String = s"${INDENT}ORDER BY " + {
       o.sortItems.map {
-        case AscSortItem(expression)  => expr(expression) + " ASCENDING"
-        case DescSortItem(expression) => expr(expression) + " DESCENDING"
+        case AscSortItem(expression)  => expr(expression, shouldBacktickEmpty = true) + " ASCENDING"
+        case DescSortItem(expression) => expr(expression, shouldBacktickEmpty = true) + " DESCENDING"
       }.mkString(", ")
     }
 
     def asString(r: ReturnItem): String = r match {
       case AliasedReturnItem(e, v) =>
-        expr(e) + " AS " + expr(v)
-      case UnaliasedReturnItem(e, _) => expr(e)
+        expr(e, shouldBacktickEmpty = true) + " AS " + expr(v, shouldBacktickEmpty = true)
+      case UnaliasedReturnItem(e, _) => expr(e, shouldBacktickEmpty = true)
     }
 
-    def asString(r: ReturnItems): String = asString(r, shouldBacktickEmpty = false)
+    def asString(r: ReturnItems): String = asString(r, shouldBacktickEmpty = true)
 
     def asString(r: ReturnItems, shouldBacktickEmpty: Boolean): String = {
       val as = if (r.includeExisting) Seq("*") else Seq()
@@ -1353,7 +1365,8 @@ case class Prettifier(
           s"${INDENT}FILTER ${rewrittenClausesStrWithNlSeparators.trim}"
         case ParsedAsLet =>
           val items = w.returnItems.items.map {
-            case AliasedReturnItem(e, v) => expr(v) + " = " + expr(e)
+            case AliasedReturnItem(e, v) =>
+              expr(v, shouldBacktickEmpty = true) + " = " + expr(e, shouldBacktickEmpty = true)
             case UnaliasedReturnItem(_, _) =>
               new IllegalStateException("A With that is ParsedAsLet shall not contain UnaliasedReturnItem.")
           }.mkString(", ")
@@ -1394,18 +1407,19 @@ case class Prettifier(
     }
 
     def asString(u: Unwind): String = {
-      s"${INDENT}UNWIND ${expr(u.expression)} AS ${expr(u.variable)}"
+      s"${INDENT}UNWIND ${expr(u.expression, shouldBacktickEmpty = true)} AS ${expr(u.variable, shouldBacktickEmpty = true)}"
     }
 
     def asString(u: UnresolvedCall): String = {
-      val name = expr(u.procedureName)
+      val name = expr(u.procedureName, shouldBacktickEmpty = true)
       val optional = if (u.optional) "OPTIONAL " else ""
       val args = u.declaredArguments.map(_.filter {
         case CoerceTo(_: ImplicitProcedureArgument, _) => false
         case _: ImplicitProcedureArgument              => false
         case _                                         => true
       })
-      val arguments = args.map(list => list.map(expr(_)).mkString("(", ", ", ")")).getOrElse("")
+      val arguments =
+        args.map(list => list.map(expr(_, shouldBacktickEmpty = true)).mkString("(", ", ", ")")).getOrElse("")
       val ind = indented()
       val yields =
         if (u.yieldAll) asNewLine(s"${indented().INDENT}YIELD *")
@@ -1414,7 +1428,11 @@ case class Prettifier(
     }
 
     def asString(r: ProcedureResult): String = {
-      def item(i: ProcedureResultItem) = i.output.map(expr(_) + " AS ").getOrElse("") + expr(i.variable)
+      def item(i: ProcedureResultItem) =
+        i.output.map(expr(_, shouldBacktickEmpty = true) + " AS ").getOrElse("") + expr(
+          i.variable,
+          shouldBacktickEmpty = true
+        )
       val items = r.items.map(item).mkString(", ")
       val ind = indented()
       val where = r.where.map(ind.asString).map(asNewLine).getOrElse("")
@@ -1501,7 +1519,7 @@ case class Prettifier(
 
     private def namesAsString(ids: Either[List[String], Expression]): String = ids match {
       case Left(s)  => if (s.nonEmpty) s.map(id => expr.quote(id)).mkString(" ", ", ", "") else ""
-      case Right(e) => s" ${expr(e)}"
+      case Right(e) => s" ${expr(e, shouldBacktickEmpty = true)}"
     }
 
     private def yieldAsString(
@@ -1512,8 +1530,8 @@ case class Prettifier(
       val yieldPart = if (yieldItems.nonEmpty) {
         val items = yieldItems.map(c => {
           if (!c.aliasedVariable.name.equals(c.originalName)) {
-            backtickEmpty(c.originalName) + " AS " + expr(c.aliasedVariable)
-          } else expr(c.aliasedVariable)
+            backtickEmpty(c.originalName) + " AS " + expr(c.aliasedVariable, shouldBacktickEmpty = true)
+          } else expr(c.aliasedVariable, shouldBacktickEmpty = true)
         }).mkString(", ")
         asNewLine(s"${INDENT}YIELD $items")
       } else if (yieldAll) asNewLine(s"${INDENT}YIELD *")
@@ -1533,20 +1551,21 @@ case class Prettifier(
 
     def asString(v: LoadCSV): String = {
       val withHeaders = if (v.withHeaders) " WITH HEADERS" else ""
-      val url = expr(v.urlString)
-      val varName = expr(v.variable)
-      val fieldTerminator = v.fieldTerminator.map(x => " FIELDTERMINATOR " + expr(x)).getOrElse("")
+      val url = expr(v.urlString, shouldBacktickEmpty = true)
+      val varName = expr(v.variable, shouldBacktickEmpty = true)
+      val fieldTerminator =
+        v.fieldTerminator.map(x => " FIELDTERMINATOR " + expr(x, shouldBacktickEmpty = true)).getOrElse("")
       s"${INDENT}LOAD CSV$withHeaders FROM $url AS $varName$fieldTerminator"
     }
 
     def asString(delete: Delete): String = {
       val detach = if (delete.forced) "DETACH " else ""
-      s"$INDENT${detach}DELETE ${delete.expressions.map(expr(_)).mkString(", ")}"
+      s"$INDENT${detach}DELETE ${delete.expressions.map(expr(_, shouldBacktickEmpty = true)).mkString(", ")}"
     }
 
     def asString(foreach: Foreach): String = {
-      val varName = expr(foreach.variable)
-      val list = expr(foreach.expression)
+      val varName = expr(foreach.variable, shouldBacktickEmpty = true)
+      val list = expr(foreach.expression, shouldBacktickEmpty = true)
       val updates = foreach.updates.map(dispatch).mkString(s"$NL  ", s"$NL  ", NL)
       s"${INDENT}FOREACH ( $varName IN $list |$updates)"
     }
@@ -1857,12 +1876,12 @@ object Prettifier {
     val primariesString = topology.primaries.flatMap {
       case Left(1)  => Some(s" 1 PRIMARY")
       case Left(n)  => Some(s" $n PRIMARIES")
-      case Right(p) => Some(s" $$${backtick(p.name)} PRIMARIES")
+      case Right(p) => Some(s" $$${backtickEmpty(p.name)} PRIMARIES")
     }.getOrElse("")
     val maybeSecondariesString = topology.secondaries.flatMap {
       case Left(1)  => Some(s" 1 SECONDARY")
       case Left(n)  => Some(s" $n SECONDARIES")
-      case Right(p) => Some(s" $$${backtick(p.name)} SECONDARIES")
+      case Right(p) => Some(s" $$${backtickEmpty(p.name)} SECONDARIES")
     }.getOrElse("")
     s" TOPOLOGY$primariesString$maybeSecondariesString"
   }
@@ -1871,7 +1890,7 @@ object Prettifier {
     replicas.flatMap {
       case Left(1)  => Some(" TOPOLOGY 1 REPLICA")
       case Left(n)  => Some(s" TOPOLOGY $n REPLICAS")
-      case Right(p) => Some(s" TOPOLOGY $$${backtick(p.name)} REPLICAS")
+      case Right(p) => Some(s" TOPOLOGY $$${backtickEmpty(p.name)} REPLICAS")
     }.getOrElse("")
   }
 

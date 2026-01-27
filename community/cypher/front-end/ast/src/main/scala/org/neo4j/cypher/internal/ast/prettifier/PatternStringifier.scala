@@ -69,8 +69,9 @@ private class DefaultPatternStringifier(expr: ExpressionStringifier) extends Pat
       // p = SHORTEST ACYCLIC PATH GROUPS (a)--(b)
       val (pathVariable, patternPart) =
         withSelector.part match {
-          case NamedPatternPart(variable, patternPart) => (Some(expr(variable)), patternPart)
-          case part: AnonymousPatternPart              => (None, part)
+          case NamedPatternPart(variable, patternPart) =>
+            (Some(expr(variable, shouldBacktickEmpty = true)), patternPart)
+          case part: AnonymousPatternPart => (None, part)
         }
 
       val pathModePrettified =
@@ -93,7 +94,8 @@ private class DefaultPatternStringifier(expr: ExpressionStringifier) extends Pat
 
     case shortestPaths: ShortestPathsPatternPart => s"${shortestPaths.name}(${apply(shortestPaths.element)})"
 
-    case namedPattern: NamedPatternPart => s"${expr(namedPattern.variable)} = ${apply(namedPattern.patternPart)}"
+    case namedPattern: NamedPatternPart =>
+      s"${expr(namedPattern.variable, shouldBacktickEmpty = true)} = ${apply(namedPattern.patternPart)}"
   }
 
   override def apply(element: PatternElement): String = element match {
@@ -105,7 +107,7 @@ private class DefaultPatternStringifier(expr: ExpressionStringifier) extends Pat
   }
 
   override def apply(nodePattern: NodePattern): String = {
-    val variable = nodePattern.variable.map(expr.apply)
+    val variable = nodePattern.variable.map(expr.apply(_, shouldBacktickEmpty = true))
 
     val labelExpression =
       nodePattern.labelExpression
@@ -136,7 +138,7 @@ private class DefaultPatternStringifier(expr: ExpressionStringifier) extends Pat
   }
 
   override def apply(relationship: RelationshipPattern): String = {
-    val variable = relationship.variable.map(expr.apply)
+    val variable = relationship.variable.map(expr.apply(_, shouldBacktickEmpty = true))
 
     val labelExpression =
       relationship.labelExpression

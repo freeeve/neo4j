@@ -41,7 +41,7 @@ private class DefaultPathStepStringifier(expr: ExpressionStringifier) extends Pa
     case SingleRelationshipPathStep(rel, direction, toNode, next) =>
       relationshipPathStep(rel, direction, toNode, next, isMultiRel = false)
 
-    case NodePathStep(node, next) => s"(${expr(node)})${apply(next)}"
+    case NodePathStep(node, next) => s"(${expr(node, shouldBacktickEmpty = true)})${apply(next)}"
 
     case MultiRelationshipPathStep(rel, direction, toNode, next) =>
       relationshipPathStep(rel, direction, toNode, next, isMultiRel = true)
@@ -61,21 +61,22 @@ private class DefaultPathStepStringifier(expr: ExpressionStringifier) extends Pa
   ) = {
     val lArrow = if (direction == SemanticDirection.INCOMING) "<" else ""
     val rArrow = if (direction == SemanticDirection.OUTGOING) ">" else ""
-    val stringifiedToNode = toNode.map(expr(_)).getOrElse("")
-    val stringifiedRel = expr(rel)
+    val stringifiedToNode = toNode.map(expr(_, shouldBacktickEmpty = true)).getOrElse("")
+    val stringifiedRel = expr(rel, shouldBacktickEmpty = true)
     val multiRel = if (isMultiRel) "*" else ""
 
     s"$lArrow-[$stringifiedRel$multiRel]-$rArrow($stringifiedToNode)" + this(next)
   }
 
   private def repeatPathStep(variables: Seq[NodeRelPair], toNode: LogicalVariable, next: PathStep): String = {
-    val variableString = variables.flatMap(_.variables).map(_.name).zipWithIndex.map {
-      case (name, index) if (index % 2 == 0) =>
-        s"($name)"
-      case (name, _) =>
-        s"-[$name]-"
-    }.mkString("")
+    val variableString =
+      variables.flatMap(_.variables).map(expr.apply(_, shouldBacktickEmpty = true)).zipWithIndex.map {
+        case (name, index) if (index % 2 == 0) =>
+          s"($name)"
+        case (name, _) =>
+          s"-[$name]-"
+      }.mkString("")
 
-    s" ($variableString())* (${toNode.name})${apply(next)}"
+    s" ($variableString())* (${expr(toNode, shouldBacktickEmpty = true)})${apply(next)}"
   }
 }

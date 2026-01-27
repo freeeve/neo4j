@@ -149,15 +149,18 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.util.Stringifier
 
 trait ExpressionStringifier {
-  def apply(ast: Expression): String
+  def apply(ast: Expression): String = apply(ast, shouldBacktickEmpty = false)
+  def apply(ast: Expression, shouldBacktickEmpty: Boolean): String
 
   def apply(expressions: Seq[Expression], separator: String): String =
     apply(expressions, separator, shouldBacktickEmpty = false)
 
   def apply(expressions: Seq[Expression], separator: String, shouldBacktickEmpty: Boolean): String =
-    expressions.map(apply).mkString(separator)
-  def apply(s: SymbolicName): String
-  def apply(ns: Namespace): String
+    expressions.map(apply(_, shouldBacktickEmpty)).mkString(separator)
+  def apply(s: SymbolicName): String = apply(s, shouldBacktickEmpty = false)
+  def apply(s: SymbolicName, shouldBacktickEmpty: Boolean): String
+  def apply(ns: Namespace): String = apply(ns, shouldBacktickEmpty = false)
+  def apply(ns: Namespace, shouldBacktickEmpty: Boolean): String
   def patterns: PatternStringifier
   def pathSteps: PathStepStringifier
   def backtick(in: String): String
@@ -192,6 +195,18 @@ private class DefaultExpressionStringifier(
 
   private val prettifier: Prettifier = Prettifier(this)
 
+  private var shouldBacktickEmptyContext: Boolean = false
+
+  private def withShouldBacktickEmpty[T](value: Boolean)(block: => T): T = {
+    val previous = shouldBacktickEmptyContext
+    shouldBacktickEmptyContext = value
+    try block
+    finally shouldBacktickEmptyContext = previous
+  }
+
+  override def apply(ast: Expression, shouldBacktickEmpty: Boolean): String =
+    withShouldBacktickEmpty(shouldBacktickEmpty)(stringify(ast)._1)
+
   override def apply(ast: Expression): String =
     stringify(ast)._1
 
@@ -203,6 +218,12 @@ private class DefaultExpressionStringifier(
       s"$ns$p$n"
     case _ => backtick(s.name, shouldBacktickEmpty = true)
   }
+
+  override def apply(s: SymbolicName, shouldBacktickEmpty: Boolean): String =
+    withShouldBacktickEmpty(shouldBacktickEmpty)(apply(s))
+
+  override def apply(ns: Namespace, shouldBacktickEmpty: Boolean): String =
+    withShouldBacktickEmpty(shouldBacktickEmpty)(apply(ns))
 
   override def apply(ns: Namespace): String =
     ns.parts.map(backtick(_, shouldBacktickEmpty = true)).mkString(".")
@@ -872,7 +893,7 @@ private class DefaultExpressionStringifier(
   }
 
   override def backtick(txt: String): String = {
-    Stringifier.backtick(txt, alwaysBacktick)
+    Stringifier.backtick(txt, alwaysBacktick, false, shouldBacktickEmptyContext)
   }
 
   override def backtick(txt: String, shouldBacktickEmpty: Boolean): String = {

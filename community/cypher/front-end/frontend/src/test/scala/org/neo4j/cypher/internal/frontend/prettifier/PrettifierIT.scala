@@ -4328,6 +4328,25 @@ class PrettifierIT extends AbstractPrettifierTest {
     "MATCH (``:$([``,toString(``:``)]) {``: $``||``}) RETURN ``:``, ``  {.* , .``}" ->
       """MATCH (``:$all([``, toString(``:``)]) {``: $`` || ``})
         |RETURN ``:``, ``{.*, .``}""".stripMargin,
+    "UNWIND $`` AS `` RETURN ``" ->
+      """UNWIND $`` AS ``
+        |RETURN ``""".stripMargin,
+    "MATCH (``) SET ``.`` = $`` RETURN ``" ->
+      """MATCH (``)
+        |SET ``.`` = $``
+        |RETURN ``""".stripMargin,
+    "MATCH (``) REMOVE ``.`` RETURN ``" ->
+      """MATCH (``)
+        |REMOVE ``.``
+        |RETURN ``""".stripMargin,
+    "MATCH (``) DELETE ``" ->
+      """MATCH (``)
+        |DELETE ``""".stripMargin,
+    "FOREACH (`` IN $`` | SET ``.`` = $``)" ->
+      """FOREACH ( `` IN $`` |
+        |  SET ``.`` = $``
+        |)""".stripMargin,
+    "LOAD CSV FROM $`` AS ``" -> "LOAD CSV FROM $`` AS ``",
     // Don't strip trailing spaces on the lines
     // \u0020 to not have intellij or similar remove the space and
     // '|' for the strip margin to only strip the start of each line and not both start and end
