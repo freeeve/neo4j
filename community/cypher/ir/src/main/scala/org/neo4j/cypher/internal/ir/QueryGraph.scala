@@ -266,23 +266,20 @@ final case class QueryGraph private (
     copy(selections = Selections(selections.predicates ++ this.selections.predicates))
 
   def addPredicates(predicates: Expression*): QueryGraph = {
-    val newSelections = Selections(predicates.flatMap(_.asPredicates).toSet)
-    copy(selections = selections ++ newSelections)
+    addPredicates(predicates)
   }
 
   def addPredicates(predicates: Iterable[Expression]): QueryGraph = {
-    val newSelections = Selections(predicates.flatMap(_.asPredicates).toSet)
-    copy(selections = selections ++ newSelections)
+    addPredicates(predicates.view.flatMap(_.asPredicates).toSet)
   }
 
-  def addPredicates(predicates: Set[Predicate]): QueryGraph = {
-    val newSelections = Selections(predicates ++ selections.predicates)
+  def addPredicates[A <: Expression](predicates: Set[A]): QueryGraph = {
+    addPredicates(predicates.flatMap(_.asPredicates))
+  }
+
+  def addPredicates(predicates: Set[Predicate])(implicit d: DummyImplicit): QueryGraph = {
+    val newSelections = Selections(selections.predicates ++ predicates)
     copy(selections = newSelections)
-  }
-
-  def addPredicates(outerScope: Set[LogicalVariable], predicates: Expression*): QueryGraph = {
-    val newSelections = Selections(predicates.flatMap(_.asPredicates(outerScope)).toSet)
-    copy(selections = selections ++ newSelections)
   }
 
   def addHints(addedHints: IterableOnce[Hint]): QueryGraph = {

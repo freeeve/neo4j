@@ -137,7 +137,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       // Entity is the last label in the scan because it was added due to the hint and would have been eliminated otherwise
-      .intersectionNodeByLabelsScan("n", Seq("Actor", "Other", "Entity"))
+      .intersectionNodeByLabelsScan("n", Seq("Actor", "Entity", "Other"))
       .build()
   }
 

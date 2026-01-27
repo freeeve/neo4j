@@ -1050,7 +1050,7 @@ class WithPlanningIntegrationTest extends CypherFunSuite
         .|.allRelationshipsScan("()-[]->()", "a", "b")
         .projection("1 AS a")
         .aggregation(Seq(), Seq("count(*) AS b"))
-        .intersectionNodeByLabelsScan("n", Seq("N", "M"))
+        .intersectionNodeByLabelsScan("n", Seq("M", "N"))
         .build()
     )
   }

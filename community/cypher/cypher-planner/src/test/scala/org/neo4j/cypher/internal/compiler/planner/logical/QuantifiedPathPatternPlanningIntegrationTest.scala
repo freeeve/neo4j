@@ -646,7 +646,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         .|.filter(isRepeatTrailUnique("r"))
         .|.expandAll("(n)-[r]->(m)")
         .|.argument("n")
-        .intersectionNodeByLabelsScan("u", Seq("User", "N"))
+        .intersectionNodeByLabelsScan("u", Seq("N", "User"))
         .build()
     )
   }
@@ -2962,8 +2962,8 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         "(a)<-[:R*0..]-(e)",
         nodePredicates = Seq(),
         relationshipPredicates = Seq(
-          Predicate("anon_0", "NOT startNode(anon_0).name = 'Foo'"),
-          Predicate("anon_0", "endNode(anon_0).prop > startNode(anon_0).prop")
+          Predicate("anon_0", "endNode(anon_0).prop > startNode(anon_0).prop"),
+          Predicate("anon_0", "NOT startNode(anon_0).name = 'Foo'")
         ),
         mode = ExpandAll
       )
@@ -3229,7 +3229,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .setRelationshipCardinality("(:A)-[R]->(:A)", r)
       .build()
 
-    val query = "MATCH (n1:A)((inner1:A)-[r:R]->(inner2:A)){50,55}(n2:A) RETURN n1, n2, r, inner1"
+    val query = "MATCH (n1:A)((inner1:A)-[r:R]->(inner2)){50,55}(n2) RETURN n1, n2, r, inner1"
 
     val plan = builder.plan(query)
 
@@ -3253,9 +3253,8 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan should equal(
       builder.planBuilder()
         .produceResults("n1", "n2", "r", "inner1")
-        .filter("n2:A")
         .repeatTrail(trailParameters)
-        .|.filter(isRepeatTrailUnique("r"), "inner2:A")
+        .|.filter(isRepeatTrailUnique("r"))
         .|.expandAll("(inner1)-[r:R]->(inner2)")
         .|.filter("inner1:A")
         .|.argument("inner1")
@@ -3338,7 +3337,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
 
     val plan = builder.plan(query)
 
-    val trailParameters = TrailParameters(
+    val n1n2trailParameters = TrailParameters(
       min = 50,
       max = Limited(55),
       start = "n1",
@@ -3355,18 +3354,41 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       accumulators = Set.empty
     )
 
-    plan should equal(
-      builder.planBuilder()
-        .produceResults("n1", "n2", "r", "inner1")
-        .filter("n2:A")
-        .repeatTrail(trailParameters)
-        .|.filter(isRepeatTrailUnique("r"), "inner2:A")
-        .|.expandAll("(inner1)-[r:R]->(inner2)")
-        .|.filter("inner1:A")
-        .|.argument("inner1")
-        .nodeByLabelScan("n1", "A")
-        .build()
+    val n2n1trailParameters = n1n2trailParameters.copy(
+      start = "n2",
+      end = "n1",
+      innerStart = "inner2",
+      innerEnd = "inner1",
+      reverseGroupVariableProjections = true
     )
+
+    plan should {
+      equal {
+        builder.planBuilder()
+          .produceResults("n1", "n2", "r", "inner1")
+          .filter("n2:A")
+          .repeatTrail(n1n2trailParameters)
+          .|.filter(isRepeatTrailUnique("r"), "inner2:A")
+          .|.expandAll("(inner1)-[r:R]->(inner2)")
+          .|.filter("inner1:A")
+          .|.argument("inner1")
+          .nodeByLabelScan("n1", "A")
+          .build()
+      } or {
+        equal {
+          builder.planBuilder()
+            .produceResults("n1", "n2", "r", "inner1")
+            .filter("n1:A")
+            .repeatTrail(n2n1trailParameters)
+            .|.filter(isRepeatTrailUnique("r"), "inner1:A")
+            .|.expandAll("(inner2)<-[r:R]-(inner1)")
+            .|.filter("inner2:A")
+            .|.argument("inner2")
+            .nodeByLabelScan("n2", "A")
+            .build()
+        }
+      }
+    }
   }
 
   test("Should rewrite QPP to VarLengthExpand(Into)") {

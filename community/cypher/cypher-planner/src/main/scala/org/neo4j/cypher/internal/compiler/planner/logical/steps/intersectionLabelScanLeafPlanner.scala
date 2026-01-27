@@ -94,10 +94,11 @@ case class intersectionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) exten
               // Otherwise, the node label scan provider will take over.
               if (prunedLabels.size > 1) {
                 // We have more than one label left after pruning, so we can create an intersection node
+                val sortedLabels = prunedLabels.toSeq.sortBy(_.name)
                 results += context.staticComponents.logicalPlanProducer.planIntersectNodeByLabelsScan(
                   variable,
-                  prunedLabels.toSeq,
-                  Seq(HasLabels(variable, prunedLabels.toSeq)(InputPosition.NONE)),
+                  sortedLabels,
+                  Seq(HasLabels(variable, sortedLabels)(InputPosition.NONE)),
                   hints.toSeq,
                   qg.argumentIds,
                   providedOrder,

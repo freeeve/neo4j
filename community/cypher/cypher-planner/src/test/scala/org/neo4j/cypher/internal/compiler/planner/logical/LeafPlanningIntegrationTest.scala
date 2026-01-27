@@ -843,7 +843,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
     plan._1 should equal(
       IntersectionNodeByLabelsScan(
         v"n",
-        Seq(labelName("Foo"), labelName("Bar"), labelName("Baz")),
+        Seq(labelName("Bar"), labelName("Baz"), labelName("Foo")),
         Set.empty,
         IndexOrderNone
       )

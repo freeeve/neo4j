@@ -476,7 +476,7 @@ class VarLengthPlanningIntegrationTest
 
       val plan = planner.plan(q).stripProduceResults
 
-      val nodePredicates = Seq(Predicate("x", "x.prop > 123"), Predicate("z", "not z.otherProp < 321"))
+      val nodePredicates = Seq(Predicate("z", "not z.otherProp < 321"), Predicate("x", "x.prop > 123"))
       val relPredicates = Seq(Predicate("y", "not y.prop = 'hello'"), Predicate("t", "not t.otherProp IS NULL"))
       plan shouldEqual planner.subPlanBuilder()
         .aggregation(Seq(), Seq("count(*) AS result"))

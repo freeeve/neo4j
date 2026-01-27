@@ -814,10 +814,10 @@ class OrLeafPlanningIntegrationTest
         .projection("0 AS 0")
         .distinct("anon_0 AS anon_0")
         .union()
-        .|.intersectionNodeByLabelsScan("anon_0", Seq("x", "n10"), IndexOrderNone)
+        .|.intersectionNodeByLabelsScan("anon_0", Seq("n10", "x"), IndexOrderNone)
         .intersectionNodeByLabelsScan(
           "anon_0",
-          Seq("n8", "n4", "n5", "n9", "n6", "x", "n2", "n7", "n1", "n3"),
+          Seq("n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9", "x"),
           IndexOrderNone
         )
         .build()
@@ -852,7 +852,7 @@ class OrLeafPlanningIntegrationTest
     plan should equal(
       planner.planBuilder()
         .produceResults("n")
-        .intersectionNodeByLabelsScan("n", Seq("B", "A", "I", "D", "X", "H", "F", "E", "G", "C"), IndexOrderNone)
+        .intersectionNodeByLabelsScan("n", Seq("A", "B", "C", "D", "E", "F", "G", "H", "I", "X"), IndexOrderNone)
         .build()
     )
   }
