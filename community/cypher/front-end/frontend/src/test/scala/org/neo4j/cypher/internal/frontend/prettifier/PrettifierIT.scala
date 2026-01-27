@@ -1779,8 +1779,8 @@ class PrettifierIT extends AbstractPrettifierTest {
     "show text index yield name return name" ->
       """SHOW TEXT INDEXES
         |YIELD name
-        |RETURN name""".stripMargin,
-
+        |RETURN name""".stripMargin
+  ) ++ Seq[Test](
     // show constraints
 
     "show constraints" ->
@@ -1898,8 +1898,8 @@ class PrettifierIT extends AbstractPrettifierTest {
         |YIELD name
         |  ORDER BY name ASCENDING
         |  SKIP 1
-        |  LIMIT 1""".stripMargin,
-
+        |  LIMIT 1""".stripMargin
+  ) ++ Seq[Test](
     // show current graph type
 
     FailsInCypher5(
@@ -1932,8 +1932,8 @@ class PrettifierIT extends AbstractPrettifierTest {
         |  SKIP 1
         |  LIMIT 10
         |  WHERE type = "OPEN"""".stripMargin
-    ),
-
+    )
+  ) ++ Seq[Test](
     // show procedures
 
     "show procedure" ->
@@ -1968,8 +1968,8 @@ class PrettifierIT extends AbstractPrettifierTest {
         |YIELD name
         |  ORDER BY name ASCENDING
         |  SKIP 1
-        |  LIMIT 1""".stripMargin,
-
+        |  LIMIT 1""".stripMargin
+  ) ++ Seq[Test](
     // show functions
 
     "show function" ->
@@ -2010,8 +2010,8 @@ class PrettifierIT extends AbstractPrettifierTest {
         |YIELD name
         |  ORDER BY name ASCENDING
         |  SKIP 1
-        |  LIMIT 1""".stripMargin,
-
+        |  LIMIT 1""".stripMargin
+  ) ++ Seq[Test](
     // show transactions
 
     "show transaction" ->
@@ -2050,8 +2050,8 @@ class PrettifierIT extends AbstractPrettifierTest {
         |YIELD currentQueryId
         |  ORDER BY currentQueryId ASCENDING
         |  SKIP 1
-        |  LIMIT 1""".stripMargin,
-
+        |  LIMIT 1""".stripMargin
+  ) ++ Seq[Test](
     // terminate transactions
 
     "terminate transactions 'db1-transaction-123'" ->
@@ -2083,53 +2083,8 @@ class PrettifierIT extends AbstractPrettifierTest {
         |YIELD currentQueryId
         |  ORDER BY currentQueryId ASCENDING
         |  SKIP 1
-        |  LIMIT 1""".stripMargin,
-
-    // combine show and terminate transactions
-
-    "show transaction terminate transaction 'id'" ->
-      """SHOW TRANSACTIONS
-        |TERMINATE TRANSACTIONS "id"""".stripMargin,
-    """terminate transaction $x+'123' yield transactionId AS txIdT
-      |show transaction txIdT yield transactionId AS txIdS""".stripMargin ->
-      """TERMINATE TRANSACTIONS $x + "123"
-        |YIELD transactionId AS txIdT
-        |SHOW TRANSACTIONS txIdT
-        |YIELD transactionId AS txIdS""".stripMargin,
-    """terminate transaction 'db1-transaction-123' yield currentQueryId order by currentQueryId skip 1 limit 1
-      |show transaction 'db1-transaction-123' yield currentQueryId order by currentQueryId skip 1 limit 1""".stripMargin ->
-      """TERMINATE TRANSACTIONS "db1-transaction-123"
-        |YIELD currentQueryId
-        |  ORDER BY currentQueryId ASCENDING
-        |  SKIP 1
-        |  LIMIT 1
-        |SHOW TRANSACTIONS "db1-transaction-123"
-        |YIELD currentQueryId
-        |  ORDER BY currentQueryId ASCENDING
-        |  SKIP 1
-        |  LIMIT 1""".stripMargin,
-    """show transaction 'db1-transaction-123' where database = 'neo4j'
-      |terminate transaction 'db1-transaction-123', 'db1-transaction-123', 'db1-transaction-123' yield currentQueryId order by currentQueryId skip 1 limit 1
-      |terminate transaction 'db1-transaction-123' YIELD * where database = 'neo4j'
-      |show transaction 'db1-transaction-123', 'db1-transaction-123' yield currentQueryId order by currentQueryId skip 1 limit 1
-      |Return *""".stripMargin ->
-      """SHOW TRANSACTIONS "db1-transaction-123"
-        |  WHERE database = "neo4j"
-        |TERMINATE TRANSACTIONS "db1-transaction-123", "db1-transaction-123", "db1-transaction-123"
-        |YIELD currentQueryId
-        |  ORDER BY currentQueryId ASCENDING
-        |  SKIP 1
-        |  LIMIT 1
-        |TERMINATE TRANSACTIONS "db1-transaction-123"
-        |YIELD *
-        |  WHERE database = "neo4j"
-        |SHOW TRANSACTIONS "db1-transaction-123", "db1-transaction-123"
-        |YIELD currentQueryId
-        |  ORDER BY currentQueryId ASCENDING
-        |  SKIP 1
-        |  LIMIT 1
-        |RETURN *""".stripMargin,
-
+        |  LIMIT 1""".stripMargin
+  ) ++ Seq[Test](
     // show settings
 
     "show setting" ->
@@ -2189,6 +2144,66 @@ class PrettifierIT extends AbstractPrettifierTest {
       """SHOW SETTINGS $list
         |YIELD name, description, isExplicitlySet
         |  WHERE isExplicitlySet""".stripMargin
+  ) ++ Seq[Test](
+    // combine show and terminate commands
+
+    "show transaction terminate transaction 'id'" ->
+      """SHOW TRANSACTIONS
+        |TERMINATE TRANSACTIONS "id"""".stripMargin,
+    """terminate transaction $x+'123' yield transactionId AS txIdT
+      |show transaction txIdT yield transactionId AS txIdS""".stripMargin ->
+      """TERMINATE TRANSACTIONS $x + "123"
+        |YIELD transactionId AS txIdT
+        |SHOW TRANSACTIONS txIdT
+        |YIELD transactionId AS txIdS""".stripMargin,
+    """terminate transaction 'db1-transaction-123' yield currentQueryId order by currentQueryId skip 1 limit 1
+      |show transaction 'db1-transaction-123' yield currentQueryId order by currentQueryId skip 1 limit 1""".stripMargin ->
+      """TERMINATE TRANSACTIONS "db1-transaction-123"
+        |YIELD currentQueryId
+        |  ORDER BY currentQueryId ASCENDING
+        |  SKIP 1
+        |  LIMIT 1
+        |SHOW TRANSACTIONS "db1-transaction-123"
+        |YIELD currentQueryId
+        |  ORDER BY currentQueryId ASCENDING
+        |  SKIP 1
+        |  LIMIT 1""".stripMargin,
+    """show transaction 'db1-transaction-123' where database = 'neo4j'
+      |terminate transaction 'db1-transaction-123', 'db1-transaction-123', 'db1-transaction-123' yield currentQueryId order by currentQueryId skip 1 limit 1
+      |terminate transaction 'db1-transaction-123' YIELD * where database = 'neo4j'
+      |show transaction 'db1-transaction-123', 'db1-transaction-123' yield currentQueryId order by currentQueryId skip 1 limit 1
+      |Return *""".stripMargin ->
+      """SHOW TRANSACTIONS "db1-transaction-123"
+        |  WHERE database = "neo4j"
+        |TERMINATE TRANSACTIONS "db1-transaction-123", "db1-transaction-123", "db1-transaction-123"
+        |YIELD currentQueryId
+        |  ORDER BY currentQueryId ASCENDING
+        |  SKIP 1
+        |  LIMIT 1
+        |TERMINATE TRANSACTIONS "db1-transaction-123"
+        |YIELD *
+        |  WHERE database = "neo4j"
+        |SHOW TRANSACTIONS "db1-transaction-123", "db1-transaction-123"
+        |YIELD currentQueryId
+        |  ORDER BY currentQueryId ASCENDING
+        |  SKIP 1
+        |  LIMIT 1
+        |RETURN *""".stripMargin,
+    "show indexes show constraints" ->
+      """SHOW ALL INDEXES
+        |SHOW ALL CONSTRAINTS""".stripMargin,
+    "show procedures yield name as proc show functions yield name as func return proc, func" ->
+      """SHOW PROCEDURES
+        |YIELD name AS proc
+        |SHOW ALL FUNCTIONS
+        |YIELD name AS func
+        |RETURN proc, func""".stripMargin,
+    "show settings where name = 'setting' show transactions txId yield * return name" ->
+      """SHOW SETTINGS
+        |  WHERE name = "setting"
+        |SHOW TRANSACTIONS txId
+        |YIELD *
+        |RETURN name""".stripMargin
   )
 
   def userCommandTests(): Seq[Test] = Seq[Test](

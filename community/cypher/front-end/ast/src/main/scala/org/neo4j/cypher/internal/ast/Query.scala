@@ -178,11 +178,6 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
    * Used in UnwrapTopLevelBraces
    */
   def getQuery(fromUnion: Boolean): Query
-
-  /**
-   * Return a list of all CommandClause's existing in this query.
-   */
-  def getCommandClauses: Seq[CommandClause]
 }
 
 sealed trait PartQuery extends Query {
@@ -230,7 +225,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
 
   override def singleQuery: SingleQuery = this
 
-  val getCommandClauses: Seq[CommandClause] =
+  private val getCommandClauses: Seq[CommandClause] =
     clauses.filter(_.isInstanceOf[CommandClause]).map(_.asInstanceOf[CommandClause])
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query = f(this)
@@ -490,6 +485,39 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     }
   }
 
+  private def checkOrderForCommandClauses(clauses: Seq[Clause]) = {
+    if (getCommandClauses.size > 1) {
+      val missingYield = clauses.sliding(2).foldLeft(Vector.empty[SemanticError]) {
+        case (semanticErrors, pair) =>
+          val optError = pair match {
+            case Seq(command: CommandClause, clause: With) if command.yieldAll =>
+              Some(SemanticError.invalidYieldStar(
+                command.name,
+                clause.position
+              ))
+            case Seq(_: CommandClause, clause: With) if clause.withType == ParsedAsYield => None
+            case Seq(command: CommandClause, _) =>
+              Some(SemanticError.missingYield(
+                command.name,
+                command.position
+              ))
+            case _ => None
+          }
+          optError.fold(semanticErrors)(semanticErrors :+ _)
+      }
+
+      val missingReturn = clauses.last match {
+        case clause: Return if clause.returnType != ReturnAddedInRewrite => None
+        case clause =>
+          Some(SemanticError.missingReturn(
+            clause.position
+          ))
+      }
+
+      missingYield ++ missingReturn
+    } else Vector.empty[SemanticError]
+  }
+
   private def checkOrder(clauses: Seq[Clause], canOmitReturnClause: Boolean): SemanticCheck = {
     fromFunctionWithContext { (s: SemanticState, c: SemanticCheckContext) =>
       {
@@ -522,37 +550,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
             optError.fold(semanticErrors)(semanticErrors :+ _)
         }
 
-        val commandErrors =
-          if (getCommandClauses.size > 1) {
-            val missingYield = clauses.sliding(2).foldLeft(Vector.empty[SemanticError]) {
-              case (semanticErrors, pair) =>
-                val optError = pair match {
-                  case Seq(command: CommandClause, clause: With) if command.yieldAll =>
-                    Some(SemanticError.invalidYieldStar(
-                      command.name,
-                      clause.position
-                    ))
-                  case Seq(_: CommandClause, clause: With) if clause.withType == ParsedAsYield => None
-                  case Seq(command: CommandClause, _) =>
-                    Some(SemanticError.missingYield(
-                      command.name,
-                      command.position
-                    ))
-                  case _ => None
-                }
-                optError.fold(semanticErrors)(semanticErrors :+ _)
-            }
-
-            val missingReturn = clauses.last match {
-              case clause: Return if clause.returnType != ReturnAddedInRewrite => None
-              case clause =>
-                Some(SemanticError.missingReturn(
-                  clause.position
-                ))
-            }
-
-            missingYield ++ missingReturn
-          } else Vector.empty[SemanticError]
+        val commandErrors = checkOrderForCommandClauses(clauses)
 
         val concludeError = clauses match {
           // standalone procedure call
@@ -562,18 +560,22 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
           case Seq() => Some(SemanticError.queryMustConcludeWithClause(this.position))
 
           // otherwise
-          case seq => seq.last match {
-              case _: UpdateClause | _: Return | _: Finish | _: CommandClause                                  => None
-              case subquery: SubqueryCall if !subquery.innerQuery.isReturning && subquery.reportParams.isEmpty => None
-              case call: CallClause if call.returnVariables.explicitVariables.isEmpty && !call.yieldAll        => None
-              case _ if canOmitReturnClause                                                                    => None
-              case call: CallClause => Some(SemanticError.queryCannotConcludeWithCall(call.name, call.position))
-              case clause           => Some(SemanticError.queryCannotConcludeWithClause(clause.name, clause.position))
-            }
+          case seq => checkLastClause(seq, canOmitReturnClause)
         }
 
         SemanticCheckResult(s, sequenceErrors ++ concludeError ++ commandErrors)
       }
+    }
+  }
+
+  private def checkLastClause(clauses: Seq[Clause], canOmitReturnClause: Boolean) = {
+    clauses.last match {
+      case _: UpdateClause | _: Return | _: Finish | _: CommandClause                                  => None
+      case subquery: SubqueryCall if !subquery.innerQuery.isReturning && subquery.reportParams.isEmpty => None
+      case call: CallClause if call.returnVariables.explicitVariables.isEmpty && !call.yieldAll        => None
+      case _ if canOmitReturnClause                                                                    => None
+      case call: CallClause => Some(SemanticError.queryCannotConcludeWithCall(call.name, call.position))
+      case clause           => Some(SemanticError.queryCannotConcludeWithClause(clause.name, clause.position))
     }
   }
 
@@ -858,8 +860,6 @@ case class TopLevelBraces(
 
   override def clauses: Seq[Clause] = singleQuery.clauses
 
-  val getCommandClauses: Seq[CommandClause] = query.getCommandClauses
-
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(query.mapEachSingleQuery(f, nextFirst))(position)
 
@@ -941,6 +941,11 @@ case class TopLevelBraces(
   override def returnVariables: ReturnVariables = query.returnVariables
 }
 
+case object UnionContext extends UnaliasedNotAllowed {
+  val name: String = "UNION"
+  override val msg: String = "UNION"
+}
+
 object Union {
 
   /**
@@ -966,8 +971,6 @@ sealed trait Union extends Query {
   override def getQuery(fromUnion: Boolean): Query = this
 
   override def getLastSingleQuery: SingleQuery = rhs.getLastSingleQuery
-
-  val getCommandClauses: Seq[CommandClause] = lhs.getCommandClauses ++ rhs.getCommandClauses
 
   override def returnVariables: ReturnVariables = ReturnVariables(
     // If either side of the UNION has a RETURN *,
@@ -1025,7 +1028,7 @@ sealed trait Union extends Query {
     })
   }
 
-  def semanticCheck: SemanticCheck = checkRecursively(_.semanticCheck)
+  def semanticCheck: SemanticCheck = checkRecursively(_.semanticCheckInContext(UnionContext))
 
   override def semanticCheckInSubqueryExpressionContext(
     canOmitReturn: Boolean,
@@ -1386,9 +1389,6 @@ case class ConditionalQueryWhen(
 
   override def getLastSingleQuery: SingleQuery = branches.last.query.getLastSingleQuery
 
-  override def getCommandClauses: Seq[CommandClause] =
-    allBranches.flatMap(branch => branch.query.getCommandClauses)
-
   override def returnVariables: ReturnVariables =
     allBranches.foldLeft(ReturnVariables.empty)((acc, branch) => acc.merge(branch.query.returnVariables))
 
@@ -1553,9 +1553,6 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
 
   override def getLastSingleQuery: SingleQuery = queries.last.getLastSingleQuery
 
-  override def getCommandClauses: Seq[CommandClause] =
-    queries.flatMap(_.getCommandClauses)
-
   override def returnVariables: ReturnVariables = lastQuery.returnVariables
 
   override def isReturning: Boolean = lastQuery.isReturning
@@ -1703,11 +1700,6 @@ case class QueryWithLocalDefinitions(
    * Used in UnwrapTopLevelBraces
    */
   override def getQuery(fromUnion: Boolean): Query = query.getQuery(fromUnion)
-
-  /**
-   * Return a list of all CommandClause's existing in this query.
-   */
-  override def getCommandClauses: Seq[CommandClause] = query.getCommandClauses
 
   /**
    * All variables that are explicitly listed to be returned from this statement.
