@@ -96,7 +96,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.lifecycle.LifeSupport;
-import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -478,7 +477,7 @@ class TransactionLogFileTest {
         LogFile logFile = logFiles.getLogFile();
         assertEquals(1, logFile.getLogRangeInfo().highestVersion());
 
-        logFile.combine(additionalSource, AppendIndexProvider.UNKNOWN_APPEND_INDEX);
+        logFile.combine(additionalSource);
         assertEquals(4, logFile.getLogRangeInfo().highestVersion());
         assertThat(Arrays.stream(logFile.getMatchedFiles())
                         .map(path -> path.getFileName().toString()))
@@ -504,7 +503,7 @@ class TransactionLogFileTest {
         LogFile logFile = logFiles.getLogFile();
         assertEquals(1, logFile.getLogRangeInfo().highestVersion());
 
-        logFile.combine(additionalSource, AppendIndexProvider.UNKNOWN_APPEND_INDEX);
+        logFile.combine(additionalSource);
         assertEquals(4, logFile.getLogRangeInfo().highestVersion());
         assertThat(Arrays.stream(logFile.getMatchedFiles())
                         .map(path -> path.getFileName().toString()))
@@ -533,7 +532,7 @@ class TransactionLogFileTest {
         LogFile logFile = logFiles.getLogFile();
         assertEquals(1, logFile.getLogRangeInfo().highestVersion());
 
-        logFile.combine(additionalSource, AppendIndexProvider.UNKNOWN_APPEND_INDEX);
+        logFile.combine(additionalSource);
 
         assertEquals(numberOfAdditionalFile + 1, logFile.getLogRangeInfo().highestVersion());
 
@@ -569,8 +568,8 @@ class TransactionLogFileTest {
         LogFile logFile = logFiles.getLogFile();
         assertEquals(1, logFile.getLogRangeInfo().highestVersion());
 
-        logFile.combine(additionalSource1, AppendIndexProvider.UNKNOWN_APPEND_INDEX);
-        logFile.combine(additionalSource2, AppendIndexProvider.UNKNOWN_APPEND_INDEX);
+        logFile.combine(additionalSource1);
+        logFile.combine(additionalSource2);
 
         assertEquals(7, logFile.getLogRangeInfo().highestVersion());
         assertThat(Arrays.stream(logFile.getMatchedFiles())

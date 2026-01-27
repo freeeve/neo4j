@@ -104,7 +104,7 @@ public interface LogFile extends VersionedFile, RotatableFile {
 
     void accept(LogHeaderVisitor visitor) throws IOException;
 
-    void combine(Path additionalSource, long overLappingAppendIndex) throws IOException;
+    void combine(Path additionalSource) throws IOException;
 
     boolean forceAfterAppend(LogForceEvents logForceEvents) throws IOException;
 

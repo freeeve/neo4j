@@ -34,10 +34,8 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.FileChannel;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -54,7 +52,6 @@ import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 import org.eclipse.collections.api.block.procedure.primitive.LongObjectProcedure;
 import org.eclipse.collections.api.map.primitive.LongObjectMap;
-import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
@@ -65,14 +62,12 @@ import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.UnclosableChannel;
-import org.neo4j.kernel.impl.transaction.log.LogEntryCursor;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvent;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvents;
 import org.neo4j.kernel.impl.transaction.log.LogForceWaitEvent;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
@@ -80,26 +75,19 @@ import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadAheadUtils;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
-import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
-import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
-import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
-import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeWriteChannel;
 import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidEndOfFileReadException;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.kernel.impl.transaction.log.rotation.monitor.LogRotationMonitor;
-import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.InternalLog;
-import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
-import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.util.Preconditions;
 import org.neo4j.util.VisibleForTesting;
@@ -609,11 +597,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     }
 
     @Override
-    public void combine(Path additionalLogFilesDirectory, long overLappingAppendIndex) throws IOException {
-        if (overLappingAppendIndex != AppendIndexProvider.UNKNOWN_APPEND_INDEX) {
-            combineOverlapping(additionalLogFilesDirectory, overLappingAppendIndex);
-        }
-
+    public void combine(Path additionalLogFilesDirectory) throws IOException {
         long highestLogVersion = getLogRangeInfo().highestVersion();
         var logHelper = TransactionLogFilesHelper.forTransactions(fileSystem, additionalLogFilesDirectory);
         for (Path matchedFile : logHelper.getFiles()) {
@@ -625,138 +609,6 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                 LogHeader writeHeader = new LogHeader(logHeader, newFileVersion);
                 writeLogHeader(channel, writeHeader, memoryTracker);
             }
-        }
-    }
-
-    private PhysicalLogVersionedStoreChannel createPhysicalChannel(
-            StoreChannel storeChannel, LogHeader logHeader, Path filePath) throws IOException {
-        return new PhysicalLogVersionedStoreChannel(
-                storeChannel,
-                logHeader,
-                filePath,
-                new StoreChannelNativeAccessor(
-                        fileSystem, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}),
-                DatabaseTracer.NULL);
-    }
-
-    private void combineOverlapping(Path additionalLogFilesDirectory, long fromAppendIndex) throws IOException {
-        long nextFileVersion = getLogRangeInfo().highestVersion() + 1;
-        var entryReader = new VersionAwareLogEntryReader(
-                context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions(), memoryTracker);
-
-        var logHelper = TransactionLogFilesHelper.forTransactions(fileSystem, additionalLogFilesDirectory);
-        var transactionLogFiles = logHelper.getFiles();
-
-        Path matchedFile = null;
-        LogHeader matchedFileHeader = null;
-        int matchedIndex = -1;
-        long sourceOffset = 0L;
-        int previousChecksum = 0;
-
-        boolean cutFound = false;
-
-        outer:
-        for (var fileIndex = transactionLogFiles.length - 1; fileIndex >= 0; fileIndex--) {
-            var file = transactionLogFiles[fileIndex];
-            var header = readLogHeader(fileSystem, file, memoryTracker);
-            long headerLastAppendIndex = header.getLastAppendIndex();
-
-            if (headerLastAppendIndex >= fromAppendIndex) {
-                continue;
-            }
-
-            try (StoreChannel channel = fileSystem.read(file)) {
-                readLogHeader(channel, true, file, memoryTracker);
-                try (var physicalChannel = createPhysicalChannel(channel, header, file)) {
-                    var readable = ReadAheadUtils.newChannel(physicalChannel, NO_MORE_CHANNELS, header, memoryTracker);
-                    int lastCommitEntryChecksum = header.getPreviousLogFileChecksum();
-                    long positionBeforeEntry = readable.alignWithStartEntry();
-                    if (readable instanceof EnvelopeReadChannel env) {
-                        lastCommitEntryChecksum = env.getPreviousChecksum();
-                    }
-                    try (var cursor = new LogEntryCursor(entryReader, readable)) {
-                        while (cursor.next()) {
-                            var entry = cursor.get();
-                            long positionAfterEntry =
-                                    readable.getCurrentLogPosition().getByteOffset();
-                            if (entry instanceof LogEntryStart startEntry) {
-                                long currentAppendIndex = startEntry.getAppendIndex();
-                                if (currentAppendIndex >= fromAppendIndex) {
-                                    sourceOffset = positionBeforeEntry;
-                                    matchedFile = file;
-                                    matchedFileHeader = header;
-                                    matchedIndex = fileIndex;
-                                    previousChecksum = lastCommitEntryChecksum;
-                                    cutFound = true;
-                                    break outer;
-                                }
-                            } else if (entry instanceof LogEntryCommit commit) {
-                                lastCommitEntryChecksum = commit.getChecksum();
-                                positionBeforeEntry = positionAfterEntry;
-                            }
-                        }
-                    }
-                } catch (ReadPastEndException ex) {
-                    // if alignWithStartEntry moved off this file then continue backward search
-                }
-            }
-        }
-
-        if (!cutFound || matchedFile == null) {
-            return;
-        }
-
-        for (int i = 0; i < matchedIndex; i++) {
-            fileSystem.deleteFile(transactionLogFiles[i]);
-        }
-
-        int segmentOffset = 0;
-        if (matchedFileHeader.getLogFormatVersion().usesSegments()) {
-            long segmentBlockSize = matchedFileHeader.getSegmentBlockSize();
-            segmentOffset = (int) (sourceOffset % segmentBlockSize);
-        }
-        var newLogHeader = new LogHeader(matchedFileHeader, nextFileVersion, fromAppendIndex - 1, previousChecksum);
-        long destOffset = initializeNewLogFile(newLogHeader, segmentOffset);
-
-        transferData(fileHelper.getFileForVersion(nextFileVersion), matchedFile, destOffset, sourceOffset);
-        fileSystem.deleteFile(matchedFile);
-    }
-
-    private long initializeNewLogFile(LogHeader newLogHeader, int segmentOffset) throws IOException {
-        var newPath = fileHelper.getFileForVersion(newLogHeader.getLogVersion());
-        long position;
-        try (PhysicalLogVersionedStoreChannel physicalChannel =
-                createPhysicalChannel(fileSystem.write(newPath), newLogHeader, newPath)) {
-
-            writeLogHeader(physicalChannel, newLogHeader, memoryTracker);
-            position = physicalChannel.position();
-
-            if (newLogHeader.getLogFormatVersion().usesSegments()) {
-                try (EnvelopeWriteChannel dest = new EnvelopeWriteChannel(
-                        physicalChannel,
-                        createScopedBuffer(),
-                        newLogHeader.getSegmentBlockSize(),
-                        newLogHeader.getPreviousLogFileChecksum(),
-                        newLogHeader.getLastAppendIndex(),
-                        LogTracers.NULL,
-                        LogRotation.NO_ROTATION)) {
-                    if (segmentOffset > 0) {
-                        dest.insertStartOffset(segmentOffset);
-                    }
-                    position = dest.position();
-                }
-            }
-            return position;
-        }
-    }
-
-    private void transferData(Path destFile, Path sourceFile, long destPosition, long sourcePosition)
-            throws IOException {
-        try (FileChannel dest = FileChannel.open(destFile, StandardOpenOption.WRITE);
-                FileChannel source = FileChannel.open(sourceFile, StandardOpenOption.READ)) {
-            source.position(sourcePosition);
-            dest.position(destPosition);
-            dest.transferFrom(source, destPosition, source.size() - sourcePosition);
         }
     }
 
