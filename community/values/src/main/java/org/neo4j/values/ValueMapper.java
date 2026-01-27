@@ -28,6 +28,7 @@ import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.neo4j.graphdb.Vector;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.values.storable.BooleanArray;
@@ -282,8 +283,8 @@ public interface ValueMapper<Base> {
         }
 
         @Override
-        public Object mapMap(MapValue value) {
-            final var map = HashMap.newHashMap(value.size());
+        public Map<String, Object> mapMap(MapValue value) {
+            final var map = HashMap.<String, Object>newHashMap(value.size());
             value.foreach((k, v) -> map.put(k, v.map(this)));
             return map;
         }

@@ -49,8 +49,8 @@ public class TransactionIndependentValueMapper extends DefaultValueMapper {
     }
 
     @Override
-    public Object mapMap(MapValue value) {
-        Map<Object, Object> map = new HashMap<>();
+    public Map<String, Object> mapMap(MapValue value) {
+        Map<String, Object> map = new HashMap<>();
         value.foreach((k, v) -> {
             if (v instanceof NodeValue || v instanceof RelationshipValue) {
                 try {

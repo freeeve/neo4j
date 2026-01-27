@@ -50,6 +50,10 @@ case object SystemCommandRuntimeName extends RuntimeName {
   override val name = "SYSTEM"
 }
 
+case object GraphEngineRuntimeName extends RuntimeName {
+  override def name: String = "GRAPH ENGINE"
+}
+
 object RuntimeName {
 
   def apply(name: String): RuntimeName = name.toUpperCase(Locale.ROOT) match {

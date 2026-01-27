@@ -77,6 +77,24 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
     (None, baseConverters, NO_METADATA, NO_WARNINGS)
   }
 
+  protected def createExpressionConverters(
+    baseConverters: List[ExpressionConverter],
+    context: CONTEXT,
+    physicalPlan: PhysicalPlan,
+    query: LogicalQuery,
+    selectivityTrackerRegistrator: SelectivityTrackerRegistrator,
+    codeGenStats: CodeGenerator.Stats
+  ): (Option[ExpressionConverter], List[ExpressionConverter], () => Seq[Argument], () => Set[InternalNotification]) = {
+    if (context.materializedEntitiesMode) {
+      val converters = MaterializedEntitiesExpressionConverter(context.tokenContext) +: baseConverters
+      (None, converters, NO_METADATA, NO_WARNINGS)
+    } else if (context.compileExpressions) {
+      compileExpressions(baseConverters, context, physicalPlan, query, selectivityTrackerRegistrator, codeGenStats)
+    } else {
+      (None, baseConverters, NO_METADATA, NO_WARNINGS)
+    }
+  }
+
   @throws[CantCompileQueryException]
   override def compileToExecutable(
     query: LogicalQuery,
@@ -116,16 +134,14 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
       )
 
       val codeGenStats = new CodeGenerator.Stats
-      val (mainConverter, fallbackConverters, metadataGen, warningsGen) =
-        if (context.materializedEntitiesMode) {
-          val converters = MaterializedEntitiesExpressionConverter(context.tokenContext) +: baseConverters
-          (None, converters, NO_METADATA, NO_WARNINGS)
-        } else if (context.compileExpressions) {
-          compileExpressions(baseConverters, context, physicalPlan, query, selectivityTrackerRegistrator, codeGenStats)
-        } else {
-          (None, baseConverters, NO_METADATA, NO_WARNINGS)
-        }
-
+      val (mainConverter, fallbackConverters, metadataGen, warningsGen) = createExpressionConverters(
+        baseConverters = baseConverters,
+        context = context,
+        physicalPlan = physicalPlan,
+        query = query,
+        selectivityTrackerRegistrator = selectivityTrackerRegistrator,
+        codeGenStats = codeGenStats
+      )
       val converters = new ExpressionConverters(mainConverter, fallbackConverters: _*)
 
       val queryIndexRegistrator = new QueryIndexRegistrator(context.schemaRead)
