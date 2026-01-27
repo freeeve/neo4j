@@ -171,9 +171,14 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql22G03_22N31() {
+    public static ErrorGqlStatusObject getGql22G03_22N31(
+            String valueType, String entityType, String propKey, String pattern) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N31)
+                        .withParam(GqlParams.StringParam.valueType, valueType)
+                        .withParam(GqlParams.StringParam.entityType, entityType)
+                        .withParam(GqlParams.StringParam.propKey, propKey)
+                        .withParam(GqlParams.StringParam.pat, pattern)
                         .build())
                 .build();
     }
@@ -1553,7 +1558,7 @@ public class GqlHelper {
      * (this should always be true, but is needed for casting)
      *
      * @param gqlStatusObject The current inner ErrorGqlStatusObject
-     * @param cause The exception cause
+     * @param cause           The exception cause
      * @return The replaced inner ErrorGqlStatusObject
      */
     public static ErrorGqlStatusObject getInnerGqlStatusObject(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {

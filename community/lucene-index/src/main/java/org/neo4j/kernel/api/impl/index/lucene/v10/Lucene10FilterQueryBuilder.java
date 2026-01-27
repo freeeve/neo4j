@@ -406,7 +406,8 @@ final class Lucene10FilterQueryBuilder {
     /// and further queries within the end instant formed of a range of `ZoneOffset`.
     /// A third query may also be necessary, formed of a range of `ZoneId` within the endmost `ZoneOffset`.
     /// Consider `TemporalWithZone`s of (Instant,ZoneOffset,ZoneId)
-    /// Consider the range (5500,-14400,\[America/Goose_Bay\]),inclusive - (6200,+18000,\[Indian,Maldives\]),exclusive
+    /// Consider the range (5500,-14400,\[America/Goose_Bay\]),inclusive -
+    // (6200,+18000,\[Indian,Maldives\]),exclusive
     /// The resulting set of queries (disjunction) generated here is:
     /// (instant=5500 AND offset=-14400 AND \[America/Goose_Bay\] <= zoneid) - <= because inclusive
     /// OR (instant=5500 AND -14400 < offset)
