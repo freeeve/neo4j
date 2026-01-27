@@ -88,6 +88,19 @@ public class LogHeader {
         databaseVersion = logHeader.databaseVersion;
     }
 
+    public LogHeader(LogHeader logHeader, long version, long newLastAppendIndex, int checksum) {
+        logFormatVersion = logHeader.logFormatVersion;
+        logVersion = version;
+        lastAppendIndex = newLastAppendIndex;
+        storeId = logHeader.storeId;
+        segmentBlockSize = logHeader.segmentBlockSize;
+        startPosition = new LogPosition(version, logHeader.startPosition.getByteOffset());
+        previousLogFileChecksum = checksum;
+        kernelVersion = logHeader.kernelVersion;
+        lastTerm = logHeader.lastTerm;
+        databaseVersion = logHeader.databaseVersion;
+    }
+
     public LogPosition getStartPosition() {
         return startPosition;
     }
