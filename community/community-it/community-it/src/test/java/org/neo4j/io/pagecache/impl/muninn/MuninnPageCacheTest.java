@@ -1799,6 +1799,35 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
     }
 
     @Test
+    void setHorizonOnMultiversionWriteCursorUsesMaxValueOfHorizonOfSetAndPage() throws IOException {
+        try (MuninnPageCache pageCache = createPageCache(fs, 4, NULL);
+                PagedFile pagedFile =
+                        map(pageCache, file("a"), (int) ByteUnit.kibiBytes(8), immutable.of(MULTI_VERSIONED))) {
+            try (PageCursor cursor = pagedFile.io(1, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
+                assertTrue(cursor.next());
+                assertEquals(0, getPageHorizon(((MuninnPageCursor) cursor).pinnedPageRef));
+                cursor.setPageHorizon(42);
+                assertEquals(42, getPageHorizon(((MuninnPageCursor) cursor).pinnedPageRef));
+
+                cursor.setPageHorizon(48);
+                assertEquals(48, getPageHorizon(((MuninnPageCursor) cursor).pinnedPageRef));
+
+                cursor.setPageHorizon(44);
+                assertEquals(48, getPageHorizon(((MuninnPageCursor) cursor).pinnedPageRef));
+            }
+
+            // reopened cursor has the some boundary and limits
+            try (PageCursor cursor = pagedFile.io(1, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
+                assertTrue(cursor.next());
+                assertEquals(48, getPageHorizon(((MuninnPageCursor) cursor).pinnedPageRef));
+
+                cursor.setPageHorizon(42);
+                assertEquals(48, getPageHorizon(((MuninnPageCursor) cursor).pinnedPageRef));
+            }
+        }
+    }
+
+    @Test
     void setHorizonOnPlainWriteCursorHasNoEffect() throws IOException {
         assumeFalse(getOpenOptions().contains(MULTI_VERSIONED));
 

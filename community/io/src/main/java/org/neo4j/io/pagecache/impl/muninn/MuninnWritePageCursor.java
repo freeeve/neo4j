@@ -236,7 +236,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
     @Override
     public void setPageHorizon(long horizon) {
         if (multiVersioned && pinnedPageRef != 0) {
-            PageMetadata.setPageHorizon(pinnedPageRef, horizon);
+            PageMetadata.setPageHorizon(pinnedPageRef, Math.max(PageMetadata.getPageHorizon(pinnedPageRef), horizon));
         }
     }
 
