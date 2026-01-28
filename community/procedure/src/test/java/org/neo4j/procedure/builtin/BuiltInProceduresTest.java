@@ -56,10 +56,11 @@ import java.util.function.IntSupplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
+import org.neo4j.capabilities.CapabilitiesService;
 import org.neo4j.common.DependencyResolver;
-import org.neo4j.common.Edition;
 import org.neo4j.common.EntityType;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.SettingImpl;
 import org.neo4j.configuration.SettingValueParsers;
 import org.neo4j.dbms.database.SystemGraphComponent;
@@ -73,6 +74,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.InternalIndexState;
@@ -121,6 +123,8 @@ class BuiltInProceduresTest {
     private final KernelTransaction tx = mock(KernelTransaction.class);
     private final ProcedureCallContext callContext = mock(ProcedureCallContext.class);
     private final DependencyResolver resolver = mock(DependencyResolver.class);
+    private final Configuration configuration = mock(Configuration.class);
+    private final CapabilitiesService capabilitiesService = mock(CapabilitiesService.class);
     private final GraphDatabaseAPI graphDatabaseAPI = mock(GraphDatabaseAPI.class);
     private final IndexingService indexingService = mock(IndexingService.class);
     private final Clock clock = Clocks.tickOnAccessClock(Instant.now(), Duration.ofSeconds(1));
@@ -146,8 +150,7 @@ class BuiltInProceduresTest {
 
         doReturn(clock).when(resolver).resolveDependency(Clock.class);
 
-        SpecialBuiltInProcedures.from("1.3.37", Edition.COMMUNITY.toString(), Config.defaults())
-                .install(procs);
+        SpecialBuiltInProcedures.get().install(procs);
         procs.registerComponent(
                 SpdBuiltInProcedures.class, context -> SpdBuiltInProcedures.COMMUNITY_EDITION_IMPL, false);
         procs.registerProcedure(BuiltInProcedures.class);
@@ -188,6 +191,10 @@ class BuiltInProceduresTest {
         when(read.countsForRelationship(anyInt(), anyInt(), anyInt())).thenReturn(1L);
         when(schemaReadCore.indexGetState(any(IndexDescriptor.class))).thenReturn(InternalIndexState.ONLINE);
 
+        when(configuration.get(GraphDatabaseInternalSettings.custom_kernel_version))
+                .thenReturn("1.3.37");
+        when(resolver.resolveDependency(Configuration.class)).thenReturn(configuration);
+        when(resolver.resolveDependency(CapabilitiesService.class)).thenReturn(capabilitiesService);
         when(graphDatabaseAPI.dbmsInfo()).thenReturn(DbmsInfo.ENTERPRISE);
     }
 
@@ -234,7 +241,7 @@ class BuiltInProceduresTest {
     @Test
     void shouldListSystemComponents() throws Throwable {
         // When/Then
-        assertThat(call("dbms.components")).contains(record("Neo4j Kernel", singletonList("1.3.37"), "community"));
+        assertThat(call("dbms.components")).contains(record("Neo4j Kernel", singletonList("1.3.37"), "enterprise"));
     }
 
     @Test

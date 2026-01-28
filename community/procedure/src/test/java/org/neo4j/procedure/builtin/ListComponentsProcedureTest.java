@@ -20,12 +20,23 @@
 package org.neo4j.procedure.builtin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.neo4j.capabilities.CapabilitiesService;
+import org.neo4j.capabilities.Name;
+import org.neo4j.common.DependencyResolver;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.graphdb.config.Configuration;
+import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
+import org.neo4j.kernel.api.procedure.Context;
+import org.neo4j.kernel.impl.factory.DbmsInfo;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.virtual.ListValue;
@@ -34,19 +45,53 @@ import org.neo4j.values.virtual.ListValue;
  * Tests for {@link ListComponentsProcedure}.
  */
 class ListComponentsProcedureTest {
+
+    static Configuration configuration(
+            String customConfigVersion, Boolean experimentalCypherVersionsEnabled, Boolean graphEngineEnabled) {
+        return new Configuration() {
+
+            @SuppressWarnings("unchecked")
+            @Override
+            public <T> T get(Setting<T> setting) {
+                if (GraphDatabaseInternalSettings.custom_kernel_version == setting) {
+                    return (T) customConfigVersion;
+                } else if (GraphDatabaseInternalSettings.enable_experimental_cypher_versions == setting) {
+                    return (T) experimentalCypherVersionsEnabled;
+                } else if (GraphDatabaseInternalSettings.graph_engine_enabled == setting) {
+                    return (T) graphEngineEnabled;
+                }
+                return null;
+            }
+        };
+    }
+
+    static Context context(
+            String customConfigVersion, Boolean experimentalCypherVersionsEnabled, Boolean graphEngineEnabled) {
+        var capabilitiesService = Mockito.mock(CapabilitiesService.class);
+        when(capabilitiesService.get(Name.of("graphengine.version"))).thenReturn("4711");
+
+        var dependencyResolver = Mockito.mock(DependencyResolver.class);
+        when(dependencyResolver.resolveDependency(CapabilitiesService.class)).thenReturn(capabilitiesService);
+        when(dependencyResolver.resolveDependency(Configuration.class))
+                .thenReturn(configuration(customConfigVersion, experimentalCypherVersionsEnabled, graphEngineEnabled));
+
+        var graphDatabaseAPI = Mockito.mock(GraphDatabaseAPI.class);
+        when(graphDatabaseAPI.dbmsInfo()).thenReturn(DbmsInfo.COMMUNITY);
+
+        var context = Mockito.mock(Context.class);
+        when(context.dependencyResolver()).thenReturn(dependencyResolver);
+        when(context.graphDatabaseAPI()).thenReturn(graphDatabaseAPI);
+        return context;
+    }
+
     @Test
     void usesCustomVersionWhenConfigured() throws ProcedureException {
         // Given
-        var customConfigVersion = "5.27.0";
-        var procedure = new ListComponentsProcedure(
-                new QualifiedName(new String[] {"dbms"}, "components"),
-                "2025.01.0",
-                "community",
-                customConfigVersion,
-                false);
+        var context = context("5.27.0", false, false);
+        var procedure = new ListComponentsProcedure(new QualifiedName(new String[] {"dbms"}, "components"));
 
         // When
-        try (var result = procedure.apply(null, new AnyValue[0], null)) {
+        try (var result = procedure.apply(context, new AnyValue[0], null)) {
             // Then
             var row = filterByComponentName(Iterators.asList(result), "Neo4j Kernel");
 
@@ -59,15 +104,10 @@ class ListComponentsProcedureTest {
 
     @Test
     void listCypherVersions() throws ProcedureException {
-        var customConfigVersion = "5.27.0";
-        var procedure = new ListComponentsProcedure(
-                new QualifiedName(new String[] {"dbms"}, "components"),
-                "2025.01.0",
-                "community",
-                customConfigVersion,
-                false);
+        var context = context("5.27.0", false, false);
+        var procedure = new ListComponentsProcedure(new QualifiedName(new String[] {"dbms"}, "components"));
 
-        try (var result = procedure.apply(null, new AnyValue[0], null)) {
+        try (var result = procedure.apply(context, new AnyValue[0], null)) {
             var row = filterByComponentName(Iterators.asList(result), "Cypher");
 
             var versions = (ListValue) row[1];
@@ -80,21 +120,31 @@ class ListComponentsProcedureTest {
 
     @Test
     void listCypherVersionsIncluding25() throws ProcedureException {
-        var customConfigVersion = "5.27.0";
-        var procedure = new ListComponentsProcedure(
-                new QualifiedName(new String[] {"dbms"}, "components"),
-                "2025.01.0",
-                "community",
-                customConfigVersion,
-                true);
+        var context = context("5.27.0", true, false);
+        var procedure = new ListComponentsProcedure(new QualifiedName(new String[] {"dbms"}, "components"));
 
-        try (var result = procedure.apply(null, new AnyValue[0], null)) {
+        try (var result = procedure.apply(context, new AnyValue[0], null)) {
             var row = filterByComponentName(Iterators.asList(result), "Cypher");
 
             var versions = (ListValue) row[1];
             assertEquals(2, versions.intSize());
             assertEquals("5", ((TextValue) versions.value(0)).stringValue());
             assertEquals("25", ((TextValue) versions.value(1)).stringValue());
+            assertEquals("", ((TextValue) row[2]).stringValue());
+        }
+    }
+
+    @Test
+    void listGraphEngineWhenEnabled() throws ProcedureException {
+        var context = context("5.27.0", false, true);
+        var procedure = new ListComponentsProcedure(new QualifiedName(new String[] {"dbms"}, "components"));
+
+        try (var result = procedure.apply(context, new AnyValue[0], null)) {
+            var row = filterByComponentName(Iterators.asList(result), "Graph Engine");
+
+            var versions = (ListValue) row[1];
+            assertEquals(1, versions.intSize());
+            assertEquals("4711", ((TextValue) versions.value(0)).stringValue());
             assertEquals("", ((TextValue) row[2]).stringValue());
         }
     }

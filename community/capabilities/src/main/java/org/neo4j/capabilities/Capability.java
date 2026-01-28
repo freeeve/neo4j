@@ -36,6 +36,10 @@ public final class Capability<T> {
         this(name, type, "", true);
     }
 
+    public Capability(Name name, Type<T> type, boolean internal) {
+        this(name, type, "", internal);
+    }
+
     private Capability(Name name, Type<T> type, String description, boolean internal) {
         this.name = Objects.requireNonNull(name);
         this.type = Objects.requireNonNull(type);

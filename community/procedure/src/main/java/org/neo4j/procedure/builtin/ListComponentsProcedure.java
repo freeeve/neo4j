@@ -32,14 +32,21 @@ import static org.neo4j.values.storable.Values.utf8Value;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import org.neo4j.capabilities.CapabilitiesService;
+import org.neo4j.capabilities.Name;
 import org.neo4j.collection.ResourceRawIterator;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings.CypherVersion;
+import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.ResourceMonitor;
 import org.neo4j.kernel.api.procedure.CallableProcedure;
 import org.neo4j.kernel.api.procedure.Context;
+import org.neo4j.kernel.impl.factory.DbmsInfo;
+import org.neo4j.kernel.internal.Version;
 import org.neo4j.procedure.Mode;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.TextValue;
@@ -69,21 +76,18 @@ public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
     public static final String VERSIONS_COLUMN = "versions";
     public static final String EDITION_COLUMN = "edition";
     public static final String KERNEL_COMPONENT_NAME = "Neo4j Kernel";
+    public static final String GRAPH_ENGINE_COMPONENT_NAME = "Graph Engine";
 
     private static final TextValue NEO4J_KERNEL = utf8Value(KERNEL_COMPONENT_NAME);
+    private static final TextValue GRAPH_ENGINE = utf8Value(GRAPH_ENGINE_COMPONENT_NAME);
     private static final TextValue CYPHER = utf8Value("Cypher");
     private static final CypherVersion[] ALL_CYPHER_VERSIONS = CypherVersion.values();
     private static final ListValue CYPHER_VERSIONS_EXCL_EXPERIMENTAL = cypherVersions(false);
     private static final ListValue CYPHER_VERSIONS_INCL_EXPERIMENTAL = cypherVersions(true);
 
-    private final List<AnyValue[]> components;
+    private volatile List<AnyValue[]> components;
 
-    public ListComponentsProcedure(
-            QualifiedName name,
-            String neo4jVersion,
-            String neo4jEdition,
-            String customVersionConfig,
-            Boolean cypherExperimentalVersionsEnabled) {
+    public ListComponentsProcedure(QualifiedName name) {
         super(procedureSignature(name)
                 .out(NAME_COLUMN, NTString, "The name of the component.")
                 // Since Bolt, Cypher and other components support multiple versions
@@ -94,34 +98,65 @@ public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
                 .description("List DBMS components and their versions.")
                 .systemProcedure()
                 .build());
-        this.components = createComponentsList(
-                neo4jVersion, customVersionConfig, neo4jEdition, cypherExperimentalVersionsEnabled);
     }
 
     @Override
     public ResourceRawIterator<AnyValue[], ProcedureException> apply(
             Context ctx, AnyValue[] input, ResourceMonitor resourceMonitor) throws ProcedureException {
-        return asRawIterator(components);
+
+        var dependencyResolver = ctx.dependencyResolver();
+        return asRawIterator(getComponents(
+                ctx.graphDatabaseAPI().dbmsInfo(),
+                dependencyResolver.resolveDependency(Configuration.class),
+                dependencyResolver.resolveDependency(CapabilitiesService.class)));
+    }
+
+    private List<AnyValue[]> getComponents(
+            DbmsInfo dbmsInfo, Configuration configuration, CapabilitiesService capabilitiesService) {
+
+        var result = this.components;
+        if (result == null) {
+            synchronized (this) {
+                result = this.components;
+                if (result == null) {
+                    this.components = createComponentsList(
+                            Version.getNeo4jVersion(), dbmsInfo.edition.toString(), configuration, capabilitiesService);
+                    result = this.components;
+                }
+            }
+        }
+        return result;
     }
 
     private static List<AnyValue[]> createComponentsList(
             String neo4jVersion,
-            String customVersionConfig,
             String neo4jEdition,
-            Boolean cypherExperimentalVersionsEnabled) {
+            Configuration configuration,
+            CapabilitiesService capabilitiesService) {
+
+        var customVersionConfig = configuration.get(GraphDatabaseInternalSettings.custom_kernel_version);
         var version = customVersionConfig != null ? stringValue(customVersionConfig) : stringValue(neo4jVersion);
         var edition = stringValue(neo4jEdition);
 
-        List<AnyValue[]> components = new ArrayList<>(2);
+        List<AnyValue[]> components = new ArrayList<>(3);
         components.add(new AnyValue[] {NEO4J_KERNEL, VirtualValues.list(version), edition});
-        if (Boolean.getBoolean(SKIP_CYPHER_VERSION)) {
-            return components;
+
+        if (!Boolean.getBoolean(SKIP_CYPHER_VERSION)) {
+            var cypherExperimentalVersionsEnabled =
+                    configuration.get(GraphDatabaseInternalSettings.enable_experimental_cypher_versions);
+            var cypherVersions = Boolean.TRUE.equals(cypherExperimentalVersionsEnabled)
+                    ? CYPHER_VERSIONS_INCL_EXPERIMENTAL
+                    : CYPHER_VERSIONS_EXCL_EXPERIMENTAL;
+            components.add(new AnyValue[] {CYPHER, cypherVersions, EMPTY_STRING});
         }
 
-        var cypherVersions = cypherExperimentalVersionsEnabled
-                ? CYPHER_VERSIONS_INCL_EXPERIMENTAL
-                : CYPHER_VERSIONS_EXCL_EXPERIMENTAL;
-        components.add(new AnyValue[] {CYPHER, cypherVersions, EMPTY_STRING});
+        var geEnabled = configuration.get(GraphDatabaseInternalSettings.graph_engine_enabled);
+        if (Boolean.TRUE.equals(geEnabled)) {
+            var geVersion =
+                    Objects.requireNonNullElse((String) capabilitiesService.get(Name.of("graphengine.version")), "n/a");
+            components.add(new AnyValue[] {GRAPH_ENGINE, VirtualValues.list(stringValue(geVersion)), stringValue("")});
+        }
+
         return components;
     }
 

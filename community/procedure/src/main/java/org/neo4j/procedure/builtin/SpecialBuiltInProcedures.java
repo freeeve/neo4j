@@ -21,8 +21,6 @@ package org.neo4j.procedure.builtin;
 
 import java.lang.management.ManagementFactory;
 import java.util.List;
-import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.procedure.CallableProcedure;
@@ -47,17 +45,9 @@ public class SpecialBuiltInProcedures {
         }
     }
 
-    public static SpecialBuiltInProcedures from(String neo4jVersion, String neo4jEdition, Config config) {
-        var customVersionConfig = config.get(GraphDatabaseInternalSettings.custom_kernel_version);
-        var cypherExperimentalVersionsEnabled =
-                config.get(GraphDatabaseInternalSettings.enable_experimental_cypher_versions);
+    public static SpecialBuiltInProcedures get() {
         return new SpecialBuiltInProcedures(List.of(
-                new ListComponentsProcedure(
-                        new QualifiedName("dbms", "components"),
-                        neo4jVersion,
-                        neo4jEdition,
-                        customVersionConfig,
-                        cypherExperimentalVersionsEnabled),
+                new ListComponentsProcedure(new QualifiedName("dbms", "components")),
                 new JmxQueryProcedure(
                         new QualifiedName("dbms", "queryJmx"), ManagementFactory.getPlatformMBeanServer())));
     }
