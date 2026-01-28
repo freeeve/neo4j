@@ -18,10 +18,12 @@ package org.neo4j.cypher.internal.rewriting.conditions
 
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
+import org.neo4j.cypher.internal.ast.FlavouredWithType
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.TopLevelBraces
+import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.util.ASTNode
 
 case object ContainsNoExpandableClauses extends ContainsNoMatchingStatementNodes {
@@ -33,6 +35,7 @@ case object ContainsNoExpandableClauses extends ContainsNoMatchingStatementNodes
     case _: NextStatement                                 => "NEXT"
     case ri: ReturnItems if ri.includeExisting            => "ReturnItems(includeExisting = true, ...)"
     case sq: ScopeClauseSubqueryCall if sq.isImportingAll => "ScopeClauseSubqueryCall(isImportingAll = true, ...)"
+    case With(_, _, _, _, _, _, _: FlavouredWithType)     => "FlavouredWithType"
   }
 
   override val name: String = "NoExpandableClauses"

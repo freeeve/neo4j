@@ -309,7 +309,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
               Variable(anonVarNameGen.nextName)(pos, isIsolated = false)
             )(pos))
           )(pos),
-          AddedInRewriteGeneral
+          AddedInRewriteGeneral()
         )(pos)
 
       // Adapts a SingleQuery to the Layout
@@ -393,7 +393,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
 
           val remappingWith: Option[With] =
             Option.when(accessedItems.nonEmpty)(
-              With(ReturnItems(FreeProjection, accessedItems)(pos), AddedInRewriteGeneral)(pos)
+              With(ReturnItems(FreeProjection, accessedItems)(pos), AddedInRewriteGeneral())(pos)
             )
           Seq(unwind) ++ remappingWith
         } else Seq.empty
@@ -416,7 +416,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
           }.toSeq
 
           val returnItems = ReturnItems(FreeProjection, Seq(countStar) ++ collectItems)(pos)
-          Seq(With(returnItems, withType = AddedInRewriteGeneral)(pos))
+          Seq(With(returnItems, withType = AddedInRewriteGeneral())(pos))
         } else if (collectedVariables.exists(_._2.anonymizedIncoming) && !willExpand) {
           val deanonymized = collectedVariables.map(av =>
             AliasedReturnItem(av._2.incoming.copyId, av._2.original.copyId)(pos)
@@ -627,7 +627,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
               Variable(listName, position),
               SignedDecimalIntegerLiteral(index.toString)(position.zeroLength)
             )(position))(position),
-            AddedInRewriteGeneral
+            AddedInRewriteGeneral()
           )(position))
 
         val nestedQuery =
@@ -719,7 +719,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
               Variable(listName, pos)
             )(pos)
           )(pos),
-          withType = AddedInRewriteGeneral
+          withType = AddedInRewriteGeneral()
         )(pos))
 
         val subquery = ScopeClauseSubqueryCall(unionOfBranches, imports)(pos)
@@ -729,7 +729,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
             val items = returnsMapped.map { case (k, v) =>
               AliasedReturnItem(v.copyId, incomingLayout.resultMapping.getOrElse(k, k).copyId)(v.position)
             }.toSeq
-            With(ReturnItems(FreeProjection, items)(ast.position), withType = AddedInRewriteGeneral)(ast.position)
+            With(ReturnItems(FreeProjection, items)(ast.position), withType = AddedInRewriteGeneral())(ast.position)
           }
 
         def defaultPostface: Clause = {
@@ -828,9 +828,11 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
     def expandReturnItems(clause: ProjectionClause, returnItems: ReturnItems, layout: Layout): ProjectionClause = {
 
       clause match {
-        case With(false, ReturnItems(_, Seq(), _), None, None, None, None, withType)
+        case w @ With(false, ReturnItems(_, Seq(), _), None, None, None, None, withType)
           if version != CypherVersion.Cypher5 && withType != ParsedAsYield =>
-          clause.copyProjection(returnItems = ReturnItems(FreeProjection, Seq.empty, None)(returnItems.position))
+          w.copyProjection(returnItems = ReturnItems(FreeProjection, Seq.empty, None)(returnItems.position))
+            .withRewrittenType
+
         case _ =>
           val expandedItems = if (returnItems.includeExisting) {
             clause match {
@@ -865,7 +867,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
             returnItems =
               returnItems.copy(FreeProjection, anonymizedItems, defaultOrderOnColumns = None)(returnItems.position),
             orderBy = anonymizedSortKeys
-          )
+          ).withRewrittenType
       }
 
     }

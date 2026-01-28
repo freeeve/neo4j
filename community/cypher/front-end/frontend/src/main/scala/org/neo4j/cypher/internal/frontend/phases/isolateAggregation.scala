@@ -94,7 +94,7 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
             None,
             None,
             None,
-            withType = AddedInRewriteGeneral
+            withType = AddedInRewriteGeneral()
           )(pos)
 
           val expressionRewriter = createRewriterFor(withReturnItems)

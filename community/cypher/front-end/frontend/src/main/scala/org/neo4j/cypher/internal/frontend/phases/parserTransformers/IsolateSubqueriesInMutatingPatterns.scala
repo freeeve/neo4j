@@ -173,7 +173,7 @@ case object IsolateSubqueriesInMutatingPatterns extends StatementRewriter
                     )(expression.position)
                 }
               )(uc.position),
-              withType = AddedInRewriteGeneral
+              withType = AddedInRewriteGeneral()
             )(uc.position)
 
             uselessUnwind ++ Seq(withClause, rewrittenUc)

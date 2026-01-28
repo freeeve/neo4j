@@ -47,7 +47,7 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
       // the explicit WITH in the expected will have DefaultWith
       // so let's update that before checking the equality
       case w: With if w.withType == DefaultWith =>
-        w.copy(withType = AddedInRewriteGeneral)(w.position)
+        w.copy(withType = AddedInRewriteGeneral())(w.position)
     }))
   }
 

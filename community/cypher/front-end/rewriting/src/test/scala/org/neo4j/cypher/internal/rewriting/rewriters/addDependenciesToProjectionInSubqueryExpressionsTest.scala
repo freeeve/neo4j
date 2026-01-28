@@ -465,7 +465,7 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
           // both explicit WITHs in the expected will have DefaultWith
           // so let's update the added WITH before checking the equality
           case w: With if w.returnItems.items.exists(r => r.name.equals("x + y")) =>
-            w.copy(withType = AddedInRewriteGeneral)(w.position)
+            w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
       }
     )

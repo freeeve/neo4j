@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.With
@@ -51,8 +50,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
       // The original/rewritten statement will have AddedInRewriteGeneral,
       // the explicit WITH in the expected will have DefaultWith
       // so let's update that before checking the equality
-      case w: With if w.withType == DefaultWith =>
-        w.copy(withType = AddedInRewriteGeneral)(w.position)
+      case w: With =>
+        w.copy(withType = AddedInRewriteGeneral())(w.position)
     }))
     transformed match {
       case q: Query if q.isReturning =>
@@ -95,7 +94,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |LET d = b + c
         |RETURN d
         |""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -113,7 +113,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |WITH a
         |FINISH
         |""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -138,7 +139,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |LET b = 1
         |RETURN b
         |""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate(Set("  UNNAMED0"))
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -163,7 +165,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |LET b = a + 1
         |RETURN a AS a, b AS b
         |""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate(Set("  UNNAMED0"))
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -187,7 +190,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |}
         |RETURN c
         |""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -295,7 +299,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |}
         |WITH `  UNNAMED0` AS b
         |RETURN b + 1 AS c""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -327,7 +332,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |}
         |WITH `  UNNAMED0` AS msg
         |RETURN collect(msg) AS messages""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -356,7 +362,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |}
         |RETURN a, x
         |""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 
@@ -534,7 +541,8 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |WITH *
         |MATCH (o:L2)
         |RETURN (n.x + m.x) + o.x AS `n.x + m.x + o.x`""".stripMargin,
-      additionalExpectedAstUpdates = withUpdate()
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
     )
   }
 

@@ -160,7 +160,7 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
                 Variable(conditionalListName)(pos, false)
               )(pos))
             )(pos),
-            withType = AddedInRewriteGeneral
+            withType = AddedInRewriteGeneral()
           )(pos)
 
         /**
@@ -183,7 +183,7 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
                   SignedDecimalIntegerLiteral(index.toString)(pos.zeroLength)
                 )(pos))(pos)
               ),
-              withType = AddedInRewriteGeneral
+              withType = AddedInRewriteGeneral()
             )(pos)
           ) ++ query.clauses)(pos)
         }

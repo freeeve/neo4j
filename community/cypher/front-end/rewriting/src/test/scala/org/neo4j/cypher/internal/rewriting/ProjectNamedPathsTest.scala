@@ -424,7 +424,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          withType = AddedInRewriteGeneral
+          withType = AddedInRewriteGeneral()
         )(pos)
 
       val WITH2 =
@@ -518,7 +518,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          withType = AddedInRewriteGeneral
+          withType = AddedInRewriteGeneral()
         )(pos)
 
       val WITH2 =
@@ -778,7 +778,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          withType = AddedInRewriteGeneral
+          withType = AddedInRewriteGeneral()
         )(pos)
 
       val WITH2 =
@@ -968,7 +968,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          withType = AddedInRewriteGeneral
+          withType = AddedInRewriteGeneral()
         )(pos)
 
       val WITH2 =
@@ -1169,7 +1169,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          withType = AddedInRewriteGeneral
+          withType = AddedInRewriteGeneral()
         )(pos)
 
       val WITH2 =
@@ -1336,7 +1336,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          withType = AddedInRewriteGeneral
+          withType = AddedInRewriteGeneral()
         )(pos)
 
       val WITH2 =
@@ -1483,7 +1483,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          withType = AddedInRewriteGeneral
+          withType = AddedInRewriteGeneral()
         )(pos)
 
       val WITH2 =
@@ -1646,7 +1646,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             None,
             None,
             None,
-            withType = AddedInRewriteGeneral
+            withType = AddedInRewriteGeneral()
           )(pos)
 
         val WITH2 =
@@ -1694,7 +1694,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             None,
             None,
             None,
-            withType = AddedInRewriteGeneral
+            withType = AddedInRewriteGeneral()
           )(pos)
 
         val WITH2 =

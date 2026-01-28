@@ -63,7 +63,7 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
       // the explicit WITH in the expected will have DefaultWith
       // so let's update that before checking the equality
       case w: With if w.withType == DefaultWith =>
-        w.copy(withType = AddedInRewriteGeneral)(w.position)
+        w.copy(withType = AddedInRewriteGeneral())(w.position)
     }))
   }
 
@@ -132,7 +132,7 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
           // both explicit WITHs in the expected will have DefaultWith
           // so let's update the added WITH before checking the equality
           case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
-            w.copy(withType = AddedInRewriteGeneral)(w.position)
+            w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
       }
     )
@@ -154,7 +154,7 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
           // both explicit WITHs in the expected will have DefaultWith
           // so let's update the added WITH before checking the equality
           case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
-            w.copy(withType = AddedInRewriteGeneral)(w.position)
+            w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
       }
     )
@@ -184,12 +184,12 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |RETURN a AS a""".stripMargin,
       additionalActualAstCleanup = expectedStatement => {
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
-          case w: With => w.copy(withType = AddedInRewriteGeneral)(w.position)
+          case w: With => w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
       },
       additionalExpectedAstUpdates = expectedStatement => {
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
-          case w: With => w.copy(withType = AddedInRewriteGeneral)(w.position)
+          case w: With => w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
       }
     )
@@ -219,12 +219,12 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |RETURN a AS a, b AS b""".stripMargin,
       additionalActualAstCleanup = expectedStatement => {
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
-          case w: With => w.copy(withType = AddedInRewriteGeneral)(w.position)
+          case w: With => w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
       },
       additionalExpectedAstUpdates = expectedStatement => {
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
-          case w: With => w.copy(withType = AddedInRewriteGeneral)(w.position)
+          case w: With => w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
       }
     )
@@ -258,12 +258,12 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |FINISH""".stripMargin,
       additionalActualAstCleanup = expectedStatement => {
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
-          case w: With => w.copy(withType = AddedInRewriteGeneral)(w.position)
+          case w: With => w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
       },
       additionalExpectedAstUpdates = expectedStatement => {
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
-          case w: With => w.copy(withType = AddedInRewriteGeneral)(w.position)
+          case w: With => w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
       }
     )

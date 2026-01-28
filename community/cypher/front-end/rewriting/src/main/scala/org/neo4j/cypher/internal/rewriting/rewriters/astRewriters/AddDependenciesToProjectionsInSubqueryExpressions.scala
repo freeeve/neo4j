@@ -148,7 +148,15 @@ case object AddDependenciesToProjectionsInSubqueryExpressions extends StepSequen
    */
   private def splitReturnClause(r: Return): (With, Return) = {
     val newWith =
-      With(r.distinct, r.returnItems, r.orderBy, r.skip, r.limit, r.where, withType = AddedInRewriteGeneral)(r.position)
+      With(
+        r.distinct,
+        r.returnItems,
+        r.orderBy,
+        r.skip,
+        r.limit,
+        r.where,
+        withType = AddedInRewriteGeneral()
+      )(r.position)
     val newReturn =
       Return(r.returnItems.mapItems(items => items.map(ri => AliasedReturnItem(ri.alias.get))))(r.position)
     (newWith, newReturn)

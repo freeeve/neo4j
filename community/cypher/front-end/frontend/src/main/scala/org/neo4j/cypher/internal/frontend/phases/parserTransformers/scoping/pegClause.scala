@@ -478,7 +478,7 @@ object pegClause {
   ): Seq[LogicalVariable] = {
     val availableItems = clauseType match {
       case DefaultYield if projectionType != FreeProjection => incoming.variables.map(AliasedReturnItem(_)).toSeq
-      case DefaultWith | AddedInRewriteGeneral              => variableItems
+      case DefaultWith | AddedInRewriteGeneral(_)           => variableItems
       case _                                                => items
     }
 

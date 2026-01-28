@@ -1879,6 +1879,16 @@ sealed trait ProjectionClause extends HorizonClause {
     }
   }
 
+  def withRewrittenType: ProjectionClause = {
+    this match {
+      case w @ With(_, _, _, _, _, _, _: FlavouredWithType) =>
+        w.copy(withType = AddedInRewriteGeneral(Some(w.name)))(this.position)
+      case w @ With(_, _, _, _, _, _, _) => w
+      case r: Return                     => r
+      case y: Yield                      => y
+    }
+  }
+
   /**
    * @return copy of this ProjectionClause with new return items
    */
@@ -2040,20 +2050,21 @@ case object DefaultYield extends YieldType
 case object YieldAddedInRewrite extends YieldType
 
 sealed trait WithType extends ClauseType
-sealed trait MayBeImportingWithType extends WithType
-sealed trait NotImportingWithType extends WithType
+sealed trait MayBeImportingWithType
+sealed trait GenericWithType extends WithType
+sealed trait FlavouredWithType extends WithType
 sealed trait StarNotReferencing
-sealed trait OrderByOrPaginationWithType extends NotImportingWithType with StarNotReferencing
-case object DefaultWith extends MayBeImportingWithType
+sealed trait OrderByOrPaginationWithType extends FlavouredWithType with StarNotReferencing
+case object DefaultWith extends GenericWithType with MayBeImportingWithType
 case object ParsedAsOrderBy extends OrderByOrPaginationWithType
 case object ParsedAsSkip extends OrderByOrPaginationWithType
 case object ParsedAsLimit extends OrderByOrPaginationWithType
-case object ParsedAsFilter extends NotImportingWithType with StarNotReferencing
-case object ParsedAsLet extends NotImportingWithType with StarNotReferencing
-case object ParsedAsYield extends NotImportingWithType with YieldType
-case object AddedInRewriteShowCommands extends MayBeImportingWithType
-case object AddedInRewriteProcCall extends MayBeImportingWithType
-case object AddedInRewriteGeneral extends MayBeImportingWithType
+case object ParsedAsFilter extends FlavouredWithType with StarNotReferencing
+case object ParsedAsLet extends FlavouredWithType with StarNotReferencing
+case object ParsedAsYield extends WithType with YieldType
+case object AddedInRewriteShowCommands extends GenericWithType
+case object AddedInRewriteProcCall extends GenericWithType
+case class AddedInRewriteGeneral(name: Option[String] = None) extends GenericWithType with MayBeImportingWithType
 
 sealed trait ReturnType extends ClauseType
 case object DefaultReturn extends ReturnType
@@ -2082,13 +2093,14 @@ case class With(
 )(val position: InputPosition) extends ProjectionClause {
 
   override def name: String = withType match {
-    case ParsedAsOrderBy => "ORDER BY"
-    case ParsedAsSkip    => skip.get.name
-    case ParsedAsLimit   => limit.get.name
-    case ParsedAsFilter  => "FILTER"
-    case ParsedAsLet     => "LET"
-    case ParsedAsYield   => "YIELD"
-    case _               => "WITH"
+    case AddedInRewriteGeneral(Some(name)) => name
+    case ParsedAsOrderBy                   => "ORDER BY"
+    case ParsedAsSkip                      => skip.get.name
+    case ParsedAsLimit                     => limit.get.name
+    case ParsedAsFilter                    => "FILTER"
+    case ParsedAsLet                       => "LET"
+    case ParsedAsYield                     => "YIELD"
+    case _                                 => "WITH"
   }
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
@@ -2193,7 +2205,7 @@ case class Return(
     }
 
   def convertToWith: With =
-    With(distinct, returnItems, orderBy, skip, limit, None, AddedInRewriteGeneral)(position)
+    With(distinct, returnItems, orderBy, skip, limit, None, AddedInRewriteGeneral(Some("RETURN")))(position)
 }
 
 case object Yield {

@@ -251,7 +251,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
                     None,
                     None,
                     None,
-                    AddedInRewriteGeneral
+                    AddedInRewriteGeneral()
                   )(InputPosition.NONE))
                 }
               }

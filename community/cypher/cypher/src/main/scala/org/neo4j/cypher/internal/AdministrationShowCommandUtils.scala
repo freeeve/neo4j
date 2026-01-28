@@ -119,7 +119,7 @@ object AdministrationShowCommandUtils {
             skip,
             limit,
             Some(where),
-            withType = AddedInRewriteGeneral
+            withType = AddedInRewriteGeneral()
           )(y.position),
           Return(distinct = false, generateReturnItemsFromAliases(returnItems), orderBy, skip, limit)(y.position)
         )
@@ -136,7 +136,7 @@ object AdministrationShowCommandUtils {
             skip,
             limit,
             where,
-            withType = AddedInRewriteGeneral
+            withType = AddedInRewriteGeneral()
           )(y.position),
           returnClause
         )

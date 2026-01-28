@@ -165,7 +165,7 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
             Variable(varName)(pos, isIsolated = false)
           )(pos))
         )(pos),
-        AddedInRewriteGeneral
+        AddedInRewriteGeneral()
       )(pos)
       (acc.setExclude(Set(varName)), Seq(clearingWith))
     }
@@ -308,7 +308,7 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
           }
         }.toSeq
 
-        val unrollingWith = With(ReturnItems(FreeProjection, accessedItems)(pos), AddedInRewriteGeneral)(pos)
+        val unrollingWith = With(ReturnItems(FreeProjection, accessedItems)(pos), AddedInRewriteGeneral())(pos)
         Seq(unwind, unrollingWith)
       })
 
@@ -331,7 +331,7 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
       )
       val tailClause = (isLast, innerQuery.isReturning) match {
         case (true, true)  => Seq(Return(returnItems)(pos))
-        case (false, true) => Seq(With(returnItems, withType = AddedInRewriteGeneral)(pos))
+        case (false, true) => Seq(With(returnItems, withType = AddedInRewriteGeneral())(pos))
         case (_, _)        => Seq()
       }
 
