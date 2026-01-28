@@ -393,7 +393,7 @@ final class Lucene10FilterQueryBuilder {
     /// Either `twzFrom` or `twzTo` may be `null`, in which case the range is not bounded
     /// in the relevant direction.
     ///
-    /// These range queries are required to be consistent with [org.neo4j.values.storable.Values.COMPARATOR]
+    /// These range queries are required to be consistent with [org.neo4j.values.storable.Values#COMPARATOR]
     /// for subclasses of [org.neo4j.values.storable.TemporalValue]
     ///
     /// A `TemporalWithZone` may have an offset component, and if it has an offset, it may also have a zone.
@@ -407,7 +407,7 @@ final class Lucene10FilterQueryBuilder {
     /// A third query may also be necessary, formed of a range of `ZoneId` within the endmost `ZoneOffset`.
     /// Consider `TemporalWithZone`s of (Instant,ZoneOffset,ZoneId)
     /// Consider the range (5500,-14400,\[America/Goose_Bay\]),inclusive -
-    // (6200,+18000,\[Indian,Maldives\]),exclusive
+    /// (6200,+18000,\[Indian,Maldives\]),exclusive
     /// The resulting set of queries (disjunction) generated here is:
     /// (instant=5500 AND offset=-14400 AND \[America/Goose_Bay\] <= zoneid) - <= because inclusive
     /// OR (instant=5500 AND -14400 < offset)
