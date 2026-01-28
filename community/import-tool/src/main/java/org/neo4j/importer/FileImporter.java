@@ -37,6 +37,7 @@ import static org.neo4j.internal.batchimport.input.csv.DataFactories.defaultForm
 import static org.neo4j.internal.batchimport.input.csv.DataFactories.defaultFormatRelationshipFileHeader;
 import static org.neo4j.io.ByteUnit.bytesToString;
 import static org.neo4j.kernel.impl.scheduler.JobSchedulerFactory.createInitialisedScheduler;
+import static org.neo4j.kernel.impl.scheduler.JobSchedulerFactory.createScheduler;
 import static org.neo4j.logging.Level.DEBUG;
 import static org.neo4j.logging.Level.INFO;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
@@ -67,7 +68,8 @@ import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.cloud.storage.StorageUtils;
 import org.neo4j.configuration.Config;
 import org.neo4j.csv.reader.IllegalMultilineFieldException;
-import org.neo4j.importer.ImportCommand.Base;
+import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
+import org.neo4j.importer.ImportCommand.ShardingArguments;
 import org.neo4j.internal.batchimport.cache.idmapping.string.DuplicateInputIdException;
 import org.neo4j.internal.batchimport.input.BadCollector;
 import org.neo4j.internal.batchimport.input.Groups;
@@ -84,10 +86,14 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.locker.FileLockException;
 import org.neo4j.io.os.OsBeanUtil;
+import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.api.index.IndexProvidersAccess;
+import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.index.schema.DefaultIndexProvidersAccess;
+import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
 import org.neo4j.kernel.internal.Version;
 import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.InternalLogProvider;
@@ -99,9 +105,9 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.StorageEngineFactory;
+import org.neo4j.token.TokenHolders;
 
 public class FileImporter {
-    public static final String DIVIDER = "-------------------------------------";
     public static final String DEFAULT_REPORT_FILE_NAME = "import.report";
     private static final DateTimeFormatter SPACELESS_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd.HH.mm.ss").withZone(ZoneId.systemDefault());
@@ -139,7 +145,7 @@ public class FileImporter {
     private final InternalLogProvider logProvider;
     private final List<SchemaCommand> schemaCommands;
     private final FileInputType fileImportType;
-    private final int numShards;
+    private final ShardingArguments shardingArguments;
 
     private FileImporter(Builder b) {
         this.databaseLayout = requireNonNull(b.databaseLayout);
@@ -170,28 +176,75 @@ public class FileImporter {
         this.force = b.force;
         this.schemaCommands = b.schemaCommands;
         this.fileImportType = b.fileInputType;
-        this.numShards = b.numShards;
+        this.shardingArguments = b.shardingArguments;
     }
 
-    public void doImport(Base type) throws IOException {
+    public void dryRun(ImportCommand.Base type) throws IOException {
+        printOverview(true);
+
+        try (var input = importInput();
+                var jobScheduler = createScheduler()) {
+            type.doDryRun(
+                    input,
+                    fileSystem,
+                    databaseLayout,
+                    databaseConfig,
+                    storageEngineFactory,
+                    jobScheduler,
+                    contextFactory,
+                    importConfig,
+                    (config, databaseLayout, storageEngineFactory) -> new EmptyLogTailMetadata(config),
+                    new IndexProvidersAccess() {
+                        @Override
+                        public IndexProviderMap access(
+                                PageCache pageCache,
+                                DatabaseLayout layout,
+                                DatabaseReadOnlyChecker readOnlyChecker,
+                                MemoryTracker memoryTracker) {
+                            return unsupported();
+                        }
+
+                        @Override
+                        public IndexProviderMap access(
+                                PageCache pageCache,
+                                DatabaseLayout layout,
+                                DatabaseReadOnlyChecker readOnlyChecker,
+                                TokenHolders tokenHolders) {
+                            return unsupported();
+                        }
+
+                        private IndexProviderMap unsupported() {
+                            throw new UnsupportedOperationException(
+                                    "Indexes do not need to be accessed during a dry run");
+                        }
+                    },
+                    stdOut,
+                    verbose,
+                    shardingArguments);
+        }
+    }
+
+    public void doImport(ImportCommand.Base type) throws IOException {
         if (force) {
             fileSystem.deleteRecursively(
                     databaseLayout.databaseDirectory(), path -> !path.equals(databaseLayout.databaseLockFile()));
             fileSystem.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
         }
 
-        try (OutputStream badOutput = fileSystem.openAsOutputStream(reportFile, false);
-                Collector badCollector = getBadCollector(badOutput)) {
-            // Extract the default time zone from the database configuration
-            ZoneId dbTimeZone = databaseConfig.get(db_temporal_timezone);
-            Supplier<ZoneId> defaultTimeZone = () -> dbTimeZone;
-
-            final var nodeData = nodeData();
-            final var relationshipsData = relationshipData();
-            try (var input = importInput(nodeData, defaultTimeZone, relationshipsData)) {
+        try (var badOutput = fileSystem.openAsOutputStream(reportFile, false);
+                var badCollector = getBadCollector(badOutput)) {
+            try (var input = importInput()) {
                 doImport(input, badCollector, type);
             }
         }
+    }
+
+    private Input importInput() {
+        // extract the default time zone from the database configuration
+        var dbTimeZone = databaseConfig.get(db_temporal_timezone);
+        var nodeData = nodeData();
+        var relationshipsData = relationshipData();
+        return importInput(nodeData, relationshipsData, () -> dbTimeZone);
     }
 
     private void abortIfVectorsUnsupported(Input input) {
@@ -202,7 +255,7 @@ public class FileImporter {
     }
 
     private Input importInput(
-            Iterable<DataFactory> nodeData, Supplier<ZoneId> defaultTimeZone, Iterable<DataFactory> relationshipsData) {
+            Iterable<DataFactory> nodeData, Iterable<DataFactory> relationshipsData, Supplier<ZoneId> defaultTimeZone) {
         return switch (fileImportType) {
             case CSV ->
                 new CsvInput(
@@ -234,10 +287,10 @@ public class FileImporter {
         };
     }
 
-    private void doImport(Input input, Collector badCollector, Base type) {
+    private void doImport(Input input, Collector badCollector, ImportCommand.Base type) {
         boolean success = false;
 
-        printOverview();
+        printOverview(false);
 
         try (JobScheduler jobScheduler = createInitialisedScheduler();
                 Lifespan life = new Lifespan()) {
@@ -273,7 +326,7 @@ public class FileImporter {
                     memoryTracker,
                     input,
                     indexProviders,
-                    numShards);
+                    shardingArguments);
             success = true;
         } catch (Exception ex) {
             throw csvImportExceptionWrapped(databaseLayout.getDatabaseName(), ex, type.importType());
@@ -299,9 +352,9 @@ public class FileImporter {
             if (!success) {
                 stdErr.println("WARNING Import failed. The store files in "
                         + databaseLayout.databaseDirectory().toAbsolutePath()
-                        + " are left as they are, although they are likely in an unusable state. "
-                        + "Starting a database on these store files will likely fail or observe inconsistent records so "
-                        + "start at your own risk or delete the store manually.");
+                        + " are left as they are, although they are likely in an unusable state. Starting a database"
+                        + " on these store files will likely fail or observe inconsistent records so start at your own"
+                        + " risk or delete the store manually.");
                 stdOut.println();
             }
         }
@@ -358,9 +411,13 @@ public class FileImporter {
         }
     }
 
-    private void printOverview() {
+    private void printOverview(boolean isDryRun) {
         stdOut.println("Neo4j version: " + Version.getNeo4jVersion());
-        stdOut.println("Importing the contents of these files into " + databaseLayout.databaseDirectory() + ":");
+        if (isDryRun) {
+            stdOut.println("Checking the contents of the following files:");
+        } else {
+            stdOut.println("Importing the contents of these files into " + databaseLayout.databaseDirectory() + ":");
+        }
         printInputFiles("Nodes", nodeFiles, stdOut);
         printInputFiles("Relationships", relationshipFiles, stdOut);
         stdOut.println();
@@ -490,7 +547,7 @@ public class FileImporter {
         private InternalLogProvider logProvider = NullLogProvider.getInstance();
         private final MutableList<SchemaCommand> schemaCommands = Lists.mutable.empty();
         private FileInputType fileInputType = FileInputType.CSV;
-        private int numShards;
+        private ShardingArguments shardingArguments;
 
         public Builder withDatabaseLayout(DatabaseLayout databaseLayout) {
             this.databaseLayout = databaseLayout;
@@ -650,8 +707,8 @@ public class FileImporter {
             return this;
         }
 
-        public Builder withNumShards(int numShards) {
-            this.numShards = numShards;
+        public Builder withShardingArguments(ShardingArguments shardingArguments) {
+            this.shardingArguments = shardingArguments;
             return this;
         }
 

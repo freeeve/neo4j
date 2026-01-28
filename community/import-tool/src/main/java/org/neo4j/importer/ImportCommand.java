@@ -71,6 +71,7 @@ import org.neo4j.cloud.storage.SchemeFileSystemAbstraction;
 import org.neo4j.cloud.storage.StorageUtils;
 import org.neo4j.commandline.dbms.CannotWriteException;
 import org.neo4j.commandline.dbms.LockChecker;
+import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.importer.FileImporter.CsvImportException;
@@ -92,15 +93,19 @@ import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
+import org.neo4j.kernel.impl.transaction.log.LogTailMetadataFactory;
 import org.neo4j.kernel.impl.transaction.log.files.LogTailMetadataFactoryImpl;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
 import org.neo4j.kernel.impl.util.Converters;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.internal.LogService;
+import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.logging.log4j.Log4jLogProvider;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.DeprecatedFormatWarning;
+import org.neo4j.storageengine.api.LogFilesInitializer;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.util.VisibleForTesting;
 import picocli.CommandLine;
@@ -166,6 +171,17 @@ public class ImportCommand {
                 return MultilineFormat.valueOf(value.toUpperCase(Locale.ROOT));
             }
         }
+
+        @Option(
+                names = "--dry-run",
+                arity = "0..1",
+                showDefaultValue = ALWAYS,
+                paramLabel = "true|false",
+                fallbackValue = "true",
+                description = "Flag used to indicate that a dry run of the import should be performed, i.e. no data "
+                        + "will actually be imported, only the validation of the various arguments and estimation of "
+                        + "size of the import will be performed and reported.")
+        private boolean dryRun;
 
         @Option(
                 names = "--schema",
@@ -613,8 +629,14 @@ public class ImportCommand {
                     }
 
                     importerBuilder.withFileInputType(fileInputType);
-                    importerBuilder.build().doImport(this);
-                    postImport(fileSystem, databaseConfig, logProvider, databaseLayout);
+
+                    var importer = importerBuilder.build();
+                    if (dryRun) {
+                        importer.dryRun(this);
+                    } else {
+                        importer.doImport(this);
+                        postImport(fileSystem, databaseConfig, logProvider, databaseLayout);
+                    }
                 } catch (FileLockException e) {
                     throw new CommandFailedException(
                             "The database is in use. Stop database '%s' and try again."
@@ -672,6 +694,22 @@ public class ImportCommand {
 
         protected abstract MaybeLocker maybeLockChecker();
 
+        protected abstract void doDryRun(
+                Input input,
+                FileSystemAbstraction fileSystem,
+                DatabaseLayout databaseLayout,
+                Config databaseConfig,
+                StorageEngineFactory storageEngineFactory,
+                JobScheduler jobScheduler,
+                CursorContextFactory contextFactory,
+                Configuration importConfig,
+                LogTailMetadataFactory logTailMetadataFactory,
+                IndexProvidersAccess indexProvidersAccess,
+                PrintStream stdOut,
+                boolean verbose,
+                ShardingArguments shardingArguments)
+                throws IOException;
+
         protected abstract void doImport(
                 FileSystemAbstraction fileSystem,
                 DatabaseLayout databaseLayout,
@@ -691,7 +729,7 @@ public class ImportCommand {
                 MemoryTracker memoryTracker,
                 Input input,
                 IndexProvidersAccess indexProvidersAccess,
-                int numShards)
+                ShardingArguments shardingArguments)
                 throws IOException;
 
         protected IndexConfig customiseIndexConfig(Config databaseConfig, IndexConfig indexConfig) {
@@ -1000,6 +1038,47 @@ public class ImportCommand {
         }
 
         @Override
+        protected void doDryRun(
+                Input input,
+                FileSystemAbstraction fileSystem,
+                DatabaseLayout databaseLayout,
+                Config databaseConfig,
+                StorageEngineFactory storageEngineFactory,
+                JobScheduler jobScheduler,
+                CursorContextFactory contextFactory,
+                Configuration importConfig,
+                LogTailMetadataFactory logTailMetadataFactory,
+                IndexProvidersAccess indexProvidersAccess,
+                PrintStream stdOut,
+                boolean verbose,
+                ShardingArguments shardingArguments)
+                throws IOException {
+            var batchImporter = storageEngineFactory.batchImporter(
+                    databaseLayout,
+                    fileSystem,
+                    false,
+                    PageCacheTracer.NULL,
+                    importConfig,
+                    NullLogService.getInstance(),
+                    stdOut,
+                    verbose,
+                    DefaultAdditionalIds.EMPTY,
+                    logTailMetadataFactory,
+                    databaseConfig,
+                    Monitor.NO_MONITOR,
+                    jobScheduler,
+                    Collector.EMPTY,
+                    LogFilesInitializer.NULL,
+                    IndexImporterFactoryImpl.EMPTY,
+                    EmptyMemoryTracker.INSTANCE,
+                    contextFactory,
+                    indexProvidersAccess,
+                    shardingArguments == null ? 0 : shardingArguments.numShards(),
+                    shardingArguments == null ? null : shardingArguments.additionalArguments());
+            batchImporter.doDryRun(input, stdOut);
+        }
+
+        @Override
         protected void doImport(
                 FileSystemAbstraction fileSystem,
                 DatabaseLayout databaseLayout,
@@ -1019,7 +1098,7 @@ public class ImportCommand {
                 MemoryTracker memoryTracker,
                 Input input,
                 IndexProvidersAccess indexProvidersAccess,
-                int numShards)
+                ShardingArguments shardingArguments)
                 throws IOException {
             storageEngineFactory
                     .batchImporter(
@@ -1042,8 +1121,8 @@ public class ImportCommand {
                             memoryTracker,
                             contextFactory,
                             indexProvidersAccess,
-                            numShards,
-                            null)
+                            shardingArguments == null ? 0 : shardingArguments.numShards,
+                            shardingArguments == null ? null : shardingArguments.additionalArguments)
                     .doImport(input);
         }
 
@@ -1066,6 +1145,8 @@ public class ImportCommand {
             super(key, files);
         }
     }
+
+    public record ShardingArguments(int numShards, DependencyResolver additionalArguments) {}
 
     abstract static class InputFilesGroup<T> {
         final T key;

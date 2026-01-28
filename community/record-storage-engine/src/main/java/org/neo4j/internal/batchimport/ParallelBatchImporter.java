@@ -20,6 +20,7 @@
 package org.neo4j.internal.batchimport;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import org.neo4j.batchimport.api.AdditionalInitialIds;
 import org.neo4j.batchimport.api.BatchImporter;
 import org.neo4j.batchimport.api.Configuration;
@@ -27,6 +28,7 @@ import org.neo4j.batchimport.api.IndexImporterFactory;
 import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Input;
+import org.neo4j.batchimport.api.input.PropertySizeCalculator;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.batchimport.staging.ExecutionMonitor;
 import org.neo4j.internal.batchimport.store.BatchingNeoStores;
@@ -105,6 +107,23 @@ public class ParallelBatchImporter implements BatchImporter {
         this.indexImporterFactory = indexImporterFactory;
         this.memoryTracker = memoryTracker;
         this.contextFactory = contextFactory;
+    }
+
+    public static void outputEstimates(Input input, int numberOfThreads, PrintStream output) throws IOException {
+        var estimates = input.validateAndEstimate(
+                (PropertySizeCalculator) (values, cursorContext, memoryTracker) -> 0, numberOfThreads);
+        output.println("Estimated entity counts:");
+        output.println("  Nodes: " + estimates.numberOfNodes());
+        output.println("    Labels: " + estimates.numberOfNodeLabels());
+        output.println("    Total property count: " + estimates.numberOfNodeProperties());
+        output.println("  Relationships: " + estimates.numberOfRelationships());
+        output.println("    Total property count: " + estimates.numberOfRelationshipProperties());
+        output.println();
+    }
+
+    @Override
+    public void doDryRun(Input input, PrintStream output) throws IOException {
+        outputEstimates(input, config.maxNumberOfWorkerThreads(), output);
     }
 
     @Override

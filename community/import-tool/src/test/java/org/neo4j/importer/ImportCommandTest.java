@@ -75,6 +75,7 @@ class ImportCommandTest {
                 "--expand-commands",
                 "--verbose",
                 "--additional-config",
+                "--dry-run",
                 "--report-file",
                 "--id-type",
                 "--input-encoding",
