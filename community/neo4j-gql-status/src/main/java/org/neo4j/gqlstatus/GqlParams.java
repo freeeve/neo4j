@@ -186,6 +186,8 @@ public class GqlParams {
     public enum NumberParam implements GqlParam {
         boltMsgLenLimit(new NUM()), // Bolt message length limit
         bytes(new NUM()),
+        bytes1(new NUM()),
+        bytes2(new NUM()),
         count(new NONNEG()), // Amount
         count1(new NONNEG()),
         count2(new NONNEG()),

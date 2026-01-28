@@ -43,8 +43,8 @@ public final class SchemaRuleSizeLimitExceededException extends GqlRuntimeExcept
         final ErrorGqlStatusObject gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I76)
                 .withParam(GqlParams.StringParam.item, property)
                 .withParam(GqlParams.StringParam.input, inputString)
-                .withParam(GqlParams.NumberParam.bytes, size)
-                .withParam(GqlParams.NumberParam.bytes, maxSize)
+                .withParam(GqlParams.NumberParam.bytes1, size)
+                .withParam(GqlParams.NumberParam.bytes2, maxSize)
                 .build();
 
         return new SchemaRuleSizeLimitExceededException(gql, property, inputString, size, maxSize);

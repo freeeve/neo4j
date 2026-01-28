@@ -3258,8 +3258,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.item,
                 GqlParams.StringParam.input,
-                GqlParams.NumberParam.bytes,
-                GqlParams.NumberParam.bytes
+                GqlParams.NumberParam.bytes1,
+                GqlParams.NumberParam.bytes2
             },
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
