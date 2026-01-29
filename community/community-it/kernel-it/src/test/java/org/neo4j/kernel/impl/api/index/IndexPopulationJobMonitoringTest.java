@@ -33,6 +33,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.PopulationProgress;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptor;
+import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.schema.SchemaTestUtil;
@@ -67,7 +68,8 @@ class IndexPopulationJobMonitoringTest {
                 new Subject("Test User"),
                 NODE,
                 Config.defaults(),
-                false);
+                false,
+                StorageEngineIndexingBehaviour.EMPTY);
 
         addIndex(job, "the ONE");
 
@@ -108,7 +110,8 @@ class IndexPopulationJobMonitoringTest {
                 new Subject("Another Test User"),
                 NODE,
                 Config.defaults(),
-                false);
+                false,
+                StorageEngineIndexingBehaviour.EMPTY);
 
         addIndex(job, "index 1");
         addIndex(job, "index 2");

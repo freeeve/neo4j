@@ -67,4 +67,11 @@ public interface StorageEngineIndexingBehaviour {
      * should return nodes per page...
      */
     int relationshipsPerPage();
+
+    /**
+     * @return {@code true} if this local store may have any properties.
+     */
+    default boolean hasProperties() {
+        return true;
+    }
 }

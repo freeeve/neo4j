@@ -923,7 +923,8 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
                 subject,
                 NODE,
                 config,
-                multiversion);
+                multiversion,
+                storageEngineIndexingBehaviour);
     }
 
     private void startIndexPopulation(IndexPopulationJob job, CursorContext cursorContext) {

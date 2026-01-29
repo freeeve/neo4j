@@ -33,6 +33,8 @@ public interface IndexMonitor {
 
     void indexPopulationScanComplete(IndexDescriptor[] indexDescriptors);
 
+    void indexPopulationScanSkipped(IndexDescriptor[] indexDescriptors);
+
     void awaitingPopulationOfRecoveredIndex(IndexDescriptor descriptor);
 
     void indexSamplingTriggered(IndexSamplingMode mode);
@@ -69,6 +71,9 @@ public interface IndexMonitor {
         @Override
         public void indexPopulationScanComplete(IndexDescriptor[] indexDescriptors) { // Do nothing
         }
+
+        @Override
+        public void indexPopulationScanSkipped(IndexDescriptor[] indexDescriptors) {}
 
         @Override
         public void awaitingPopulationOfRecoveredIndex(IndexDescriptor descriptor) { // Do nothing

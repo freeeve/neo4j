@@ -32,6 +32,8 @@ import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.PopulationProgress;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.IndexRef;
+import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.memory.UnsafeDirectByteBufferAllocator;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -60,6 +62,7 @@ public class IndexPopulationJob implements Runnable {
     private final CursorContextFactory contextFactory;
     private final MemoryTracker memoryTracker;
     private final boolean multiversion;
+    private final StorageEngineIndexingBehaviour storageEngineIndexingBehaviour;
     private final ByteBufferFactory bufferFactory;
     private final ThreadSafePeakMemoryTracker memoryAllocationTracker;
     private final MultipleIndexPopulator multiPopulator;
@@ -90,12 +93,14 @@ public class IndexPopulationJob implements Runnable {
             Subject subject,
             EntityType populatedEntityType,
             Config config,
-            boolean multiversion) {
+            boolean multiversion,
+            StorageEngineIndexingBehaviour storageEngineIndexingBehaviour) {
         this.multiPopulator = multiPopulator;
         this.monitor = monitor;
         this.contextFactory = contextFactory;
         this.memoryTracker = memoryTracker;
         this.multiversion = multiversion;
+        this.storageEngineIndexingBehaviour = storageEngineIndexingBehaviour;
         this.memoryAllocationTracker = new ThreadSafePeakMemoryTracker();
         this.bufferFactory = new ByteBufferFactory(
                 UnsafeDirectByteBufferAllocator::new,
@@ -157,7 +162,11 @@ public class IndexPopulationJob implements Runnable {
                 monitor.indexPopulationScanStarting(indexDescriptors);
                 multiPopulator.refreshVisibility(cursorContext);
                 monitor.indexPopulationScanStartingAfterVisibilityUpdate(indexDescriptors);
-                indexAllEntities(new FixedCursorContextFactory(cursorContext));
+                if (storageEngineIndexingBehaviour.hasProperties() || willPopulateTokenIndex()) {
+                    indexAllEntities(new FixedCursorContextFactory(cursorContext));
+                } else {
+                    monitor.indexPopulationScanSkipped(indexDescriptors);
+                }
                 monitor.indexPopulationScanComplete(indexDescriptors);
                 if (stopped) {
                     multiPopulator.stop(cursorContext);
@@ -177,6 +186,10 @@ public class IndexPopulationJob implements Runnable {
                     () -> monitor.populationJobCompleted(memoryAllocationTracker.peakMemoryUsage(), indexDescriptors),
                     doneSignal::countDown);
         }
+    }
+
+    private boolean willPopulateTokenIndex() {
+        return populatedIndexes.stream().anyMatch(IndexRef::isTokenIndex);
     }
 
     private void indexAllEntities(CursorContextFactory contextFactory) {

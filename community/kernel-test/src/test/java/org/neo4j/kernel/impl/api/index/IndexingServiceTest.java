@@ -242,6 +242,7 @@ class IndexingServiceTest {
         when(indexReader.createSampler()).thenReturn(indexSampler);
         when(accessor.newValueReader(any())).thenReturn(indexReader);
         when(storageEngine.getOpenOptions()).thenReturn(immutable.empty());
+        when(storageEngine.indexingBehaviour()).thenReturn(StorageEngineIndexingBehaviour.EMPTY);
     }
 
     @AfterEach

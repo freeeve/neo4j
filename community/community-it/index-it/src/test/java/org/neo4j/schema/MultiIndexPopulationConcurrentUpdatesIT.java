@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.common.Subject.AUTH_DISABLED;
@@ -367,6 +368,13 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
 
             IndexProviderMap providerMap = getIndexProviderMap();
 
+            IndexMonitor monitor = mock(IndexMonitor.class);
+            doAnswer(inv -> {
+                        customAction.run();
+                        return null;
+                    })
+                    .when(monitor)
+                    .indexPopulationScanSkipped(any());
             indexService = IndexingServiceFactory.createIndexingService(
                     storageEngine,
                     config,
@@ -377,7 +385,7 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
                     ElementIdMapper.PLACEHOLDER,
                     initialSchemaRulesLoader(storageEngine),
                     nullLogProvider,
-                    IndexMonitor.NO_MONITOR,
+                    monitor,
                     getSchemaState(),
                     mock(IndexStatisticsStore.class),
                     new DatabaseIndexStats(),

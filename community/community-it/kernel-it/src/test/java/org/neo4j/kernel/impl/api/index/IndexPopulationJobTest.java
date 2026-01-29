@@ -87,6 +87,7 @@ import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaState;
+import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
@@ -657,7 +658,8 @@ class IndexPopulationJobTest {
                 AUTH_DISABLED,
                 EntityType.NODE,
                 Config.defaults(),
-                false);
+                false,
+                StorageEngineIndexingBehaviour.EMPTY);
 
         // when
         populationJob.run();
@@ -713,7 +715,8 @@ class IndexPopulationJobTest {
                 AUTH_DISABLED,
                 EntityType.NODE,
                 Config.defaults(),
-                false);
+                false,
+                StorageEngineIndexingBehaviour.EMPTY);
 
         // when
         populationJob.run();
@@ -957,7 +960,8 @@ class IndexPopulationJobTest {
                 AUTH_DISABLED,
                 EntityType.NODE,
                 Config.defaults(),
-                false);
+                false,
+                StorageEngineIndexingBehaviour.EMPTY);
         IndexProxyStrategy indexProxyStrategy = new ValueIndexProxyStrategy(descriptor, indexStatisticsStore, tokens);
         job.addPopulator(populator, indexProxyStrategy, flipper);
         return job;
