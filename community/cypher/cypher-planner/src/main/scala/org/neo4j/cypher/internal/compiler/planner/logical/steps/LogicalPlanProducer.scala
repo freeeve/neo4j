@@ -2037,7 +2037,7 @@ case class LogicalPlanProducer(
     limit: Expression,
     scoreVariable: Option[LogicalVariable],
     argumentIds: Set[LogicalVariable],
-    implicitlySolvedPredicates: Set[Expression] = Set.empty
+    implicitlySolvedPredicates: Set[Expression]
   ): LogicalPlan = {
 
     val solved = RegularSinglePlannerQuery(

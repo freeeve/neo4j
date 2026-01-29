@@ -24,9 +24,8 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.util.Rewritable
 
-sealed trait SearchClause extends Rewritable {
+sealed trait SearchClause {
   def resultVariable: LogicalVariable
   def dependencies: Set[LogicalVariable]
 }
@@ -49,16 +48,6 @@ case class VectorSearchClause(
     val scoreStr = scoreVariable.map(v => s" SCORE AS ${v.name}").getOrElse("")
     s"SEARCH ${resultVariable.name} IN (VECTOR INDEX $indexName FOR $embeddingStr $whereStr LIMIT $limitStr)$scoreStr"
   }
-
-  def dup(children: Seq[AnyRef]): this.type =
-    copy(
-      resultVariable = children.head.asInstanceOf[LogicalVariable],
-      indexName = children(1).asInstanceOf[String],
-      embedding = children(2).asInstanceOf[Expression],
-      where = children(3).asInstanceOf[Option[Where]],
-      limit = children(4).asInstanceOf[Expression],
-      scoreVariable = children(5).asInstanceOf[Option[LogicalVariable]]
-    ).asInstanceOf[this.type]
 }
 
 object SearchClause {

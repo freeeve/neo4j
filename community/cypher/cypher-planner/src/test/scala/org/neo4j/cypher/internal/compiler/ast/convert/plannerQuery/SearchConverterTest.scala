@@ -26,8 +26,9 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.scalatest.OptionValues
 
-class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport with OptionValues {
 
   override val semanticFeatures: List[SemanticFeature] = List(
     SemanticFeature.VectorSearch,
@@ -175,6 +176,38 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
 
       searchClauseAsString shouldEqual
         "SEARCH movie IN (VECTOR INDEX moviePlots FOR m.embedding WHERE movie.prop > 10 AND movie.prop <= 100 LIMIT 5) SCORE AS similarity"
+    }
+  }
+
+  test("should not include predicates inlined in SEARCH in selections") {
+    versionsExcept5 { version =>
+      val query =
+        """MATCH (m:Movie)
+          |MATCH (movie:Movie)
+          |WHERE movie.rating > 6 AND movie.year > 2000
+          |  SEARCH movie IN (
+          |    VECTOR INDEX moviePlots
+          |    FOR m.embedding
+          |    WHERE movie.rating > 6
+          |    LIMIT 5
+          |  )
+          |RETURN movie.title AS title """.stripMargin
+
+      val qg = buildSinglePlannerQuery(query, version).tail.value.queryGraph
+
+      qg.selections.flatPredicates shouldEqual Seq(
+        hasLabels("movie", "Movie"),
+        greaterThan(prop("movie", "year"), literal(2000))
+      )
+
+      qg.searchClause.value shouldEqual VectorSearchClause(
+        resultVariable = v"movie",
+        indexName = "moviePlots",
+        embedding = prop("m", "embedding"),
+        where = Some(where(greaterThan(prop("movie", "rating"), literal(6)))),
+        limit = literal(5),
+        scoreVariable = None
+      )
     }
   }
 }

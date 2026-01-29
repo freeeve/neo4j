@@ -63,6 +63,7 @@ import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.helpers.AggregationHelper
 import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.Expression
@@ -127,6 +128,7 @@ import org.neo4j.cypher.internal.ir.SetRelationshipPropertiesPattern
 import org.neo4j.cypher.internal.ir.SetRelationshipPropertyPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.UnwindProjection
+import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.ir.converters.PatternConverters
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
 import org.neo4j.cypher.internal.ir.ordering.ColumnOrder
@@ -141,6 +143,7 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
@@ -636,12 +639,20 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
     } else {
       accWithMaybeHorizon.amendQueryGraph {
         qg =>
+          val maybeSearchClause = SearchClause.fromAst(clause.search)
           qg
-            .addSelections(remainingSelections)
+            .addSelections(remainingSelections -- inlinedSearchClausePredicates(maybeSearchClause))
             .addHints(clause.hints)
             .addPathPatterns(pathPatterns)
-            .addSearchClause(SearchClause.fromAst(clause.search))
+            .addSearchClause(maybeSearchClause)
       }
+    }
+  }
+
+  private def inlinedSearchClausePredicates(maybeSearchClause: Option[SearchClause]): ListSet[Expression] = {
+    maybeSearchClause match {
+      case Some(VectorSearchClause(_, _, _, Some(Where(expression)), _, _)) => Ands.unwrap(expression)
+      case _                                                                => ListSet.empty
     }
   }
 

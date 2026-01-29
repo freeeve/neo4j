@@ -1500,4 +1500,42 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       }
     }
   }
+
+  test("don't solve predicates already inlined in SEARCH") {
+    val planner = plannerBuilder().build()
+    val query = """MATCH (movie:Movie)
+                  |WHERE
+                  |  movie.releaseYear > 2000 AND
+                  |  movie.releaseYear < 2010 AND
+                  |  movie.imdbRating > 8
+                  |SEARCH movie IN (
+                  |  VECTOR INDEX moviePlots
+                  |  FOR $embedding
+                  |  WHERE
+                  |    movie.releaseYear < 2010 AND
+                  |    movie.imdbRating > 8
+                  |  LIMIT 10
+                  |)
+                  |RETURN movie.plot""".stripMargin
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS `movie.plot`")
+      .filter("cacheN[movie.releaseYear] > 2000")
+      .nodeVectorIndexSearch(
+        node = "movie",
+        labelNames = Seq("Movie"),
+        properties = Seq("plot", "imdbRating", "releaseYear"),
+        indexName = "moviePlots",
+        vector = "$embedding",
+        limit = "10",
+        getValueFromIndex = Map("plot" -> GetValue, "imdbRating" -> DoNotGetValue, "releaseYear" -> GetValue),
+        filter = Some(
+          QueryExpressionConstructionTestSupport.composite(
+            rangeExpression(gt(literalInt(8))),
+            rangeExpression(lt(literalInt(2010)))
+          )
+        )
+      )
+      .build()
+  }
 }
