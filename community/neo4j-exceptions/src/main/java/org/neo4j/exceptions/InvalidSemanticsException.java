@@ -106,7 +106,7 @@ public class InvalidSemanticsException extends Neo4jException {
 
     public static InvalidSemanticsException cannotMergeNodeNullProperty(String key, String labelString) {
         var pattern = String.format("(%s {%s: null})", labelString, key);
-        var gql = GqlHelper.getGql22G03_22N31("null", "node", key, pattern);
+        var gql = GqlHelper.getGql22G03_22N31("node", key, pattern, "null");
         return new InvalidSemanticsException(
                 gql,
                 String.format(
@@ -116,7 +116,7 @@ public class InvalidSemanticsException extends Neo4jException {
 
     public static InvalidSemanticsException cannotMergeNodeNaNProperty(String key, String labelsString) {
         var pattern = String.format("(%s {%s: NaN})", labelsString, key);
-        var gql = GqlHelper.getGql22G03_22N31("NaN", "node", key, pattern);
+        var gql = GqlHelper.getGql22G03_22N31("node", key, pattern, "NaN");
         return new InvalidSemanticsException(
                 gql,
                 String.format(
@@ -128,7 +128,7 @@ public class InvalidSemanticsException extends Neo4jException {
             String value, String key, String startVarPart, String stringifiedRelType, String endVarPart) {
         var pattern =
                 String.format("(%s)-[:%s {%s: %s}]->(%s)", startVarPart, stringifiedRelType, key, value, endVarPart);
-        var gql = GqlHelper.getGql22G03_22N31(value, "relationship", key, pattern);
+        var gql = GqlHelper.getGql22G03_22N31("relationship", key, pattern, value);
         return new InvalidSemanticsException(
                 gql,
                 String.format(

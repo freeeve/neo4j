@@ -172,13 +172,13 @@ public class GqlHelper {
     }
 
     public static ErrorGqlStatusObject getGql22G03_22N31(
-            String valueType, String entityType, String propKey, String pattern) {
+            String entityType, String propKey, String pattern, String value) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N31)
-                        .withParam(GqlParams.StringParam.valueType, valueType)
                         .withParam(GqlParams.StringParam.entityType, entityType)
                         .withParam(GqlParams.StringParam.propKey, propKey)
                         .withParam(GqlParams.StringParam.pat, pattern)
+                        .withParam(GqlParams.StringParam.value, value)
                         .build())
                 .build();
     }

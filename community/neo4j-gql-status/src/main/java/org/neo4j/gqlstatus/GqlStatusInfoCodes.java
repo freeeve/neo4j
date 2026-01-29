@@ -1291,12 +1291,12 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N31(
             new GqlStatus("22N31"),
-            "'MERGE' cannot be used with graph element property values that are { %s }. For { %s } property { %s } in { %s }.",
+            "The { %s } property { %s } in { %s } is invalid. 'MERGE' cannot be used with a graph element property value that is { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.valueType,
                 GqlParams.StringParam.entityType,
                 GqlParams.StringParam.propKey,
-                GqlParams.StringParam.pat
+                GqlParams.StringParam.pat,
+                GqlParams.StringParam.value
             },
             emptyMap(),
             Condition.DATA_EXCEPTION,
