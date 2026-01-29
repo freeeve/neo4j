@@ -4407,6 +4407,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.GENERAL_PROCESSING_EXCEPTION,
             "shard execution database error",
             ErrorClassification.DATABASE_ERROR),
+    STATUS_50N1A(
+            new GqlStatus("50N1A"),
+            "Failed to retrieve all shard replica locations of { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "failed to retrieve all shard replica locations",
+            ErrorClassification.TRANSIENT_ERROR),
     STATUS_50N20(
             new GqlStatus("50N20"),
             "Communication with shard { %s } failed. See cause for more details.",

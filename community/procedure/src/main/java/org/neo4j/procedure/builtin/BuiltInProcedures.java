@@ -208,9 +208,6 @@ public class BuiltInProcedures {
         }
 
         if (spdBuiltInProcedures.isGraphShard()) {
-            // This will call the same procedure on the shards, because it returns nothing should be fine to just call
-            // this
-            // and carry on
             spdBuiltInProcedures.resampleIndex(indexName);
         }
 
@@ -228,9 +225,6 @@ public class BuiltInProcedures {
         }
 
         if (spdBuiltInProcedures.isGraphShard()) {
-            // This will call the same procedure on the shards, because it returns nothing should be fine to just call
-            // this
-            // and carry on
             spdBuiltInProcedures.resampleOutdatedIndexes();
         }
 
@@ -254,9 +248,6 @@ public class BuiltInProcedures {
         }
 
         if (spdBuiltInProcedures.isGraphShard()) {
-            // This will call the same procedure on the shards, because it returns nothing should be fine to just call
-            // this
-            // and carry on
             spdBuiltInProcedures.prepareForReplanning();
         }
 
