@@ -202,26 +202,37 @@ class TransactionBoundPlanContext(
   def nodeVectorIndexByName(indexName: String): Either[VectorIndexError, NodeVectorIndexDescriptor] = {
     val indexDescriptor = tc.schemaRead.indexGetForName(indexName)
     for {
-      _ <- ensureIndexCanBeUsed(indexDescriptor)
+      _ <- ensureIndexExists(indexDescriptor)
       _ <- ensureIsVectorIndex(indexDescriptor)
       labelIds <- validateNodeIndexType(indexDescriptor)
       (property, additionalProperties) = getIndexPropertyIds(indexDescriptor)
+      _ <- ensureIndexCanBeUsed(indexDescriptor)
     } yield NodeVectorIndexDescriptor(labelIds, property, additionalProperties)
   }
 
   def relationshipVectorIndexByName(indexName: String): Either[VectorIndexError, RelationshipVectorIndexDescriptor] = {
     val indexDescriptor = tc.schemaRead.indexGetForName(indexName)
     for {
-      _ <- ensureIndexCanBeUsed(indexDescriptor)
+      _ <- ensureIndexExists(indexDescriptor)
       _ <- ensureIsVectorIndex(indexDescriptor)
       relTypeIds <- validateRelationshipIndexType(indexDescriptor)
       (property, additionalProperties) = getIndexPropertyIds(indexDescriptor)
+      _ <- ensureIndexCanBeUsed(indexDescriptor)
     } yield RelationshipVectorIndexDescriptor(relTypeIds, property, additionalProperties)
   }
 
-  final private def ensureIndexCanBeUsed(indexDescriptor: schema.IndexDescriptor)
-    : Either[VectorIndexError.NotFound.type, Unit] =
-    Either.cond(indexCanBeUsed(indexDescriptor), (), VectorIndexError.NotFound)
+  final private def ensureIndexExists(indexDescriptor: schema.IndexDescriptor)
+    : Either[VectorIndexError.NotFound.type, Unit] = {
+    Either.cond(indexDescriptor != schema.IndexDescriptor.NO_INDEX, (), VectorIndexError.NotFound)
+  }
+
+  final private def ensureIndexCanBeUsed(indexDescriptor: schema.IndexDescriptor): Either[VectorIndexError, Unit] = {
+    val indexState = tc.schemaRead.indexGetStateNonLocking(indexDescriptor)
+    for {
+      _ <- Either.cond(indexState != InternalIndexState.POPULATING, (), VectorIndexError.Populating)
+      _ <- Either.cond(indexCanBeUsed(indexDescriptor), (), VectorIndexError.NotFound)
+    } yield ()
+  }
 
   final private def ensureIsVectorIndex(indexDescriptor: schema.IndexDescriptor)
     : Either[VectorIndexError.WrongIndexType, Unit] = {

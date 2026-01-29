@@ -81,6 +81,8 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
     indexDescriptorError match {
       case VectorIndexError.NotFound =>
         throw VectorIndexSearchException.indexNotFound(indexName)
+      case VectorIndexError.Populating =>
+        throw VectorIndexSearchException.indexInPopulatingState(indexName)
       case VectorIndexError.WrongIndexType(wrongIndexType) =>
         throw InvalidArgumentException.wrongIndexType(
           indexName,

@@ -26,6 +26,7 @@ sealed trait VectorIndexError
 
 object VectorIndexError {
   case object NotFound extends VectorIndexError
+  case object Populating extends VectorIndexError
   case class WrongEntityType(variableType: EntityType, indexType: EntityType) extends VectorIndexError
   case class WrongIndexType(givenIndexType: IndexType) extends VectorIndexError
 }

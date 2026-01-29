@@ -42,6 +42,13 @@ public class VectorIndexSearchException extends Neo4jException {
         return new VectorIndexSearchException(gql, Status.Schema.IndexNotFound, gql.getMessage());
     }
 
+    public static VectorIndexSearchException indexInPopulatingState(String indexName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N63)
+                .withParam(GqlParams.StringParam.idx, indexName)
+                .build();
+        return new VectorIndexSearchException(gql, Status.Schema.IndexNotFound, gql.getMessage());
+    }
+
     public static VectorIndexSearchException wrongBindingVariableType(
             String variableName, String expectedType, String actualTypeOfVariable) {
         var gqlCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)

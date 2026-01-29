@@ -4996,8 +4996,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N63(
             new GqlStatus("51N63"),
-            "Index is not ready yet. Wait until it finishes populating and retry the transaction.",
-            new GqlParams.GqlParam[] {},
+            "Index { %s } is not ready yet. Wait until it finishes populating and retry the transaction.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "index is still populating",

@@ -36,8 +36,10 @@ public class IndexNotFoundKernelException extends KernelException {
         this.index = index;
     }
 
-    public static IndexNotFoundKernelException indexIsStillPopulating(String indexPopulationJobDescription) {
+    public static IndexNotFoundKernelException indexIsStillPopulating(
+            String indexPopulationJobDescription, String indexName) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N63)
+                .withParam(GqlParams.StringParam.idx, indexName)
                 .build();
         return new IndexNotFoundKernelException(
                 gql, "Index is still populating: " + indexPopulationJobDescription, null);
@@ -45,6 +47,7 @@ public class IndexNotFoundKernelException extends KernelException {
 
     public static IndexNotFoundKernelException indexIsStillPopulating(IndexDescriptor descriptor) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N63)
+                .withParam(GqlParams.StringParam.idx, descriptor.getName())
                 .build();
         return new IndexNotFoundKernelException(gql, descriptor + " is still populating", descriptor);
     }
