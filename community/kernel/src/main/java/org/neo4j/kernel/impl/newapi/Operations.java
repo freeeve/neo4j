@@ -2099,8 +2099,16 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         return index;
     }
 
+    @SuppressWarnings("OptionalIsPresent")
     private IndexPrototype ensureIndexPrototypeHasName(IndexPrototype prototype) {
-        return prototype.getName().isEmpty() ? prototype.withName(generateNameFrom(prototype)) : prototype;
+        final String name;
+        final Optional<String> maybeName = prototype.getName();
+        if (maybeName.isPresent()) {
+            name = SchemaNameUtil.sanitiseName(maybeName.get());
+        } else {
+            name = generateNameFrom(prototype);
+        }
+        return prototype.withName(name);
     }
 
     private IndexPrototype decideIndexProvider(IndexPrototype prototype) {
@@ -2162,7 +2170,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public void indexDrop(String indexName) throws SchemaKernelException {
         ensureCursors();
-        exclusiveSchemaNameLock(indexName);
+        final String lockName = SchemaNameUtil.sanitiseName(indexName);
+        exclusiveSchemaNameLock(lockName);
         IndexDescriptor index = schemaRead.indexGetForName(indexName);
         if (index == IndexDescriptor.NO_INDEX) {
             throw DropIndexFailureException.indexDoesNotExist(indexName);
@@ -2976,7 +2985,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public void constraintDrop(String name, boolean canDropDependent) throws SchemaKernelException {
         ensureCursors();
-        exclusiveSchemaNameLock(name);
+        final String lockName = SchemaNameUtil.sanitiseName(name);
+        exclusiveSchemaNameLock(lockName);
         ConstraintDescriptor constraint = schemaRead.constraintGetForName(name);
         if (constraint == null) {
             throw DropConstraintFailureException.constraintDropFailed(
@@ -3203,7 +3213,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @SuppressWarnings("unchecked")
     private <T extends ConstraintDescriptor> T ensureConstraintHasName(T constraint) throws KernelException {
-        return constraint.getName() == null ? (T) constraint.withName(generateNameFrom(constraint)) : constraint;
+        final String maybeName = constraint.getName();
+        final String name;
+        if (maybeName != null) {
+            name = SchemaNameUtil.sanitiseName(maybeName);
+        } else {
+            name = generateNameFrom(constraint);
+        }
+        return (T) constraint.withName(name);
     }
 
     private String generateNameFrom(SchemaDescriptorSupplier schemaDescriptorSupplier) {

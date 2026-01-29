@@ -50,7 +50,7 @@ public class ExistenceConstraintDescriptorImplementation extends ConstraintDescr
                 isDependent ? DEPENDENT : INDEPENDENT, schema, NO_ID, null);
     }
 
-    public ExistenceConstraintDescriptorImplementation(
+    private ExistenceConstraintDescriptorImplementation(
             GraphTypeDependence dependence, SchemaDescriptor schema, long id, String name) {
         super(id);
         this.graphTypeDependence = dependence;

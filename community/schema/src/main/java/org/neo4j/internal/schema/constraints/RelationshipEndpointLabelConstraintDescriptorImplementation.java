@@ -42,7 +42,7 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation extends 
     private final RelationshipEndpointLabelSchemaDescriptor schema;
     private final EndpointType endpointType;
 
-    RelationshipEndpointLabelConstraintDescriptorImplementation(
+    private RelationshipEndpointLabelConstraintDescriptorImplementation(
             RelationshipEndpointLabelSchemaDescriptor schema,
             long id,
             int endpointLabelId,

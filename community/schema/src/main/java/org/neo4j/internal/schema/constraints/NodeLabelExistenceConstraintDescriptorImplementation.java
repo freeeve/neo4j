@@ -40,7 +40,7 @@ final class NodeLabelExistenceConstraintDescriptorImplementation extends Constra
     private final NodeLabelExistenceSchemaDescriptor schema;
     private final int requiredLabelId;
 
-    NodeLabelExistenceConstraintDescriptorImplementation(
+    private NodeLabelExistenceConstraintDescriptorImplementation(
             NodeLabelExistenceSchemaDescriptor schema, long id, int requiredLabelId, String name) {
         super(id);
         if (requiredLabelId < 0) {

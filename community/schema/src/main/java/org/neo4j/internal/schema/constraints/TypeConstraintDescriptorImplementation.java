@@ -55,7 +55,7 @@ public class TypeConstraintDescriptorImplementation extends ConstraintDescriptor
                 isDependent ? DEPENDENT : INDEPENDENT, schema, NO_ID, null, propertyType);
     }
 
-    public TypeConstraintDescriptorImplementation(
+    private TypeConstraintDescriptorImplementation(
             GraphTypeDependence dependence,
             SchemaDescriptor schema,
             long id,
