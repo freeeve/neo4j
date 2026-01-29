@@ -907,8 +907,10 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     setOf(STRING),
                     Set.of(
                             // These exceptions have code 50N00, but are not unexpected (in this context at least).
+                            "org.neo4j.exceptions.EntityNotFoundException",
                             "org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException",
                             "org.neo4j.graphdb.TransactionFailureException",
+                            "org.neo4j.internal.kernel.api.exceptions.TransactionFailureException",
                             "com.neo4j.aura.AuraTransactionListener$ExceedLimitException"))
             .dynamic()
             .build();
