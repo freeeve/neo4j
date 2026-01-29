@@ -517,7 +517,7 @@ public class ImportCommand {
                 hidden = true,
                 defaultValue = "false",
                 fallbackValue = "true",
-                description = "Disable import performance instrumentation")
+                description = "Disable import performance instrumentation.")
         private boolean disableInstrumentation;
 
         @Option(
@@ -527,7 +527,7 @@ public class ImportCommand {
                 fallbackValue = "true",
                 defaultValue = "true",
                 description = "Enable import performance instrumentation to take java flight recordings when "
-                        + "significant performance issues are found")
+                        + "significant performance issues are found.")
         private boolean captureJFRs;
 
         @Option(
@@ -537,8 +537,23 @@ public class ImportCommand {
                 fallbackValue = "true",
                 defaultValue = "false",
                 description = "Enable import performance instrumentation to take thread dumps when "
-                        + "significant performance issues are found")
+                        + "significant performance issues are found.")
         private boolean captureThreadDumps;
+
+        @Option(
+                names = "--profile",
+                arity = "0..1",
+                fallbackValue = "true",
+                defaultValue = "false",
+                description = "Capture a java flight recording for the entire duration of the import.")
+        private boolean captureProfile;
+
+        @Option(
+                names = "--profile-results-path",
+                paramLabel = "<path>",
+                description = "Provide a path where to store java flight recordings captured with the --profile "
+                        + "option. Requires --profile or --profile=true to be set to have an effect.")
+        private Path captureProfileResultPath = null;
 
         protected Monitor monitor = Monitor.NO_MONITOR;
 
@@ -864,6 +879,16 @@ public class ImportCommand {
                 @Override
                 public boolean instrumentationCaptureThreadDumps() {
                     return captureThreadDumps;
+                }
+
+                @Override
+                public boolean captureProfile() {
+                    return captureProfile;
+                }
+
+                @Override
+                public Path captureProfileResultPath() {
+                    return captureProfileResultPath != null ? captureProfileResultPath.toAbsolutePath() : null;
                 }
 
                 @Override

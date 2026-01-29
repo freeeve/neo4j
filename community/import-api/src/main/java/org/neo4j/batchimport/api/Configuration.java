@@ -228,6 +228,20 @@ public interface Configuration {
         return false;
     }
 
+    /**
+     * Enables JFR capture for the full duration of the import
+     */
+    default boolean captureProfile() {
+        return false;
+    }
+
+    /**
+     * If not null, provides an overridden path to put the JFRs generated from {@link #captureProfile()};
+     */
+    default Path captureProfileResultPath() {
+        return null;
+    }
+
     Configuration DEFAULT = new Configuration() {};
 
     /**
@@ -367,6 +381,16 @@ public interface Configuration {
         @Override
         public boolean instrumentationCaptureThreadDumps() {
             return defaults.instrumentationCaptureThreadDumps();
+        }
+
+        @Override
+        public boolean captureProfile() {
+            return defaults.captureProfile();
+        }
+
+        @Override
+        public Path captureProfileResultPath() {
+            return defaults.captureProfileResultPath();
         }
     }
 

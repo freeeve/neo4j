@@ -107,7 +107,9 @@ class ImportCommandTest {
                 "--input-type",
                 "--overwrite-destination",
                 "--format",
-                "--path-pattern-style");
+                "--path-pattern-style",
+                "--profile",
+                "--profile-results-path");
         final var positionals = getPositionals(help);
         final var expectedPositionals = List.of("<database>");
 
