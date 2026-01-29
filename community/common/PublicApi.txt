@@ -96,6 +96,7 @@ org.neo4j.kernel.api.exceptions.Status.Procedure::valueOf(java.lang.String) org.
 org.neo4j.kernel.api.exceptions.Status.Procedure::values() org.neo4j.kernel.api.exceptions.Status.Procedure[] public static
 org.neo4j.kernel.api.exceptions.Status.Request public static final enum extends java.lang.Enum<org.neo4j.kernel.api.exceptions.Status.Request> implements org.neo4j.kernel.api.exceptions.Status
 org.neo4j.kernel.api.exceptions.Status.Request::DeprecatedFormat org.neo4j.kernel.api.exceptions.Status.Request public static final
+org.neo4j.kernel.api.exceptions.Status.Request::FeatureDeprecationWarning org.neo4j.kernel.api.exceptions.Status.Request public static final
 org.neo4j.kernel.api.exceptions.Status.Request::Invalid org.neo4j.kernel.api.exceptions.Status.Request public static final
 org.neo4j.kernel.api.exceptions.Status.Request::InvalidFormat org.neo4j.kernel.api.exceptions.Status.Request public static final
 org.neo4j.kernel.api.exceptions.Status.Request::InvalidUsage org.neo4j.kernel.api.exceptions.Status.Request public static final

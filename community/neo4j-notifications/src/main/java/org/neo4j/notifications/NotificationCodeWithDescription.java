@@ -160,6 +160,7 @@ public enum NotificationCodeWithDescription {
             GqlStatusInfoCodes.STATUS_01N00,
             "The character with the Unicode representation `%s` is deprecated for unescaped identifiers and will not be supported in the future. "
                     + "To continue using it, escape the identifier by adding backticks around the identifier `%s`."),
+
     EAGER_LOAD_CSV(
             Status.Statement.EagerOperator,
             GqlStatusInfoCodes.STATUS_03N94,
@@ -171,6 +172,12 @@ public enum NotificationCodeWithDescription {
             Status.Request.DeprecatedFormat,
             GqlStatusInfoCodes.STATUS_01N01,
             "The requested format has been deprecated. (%s)"),
+
+    DEPRECATED_REQUESTED_FEATURE(
+            Status.Request.FeatureDeprecationWarning,
+            GqlStatusInfoCodes.STATUS_01N01,
+            "%s is deprecated. It is replaced by %s."),
+
     LARGE_LABEL_LOAD_CSV(
             Status.Statement.NoApplicableIndex,
             GqlStatusInfoCodes.STATUS_03N93,
@@ -652,6 +659,12 @@ public enum NotificationCodeWithDescription {
             InputPosition position, String oldDetail, String deprecatedFormat, String newFormat) {
         return DEPRECATED_FORMAT.notificationWithParameters(
                 position, new String[] {oldDetail}, new String[] {deprecatedFormat, newFormat});
+    }
+
+    public static NotificationImplementation deprecatedRequestedFeature(
+            InputPosition position, String deprecated, String replacement) {
+        return DEPRECATED_REQUESTED_FEATURE.notificationWithParameters(
+                position, new String[] {deprecated, replacement}, new String[] {deprecated, replacement});
     }
 
     public static NotificationImplementation largeLabelLoadCsv(InputPosition position, String labelName) {

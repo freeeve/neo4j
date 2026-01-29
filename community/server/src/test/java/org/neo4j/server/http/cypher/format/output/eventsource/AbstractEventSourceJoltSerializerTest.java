@@ -55,6 +55,28 @@ import org.neo4j.server.rest.domain.JsonParseException;
 import org.neo4j.test.mockito.mock.Link;
 
 public abstract class AbstractEventSourceJoltSerializerTest {
+    protected static final String DEPRECATION_NOTICE =
+            "{\"code\":\"Neo.ClientNotification.Request.FeatureDeprecationWarning\"," + "\"severity\":\"WARNING\","
+                    + "\"title\":\"This feature is deprecated and will be removed in future versions.\","
+                    + "\"description\":\"HTTP API is deprecated. It is replaced by Query API.\"}";
+
+    protected static final String FORMAT_DEPRECATION_NOTICE_JSON_SEQ =
+            "{\"code\":\"Neo.ClientNotification.Request.DeprecatedFormat\","
+                    + "\"severity\":\"WARNING\",\"title\":\"The client made a request for a format which "
+                    + "has been deprecated.\","
+                    + "\"description\":\"The requested format has been deprecated. "
+                    + "('application/vnd.neo4j.jolt+json-seq' and 'application/vnd.neo4j.jolt-v1+json-seq' have "
+                    + "been deprecated and will be removed in a future version. "
+                    + "Please use 'application/vnd.neo4j.jolt-v2+json-seq'.)\"}";
+
+    protected static final String FORMAT_DEPRECATION_NOTICE =
+            "{\"code\":\"Neo.ClientNotification.Request.DeprecatedFormat\","
+                    + "\"severity\":\"WARNING\",\"title\":\"The client made a request for a format which "
+                    + "has been deprecated.\","
+                    + "\"description\":\"The requested format has been deprecated. "
+                    + "('application/vnd.neo4j.jolt' and 'application/vnd.neo4j.jolt-v1' have "
+                    + "been deprecated and will be removed in a future version. "
+                    + "Please use 'application/vnd.neo4j.jolt-v2'.)\"}";
 
     protected static void writeStatementStart(LineDelimitedEventSourceJoltSerializer serializer, String... columns) {
         writeStatementStart(serializer, null, columns);

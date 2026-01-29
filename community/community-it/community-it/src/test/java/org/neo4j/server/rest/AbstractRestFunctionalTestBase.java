@@ -43,6 +43,10 @@ import org.neo4j.test.server.SharedWebContainerTestBase;
 public class AbstractRestFunctionalTestBase extends SharedWebContainerTestBase implements GraphHolder {
     protected final HTTP.Builder http = HTTP.withBaseUri(container().getBaseUri());
     protected static final String TX_ENDPOINT = "db/neo4j/tx";
+    protected static final String DEPRECATION_NOTICE =
+            "{\"code\":\"Neo.ClientNotification.Request.FeatureDeprecationWarning\"," + "\"severity\":\"WARNING\","
+                    + "\"title\":\"This feature is deprecated and will be removed in future versions.\","
+                    + "\"description\":\"HTTP API is deprecated. It is replaced by Query API.\"}";
 
     @RegisterExtension
     TestData<Map<String, Node>> data = TestData.producedThrough(GraphDescription.createGraphFor(this));

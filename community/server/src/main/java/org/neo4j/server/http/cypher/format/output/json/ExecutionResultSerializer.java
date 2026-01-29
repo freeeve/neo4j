@@ -19,6 +19,7 @@
  */
 package org.neo4j.server.http.cypher.format.output.json;
 
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedRequestedFeature;
 import static org.neo4j.server.http.cypher.format.api.TransactionNotificationState.COMMITTED;
 import static org.neo4j.server.http.cypher.format.api.TransactionNotificationState.OPEN;
 import static org.neo4j.server.rest.domain.JsonHelper.writeValue;
@@ -212,6 +213,7 @@ class ExecutionResultSerializer {
         try {
             ensureDocumentOpen();
             ensureResultsFieldClosed();
+            notifications.add(deprecationWarning());
             writeNotifications(notifications);
             writeErrors();
             if (transactionInfoEvent.getCommitUri() != null) {
@@ -454,5 +456,9 @@ class ExecutionResultSerializer {
         STATEMENT_OPEN,
         RESULTS_CLOSED,
         ERRORS_WRITTEN
+    }
+
+    protected Notification deprecationWarning() {
+        return deprecatedRequestedFeature(InputPosition.empty, "HTTP API", "Query API");
     }
 }

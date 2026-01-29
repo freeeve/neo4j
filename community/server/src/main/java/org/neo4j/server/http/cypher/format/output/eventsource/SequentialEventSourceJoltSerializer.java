@@ -99,8 +99,8 @@ public class SequentialEventSourceJoltSerializer extends LineDelimitedEventSourc
     }
 
     @Override
-    protected Notification deprecationWarning() {
-        return deprecationWarning(
+    protected Notification deprecationFormatWarning() {
+        return deprecationFormatWarning(
                 SequentialEventSourceJoltMessageBodyWriter.JSON_JOLT_MIME_TYPE_VALUE,
                 SequentialEventSourceJoltMessageBodyWriter.JSON_JOLT_MIME_TYPE_VALUE_V1,
                 deprecatedFormat,

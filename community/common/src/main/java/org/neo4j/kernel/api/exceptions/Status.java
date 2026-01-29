@@ -93,6 +93,11 @@ public interface Status {
                 "The client made a request for a format which has been deprecated.",
                 SeverityLevel.WARNING,
                 NotificationCategory.DEPRECATION),
+        FeatureDeprecationWarning(
+                ClientNotification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                NotificationCategory.DEPRECATION),
         UnsupportedType(
                 ClientNotification,
                 "Client does not support this type.",

@@ -110,6 +110,10 @@ class ExecutionResultSerializerTest {
     private static final List<ExecutionPlanDescription> NO_PLANS = emptyList();
     private static final JsonFactory JSON_FACTORY =
             new JsonFactory().disable(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM);
+    private static final String DEPRECATION_NOTICE =
+            "{\"code\":\"Neo.ClientNotification.Request.FeatureDeprecationWarning\"," + "\"severity\":\"WARNING\","
+                    + "\"title\":\"This feature is deprecated and will be removed in future versions.\","
+                    + "\"description\":\"HTTP API is deprecated. It is replaced by Query API.\"}";
 
     private final ByteArrayOutputStream output = new ByteArrayOutputStream();
     private ExecutionResultSerializer serializer;
@@ -134,7 +138,11 @@ class ExecutionResultSerializerTest {
 
         // then
         String result = output.toString(UTF_8);
-        assertEquals("{\"results\":[],\"errors\":[],\"commit\":\"commit/uri/1\"}", result);
+        assertEquals(
+                "{\"results\":[],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[],\"commit\":\"commit/uri/1\"}",
+                result);
     }
 
     @Test
@@ -146,7 +154,9 @@ class ExecutionResultSerializerTest {
         // then
         String result = output.toString(UTF_8);
         assertEquals(
-                "{\"results\":[],\"errors\":[],\"commit\":\"commit/uri/1\",\"lastBookmarks\":[\"I AM BOOKMARK!\"]}",
+                "{\"results\":[],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[],\"commit\":\"commit/uri/1\",\"lastBookmarks\":[\"I AM BOOKMARK!\"]}",
                 result);
     }
 
@@ -158,7 +168,11 @@ class ExecutionResultSerializerTest {
 
         // then
         String result = output.toString(UTF_8);
-        assertEquals("{\"results\":[],\"errors\":[],\"commit\":\"commit/uri/1\"}", result);
+        assertEquals(
+                "{\"results\":[],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[],\"commit\":\"commit/uri/1\"}",
+                result);
     }
 
     @Test
@@ -180,7 +194,9 @@ class ExecutionResultSerializerTest {
         String result = output.toString(UTF_8);
         assertEquals(
                 "{\"results\":[{\"columns\":[\"column1\",\"column2\"],"
-                        + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]}]}],\"errors\":[],\"commit\":\"commit/uri/1\"}",
+                        + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[],\"commit\":\"commit/uri/1\"}",
                 result);
     }
 
@@ -201,7 +217,9 @@ class ExecutionResultSerializerTest {
         String result = output.toString(UTF_8);
         assertEquals(
                 "{\"results\":[{\"columns\":[\"column1\",\"column2\"],"
-                        + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]}]}],\"errors\":[]}",
+                        + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[]}",
                 result);
     }
 
@@ -224,6 +242,7 @@ class ExecutionResultSerializerTest {
         assertEquals(
                 "{\"results\":[{\"columns\":[\"column1\",\"column2\"],"
                         + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
                         + "\"errors\":[{\"code\":\"Neo.ClientError.Request.InvalidFormat\",\"message\":\"cause1\"}],\"commit\":\"commit/uri/1\"}",
                 result);
     }
@@ -247,6 +266,7 @@ class ExecutionResultSerializerTest {
         assertEquals(
                 "{\"results\":[{\"columns\":[\"column1\",\"column2\"],"
                         + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
                         + "\"errors\":[{\"code\":\"Neo.ClientError.Request.InvalidFormat\",\"message\":\"cause1\"}]}",
                 result);
     }
@@ -261,7 +281,9 @@ class ExecutionResultSerializerTest {
         // then
         String result = output.toString(UTF_8);
         assertEquals(
-                "{\"results\":[],\"errors\":[{\"code\":\"Neo.ClientError.Request.InvalidFormat\","
+                "{\"results\":[],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[{\"code\":\"Neo.ClientError.Request.InvalidFormat\","
                         + "\"message\":\"cause1\"}],\"commit\":\"commit/uri/1\"}",
                 result);
     }
@@ -275,7 +297,9 @@ class ExecutionResultSerializerTest {
         // then
         String result = output.toString(UTF_8);
         assertEquals(
-                "{\"results\":[],\"errors\":[{\"code\":\"Neo.ClientError.Request.InvalidFormat\",\"message\":\"cause1\"}]}",
+                "{\"results\":[],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[{\"code\":\"Neo.ClientError.Request.InvalidFormat\",\"message\":\"cause1\"}]}",
                 result);
     }
 
@@ -287,7 +311,7 @@ class ExecutionResultSerializerTest {
 
         // then
         String result = output.toString(UTF_8);
-        assertEquals("{\"results\":[],\"errors\":[]}", result);
+        assertEquals("{\"results\":[]," + "\"notifications\":[" + DEPRECATION_NOTICE + "]," + "\"errors\":[]}", result);
     }
 
     @Test
@@ -314,6 +338,7 @@ class ExecutionResultSerializerTest {
                 "{\"results\":[{\"columns\":[\"column1\",\"column2\"],"
                         + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]},"
                         + "{\"row\":[\"value3\",\"value4\"],\"meta\":[null,null]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
                         + "\"errors\":[]}",
                 result);
     }
@@ -344,6 +369,7 @@ class ExecutionResultSerializerTest {
                 "{\"results\":["
                         + "{\"columns\":[\"column1\",\"column2\"],\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]}]},"
                         + "{\"columns\":[\"column3\",\"column4\"],\"data\":[{\"row\":[\"value3\",\"value4\"],\"meta\":[null,null]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
                         + "\"errors\":[]}",
                 result);
     }
@@ -428,6 +454,7 @@ class ExecutionResultSerializerTest {
                 var expectedResult = "{\"results\":[{\"columns\":[\"node\"]," + "\"data\":[{\"row\":[{\"i\":"
                         + i + "}],"
                         + "\"meta\":[{\"id\":1,\"elementId\":\"1\",\"type\":\"node\",\"deleted\":false}]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
                         + "\"errors\":[]}";
                 try {
                     var result = request.get();
@@ -474,6 +501,7 @@ class ExecutionResultSerializerTest {
                         + "\"meta\":[{\"id\":1,\"elementId\":\"1\",\"type\":\"relationship\",\"deleted\":false},"
                         + "{\"id\":1,\"elementId\":\"1\",\"type\":\"node\",\"deleted\":false},[{\"id\":1,\"elementId\":\"1\",\"type\":\"node\",\"deleted\":false},"
                         + "{\"id\":1,\"elementId\":\"1\",\"type\":\"relationship\",\"deleted\":false},{\"id\":2,\"elementId\":\"2\",\"type\":\"node\",\"deleted\":false}]]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
                         + "\"errors\":[]}",
                 result);
     }
@@ -498,6 +526,7 @@ class ExecutionResultSerializerTest {
                         + "\"data\":[{\"row\":[[{\"key1\":\"value1\"},{\"key2\":\"value2\"},{\"key3\":\"value3\"}]],"
                         + "\"meta\":[[{\"id\":1,\"elementId\":\"1\",\"type\":\"node\",\"deleted\":false},"
                         + "{\"id\":1,\"elementId\":\"1\",\"type\":\"relationship\",\"deleted\":false},{\"id\":2,\"elementId\":\"2\",\"type\":\"node\",\"deleted\":false}]]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
                         + "\"errors\":[]}",
                 result);
     }
@@ -539,7 +568,9 @@ class ExecutionResultSerializerTest {
                         + "{\"srid\":9157,\"name\":\"cartesian-3D\",\"type\":\"link\",\"properties\":"
                         + "{\"href\":\"https://spatialreference.org/ref/sr-org/9157/ogcwkt/\",\"type\":\"ogcwkt\"}"
                         + "}}],\"meta\":[{\"type\":\"point\"}]}"
-                        + "]}],\"errors\":[]}",
+                        + "]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[]}",
                 result);
     }
 
@@ -576,7 +607,9 @@ class ExecutionResultSerializerTest {
                         + "{\"row\":[\"2018-03-12T13:02:10.000000010\"],\"meta\":[{\"type\":\"localdatetime\"}]},"
                         + "{\"row\":[\"13:02:10.000000010\"],\"meta\":[{\"type\":\"localtime\"}]},"
                         + "{\"row\":[\"PT12H\"],\"meta\":[{\"type\":\"duration\"}]}"
-                        + "]}],\"errors\":[]}",
+                        + "]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[]}",
                 result);
     }
 
@@ -603,6 +636,7 @@ class ExecutionResultSerializerTest {
                         + "{\"row\":[{\"type\":\"LineString\",\"coordinates\":[[1.0,2.0],[2.0,3.0]],\"crs\":"
                         + "{\"srid\":7203,\"name\":\"cartesian\",\"type\":\"link\",\"properties\":"
                         + "{\"href\":\"https://spatialreference.org/ref/sr-org/7203/ogcwkt/\",\"type\":\"ogcwkt\"}}}],\"meta\":[]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
                         + "\"errors\":[{\"code\":\"Neo.DatabaseError.Statement.ExecutionFailed\","
                         + "\"message\":\"Unsupported Geometry type: type=MockGeometry, value=LineString\"");
     }
@@ -633,6 +667,7 @@ class ExecutionResultSerializerTest {
         assertEquals(
                 "{\"results\":[{\"columns\":[\"column1\",\"column2\"],"
                         + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]},{\"row\":[],\"meta\":[]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
                         + "\"errors\":[{\"code\":\"Neo.DatabaseError.Statement.ExecutionFailed\","
                         + "\"message\":\"Stuff went wrong!\"}]}",
                 result);
@@ -994,7 +1029,7 @@ class ExecutionResultSerializerTest {
                         + "processing. While occasionally intended, it may often be possible to reformulate the query "
                         + "that avoids the use of this cross product, perhaps by adding a relationship between the "
                         + "different parts or by using OPTIONAL MATCH (a)\",\"position\":{\"offset\":1,\"line\":2,"
-                        + "\"column\":3}}],\"errors\":[],\"commit\":\"commit/uri/1\"}",
+                        + "\"column\":3}}," + DEPRECATION_NOTICE + "],\"errors\":[],\"commit\":\"commit/uri/1\"}",
                 result);
     }
 
@@ -1016,7 +1051,9 @@ class ExecutionResultSerializerTest {
 
         assertEquals(
                 "{\"results\":[{\"columns\":[\"column1\",\"column2\"],"
-                        + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]}]}],\"errors\":[],\"commit\":\"commit/uri/1\"}",
+                        + "\"data\":[{\"row\":[\"value1\",\"value2\"],\"meta\":[null,null]}]}],"
+                        + "\"notifications\":[" + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[],\"commit\":\"commit/uri/1\"}",
                 result);
     }
 
@@ -1050,7 +1087,8 @@ class ExecutionResultSerializerTest {
                         + " between all those parts. This may produce a large amount of data and slow down query "
                         + "processing. While occasionally intended, it may often be possible to reformulate the query "
                         + "that avoids the use of this cross product, perhaps by adding a relationship between the "
-                        + "different parts or by using OPTIONAL MATCH (a)\"}],\"errors\":[],\"commit\":\"commit/uri/1\"}",
+                        + "different parts or by using OPTIONAL MATCH (a)\"}," + DEPRECATION_NOTICE + "],"
+                        + "\"errors\":[],\"commit\":\"commit/uri/1\"}",
                 result);
     }
 

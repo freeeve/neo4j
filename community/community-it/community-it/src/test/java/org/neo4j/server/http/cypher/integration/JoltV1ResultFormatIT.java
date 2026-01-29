@@ -41,6 +41,24 @@ class JoltV1ResultFormatIT extends AbstractRestFunctionalTestBase {
     private final HTTP.Builder http = HTTP.withBaseUri(container().getBaseUri())
             .withHeaders(HttpHeaders.ACCEPT, LineDelimitedEventSourceJoltMessageBodyWriter.JSON_JOLT_MIME_TYPE_VALUE);
 
+    protected static final String FORMAT_DEPRECATION_NOTICE_JSON_SEQ =
+            "{\"code\":\"Neo.ClientNotification.Request.DeprecatedFormat\","
+                    + "\"severity\":\"WARNING\",\"title\":\"The client made a request for a format which "
+                    + "has been deprecated.\","
+                    + "\"description\":\"The requested format has been deprecated. "
+                    + "('application/vnd.neo4j.jolt+json-seq' and 'application/vnd.neo4j.jolt-v1+json-seq' have "
+                    + "been deprecated and will be removed in a future version. "
+                    + "Please use 'application/vnd.neo4j.jolt-v2+json-seq'.)\"}";
+
+    protected static final String FORMAT_DEPRECATION_NOTICE =
+            "{\"code\":\"Neo.ClientNotification.Request.DeprecatedFormat\","
+                    + "\"severity\":\"WARNING\",\"title\":\"The client made a request for a format which "
+                    + "has been deprecated.\","
+                    + "\"description\":\"The requested format has been deprecated. "
+                    + "('application/vnd.neo4j.jolt' and 'application/vnd.neo4j.jolt-v1' have "
+                    + "been deprecated and will be removed in a future version. "
+                    + "Please use 'application/vnd.neo4j.jolt-v2'.)\"}";
+
     private String commitResource;
 
     private static Stream<String> lineDelimitedMimeTypes() {
@@ -160,19 +178,11 @@ class JoltV1ResultFormatIT extends AbstractRestFunctionalTestBase {
     }
 
     private static String seqDeprecationNotification() {
-        return "\"notifications\":[{\"code\":\"Neo.ClientNotification.Request.DeprecatedFormat\","
-                + "\"severity\":\"WARNING\",\"title\":\"The client made a request for a format "
-                + "which has been deprecated.\",\"description\":\"The requested format has been deprecated. "
-                + "('application/vnd.neo4j.jolt+json-seq' and 'application/vnd.neo4j.jolt-v1+json-seq' have been deprecated and will be removed in a "
-                + "future version. Please use 'application/vnd.neo4j.jolt-v2+json-seq'.)\"}]";
+        return "\"notifications\":[" + FORMAT_DEPRECATION_NOTICE_JSON_SEQ + "," + DEPRECATION_NOTICE + "]";
     }
 
     private static String lineDeprecationNotification() {
-        return "\"notifications\":[{\"code\":\"Neo.ClientNotification.Request.DeprecatedFormat\","
-                + "\"severity\":\"WARNING\",\"title\":\"The client made a request for a format "
-                + "which has been deprecated.\",\"description\":\"The requested format has been deprecated. "
-                + "('application/vnd.neo4j.jolt' and 'application/vnd.neo4j.jolt-v1' have been deprecated and will be removed in a "
-                + "future version. Please use 'application/vnd.neo4j.jolt-v2'.)\"}]";
+        return "\"notifications\":[" + FORMAT_DEPRECATION_NOTICE + "," + DEPRECATION_NOTICE + "]";
     }
 
     public static void splitAndVerify(String input, String separator, String... expectedOutput) {

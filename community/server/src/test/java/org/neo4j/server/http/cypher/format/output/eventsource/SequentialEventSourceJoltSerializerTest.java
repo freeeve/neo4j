@@ -91,7 +91,8 @@ public class SequentialEventSourceJoltSerializerTest extends AbstractEventSource
                         + "\u001E{\"error\":{\"errors\":["
                         + "{\"code\":{\"U\":\"Neo.DatabaseError.Statement.ExecutionFailed\"},\"message\":{\"U\":\"Stuff went wrong!\"}}"
                         + "]}}\n"
-                        + "\u001E{\"info\":{\"commit\":\"commit/uri/1\"}}\n"
+                        + "\u001E{\"info\":{\"notifications\":[" + DEPRECATION_NOTICE
+                        + "],\"commit\":\"commit/uri/1\"}}\n"
                         + "\u001E{\"summary\":{}}\n",
                 result);
     }
@@ -123,13 +124,8 @@ public class SequentialEventSourceJoltSerializerTest extends AbstractEventSource
                 "\u001E{\"header\":{\"fields\":[\"column1\",\"column2\"]}}\n"
                         + "\u001E{\"data\":[{\"U\":\"value1\"},{\"U\":\"value2\"}]}\n"
                         + "\u001E{\"summary\":{}}\n"
-                        + "\u001E{\"info\":{\"notifications\":[{\"code\":\"Neo.ClientNotification.Request.DeprecatedFormat\","
-                        + "\"severity\":\"WARNING\",\"title\":\"The client made a request for a format which "
-                        + "has been deprecated.\","
-                        + "\"description\":\"The requested format has been deprecated. "
-                        + "('application/vnd.neo4j.jolt+json-seq' and 'application/vnd.neo4j.jolt-v1+json-seq' have "
-                        + "been deprecated and will be removed in a future version. "
-                        + "Please use 'application/vnd.neo4j.jolt-v2+json-seq'.)\"}],"
+                        + "\u001E{\"info\":{\"notifications\":[" + FORMAT_DEPRECATION_NOTICE_JSON_SEQ + ","
+                        + DEPRECATION_NOTICE + "],"
                         + "\"commit\":\"commit/uri/1\"}}\n",
                 result);
     }

@@ -77,7 +77,8 @@ class JoltV2ResultFormatIT extends AbstractRestFunctionalTestBase {
                 "{\"header\":{\"fields\":[\"1\",\"5.5\",\"true\"]}}",
                 "{\"data\":[{\"Z\":\"1\"},{\"R\":\"5.5\"},{\"?\":\"true\"}]}",
                 "{\"summary\":{}}",
-                "{\"info\":{\"commit\":\"" + commitResource + "\",\"lastBookmarks\":[");
+                "{\"info\":{\"notifications\":[" + DEPRECATION_NOTICE + "],\"commit\":\"" + commitResource
+                        + "\",\"lastBookmarks\":[");
     }
 
     @ParameterizedTest
@@ -100,7 +101,8 @@ class JoltV2ResultFormatIT extends AbstractRestFunctionalTestBase {
                 "{\"header\":{\"fields\":[\"1\",\"5.5\",\"true\"]}}\n",
                 "{\"data\":[{\"Z\":\"1\"},{\"R\":\"5.5\"},{\"?\":\"true\"}]}\n",
                 "{\"summary\":{}}\n",
-                "{\"info\":{\"commit\":\"" + commitResource + "\",\"lastBookmarks\":[");
+                "{\"info\":{\"notifications\":[" + DEPRECATION_NOTICE + "],\"commit\":\"" + commitResource
+                        + "\",\"lastBookmarks\":[");
     }
 
     @Test
@@ -118,7 +120,8 @@ class JoltV2ResultFormatIT extends AbstractRestFunctionalTestBase {
                 "{\"header\":{\"fields\":[\"1\",\"5.5\",\"true\"]}}",
                 "{\"data\":[1,{\"R\":\"5.5\"},true]}",
                 "{\"summary\":{}}",
-                "{\"info\":{\"commit\":\"" + commitResource + "\",\"lastBookmarks\":[");
+                "{\"info\":{\"notifications\":[" + DEPRECATION_NOTICE + "],\"commit\":\"" + commitResource
+                        + "\",\"lastBookmarks\":[");
     }
 
     @Test
@@ -136,7 +139,8 @@ class JoltV2ResultFormatIT extends AbstractRestFunctionalTestBase {
                 "{\"header\":{\"fields\":[\"1\",\"5.5\",\"true\"]}}\n",
                 "{\"data\":[1,{\"R\":\"5.5\"},true]}\n",
                 "{\"summary\":{}}\n",
-                "{\"info\":{\"commit\":\"" + commitResource + "\",\"lastBookmarks\":[");
+                "{\"info\":{\"notifications\":[" + DEPRECATION_NOTICE + "],\"commit\":\"" + commitResource
+                        + "\",\"lastBookmarks\":[");
     }
 
     @Test

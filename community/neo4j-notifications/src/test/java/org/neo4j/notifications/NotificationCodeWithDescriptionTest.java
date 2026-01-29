@@ -58,6 +58,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.deprecated
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedPropertyReferenceInMerge;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedQuotedGraphByNameArgument;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedRelationshipTypeSeparator;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedRequestedFeature;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedRuntimeOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedSeedingOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedShortestPathWithFixedLengthRelationship;
@@ -768,6 +769,24 @@ class NotificationCodeWithDescriptionTest {
                                 Map.of("feat1", "deprecatedFormat", "feat2", "newFormat"))
                         .asMap(),
                 "warn: feature deprecated with replacement. deprecatedFormat is deprecated. It is replaced by newFormat.");
+    }
+
+    @Test
+    void shouldConstructNotificationsFor_DEPRECATED_REQUESTED_FEATURE() {
+        NotificationImplementation notification =
+                deprecatedRequestedFeature(InputPosition.empty, "HTTP API", "Query API");
+
+        verifyNotification(
+                notification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Request.FeatureDeprecationWarning",
+                "HTTP API is deprecated. It is replaced by Query API.",
+                NotificationCategory.DEPRECATION,
+                NotificationClassification.DEPRECATION,
+                "01N01",
+                new DiagnosticRecord(warning, NotificationClassification.DEPRECATION, -1, -1, -1, Map.of()).asMap(),
+                "warn: feature deprecated with replacement. HTTP API is deprecated. It is replaced by Query API.");
     }
 
     @Test
@@ -2304,8 +2323,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            122, -79, 66, 118, -20, 26, -106, 99, -26, 13, 29, 102, -112, 37, 54, -23, 45, -52, -59, -98, -53, -55, 1,
-            -5, 71, -15, -106, -73, -77, -24, -125, -101
+            -83, 50, -41, -22, 103, 26, 89, 67, -66, -17, -54, 70, -90, -78, 57, 12, 127, 51, 81, 89, 20, 65, 121, -56,
+            -61, -10, -85, -57, -105, 116, 24, -53
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

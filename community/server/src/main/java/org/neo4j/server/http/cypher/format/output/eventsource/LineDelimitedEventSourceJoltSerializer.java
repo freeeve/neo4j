@@ -20,6 +20,7 @@
 package org.neo4j.server.http.cypher.format.output.eventsource;
 
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFormat;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedRequestedFeature;
 import static org.neo4j.server.http.cypher.format.api.TransactionNotificationState.COMMITTED;
 import static org.neo4j.server.http.cypher.format.api.TransactionNotificationState.OPEN;
 
@@ -192,7 +193,7 @@ class LineDelimitedEventSourceJoltSerializer implements EventSourceSerializer {
             statementEndEvent.getNotifications().forEach(notifications::add);
 
             if (deprecatedFormat != null) {
-                notifications.add(deprecationWarning());
+                notifications.add(deprecationFormatWarning());
             }
 
             flush();
@@ -209,6 +210,7 @@ class LineDelimitedEventSourceJoltSerializer implements EventSourceSerializer {
             jsonGenerator.writeFieldName("info");
             jsonGenerator.writeStartObject();
 
+            notifications.add(deprecationWarning());
             writeNotifications();
 
             if (transactionInfoEvent.getCommitUri() != null) {
@@ -429,14 +431,18 @@ class LineDelimitedEventSourceJoltSerializer implements EventSourceSerializer {
     }
 
     protected Notification deprecationWarning() {
-        return deprecationWarning(
+        return deprecatedRequestedFeature(InputPosition.empty, "HTTP API", "Query API");
+    }
+
+    protected Notification deprecationFormatWarning() {
+        return deprecationFormatWarning(
                 LineDelimitedEventSourceJoltMessageBodyWriter.JSON_JOLT_MIME_TYPE_VALUE,
                 LineDelimitedEventSourceJoltMessageBodyWriter.JSON_JOLT_MIME_TYPE_VALUE_V1,
                 deprecatedFormat,
                 LineDelimitedEventSourceJoltV2MessageBodyWriter.JSON_JOLT_MIME_TYPE_VALUE_V2);
     }
 
-    public static Notification deprecationWarning(
+    public static Notification deprecationFormatWarning(
             String deprecatedFormatA, String deprecatedFormatB, String actualDeprecatedFormat, String newFormat) {
         return deprecatedFormat(
                 InputPosition.empty,
