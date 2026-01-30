@@ -138,9 +138,9 @@ case class mergeRewriter(supportsFastExpandInto: Boolean) extends Rewriter with 
       while (it.hasNext) {
         it.next() match {
           case SetRelationshipPropertyPattern(variable, key, value)
-            if variable == relName && value.isConstantForQuery => list.append(key -> value)
+            if variable == relName => list.append(key -> value)
           case SetRelationshipPropertiesPattern(variable, items)
-            if variable == relName && items.forall(_._2.isConstantForQuery) => list.appendAll(items)
+            if variable == relName => list.appendAll(items)
           case _ => return None
         }
       }
@@ -156,9 +156,9 @@ case class mergeRewriter(supportsFastExpandInto: Boolean) extends Rewriter with 
       while (it.hasNext) {
         it.next() match {
           case SetNodePropertyPattern(variable, key, value)
-            if variable == relName && value.isConstantForQuery => list.append(key -> value)
+            if variable == relName => list.append(key -> value)
           case SetNodePropertiesPattern(variable, items)
-            if variable == relName && items.forall(_._2.isConstantForQuery) => list.appendAll(items)
+            if variable == relName => list.appendAll(items)
           case _ => return None
         }
       }

@@ -88,6 +88,37 @@ class MergeRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
     rewrite(before) should equal(after)
   }
 
+  test("should rewrite merge + expandInto with (random) ON MATCH and ON CREATE") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.merge(
+        Seq.empty,
+        Seq(createRelationship("r", "x", "R", "y")),
+        onMatch = Seq(setRelationshipProperty("r", "prop", "rand()")),
+        onCreate = Seq(setRelationshipProperty("r", "prop", "rand()")),
+        lockNodes = Set("x", "y")
+      )
+      .|.expandInto("(x)-[r:R]->(y)")
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("r")
+      .apply()
+      .|.mergeInto("(x)-[r:R]->(y)", onMatch = Seq(("prop", "rand()")), onCreate = Seq(("prop", "rand()")))
+      .|.argument("x", "y")
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
   test("should not rewrite if only one node is bound") {
     val before = new LogicalPlanBuilder()
       .produceResults("r")
@@ -166,6 +197,31 @@ class MergeRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
     val after = new LogicalPlanBuilder()
       .produceResults("x")
       .mergeUniqueNode("x", "X", Seq("prop" -> "42"))
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
+  test("should rewrite merge + unique node index seek with a random onMatch and onCreate") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("x")
+      .merge(
+        Seq(createNodeWithProperties("x", Seq("X"), "{prop: 42}")),
+        onMatch = Seq(setNodeProperty("x", "onMatch", "rand()")),
+        onCreate = Seq(setNodeProperty("x", "onCreate", "rand()"))
+      )
+      .nodeIndexOperator("x:X(prop=42)", unique = true)
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("x")
+      .mergeUniqueNode(
+        "x",
+        "X",
+        Seq("prop" -> "42"),
+        onMatch = Seq(("onMatch", "rand()")),
+        onCreate = Seq(("onCreate", "rand()"))
+      )
       .build()
 
     rewrite(before) should equal(after)
