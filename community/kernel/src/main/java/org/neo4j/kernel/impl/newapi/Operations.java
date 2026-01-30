@@ -2101,13 +2101,9 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @SuppressWarnings("OptionalIsPresent")
     private IndexPrototype ensureIndexPrototypeHasName(IndexPrototype prototype) {
-        final String name;
         final Optional<String> maybeName = prototype.getName();
-        if (maybeName.isPresent()) {
-            name = SchemaNameUtil.sanitiseName(maybeName.get());
-        } else {
-            name = generateNameFrom(prototype);
-        }
+        final String name =
+                maybeName.isPresent() ? SchemaNameUtil.sanitiseName(maybeName.get()) : generateNameFrom(prototype);
         return prototype.withName(name);
     }
 
@@ -3214,12 +3210,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @SuppressWarnings("unchecked")
     private <T extends ConstraintDescriptor> T ensureConstraintHasName(T constraint) throws KernelException {
         final String maybeName = constraint.getName();
-        final String name;
-        if (maybeName != null) {
-            name = SchemaNameUtil.sanitiseName(maybeName);
-        } else {
-            name = generateNameFrom(constraint);
-        }
+        final String name = maybeName != null ? SchemaNameUtil.sanitiseName(maybeName) : generateNameFrom(constraint);
         return (T) constraint.withName(name);
     }
 
