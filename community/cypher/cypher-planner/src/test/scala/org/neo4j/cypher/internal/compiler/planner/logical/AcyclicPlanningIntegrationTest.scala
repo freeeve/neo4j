@@ -818,7 +818,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
     val query =
       """
         |MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d)
-        |  WHERE EXISTS { MATCH (d:T)-[x2 {prop: 1}]->+(c) RETURN * } )+ (p)
+        |  WHERE EXISTS { MATCH (d:T)((e)-[x2 {prop: 1}]->(f))+(c) RETURN * } )+ (p)
         |RETURN *
         |""".stripMargin
 
@@ -851,8 +851,8 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         max = Unlimited,
         start = "d",
         end = "c",
-        innerStart = "anon_0",
-        innerEnd = "anon_1",
+        innerStart = "e",
+        innerEnd = "f",
         groupNodes = Set(),
         groupRelationships = Set(),
         innerRelationships = Set("x2"),
@@ -862,9 +862,9 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandInto,
         accumulators = Set()
       ))
-      .|.|.|.filter("NOT anon_0 = anon_1", "x2.prop = 1", isRepeatTrailUnique("x2"))
-      .|.|.|.expandAll("(anon_0)-[x2]->(anon_1)")
-      .|.|.|.argument("anon_0")
+      .|.|.|.filter("NOT e = f", "x2.prop = 1", isRepeatTrailUnique("x2"))
+      .|.|.|.expandAll("(e)-[x2]->(f)")
+      .|.|.|.argument("e")
       .|.|.filter("d:T")
       .|.|.argument("d", "c")
       .|.filter(IsRepeatAcyclic(v"d")(pos), "NOT c = d")
