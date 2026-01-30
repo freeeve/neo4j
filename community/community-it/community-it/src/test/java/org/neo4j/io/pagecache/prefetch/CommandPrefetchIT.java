@@ -20,6 +20,7 @@
 package org.neo4j.io.pagecache.prefetch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -40,8 +41,12 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")
+@SkipOnSpd(
+        notes = incompatible,
+        reason = "No prefetching on the leader makes this test incompatible. Covered by spd specific tests")
 class CommandPrefetchIT {
 
     @Inject
