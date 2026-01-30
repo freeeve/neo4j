@@ -315,7 +315,8 @@ case class StatefulShortestToFindShortestRewriter(
       forAllRepetitions.toVector,
       qpp.variableGroupings,
       statefulShortestPath.source.availableSymbols,
-      insideRepeat = false
+      insideRepeat = false,
+      startNode = None // ACYCLIC path mode with SHORTEST is not yet supported
     ).predicates.map(_.extracted)
 
     // The rest are iterable all(), none(), etc predicates, already in the inlineable form.

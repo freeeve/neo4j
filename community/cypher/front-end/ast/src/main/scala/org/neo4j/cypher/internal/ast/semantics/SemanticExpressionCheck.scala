@@ -57,6 +57,7 @@ import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
 import org.neo4j.cypher.internal.expressions.DifferentNodes
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
+import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.Divide
 import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.DynamicLabelsExpressions
@@ -104,6 +105,7 @@ import org.neo4j.cypher.internal.expressions.NaN
 import org.neo4j.cypher.internal.expressions.NilPathStep
 import org.neo4j.cypher.internal.expressions.NodePathStep
 import org.neo4j.cypher.internal.expressions.NodePattern
+import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.NotEquals
@@ -136,6 +138,7 @@ import org.neo4j.cypher.internal.expressions.Subtract
 import org.neo4j.cypher.internal.expressions.UnaryAdd
 import org.neo4j.cypher.internal.expressions.UnarySubtract
 import org.neo4j.cypher.internal.expressions.Unique
+import org.neo4j.cypher.internal.expressions.UniqueNodes
 import org.neo4j.cypher.internal.expressions.VarLengthBound
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableSelector
@@ -375,15 +378,33 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           expectType(CTList(CTRelationship), relationshipList) chain
           specifyType(CTBoolean, x)
 
+      case x @ NoneOfNodes(node, nodeList) =>
+        check(ctx, x.arguments) chain
+          expectType(CTNode, node) chain
+          expectType(CTList(CTNode), nodeList) chain
+          specifyType(CTBoolean, x)
+
       case x @ Disjoint(lhs, rhs) =>
         check(ctx, x.arguments) chain
           expectType(CTList(CTAny).covariant, lhs) chain
           expectType(CTList(CTAny).covariant, rhs) chain
           specifyType(CTBoolean, x)
 
+      case x @ DisjointNodes(lhs, rhs) =>
+        check(ctx, x.arguments) chain
+          expectType(CTList(CTNode).covariant, lhs) chain
+          expectType(CTList(CTNode).covariant, rhs) chain
+          specifyType(CTBoolean, x)
+
       case x @ Unique(rhs) =>
         check(ctx, x.arguments) chain
           expectType(CTList(CTAny).covariant, rhs) chain
+          specifyType(CTBoolean, x)
+
+      case x @ UniqueNodes(nodeList, relList) =>
+        check(ctx, x.arguments) chain
+          expectType(CTList(CTNode).covariant, nodeList) chain
+          expectType(CTList(CTRelationship).covariant, relList) chain
           specifyType(CTBoolean, x)
 
       case x: VarLengthBound =>

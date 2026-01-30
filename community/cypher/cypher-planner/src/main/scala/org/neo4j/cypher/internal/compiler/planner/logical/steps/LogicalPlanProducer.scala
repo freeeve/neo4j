@@ -249,6 +249,7 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
+import org.neo4j.cypher.internal.logical.plans.RepeatAcyclic
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates
@@ -1455,6 +1456,8 @@ case class LogicalPlanProducer(
     predicates: Seq[Expression],
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
+    previouslyBoundNodes: Set[LogicalVariable],
+    previouslyBoundNodeGroups: Set[LogicalVariable],
     reverseGroupVariableProjections: Boolean,
     expansionMode: ExpansionMode,
     pathMode: TraversalPathMode,
@@ -1523,6 +1526,27 @@ case class LogicalPlanProducer(
           relationshipVariableGroupings = pattern.relationshipVariableGroupings,
           reverseGroupVariableProjections = reverseGroupVariableProjections,
           innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet,
+          expansionMode = expansionMode,
+          accumulatorMappings = rewrittenAllReduceAccumulators
+        )
+      case TraversalPathMode.Acyclic =>
+        RepeatAcyclic(
+          left = rewrittenSourcePlan,
+          right = innerPlan,
+          repetition = pattern.repetition,
+          start = startBinding.outer,
+          end = endBinding.outer,
+          innerStart = startBinding.inner,
+          innerEnd = endBinding.inner,
+          nodeVariableGroupings = pattern.nodeVariableGroupings,
+          innerNodes = pattern.patternNodes,
+          previouslyBoundNodes = previouslyBoundNodes,
+          previouslyBoundNodeGroups = previouslyBoundNodeGroups,
+          relationshipVariableGroupings = pattern.relationshipVariableGroupings,
+          innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet,
+          previouslyBoundRelationships = previouslyBoundRelationships,
+          previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
+          reverseGroupVariableProjections = reverseGroupVariableProjections,
           expansionMode = expansionMode,
           accumulatorMappings = rewrittenAllReduceAccumulators
         )

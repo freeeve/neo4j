@@ -70,7 +70,8 @@ class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSu
       Seq(predicate_r_in_s),
       `(a) ((n)-[r]->(m))+ (b)`.variableGroupings,
       Set(varFor("o"), varFor("s"), varFor("p")),
-      insideRepeat = true
+      insideRepeat = true,
+      startNode = Some(varFor("n"))
     ) should equal(
       ExtractedPredicates(
         Set(varFor("s")),
@@ -90,7 +91,8 @@ class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSu
       Seq(predicate_r_in_s),
       `(a) ((o)-[s]->(p))+ (b)`.variableGroupings,
       Set(varFor("n"), varFor("r"), varFor("m")),
-      insideRepeat = true
+      insideRepeat = true,
+      startNode = Some(varFor("o"))
     ) should equal(
       ExtractedPredicates(Set.empty, Seq.empty)
     )
@@ -106,7 +108,8 @@ class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSu
       Seq(uniquePred),
       `(a) ((n)-[r]->(m))+ (b)`.variableGroupings,
       Set(v"o", v"s", v"p"),
-      insideRepeat = true
+      insideRepeat = true,
+      startNode = Some(varFor("n"))
     )
 
     // THEN
@@ -124,7 +127,8 @@ class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSu
       Seq(uniquePred),
       `(a) ((n)-[r]->(m))+ (b)`.variableGroupings,
       Set(v"o", v"s", v"p"),
-      insideRepeat = false
+      insideRepeat = false,
+      startNode = Some(varFor("n"))
     )
 
     // THEN
@@ -142,7 +146,8 @@ class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSu
       Seq(uniquePred),
       `(a) ((n)-[r]->(m))+ (b)`.variableGroupings,
       Set(v"o", v"s", v"p"),
-      insideRepeat = true
+      insideRepeat = true,
+      startNode = Some(varFor("m"))
     )
 
     // THEN

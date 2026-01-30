@@ -32,14 +32,17 @@ import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Disjoint
+import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelationshipUniquenessPredicate
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.Unique
+import org.neo4j.cypher.internal.expressions.UniqueNodes
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.frontend.phases.Namespacer
@@ -328,12 +331,22 @@ object expandSolverStep {
   ): Option[LogicalPlanWithIntoVsAllHeuristic] = {
     val fromLeft = startNode == quantifiedPathPattern.left
 
+    val qppInnerStartNodeGroupVariable = {
+      if (quantifiedPathPattern.leftBinding.outer == startNode)
+        quantifiedPathPattern.getGroupVariable(quantifiedPathPattern.leftBinding.inner)
+      else if (quantifiedPathPattern.rightBinding.outer == startNode)
+        quantifiedPathPattern.getGroupVariable(quantifiedPathPattern.rightBinding.inner)
+      else
+        None
+    }
+
     val extractedPredicates =
       extractQppPredicates(
         predicates,
         quantifiedPathPattern.variableGroupings,
         availableVars,
-        insideRepeat = true
+        insideRepeat = true,
+        startNode = qppInnerStartNodeGroupVariable
       )
 
     val innerPlanPredicates = extractedPredicates.predicates.map(_.original)
@@ -373,25 +386,31 @@ object expandSolverStep {
     val endBinding = if (fromLeft) quantifiedPathPattern.rightBinding else quantifiedPathPattern.leftBinding
 
     val groupingRelationships = quantifiedPathPattern.relationshipVariableGroupings.map(_.group)
+    val groupingNodes = quantifiedPathPattern.nodeVariableGroupings.map(_.group)
 
     def isBound(variable: LogicalVariable): Boolean = {
       sourcePlan.availableSymbols.contains(variable)
     }
 
     /**
-     * A solved predicate that expresses some relationship uniqueness.
+     * A solved predicate that expresses some uniqueness.
      *
      * @param solvedPredicate                   the predicate to mark as solved.
-     * @param previouslyBoundRelationships      previously bound relationship variables that are used by Trail to solve the predicate.
-     * @param previouslyBoundRelationshipGroups previously bound relationship group variables that are used by Trail to solve the predicate.
+     * @param previouslyBoundRelationships      previously bound relationship variables that are used by Trail or Acyclic to solve the predicate.
+     * @param previouslyBoundRelationshipGroups previously bound relationship group variables that are used by Trail or Acyclic to solve the predicate.
+     * @param previouslyBoundNodes              previously bound node variables that are used by Acyclic to solve the predicate.
+     * @param previouslyBoundNodeGroups         previously bound node group variables that are used by Acyclic to solve the predicate.
      */
     case class SolvedUniquenessPredicate(
       solvedPredicate: Expression,
       previouslyBoundRelationships: Option[LogicalVariable] = None,
-      previouslyBoundRelationshipGroups: Set[LogicalVariable] = Set.empty
+      previouslyBoundRelationshipGroups: Set[LogicalVariable] = Set.empty,
+      previouslyBoundNodes: Option[LogicalVariable] = None,
+      previouslyBoundNodeGroups: Set[LogicalVariable] = Set.empty
     )
 
     val uniquenessPredicates = predicates.collect {
+      // Relationship uniqueness cases
       case uniquePred @ Unique(VariableList(list)) if list.subsetOf(groupingRelationships) =>
         SolvedUniquenessPredicate(uniquePred)
 
@@ -405,12 +424,29 @@ object expandSolverStep {
       case noneOfPred @ NoneOfRelationships(singletonVariable: Variable, VariableList(groupedVariables))
         if groupedVariables.subsetOf(groupingRelationships) && isBound(singletonVariable) =>
         SolvedUniquenessPredicate(noneOfPred, previouslyBoundRelationships = Some(singletonVariable))
+
+      // Node uniqueness cases
+      case uniqueNodesPred @ UniqueNodes(VariableList(list), _) if list.subsetOf(groupingNodes) =>
+        SolvedUniquenessPredicate(uniqueNodesPred)
+
+      case disjointNodesPred @ DisjointNodes(VariableList(list1), VariableList(list2))
+        if list1.subsetOf(groupingNodes) && list2.forall(isBound) =>
+        SolvedUniquenessPredicate(disjointNodesPred, previouslyBoundNodeGroups = list2)
+      case disjointNodesPred @ DisjointNodes(VariableList(list1), VariableList(list2))
+        if list2.subsetOf(groupingNodes) && list1.forall(isBound) =>
+        SolvedUniquenessPredicate(disjointNodesPred, previouslyBoundNodeGroups = list1)
+
+      case noneOfNodesPred @ NoneOfNodes(singletonVariable: Variable, VariableList(groupVariables))
+        if groupVariables.subsetOf(groupingNodes) && isBound(singletonVariable) =>
+        SolvedUniquenessPredicate(noneOfNodesPred, previouslyBoundNodes = Some(singletonVariable))
     }
 
     // Reason for `.distinct`: Unique is reported twice: once from uniquenessPredicates and once as solved from IsTrailUnique of innerPlanPredicates
     val solvedPredicates = (uniquenessPredicates.map(_.solvedPredicate) ++ innerPlanPredicates).distinct
     val previouslyBoundRelationships = uniquenessPredicates.flatMap(_.previouslyBoundRelationships).toSet
     val previouslyBoundRelationshipGroups = uniquenessPredicates.flatMap(_.previouslyBoundRelationshipGroups).toSet
+    val previouslyBoundNodes = uniquenessPredicates.flatMap(_.previouslyBoundNodes).toSet + startNode
+    val previouslyBoundNodeGroups = uniquenessPredicates.flatMap(_.previouslyBoundNodeGroups).toSet
 
     val endNode = if (fromLeft) quantifiedPathPattern.right else quantifiedPathPattern.left
     val expansionMode = if (availableVars.contains(endNode)) ExpandInto else ExpandAll
@@ -434,6 +470,8 @@ object expandSolverStep {
       predicates = solvedPredicates,
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
+      previouslyBoundNodes,
+      previouslyBoundNodeGroups,
       reverseGroupVariableProjections = !fromLeft,
       expansionMode,
       pathMode,
@@ -593,7 +631,8 @@ object expandSolverStep {
                     rewrittenSppSelections.flatPredicates,
                     variableGrouping,
                     availableSymbols,
-                    insideRepeat = false
+                    insideRepeat = false,
+                    startNode = None // ACYCLIC path mode with selective path patterns not yet supported
                   )
                   val singletonVariables = variableGrouping.map(_.singleton)
                   val filteredPredicates = extracted.predicates

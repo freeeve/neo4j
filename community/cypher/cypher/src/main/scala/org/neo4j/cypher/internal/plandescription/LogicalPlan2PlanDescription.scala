@@ -258,6 +258,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
+import org.neo4j.cypher.internal.logical.plans.RepeatAcyclic
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
@@ -3572,6 +3573,17 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id = plan.id,
           s"Repeat(${expandModeDescription(mode)}, Trail)",
+          children,
+          Seq(Details(repeatDetails(repetition, start, end, allReduceMappings))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case RepeatAcyclic(_, _, repetition, start, end, _, _, _, _, _, _, _, _, _, _, _, mode, allReduceMappings) =>
+        PlanDescriptionImpl(
+          id = plan.id,
+          s"Repeat(${expandModeDescription(mode)}, Acyclic)",
           children,
           Seq(Details(repeatDetails(repetition, start, end, allReduceMappings))),
           variables,

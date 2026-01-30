@@ -52,11 +52,14 @@ import scala.annotation.tailrec
 
 class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest with AstConstructionTestSupport {
 
-  private def disjoint(lhs: String, rhs: String): String =
-    s"NONE(`  UNNAMED0` IN $lhs WHERE `  UNNAMED0` IN $rhs)"
+  private def disjoint(lhs: String, rhs: String, unnamedOffset: Int = 0): String =
+    s"NONE(`  UNNAMED$unnamedOffset` IN $lhs WHERE `  UNNAMED$unnamedOffset` IN $rhs)"
 
   private def unique(rhs: String, unnamedOffset: Int = 0): String =
     s"ALL(`  UNNAMED$unnamedOffset` IN $rhs WHERE SINGLE(`  UNNAMED${unnamedOffset + 1}` IN $rhs WHERE `  UNNAMED$unnamedOffset` = `  UNNAMED${unnamedOffset + 1}`))"
+
+  private def noneOfNodes(node: String, groupNode: String): String =
+    s"NOT($node IN $groupNode)"
 
   test("does not introduce predicate not needed") {
     assertIsNotRewritten("RETURN 42")
@@ -516,51 +519,48 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert node uniqueness predicates - quantified path") {
-    // TODO: once there is no exception anymore, we should see the asserted result
-    the[IllegalArgumentException] thrownBy
-      assertRewriteWithFeatures(
-        CypherVersion.Cypher25,
-        """MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d))+
-          |RETURN *""".stripMargin,
-        s"""MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d))+
-           |WHERE NOT a = b
-           |  AND NOT a IN d
-           |  AND ${unique("c")} AND ${unique("d")}
-           |  AND ${disjoint("c", "d")}
-           |RETURN *""".stripMargin
-      ) should have message "ACYCLIC path mode is not supported for patterns with variable-length relationships at line 1, column 15 (offset: 14)"
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d))+
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d) WHERE NOT c = d)+
+         |WHERE NOT a = b
+         |  AND NOT a IN (d + c)
+         |  AND ${unique("d + c")}
+         |RETURN *""".stripMargin
+    )
   }
 
   test("Should insert node uniqueness predicates - quantified path - 2 relationships") {
-    // TODO: once there is no exception anymore, we should see the asserted result
-    the[IllegalArgumentException] thrownBy
-      assertRewriteWithFeatures(
-        CypherVersion.Cypher25,
-        """MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d)-[t]-(e))+
-          |RETURN *""".stripMargin,
-        s"""MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d)-[t]-(e) WHERE NOT c = d AND NOT c = e AND NOT d = e)+
-           |WHERE NOT a = b AND NOT a IN (d + e) AND NOT b IN (d + e)
-           |  AND ${unique("c")} AND ${unique("d")} AND ${unique("e")}
-           |  AND ${disjoint("c", "d")}
-           |  AND ${disjoint("d", "e")}
-           |  AND ${disjoint("c", "e")}
-           |RETURN *""".stripMargin
-      ) should have message "ACYCLIC path mode is not supported for patterns with variable-length relationships at line 1, column 15 (offset: 14)"
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d)-[t]-(e))+
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d)-[t]-(e) WHERE NOT c = d AND NOT c = e AND NOT d = e)+
+         |WHERE NOT a = b AND NOT a IN (e + d + c)
+         |  AND ${unique("e + d + c")}
+         |RETURN *""".stripMargin
+    )
   }
 
   test("Should insert node uniqueness predicates - quantified relationship") {
-    // TODO: once there is no exception anymore, we should see the asserted result
-    the[IllegalArgumentException] thrownBy
-      assertRewriteWithFeatures(
-        CypherVersion.Cypher25,
-        """MATCH ACYCLIC (a)-[r]-(b)-[s]-+(c)
-          |RETURN *""".stripMargin,
-        s"""MATCH ACYCLIC (a)-[r]-(b)-[s]-+(c)
-           |WHERE NOT a = b AND NOT a = c AND NOT b = c
-           |  AND ${unique("c")} AND ${unique("d")}
-           |  AND ${disjoint("c", "d")}
-           |RETURN *""".stripMargin
-      ) should have message "ACYCLIC path mode is not supported for patterns with variable-length relationships at line 1, column 15 (offset: 14)"
+    // assertRewriteWithFeatures would not work, because the QPP has only one element in variableGroupings:
+    // - (singletonName=s, groupName=s)
+    // where in the expected version there will be three:
+    // - (singletonName=  UNNAMED0, groupName=  UNNAMED0)
+    // - (singletonName=s, groupName=s)
+    // - (singletonName=  UNNAMED1, groupName=  UNNAMED1)
+    assertRewriteWithFeaturesCompareStrings(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC (a)-[r]-(b)-[s]-+(c)
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC (a)-[r]-(b)((`  UNNAMED0`)-[s]-(`  UNNAMED1`) WHERE NOT `  UNNAMED0` = `  UNNAMED1`)+(c)
+         |WHERE NOT a = b
+         |  AND ${noneOfNodes("a", "`  UNNAMED1` + `  UNNAMED0`")}
+         |  AND NOT a = c
+         |  AND ${unique("`  UNNAMED1` + `  UNNAMED0`")}
+         |RETURN *""".stripMargin
+    )
   }
 
   test("Should insert node uniqueness predicates - var-length relationship") {
@@ -585,6 +585,111 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
         |RETURN *""".stripMargin,
       s"""MATCH SHORTEST 1 ACYCLIC ((a)-[r]-(b)-[s]-(c)
          |WHERE NOT a = b AND NOT a = c AND NOT b = c)
+         |RETURN *""".stripMargin
+    )
+  }
+
+  test("Should insert uniqueness predicates for QPPs nodes for ACYCLIC path mode") {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC ((a)-[r]->(b)-[s]->(c)){2,5}
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC ((a)-[r]->(b)-[s]->(c) WHERE NOT a = b AND NOT a = c AND NOT b = c){2,5}
+         |WHERE ${unique("c + b + a")}
+         |RETURN *""".stripMargin
+    )
+  }
+
+  test(
+    "Should insert uniqueness predicates for QPPs nodes and should not insert noneOfNodes for boundary outer nodes for ACYCLIC path mode"
+  ) {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC (s)((a)-[r]->(b)-[s]->(c)){2,5}(e)
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC (s)((a)-[r]->(b)-[s]->(c) WHERE NOT a = b AND NOT a = c AND NOT b = c){2,5}(e)
+         |WHERE
+         |  ${unique("c + b + a")}
+         |RETURN *""".stripMargin
+    )
+  }
+
+  test("Should insert uniqueness predicates for QPPs nodes and noneOfNodes for non QPP nodes for ACYCLIC path mode") {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC (n)-[:R]->(s)((a)-[r]->(b)-[s]->(c)){2,5}
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC (n)-[:R]->(s)((a)-[r]->(b)-[s]->(c) WHERE NOT a = b AND NOT a = c AND NOT b = c){2,5}
+         |WHERE NOT n = s
+         |  AND ${noneOfNodes("n", "c + b + a")}
+         |  AND ${unique("c + b + a")}
+         |RETURN *""".stripMargin
+    )
+  }
+
+  test(
+    "Should insert uniqueness predicates for QPPs nodes and disjoint predicates for nodes adjacent QPPs for ACYCLIC path mode"
+  ) {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC ((a)-[r]->(b)-[s]->(c)){2,5}((d)<-[t]-(e)){1,2}
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC ((a)-[r]->(b)-[s]->(c) WHERE NOT a = b AND NOT a = c AND NOT b = c){2,5}((d)<-[t]-(e) WHERE NOT d = e){1,2}
+         |WHERE
+         |  // The last node of the first QPP (the last c) can be the same as the first node of the second QPP (the first d), therefore don't include d. All d's that are not the first node in the QPP are equal to an e nodes and must therefore be distinct from the nodes in the first QPP.
+         |  ${disjoint("c + b + a", "e")}
+         |  AND ${unique("c + b + a", 1)}
+         |  AND ${unique("e + d", 3)}
+         |RETURN *""".stripMargin
+    )
+  }
+
+  test(
+    "Should insert uniqueness predicates for QPPs nodes and disjoint predicates for nodes non-adjacent QPPs for ACYCLIC path mode"
+  ) {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC ((a)-[r]->(b)-[s]->(c)){2,5}(start)-[t]->(end)((d)<-[u]-(e)){1,2}
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC ((a)-[r]->(b)-[s]->(c) WHERE NOT a = b AND NOT a = c AND NOT b = c){2,5}(start)-[t]->(end)((d)<-[u]-(e) WHERE NOT d = e){1,2}
+         |WHERE
+         |  ${noneOfNodes("end", "c + b + a")}
+         |  // None of the nodes in the first QPP can be the same as a node in the second QPP
+         |  AND ${disjoint("c + b + a", "e + d")}
+         |  AND NOT start = end
+         |  AND ${noneOfNodes("start", "e + d")}
+         |  AND ${unique("c + b + a", 1)}
+         |  AND ${unique("e + d", 3)}
+         |RETURN *""".stripMargin
+    )
+  }
+
+  test("Should insert node uniqueness predicates for ACYCLIC path mode") {
+    assertRewriteWithFeatures(
+      CypherVersion.Cypher25,
+      """MATCH ACYCLIC (c)-[r2:R]->(d)<-[r3:R]-(e)
+        |  ((e_inner)-[r4:R]->(f)<-[r5:R]-(g_inner1)){2,3}
+        |  (g)
+        |  ((g_inner2)-[r6:R]->(h_inner)){1,2}(h)
+        |RETURN *""".stripMargin,
+      s"""MATCH ACYCLIC (c)-[r2:R]->(d)<-[r3:R]-(e)
+         |  ((e_inner)-[r4:R]->(f)<-[r5:R]-(g_inner1) WHERE (NOT e_inner = f AND NOT e_inner = g_inner1) AND NOT f = g_inner1){2,3}
+         |  (g)
+         |  ((g_inner2)-[r6:R]->(h_inner) WHERE NOT g_inner2 = h_inner){1,2}(h)
+         |WHERE NOT c = d
+         |  AND NOT c = e
+         |  AND ${noneOfNodes("c", "g_inner1 + f + e_inner")}
+         |  AND NOT c = g
+         |  AND ${noneOfNodes("c", "h_inner + g_inner2")}
+         |  AND NOT c = h
+         |  AND NOT d = e
+         |  AND ${noneOfNodes("d", "g_inner1 + f + e_inner")}
+         |  AND NOT d = g
+         |  AND ${noneOfNodes("d", "h_inner + g_inner2")}
+         |  AND NOT d = h
+         |  AND ${disjoint("g_inner1 + f + e_inner", "h_inner")}
+         |  AND ${unique("g_inner1 + f + e_inner", 1)}
+         |  AND ${unique("h_inner + g_inner2", 3)}
          |RETURN *""".stripMargin
     )
   }

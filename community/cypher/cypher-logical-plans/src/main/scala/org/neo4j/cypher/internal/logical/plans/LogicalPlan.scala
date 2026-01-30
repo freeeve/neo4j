@@ -5143,12 +5143,12 @@ case class RepeatAcyclic(
   innerEnd: LogicalVariable,
   nodeVariableGroupings: Set[VariableGrouping],
   innerNodes: Set[LogicalVariable],
-  previouslyBoundNodes: Set[LogicalVariable],
-  previouslyBoundNodeGroups: Set[LogicalVariable],
+  previouslyBoundNodes: Set[LogicalVariable], // in the current PATH pattern
+  previouslyBoundNodeGroups: Set[LogicalVariable], // in the current PATH pattern
   relationshipVariableGroupings: Set[VariableGrouping],
   innerRelationships: Set[LogicalVariable],
-  previouslyBoundRelationships: Set[LogicalVariable],
-  previouslyBoundRelationshipGroups: Set[LogicalVariable],
+  previouslyBoundRelationships: Set[LogicalVariable], // in the current GRAPH pattern (MATCH clause)
+  previouslyBoundRelationshipGroups: Set[LogicalVariable], // in the current GRAPH pattern (MATCH clause)
   reverseGroupVariableProjections: Boolean,
   expansionMode: ExpansionMode = ExpandAll,
   accumulatorMappings: Set[AllReduceAccumulator] = Set.empty

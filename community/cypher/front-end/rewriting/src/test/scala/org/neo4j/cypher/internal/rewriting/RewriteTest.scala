@@ -89,6 +89,18 @@ trait RewriteTest extends AstRewritingTestSupport {
     )
   }
 
+  protected def assertRewriteWithFeaturesCompareStrings(
+    version: CypherVersion,
+    originalQuery: String,
+    expectedQuery: String
+  ): Unit = {
+    val (expected, result) = getRewriteWithFeatures(version, originalQuery, expectedQuery)
+    assert(
+      prettifier.asString(expected) === prettifier.asString(result.asInstanceOf[Statement]),
+      s"\n$originalQuery\nshould be rewritten to:\n${prettifier.asString(expected)}\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
+    )
+  }
+
   protected def getRewrite(
     version: CypherVersion,
     originalQuery: String,

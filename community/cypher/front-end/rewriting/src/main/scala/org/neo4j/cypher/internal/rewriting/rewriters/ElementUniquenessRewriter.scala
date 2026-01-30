@@ -20,15 +20,20 @@ import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.DifferentNodes
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
+import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.Equals
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.In
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
+import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.SingleIterablePredicate
 import org.neo4j.cypher.internal.expressions.Unique
+import org.neo4j.cypher.internal.expressions.UniqueNodes
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.Rewriter.TopDownMergeableRewriter
 import org.neo4j.cypher.internal.util.topDown
@@ -39,36 +44,61 @@ import org.neo4j.cypher.internal.util.topDown
 case class ElementUniquenessRewriter(anonymousVariableNameGenerator: AnonymousVariableNameGenerator) extends Rewriter
     with TopDownMergeableRewriter {
 
+  private def disjointPredicateToExpression(x: Expression, y: Expression, pos: InputPosition) = {
+    val innerX = Variable(anonymousVariableNameGenerator.nextName)(x.position, Variable.isIsolatedDefault)
+    NoneIterablePredicate(
+      innerX,
+      x,
+      Some(In(innerX.copyId, y)(pos))
+    )(pos)
+  }
+
+  private def uniquePredicateToExpression(list: Expression, pos: InputPosition) = {
+    val element1 = Variable(anonymousVariableNameGenerator.nextName)(list.position, Variable.isIsolatedDefault)
+    val element2 = Variable(anonymousVariableNameGenerator.nextName)(list.position, Variable.isIsolatedDefault)
+    AllIterablePredicate(
+      element1,
+      list,
+      Some(SingleIterablePredicate(
+        element2,
+        list.endoRewrite(copyVariables),
+        Some(Equals(element1.copyId, element2.copyId)(list.position))
+      )(pos))
+    )(pos)
+  }
+
+  private def noneOfPredicateToExpression(element: Expression, list: Expression, pos: InputPosition) = {
+    Not(In(element, list)(pos))(pos)
+  }
+
+  private def differentPredicateToExpression(element1: Expression, element2: Expression, pos: InputPosition) = {
+    Not(Equals(element1, element2)(pos))(pos)
+  }
+
   override val innerRewriter: Rewriter = Rewriter.lift {
     case d @ Disjoint(x, y) =>
-      val innerX = Variable(anonymousVariableNameGenerator.nextName)(x.position, Variable.isIsolatedDefault)
-      NoneIterablePredicate(
-        innerX,
-        x,
-        Some(In(innerX.copyId, y)(d.position))
-      )(d.position)
+      disjointPredicateToExpression(x, y, d.position)
+
+    case d @ DisjointNodes(x, y) =>
+      disjointPredicateToExpression(x, y, d.position)
 
     case u @ Unique(list) =>
-      val element1 = Variable(anonymousVariableNameGenerator.nextName)(list.position, Variable.isIsolatedDefault)
-      val element2 = Variable(anonymousVariableNameGenerator.nextName)(list.position, Variable.isIsolatedDefault)
-      AllIterablePredicate(
-        element1,
-        list,
-        Some(SingleIterablePredicate(
-          element2,
-          list.endoRewrite(copyVariables),
-          Some(Equals(element1.copyId, element2.copyId)(list.position))
-        )(u.position))
-      )(u.position)
+      uniquePredicateToExpression(list, u.position)
+
+    case u @ UniqueNodes(nodeList, _) =>
+      uniquePredicateToExpression(nodeList, u.position)
 
     case p @ NoneOfRelationships(relationship, relationshipList) =>
-      Not(In(relationship, relationshipList)(p.position))(p.position)
+      noneOfPredicateToExpression(relationship, relationshipList, p.position)
+
+    case p @ NoneOfNodes(node, nodeList) =>
+      noneOfPredicateToExpression(node, nodeList, p.position)
 
     case p @ DifferentRelationships(rel1, rel2) =>
-      Not(Equals(rel1, rel2)(p.position))(p.position)
+      differentPredicateToExpression(rel1, rel2, p.position)
 
     case p @ DifferentNodes(node1, node2) =>
-      Not(Equals(node1, node2)(p.position))(p.position)
+      differentPredicateToExpression(node1, node2, p.position)
   }
 
   private val instance = topDown(innerRewriter)

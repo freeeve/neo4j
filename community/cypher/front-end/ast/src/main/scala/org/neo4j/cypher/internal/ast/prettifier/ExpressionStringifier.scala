@@ -50,6 +50,7 @@ import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
 import org.neo4j.cypher.internal.expressions.DifferentNodes
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
+import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.Divide
 import org.neo4j.cypher.internal.expressions.ElementIdToLongId
 import org.neo4j.cypher.internal.expressions.EndsWith
@@ -81,6 +82,7 @@ import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.InvalidNotEquals
 import org.neo4j.cypher.internal.expressions.IsNotNull
 import org.neo4j.cypher.internal.expressions.IsNull
+import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LessThan
 import org.neo4j.cypher.internal.expressions.LessThanOrEqual
@@ -96,6 +98,7 @@ import org.neo4j.cypher.internal.expressions.Multiply
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
+import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.NormalForm
 import org.neo4j.cypher.internal.expressions.Not
@@ -126,6 +129,7 @@ import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.expressions.UnaryAdd
 import org.neo4j.cypher.internal.expressions.UnarySubtract
 import org.neo4j.cypher.internal.expressions.Unique
+import org.neo4j.cypher.internal.expressions.UniqueNodes
 import org.neo4j.cypher.internal.expressions.VarLengthLowerBound
 import org.neo4j.cypher.internal.expressions.VarLengthUpperBound
 import org.neo4j.cypher.internal.expressions.Variable
@@ -774,6 +778,9 @@ private class DefaultExpressionStringifier(
       case NoneOfRelationships(rel, relList) =>
         noEagerConsumption(s"NOT ${apply(rel)} IN ${apply(relList)}")
 
+      case NoneOfNodes(node, nodeList) =>
+        noEagerConsumption(s"NOT ${apply(node)} IN ${apply(nodeList)}")
+
       case DifferentRelationships(rel1, rel2) =>
         noEagerConsumption(s"NOT ${apply(rel1)} = ${apply(rel2)}")
 
@@ -783,8 +790,15 @@ private class DefaultExpressionStringifier(
       case Disjoint(rel1, rel2) =>
         noEagerConsumption(s"disjoint(${apply(rel1)}, ${apply(rel2)})")
 
+      case DisjointNodes(nodeList1, nodeList2) =>
+        noEagerConsumption(s"disjoint(${apply(nodeList1)}, ${apply(nodeList2)})")
+
       case Unique(rel) =>
         noEagerConsumption(s"unique(${apply(rel)})")
+
+      case UniqueNodes(nodeList, relList) =>
+        noEagerConsumption(s"uniqueNodes(${apply(nodeList)}, " +
+          s"${relList.map(apply).getOrElse("None")})")
 
       case VarLengthLowerBound(relName, bound) =>
         noEagerConsumption(s"size(${apply(relName)}) >= $bound")
@@ -793,6 +807,9 @@ private class DefaultExpressionStringifier(
 
       case IsRepeatTrailUnique(argument) =>
         noEagerConsumption(s"isRepeatTrailUnique(${apply(argument)})")
+
+      case IsRepeatAcyclic(argument) =>
+        noEagerConsumption(s"IsRepeatAcyclic(${apply(argument)})")
 
       case _ =>
         noEagerConsumption(extensionStringifier(this)(ast))

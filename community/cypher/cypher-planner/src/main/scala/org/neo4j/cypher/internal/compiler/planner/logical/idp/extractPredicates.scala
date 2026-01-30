@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FilterScope
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
+import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep
@@ -41,6 +42,7 @@ import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.Unique
+import org.neo4j.cypher.internal.expressions.UniqueNodes
 import org.neo4j.cypher.internal.expressions.VarLengthLowerBound
 import org.neo4j.cypher.internal.expressions.VarLengthUpperBound
 import org.neo4j.cypher.internal.expressions.Variable
@@ -432,10 +434,11 @@ object extractQppPredicates {
     predicates: Seq[Expression],
     availableLocalSymbols: Set[VariableGrouping],
     availableNonLocalSymbols: Set[LogicalVariable],
-    insideRepeat: Boolean
+    insideRepeat: Boolean,
+    startNode: Option[LogicalVariable]
   ): ExtractedPredicates = {
     val solvables = filterSolvablePredicates(predicates, availableLocalSymbols, availableNonLocalSymbols)
-    val extracted = getExtractablePredicates(solvables, availableLocalSymbols, insideRepeat)
+    val extracted = getExtractablePredicates(solvables, availableLocalSymbols, insideRepeat, startNode)
     val requiredSymbols = getRequiredNonLocalSymbols(extracted, availableLocalSymbols)
     ExtractedPredicates(requiredSymbols, extracted)
   }
@@ -465,12 +468,14 @@ object extractQppPredicates {
    * @param predicates            Potentially extractable predicates
    * @param availableLocalSymbols Local symbol mappings used for swapping variable references in extracted predicates
    * @param insideRepeat          Whether the predicates will be used in the RHS of a Repeat
+   * @param startNode             The inner group variable of the QPP from where processing starts
    * @return                      Extracted predicates
    */
   private def getExtractablePredicates(
     predicates: Seq[Expression],
     availableLocalSymbols: Set[VariableGrouping],
-    insideRepeat: Boolean
+    insideRepeat: Boolean,
+    startNode: Option[LogicalVariable]
   ): Seq[ExtractedPredicate] = {
     val availableLocalSymbolsMapping = availableLocalSymbols
       .map(g => g.group -> g.singleton)
@@ -497,6 +502,24 @@ object extractQppPredicates {
             IsRepeatTrailUnique(relVar.asInstanceOf[Variable])(InputPosition.NONE)
           )
         ExtractedPredicate(unique, Ands.create(extractedPredicates))
+
+      case uniqueNodes @ UniqueNodes(VariableList(nodeVariables), maybeRelationshipVariables)
+        if insideRepeat && nodeVariables.forall(availableLocalSymbolsMapping.contains) && startNode.nonEmpty =>
+        val uniqueVariables = nodeVariables - startNode.get
+        val extractedPredicates: Set[Expression] = uniqueVariables
+          .map(availableLocalSymbolsMapping)
+          .map(nodeVar =>
+            IsRepeatAcyclic(nodeVar.asInstanceOf[Variable])(InputPosition.NONE)
+          )
+        val extractedRelationshipPredicates = maybeRelationshipVariables match {
+          case Some(VariableList(relationshipVariables)) => relationshipVariables
+              .map(availableLocalSymbolsMapping)
+              .map(relVar =>
+                IsRepeatTrailUnique(relVar.asInstanceOf[Variable])(InputPosition.NONE)
+              )
+          case _ => Seq.empty
+        }
+        ExtractedPredicate(uniqueNodes, Ands.create(extractedPredicates ++ extractedRelationshipPredicates))
 
       case allReduce @ AllReducePredicate(scope, _, listVariable: LogicalVariable)
         if availableLocalSymbolsMapping.contains(

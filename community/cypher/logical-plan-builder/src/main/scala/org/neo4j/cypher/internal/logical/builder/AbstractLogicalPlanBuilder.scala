@@ -3791,12 +3791,12 @@ object AbstractLogicalPlanBuilder {
     innerEnd: String,
     groupNodes: Set[(String, String)],
     innerNodes: Set[String],
-    previouslyBoundNodes: Set[String],
-    previouslyBoundNodeGroups: Set[String],
+    previouslyBoundNodes: Set[String], // in the current PATH pattern
+    previouslyBoundNodeGroups: Set[String], // in the current PATH pattern
     groupRelationships: Set[(String, String)],
     innerRelationships: Set[String],
-    previouslyBoundRelationships: Set[String],
-    previouslyBoundRelationshipGroups: Set[String],
+    previouslyBoundRelationships: Set[String], // in the current GRAPH pattern
+    previouslyBoundRelationshipGroups: Set[String], // // in the current GRAPH pattern
     reverseGroupVariableProjections: Boolean,
     expansionMode: ExpansionMode,
     accumulators: Set[(String, String, String)]

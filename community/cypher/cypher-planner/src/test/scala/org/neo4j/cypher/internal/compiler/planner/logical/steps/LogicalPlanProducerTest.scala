@@ -1752,6 +1752,8 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         predicates = Nil,
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
+        previouslyBoundNodes = Set.empty,
+        previouslyBoundNodeGroups = Set.empty,
         reverseGroupVariableProjections = false,
         ExpandAll,
         TraversalPathMode.Trail,

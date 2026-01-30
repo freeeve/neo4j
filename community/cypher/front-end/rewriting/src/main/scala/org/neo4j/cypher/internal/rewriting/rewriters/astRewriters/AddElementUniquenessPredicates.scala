@@ -23,19 +23,27 @@ import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.DifferentNodes
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
+import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MatchMode
+import org.neo4j.cypher.internal.expressions.MatchMode.MatchMode
+import org.neo4j.cypher.internal.expressions.NamedPatternPart
+import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
+import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
+import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathMode
 import org.neo4j.cypher.internal.expressions.PathMode.Acyclic
 import org.neo4j.cypher.internal.expressions.PathMode.Trail
 import org.neo4j.cypher.internal.expressions.PathMode.Walk
 import org.neo4j.cypher.internal.expressions.PathMode.effectivePathMode
+import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
+import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
@@ -48,6 +56,7 @@ import org.neo4j.cypher.internal.expressions.ScopeExpression
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.expressions.Unique
+import org.neo4j.cypher.internal.expressions.UniqueNodes
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonConjunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
@@ -71,6 +80,7 @@ import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
 import org.neo4j.cypher.internal.util.bottomUp
 
+import scala.annotation.tailrec
 import scala.util.control.TailCalls
 import scala.util.control.TailCalls.TailRec
 
@@ -86,8 +96,8 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
         pattern.patternParts
           .filter(!_.isSelective)
           .flatMap { p =>
-            val mode = effectivePathMode(matchMode, p.pathMode)
-            getPredicatesWithinPathPattern(p.part, mode)
+            val pathMode = effectivePathMode(matchMode, p.pathMode)
+            getPredicatesWithinPathPattern(p.part, pathMode, matchMode, pattern.patternParts.size)
           }
       val maybePredicate = (acrossPredicates ++ withinPredicates)
         .reduceOption(expressions.And(_, _)(m.position))
@@ -97,7 +107,11 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
       val newPattern =
         pattern.copy(
           pattern.patternParts.map { part =>
-            part.endoRewrite(patternRewriter(effectivePathMode(matchMode, part.pathMode)))
+            part.endoRewrite(patternRewriter(
+              effectivePathMode(matchMode, part.pathMode),
+              matchMode,
+              pattern.patternParts.size
+            ))
           }
         )(pattern.position)
       m.copy(pattern = newPattern, where = newWhere)(m.position)
@@ -125,31 +139,28 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
     // we cannot make this a PatternElement because it could be a
     // ShortestPathsPatternPart that we do not want to traverse into
     part: NonPrefixedPatternPart,
-    pathMode: PathMode
+    pathMode: PathMode,
+    matchMode: MatchMode,
+    numberOfPathPatternsInTheMatch: Int
   ): IterableOnce[Expression] = {
     pathMode match {
       case Acyclic() =>
-        val containsGroupVariables =
+        val hasVarLengthRel =
           part.element.folder.treeExists {
-            case _: QuantifiedPath                           => true
             case RelationshipPattern(_, _, Some(_), _, _, _) => true
           }
-        if (containsGroupVariables) {
+        if (hasVarLengthRel) {
           throw new IllegalArgumentException(
             s"ACYCLIC path mode is not supported for patterns with variable-length relationships at ${part.position}"
           )
         }
-        val nodeVariables = part.element.allSingletonNodeVariables
-        nodeVariables
-          .subsets(2)
-          .map(_.toSeq)
-          .map {
-            case Seq(x, y) =>
-              DifferentNodes(x.copyId, y.copyId)(part.position)
-            case _ =>
-              throw new IllegalStateException("Expected only pairs of node variables")
-          }
-
+        val matchModeDifferentRelationships = matchMode match {
+          case _: MatchMode.DifferentRelationships => true
+          case _                                   => false
+        }
+        val requireIsRepeatTrailUniqueForQpps = matchModeDifferentRelationships && numberOfPathPatternsInTheMatch > 1
+        val nodesInPart = collectNodes(part, Seq.empty, 0, requireIsRepeatTrailUniqueForQpps).currentPathElements
+        createPredicatesForNodes(nodesInPart, part.position)
       case Trail() =>
         val nodeConnections = collectNodeConnections(part)
         createPredicatesFor(nodeConnections, part.position)
@@ -162,27 +173,36 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
 
   private def getMaybePredicatesWithinPathPattern(
     part: NonPrefixedPatternPart,
-    pathMode: PathMode
+    pathMode: PathMode,
+    matchMode: MatchMode,
+    numberOfPatternsInMatch: Int
   ): Option[Expression] =
-    getPredicatesWithinPathPattern(part, pathMode).iterator.reduceOption(expressions.And(_, _)(part.position))
+    getPredicatesWithinPathPattern(
+      part,
+      pathMode,
+      matchMode,
+      numberOfPatternsInMatch
+    ).iterator.reduceOption(expressions.And(_, _)(part.position))
 
-  private def patternRewriter(pathMode: PathMode): Rewriter = bottomUp(Rewriter.lift {
-    case part @ PrefixedPatternPart(_: SelectiveSelector, _, _) =>
-      val maybePredicate = {
-        val element = part.element match {
-          case path: ParenthesizedPath => path.part
-          case _                       => part.part
+  private def patternRewriter(pathMode: PathMode, matchMode: MatchMode, numberOfPatternsInMatch: Int): Rewriter =
+    bottomUp(Rewriter.lift {
+      case part @ PrefixedPatternPart(_: SelectiveSelector, _, _) =>
+        val maybePredicate = {
+          val element = part.element match {
+            case path: ParenthesizedPath => path.part
+            case _                       => part.part
+          }
+          getMaybePredicatesWithinPathPattern(element, pathMode, matchMode, numberOfPatternsInMatch)
         }
-        getMaybePredicatesWithinPathPattern(element, pathMode)
-      }
-      rewriteSelectivePatternPart(part, maybePredicate)
+        rewriteSelectivePatternPart(part, maybePredicate)
 
-    case qpp @ QuantifiedPath(patternPart, _, where, _) =>
-      val maybePredicate = getMaybePredicatesWithinPathPattern(patternPart, pathMode)
-      val newWhere =
-        Where.combineOrCreateExpressionBeforeCnf(where, maybePredicate)(Some(qpp.position))
-      qpp.copy(optionalWhereExpression = newWhere)(qpp.position)
-  })
+      case qpp @ QuantifiedPath(patternPart, _, where, _) =>
+        val maybePredicate =
+          getMaybePredicatesWithinPathPattern(patternPart, pathMode, matchMode, numberOfPatternsInMatch)
+        val newWhere =
+          Where.combineOrCreateExpressionBeforeCnf(where, maybePredicate)(Some(qpp.position))
+        qpp.copy(optionalWhereExpression = newWhere)(qpp.position)
+    })
 
   def canBeEmpty(range: Option[Range]): Boolean =
     range match {
@@ -190,6 +210,133 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
       case Some(Range(None, _))        => false // default lower bound is 1 in var length relationships
       case Some(Range(Some(lower), _)) => lower.value == 0
     }
+
+  private trait PathElementForNodeUniqueness
+
+  private case class SingletonNodeForNodeUniqueness(v: LogicalVariable, equivalenceClass: Int)
+      extends PathElementForNodeUniqueness
+
+  private case class QppForNodeUniqueness(
+    innerNodeVariables: Seq[LogicalVariable],
+    innerRelationshipVariables: Seq[LogicalVariable],
+    equivalenceClass: Int
+  ) extends PathElementForNodeUniqueness
+
+  private case class CurrentPathElementsForNodeUniqueness(
+    currentPathElements: Seq[PathElementForNodeUniqueness],
+    latestEquivalenceClass: Int
+  )
+
+  private case class InternalNodesAndRelVariables(
+    nodeVars: Seq[LogicalVariable],
+    relVars: Seq[LogicalVariable]
+  )
+
+  /**
+   * Each node in a path pattern is assigned an 'equivalence class' which is used to determine the node uniqueness
+   * predicates that need to be created to enforce the path mode <code>ACYCLIC</code>. Equivalence classes are numbered from
+   * right to left, starting from 0, with each relationship pattern outside a QPP forming the boundary between
+   * equivalence classes.
+   *
+   * The following example shows a path pattern with the nodes grouped into three equivalence classes:
+   * <pre><code>
+   *  (a)  -[r1]->  (b)  ((c)-[r2]->(d)){0,1}  (e)  -[r3]->  (f)
+   *   ▲             ▲     ▲         ▲          ▲             ▲
+   *   │             │     │         │          │             │
+   * ┌─┴─┐           │     │   ┌───┐ │          │           ┌─┴─┐
+   * │ 2 │           └─────┴───│ 1 │─┴──────────┘           │ 0 │
+   * └───┘                     └───┘                        └───┘
+   * </code></pre>
+   * The grouping results from juxtaposition: in the above, <code>e</code> will be bound to the same node as the last node
+   * in group variable <code>d</code>, and transitively the predicates inserted here (that will be rewritten to <code>NOT c = d</code>,
+   * <code>IsRepeatAcyclic(c)</code> and <code>NOT a IN d + c</code>) ensure that <code>e</code> will not equal any of the other nodes.
+   *
+   * As the nodes <code>a</code> and <code>f</code> sit on the other side of relationship patterns outside any QPPs, they will not
+   * be bound to the same node as any other node variables via juxtaposition. They can't piggyback on the predicates
+   * of other node variables and so must sit in separate equivalence classes.
+   */
+  private def collectNodesHelper(
+    element: PatternElement,
+    currentPathElements: Seq[PathElementForNodeUniqueness],
+    currentEquivalenceClass: Int,
+    requireIsRepeatTrailUniqueForQpps: Boolean
+  ): CurrentPathElementsForNodeUniqueness = {
+    element match {
+      case pp: ParenthesizedPath =>
+        collectNodes(
+          pp.part,
+          currentPathElements,
+          currentEquivalenceClass,
+          requireIsRepeatTrailUniqueForQpps
+        )
+      case np: NodePattern =>
+        // Add the node to the current path elements with the current equivalence class
+        CurrentPathElementsForNodeUniqueness(
+          SingletonNodeForNodeUniqueness(np.variable.get, currentEquivalenceClass) +: currentPathElements,
+          currentEquivalenceClass
+        )
+      case pc: PathConcatenation =>
+        // Recursive call for each path concatenation, starting from the last to the first
+        pc.factors.foldRight(CurrentPathElementsForNodeUniqueness(currentPathElements, currentEquivalenceClass)) {
+          (pathFactor, acc) =>
+            collectNodesHelper(
+              pathFactor,
+              acc.currentPathElements,
+              acc.latestEquivalenceClass,
+              requireIsRepeatTrailUniqueForQpps
+            )
+        }
+      case rc: RelationshipChain =>
+        // Add the last node to the path elements, increase the equivalence class and then a recursive call for the rest of the chain
+        val lastNode = SingletonNodeForNodeUniqueness(rc.rightNode.variable.get, currentEquivalenceClass)
+        collectNodesHelper(
+          rc.element,
+          lastNode +: currentPathElements,
+          currentEquivalenceClass + 1,
+          requireIsRepeatTrailUniqueForQpps
+        )
+      case qp: QuantifiedPath =>
+        val nodeSingletonVariablesInQPP =
+          qp.folder.treeFold(InternalNodesAndRelVariables(Seq.empty[LogicalVariable], Seq.empty[LogicalVariable])) {
+            case _: ScopeExpression =>
+              acc => SkipChildren(acc)
+            case np: NodePattern =>
+              acc => SkipChildren(InternalNodesAndRelVariables(acc.nodeVars :+ np.variable.get, acc.relVars))
+            case rp: RelationshipPattern =>
+              acc =>
+                if (requireIsRepeatTrailUniqueForQpps)
+                  SkipChildren(InternalNodesAndRelVariables(acc.nodeVars, acc.relVars :+ rp.variable.get))
+                else
+                  SkipChildren(acc)
+          }
+        // Add the QPP with its internal node (and possible relationship) variable to the current path elements with the current equivalence class
+        CurrentPathElementsForNodeUniqueness(
+          QppForNodeUniqueness(
+            nodeSingletonVariablesInQPP.nodeVars,
+            nodeSingletonVariablesInQPP.relVars,
+            currentEquivalenceClass
+          ) +: currentPathElements,
+          currentEquivalenceClass
+        )
+    }
+  }
+
+  @tailrec
+  private def collectNodes(
+    pattern: NonPrefixedPatternPart,
+    currentPathElements: Seq[PathElementForNodeUniqueness],
+    currentEquivalenceClass: Int,
+    requireIsRepeatTrailUniqueForQpps: Boolean
+  ): CurrentPathElementsForNodeUniqueness = {
+    pattern match {
+      case _: ShortestPathsPatternPart =>
+        throw new InternalError("ShortestPath with ACYCLIC is not yet supported")
+      case ppp: PathPatternPart =>
+        collectNodesHelper(ppp.element, Seq.empty, 0, requireIsRepeatTrailUniqueForQpps)
+      case npp: NamedPatternPart =>
+        collectNodes(npp.patternPart, currentPathElements, currentEquivalenceClass, requireIsRepeatTrailUniqueForQpps)
+    }
+  }
 
   def collectNodeConnections(pattern: ASTNode): Seq[NodeConnection] =
     pattern.folder.treeFold(Seq.empty[NodeConnection]) {
@@ -230,6 +377,31 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
         }
     }
 
+  private def createPredicatesForNodes(
+    nodes: Seq[PathElementForNodeUniqueness],
+    pos: InputPosition
+  ): Seq[Expression] = {
+    val pairs = for {
+      (x, i) <- nodes.zipWithIndex
+      y <- nodes.drop(i + 1)
+    } yield (x, y)
+
+    val interNodeUniqueness = createInterNodeUniquenessPredicates(pairs, pos)
+
+    val intraNodeUniqueness = nodes.collect {
+      case qpp: QppForNodeUniqueness =>
+        val nodeList = reduceLists(qpp.innerNodeVariables.map(_.copyId), pos)
+        val relationshipList =
+          if (qpp.innerRelationshipVariables.isEmpty)
+            None
+          else
+            Some(reduceLists(qpp.innerRelationshipVariables.map(_.copyId), pos))
+        UniqueNodes(nodeList, relationshipList)(pos)
+    }
+
+    interNodeUniqueness ++ intraNodeUniqueness
+  }
+
   def createPredicatesFor(nodeConnections: Seq[NodeConnection], pos: InputPosition): Seq[Expression] = {
     val pairs = for {
       (x, i) <- nodeConnections.zipWithIndex
@@ -245,6 +417,52 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
     }
 
     interRelUniqueness ++ intraRelUniqueness
+  }
+
+  private def createInterNodeUniquenessPredicates(
+    pairs: Seq[(PathElementForNodeUniqueness, PathElementForNodeUniqueness)],
+    pos: InputPosition
+  ) = {
+    pairs.collect {
+      case (n1: SingletonNodeForNodeUniqueness, n2: SingletonNodeForNodeUniqueness) if n1.v.name == n2.v.name =>
+        Seq(False()(pos.zeroLength))
+
+      case (n1: SingletonNodeForNodeUniqueness, n2: SingletonNodeForNodeUniqueness)
+        if n1.equivalenceClass != n2.equivalenceClass =>
+        Seq(DifferentNodes(n1.v.copyId, n2.v.copyId)(pos))
+
+      case (n1: SingletonNodeForNodeUniqueness, q1: QppForNodeUniqueness)
+        if n1.equivalenceClass != q1.equivalenceClass =>
+        q1.innerNodeVariables
+          .map(_.copyId)
+          .reduceRightOption[Expression]((y, x) => expressions.Add(x, y)(pos))
+          .map { qppInnerNode =>
+            NoneOfNodes(n1.v.copyId, qppInnerNode)(pos)
+          }
+
+      case (q1: QppForNodeUniqueness, n1: SingletonNodeForNodeUniqueness)
+        if n1.equivalenceClass != q1.equivalenceClass =>
+        q1.innerNodeVariables
+          .map(_.copyId)
+          .reduceRightOption[Expression]((y, x) => expressions.Add(x, y)(pos))
+          .map { qppInnerNode =>
+            NoneOfNodes(n1.v.copyId, qppInnerNode)(pos)
+          }
+
+      case (q1: QppForNodeUniqueness, q2: QppForNodeUniqueness) =>
+        val q1Nodes = q1.innerNodeVariables
+        val q2Nodes =
+          if (q1.equivalenceClass != q2.equivalenceClass)
+            q2.innerNodeVariables
+          else
+            q2.innerNodeVariables.drop(1)
+
+        val q1List = reduceLists(q1Nodes.map(_.copyId), pos)
+        val q2List = reduceLists(q2Nodes.map(_.copyId), pos)
+
+        Seq(DisjointNodes(q1List, q2List)(pos))
+
+    }.flatten
   }
 
   private def createInterRelUniquenessPredicates(pairs: Seq[(NodeConnection, NodeConnection)], pos: InputPosition) = {

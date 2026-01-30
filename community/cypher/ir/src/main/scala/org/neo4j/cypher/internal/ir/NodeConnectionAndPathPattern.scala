@@ -300,6 +300,14 @@ final case class QuantifiedPathPattern(
       .addPatternRelationships(patternRelationships.toSet)
       .addPatternNodes(patternNodes.toList: _*)
       .addSelections(selections)
+
+  /**
+   * Get the group node version of a singleton node
+   */
+  def getGroupVariable(singletonVariable: LogicalVariable): Option[LogicalVariable] = {
+    val maybeFoundVariableGrouping = nodeVariableGroupings.find(_.singleton == singletonVariable)
+    maybeFoundVariableGrouping.map(_.group)
+  }
 }
 
 sealed trait PathPattern {
