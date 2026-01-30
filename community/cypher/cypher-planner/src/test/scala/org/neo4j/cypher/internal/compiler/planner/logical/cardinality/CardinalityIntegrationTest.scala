@@ -2212,4 +2212,58 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       case _ => ()
     }
   }
+
+  test(
+    "should not change cardinality of argument plan if it is from an empty distinct projection - single row distinct"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .build()
+
+    val state = planner.planState(
+      """WITH 1 AS x
+        |RETURN EXISTS {
+        |  WITH DISTINCT x
+        |  RETURN 1 AS z
+        |} AS y""".stripMargin
+    )
+    state should haveSamePlanAndCardinalitiesAsBuilder(
+      planner.planBuilder()
+        .produceResults("y").withCardinality(1)
+        .letSemiApply("y").withCardinality(1)
+        // This has a discounted cardinality from DISTINCT, which we do not want, but it also does no harm.
+        // And it is hard to change that as we are estimating based on planner queries and not on plan operators.
+        .|.projection("1 AS z").withCardinality(0.95)
+        .|.argument("x").withCardinality(1)
+        .projection("1 AS x").withCardinality(1)
+        .argument()
+    )
+  }
+
+  test(
+    "should not change cardinality of argument plan if it is from an empty distinct projection - distinct operator"
+  ) {
+    val allNodesCardinality = 1000
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(allNodesCardinality)
+      .build()
+
+    val state = planner.planState(
+      """MATCH (x)
+        |RETURN EXISTS {
+        |  WITH DISTINCT x
+        |  RETURN 1 AS z
+        |} AS y""".stripMargin
+    )
+    state should haveSamePlanAndCardinalitiesAsBuilder(
+      planner.planBuilder()
+        .produceResults("y").withCardinality(allNodesCardinality)
+        .letSemiApply("y").withCardinality(allNodesCardinality)
+        // This has a discounted cardinality from DISTINCT, which we do not want, but it also does no harm.
+        // And it is hard to change that as we are estimating based on planner queries and not on plan operators.
+        .|.projection("1 AS z").withCardinality(0.95)
+        .|.argument("x").withCardinality(1)
+        .allNodeScan("x").withCardinality(allNodesCardinality)
+    )
+  }
 }

@@ -3700,7 +3700,7 @@ case class LogicalPlanProducer(
 
   /**
    * Keep the left plan, but mark DISTINCT as solved.
-   * Used when DISTINCT is used but we can determine it is not really needed.
+   * Used when DISTINCT is used, but we can determine it is not really necessary.
    */
   def planEmptyDistinct(
     left: LogicalPlan,
@@ -3713,20 +3713,12 @@ case class LogicalPlanProducer(
         DistinctQueryProjection(reported, importedExposedSymbols = context.plannerState.importedSubqueryVariables)
       ))
 
-    val cardinality = cardinalityModel(
-      solved,
-      context.plannerState.input.labelInfo,
-      context.plannerState.input.relTypeInfo,
-      context.semanticTable,
-      context.plannerState.indexCompatiblePredicatesProviderContext,
-      context.staticComponents.graphSchemaOptimizations
-    )
-    // Change solved and cardinality
+    // Change solved
     val keptAttributes =
       Attributes(idGen, providedOrders, leveragedOrders, labelAndRelTypeInfos, cachedPropertiesPerPlan)
     val newPlan = left.copyPlanWithIdGen(keptAttributes.copy(left.id))
     solveds.set(newPlan.id, solved)
-    cardinalities.set(newPlan.id, cardinality)
+    cardinalities.set(newPlan.id, cardinalities.get(left.id))
     newPlan
   }
 
