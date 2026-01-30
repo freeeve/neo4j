@@ -25,6 +25,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class AstRuleCtx extends ParserRuleContext {
     public Object ast;
+    public AstRuleCtx lastClauseContext;
 
     public AstRuleCtx() {}
 

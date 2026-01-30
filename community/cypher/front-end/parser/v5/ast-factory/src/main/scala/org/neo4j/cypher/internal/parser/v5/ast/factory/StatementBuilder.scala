@@ -154,6 +154,7 @@ trait StatementBuilder extends Cypher5ParserListener {
         sq.copy(Seq(use, call.copy(isStandalone = true)(call.position)))(sq.position)
       case q => q
     }
+    pushLastClauseStartTokenToParent(ctx)
   }
 
   final override def exitRegularQuery(ctx: Cypher5Parser.RegularQueryContext): Unit = {
@@ -180,14 +181,27 @@ trait StatementBuilder extends Cypher5ParserListener {
       }
     }
     ctx.ast = result
+    pushLastClauseStartTokenToParent(ctx)
   }
 
   final override def exitSingleQuery(ctx: Cypher5Parser.SingleQueryContext): Unit = {
     ctx.ast = SingleQuery(astSeq[Clause](ctx.children))(pos(ctx))
+    pushLastClauseStartTokenToParent(ctx)
+  }
+
+  private def pushLastClauseStartTokenToParent(ctx: AstRuleCtx): Unit = {
+    ctx.parent match {
+      case parentCtx: AstRuleCtx => parentCtx.lastClauseContext = ctx.lastClauseContext
+      case _                     =>
+    }
   }
 
   final override def exitClause(ctx: Cypher5Parser.ClauseContext): Unit = {
     ctx.ast = ctxChild(ctx, 0).ast
+    ctx.parent match {
+      case parentCtx: AstRuleCtx => parentCtx.lastClauseContext = ctx
+      case _                     =>
+    }
   }
 
   final override def exitUseClause(ctx: Cypher5Parser.UseClauseContext): Unit = {

@@ -166,6 +166,78 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("match (n {p:}) return *") { invalid("}", "an expression", 12) }
   test("match (n {p:{}) return *") { invalid(")", "an expression, ',' or '}'", 14) }
 
+  test("matxh (n) return *") {
+    invalid({
+      case Cypher5 => ("matxh", clauseExpected(CypherVersion.Cypher5), 0)
+      // ≥ Cypher25
+      case _ => ("matxh", clauseExpected(CypherVersion.Cypher25), 0)
+    })
+  }
+
+  test("match (n1) matxh (n2) return *") {
+    invalid({
+      case Cypher5 => (
+          "matxh",
+          "a graph pattern, ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF>",
+          11
+        )
+      // ≥ Cypher25
+      case _ => (
+          "matxh",
+          "a graph pattern, ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF>",
+          11
+        )
+    })
+  }
+
+  test("match (n1) match (n2) match (n3) matxh(n4) return *") {
+    invalid({
+      case Cypher5 => (
+          "matxh",
+          "a graph pattern, ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF>",
+          33
+        )
+      // ≥ Cypher25
+      case _ => (
+          "matxh",
+          "a graph pattern, ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF>",
+          33
+        )
+    })
+  }
+
+  test("match (n1) match (n2) with * limit 1 matxh(n3) return *") {
+    invalid({
+      case Cypher5 => (
+          "matxh",
+          "an expression, 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>",
+          37
+        )
+      // ≥ Cypher25
+      case _ => (
+          "matxh",
+          "an expression, 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>",
+          37
+        )
+    })
+  }
+
+  test("match (n) where exists { match (n2) wrongClause } return 1") {
+    invalid({
+      case Cypher5 => (
+          "wrongClause",
+          "a graph pattern, ',', 'USING' or 'WHERE'",
+          36
+        )
+      // ≥ Cypher25
+      case _ => (
+          "{",
+          "an expression, 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>",
+          23
+        )
+    })
+  }
+
   test("create (a)-[r]>(b) return *") { invalid(">", "'-'", 14) }
   test("create (a)-[:]->(b) return *") { invalid("]", "a node label/relationship type name, '$', '%' or '('", 13) }
 

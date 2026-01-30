@@ -172,6 +172,7 @@ trait StatementBuilder extends Cypher25ParserListener {
         sq.copy(Seq(use, call.copy(isStandalone = true)(call.position)))(sq.position)
       case q => q
     }
+    pushLastClauseStartTokenToParent(ctx)
   }
 
   final override def exitQueryWithLocalDefinitions(ctx: Cypher25Parser.QueryWithLocalDefinitionsContext): Unit = {
@@ -180,6 +181,7 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast =
       if (definitions.isEmpty) query
       else QueryWithLocalDefinitions(definitions, query)(pos(ctx))
+    pushLastClauseStartTokenToParent(ctx)
   }
 
   final override def exitLocalDefinition(ctx: Cypher25Parser.LocalDefinitionContext): Unit = {
@@ -237,10 +239,12 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast =
       if (ctx.NEXT().isEmpty) ctxChild(ctx, 0).ast[Query]()
       else NextStatement(astSeq[Query](ctx.regularQuery()))(pos(ctx))
+    pushLastClauseStartTokenToParent(ctx)
   }
 
   final override def exitRegularQuery(ctx: Cypher25Parser.RegularQueryContext): Unit = {
     ctx.ast = ctxChild(ctx, 0).ast[Query]()
+    pushLastClauseStartTokenToParent(ctx)
   }
 
   override def exitUnion(ctx: Cypher25Parser.UnionContext): Unit = {
@@ -265,6 +269,7 @@ trait StatementBuilder extends Cypher25ParserListener {
       i += 1
     }
     ctx.ast = result
+    pushLastClauseStartTokenToParent(ctx)
   }
 
   override def exitWhen(ctx: Cypher25Parser.WhenContext): Unit = {
@@ -286,10 +291,22 @@ trait StatementBuilder extends Cypher25ParserListener {
     } else {
       SingleQuery(astSeq[Clause](ctx.children))(pos(ctx))
     }
+    pushLastClauseStartTokenToParent(ctx)
+  }
+
+  private def pushLastClauseStartTokenToParent(ctx: AstRuleCtx): Unit = {
+    ctx.parent match {
+      case parentCtx: AstRuleCtx => parentCtx.lastClauseContext = ctx.lastClauseContext
+      case _                     =>
+    }
   }
 
   final override def exitClause(ctx: Cypher25Parser.ClauseContext): Unit = {
     ctx.ast = ctxChild(ctx, 0).ast
+    ctx.parent match {
+      case parentCtx: AstRuleCtx => parentCtx.lastClauseContext = ctx
+      case _                     =>
+    }
   }
 
   final override def exitUseClause(ctx: Cypher25Parser.UseClauseContext): Unit = {

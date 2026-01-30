@@ -37,6 +37,9 @@ import org.antlr.v4.runtime.atn.RuleStopState;
 import org.antlr.v4.runtime.atn.RuleTransition;
 import org.antlr.v4.runtime.atn.Transition;
 import org.antlr.v4.runtime.misc.IntervalSet;
+import org.neo4j.cypher.internal.parser.AstRuleCtx;
+import org.neo4j.cypher.internal.parser.v25.Cypher25Parser;
+import org.neo4j.cypher.internal.parser.v5.Cypher5Parser;
 
 /*
  * Adapted from https://github.com/mike-lischke/antlr4-c3/blob/c0530ed7e41911e734a5be75abf5d381589398b5/ports/java/src/main/java/com/vmware/antlr4c3/CodeCompletionCore.java#L41
@@ -162,7 +165,16 @@ public class CodeCompletionCore {
         this.candidates.tokens.clear();
         this.statesProcessed = 0;
 
-        this.tokenStartIndex = context != null ? context.start.getTokenIndex() : 0;
+        if (context != null) {
+            if (context instanceof AstRuleCtx ctx && ctx.lastClauseContext != null) {
+                this.tokenStartIndex = ctx.lastClauseContext.start.getTokenIndex();
+            } else {
+                this.tokenStartIndex = context.start.getTokenIndex();
+            }
+        } else {
+            this.tokenStartIndex = 0;
+        }
+
         final var tokenStream = (BufferedTokenStream) this.parser.getInputStream();
 
         int currentIndex = tokenStream.index();
@@ -181,7 +193,22 @@ public class CodeCompletionCore {
         tokenStream.seek(currentIndex);
 
         LinkedList<RuleWithStartToken> callStack = new LinkedList<>();
-        int startRule = context != null ? context.getRuleIndex() : 0;
+        int startRule;
+        if (context != null) {
+            // If we have a lastClauseContext we want to use that as context for the start rule,
+            // except if the current context is a StatementsContext, meaning the next token could be a new clause.
+            if (context instanceof AstRuleCtx ctx
+                    && !(ctx instanceof Cypher25Parser.StatementsContext)
+                    && !(ctx instanceof Cypher5Parser.StatementsContext)
+                    && ctx.lastClauseContext != null) {
+                startRule = ctx.lastClauseContext.getRuleIndex();
+            } else {
+                startRule = context.getRuleIndex();
+            }
+        } else {
+            startRule = 0;
+        }
+
         this.processRule(this.atn.ruleToStartState[startRule], 0, callStack, "\n");
 
         tokenStream.seek(currentIndex);
