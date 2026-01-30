@@ -30,6 +30,7 @@ import org.neo4j.io.pagecache.tracing.cursor.PageCursorCounters;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.storageengine.api.StorageEngineFactory;
+import org.neo4j.test.assertion.VerboseSoftAssertions;
 import org.neo4j.util.Preconditions;
 
 /**
@@ -132,7 +133,7 @@ public class PageCacheTracerAssertions {
         }
 
         private void assertMatches(long tracedPins, long tracedUnpins, long tracedHits, long tracedFaults) {
-            SoftAssertions softly = new SoftAssertions();
+            SoftAssertions softly = new VerboseSoftAssertions();
             softly.assertThat(tracedPins).as("pins").isBetween(pins, upperBoundPins);
             if (!overlookUnpins) {
                 softly.assertThat(tracedUnpins).as("unpins").isBetween(pins, upperBoundPins);
