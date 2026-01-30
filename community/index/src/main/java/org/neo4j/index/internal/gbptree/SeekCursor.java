@@ -680,6 +680,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                     (isInternal ? internalNode : leafNode).keyAt(cursor, firstKeyInNode, pos, cursorContext);
                 }
 
+                boolean fillCache = true;
                 if (retry) {
                     // Keys could have been moved so we need to make sure we are not missing any keys by
                     // moving position back until we find previously returned key
@@ -689,8 +690,13 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                             cursor, isInternal ? internalNode : leafNode, key, tempKey, keyCount, cursorContext);
 
                     pos = selectPosition(searchResult, first, seekForward, keyCount);
+                    if (exactMatch && !KeySearch.isHit(searchResult)) {
+                        fillCache = false;
+                    }
                 }
-                cache.fill(pos);
+                if (fillCache) {
+                    cache.fill(pos);
+                }
             } catch (Exception e) {
                 String message =
                         e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
