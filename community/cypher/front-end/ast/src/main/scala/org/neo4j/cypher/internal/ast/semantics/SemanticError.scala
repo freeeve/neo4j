@@ -951,17 +951,14 @@ object SemanticError {
   }
 
   def authRuleMustHaveACondition(position: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
-      .withParam(GqlParams.ListParam.inputList, List("SET CONDITION").asJava)
-      .build()
-    SemanticError(gql, gql.getMessage, position)
-  }
-
-  def authRuleCannotHaveMoreThanOneCondition(position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N19("SET CONDITION", position.offset, position.line, position.column)
-
-    SemanticError(gql, gql.getMessage, position)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.ListParam.inputList, List("SET CONDITION").asJava)
+        .build())
+      .build();
+    SemanticError(gql, GqlHelper.getCompleteMessage(gql), position)
   }
 
   def authRuleConditionCannotSubqueryExpression(
@@ -978,7 +975,7 @@ object SemanticError {
           .build()
       ).build()
 
-    SemanticError(gql, gql.getMessage, position)
+    SemanticError(gql, GqlHelper.getCompleteMessage(gql), position)
   }
 
   def authRuleConditionHaveInvalidFunctionInCondition(
@@ -995,7 +992,7 @@ object SemanticError {
           .build()
       ).build()
 
-    SemanticError(gql, gql.getMessage, position)
+    SemanticError(gql, GqlHelper.getCompleteMessage(gql), position)
   }
 
   // TODO: Remove when we support parameters in auth rules conditions

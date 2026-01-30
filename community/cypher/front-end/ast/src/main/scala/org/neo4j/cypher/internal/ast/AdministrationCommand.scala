@@ -979,12 +979,16 @@ final case class CreateAuthRule(
       case _: AuthRuleEnabled   => false
     }
 
-    val conditionCheck =
-      if (conditions.isEmpty)
-        SemanticCheck.error(SemanticError.authRuleMustHaveACondition(position))
-      else if (conditions.size > 1)
-        SemanticCheck.error(SemanticError.authRuleCannotHaveMoreThanOneCondition(position))
-      else SemanticCheck.success
+    val conditionCheck = conditions match {
+      case Seq() => SemanticCheck.error(SemanticError.authRuleMustHaveACondition(position))
+      case Seq(_, second, _*) =>
+        AdministrationCommandSemanticAnalysis.duplicateClauseError(
+          s"SET CONDITION",
+          s"Duplicate `SET CONDITION` clause.",
+          second.position
+        )
+      case _ => SemanticCheck.success
+    }
 
     val enabledCheck = enableds match {
       case Seq(_, second, _*) =>
@@ -1115,7 +1119,7 @@ final case class CreateAuthRule(
     else
       SemanticCheck.error(SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
         functionInvocation.name,
-        position
+        functionInvocation.position
       ))
   }
 
@@ -1134,7 +1138,7 @@ final case class CreateAuthRule(
     ) {
       SemanticCheck.error(SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
         functionInvocation.name,
-        position
+        functionInvocation.position
       ))
     } else {
       SemanticCheck.success

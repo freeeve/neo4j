@@ -3400,7 +3400,6 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
   }
 
   // Auth rule command tests
-  // TODO: change to verify the error code and error messages instead of calling the SemanticError methods directly
 
   private def authRuleFeatureToggleError(verb: String) = FeatureError.notAvailableInThisImplementation(
     SemanticFeature.AttributeBasedAccessControl,
@@ -3440,7 +3439,19 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
-      .error(initialState, SemanticError.authRuleMustHaveACondition(p)).errors
+      .error(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(p.offset, p.line, p.column)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+            .atPosition(p.offset, p.line, p.column)
+            .withParam(GqlParams.ListParam.inputList, List("SET CONDITION").asJava)
+            .build())
+          .build(),
+        initialState,
+        """42001
+          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin,
+        p
+      ).errors
   }
 
   test("CREATE OR REPLACE AUTH RULE authRule") {
@@ -3452,7 +3463,19 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE OR REPLACE"))) shouldBe SemanticCheckResult
-      .error(initialState, SemanticError.authRuleMustHaveACondition(p)).errors
+      .error(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(p.offset, p.line, p.column)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+            .atPosition(p.offset, p.line, p.column)
+            .withParam(GqlParams.ListParam.inputList, List("SET CONDITION").asJava)
+            .build())
+          .build(),
+        initialState,
+        """42001
+          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin,
+        p
+      ).errors
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION 1=1 SET CONDITION 2=2") {
@@ -3460,29 +3483,61 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       literalString("authRule"),
       IfExistsThrowError,
       List(
-        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(p),
-        AuthRuleCondition(equals(literalInt(2), literalInt(2)))(p)
+        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(pos1),
+        AuthRuleCondition(equals(literalInt(2), literalInt(2)))(pos2)
       )
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
-      .error(initialState, SemanticError.authRuleCannotHaveMoreThanOneCondition(p)).errors
+      .error(
+        getGql42N19_duplicateClause("SET CONDITION", pos2),
+        initialState,
+        "Duplicate `SET CONDITION` clause.".stripMargin,
+        pos2
+      ).errors
   }
 
-  test("CREATE OR REPLACE AUTH RULE authRule SET CONDITION 1=1 SET CONDITION 2=2") {
+  test("CREATE AUTH RULE authRule SET CONDITION 1=1 SET CONDITION 2=2 SET CONDITION 3=3") {
+    val authRule = CreateAuthRule(
+      literalString("authRule"),
+      IfExistsThrowError,
+      List(
+        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(pos1),
+        AuthRuleCondition(equals(literalInt(2), literalInt(2)))(pos2),
+        AuthRuleCondition(equals(literalInt(3), literalInt(3)))(pos3)
+      )
+    )(p)
+
+    // Fails on the first duplicate
+    authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
+      .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
+      .error(
+        getGql42N19_duplicateClause("SET CONDITION", pos2),
+        initialState,
+        "Duplicate `SET CONDITION` clause.".stripMargin,
+        pos2
+      ).errors
+  }
+
+  test("CREATE OR REPLACE AUTH RULE authRule SET CONDITION 1=1 SET CONDITION 2=2 ") {
     val authRule = CreateAuthRule(
       literalString("authRule"),
       IfExistsReplace,
       List(
-        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(p),
-        AuthRuleCondition(equals(literalInt(2), literalInt(2)))(p)
+        AuthRuleCondition(equals(literalInt(1), literalInt(1)))(pos1),
+        AuthRuleCondition(equals(literalInt(2), literalInt(2)))(pos2)
       )
     )(p)
 
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE OR REPLACE"))) shouldBe SemanticCheckResult
-      .error(initialState, SemanticError.authRuleCannotHaveMoreThanOneCondition(p)).errors
+      .error(
+        getGql42N19_duplicateClause("SET CONDITION", pos2),
+        initialState,
+        "Duplicate `SET CONDITION` clause.".stripMargin,
+        pos2
+      ).errors
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION 1=1 SET ENABLED true SET ENABLED false") {
@@ -3501,10 +3556,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       .error(
         getGql42N19_duplicateClause("SET ENABLED", pos2),
         initialState,
-        "Duplicate `SET ENABLED` clause.",
+        "Duplicate `SET ENABLED` clause.".stripMargin,
         pos2
       ).errors
-
   }
 
   test("CREATE OR REPLACE AUTH RULE authRule SET CONDITION 1=1 SET ENABLED true SET ENABLED false") {
@@ -3543,12 +3597,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE OR REPLACE"))) shouldBe SemanticCheckResult
       .error(
+        GqlHelper.getGql42001_42N14("OR REPLACE", "IF NOT EXISTS", p.offset, p.line, p.column),
         initialState,
-        SemanticError(
-          GqlHelper.getGql42001_42N14("OR REPLACE", "IF NOT EXISTS", p.offset, p.line, p.column),
-          "Failed to create the specified auth rule 'authRule': cannot have both `OR REPLACE` and `IF NOT EXISTS`.",
-          p
-        )
+        "Failed to create the specified auth rule 'authRule': cannot have both `OR REPLACE` and `IF NOT EXISTS`.",
+        p
       ).errors
 
   }
@@ -3704,9 +3756,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       List(
         AuthRuleCondition(Equals(
           FunctionInvocation(
-            name = FunctionName("unknown.function")(p),
+            name = FunctionName("unknown.function")(pos1),
             argument = literalString("HELLO")
-          )(p),
+          )(pos1),
           literalString("SE")
         )(p))(p)
       )
@@ -3715,11 +3767,19 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(pos1.offset, pos1.line, pos1.column)
+          .withCause(
+            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+              .atPosition(pos1.offset, pos1.line, pos1.column)
+              .withParam(GqlParams.StringParam.input, "unknown.function")
+              .withParam(GqlParams.StringParam.context, "function in auth rule condition")
+              .build()
+          ).build(),
         initialState,
-        SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
-          "unknown.function",
-          p
-        )
+        """42001
+          |22N05: Invalid input 'unknown.function' for function in auth rule condition.""".stripMargin,
+        pos1
       ).errors
   }
 
@@ -3730,9 +3790,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       List(
         AuthRuleCondition(Equals(
           FunctionInvocation(
-            name = FunctionName("graph.byName")(p),
+            name = FunctionName("graph.byName")(pos1),
             argument = literalString("HELLO")
-          )(p),
+          )(pos1),
           literalString("SE")
         )(p))(p)
       )
@@ -3741,11 +3801,19 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(pos1.offset, pos1.line, pos1.column)
+          .withCause(
+            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+              .atPosition(pos1.offset, pos1.line, pos1.column)
+              .withParam(GqlParams.StringParam.input, "graph.byName")
+              .withParam(GqlParams.StringParam.context, "function in auth rule condition")
+              .build()
+          ).build(),
         initialState,
-        SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
-          "graph.byName",
-          p
-        )
+        """42001
+          |22N05: Invalid input 'graph.byName' for function in auth rule condition.""".stripMargin,
+        pos1
       ).errors
   }
 
@@ -3780,9 +3848,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       List(
         AuthRuleCondition(Equals(
           FunctionInvocation(
-            name = FunctionName("abac.oidc.user_attribute")(p),
+            name = FunctionName("abac.oidc.user_attribute")(pos1),
             argument = listOf(literalString("country"), literalString("city"))
-          )(p),
+          )(pos1),
           literalString("SE_MALMÖ")
         )(p))(p)
       )
@@ -3791,22 +3859,28 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
       .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
       .error(
-        initialState,
-        SemanticError.functionCallWrongNumberOfArguments(
+        GqlHelper.getGql42001_42I13(
           1,
           2,
           "abac.oidc.user_attribute",
           "abac.oidc.user_attribute(attributeKey :: STRING) :: ANY",
-          "[country, city]",
-          p
-        )
+          pos1.offset,
+          pos1.line,
+          pos1.column
+        ),
+        initialState,
+        """Function call does not provide the required number of arguments: expected 1 got 2.
+          |
+          |Function abac.oidc.user_attribute has signature: abac.oidc.user_attribute(attributeKey :: STRING) :: ANY
+          |meaning that it expects 1 [country, city]""".stripMargin,
+        pos1
       ).errors
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute(1) = 'SE_MALMÖ'") {
     val functionInvocation = FunctionInvocation(
       name = FunctionName("abac.oidc.user_attribute")(p),
-      argument = literalInt(1)
+      argument = SignedDecimalIntegerLiteral("1")(pos1)
     )(p)
     val authRule = CreateAuthRule(
       literalString("authRule"),
@@ -3822,13 +3896,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         GqlHelper.getGql42001_22NB1(
           java.util.List.of(CTString.toCypherTypeString),
           "INTEGER",
-          0,
-          0,
-          0
+          pos1.offset,
+          pos1.line,
+          pos1.column
         ),
         initialState,
         "Type mismatch: expected String but was Integer",
-        InputPosition(0, 0, 0).withInputLength(0)
+        pos1
       ).errors
   }
 
@@ -3863,10 +3937,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         argument = literalString("start_date")
       )(p)
       val dateFunctionInvocation = FunctionInvocation(
-        FunctionName(functionName)(p),
+        FunctionName(functionName)(pos1),
         distinct = false,
         IndexedSeq.empty
-      )(p)
+      )(pos1)
 
       val authRule = CreateAuthRule(
         literalString("authRule"),
@@ -3879,11 +3953,19 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       authRule.semanticCheck.run(initialState, arbitrarySemanticContext()).errors
         .filterNot(_.equals(authRuleFeatureToggleError("CREATE"))) shouldBe SemanticCheckResult
         .error(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(pos1.offset, pos1.line, pos1.column)
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                .atPosition(pos1.offset, pos1.line, pos1.column)
+                .withParam(GqlParams.StringParam.input, functionName)
+                .withParam(GqlParams.StringParam.context, "function in auth rule condition")
+                .build()
+            ).build(),
           initialState,
-          SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
-            functionName,
-            p
-          )
+          s"""42001
+             |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin,
+          pos1
         ).errors
     }
   }
