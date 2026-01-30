@@ -47,8 +47,10 @@ sealed trait WorkingScope extends Product with Foldable {
   def withReferenced(referenced: Set[LogicalVariable]): WorkingScope
   def withDeclared(declared: Declarations): WorkingScope
 
-  def getRecordedScopes: RecordedScopes =
-    Map(PositionedNode(astNode) -> this) ++ children.flatMap(_.getRecordedScopes)
+  private def getScopes: Seq[(PositionedNode[ASTNode], WorkingScope)] =
+    (PositionedNode(astNode), this) +: children.flatMap(_.getScopes)
+
+  def getRecordedScopes: RecordedScopes = getScopes.toMap
 }
 
 object WorkingScope {

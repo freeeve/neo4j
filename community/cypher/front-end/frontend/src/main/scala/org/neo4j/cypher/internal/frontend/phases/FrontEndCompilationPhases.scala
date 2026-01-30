@@ -114,7 +114,6 @@ trait FrontEndCompilationPhases {
         // Needs to be done before any other rewrites to not miss literals
         ExtractSensitiveLiterals.andThen(ObfuscationMetadataCollection)
       ) andThen
-      ScopeSurveyor andThen
       postParsingBase(config) andThen
       If((_: BaseState) => config.resolveSimpleDynamicExpressions)(
         IfChangedSetSemantics.using(ResolveSimpleDynamicExpressions(parameters))
