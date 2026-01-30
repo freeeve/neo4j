@@ -95,10 +95,15 @@ trait VariableCheckerUtil {
   case class Aggregating(clause: String, incomingToClause: Set[LogicalVariable]) extends ProjectionContext
   case object NonAggregating extends ProjectionContext
 
+  sealed trait ForeachContext { val allowedToShadow: Set[LogicalVariable] = Set.empty }
+  case class InForeach(override val allowedToShadow: Set[LogicalVariable]) extends ForeachContext
+  case object NotInForeach extends ForeachContext
+
   case class Acc(
     scopeContext: ReturnContext,
     variableContext: VariableContext,
     projectionContext: ProjectionContext,
+    foreachContext: ForeachContext,
     definedLocalCallableNames: Set[CallableName],
     errors: Set[SemanticError]
   ) {
@@ -107,6 +112,11 @@ trait VariableCheckerUtil {
     def inReturnContext(context: ReturnContext): Acc = copy(scopeContext = context)
     def inVariableContext(context: VariableContext): Acc = copy(variableContext = context)
     def inMatchingPattern: Acc = copy(variableContext = variableContext.inMatch)
+    def inForeachClause(context: ForeachContext): Acc = copy(foreachContext = context)
+
+    def withForeachClause(incomingVariables: Set[LogicalVariable]): Acc =
+      copy(foreachContext = InForeach(incomingVariables))
+
     def inProjectionContext(context: ProjectionContext): Acc = copy(projectionContext = context)
 
     def withDefinedLocalCallableName(name: CallableName): Acc =
@@ -129,22 +139,22 @@ trait VariableCheckerUtil {
   }
 
   case object Acc {
-    def init: Acc = Acc(Unopinionated, Default, NonAggregating, Set.empty, Set.empty)
+    def init: Acc = Acc(Unopinionated, Default, NonAggregating, NotInForeach, Set.empty, Set.empty)
 
     object InRelationshipChain {
 
-      def unapply(acc: Acc): Option[Acc] = acc match {
-        case Acc(_, UpdatingPattern(_, _, _, false), _, _, _) =>
-          Some(acc)
+      def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable])] = acc match {
+        case Acc(_, UpdatingPattern(_, _, _, false), _, foreachContext, _, _) =>
+          Some((acc, foreachContext.allowedToShadow))
         case _ => None
       }
     }
 
     object UpdatingContext {
 
-      def unapply(acc: Acc): Option[Acc] = acc match {
-        case Acc(_, UpdatingPattern(_, _, _, _), _, _, _) => Some(acc)
-        case _                                            => None
+      def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable])] = acc match {
+        case Acc(_, UpdatingPattern(_, _, _, _), _, foreachContext, _, _) => Some((acc, foreachContext.allowedToShadow))
+        case _                                                            => None
       }
     }
 
@@ -152,10 +162,10 @@ trait VariableCheckerUtil {
 
       def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable], Set[LogicalVariable], CreateOrInsert, Boolean)] =
         acc match {
-          case Acc(returnContext, MatchingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _, _) =>
+          case Acc(returnContext, MatchingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _, _, _) =>
             val inScalarSubquery = returnContext.isInstanceOf[SubqueryExpression]
             Some((acc, topo, patternVariables, c, inScalarSubquery))
-          case Acc(returnContext, UpdatingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _, _) =>
+          case Acc(returnContext, UpdatingPattern(topo, patternVariables, c: CreateOrInsert, _), _, _, _, _) =>
             val inScalarSubquery = returnContext.isInstanceOf[SubqueryExpression]
             Some((acc, topo, patternVariables, c, inScalarSubquery))
           case _ => None
@@ -165,25 +175,25 @@ trait VariableCheckerUtil {
     object MergePattern {
 
       def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable], Merge)] = acc match {
-        case Acc(_, MatchingPattern(topo, _, merge: Merge, _), _, _, _) => Some((acc, topo, merge))
-        case Acc(_, UpdatingPattern(topo, _, merge: Merge, _), _, _, _) => Some((acc, topo, merge))
-        case _                                                          => None
+        case Acc(_, MatchingPattern(topo, _, merge: Merge, _), _, _, _, _) => Some((acc, topo, merge))
+        case Acc(_, UpdatingPattern(topo, _, merge: Merge, _), _, _, _, _) => Some((acc, topo, merge))
+        case _                                                             => None
       }
     }
 
     object Aggregation {
 
       def unapply(acc: Acc): Option[(Acc, String, Set[LogicalVariable])] = acc match {
-        case Acc(_, _, Aggregating(clause, incomingToClause), _, _) => Some((acc, clause, incomingToClause))
-        case _                                                      => None
+        case Acc(_, _, Aggregating(clause, incomingToClause), _, _, _) => Some((acc, clause, incomingToClause))
+        case _                                                         => None
       }
     }
 
     object Opinionated {
 
       def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable])] = acc match {
-        case Acc(o: Opinionated, _, _, _, _) => Some((acc, o.constants))
-        case _                               => None
+        case Acc(o: Opinionated, _, _, _, _, _) => Some((acc, o.constants))
+        case _                                  => None
       }
 
     }
@@ -191,8 +201,8 @@ trait VariableCheckerUtil {
     object SubqueryExpr {
 
       def unapply(acc: Acc): Option[Acc] = acc match {
-        case Acc(SubqueryExpression(_), _, _, _, _) => Some(acc)
-        case _                                      => None
+        case Acc(SubqueryExpression(_), _, _, _, _, _) => Some(acc)
+        case _                                         => None
       }
 
     }
@@ -386,14 +396,16 @@ trait VariableCheckerUtil {
         def unapply(scope: (Acc, WorkingScope)): Option[(Acc, String, InputPosition)] =
           scope match {
             case (
-                Acc.UpdatingContext(acc),
+                Acc.UpdatingContext(acc, allowedToShadow),
                 PatternScope(RelationshipPattern(Some(variable), _, _, _, _, _), _, referenced, _, _, _)
               )
-              if referenced.exists(_.name == variable.name) => Some((acc, variable.name, variable.position))
+              if referenced.exists(_.name == variable.name) && !allowedToShadow(variable) =>
+              Some((acc, variable.name, variable.position))
             case (
-                Acc.InRelationshipChain(acc),
+                Acc.InRelationshipChain(acc, allowedToShadow),
                 PatternScope(NodePattern(Some(variable), _, _, _), _, referenced, _, _, _)
-              ) if referenced.exists(_.name == variable.name) => Some((acc, variable.name, variable.position))
+              ) if referenced.exists(_.name == variable.name) && !allowedToShadow(variable) =>
+              Some((acc, variable.name, variable.position))
             case _ => None
           }
 

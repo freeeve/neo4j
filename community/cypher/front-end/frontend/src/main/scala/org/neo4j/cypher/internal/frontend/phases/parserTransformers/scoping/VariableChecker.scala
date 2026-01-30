@@ -343,7 +343,7 @@ case class VariableChecker(
 
   private def collectSemanticErrors(workingScope: WorkingScope) = workingScope.folder.treeFold(Acc.init) {
     case s @ ExpressionScope(_: IterableExpression, _, _, d, _) => {
-      case acc @ Acc(_, dCtx: DeclaringContext, _, _, _) if dCtx.declared.nonEmpty =>
+      case acc @ Acc(_, dCtx: DeclaringContext, _, _, _, _) if dCtx.declared.nonEmpty =>
         updateAccAndTraverse(acc, s)(_acc =>
           TraverseChildrenNewAccForSiblings(
             _acc.inVariableContext(dCtx.updateDeclared(d.constants.toSet)),
@@ -368,6 +368,7 @@ case class VariableChecker(
             tailAcc.scopeContext,
             tailAcc.variableContext,
             tailAcc.projectionContext,
+            tailAcc.foreachContext,
             tailAcc.definedLocalCallableNames,
             trunkAcc.errors ++ tailAcc.errors
           ))
@@ -399,6 +400,13 @@ case class VariableChecker(
           TraverseChildrenNewAccForSiblings(
             _acc.inMatchingPattern,
             acc => acc.inVariableContext(_acc.variableContext)
+          )
+        )
+    case s @ StatementScope(f: Foreach, incoming, _, _, _, _, _) => acc =>
+        updateAccAndTraverse(acc, s)(_acc =>
+          TraverseChildrenNewAccForSiblings(
+            _acc.withForeachClause(incoming.allSymbols filterNot (_.name == f.variable.name)),
+            acc => acc.inForeachClause(_acc.foreachContext)
           )
         )
     case s @ StatementScope(p: ProjectionClause, incoming, _, _, _, _, children) => acc =>
