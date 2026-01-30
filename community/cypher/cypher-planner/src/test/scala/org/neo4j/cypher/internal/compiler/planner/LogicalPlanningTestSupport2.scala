@@ -488,6 +488,15 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
         false
       }
 
+      override def hasRelationshipEndpointLabelConstraint(
+        relTypeName: String,
+        labelName: String,
+        endpointType: EndpointType
+      ): Boolean = {
+        // This trait does not support adding relationship endpoint label constraints
+        false
+      }
+
       override def procedureSignature(name: QualifiedName): ProcedureSignature = {
         config.procedureSignatures.find(_.name == name).get
       }

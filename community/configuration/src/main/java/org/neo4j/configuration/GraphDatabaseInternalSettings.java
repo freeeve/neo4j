@@ -1518,7 +1518,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Internal
     @Description("A feature toggle behind which graph types are developed")
     public static final Setting<Boolean> graph_type_enabled =
-            newBuilder("internal.dbms.graph_type", BOOL, false).immutable().build();
+            newBuilder("internal.dbms.graph_type", BOOL, true).immutable().build();
 
     @Internal
     @Description("Enables creation of graph type dependent constraints")

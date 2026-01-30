@@ -285,6 +285,8 @@ class InferSchemaPartsUsageMetricsTest extends CypherFunSuite with CypherVersion
       override def storageHasPropertyColocation: Boolean = true
 
       override def storageSupportsFastExpandInto: Boolean = true
+
+      override def txStateHasChanges(): Boolean = false
     }
 
     TransformingPlanner.customPlanContextCreator = Some((_, _, _, _, _) => planContext)

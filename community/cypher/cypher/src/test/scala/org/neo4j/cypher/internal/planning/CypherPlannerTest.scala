@@ -268,6 +268,7 @@ class CypherPlannerTest extends CypherFunSuite {
 
       override def storageHasPropertyColocation: Boolean = true
       override def storageSupportsFastExpandInto: Boolean = true
+      override def txStateHasChanges(): Boolean = false
     }
 
     TransformingPlanner.customPlanContextCreator = Some((_, _, _, _, _) => planContext)
