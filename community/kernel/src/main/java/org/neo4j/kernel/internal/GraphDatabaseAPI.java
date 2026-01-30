@@ -31,6 +31,8 @@ import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.kernel.database.DatabaseReference;
+import org.neo4j.kernel.database.DatabaseReferenceRepository;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.coreapi.TransactionExceptionMapper;
@@ -55,6 +57,18 @@ public interface GraphDatabaseAPI extends GraphDatabaseService {
      * @return underlying database id
      */
     NamedDatabaseId databaseId();
+
+    /**
+     * @return For sharded databases, this returns the name of the database owning this shard,
+     * otherwise the same as {@link #databaseName()}.
+     */
+    default String owningDatabaseName() {
+        return getDependencyResolver()
+                .resolveDependency(DatabaseReferenceRepository.class)
+                .getByAlias(databaseName())
+                .map(DatabaseReference::owningDatabaseName)
+                .orElse(databaseName());
+    }
 
     DbmsInfo dbmsInfo();
 
