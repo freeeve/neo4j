@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,7 @@ import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.OtherThread;
 import org.neo4j.test.extension.OtherThreadExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @ImpermanentDbmsExtension
 @ExtendWith(OtherThreadExtension.class)
@@ -97,6 +99,9 @@ public class NestedIndexReadersIT {
 
     @ParameterizedTest
     @MethodSource("parameters")
+    @SkipOnSpd(
+            notes = incompatible,
+            reason = "Values are batch-read and cached. Index reader does not observe concurrent updates")
     void shouldReadCorrectResultsFromMultipleNestedReadersWhenConcurrentWriteHappens(EntityControl<?> entityControl)
             throws Exception {
         // given

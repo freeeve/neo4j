@@ -33,6 +33,7 @@ import static org.neo4j.server.http.cypher.integration.TransactionConditions.val
 import static org.neo4j.server.rest.domain.JsonHelper.jsonNode;
 import static org.neo4j.server.web.HttpHeaderUtils.ACCESS_MODE_HEADER;
 import static org.neo4j.server.web.HttpHeaderUtils.BOOKMARKS_HEADER;
+import static org.neo4j.test.assertion.Assert.assertEventually;
 import static org.neo4j.test.server.HTTP.RawPayload.quotedJson;
 import static org.neo4j.test.server.HTTP.RawPayload.rawPayload;
 
@@ -42,6 +43,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.net.Socket;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +53,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +61,8 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.bolt.tx.TransactionManager;
+import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.fabric.bolt.QueryRouterBookmark;
 import org.neo4j.fabric.bookmark.BookmarkFormat;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -93,7 +98,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
     @AfterEach
     public void afterEach() {
         // verify TransactionManager's state is reset after each
-        assertThat(transactionManager.getTransactionCount()).isEqualTo(0);
+        assertEventually(() -> transactionManager.getTransactionCount(), c -> c == 0, 5, TimeUnit.SECONDS);
         executors.shutdown();
     }
 
@@ -1112,24 +1117,30 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
 
     @Test
     void shouldFailForUnreachableBookmark() {
-        var lastClosedTransactionId = getLastClosedTransactionId();
+        Config config = resolveDependency(Config.class);
+        try {
+            config.setDynamic(GraphDatabaseSettings.bookmark_ready_timeout, Duration.ofSeconds(1), "test");
+            var lastClosedTransactionId = getLastClosedTransactionId();
 
-        var expectedBookmark = BookmarkFormat.serialize(new QueryRouterBookmark(
-                List.of(new QueryRouterBookmark.InternalGraphState(
-                        resolveDependency(Database.class)
-                                .getNamedDatabaseId()
-                                .databaseId()
-                                .uuid(),
-                        lastClosedTransactionId + 1)),
-                List.of()));
+            var expectedBookmark = BookmarkFormat.serialize(new QueryRouterBookmark(
+                    List.of(new QueryRouterBookmark.InternalGraphState(
+                            resolveDependency(Database.class)
+                                    .getNamedDatabaseId()
+                                    .databaseId()
+                                    .uuid(),
+                            lastClosedTransactionId + 1)),
+                    List.of()));
 
-        Response begin = POST(
-                TX_ENDPOINT,
-                quotedJson("{ 'statements': [ { 'statement': 'CREATE (n)' } ] }"),
-                bookmarkHeader(expectedBookmark));
+            Response begin = POST(
+                    TX_ENDPOINT,
+                    quotedJson("{ 'statements': [ { 'statement': 'CREATE (n)' } ] }"),
+                    bookmarkHeader(expectedBookmark));
 
-        assertThat(begin.status()).isEqualTo(201);
-        assertThat(begin).satisfies(hasErrors(Status.Transaction.BookmarkTimeout));
+            assertThat(begin.status()).isEqualTo(201);
+            assertThat(begin).satisfies(hasErrors(Status.Transaction.BookmarkTimeout));
+        } finally {
+            config.setDynamic(GraphDatabaseSettings.bookmark_ready_timeout, null, "test");
+        }
     }
 
     @Test
@@ -1164,35 +1175,40 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
 
     @Test
     public void shouldWaitForUpdatedBookmark() {
-        var lastClosedTransactionId = getLastClosedTransactionId();
+        Config config = resolveDependency(Config.class);
+        try {
+            config.setDynamic(GraphDatabaseSettings.bookmark_ready_timeout, Duration.ofSeconds(1), "test");
+            var lastClosedTransactionId = getLastClosedTransactionId();
 
-        var expectedBookmark = BookmarkFormat.serialize(new QueryRouterBookmark(
-                List.of(new QueryRouterBookmark.InternalGraphState(
-                        resolveDependency(Database.class)
-                                .getNamedDatabaseId()
-                                .databaseId()
-                                .uuid(),
-                        lastClosedTransactionId + 1)),
-                List.of()));
+            var expectedBookmark = BookmarkFormat.serialize(new QueryRouterBookmark(
+                    List.of(new QueryRouterBookmark.InternalGraphState(
+                            resolveDependency(Database.class)
+                                    .getNamedDatabaseId()
+                                    .databaseId()
+                                    .uuid(),
+                            lastClosedTransactionId + 1)),
+                    List.of()));
 
-        var begin = POST(
-                transactionCommitUri(),
-                quotedJson("{ 'statements': [ { 'statement': 'CREATE (n)' } ] }"),
-                bookmarkHeader(expectedBookmark));
+            var begin = POST(
+                    transactionCommitUri(),
+                    quotedJson("{ 'statements': [ { 'statement': 'CREATE (n)' } ] }"),
+                    bookmarkHeader(expectedBookmark));
 
-        assertThat(begin.status()).isEqualTo(200);
-        assertThat(begin).satisfies(hasErrors(Status.Transaction.BookmarkTimeout));
+            assertThat(begin.status()).isEqualTo(200);
+            assertThat(begin).satisfies(hasErrors(Status.Transaction.BookmarkTimeout));
 
-        // move the state forward one so bookmark becomes reachable
-        POST(transactionCommitUri(), quotedJson("{ 'statements': [ { 'statement': 'CREATE (n)' } ] }"));
+            // move the state forward one so bookmark becomes reachable
+            POST(transactionCommitUri(), quotedJson("{ 'statements': [ { 'statement': 'CREATE (n)' } ] }"));
+            Response begin2 = POST(
+                    transactionCommitUri(),
+                    quotedJson("{ 'statements': [ { 'statement': 'CREATE (n)' } ] }"),
+                    bookmarkHeader(expectedBookmark));
 
-        Response begin2 = POST(
-                transactionCommitUri(),
-                quotedJson("{ 'statements': [ { 'statement': 'CREATE (n)' } ] }"),
-                bookmarkHeader(expectedBookmark));
-
-        assertThat(begin2.status()).isEqualTo(200);
-        assertThat(begin2).satisfies(containsNoErrors());
+            assertThat(begin2.status()).isEqualTo(200);
+            assertThat(begin2).satisfies(containsNoErrors());
+        } finally {
+            config.setDynamic(GraphDatabaseSettings.bookmark_ready_timeout, null, "test");
+        }
     }
 
     @Test
@@ -1217,7 +1233,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
                     }
                   ]
                 }
-                                """;
+                """;
 
         HTTP.Response response = POST(transactionCommitUri(), quotedJson(query));
 

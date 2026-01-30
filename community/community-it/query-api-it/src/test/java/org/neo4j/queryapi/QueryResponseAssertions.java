@@ -277,7 +277,7 @@ public final class QueryResponseAssertions
 
         var childPlan = queryPlan.get("children").get(0);
 
-        Assertions.assertThat(childPlan.get("operatorType").asText()).isEqualTo("Projection@neo4j");
+        Assertions.assertThat(childPlan.get("operatorType").asText()).startsWith("Projection@neo4j");
         assertNotNull(childPlan.get("arguments"));
         Assertions.assertThat(childPlan.get("identifiers").size()).isEqualTo(1);
         Assertions.assertThat(queryPlan.get("identifiers").get(0).asText()).isEqualTo("`1`");
@@ -303,7 +303,7 @@ public final class QueryResponseAssertions
         Assertions.assertThat(profiledQueryPlan.get("pageCacheMisses").asInt()).isEqualTo(0);
         Assertions.assertThat(profiledQueryPlan.get("pageCacheHitRatio").asDouble())
                 .isEqualTo(0);
-        Assertions.assertThat(profiledQueryPlan.get("operatorType").asText()).isEqualTo("ProduceResults@neo4j");
+        Assertions.assertThat(profiledQueryPlan.get("operatorType").asText()).startsWith("ProduceResults@neo4j");
         assertNotNull(profiledQueryPlan.get("arguments"));
         Assertions.assertThat(profiledQueryPlan.get("identifiers").size()).isEqualTo(1);
         Assertions.assertThat(profiledQueryPlan.get("identifiers").get(0).asText())

@@ -25,6 +25,7 @@ import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.SettingValueParsers.TRUE;
 import static org.neo4j.server.helpers.CommunityWebContainerBuilder.serverOnRandomPorts;
 import static org.neo4j.snapshot.TestVersionContext.testCursorContext;
+import static org.neo4j.test.extension.SkipOnSpd.Note.notSupported;
 import static org.neo4j.test.server.HTTP.RawPayload.quotedJson;
 
 import java.util.List;
@@ -44,9 +45,11 @@ import org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory;
 import org.neo4j.server.helpers.TestWebContainer;
 import org.neo4j.snapshot.TestTransactionVersionContextSupplier;
 import org.neo4j.snapshot.TestVersionContext;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.server.ExclusiveWebContainerTestBase;
 import org.neo4j.test.server.HTTP;
 
+@SkipOnSpd(notes = notSupported, reason = "Snapshot execution engine is not supported")
 class SnapshotQueryExecutionIT extends ExclusiveWebContainerTestBase {
     private TestWebContainer testWebContainer;
     private LongSupplier lastTransactionIdSource;

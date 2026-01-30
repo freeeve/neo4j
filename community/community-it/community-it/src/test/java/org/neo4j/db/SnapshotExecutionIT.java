@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.internal.helpers.Strings.joinAsLines;
 import static org.neo4j.kernel.api.exceptions.Status.Statement.ArithmeticError;
 import static org.neo4j.kernel.api.exceptions.Status.Statement.SyntaxError;
+import static org.neo4j.test.extension.SkipOnSpd.Note.notSupported;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -67,10 +68,12 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.BoltDbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import reactor.core.publisher.Mono;
 
 @BoltDbmsExtension(configurationCallback = "configure")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SkipOnSpd(notes = notSupported, reason = "Snapshot execution engine is not supported")
 class SnapshotExecutionIT {
     @Inject
     private static GraphDatabaseAPI graphDatabase;
