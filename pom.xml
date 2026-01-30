@@ -923,6 +923,7 @@
               <ignoredDependencies>
                 <!-- Ignore test dependencies to not risk tests stop running and for convenience. -->
                 <ignoredDependency>org.junit.jupiter:*</ignoredDependency>
+                <ignoredDependency>org.junit.platform:*</ignoredDependency>
                 <ignoredDependency>org.scalatest:*</ignoredDependency>
                 <ignoredDependency>org.scalacheck:*</ignoredDependency>
                 <ignoredDependency>co.helmethair:scalatest-junit-runner</ignoredDependency>
