@@ -79,12 +79,12 @@ class MigrateStoreCommandTest {
                                                       monitor the successful completion of that process.
                            -h, --help               Show this help message and exit.
                                --max-off-heap-memory=<size>
-                                                    Maximum memory that neo4j-admin can use for various
-                                                      data structures and caching to improve
-                                                      performance. Values can be plain numbers, such as
-                                                      10000000, or 20G for 20 gigabytes. It can also be
-                                                      specified as a percentage of the available memory,
-                                                      for example 70%.
+                                                    Maximum memory that the command can use for page
+                                                      cache and various caching data structures to
+                                                      improve performance. Values can be plain numbers,
+                                                      such as 10000000, or, for example, 20G for 20
+                                                      gigabytes, or 70%, which will amount to 70% of
+                                                      currently free memory on the machine.
                                                       Default: 90%
                                --pagecache=<size>   (Deprecated in favor of --max-off-heap-memory) The
                                                       size of the page cache to use for the migration

@@ -91,11 +91,10 @@ public class ConsistencyCheckOptions {
             showDefaultValue = ALWAYS,
             defaultValue = "90%",
             converter = MaxOffHeapMemoryConverter.class,
-            description =
-                    "Maximum memory that the copy command can use for page cache and various caching data structures "
-                            + "to improve performance. Value can be plain numbers, "
-                            + "such as 10000000 or, for example, 20G for 20 gigabytes, or 70%%, which will amount to 70%%"
-                            + " of currently free memory on the machine.")
+            description = "Maximum memory that the command can use for page cache and various caching data structures "
+                    + "to improve performance. Value can be plain numbers, "
+                    + "such as 10000000 or, for example, 20G for 20 gigabytes, or 70%%, which will amount to 70%%"
+                    + " of currently free memory on the machine.")
     private long maxOffHeapMemory;
 
     @Option(
