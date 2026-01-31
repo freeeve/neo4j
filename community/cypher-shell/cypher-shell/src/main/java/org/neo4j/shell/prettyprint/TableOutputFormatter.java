@@ -155,7 +155,7 @@ public class TableOutputFormatter implements OutputFormatter {
             String[] columns, List<Record> data, boolean moreDataAfterSamples, String heading) {
         int[] columnSizes = new int[columns.length];
         for (int i = 0; i < columns.length; i++) {
-            columnSizes[i] = columns[i].length();
+            columnSizes[i] = displayWidth(columns[i]);
         }
         for (Record record : data) {
             for (int i = 0; i < columns.length; i++) {
@@ -168,8 +168,9 @@ public class TableOutputFormatter implements OutputFormatter {
         }
         if (heading != null) {
             final var totalSize = Arrays.stream(columnSizes).sum();
-            if (heading.length() > totalSize) {
-                columnSizes[0] = columnSizes[0] + (heading.length() - totalSize);
+            final var headingWidth = displayWidth(heading);
+            if (headingWidth > totalSize) {
+                columnSizes[0] = columnSizes[0] + (headingWidth - totalSize);
             }
         }
         return columnSizes;
@@ -188,16 +189,21 @@ public class TableOutputFormatter implements OutputFormatter {
             return 19; // The number of digits of Long.Max
         } else {
             final var formatted = formatValue(value);
-            final var length = formatted.length();
-            if (length < currentColSize || !StringUtils.containsAny(formatted, '\n', '\r')) {
-                return length;
+            final boolean hasLineBreak = StringUtils.containsAny(formatted, '\n', '\r');
+            if (!hasLineBreak) {
+                return displayWidth(formatted);
             } else if (wrap) {
                 // With wrapping we need the max line length.
                 // Not optimised, but not expected to come here that often.
-                return formatted.lines().mapToInt(String::length).max().orElse(0);
+                return formatted
+                        .lines()
+                        .mapToInt(TableOutputFormatter::displayWidth)
+                        .max()
+                        .orElse(0);
             } else {
                 // With no wrapping we only display the first line.
-                return StringUtils.indexOfAny(formatted, '\n', '\r');
+                final int lineBreakIndex = StringUtils.indexOfAny(formatted, '\n', '\r');
+                return displayWidth(formatted, 0, lineBreakIndex);
             }
         }
     }
@@ -238,7 +244,7 @@ public class TableOutputFormatter implements OutputFormatter {
             if (txt != null) {
                 final var txtLength = txt.length();
                 int offset = 0; // char offset in the string
-                int codePointCount = 0; // UTF code point counter (one code point can be multiple chars)
+                int displayWidthCount = 0; // Terminal column width counter
 
                 /*
                  * Copy content of cell to output, UTF codepoint by codepoint,
@@ -249,7 +255,7 @@ public class TableOutputFormatter implements OutputFormatter {
                  * which can lead to invalid characters in output when
                  * wrapping.
                  */
-                while (codePointCount < length && offset < txtLength) {
+                while (displayWidthCount < length && offset < txtLength) {
                     final int codepoint = txt.codePointAt(offset);
 
                     // Stop at line breaks. Note that we skip the line break later in nextLineStart.
@@ -257,9 +263,14 @@ public class TableOutputFormatter implements OutputFormatter {
                         break;
                     }
 
+                    final int width = codePointDisplayWidth(codepoint);
+                    if (width > 0 && displayWidthCount + width > length) {
+                        break;
+                    }
+
                     sb.appendCodePoint(codepoint);
                     offset = txt.offsetByCodePoints(offset, 1); // Move offset to next code point
-                    ++codePointCount;
+                    displayWidthCount += width;
                 }
 
                 if (offset < txtLength)
@@ -269,13 +280,15 @@ public class TableOutputFormatter implements OutputFormatter {
                         row[i] = txt.substring(nextLineStart(txt, offset));
                         continuation[i] = true;
                         remainder = true;
-                    } else if (codePointCount < length) {
+                    } else if (displayWidthCount < length) {
                         sb.append("…");
-                        ++codePointCount;
+                        displayWidthCount += codePointDisplayWidth('…');
                     } else {
                         int lastCodePoint = sb.codePointBefore(sb.length());
                         int lastLength = Character.charCount(lastCodePoint);
+                        int lastWidth = codePointDisplayWidth(lastCodePoint);
                         sb.replace(sb.length() - lastLength, sb.length(), "…");
+                        displayWidthCount = displayWidthCount - lastWidth + codePointDisplayWidth('…');
                     }
                 } else
                 // Content did fit column
@@ -284,8 +297,8 @@ public class TableOutputFormatter implements OutputFormatter {
                 }
 
                 // Insert padding
-                if (codePointCount < length) {
-                    sb.append(repeat(' ', length - codePointCount));
+                if (displayWidthCount < length) {
+                    sb.append(repeat(' ', length - displayWidthCount));
                 }
             } else {
                 sb.append(repeat(' ', length));
@@ -321,6 +334,59 @@ public class TableOutputFormatter implements OutputFormatter {
         }
 
         return txt.length();
+    }
+
+    private static int displayWidth(String text) {
+        return displayWidth(text, 0, text.length());
+    }
+
+    private static int displayWidth(String text, int start, int end) {
+        int width = 0;
+        int offset = start;
+        while (offset < end) {
+            int codepoint = text.codePointAt(offset);
+            if (codepoint == '\n' || codepoint == '\r') {
+                break;
+            }
+            width += codePointDisplayWidth(codepoint);
+            offset = text.offsetByCodePoints(offset, 1);
+        }
+        return width;
+    }
+
+    private static int codePointDisplayWidth(int codepoint) {
+        if (codepoint == 0) {
+            return 0;
+        }
+        if (codepoint < 32 || (codepoint >= 0x7F && codepoint < 0xA0)) {
+            return 0;
+        }
+        int type = Character.getType(codepoint);
+        if (type == Character.NON_SPACING_MARK
+                || type == Character.ENCLOSING_MARK
+                || type == Character.COMBINING_SPACING_MARK) {
+            return 0;
+        }
+        return isWide(codepoint) ? 2 : 1;
+    }
+
+    // Approximate terminal wcwidth rules for wide characters.
+    private static boolean isWide(int codepoint) {
+        return codepoint >= 0x1100
+                && (codepoint <= 0x115F
+                        || codepoint == 0x2329
+                        || codepoint == 0x232A
+                        || (codepoint >= 0x2E80 && codepoint <= 0xA4CF && codepoint != 0x303F)
+                        || (codepoint >= 0xAC00 && codepoint <= 0xD7A3)
+                        || (codepoint >= 0xF900 && codepoint <= 0xFAFF)
+                        || (codepoint >= 0xFE10 && codepoint <= 0xFE19)
+                        || (codepoint >= 0xFE30 && codepoint <= 0xFE6F)
+                        || (codepoint >= 0xFF00 && codepoint <= 0xFF60)
+                        || (codepoint >= 0xFFE0 && codepoint <= 0xFFE6)
+                        || (codepoint >= 0x1F300 && codepoint <= 0x1F64F)
+                        || (codepoint >= 0x1F900 && codepoint <= 0x1F9FF)
+                        || (codepoint >= 0x20000 && codepoint <= 0x2FFFD)
+                        || (codepoint >= 0x30000 && codepoint <= 0x3FFFD));
     }
 
     @Override

@@ -569,9 +569,12 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
                         "| c1   |",
                         "+------+",
                         "| \"xx\" |",
-                        "| \"😅😅\" |",
-                        "| \"🐞🐞🐞 |",
-                        "\\ 🐞🐞🐞\" |",
+                        "| \"😅  |",
+                        "\\ 😅\"  |",
+                        "| \"🐞  |",
+                        "\\ 🐞🐞 |",
+                        "\\ 🐞🐞 |",
+                        "\\ 🐞\"  |",
                         "+------+",
                         NEWLINE));
     }
@@ -592,9 +595,29 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
                         "| c1   |",
                         "+------+",
                         "| \"xx\" |",
-                        "| \"😅😅\" |",
-                        "| \"🐞🐞… |",
+                        "| \"😅… |",
+                        "| \"🐞… |",
                         "+------+",
+                        NEWLINE));
+    }
+
+    @Test
+    void wrapSmallFormUnicodeContent() {
+        // GIVEN
+        Result result = mockResult(asList("c1"), "\uFE64script\uFE65");
+        // WHEN
+        ToStringLinePrinter printer = new ToStringLinePrinter();
+        new TableOutputFormatter(false, 1).formatAndCount(new ListBoltResult(result.list(), result.consume()), printer);
+        String table = printer.result();
+        // THEN
+        assertThat(table)
+                .isEqualTo(String.join(
+                        NEWLINE,
+                        "+--------------+",
+                        "| c1           |",
+                        "+--------------+",
+                        "| \"\uFE64script\uFE65\" |",
+                        "+--------------+",
                         NEWLINE));
     }
 
