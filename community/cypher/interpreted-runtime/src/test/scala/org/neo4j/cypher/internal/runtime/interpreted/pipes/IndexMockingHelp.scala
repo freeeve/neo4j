@@ -186,10 +186,10 @@ trait IndexMockingHelp extends CypherFunSuite with ImplicitDummyPos {
     override def degrees(selection: RelationshipSelection): Degrees =
       throw new UnsupportedOperationException("not implemented")
 
-    override def degree(selection: RelationshipSelection): Int =
+    override def degree(selection: RelationshipSelection): Long =
       throw new UnsupportedOperationException("not implemented")
 
-    override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+    override def degreeWithMax(maxDegree: Long, selection: RelationshipSelection): Long =
       throw new UnsupportedOperationException("not implemented")
 
     override def properties(cursor: PropertyCursor, selection: PropertySelection): Unit =

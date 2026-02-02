@@ -22,19 +22,19 @@ package org.neo4j.storageengine.util;
 import org.neo4j.storageengine.api.Degrees;
 
 public class SingleDegree implements Degrees.Mutator {
-    private int total;
-    private final int maxDegree;
+    private long total;
+    private final long maxDegree;
 
     public SingleDegree() {
         this(Integer.MAX_VALUE);
     }
 
-    public SingleDegree(int maxDegree) {
+    public SingleDegree(long maxDegree) {
         this.maxDegree = maxDegree;
     }
 
     @Override
-    public boolean add(int type, int outgoing, int incoming, int loop) {
+    public boolean add(int type, long outgoing, long incoming, long loop) {
         this.total += outgoing + incoming + loop;
         return this.total < maxDegree;
     }
@@ -44,7 +44,7 @@ public class SingleDegree implements Degrees.Mutator {
         return false;
     }
 
-    public int getTotal() {
+    public long getTotal() {
         return total;
     }
 }

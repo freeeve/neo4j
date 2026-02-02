@@ -38,7 +38,7 @@ public class EagerDegrees implements Degrees, Degrees.Mutator {
     private MutableIntObjectMap<Degree> degrees;
 
     @Override
-    public boolean add(int type, int outgoing, int incoming, int loop) {
+    public boolean add(int type, long outgoing, long incoming, long loop) {
         getOrCreateDegree(type).add(outgoing, incoming, loop);
         return true;
     }
@@ -63,17 +63,17 @@ public class EagerDegrees implements Degrees, Degrees.Mutator {
         getOrCreateDegree(type).loop += count;
     }
 
-    public int rawOutgoingDegree(int type) {
+    public long rawOutgoingDegree(int type) {
         Degree degree = findDegree(type);
         return degree != null ? degree.outgoing : 0;
     }
 
-    public int rawIncomingDegree(int type) {
+    public long rawIncomingDegree(int type) {
         Degree degree = findDegree(type);
         return degree != null ? degree.incoming : 0;
     }
 
-    public int rawLoopDegree(int type) {
+    public long rawLoopDegree(int type) {
         Degree degree = findDegree(type);
         return degree != null ? degree.loop : 0;
     }
@@ -108,7 +108,7 @@ public class EagerDegrees implements Degrees, Degrees.Mutator {
     }
 
     @Override
-    public int degree(int type, Direction direction) {
+    public long degree(int type, Direction direction) {
         Degree degree = findDegree(type);
         if (degree == null) {
             return 0;
@@ -164,29 +164,29 @@ public class EagerDegrees implements Degrees, Degrees.Mutator {
     }
 
     public static class Degree {
-        private int outgoing;
-        private int incoming;
-        private int loop;
+        private long outgoing;
+        private long incoming;
+        private long loop;
 
-        void add(int outgoing, int incoming, int loop) {
+        void add(long outgoing, long incoming, long loop) {
             this.outgoing += outgoing;
             this.incoming += incoming;
             this.loop += loop;
         }
 
-        public int outgoing() {
+        public long outgoing() {
             return outgoing;
         }
 
-        public int incoming() {
+        public long incoming() {
             return incoming;
         }
 
-        public int loop() {
+        public long loop() {
             return loop;
         }
 
-        public int total() {
+        public long total() {
             return outgoing + incoming + loop;
         }
 

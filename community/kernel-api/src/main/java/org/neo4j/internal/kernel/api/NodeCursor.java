@@ -57,7 +57,7 @@ public interface NodeCursor extends EntityCursor {
     long relationshipsReference();
 
     /**
-     * @return whether or not this node cursor can decide degree for various relationship selections cheaper than doing a full scan of all relationships.
+     * @return whether this node cursor can decide degree for various relationship selections cheaper than doing a full scan of all relationships.
      */
     boolean supportsFastDegreeLookup();
 
@@ -78,7 +78,7 @@ public interface NodeCursor extends EntityCursor {
      * @param selection which types/directions to get degrees for.
      * @return the total degree of all selected relationship types and direction.
      */
-    int degree(RelationshipSelection selection);
+    long degree(RelationshipSelection selection);
 
     /**
      * Returns a min(degree(selection), maxDegree).
@@ -90,5 +90,5 @@ public interface NodeCursor extends EntityCursor {
      * @param selection which types/directions to get degrees for.
      * @return min(degree(selection), maxDegree).
      */
-    int degreeWithMax(int maxDegree, RelationshipSelection selection);
+    long degreeWithMax(long maxDegree, RelationshipSelection selection);
 }

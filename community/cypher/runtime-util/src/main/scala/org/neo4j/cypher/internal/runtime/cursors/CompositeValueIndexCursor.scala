@@ -164,9 +164,9 @@ private class UnorderedNodeCursor(cursors: Array[NodeValueIndexCursor])
 
   override def degrees(selection: RelationshipSelection): Degrees = current.degrees(selection)
 
-  override def degree(selection: RelationshipSelection): Int = current.degree(selection)
+  override def degree(selection: RelationshipSelection): Long = current.degree(selection)
 
-  override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+  override def degreeWithMax(maxDegree: Long, selection: RelationshipSelection): Long =
     current.degreeWithMax(maxDegree, selection)
 
   override def properties(cursor: PropertyCursor, selection: PropertySelection): Unit =
@@ -294,9 +294,9 @@ private class MergeSortNodeCursor(cursors: Array[NodeValueIndexCursor], ordering
 
   override def degrees(selection: RelationshipSelection): Degrees = current.degrees(selection)
 
-  override def degree(selection: RelationshipSelection): Int = current.degree(selection)
+  override def degree(selection: RelationshipSelection): Long = current.degree(selection)
 
-  override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+  override def degreeWithMax(maxDegree: Long, selection: RelationshipSelection): Long =
     current.degreeWithMax(maxDegree, selection)
 
   override def properties(cursor: PropertyCursor, selection: PropertySelection): Unit =

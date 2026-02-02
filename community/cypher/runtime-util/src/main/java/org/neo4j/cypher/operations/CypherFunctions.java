@@ -3003,6 +3003,10 @@ public final class CypherFunctions {
         }
     }
 
+    public static long asLong(AnyValue value) {
+        return asLong(value, null, null, true);
+    }
+
     private static long asLong(AnyValue value, Supplier<String> contextForErrorMessage, String functionName) {
         return asLong(value, contextForErrorMessage, functionName, true);
     }

@@ -128,12 +128,12 @@ public interface NodeValueIndexCursor extends NodeIndexCursor, ValueIndexCursor 
         }
 
         @Override
-        public int degree(RelationshipSelection selection) {
+        public long degree(RelationshipSelection selection) {
             throw notReadFromStore();
         }
 
         @Override
-        public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+        public long degreeWithMax(long maxDegree, RelationshipSelection selection) {
             throw notReadFromStore();
         }
 

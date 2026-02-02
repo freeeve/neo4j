@@ -175,12 +175,12 @@ public class ExtendedNodeValueIndexCursorAdapter extends DefaultCloseListenable
     }
 
     @Override
-    public int degree(RelationshipSelection selection) {
+    public long degree(RelationshipSelection selection) {
         throw notImplemented();
     }
 
     @Override
-    public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+    public long degreeWithMax(long maxDegree, RelationshipSelection selection) {
         throw notImplemented();
     }
 

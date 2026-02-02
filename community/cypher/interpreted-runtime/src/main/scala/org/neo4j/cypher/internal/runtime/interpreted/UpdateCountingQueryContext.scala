@@ -412,7 +412,7 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     descriptor: SchemaDescriptor => ConstraintDescriptor
   ): String = inner.getGeneratedNameForConstraint(forNode, entityId, propertyIds, descriptor)
 
-  override def nodeGetDegree(node: Long, dir: SemanticDirection, nodeCursor: NodeCursor): Int =
+  override def nodeGetDegree(node: Long, dir: SemanticDirection, nodeCursor: NodeCursor): Long =
     super.nodeGetDegree(node, dir, nodeCursor)
 
   override def detachDeleteNode(node: Long): Int = {

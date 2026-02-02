@@ -195,5 +195,5 @@ public interface ReadableTransactionState extends VisitableTransactionState {
      * @param selection the selection to use for the computation
      * @return the degree of the node in the transaction state.
      */
-    int calculateDegreeInTxState(long node, RelationshipSelection selection);
+    long calculateDegreeInTxState(long node, RelationshipSelection selection);
 }

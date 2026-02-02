@@ -607,48 +607,48 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
 
   override def getImportDataConnection(uri: URI): CharReadable = inner.getImportDataConnection(uri)
 
-  override def nodeGetOutgoingDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetOutgoingDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetOutgoingDegreeWithMax(maxDegree, node, nodeCursor))
 
   override def nodeGetOutgoingDegreeWithMax(
-    maxDegree: Int,
+    maxDegree: Long,
     node: Long,
     relationship: Int,
     nodeCursor: NodeCursor
-  ): Int = singleDbHit(inner.nodeGetOutgoingDegreeWithMax(maxDegree, node, relationship, nodeCursor))
+  ): Long = singleDbHit(inner.nodeGetOutgoingDegreeWithMax(maxDegree, node, relationship, nodeCursor))
 
-  override def nodeGetIncomingDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetIncomingDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetIncomingDegreeWithMax(maxDegree, node, nodeCursor))
 
   override def nodeGetIncomingDegreeWithMax(
-    maxDegree: Int,
+    maxDegree: Long,
     node: Long,
     relationship: Int,
     nodeCursor: NodeCursor
-  ): Int = singleDbHit(inner.nodeGetIncomingDegreeWithMax(maxDegree, node, relationship, nodeCursor))
+  ): Long = singleDbHit(inner.nodeGetIncomingDegreeWithMax(maxDegree, node, relationship, nodeCursor))
 
-  override def nodeGetTotalDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetTotalDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetTotalDegreeWithMax(maxDegree, node, nodeCursor))
 
-  override def nodeGetTotalDegreeWithMax(maxDegree: Int, node: Long, relationship: Int, nodeCursor: NodeCursor): Int =
+  override def nodeGetTotalDegreeWithMax(maxDegree: Long, node: Long, relationship: Int, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetTotalDegreeWithMax(maxDegree, node, relationship, nodeCursor))
 
-  override def nodeGetOutgoingDegree(node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetOutgoingDegree(node: Long, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetOutgoingDegree(node, nodeCursor))
 
-  override def nodeGetOutgoingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int =
+  override def nodeGetOutgoingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetOutgoingDegree(node, relationship, nodeCursor))
 
-  override def nodeGetIncomingDegree(node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetIncomingDegree(node: Long, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetIncomingDegree(node, nodeCursor))
 
-  override def nodeGetIncomingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int =
+  override def nodeGetIncomingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetIncomingDegree(node, relationship, nodeCursor))
 
-  override def nodeGetTotalDegree(node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetTotalDegree(node: Long, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetTotalDegree(node, nodeCursor))
 
-  override def nodeGetTotalDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int =
+  override def nodeGetTotalDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long =
     singleDbHit(inner.nodeGetTotalDegree(node, relationship, nodeCursor))
 
   override def nodeHasCheapDegrees(node: Long, nodeCursor: NodeCursor): Boolean =

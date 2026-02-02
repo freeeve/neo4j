@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CheckDegree.nodeIdOrDefaultId
 import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.operations.CypherFunctions.asIntExact
+import org.neo4j.cypher.operations.CypherFunctions.asLong
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
@@ -39,7 +39,7 @@ import org.neo4j.values.virtual.VirtualNodeValue
 abstract class CheckDegree(node: Expression, typ: Option[KeyToken], direction: SemanticDirection, maxDegree: Expression)
     extends Expression {
 
-  protected val getDegree: (Int, QueryState, Long) => Long = typ match {
+  protected val getDegree: (Long, QueryState, Long) => Long = typ match {
     case None => (max, state, node) => state.query.nodeGetDegreeWithMax(max, node, direction, state.cursors.nodeCursor)
     case Some(t) => (max, state, node) =>
         t.getOptId(state.query) match {
@@ -49,14 +49,14 @@ abstract class CheckDegree(node: Expression, typ: Option[KeyToken], direction: S
         }
   }
 
-  protected def computePredicate(state: QueryState, node: Long, max: Int): Boolean
+  protected def computePredicate(state: QueryState, node: Long, max: Long): Boolean
 
   override def apply(row: ReadableRow, state: QueryState): AnyValue = {
     maxDegree.apply(row, state) match {
       case e: NumberValue =>
         val nodeValue = node(row, state)
         val nodeId = nodeIdOrDefaultId(nodeValue)
-        booleanValue(computePredicate(state, nodeId, asIntExact(e)))
+        booleanValue(computePredicate(state, nodeId, asLong(e)))
       case _ => NO_VALUE
     }
   }
@@ -94,7 +94,7 @@ case class HasDegreeGreaterThan(
   maxDegree: Expression
 ) extends CheckDegree(node, typ, direction, maxDegree) {
 
-  override protected def computePredicate(state: QueryState, node: Long, max: Int): Boolean =
+  override protected def computePredicate(state: QueryState, node: Long, max: Long): Boolean =
     getDegree(max + 1, state, node) > max
 
   override def rewrite(f: Expression => Expression): Expression =
@@ -109,7 +109,7 @@ case class HasDegreeGreaterThanOrEqual(
   maxDegree: Expression
 ) extends CheckDegree(node, typ, direction, maxDegree) {
 
-  override protected def computePredicate(state: QueryState, node: Long, max: Int): Boolean =
+  override protected def computePredicate(state: QueryState, node: Long, max: Long): Boolean =
     getDegree(max, state, node) >= max
 
   override def rewrite(f: Expression => Expression): Expression =
@@ -120,7 +120,7 @@ case class HasDegreeGreaterThanOrEqual(
 case class HasDegree(node: Expression, typ: Option[KeyToken], direction: SemanticDirection, maxDegree: Expression)
     extends CheckDegree(node, typ, direction, maxDegree) {
 
-  override protected def computePredicate(state: QueryState, node: Long, max: Int): Boolean =
+  override protected def computePredicate(state: QueryState, node: Long, max: Long): Boolean =
     getDegree(max + 1, state, node) == max
 
   override def rewrite(f: Expression => Expression): Expression =
@@ -135,7 +135,7 @@ case class HasDegreeLessThan(
   maxDegree: Expression
 ) extends CheckDegree(node, typ, direction, maxDegree) {
 
-  override protected def computePredicate(state: QueryState, node: Long, max: Int): Boolean =
+  override protected def computePredicate(state: QueryState, node: Long, max: Long): Boolean =
     getDegree(max, state, node) < max
 
   override def rewrite(f: Expression => Expression): Expression =
@@ -150,7 +150,7 @@ case class HasDegreeLessThanOrEqual(
   maxDegree: Expression
 ) extends CheckDegree(node, typ, direction, maxDegree) {
 
-  override protected def computePredicate(state: QueryState, node: Long, max: Int): Boolean =
+  override protected def computePredicate(state: QueryState, node: Long, max: Long): Boolean =
     getDegree(max + 1, state, node) <= max
 
   override def rewrite(f: Expression => Expression): Expression =

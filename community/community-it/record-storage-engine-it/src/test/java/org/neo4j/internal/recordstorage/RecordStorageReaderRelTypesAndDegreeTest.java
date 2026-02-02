@@ -225,15 +225,15 @@ public class RecordStorageReaderRelTypesAndDegreeTest extends RecordStorageReade
         assertEquals(inRelCount + outRelCount + loopRelCount, degreeForDirection(cursor, BOTH));
     }
 
-    protected static int degreeForDirection(StorageNodeCursor cursor, Direction direction) {
+    protected static long degreeForDirection(StorageNodeCursor cursor, Direction direction) {
         return degree(cursor, selection(direction));
     }
 
-    protected static int degreeForDirectionAndType(StorageNodeCursor cursor, Direction direction, int relType) {
+    protected static long degreeForDirectionAndType(StorageNodeCursor cursor, Direction direction, int relType) {
         return degree(cursor, selection(relType, direction));
     }
 
-    private static int degree(StorageNodeCursor cursor, RelationshipSelection selection) {
+    private static long degree(StorageNodeCursor cursor, RelationshipSelection selection) {
         SingleDegree degree = new SingleDegree();
         cursor.degrees(selection, degree);
         return degree.getTotal();

@@ -1261,7 +1261,7 @@ private[internal] class TransactionBoundReadQueryContext(
     new ReferenceCursorIterator(cursor)
   }
 
-  override def nodeGetOutgoingDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int = {
+  override def nodeGetOutgoingDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else {
@@ -1269,7 +1269,7 @@ private[internal] class TransactionBoundReadQueryContext(
     }
   }
 
-  override def nodeGetIncomingDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int = {
+  override def nodeGetIncomingDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else {
@@ -1277,7 +1277,7 @@ private[internal] class TransactionBoundReadQueryContext(
     }
   }
 
-  override def nodeGetTotalDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int = {
+  override def nodeGetTotalDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else {
@@ -1285,30 +1285,30 @@ private[internal] class TransactionBoundReadQueryContext(
     }
   }
 
-  override def nodeGetOutgoingDegree(node: Long, nodeCursor: NodeCursor): Int = {
+  override def nodeGetOutgoingDegree(node: Long, nodeCursor: NodeCursor): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else Nodes.countOutgoing(nodeCursor)
   }
 
-  override def nodeGetIncomingDegree(node: Long, nodeCursor: NodeCursor): Int = {
+  override def nodeGetIncomingDegree(node: Long, nodeCursor: NodeCursor): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else Nodes.countIncoming(nodeCursor)
   }
 
-  override def nodeGetTotalDegree(node: Long, nodeCursor: NodeCursor): Int = {
+  override def nodeGetTotalDegree(node: Long, nodeCursor: NodeCursor): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else Nodes.countAll(nodeCursor)
   }
 
   override def nodeGetOutgoingDegreeWithMax(
-    maxDegree: Int,
+    maxDegree: Long,
     node: Long,
     relationship: Int,
     nodeCursor: NodeCursor
-  ): Int = {
+  ): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else {
@@ -1317,11 +1317,11 @@ private[internal] class TransactionBoundReadQueryContext(
   }
 
   override def nodeGetIncomingDegreeWithMax(
-    maxDegree: Int,
+    maxDegree: Long,
     node: Long,
     relationship: Int,
     nodeCursor: NodeCursor
-  ): Int = {
+  ): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else {
@@ -1329,7 +1329,12 @@ private[internal] class TransactionBoundReadQueryContext(
     }
   }
 
-  override def nodeGetTotalDegreeWithMax(maxDegree: Int, node: Long, relationship: Int, nodeCursor: NodeCursor): Int = {
+  override def nodeGetTotalDegreeWithMax(
+    maxDegree: Long,
+    node: Long,
+    relationship: Int,
+    nodeCursor: NodeCursor
+  ): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else {
@@ -1337,19 +1342,19 @@ private[internal] class TransactionBoundReadQueryContext(
     }
   }
 
-  override def nodeGetOutgoingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int = {
+  override def nodeGetOutgoingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else Nodes.countOutgoing(nodeCursor, relationship)
   }
 
-  override def nodeGetIncomingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int = {
+  override def nodeGetIncomingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else Nodes.countIncoming(nodeCursor, relationship)
   }
 
-  override def nodeGetTotalDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int = {
+  override def nodeGetTotalDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long = {
     reads().singleNode(node, nodeCursor)
     if (!nodeCursor.next()) 0
     else Nodes.countAll(nodeCursor, relationship)

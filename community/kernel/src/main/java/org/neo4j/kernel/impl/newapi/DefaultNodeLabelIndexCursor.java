@@ -172,13 +172,13 @@ public class DefaultNodeLabelIndexCursor extends DefaultEntityTokenIndexCursor<D
     }
 
     @Override
-    public int degree(RelationshipSelection selection) {
+    public long degree(RelationshipSelection selection) {
         checkReadFromStore();
         return internalNodeCursor.degree(selection);
     }
 
     @Override
-    public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+    public long degreeWithMax(long maxDegree, RelationshipSelection selection) {
         checkReadFromStore();
         return internalNodeCursor.degreeWithMax(maxDegree, selection);
     }

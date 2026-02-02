@@ -591,8 +591,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         RelationshipSelection selection = selection(type, direction);
         if (ktx.hasTxStateWithChanges()) {
             RelationshipSelection reversedSelection = selection(type, direction.reverse());
-            int leftDegree = ktx.txState().calculateDegreeInTxState(leftNode, selection);
-            int rightDegree = ktx.txState().calculateDegreeInTxState(rightNode, reversedSelection);
+            long leftDegree = ktx.txState().calculateDegreeInTxState(leftNode, selection);
+            long rightDegree = ktx.txState().calculateDegreeInTxState(rightNode, reversedSelection);
             if (leftDegree > rightDegree) {
                 sourceNode = rightNode;
                 targetNode = leftNode;

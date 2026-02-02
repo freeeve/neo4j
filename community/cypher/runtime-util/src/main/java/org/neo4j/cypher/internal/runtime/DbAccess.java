@@ -111,29 +111,29 @@ public interface DbAccess extends EntityById {
             RelationshipScanCursor relationshipScanCursor,
             PropertyCursor propertyCursor);
 
-    int nodeGetOutgoingDegreeWithMax(int maxDegree, long node, NodeCursor nodeCursor);
+    long nodeGetOutgoingDegreeWithMax(long maxDegree, long node, NodeCursor nodeCursor);
 
-    int nodeGetOutgoingDegreeWithMax(int maxDegree, long node, int relationship, NodeCursor nodeCursor);
+    long nodeGetOutgoingDegreeWithMax(long maxDegree, long node, int relationship, NodeCursor nodeCursor);
 
-    int nodeGetIncomingDegreeWithMax(int maxDegree, long node, NodeCursor nodeCursor);
+    long nodeGetIncomingDegreeWithMax(long maxDegree, long node, NodeCursor nodeCursor);
 
-    int nodeGetIncomingDegreeWithMax(int maxDegree, long node, int relationship, NodeCursor nodeCursor);
+    long nodeGetIncomingDegreeWithMax(long maxDegree, long node, int relationship, NodeCursor nodeCursor);
 
-    int nodeGetTotalDegreeWithMax(int maxDegree, long node, NodeCursor nodeCursor);
+    long nodeGetTotalDegreeWithMax(long maxDegree, long node, NodeCursor nodeCursor);
 
-    int nodeGetTotalDegreeWithMax(int maxDegree, long node, int relationship, NodeCursor nodeCursor);
+    long nodeGetTotalDegreeWithMax(long maxDegree, long node, int relationship, NodeCursor nodeCursor);
 
-    int nodeGetOutgoingDegree(long node, NodeCursor nodeCursor);
+    long nodeGetOutgoingDegree(long node, NodeCursor nodeCursor);
 
-    int nodeGetOutgoingDegree(long node, int relationship, NodeCursor nodeCursor);
+    long nodeGetOutgoingDegree(long node, int relationship, NodeCursor nodeCursor);
 
-    int nodeGetIncomingDegree(long node, NodeCursor nodeCursor);
+    long nodeGetIncomingDegree(long node, NodeCursor nodeCursor);
 
-    int nodeGetIncomingDegree(long node, int relationship, NodeCursor nodeCursor);
+    long nodeGetIncomingDegree(long node, int relationship, NodeCursor nodeCursor);
 
-    int nodeGetTotalDegree(long node, NodeCursor nodeCursor);
+    long nodeGetTotalDegree(long node, NodeCursor nodeCursor);
 
-    int nodeGetTotalDegree(long node, int relationship, NodeCursor nodeCursor);
+    long nodeGetTotalDegree(long node, int relationship, NodeCursor nodeCursor);
 
     void singleNode(long id, NodeCursor cursor);
 

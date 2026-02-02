@@ -293,14 +293,14 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
     }
 
     @Override
-    public int degree(RelationshipSelection selection) {
+    public long degree(RelationshipSelection selection) {
         SingleDegree degrees = new SingleDegree();
         fillDegrees(selection, degrees);
         return degrees.getTotal();
     }
 
     @Override
-    public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+    public long degreeWithMax(long maxDegree, RelationshipSelection selection) {
         SingleDegree degrees = new SingleDegree(maxDegree);
         fillDegrees(selection, degrees);
         return Math.min(degrees.getTotal(), maxDegree);

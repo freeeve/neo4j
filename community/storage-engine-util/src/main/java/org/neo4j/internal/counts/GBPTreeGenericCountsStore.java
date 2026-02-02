@@ -74,6 +74,7 @@ import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.impl.index.schema.ConsistencyCheckable;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.util.VisibleForTesting;
 import org.neo4j.util.concurrent.ArrayQueueOutOfOrderSequence;
 import org.neo4j.util.concurrent.OutOfOrderSequence;
 
@@ -389,7 +390,17 @@ public class GBPTreeGenericCountsStore implements AutoCloseable, ConsistencyChec
         writeIdSnapshotWithChanges = false;
     }
 
+    @VisibleForTesting
+    public void flush(CursorContext cursorContext) {
+        checkCacheSizeAndPotentiallyFlush(cursorContext, 0, 0);
+    }
+
     private void checkCacheSizeAndPotentiallyFlush(CursorContext cursorContext) {
+        checkCacheSizeAndPotentiallyFlush(cursorContext, highMarkCacheSize, maxCacheSize);
+    }
+
+    private void checkCacheSizeAndPotentiallyFlush(
+            CursorContext cursorContext, int highMarkCacheSize, int maxCacheSize) {
         int cacheSize = changes.size();
         if (cacheSize > highMarkCacheSize) {
             try (CriticalSection criticalSection = new CriticalSection(lock, responsibleForSwitch)) {

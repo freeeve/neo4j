@@ -986,7 +986,7 @@ public class TxState implements TransactionState {
     }
 
     @Override
-    public int calculateDegreeInTxState(long node, RelationshipSelection selection) {
+    public long calculateDegreeInTxState(long node, RelationshipSelection selection) {
         NodeState nodeState = getNodeState(node);
         if (nodeState == null) {
             return 0;

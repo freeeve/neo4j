@@ -266,47 +266,47 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
       inner.relationshipAsMap(rel, relationshipCursor, propertyCursor, builder, seenTokens)
     )
 
-  override def nodeGetOutgoingDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetOutgoingDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetOutgoingDegreeWithMax(maxDegree, node, nodeCursor))
 
   override def nodeGetOutgoingDegreeWithMax(
-    maxDegree: Int,
+    maxDegree: Long,
     node: Long,
     relationship: Int,
     nodeCursor: NodeCursor
-  ): Int =
+  ): Long =
     translateException(tokenNameLookup, inner.nodeGetOutgoingDegreeWithMax(maxDegree, node, relationship, nodeCursor))
 
-  override def nodeGetIncomingDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetIncomingDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetIncomingDegreeWithMax(maxDegree, node, nodeCursor))
 
   override def nodeGetIncomingDegreeWithMax(
-    maxDegree: Int,
+    maxDegree: Long,
     node: Long,
     relationship: Int,
     nodeCursor: NodeCursor
-  ): Int =
+  ): Long =
     translateException(tokenNameLookup, inner.nodeGetIncomingDegreeWithMax(maxDegree, node, relationship, nodeCursor))
 
-  override def nodeGetTotalDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetTotalDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetTotalDegreeWithMax(maxDegree, node, nodeCursor))
 
-  override def nodeGetTotalDegreeWithMax(maxDegree: Int, node: Long, relationship: Int, nodeCursor: NodeCursor): Int =
+  override def nodeGetTotalDegreeWithMax(maxDegree: Long, node: Long, relationship: Int, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetTotalDegreeWithMax(maxDegree, node, relationship, nodeCursor))
 
-  override def nodeGetOutgoingDegree(node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetOutgoingDegree(node: Long, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetOutgoingDegree(node, nodeCursor))
 
-  override def nodeGetOutgoingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int =
+  override def nodeGetOutgoingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetOutgoingDegree(node, relationship, nodeCursor))
 
-  override def nodeGetIncomingDegree(node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetIncomingDegree(node: Long, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetIncomingDegree(node, nodeCursor))
 
-  override def nodeGetIncomingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int =
+  override def nodeGetIncomingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetIncomingDegree(node, relationship, nodeCursor))
 
-  override def nodeGetTotalDegree(node: Long, nodeCursor: NodeCursor): Int =
+  override def nodeGetTotalDegree(node: Long, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetTotalDegree(node, nodeCursor))
 
   override def singleNode(id: Long, cursor: NodeCursor): Unit =
@@ -315,7 +315,7 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
   override def singleRelationship(id: Long, cursor: RelationshipScanCursor): Unit =
     translateException(tokenNameLookup, inner.singleRelationship(id, cursor))
 
-  override def nodeGetTotalDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int =
+  override def nodeGetTotalDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long =
     translateException(tokenNameLookup, inner.nodeGetTotalDegree(node, relationship, nodeCursor))
 
   override def getConstraintInformation(name: String): ConstraintInformation =

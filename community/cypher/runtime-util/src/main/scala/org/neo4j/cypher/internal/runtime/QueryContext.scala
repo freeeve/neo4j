@@ -287,7 +287,7 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
 
   def getImportDataConnection(uri: URI): CharReadable
 
-  def nodeGetDegreeWithMax(maxDegree: Int, node: Long, dir: SemanticDirection, nodeCursor: NodeCursor): Int =
+  def nodeGetDegreeWithMax(maxDegree: Long, node: Long, dir: SemanticDirection, nodeCursor: NodeCursor): Long =
     dir match {
       case SemanticDirection.OUTGOING => nodeGetOutgoingDegreeWithMax(maxDegree, node, nodeCursor)
       case SemanticDirection.INCOMING => nodeGetIncomingDegreeWithMax(maxDegree, node, nodeCursor)
@@ -295,24 +295,24 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
     }
 
   def nodeGetDegreeWithMax(
-    maxDegree: Int,
+    maxDegree: Long,
     node: Long,
     dir: SemanticDirection,
     relTypeId: Int,
     nodeCursor: NodeCursor
-  ): Int = dir match {
+  ): Long = dir match {
     case SemanticDirection.OUTGOING => nodeGetOutgoingDegreeWithMax(maxDegree, node, relTypeId, nodeCursor)
     case SemanticDirection.INCOMING => nodeGetIncomingDegreeWithMax(maxDegree, node, relTypeId, nodeCursor)
     case SemanticDirection.BOTH     => nodeGetTotalDegreeWithMax(maxDegree, node, relTypeId, nodeCursor)
   }
 
-  def nodeGetDegree(node: Long, dir: SemanticDirection, nodeCursor: NodeCursor): Int = dir match {
+  def nodeGetDegree(node: Long, dir: SemanticDirection, nodeCursor: NodeCursor): Long = dir match {
     case SemanticDirection.OUTGOING => nodeGetOutgoingDegree(node, nodeCursor)
     case SemanticDirection.INCOMING => nodeGetIncomingDegree(node, nodeCursor)
     case SemanticDirection.BOTH     => nodeGetTotalDegree(node, nodeCursor)
   }
 
-  def nodeGetDegree(node: Long, dir: SemanticDirection, relTypeId: Int, nodeCursor: NodeCursor): Int = dir match {
+  def nodeGetDegree(node: Long, dir: SemanticDirection, relTypeId: Int, nodeCursor: NodeCursor): Long = dir match {
     case SemanticDirection.OUTGOING => nodeGetOutgoingDegree(node, relTypeId, nodeCursor)
     case SemanticDirection.INCOMING => nodeGetIncomingDegree(node, relTypeId, nodeCursor)
     case SemanticDirection.BOTH     => nodeGetTotalDegree(node, relTypeId, nodeCursor)
@@ -1006,9 +1006,9 @@ class NodeValueHit(val nodeId: Long, val values: Array[Value], read: Read, curso
   override def relationshipTypes(): Array[Int] = cursor.relationshipTypes()
   override def degrees(selection: RelationshipSelection): Degrees = cursor.degrees(selection)
 
-  override def degree(selection: RelationshipSelection): Int = cursor.degree(selection)
+  override def degree(selection: RelationshipSelection): Long = cursor.degree(selection)
 
-  override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+  override def degreeWithMax(maxDegree: Long, selection: RelationshipSelection): Long =
     cursor.degreeWithMax(maxDegree, selection)
 
   override def properties(propertyCursor: PropertyCursor, selection: PropertySelection): Unit =

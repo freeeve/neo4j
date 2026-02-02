@@ -174,12 +174,12 @@ public class StubNodeCursor extends DefaultCloseListenable implements NodeCursor
     }
 
     @Override
-    public int degree(RelationshipSelection selection) {
+    public long degree(RelationshipSelection selection) {
         return degree;
     }
 
     @Override
-    public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+    public long degreeWithMax(long maxDegree, RelationshipSelection selection) {
         return Math.min(maxDegree, this.degree);
     }
 

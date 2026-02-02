@@ -644,40 +644,47 @@ object StaticEvaluation {
 
     override def relationshipDeletedInThisTransaction(id: Long): Boolean = notAvailable()
 
-    override def nodeGetOutgoingDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int = notAvailable()
-
-    override def nodeGetOutgoingDegreeWithMax(
-      maxDegree: Int,
-      node: Long,
-      relationship: Int,
-      nodeCursor: NodeCursor
-    ): Int = notAvailable()
-
-    override def nodeGetIncomingDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int = notAvailable()
-
-    override def nodeGetIncomingDegreeWithMax(
-      maxDegree: Int,
-      node: Long,
-      relationship: Int,
-      nodeCursor: NodeCursor
-    ): Int = notAvailable()
-
-    override def nodeGetTotalDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int = notAvailable()
-
-    override def nodeGetTotalDegreeWithMax(maxDegree: Int, node: Long, relationship: Int, nodeCursor: NodeCursor): Int =
+    override def nodeGetOutgoingDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long =
       notAvailable()
 
-    override def nodeGetOutgoingDegree(node: Long, nodeCursor: NodeCursor): Int = notAvailable()
+    override def nodeGetOutgoingDegreeWithMax(
+      maxDegree: Long,
+      node: Long,
+      relationship: Int,
+      nodeCursor: NodeCursor
+    ): Long = notAvailable()
 
-    override def nodeGetOutgoingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int = notAvailable()
+    override def nodeGetIncomingDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long =
+      notAvailable()
 
-    override def nodeGetIncomingDegree(node: Long, nodeCursor: NodeCursor): Int = notAvailable()
+    override def nodeGetIncomingDegreeWithMax(
+      maxDegree: Long,
+      node: Long,
+      relationship: Int,
+      nodeCursor: NodeCursor
+    ): Long = notAvailable()
 
-    override def nodeGetIncomingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int = notAvailable()
+    override def nodeGetTotalDegreeWithMax(maxDegree: Long, node: Long, nodeCursor: NodeCursor): Long = notAvailable()
 
-    override def nodeGetTotalDegree(node: Long, nodeCursor: NodeCursor): Int = notAvailable()
+    override def nodeGetTotalDegreeWithMax(
+      maxDegree: Long,
+      node: Long,
+      relationship: Int,
+      nodeCursor: NodeCursor
+    ): Long =
+      notAvailable()
 
-    override def nodeGetTotalDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Int = notAvailable()
+    override def nodeGetOutgoingDegree(node: Long, nodeCursor: NodeCursor): Long = notAvailable()
+
+    override def nodeGetOutgoingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long = notAvailable()
+
+    override def nodeGetIncomingDegree(node: Long, nodeCursor: NodeCursor): Long = notAvailable()
+
+    override def nodeGetIncomingDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long = notAvailable()
+
+    override def nodeGetTotalDegree(node: Long, nodeCursor: NodeCursor): Long = notAvailable()
+
+    override def nodeGetTotalDegree(node: Long, relationship: Int, nodeCursor: NodeCursor): Long = notAvailable()
 
     override def singleNode(id: Long, cursor: NodeCursor): Unit = notAvailable()
 

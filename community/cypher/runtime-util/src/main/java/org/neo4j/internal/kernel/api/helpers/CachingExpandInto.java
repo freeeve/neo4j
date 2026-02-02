@@ -27,8 +27,8 @@ import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 import static org.neo4j.storageengine.api.RelationshipSelection.selection;
 
 import java.util.Iterator;
-import org.eclipse.collections.api.block.function.primitive.IntFunction0;
-import org.eclipse.collections.api.map.primitive.MutableLongIntMap;
+import org.eclipse.collections.api.block.function.primitive.LongFunction0;
+import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
 import org.github.jamm.Unmetered;
 import org.neo4j.collection.trackable.HeapTrackingArrayList;
 import org.neo4j.collection.trackable.HeapTrackingCollections;
@@ -179,8 +179,8 @@ public class CachingExpandInto extends DefaultCloseListenable {
         if (firstSupportsFastRelationshipsTo && secondSupportsFastRelationshipsTo) {
             // The operation is fast on the store level, however if we have a high degree in the tx state it may still
             // pay off to start on the node with the lesser degree.
-            int txStateDegreeFirst = calculateDegreeInTxState(firstNode, selection(types, direction));
-            int txStateDegreeSecond = calculateDegreeInTxState(secondNode, selection(types, reverseDirection));
+            long txStateDegreeFirst = calculateDegreeInTxState(firstNode, selection(types, direction));
+            long txStateDegreeSecond = calculateDegreeInTxState(secondNode, selection(types, reverseDirection));
             if (txStateDegreeSecond >= txStateDegreeFirst) {
                 firstCursor.relationshipsTo(traversalCursor, selection(types, direction), secondNode);
             } else {
@@ -210,7 +210,7 @@ public class CachingExpandInto extends DefaultCloseListenable {
         }
     }
 
-    private int getAndCacheDegree(long node, NodeCursor nodeCursor, int[] types, Direction direction) {
+    private long getAndCacheDegree(long node, NodeCursor nodeCursor, int[] types, Direction direction) {
         return degreeCache.getIfAbsentPut(node, direction, () -> {
             if (nodeCursor.supportsFastDegreeLookup()) {
                 return nodeCursor.degree(selection(types, direction));
@@ -245,7 +245,7 @@ public class CachingExpandInto extends DefaultCloseListenable {
         }
     }
 
-    private int calculateDegreeInTxState(long node, RelationshipSelection selection) {
+    private long calculateDegreeInTxState(long node, RelationshipSelection selection) {
         if (txState == null) {
             return 0;
         } else {
@@ -553,7 +553,7 @@ public class CachingExpandInto extends DefaultCloseListenable {
         static final long DEGREE_CACHE_SHALLOW_SIZE = shallowSizeOfInstance(NodeDegreeCache.class);
 
         private final int capacity;
-        private final MutableLongIntMap degreeCache;
+        private final MutableLongLongMap degreeCache;
 
         NodeDegreeCache(MemoryTracker memoryTracker) {
             this(DEFAULT_CAPACITY, memoryTracker);
@@ -562,10 +562,10 @@ public class CachingExpandInto extends DefaultCloseListenable {
         NodeDegreeCache(int capacity, MemoryTracker memoryTracker) {
             this.capacity = capacity;
             memoryTracker.allocateHeap(DEGREE_CACHE_SHALLOW_SIZE);
-            this.degreeCache = HeapTrackingCollections.newLongIntMap(memoryTracker);
+            this.degreeCache = HeapTrackingCollections.newLongLongMap(memoryTracker);
         }
 
-        public int getIfAbsentPut(long node, Direction direction, IntFunction0 update) {
+        public long getIfAbsentPut(long node, Direction direction, LongFunction0 update) {
             assert node >= 0;
             // if incoming we flip the highest bit in the node id
             long nodeWithDirection = direction == INCOMING ? FLIP_HIGH_BIT_MASK | node : node;
@@ -574,13 +574,13 @@ public class CachingExpandInto extends DefaultCloseListenable {
                 if (degreeCache.containsKey(nodeWithDirection)) {
                     return degreeCache.get(nodeWithDirection);
                 } else {
-                    return update.getAsInt();
+                    return update.getAsLong();
                 }
             } else {
                 if (degreeCache.containsKey(nodeWithDirection)) {
                     return degreeCache.get(nodeWithDirection);
                 } else {
-                    int value = update.getAsInt();
+                    long value = update.getAsLong();
                     degreeCache.put(nodeWithDirection, value);
                     return value;
                 }

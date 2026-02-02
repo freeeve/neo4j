@@ -94,12 +94,12 @@ public class StubNodeValueIndexCursor extends StubEntityValueIndexCursor impleme
     }
 
     @Override
-    public int degree(RelationshipSelection selection) {
+    public long degree(RelationshipSelection selection) {
         throw unsupportedOperation();
     }
 
     @Override
-    public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+    public long degreeWithMax(long maxDegree, RelationshipSelection selection) {
         throw unsupportedOperation();
     }
 

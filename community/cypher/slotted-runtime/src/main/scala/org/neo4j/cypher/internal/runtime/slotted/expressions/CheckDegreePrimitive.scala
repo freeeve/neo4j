@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyType
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.operations.CypherFunctions.asIntExact
+import org.neo4j.cypher.operations.CypherFunctions.asLong
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.Values
@@ -35,12 +35,12 @@ abstract class CheckDegreePrimitive(offset: Int, direction: SemanticDirection, m
     extends Expression
     with SlottedExpression {
 
-  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Int): Boolean
+  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Long): Boolean
 
   override def apply(row: ReadableRow, state: QueryState): AnyValue = {
     maxDegree.apply(row, state) match {
       case x if x eq Values.NO_VALUE => Values.NO_VALUE
-      case e => booleanValue(computePredicate(state, row.getLongAt(offset), direction, asIntExact(e)))
+      case e => booleanValue(computePredicate(state, row.getLongAt(offset), direction, asLong(e)))
     }
   }
 
@@ -60,13 +60,13 @@ abstract class CheckDegreeWithTypePrimitive(
     node: Long,
     relType: Int,
     direction: SemanticDirection,
-    max: Int
+    max: Long
   ): Boolean
 
   override def apply(row: ReadableRow, state: QueryState): AnyValue = {
     maxDegree.apply(row, state) match {
       case e: NumberValue =>
-        booleanValue(computePredicate(state, row.getLongAt(offset), typeId, direction, asIntExact(e)))
+        booleanValue(computePredicate(state, row.getLongAt(offset), typeId, direction, asLong(e)))
       case _ => Values.NO_VALUE
     }
   }
@@ -87,7 +87,7 @@ abstract class CheckDegreeWithTypePrimitiveLate(
     node: Long,
     relType: Int,
     direction: SemanticDirection,
-    max: Int
+    max: Long
   ): Boolean
 
   override def apply(row: ReadableRow, state: QueryState): AnyValue = {
@@ -98,7 +98,7 @@ abstract class CheckDegreeWithTypePrimitiveLate(
           row.getLongAt(offset),
           typeName.getId(row, state),
           direction,
-          asIntExact(e)
+          asLong(e)
         ))
     }
   }
@@ -107,7 +107,7 @@ abstract class CheckDegreeWithTypePrimitiveLate(
 
 trait GreaterThan {
 
-  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Int): Boolean =
+  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Long): Boolean =
     state.query.nodeGetDegreeWithMax(max + 1, node, direction, state.cursors.nodeCursor) > max
 
   protected def computePredicate(
@@ -115,14 +115,14 @@ trait GreaterThan {
     node: Long,
     relType: Int,
     direction: SemanticDirection,
-    max: Int
+    max: Long
   ): Boolean =
     state.query.nodeGetDegreeWithMax(max + 1, node, direction, relType, state.cursors.nodeCursor) > max
 }
 
 trait GreaterThanOrEqual {
 
-  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Int): Boolean =
+  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Long): Boolean =
     state.query.nodeGetDegreeWithMax(max, node, direction, state.cursors.nodeCursor) >= max
 
   protected def computePredicate(
@@ -130,14 +130,14 @@ trait GreaterThanOrEqual {
     node: Long,
     relType: Int,
     direction: SemanticDirection,
-    max: Int
+    max: Long
   ): Boolean =
     state.query.nodeGetDegreeWithMax(max, node, direction, relType, state.cursors.nodeCursor) >= max
 }
 
 trait Equal {
 
-  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Int): Boolean =
+  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Long): Boolean =
     state.query.nodeGetDegreeWithMax(max + 1, node, direction, state.cursors.nodeCursor) == max
 
   protected def computePredicate(
@@ -145,14 +145,14 @@ trait Equal {
     node: Long,
     relType: Int,
     direction: SemanticDirection,
-    max: Int
+    max: Long
   ): Boolean =
     state.query.nodeGetDegreeWithMax(max + 1, node, direction, relType, state.cursors.nodeCursor) == max
 }
 
 trait LessThanOrEqual {
 
-  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Int): Boolean =
+  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Long): Boolean =
     state.query.nodeGetDegreeWithMax(max + 1, node, direction, state.cursors.nodeCursor) <= max
 
   protected def computePredicate(
@@ -160,14 +160,14 @@ trait LessThanOrEqual {
     node: Long,
     relType: Int,
     direction: SemanticDirection,
-    max: Int
+    max: Long
   ): Boolean =
     state.query.nodeGetDegreeWithMax(max + 1, node, direction, relType, state.cursors.nodeCursor) <= max
 }
 
 trait LessThan {
 
-  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Int): Boolean =
+  protected def computePredicate(state: QueryState, node: Long, direction: SemanticDirection, max: Long): Boolean =
     state.query.nodeGetDegreeWithMax(max, node, direction, state.cursors.nodeCursor) < max
 
   protected def computePredicate(
@@ -175,7 +175,7 @@ trait LessThan {
     node: Long,
     relType: Int,
     direction: SemanticDirection,
-    max: Int
+    max: Long
   ): Boolean =
     state.query.nodeGetDegreeWithMax(max, node, direction, relType, state.cursors.nodeCursor) < max
 }

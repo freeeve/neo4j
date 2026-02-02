@@ -43,7 +43,7 @@ public final class Nodes {
      * @param nodeCursor a cursor positioned at the node whose relationships we're counting
      * @return the number of outgoing - including loops - relationships from the node
      */
-    public static int countOutgoing(NodeCursor nodeCursor) {
+    public static long countOutgoing(NodeCursor nodeCursor) {
         return count(nodeCursor, OUTGOING);
     }
 
@@ -56,7 +56,7 @@ public final class Nodes {
      * @param type the type of the relationship we're counting
      * @return the number of outgoing - including loops - relationships from the node with the given type
      */
-    public static int countOutgoing(NodeCursor nodeCursor, int type) {
+    public static long countOutgoing(NodeCursor nodeCursor, int type) {
         return count(nodeCursor, type, OUTGOING);
     }
 
@@ -68,7 +68,7 @@ public final class Nodes {
      * @param nodeCursor a cursor positioned at the node whose relationships we're counting
      * @return the number of incoming - including loops - relationships from the node
      */
-    public static int countIncoming(NodeCursor nodeCursor) {
+    public static long countIncoming(NodeCursor nodeCursor) {
         return count(nodeCursor, INCOMING);
     }
 
@@ -81,7 +81,7 @@ public final class Nodes {
      * @param type the type of the relationship we're counting
      * @return the number of incoming - including loops - relationships from the node with the given type
      */
-    public static int countIncoming(NodeCursor nodeCursor, int type) {
+    public static long countIncoming(NodeCursor nodeCursor, int type) {
         return count(nodeCursor, type, INCOMING);
     }
 
@@ -91,7 +91,7 @@ public final class Nodes {
      * @param nodeCursor a cursor positioned at the node whose relationships we're counting
      * @return the number of relationships from the node
      */
-    public static int countAll(NodeCursor nodeCursor) {
+    public static long countAll(NodeCursor nodeCursor) {
         return count(nodeCursor, BOTH);
     }
 
@@ -102,23 +102,23 @@ public final class Nodes {
      * @param type the type of the relationship we're counting
      * @return the number relationships from the node with the given type
      */
-    public static int countAll(NodeCursor nodeCursor, int type) {
+    public static long countAll(NodeCursor nodeCursor, int type) {
         return count(nodeCursor, type, BOTH);
     }
 
-    public static int count(NodeCursor nodeCursor, int type, Direction direction) {
+    public static long count(NodeCursor nodeCursor, int type, Direction direction) {
         return nodeCursor.degree(selection(type, direction));
     }
 
-    public static int count(NodeCursor nodeCursor, Direction direction) {
+    public static long count(NodeCursor nodeCursor, Direction direction) {
         return nodeCursor.degree(selection(direction));
     }
 
-    public static int countWithMax(int maxDegree, NodeCursor nodeCursor, Direction direction) {
+    public static long countWithMax(long maxDegree, NodeCursor nodeCursor, Direction direction) {
         return nodeCursor.degreeWithMax(maxDegree, selection(direction));
     }
 
-    public static int countWithMax(int maxDegree, NodeCursor nodeCursor, int type, Direction direction) {
+    public static long countWithMax(long maxDegree, NodeCursor nodeCursor, int type, Direction direction) {
         return nodeCursor.degreeWithMax(maxDegree, selection(type, direction));
     }
 }

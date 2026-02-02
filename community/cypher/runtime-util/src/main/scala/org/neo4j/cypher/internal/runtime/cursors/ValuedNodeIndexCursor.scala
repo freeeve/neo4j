@@ -89,9 +89,9 @@ class ValuedNodeIndexCursor(val inner: NodeValueIndexCursor, values: Array[Value
 
   override def degrees(selection: RelationshipSelection): Degrees = inner.degrees(selection)
 
-  override def degree(selection: RelationshipSelection): Int = inner.degree(selection)
+  override def degree(selection: RelationshipSelection): Long = inner.degree(selection)
 
-  override def degreeWithMax(maxDegree: Int, selection: RelationshipSelection): Int =
+  override def degreeWithMax(maxDegree: Long, selection: RelationshipSelection): Long =
     inner.degreeWithMax(maxDegree, selection)
 
   override def properties(cursor: PropertyCursor, selection: PropertySelection): Unit =

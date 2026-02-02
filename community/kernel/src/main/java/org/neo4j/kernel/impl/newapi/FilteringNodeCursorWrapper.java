@@ -188,12 +188,12 @@ public class FilteringNodeCursorWrapper implements NodeCursor {
     }
 
     @Override
-    public int degree(RelationshipSelection selection) {
+    public long degree(RelationshipSelection selection) {
         return delegate.degree(selection);
     }
 
     @Override
-    public int degreeWithMax(int maxDegree, RelationshipSelection selection) {
+    public long degreeWithMax(long maxDegree, RelationshipSelection selection) {
         return delegate.degreeWithMax(maxDegree, selection);
     }
 }

@@ -116,7 +116,11 @@ public abstract class AbstractNodeEntity extends AbstractEntity implements Node 
 
     protected int getDegree(NodeCursor nodes) {
         singleNode(nodes);
-        return Nodes.countAll(nodes);
+        return intDegree(Nodes.countAll(nodes));
+    }
+
+    private int intDegree(long degree) {
+        return Math.toIntExact(degree);
     }
 
     protected int getDegree(RelationshipType type, NodeCursor nodes) {
@@ -126,15 +130,15 @@ public abstract class AbstractNodeEntity extends AbstractEntity implements Node 
         }
 
         singleNode(nodes);
-        return Nodes.countAll(nodes, typeId);
+        return intDegree(Nodes.countAll(nodes, typeId));
     }
 
     protected int getDegree(Direction direction, NodeCursor nodes) {
         singleNode(nodes);
         return switch (direction) {
-            case OUTGOING -> Nodes.countOutgoing(nodes);
-            case INCOMING -> Nodes.countIncoming(nodes);
-            case BOTH -> Nodes.countAll(nodes);
+            case OUTGOING -> intDegree(Nodes.countOutgoing(nodes));
+            case INCOMING -> intDegree(Nodes.countIncoming(nodes));
+            case BOTH -> intDegree(Nodes.countAll(nodes));
         };
     }
 
@@ -146,9 +150,9 @@ public abstract class AbstractNodeEntity extends AbstractEntity implements Node 
 
         singleNode(nodes);
         return switch (direction) {
-            case OUTGOING -> Nodes.countOutgoing(nodes, typeId);
-            case INCOMING -> Nodes.countIncoming(nodes, typeId);
-            case BOTH -> Nodes.countAll(nodes, typeId);
+            case OUTGOING -> intDegree(Nodes.countOutgoing(nodes, typeId));
+            case INCOMING -> intDegree(Nodes.countIncoming(nodes, typeId));
+            case BOTH -> intDegree(Nodes.countAll(nodes, typeId));
         };
     }
 
