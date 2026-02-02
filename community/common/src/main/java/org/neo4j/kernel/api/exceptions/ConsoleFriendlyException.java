@@ -19,11 +19,12 @@
  */
 package org.neo4j.kernel.api.exceptions;
 
-import static java.lang.String.format;
+import static java.lang.System.lineSeparator;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -33,7 +34,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 public abstract class ConsoleFriendlyException extends RuntimeException {
 
-    private static final String DIVIDER = "-----------------------------------------------------";
+    static final String DIVIDER = "-----------------------------------------------------";
 
     private final boolean prettyPrint;
     private final List<String> supplementaryMessages = new ArrayList<>();
@@ -117,7 +118,9 @@ public abstract class ConsoleFriendlyException extends RuntimeException {
     }
 
     private void populateSupplementaryMessages(Throwable cause) {
-        addSupplementaryMessage(cause.getMessage());
+        if (cause != null) {
+            addSupplementaryMessage(cause.getMessage());
+        }
     }
 
     /**
@@ -132,9 +135,18 @@ public abstract class ConsoleFriendlyException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        StringBuilder sb = new StringBuilder(format("%s%n", super.getMessage()));
-        for (String msg : supplementaryMessages) {
-            sb.append(format("%n%s%n", msg));
+        var displayCauseMessage = true;
+        var message = super.getMessage();
+        var sb = new StringBuilder();
+        for (var msg : supplementaryMessages) {
+            if (Objects.equals(message, msg)) {
+                displayCauseMessage = false;
+            }
+            sb.append(lineSeparator()).append(msg).append(lineSeparator());
+        }
+
+        if (displayCauseMessage) {
+            sb.insert(0, lineSeparator()).insert(0, message);
         }
         return sb.toString();
     }
@@ -164,7 +176,7 @@ public abstract class ConsoleFriendlyException extends RuntimeException {
         if (!StringUtils.isEmpty(headline)) {
             out.println(headline);
         }
-        out.printf("%s", getMessage());
+        out.print(getMessage());
         out.println(DIVIDER);
     }
 

@@ -20,6 +20,7 @@
 package org.neo4j.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.io.fs.FileSystemAbstraction.PatternStyle.REGEX;
@@ -27,6 +28,7 @@ import static org.neo4j.io.fs.FileSystemAbstraction.PatternStyle.REGEX;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -238,8 +240,10 @@ class ImportCommandTest {
 
         @Test
         void validateFileExistence() {
-            assertThrows(IllegalArgumentException.class, () -> ImportCommand.parseNodeFilesGroup("nonexisting.file")
-                    .toPaths(testDir.getFileSystem(), REGEX));
+            assertThatThrownBy(() -> ImportCommand.parseNodeFilesGroup("nonexisting.file")
+                            .toPaths(testDir.getFileSystem(), REGEX))
+                    .isInstanceOf(UncheckedIOException.class)
+                    .hasCauseInstanceOf(NoSuchFileException.class);
         }
 
         @ParameterizedTest
@@ -302,9 +306,10 @@ class ImportCommandTest {
 
         @Test
         void validateFileExistence() {
-            assertThrows(
-                    IllegalArgumentException.class, () -> ImportCommand.parseRelationshipFilesGroup("nonexisting.file")
-                            .toPaths(testDir.getFileSystem(), REGEX));
+            assertThatThrownBy(() -> ImportCommand.parseRelationshipFilesGroup("nonexisting.file")
+                            .toPaths(testDir.getFileSystem(), REGEX))
+                    .isInstanceOf(UncheckedIOException.class)
+                    .hasCauseInstanceOf(NoSuchFileException.class);
         }
 
         @ParameterizedTest

@@ -67,8 +67,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.ProviderMismatchException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -256,8 +256,8 @@ class ImportCommandTest {
     }
 
     private void assertTokenIndexesCreated() {
-        DatabaseManagementService dbms = dbmsService();
-        try (var tx = dbms.database(DEFAULT_DATABASE_NAME).beginTx()) {
+        try (var dbms = dbmsService();
+                var tx = dbms.database(DEFAULT_DATABASE_NAME).beginTx()) {
             var indexes = stream(tx.schema().getIndexes().spliterator(), false).toList();
             assertThat(indexes.stream()
                             .filter(index -> index.getIndexType() == LOOKUP)
@@ -265,8 +265,6 @@ class ImportCommandTest {
                     .isEqualTo(2);
             assertTrue(indexes.stream().anyMatch(IndexDefinition::isNodeIndex));
             assertTrue(indexes.stream().anyMatch(IndexDefinition::isRelationshipIndex));
-        } finally {
-            dbms.shutdown();
         }
     }
 
@@ -1350,7 +1348,8 @@ class ImportCommandTest {
         final var badMultiPath = "not going to match";
         assertThatThrownBy(() -> runImport(
                         "--nodes", path, "--multiline-fields", badMultiPath, "--multiline-fields-format", "v2"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(CommandFailedException.class)
+                .hasCauseInstanceOf(NoSuchFileException.class)
                 .hasMessageContainingAll("Unable to find the parent of the path", badMultiPath);
     }
 
@@ -2740,9 +2739,14 @@ class ImportCommandTest {
 
     @Test
     void cloudStorageUrisShouldReportSchemeError() {
-        assertThatThrownBy(() -> runImport("--nodes=s3://boom/time.csv"))
-                .isInstanceOf(ProviderMismatchException.class)
-                .hasMessageContaining("No storage system found for scheme: s3");
+        var schemeBase = "s3://boom/";
+        assertThatThrownBy(() -> runImport("--nodes=" + schemeBase + "time.csv"))
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining(
+                        "Unable to resolve the path: ",
+                        schemeBase,
+                        "The scheme of the provided URI is not currently supported",
+                        "currently only 's3', 'gs' and 'azb' schemes are supported.");
     }
 
     @Test
@@ -2759,8 +2763,7 @@ class ImportCommandTest {
         runImport("--nodes", nodes.toString());
 
         // then
-        var dbms = dbmsService();
-        try {
+        try (var dbms = dbmsService()) {
             var db = dbms.database(DEFAULT_DATABASE_NAME);
             try (var tx = db.beginTx()) {
                 try (var iterator = tx.getAllNodes().iterator()) {
@@ -2769,8 +2772,6 @@ class ImportCommandTest {
                     assertThat(node.getLabels().iterator()).isExhausted();
                 }
             }
-        } finally {
-            dbms.shutdown();
         }
     }
 
@@ -3379,12 +3380,11 @@ class ImportCommandTest {
 
     private String createDefaultDatabaseWithTokenIndexes() {
         // Default token indexes are created on startup
-        var managementService = dbmsService();
-        assertThat(managementService.database(DEFAULT_DATABASE_NAME).isAvailable(TimeUnit.MINUTES.toMillis(5)))
-                .isTrue();
-        var dbName = managementService.database(DEFAULT_DATABASE_NAME).databaseName();
-        managementService.shutdown();
-        return dbName;
+        try (var managementService = dbmsService()) {
+            assertThat(managementService.database(DEFAULT_DATABASE_NAME).isAvailable(TimeUnit.MINUTES.toMillis(5)))
+                    .isTrue();
+            return managementService.database(DEFAULT_DATABASE_NAME).databaseName();
+        }
     }
 
     private DatabaseManagementService dbmsService() {

@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream.Filter;
@@ -41,12 +42,12 @@ import java.util.Collection;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.cloud.storage.StorageSystemProviderFactory.ChunkChannel;
 import org.neo4j.configuration.Config;
+import org.neo4j.function.ThrowingSupplier;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
@@ -142,7 +143,13 @@ public class SchemeFileSystemAbstraction implements FileSystemAbstraction, Stora
     public Path resolve(String resource) throws IOException {
         final var matcher = SCHEME.matcher(resource);
         if (matcher.matches()) {
-            return internalResolve(matcher.group(1), () -> URI.create(resource));
+            return internalResolve(matcher.group(1), () -> {
+                try {
+                    return new URI(resource);
+                } catch (URISyntaxException ex) {
+                    throw new IOException("Invalid URI provided: " + resource, ex);
+                }
+            });
         }
 
         return Path.of(resource);
@@ -368,7 +375,7 @@ public class SchemeFileSystemAbstraction implements FileSystemAbstraction, Stora
         return false;
     }
 
-    private Path internalResolve(String scheme, Supplier<URI> resource) throws IOException {
+    private Path internalResolve(String scheme, ThrowingSupplier<URI, IOException> resource) throws IOException {
         if (scheme == null || "file".equalsIgnoreCase(scheme)) {
             return Path.of(resource.get());
         }

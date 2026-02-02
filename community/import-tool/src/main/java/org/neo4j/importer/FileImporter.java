@@ -221,6 +221,8 @@ public class FileImporter {
                     stdOut,
                     verbose,
                     shardingArguments);
+        } catch (Exception ex) {
+            throw csvImportExceptionWrapped(databaseLayout.getDatabaseName(), ex, type.importType());
         }
     }
 

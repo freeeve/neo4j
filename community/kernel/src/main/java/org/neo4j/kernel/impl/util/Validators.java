@@ -19,12 +19,12 @@
  */
 package org.neo4j.kernel.impl.util;
 
-import static org.neo4j.util.Preconditions.checkState;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.ProviderMismatchException;
 import java.util.List;
 import org.neo4j.cloud.storage.PathRepresentation;
 import org.neo4j.cloud.storage.SchemeFileSystemAbstraction;
@@ -54,7 +54,7 @@ public final class Validators {
                     };
 
             if (paths.isEmpty()) {
-                throw new IllegalArgumentException("File '" + pathPattern + "' doesn't exist");
+                throw new NoSuchFileException(pathPattern, null, "File '" + pathPattern + "' doesn't exist");
             }
 
             return paths;
@@ -93,7 +93,10 @@ public final class Validators {
             return regexPaths(fs, PatternStyle.GLOB, pathPattern);
         }
         Path parent = resolvePath(fs, pathPattern.substring(0, ix));
-        checkState(fs.fileExists(parent), "Directory %s of %s doesn't exist", parent, pathPattern);
+        if (!fs.fileExists(parent)) {
+            throw new NoSuchFileException(
+                    parent.toString(), pathPattern, "Directory %s of %s doesn't exist".formatted(parent, pathPattern));
+        }
         return fs.matchFiles(parent, PatternStyle.GLOB, pathPattern.substring(ix));
     }
 
@@ -111,11 +114,14 @@ public final class Validators {
         }
 
         Path parent = resolvePath(fs, regexPath.parentPart);
-        checkState(fs.fileExists(parent), "Directory %s of %s doesn't exist", parent, pathPattern);
+        if (!fs.fileExists(parent)) {
+            throw new NoSuchFileException(
+                    parent.toString(), pathPattern, "Directory %s of %s doesn't exist".formatted(parent, pathPattern));
+        }
         return fs.matchFiles(parent, patternStyle, regexPath.regexPart.replace("\\\\", "\\"));
     }
 
-    private static RegexPath regexPathOnWindows(String pathPattern) {
+    private static RegexPath regexPathOnWindows(String pathPattern) throws IOException {
         var pos = 0;
         var ix = -1;
         while (true) {
@@ -140,7 +146,7 @@ public final class Validators {
         }
     }
 
-    private static RegexPath regexPath(String pathPattern, int splitIndex) {
+    private static RegexPath regexPath(String pathPattern, int splitIndex) throws IOException {
         if (splitIndex != -1) {
             var regexPart = pathPattern.substring(splitIndex + 1);
             if (!regexPart.isEmpty()) {
@@ -148,7 +154,7 @@ public final class Validators {
             }
         }
 
-        throw new IllegalArgumentException("Unable to find the parent of the path: " + pathPattern);
+        throw new NoSuchFileException(pathPattern, null, "Unable to find the parent of the path: " + pathPattern);
     }
 
     private static List<Path> directPath(FileSystemAbstraction fs, String pathPattern) throws IOException {
@@ -164,7 +170,11 @@ public final class Validators {
 
     private static Path resolvePath(FileSystemAbstraction fs, String path) throws IOException {
         if (fs instanceof SchemeFileSystemAbstraction system) {
-            return system.resolve(path).toRealPath();
+            try {
+                return system.resolve(path).toRealPath();
+            } catch (ProviderMismatchException ex) {
+                throw new IOException("Unable to resolve the path: " + path, ex);
+            }
         }
 
         return Path.of(path).toRealPath();

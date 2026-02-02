@@ -26,6 +26,7 @@ import static org.neo4j.io.fs.FileSystemAbstraction.PatternStyle.NONE;
 import static org.neo4j.io.fs.FileSystemAbstraction.PatternStyle.REGEX;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -155,7 +156,7 @@ class ValidatorsTest {
     }
 
     private static void assertNotValid(FileSystemAbstraction fs, PatternStyle patternStyle, String fileByName) {
-        assertThatThrownBy(() -> validate(fs, patternStyle, fileByName)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> validate(fs, patternStyle, fileByName)).isInstanceOf(UncheckedIOException.class);
     }
 
     private static List<Path> validate(FileSystemAbstraction fs, PatternStyle patternStyle, String fileByName) {

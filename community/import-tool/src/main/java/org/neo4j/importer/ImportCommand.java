@@ -39,9 +39,12 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.ProviderMismatchException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -622,30 +625,14 @@ public class ImportCommand {
                             .withSchemaCommands(parseSchemaCommands(fileSystem, databaseConfig))
                             .withLogProvider(logProvider));
 
+                    FileImporter importer;
                     if (isDistributedPropShard()) {
                         // faking this because input will be ignored anyway since input SHOULD come from the graph shard
-                        this.fileInputType = NO_INPUT;
-                        // Guarantee no provided nodes or relationships are used on the prop shards
-                        nodes = Collections.emptyList();
-                        relationships = Collections.emptyList();
+                        importer = importerBuilder.withFileInputType(NO_INPUT).build();
+                    } else {
+                        importer = addInputData(fileSystem, importerBuilder).build();
                     }
 
-                    FileImporter.FileInputType fileInputType = this.fileInputType;
-                    for (var n : nodes) {
-                        Path[] paths = n.toPaths(fileSystem, patternStyle);
-                        importerBuilder.addNodeFiles(n.key, paths);
-                        if (fileInputType == null) {
-                            // If undecided, then try to auto-detect the file type.
-                            fileInputType = resolveFileInputType(paths);
-                        }
-                    }
-                    for (var r : relationships) {
-                        importerBuilder.addRelationshipFiles(r.key, r.toPaths(fileSystem, patternStyle));
-                    }
-
-                    importerBuilder.withFileInputType(fileInputType);
-
-                    var importer = importerBuilder.build();
                     if (dryRun) {
                         importer.dryRun(this);
                     } else {
@@ -664,10 +651,26 @@ public class ImportCommand {
                     throw new CommandFailedException("Error importing csv file.", e, ExitCode.SOFTWARE);
                 } catch (UnsupportedFormatException e) {
                     throw new CommandFailedException("Unsupported format.", e, ExitCode.SOFTWARE);
+                } catch (UncheckedIOException e) {
+                    throw transformIOException(e.getCause());
                 }
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
+                throw transformIOException(e);
             }
+        }
+
+        private CommandFailedException transformIOException(IOException e) {
+            var error = new CommandFailedException(e, ExitCode.SOFTWARE);
+            if (e instanceof NoSuchFileException ex) {
+                error.addSupplementaryMessage(
+                        "Check that the file '%s' exists or is specified correctly.".formatted(ex.getFile()));
+            } else if (e.getCause() instanceof ProviderMismatchException) {
+                error.addSupplementaryMessage("The scheme of the provided URI is not currently supported - currently "
+                        + "only 's3', 'gs' and 'azb' schemes are supported.");
+            } else if (e.getCause() instanceof URISyntaxException) {
+                error.addSupplementaryMessage("Please check that the syntax of the URI resource provided is correct.");
+            }
+            throw error;
         }
 
         protected final void validateParameters() {
@@ -749,6 +752,23 @@ public class ImportCommand {
 
         protected IndexConfig customiseIndexConfig(Config databaseConfig, IndexConfig indexConfig) {
             return setupIndexConfigForImport(databaseConfig, indexConfig);
+        }
+
+        private FileImporter.Builder addInputData(FileSystemAbstraction fs, FileImporter.Builder importerBuilder) {
+            var actualInputType = this.fileInputType;
+            for (var n : nodes) {
+                Path[] paths = n.toPaths(fs, patternStyle);
+                importerBuilder.addNodeFiles(n.key, paths);
+                if (fileInputType == null) {
+                    // If undecided, then try to auto-detect the file type.
+                    actualInputType = resolveFileInputType(paths);
+                }
+            }
+            for (var r : relationships) {
+                importerBuilder.addRelationshipFiles(r.key, r.toPaths(fs, patternStyle));
+            }
+
+            return importerBuilder.withFileInputType(actualInputType);
         }
 
         private List<SchemaCommand> parseSchemaCommands(SchemeFileSystemAbstraction fileSystem, Config config)
