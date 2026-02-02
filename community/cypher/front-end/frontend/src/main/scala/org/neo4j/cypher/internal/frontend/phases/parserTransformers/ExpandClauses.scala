@@ -602,7 +602,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
             .withMapping(returnsMapped)
             .withIncomingMapping(Map.empty)
 
-        (resultingLayout, getExpandedAST)
+        (resultingLayout, getExpandedAST.endoRewrite(incomingLayout.ensureUniqueIds))
       }
     }
 
@@ -747,6 +747,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
         }
 
         SingleQuery(incomingLayout.getIngress ++ preface ++ Seq(subquery) ++ postface)(ast.position)
+          .endoRewrite(incomingLayout.ensureUniqueIds)
       }
     }
 
@@ -778,7 +779,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
           val expandedQuery =
             layoutWithUse.getIngress ++ Seq(ScopeClauseSubqueryCall(
               innerRewritten,
-              imports
+              imports.map(_.copyId)
             )(ast.position)) :+ postface
           SingleQuery(expandedQuery)(ast.position)
         }

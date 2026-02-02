@@ -59,11 +59,6 @@ case class ScopeState(
       AliasedReturnItem(v.withPosition(ast.position), v.withPosition(ast.position))(ast.position)
     )
 
-  def getIncomingConstantReturnItemSeq(ast: ASTNode): Seq[ReturnItem] =
-    getIncomingConstants(ast).map(v =>
-      AliasedReturnItem(v.withPosition(ast.position), v.withPosition(ast.position))(ast.position)
-    )
-
   def getOutgoingVariableReturnItemSeq(ast: ASTNode): Seq[ReturnItem] =
     getOutgoing(ast).map(v =>
       AliasedReturnItem(v.withPosition(ast.position), v.withPosition(ast.position))(ast.position)
