@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
-import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.NearestNeighborsPredicate;
@@ -111,17 +110,17 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
     }
 
     @Override
-    protected void reportIndexQueriedWith(IndexMonitor monitor, PropertyIndexQuery... predicates) {
-        monitor.queried(descriptor);
+    public void reportIndexQueried(QueryContext context, PropertyIndexQuery... predicates) {
+        context.monitor().queried(descriptor);
 
         for (int i = 1; i < predicates.length; i++) {
             final PropertyIndexQuery predicate = predicates[i];
             if (predicate.type() != IndexQueryType.ALL) {
-                usageTracking().queriedWithFilter();
+                usageTracker.queriedWithFilter();
                 return;
             }
         }
-        usageTracking().queried();
+        usageTracker.queried();
     }
 
     @Override

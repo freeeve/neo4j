@@ -73,12 +73,17 @@ public class PartitionedValueIndexReader implements ValueIndexReader {
                     throw new InnerException(e);
                 }
             });
-            usageTracker.queried();
+            reportIndexQueried(queryContext, query);
             boolean needStoreFilter = bridgingIndexProgressor.needStoreFilter();
             client.initializeQuery(descriptor, bridgingIndexProgressor, false, needStoreFilter, constraints, query);
         } catch (InnerException e) {
             throw e.getCause();
         }
+    }
+
+    @Override
+    public void reportIndexQueried(QueryContext context, PropertyIndexQuery... queries) {
+        usageTracker.queried();
     }
 
     @Override
@@ -93,11 +98,6 @@ public class PartitionedValueIndexReader implements ValueIndexReader {
     public PartitionedValueSeek valueSeek(
             int desiredNumberOfPartitions, QueryContext context, PropertyIndexQuery... query) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public IndexUsageTracking usageTracking() {
-        return usageTracker;
     }
 
     private static final class InnerException extends RuntimeException {

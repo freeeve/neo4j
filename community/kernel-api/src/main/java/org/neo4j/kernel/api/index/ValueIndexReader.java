@@ -24,7 +24,6 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
 import org.neo4j.kernel.impl.index.schema.PartitionedValueSeek;
 import org.neo4j.values.storable.Value;
 
@@ -57,6 +56,11 @@ public interface ValueIndexReader extends IndexReader {
             IndexQueryConstraints constraints,
             PropertyIndexQuery... query)
             throws IndexNotApplicableKernelException;
+
+    /**
+     * Reports the index queried to monitors and usage tracking. Typically called from within {@code query(...)}
+     */
+    void reportIndexQueried(QueryContext context, PropertyIndexQuery... queries);
 
     /**
      * Validates the given query whether it can be run on this index.
@@ -105,6 +109,11 @@ public interface ValueIndexReader extends IndexReader {
         }
 
         @Override
+        public void reportIndexQueried(QueryContext context, PropertyIndexQuery... queries) {
+            // do nothing
+        }
+
+        @Override
         public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... query) {
             // do nothing
         }
@@ -117,12 +126,5 @@ public interface ValueIndexReader extends IndexReader {
 
         @Override
         public void close() {}
-
-        @Override
-        public IndexUsageTracking usageTracking() {
-            return IndexUsageTracking.NO_USAGE_TRACKING;
-        }
     };
-
-    IndexUsageTracking usageTracking();
 }

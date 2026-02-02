@@ -59,11 +59,6 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
     }
 
     @Override
-    public IndexUsageTracking usageTracking() {
-        return usageTracker;
-    }
-
-    @Override
     boolean initializeRangeForQuery(RangeKey treeKeyFrom, RangeKey treeKeyTo, PropertyIndexQuery... predicates) {
         if (isAllQuery(predicates)) {
             initializeAllSlotsForFullRange(treeKeyFrom, treeKeyTo);

@@ -128,8 +128,7 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
             PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         validateQuery(constraints, predicates);
-        queryContext.monitor().queried(descriptor);
-        usageTracker.queried();
+        reportIndexQueried(queryContext, predicates);
 
         KEY treeKeyFrom = layout.newKey();
         KEY treeKeyTo = layout.newKey();
@@ -138,6 +137,12 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
         boolean needFilter = initializeRangeForQuery(treeKeyFrom, treeKeyTo, predicates);
         startSeekForInitializedRange(
                 cursor, treeKeyFrom, treeKeyTo, cursorContext, needFilter, constraints, predicates);
+    }
+
+    @Override
+    public void reportIndexQueried(QueryContext context, PropertyIndexQuery... queries) {
+        context.monitor().queried(descriptor);
+        usageTracker.queried();
     }
 
     void initializeFromToKeys(KEY treeKeyFrom, KEY treeKeyTo) {

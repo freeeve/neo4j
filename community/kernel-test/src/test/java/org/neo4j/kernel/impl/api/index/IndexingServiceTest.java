@@ -2209,14 +2209,14 @@ class IndexingServiceTest {
         }
 
         @Override
-        public PartitionedValueSeek valueSeek(
-                int desiredNumberOfPartitions, QueryContext queryContext, PropertyIndexQuery... query) {
-            throw new UnsupportedOperationException();
+        public void reportIndexQueried(QueryContext context, PropertyIndexQuery... queries) {
+            tracker.queried();
         }
 
         @Override
-        public IndexUsageTracking usageTracking() {
-            return tracker;
+        public PartitionedValueSeek valueSeek(
+                int desiredNumberOfPartitions, QueryContext queryContext, PropertyIndexQuery... query) {
+            throw new UnsupportedOperationException();
         }
 
         @Override

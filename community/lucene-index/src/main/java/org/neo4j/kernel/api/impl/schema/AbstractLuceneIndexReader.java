@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.function.Function;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
-import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
@@ -44,8 +43,8 @@ import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 
 public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
-    private final IndexUsageTracking usageTracker;
     private final LuceneQueryFactory queryFactory;
+    protected final IndexUsageTracking usageTracker;
     protected final IndexDescriptor descriptor;
     protected final Log log;
 
@@ -69,15 +68,16 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
             PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         final var predicate = validateSingleQuery(constraints, predicates);
-        reportIndexQueriedWith(queryContext.monitor(), predicates);
+        reportIndexQueried(queryContext, predicates);
 
         final var progressor = indexProgressor(queryFactory, constraints, client, predicates);
         final var needStoreFilter = needStoreFilter(predicate);
         client.initializeQuery(descriptor, progressor, false, needStoreFilter, constraints, predicate);
     }
 
-    protected void reportIndexQueriedWith(IndexMonitor monitor, PropertyIndexQuery... predicates) {
-        monitor.queried(descriptor);
+    @Override
+    public void reportIndexQueried(QueryContext context, PropertyIndexQuery... predicates) {
+        context.monitor().queried(descriptor);
         usageTracker.queried();
     }
 
@@ -218,10 +218,5 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
         public void close() {
             indexProgressor.close();
         }
-    }
-
-    @Override
-    public IndexUsageTracking usageTracking() {
-        return usageTracker;
     }
 }

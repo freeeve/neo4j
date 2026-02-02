@@ -123,11 +123,16 @@ public class FulltextIndexReader implements ValueIndexReader {
                     queryContext.memoryTracker());
         }
 
-        queryContext.monitor().queried(index);
-        usageTracker.queried();
+        reportIndexQueried(queryContext, queries);
 
         final var progressor = new LuceneScoredEntityIndexProgressor(iterator, client, constraints);
         client.initializeQuery(index, progressor, true, false, constraints, queries);
+    }
+
+    @Override
+    public void reportIndexQueried(QueryContext context, PropertyIndexQuery... queries) {
+        context.monitor().queried(index);
+        usageTracker.queried();
     }
 
     @Override
@@ -193,11 +198,6 @@ public class FulltextIndexReader implements ValueIndexReader {
     public PartitionedValueSeek valueSeek(
             int desiredNumberOfPartitions, QueryContext context, PropertyIndexQuery... query) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public IndexUsageTracking usageTracking() {
-        return usageTracker;
     }
 
     /**
