@@ -1254,6 +1254,15 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     withSetting(GraphDatabaseInternalSettings.planning_graph_schema_optimizations_enabled, Boolean.box(enabled))
   }
 
+  def enableSchemaInference(enabled: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    val strategy =
+      if (enabled)
+        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
+      else
+        GraphDatabaseSettings.InferSchemaPartsStrategy.OFF
+    withSetting(GraphDatabaseSettings.cypher_infer_schema_parts_strategy, strategy)
+  }
+
   def enableGraphTypes(enabled: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     withSetting(GraphDatabaseInternalSettings.graph_type_enabled, Boolean.box(enabled))
   }
